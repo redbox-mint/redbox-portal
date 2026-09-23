@@ -23,6 +23,11 @@ export interface JsonataBinding {
 export type ValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
 export type DoiBindingKind = ValueBinding['kind'];
 
+export interface DoiArraySourceMapping {
+  sourcePath?: string;
+  itemMode?: 'array';
+}
+
 export interface DoiNameIdentifierMapping {
   nameIdentifier: ValueBinding;
   nameIdentifierScheme?: ValueBinding;
@@ -51,13 +56,13 @@ export interface DoiContributorMapping extends DoiCreatorMapping {
   contributorType: ValueBinding;
 }
 
-export interface DoiTitleMapping {
+export interface DoiTitleMapping extends DoiArraySourceMapping {
   title: ValueBinding;
   titleType?: ValueBinding;
   lang?: ValueBinding;
 }
 
-export interface DoiSubjectMapping {
+export interface DoiSubjectMapping extends DoiArraySourceMapping {
   subject: ValueBinding;
   subjectScheme?: ValueBinding;
   schemeUri?: ValueBinding;
@@ -66,18 +71,18 @@ export interface DoiSubjectMapping {
   lang?: ValueBinding;
 }
 
-export interface DoiDateMapping {
+export interface DoiDateMapping extends DoiArraySourceMapping {
   date: ValueBinding;
   dateType: ValueBinding;
   dateInformation?: ValueBinding;
 }
 
-export interface DoiIdentifierMapping {
+export interface DoiIdentifierMapping extends DoiArraySourceMapping {
   identifier: ValueBinding;
   identifierType: ValueBinding;
 }
 
-export interface DoiRelatedIdentifierMapping {
+export interface DoiRelatedIdentifierMapping extends DoiArraySourceMapping {
   relatedIdentifier: ValueBinding;
   relatedIdentifierType: ValueBinding;
   relationType: ValueBinding;
@@ -87,7 +92,7 @@ export interface DoiRelatedIdentifierMapping {
   resourceTypeGeneral?: ValueBinding;
 }
 
-export interface DoiRightsMapping {
+export interface DoiRightsMapping extends DoiArraySourceMapping {
   rights?: ValueBinding;
   rightsUri?: ValueBinding;
   rightsIdentifier?: ValueBinding;
@@ -96,7 +101,7 @@ export interface DoiRightsMapping {
   lang?: ValueBinding;
 }
 
-export interface DoiDescriptionMapping {
+export interface DoiDescriptionMapping extends DoiArraySourceMapping {
   description: ValueBinding;
   descriptionType: ValueBinding;
   lang?: ValueBinding;
@@ -124,7 +129,7 @@ export interface DoiGeoLocationMapping {
   geoLocationPlace?: DoiGeoLocationPlaceMapping;
 }
 
-export interface DoiFundingReferenceMapping {
+export interface DoiFundingReferenceMapping extends DoiArraySourceMapping {
   funderName: ValueBinding;
   funderIdentifier?: ValueBinding;
   funderIdentifierType?: ValueBinding;
@@ -466,10 +471,16 @@ const CONTRIBUTOR_SCHEMA = {
   required: ['sourcePath', 'itemMode', 'name', 'contributorType']
 };
 
+const OPTIONAL_ARRAY_SOURCE_PROPERTIES = {
+  sourcePath: { type: 'string', title: 'Source Path' },
+  itemMode: { type: 'string', title: 'Item Mode', enum: ['array'] }
+};
+
 const TITLE_SCHEMA = {
   type: 'object',
   title: 'Title',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     title: VALUE_BINDING_SCHEMA,
     titleType: VALUE_BINDING_SCHEMA,
     lang: VALUE_BINDING_SCHEMA
@@ -481,6 +492,7 @@ const SUBJECT_SCHEMA = {
   type: 'object',
   title: 'Subject',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     subject: VALUE_BINDING_SCHEMA,
     subjectScheme: VALUE_BINDING_SCHEMA,
     schemeUri: VALUE_BINDING_SCHEMA,
@@ -495,6 +507,7 @@ const DATE_SCHEMA = {
   type: 'object',
   title: 'Date',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     date: VALUE_BINDING_SCHEMA,
     dateType: VALUE_BINDING_SCHEMA,
     dateInformation: VALUE_BINDING_SCHEMA
@@ -506,6 +519,7 @@ const IDENTIFIER_SCHEMA = {
   type: 'object',
   title: 'Alternate Identifier',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     identifier: VALUE_BINDING_SCHEMA,
     identifierType: VALUE_BINDING_SCHEMA
   },
@@ -516,6 +530,7 @@ const RELATED_IDENTIFIER_SCHEMA = {
   type: 'object',
   title: 'Related Identifier',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     relatedIdentifier: VALUE_BINDING_SCHEMA,
     relatedIdentifierType: VALUE_BINDING_SCHEMA,
     relationType: VALUE_BINDING_SCHEMA,
@@ -531,6 +546,7 @@ const RIGHTS_SCHEMA = {
   type: 'object',
   title: 'Rights',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     rights: VALUE_BINDING_SCHEMA,
     rightsUri: VALUE_BINDING_SCHEMA,
     rightsIdentifier: VALUE_BINDING_SCHEMA,
@@ -544,6 +560,7 @@ const DESCRIPTION_SCHEMA = {
   type: 'object',
   title: 'Description',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     description: VALUE_BINDING_SCHEMA,
     descriptionType: VALUE_BINDING_SCHEMA,
     lang: VALUE_BINDING_SCHEMA
@@ -596,6 +613,7 @@ const FUNDING_REFERENCE_SCHEMA = {
   type: 'object',
   title: 'Funding Reference',
   properties: {
+    ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     funderName: VALUE_BINDING_SCHEMA,
     funderIdentifier: VALUE_BINDING_SCHEMA,
     funderIdentifierType: VALUE_BINDING_SCHEMA,

@@ -80,7 +80,7 @@ describe('doi-v2 payload', function () {
       subject: createDefaultBinding('record.metadata.missing'),
       title: createDefaultBinding('record.metadata.title')
     };
-    const mappedProfile = {
+    const mappedProfile: DoiProfile = {
       ...profile,
       metadata: {
         ...profile.metadata,
@@ -91,7 +91,7 @@ describe('doi-v2 payload', function () {
           titles: [titleMapping]
         }]
       }
-    } as unknown as DoiProfile;
+    };
 
     const payload = (await buildDoiPayload(record as never, 'oid-1', mappedProfile, 'update', undefined)) as {
       data: { attributes: Record<string, unknown> };
@@ -106,7 +106,7 @@ describe('doi-v2 payload', function () {
   });
 
   it('expands record arrays into separate subjects and descriptions', async function () {
-    const mappedProfile = {
+    const mappedProfile: DoiProfile = {
       ...profile,
       metadata: {
         ...profile.metadata,
@@ -122,7 +122,7 @@ describe('doi-v2 payload', function () {
           { sourcePath: 'metadata.notes', itemMode: 'array', description: createDefaultBinding('item.text'), descriptionType: createDefaultBinding('', 'Other') }
         ]
       }
-    } as unknown as DoiProfile;
+    };
     const mappedRecord = {
       metadata: {
         ...record.metadata,
