@@ -253,6 +253,7 @@ export namespace Services {
       }
     }
 
+    /** Sends a DOI request and records the DataCite result in the integration audit. */
     private async publishV2Doi(
       oid: string,
       record: DoiRecordModel,
@@ -323,6 +324,7 @@ export namespace Services {
       }
     }
 
+    /** Creates or updates a DOI, optionally refreshing metadata without a state change. */
     public async publishDoi(
       oid: string,
       record: DoiRecordModel,

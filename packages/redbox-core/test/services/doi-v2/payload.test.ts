@@ -74,4 +74,74 @@ describe('doi-v2 payload', function () {
     expect(createPayload.data.attributes.titles).to.deep.equal([{ title: 'Example title' }]);
     expect(createPayload.data.attributes.creators).to.have.length(1);
   });
+
+  it('keeps top-level and related-item titles when another binding is empty', async function () {
+    const titleMapping = {
+      subject: createDefaultBinding('record.metadata.missing'),
+      title: createDefaultBinding('record.metadata.title')
+    };
+    const mappedProfile = {
+      ...profile,
+      metadata: {
+        ...profile.metadata,
+        titles: [titleMapping],
+        relatedItems: [{
+          relationType: createDefaultBinding('', 'IsSupplementTo'),
+          relatedItemType: createDefaultBinding('', 'Dataset'),
+          titles: [titleMapping]
+        }]
+      }
+    } as unknown as DoiProfile;
+
+    const payload = (await buildDoiPayload(record as never, 'oid-1', mappedProfile, 'update', undefined)) as {
+      data: { attributes: Record<string, unknown> };
+    };
+
+    expect(payload.data.attributes.titles).to.deep.equal([{ title: 'Example title' }]);
+    expect(payload.data.attributes.relatedItems).to.deep.equal([{
+      relationType: 'IsSupplementTo',
+      relatedItemType: 'Dataset',
+      titles: [{ title: 'Example title' }]
+    }]);
+  });
+
+  it('expands record arrays into separate subjects and descriptions', async function () {
+    const mappedProfile = {
+      ...profile,
+      metadata: {
+        ...profile.metadata,
+        subjects: [
+          { sourcePath: 'metadata.keywords', itemMode: 'array', subject: createDefaultBinding('item.value') },
+          {
+            sourcePath: 'metadata.forCodes', itemMode: 'array',
+            subject: createDefaultBinding('item.label'),
+            classificationCode: createDefaultBinding('item.notation')
+          }
+        ],
+        descriptions: [
+          { sourcePath: 'metadata.notes', itemMode: 'array', description: createDefaultBinding('item.text'), descriptionType: createDefaultBinding('', 'Other') }
+        ]
+      }
+    } as unknown as DoiProfile;
+    const mappedRecord = {
+      metadata: {
+        ...record.metadata,
+        keywords: ['frogs', '', 'rainforest'],
+        forCodes: [{ notation: '310308', label: 'Terrestrial ecology' }],
+        notes: [{ text: 'Collection methods' }, { text: '' }]
+      }
+    };
+
+    const payload = (await buildDoiPayload(mappedRecord as never, 'oid-1', mappedProfile, 'update', undefined)) as {
+      data: { attributes: Record<string, unknown> };
+    };
+
+    expect(payload.data.attributes).to.not.have.property('event');
+    expect(payload.data.attributes.subjects).to.deep.equal([
+      { subject: 'frogs' },
+      { subject: 'rainforest' },
+      { subject: 'Terrestrial ecology', classificationCode: '310308' }
+    ]);
+    expect(payload.data.attributes.descriptions).to.deep.equal([{ description: 'Collection methods', descriptionType: 'Other' }]);
+  });
 });

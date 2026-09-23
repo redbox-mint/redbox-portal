@@ -205,6 +205,23 @@ describe('DoiService', function() {
       expect((runtime.runUpdateDoiProgram as sinon.SinonStub).called).to.be.false;
     });
 
+    it('updates DOI metadata without requesting a state transition', async function() {
+      const record = withBrand({ metadata: {
+        creators: [{ given_name: 'First', family_name: 'Last' }],
+        citation_doi: '10.1234/5678',
+        citation_title: 'Updated title',
+        citation_publisher: 'My Publisher',
+        citation_publication_date: '2023-04-01'
+      } });
+
+      await service.publishDoi('oid1', record, 'publish', 'update', { metadataOnly: true });
+
+      const updateCall = (runtime.runUpdateDoiProgram as sinon.SinonStub).firstCall;
+      expect(updateCall).to.exist;
+      expect(updateCall.args[3].data.attributes).to.not.have.property('event');
+      expect(updateCall.args[3].data.attributes.titles).to.deep.equal([{ title: 'Updated title' }]);
+    });
+
     it('should include the DOI request body in failure audits when the downstream create call fails', async function() {
       (runtime.runCreateDoiProgram as sinon.SinonStub).rejects({
         statusCode: 422,

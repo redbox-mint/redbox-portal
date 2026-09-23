@@ -105,11 +105,13 @@ async function mapCreators(
   return results;
 }
 
+/** Expands a configured metadata collection and omits entries missing its required value. */
 async function mapSimpleArray<T extends Record<string, unknown>>(
   mappings: T[] | undefined,
   record: DoiRecordModel,
   oid: string,
-  profile: DoiProfile
+  profile: DoiProfile,
+  requiredField?: string
 ): Promise<JsonObject[]> {
   if (!Array.isArray(mappings)) {
     return [];
@@ -117,10 +119,8 @@ async function mapSimpleArray<T extends Record<string, unknown>>(
   const context = createBindingContext(record, oid, profile);
   const results: JsonObject[] = [];
   for (const mapping of mappings) {
-    const primaryField = ['subject', 'description', 'title', 'date', 'identifier', 'relatedIdentifier', 'funderName']
-      .find(field => field in mapping);
     const addMapped = (mapped: JsonObject) => {
-      if (!_.isEmpty(mapped) && (primaryField == null || asTrimmedString(mapped[primaryField]) != null)) {
+      if (!_.isEmpty(mapped) && (requiredField == null || asTrimmedString(mapped[requiredField]) != null)) {
         results.push(mapped);
       }
     };
@@ -200,7 +200,7 @@ async function mapRelatedItems(
   const results: JsonObject[] = [];
   for (const mapping of mappings) {
     const entry = await mapNamedFields(mapping as unknown as Record<string, unknown>, context);
-    const titles = await mapSimpleArray(mapping.titles as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
+    const titles = await mapSimpleArray(mapping.titles as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'title');
     const creators = await mapCreators(mapping.creators, record, oid, profile);
     const contributors = await mapCreators(mapping.contributors, record, oid, profile);
     if (titles.length > 0) {
@@ -268,6 +268,7 @@ function validateDates(dates: JsonObject[], errors: string[]) {
   }
 }
 
+/** Builds the DataCite request body from a record and its configured DOI profile. */
 export async function buildDoiPayload(
   record: DoiRecordModel,
   oid: string,
@@ -286,17 +287,17 @@ export async function buildDoiPayload(
   const version = asTrimmedString(await evaluateBinding(profile.metadata.version, context));
   const formats = asStringArray(await evaluateBinding(profile.metadata.formats, context));
   const sizes = asStringArray(await evaluateBinding(profile.metadata.sizes, context));
-  const titles = await mapSimpleArray(profile.metadata.titles as unknown as Array<Record<string, unknown>>, record, oid, profile);
+  const titles = await mapSimpleArray(profile.metadata.titles as unknown as Array<Record<string, unknown>>, record, oid, profile, 'title');
   const creators = await mapCreators(profile.metadata.creators, record, oid, profile);
-  const subjects = await mapSimpleArray(profile.metadata.subjects as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
+  const subjects = await mapSimpleArray(profile.metadata.subjects as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'subject');
   const contributors = await mapCreators(profile.metadata.contributors, record, oid, profile);
-  const dates = await mapSimpleArray(profile.metadata.dates as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
-  const alternateIdentifiers = await mapSimpleArray(profile.metadata.alternateIdentifiers as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
-  const relatedIdentifiers = await mapSimpleArray(profile.metadata.relatedIdentifiers as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
+  const dates = await mapSimpleArray(profile.metadata.dates as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'date');
+  const alternateIdentifiers = await mapSimpleArray(profile.metadata.alternateIdentifiers as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'identifier');
+  const relatedIdentifiers = await mapSimpleArray(profile.metadata.relatedIdentifiers as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'relatedIdentifier');
   const rightsList = await mapSimpleArray(profile.metadata.rightsList as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
-  const descriptions = await mapSimpleArray(profile.metadata.descriptions as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
+  const descriptions = await mapSimpleArray(profile.metadata.descriptions as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'description');
   const geoLocations = await mapGeoLocations(profile.metadata.geoLocations, record, oid, profile);
-  const fundingReferences = await mapSimpleArray(profile.metadata.fundingReferences as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
+  const fundingReferences = await mapSimpleArray(profile.metadata.fundingReferences as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'funderName');
   const relatedItems = await mapRelatedItems(profile.metadata.relatedItems, record, oid, profile);
   const types = await mapNamedFields(profile.metadata.types as unknown as Record<string, unknown>, context);
 
