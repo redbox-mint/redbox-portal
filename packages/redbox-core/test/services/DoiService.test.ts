@@ -205,6 +205,61 @@ describe('DoiService', function() {
       expect((runtime.runUpdateDoiProgram as sinon.SinonStub).called).to.be.false;
     });
 
+    it('updates DOI metadata without requesting a state transition', async function() {
+      const record = withBrand({ metadata: {
+        creators: [{ given_name: 'First', family_name: 'Last' }],
+        citation_doi: '10.1234/5678',
+        citation_title: 'Updated title',
+        citation_publisher: 'My Publisher',
+        citation_publication_date: '2023-04-01'
+      } });
+
+      await service.publishDoi('oid1', record, 'publish', 'update', { metadataOnly: true });
+      await service.publishDoi('oid1', record, 'publish', 'update', { metadataOnly: 'true' });
+
+      const updateCalls = (runtime.runUpdateDoiProgram as sinon.SinonStub).getCalls();
+      expect(updateCalls).to.have.length(2);
+      for (const updateCall of updateCalls) {
+        expect(updateCall.args[3].data.attributes).to.not.have.property('event');
+        expect(updateCall.args[3].data.attributes.titles).to.deep.equal([{ title: 'Updated title' }]);
+        expect(updateCall.args[4].requestSummary).to.not.have.property('event');
+      }
+    });
+
+    it('warns and keeps the event when metadataOnly is set on a DOI create', async function() {
+      const record = withBrand({ metadata: {
+        creators: [{ given_name: 'First', family_name: 'Last' }],
+        citation_title: 'New title',
+        citation_publisher: 'My Publisher',
+        citation_publication_date: '2023-04-01'
+      } });
+
+      await service.publishDoi('oid1', record, 'draft', 'create', { metadataOnly: true });
+
+      const createCall = (runtime.runCreateDoiProgram as sinon.SinonStub).firstCall;
+      expect(createCall.args[2].data.attributes.event).to.equal('draft');
+      expect((mockSails.log.warn as sinon.SinonStub).calledWithMatch('Ignoring metadataOnly for oid oid1')).to.be.true;
+    });
+
+    it('keeps explicit and configured events on ordinary DOI updates', async function() {
+      const record = withBrand({ metadata: {
+        creators: [{ given_name: 'First', family_name: 'Last' }],
+        citation_doi: '10.1234/5678',
+        citation_title: 'Updated title',
+        citation_publisher: 'My Publisher',
+        citation_publication_date: '2023-04-01'
+      } });
+      mockSails.config.brandingConfigurationDefaults.doiPublishing.operations.updateEvent = 'draft';
+
+      await service.publishDoi('oid1', record, 'publish', 'update');
+      await service.publishDoi('oid1', record, '', 'update');
+
+      const updateCalls = (runtime.runUpdateDoiProgram as sinon.SinonStub).getCalls();
+      expect(updateCalls).to.have.length(2);
+      expect(updateCalls[0].args[3].data.attributes.event).to.equal('publish');
+      expect(updateCalls[1].args[3].data.attributes.event).to.equal('draft');
+    });
+
     it('should include the DOI request body in failure audits when the downstream create call fails', async function() {
       (runtime.runCreateDoiProgram as sinon.SinonStub).rejects({
         statusCode: 422,
@@ -584,6 +639,21 @@ describe('DoiService', function() {
 
       expect(result).to.be.true;
       expect((runtime.runChangeDoiStateProgram as sinon.SinonStub).calledOnce).to.be.true;
+      expect(((global as any).IntegrationAuditService.startAudit as sinon.SinonStub).firstCall.args[0]).to.equal('10.1234/5678');
+    });
+
+    it('files the state change audit under the record oid when one is provided', async function() {
+      sinon.stub(runtime, 'runChangeDoiStateProgram').resolves({
+        statusCode: 200,
+        responseSummary: { changed: true, doi: '10.1234/5678', event: 'register' }
+      });
+
+      await service.changeDoiState({ id: 'brand-1', name: 'default' }, '10.1234/5678', 'register', 'oid1');
+
+      const startAudit = (global as any).IntegrationAuditService.startAudit as sinon.SinonStub;
+      expect(startAudit.firstCall.args[0]).to.equal('oid1');
+      expect(startAudit.firstCall.args[2].requestSummary).to.deep.equal({ doi: '10.1234/5678', event: 'register' });
+      expect((runtime.runChangeDoiStateProgram as sinon.SinonStub).firstCall.args[1].recordOid).to.equal('oid1');
     });
   });
 

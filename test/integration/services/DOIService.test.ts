@@ -79,7 +79,7 @@ describe('The DOI Service', function () {
 
   it("Should register a DOI", async function () {
     sails.log.debug("Registering the created DOI: " + createdDoi);
-    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'register');
+    const result = await sails.services.doiservice.changeDoiState(brand, createdDoi, 'register', oid);
     expect(result).to.eq(true);
   });
 

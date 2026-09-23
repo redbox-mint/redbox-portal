@@ -752,7 +752,7 @@ export namespace Services {
 
       if (_.isPlainObject(requestSummary) && requestSummary != null) {
         const event = (requestSummary as Record<string, unknown>)['event'];
-        if (event === 'draft' || event === 'publish') {
+        if (event === 'draft' || event === 'publish' || event === 'register' || event === 'hide') {
           keyResult['event'] = event;
         }
       }
@@ -766,6 +766,11 @@ export namespace Services {
           const dataId = (rs['data'] as Record<string, unknown>)['id'];
           if (!_.isEmpty(dataId) && /^10\.\d+\/\S+/i.test(String(dataId))) {
             keyResult['doi'] = dataId;
+          }
+          // DataCite returns the DOI's resulting state, which is the only record of it when no event was sent.
+          const doiState = _.get(rs['data'], ['attributes', 'state']);
+          if (doiState === 'draft' || doiState === 'registered' || doiState === 'findable') {
+            keyResult['doiState'] = doiState;
           }
         }
         if (!_.isEmpty(rs['articleId'])) {
@@ -875,10 +880,15 @@ export namespace Services {
         || action === IntegrationAuditAction.updateDoiTriggerSync;
     }
 
+    /**
+     * Maps a DOI audit summary to a user-facing outcome. The DOI state DataCite returned takes
+     * precedence over the requested event, which takes precedence over the record's workflow stage.
+     */
     private mapDoiOutcome(s: IntegrationStatusSummary, ctx: IntegrationStatusRecordContext): IntegrationOutcome | undefined {
       const status = s.status;
       const kr = s.keyResult ?? {};
       const event = kr['event'] as string | undefined;
+      const doiState = kr['doiState'] as string | undefined;
       const doiKnown = Boolean(kr['doi']) || Boolean(ctx.citationDoi);
 
       if (status === 'started') {
@@ -892,8 +902,13 @@ export namespace Services {
       if (status === 'failed') return this.makeOutcome('doi', 'error', 'error', true);
 
       if (status === 'success') {
+        if (doiState === 'findable') return this.makeOutcome('doi', 'published', 'success');
+        if (doiState === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        if (doiState === 'registered') return this.makeOutcome('doi', 'registered', 'pending', true);
         if (event === 'publish') return this.makeOutcome('doi', 'published', 'success');
         if (event === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        // State change requests record only the event; both of these leave the DOI registered.
+        if (event === 'register' || event === 'hide') return this.makeOutcome('doi', 'registered', 'pending', true);
         if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {
           return this.makeOutcome('doi', 'published', 'success');
         }
@@ -967,10 +982,10 @@ export namespace Services {
         if (mapper) {
           s.outcome = mapper(s, ctx);
         }
-        // Backfill doi from ctx.citationDoi for doi summaries in draft-assigned/published states without a doi yet
+        // Backfill doi from ctx.citationDoi for doi summaries in draft-assigned/registered/published states without a doi yet
         if (s.integrationName.toLowerCase() === 'doi' && !s.keyResult?.['doi'] && ctx.citationDoi) {
           const outcomeState = s.outcome?.state;
-          if (outcomeState === 'draft-assigned' || outcomeState === 'published') {
+          if (outcomeState === 'draft-assigned' || outcomeState === 'registered' || outcomeState === 'published') {
             if (!s.keyResult) s.keyResult = {};
             s.keyResult['doi'] = ctx.citationDoi;
           }
