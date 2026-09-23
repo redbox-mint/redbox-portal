@@ -245,38 +245,32 @@ describe('PDFService Unit Tests', () => {
   it('blocks off-origin navigation and keeps the bearer token on portal requests', async () => {
     const handler = () => mockPage.on.getCalls()
       .find((call: any) => call.args[0] === 'request')?.args[1];
+    const portalRequest = {
+      url: () => 'http://localhost:1500/default/rdmp/record/view/oid-redirect',
+      isNavigationRequest: () => true,
+      frame: () => mockPage.mainFrame(),
+      headers: () => ({}),
+      continue: sinon.stub().resolves(),
+      abort: sinon.stub().resolves(),
+    };
+    const externalRequest = {
+      ...portalRequest,
+      url: () => 'https://ds.aaf.edu.au/discovery',
+      headers: () => ({ Authorization: 'Bearer test-token' }),
+      continue: sinon.stub().resolves(),
+      abort: sinon.stub().resolves(),
+    };
+    const externalAsset = {
+      ...externalRequest,
+      isNavigationRequest: () => false,
+      continue: sinon.stub().resolves(),
+      abort: sinon.stub().resolves(),
+    };
+
     mockPage.goto.callsFake(async () => {
-      const portalRequest = {
-        url: () => 'http://localhost:1500/default/rdmp/record/view/oid-redirect',
-        isNavigationRequest: () => true,
-        frame: () => mockPage.mainFrame(),
-        headers: () => ({}),
-        continue: sinon.stub().resolves(),
-        abort: sinon.stub().resolves(),
-      };
       handler()(portalRequest);
-      expect(portalRequest.continue.firstCall.args[0].headers.Authorization).to.equal('Bearer test-token');
-
-      const externalRequest = {
-        ...portalRequest,
-        url: () => 'https://ds.aaf.edu.au/discovery',
-        headers: () => ({ Authorization: 'Bearer test-token' }),
-        continue: sinon.stub().resolves(),
-        abort: sinon.stub().resolves(),
-      };
       handler()(externalRequest);
-      expect(externalRequest.abort.calledOnce).to.be.true;
-      expect(externalRequest.continue.called).to.be.false;
-
-      const externalAsset = {
-        ...externalRequest,
-        isNavigationRequest: () => false,
-        continue: sinon.stub().resolves(),
-        abort: sinon.stub().resolves(),
-      };
       handler()(externalAsset);
-      expect(externalAsset.continue.firstCall.args[0].headers).to.not.have.property('Authorization');
-      expect(externalAsset.abort.called).to.be.false;
       throw new Error('net::ERR_BLOCKED_BY_CLIENT');
     });
 
@@ -284,6 +278,11 @@ describe('PDFService Unit Tests', () => {
       pdfService.attemptPDFGeneration('oid-redirect', {}, {}, { name: 'default' }, 1)
     );
 
+    expect(portalRequest.continue.firstCall.args[0].headers.Authorization).to.equal('Bearer test-token');
+    expect(externalRequest.abort.calledOnce).to.be.true;
+    expect(externalRequest.continue.called).to.be.false;
+    expect(externalAsset.continue.firstCall.args[0].headers).to.not.have.property('Authorization');
+    expect(externalAsset.abort.called).to.be.false;
     expect(exit._tag).to.equal('Failure');
     expect(mockPage.pdf.called).to.be.false;
     expect(storageDiskPutStub.called).to.be.false;
