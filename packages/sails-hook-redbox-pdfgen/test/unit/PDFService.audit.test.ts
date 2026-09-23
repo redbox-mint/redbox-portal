@@ -5,6 +5,7 @@ const {
   clearPdfgenTestGlobals,
   installPdfgenTestGlobals,
   waitForAssertion,
+  navigationResponse,
 } = require('../support/globals');
 
 const globalAny = global as any;
@@ -64,9 +65,11 @@ describe('PDFService Integration Audit', () => {
     pdfService.DatastreamService = globalAny.sails.services.standarddatastreamservice;
 
     mockPage = {
-      setExtraHTTPHeaders: sinon.stub(),
+      setRequestInterception: sinon.stub().resolves(),
       on: sinon.stub(),
-      goto: sinon.stub().resolves(),
+      mainFrame: sinon.stub().returns({}),
+      url: sinon.stub().callsFake(() => mockPage.goto.lastCall.args[0]),
+      goto: sinon.stub().callsFake(async (url: string) => navigationResponse(url)),
       waitForNetworkIdle: sinon.stub().resolves(),
       waitForSelector: sinon.stub().resolves(),
       waitForFunction: sinon.stub().resolves(),
@@ -202,6 +205,25 @@ describe('PDFService Integration Audit', () => {
       attempt: 1,
     });
     expect(failDetails.responseSummary.cause).to.equal('navigation kaboom');
+  });
+
+  it('records an audit failure for a login page that returns HTTP 200', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-login';
+    const loginUrl = 'http://localhost:1500/default/rdmp/user/login';
+    mockPage.goto.resolves(navigationResponse(loginUrl, 200, [recordUrl]));
+    mockPage.url.returns(loginUrl);
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-login', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(auditStub.failAudit.calledOnce).to.be.true;
+    expect(auditStub.completeAudit.called).to.be.false;
+    const [, error, details] = auditStub.failAudit.firstCall.args;
+    expect(error._tag).to.equal('BrowserError');
+    expect(details.responseSummary.cause).to.contain(loginUrl);
+    expect(mockPage.pdf.called).to.be.false;
   });
 
   it('records a child audit failure when readiness config validation fails', async () => {
@@ -375,7 +397,6 @@ describe('PDFService Integration Audit', () => {
     const options = { maxRetries: 1, retryDelayMs: 10 };
 
     mockPage.goto.onFirstCall().rejects(new Error('transient'));
-    mockPage.goto.onSecondCall().resolves();
 
     const observable = pdfService.createPDF('oid-retry', record, options, {});
     await new Promise((resolve, reject) => {

@@ -5,6 +5,7 @@ const {
   clearPdfgenTestGlobals,
   installPdfgenTestGlobals,
   waitForAssertion,
+  navigationResponse,
 } = require('../support/globals');
 
 const globalAny = global as any;
@@ -35,9 +36,11 @@ describe('PDFService Unit Tests', () => {
     pdfService.DatastreamService = globalAny.sails.services.standarddatastreamservice;
 
     mockPage = {
-      setExtraHTTPHeaders: sinon.stub(),
+      setRequestInterception: sinon.stub().resolves(),
       on: sinon.stub(),
-      goto: sinon.stub().resolves(),
+      mainFrame: sinon.stub().returns({}),
+      url: sinon.stub().callsFake(() => mockPage.goto.lastCall.args[0]),
+      goto: sinon.stub().callsFake(async (url: string) => navigationResponse(url)),
       waitForNetworkIdle: sinon.stub().resolves(),
       waitForSelector: sinon.stub().resolves(),
       waitForFunction: sinon.stub().resolves(),
@@ -145,6 +148,133 @@ describe('PDFService Unit Tests', () => {
     )).to.be.true;
   });
 
+  it('rejects a login redirect even when the final page returns HTTP 200', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-login';
+    const loginUrl = 'http://localhost:1500/default/rdmp/user/login';
+    mockPage.goto.resolves(navigationResponse(loginUrl, 200, [recordUrl]));
+    mockPage.url.returns(loginUrl);
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-login', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(JSON.stringify((exit as any).cause)).to.contain('BrowserError');
+    expect(mockPage.waitForNetworkIdle.called).to.be.false;
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+    expect(addDatastreamStub.called).to.be.false;
+  });
+
+  it('rejects a non-2xx record response before rendering', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-denied';
+    mockPage.goto.resolves(navigationResponse(recordUrl, 403));
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-denied', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+    expect(addDatastreamStub.called).to.be.false;
+  });
+
+  it('rejects an authentication redirect even if it returns to the record route', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-returned';
+    const loginUrl = 'http://localhost:1500/default/rdmp/user/login';
+    mockPage.goto.resolves(navigationResponse(recordUrl, 200, [recordUrl, loginUrl]));
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-returned', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.pdf.called).to.be.false;
+  });
+
+  it('rejects a missing navigation response', async () => {
+    mockPage.goto.resolves(null);
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-empty', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.pdf.called).to.be.false;
+  });
+
+  it('rejects a page that leaves the record route while becoming ready', async () => {
+    mockPage.waitForNetworkIdle.callsFake(async () => {
+      mockPage.url.returns('http://localhost:1500/default/rdmp/user/login');
+    });
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-late-login', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+  });
+
+  it('renders a successful same-origin record response', async () => {
+    await Effect.runPromise(
+      pdfService.attemptPDFGeneration('oid-success', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(mockPage.pdf.calledOnce).to.be.true;
+    expect(storageDiskPutStub.calledOnce).to.be.true;
+    expect(addDatastreamStub.calledOnce).to.be.true;
+  });
+
+  it('blocks off-origin navigation and keeps the bearer token on portal requests', async () => {
+    const handler = () => mockPage.on.getCalls()
+      .find((call: any) => call.args[0] === 'request')?.args[1];
+    mockPage.goto.callsFake(async () => {
+      const portalRequest = {
+        url: () => 'http://localhost:1500/default/rdmp/record/view/oid-redirect',
+        isNavigationRequest: () => true,
+        frame: () => mockPage.mainFrame(),
+        headers: () => ({}),
+        continue: sinon.stub().resolves(),
+        abort: sinon.stub().resolves(),
+      };
+      handler()(portalRequest);
+      expect(portalRequest.continue.firstCall.args[0].headers.Authorization).to.equal('Bearer test-token');
+
+      const externalRequest = {
+        ...portalRequest,
+        url: () => 'https://ds.aaf.edu.au/discovery',
+        headers: () => ({ Authorization: 'Bearer test-token' }),
+        continue: sinon.stub().resolves(),
+        abort: sinon.stub().resolves(),
+      };
+      handler()(externalRequest);
+      expect(externalRequest.abort.calledOnce).to.be.true;
+      expect(externalRequest.continue.called).to.be.false;
+
+      const externalAsset = {
+        ...externalRequest,
+        isNavigationRequest: () => false,
+        continue: sinon.stub().resolves(),
+        abort: sinon.stub().resolves(),
+      };
+      handler()(externalAsset);
+      expect(externalAsset.continue.firstCall.args[0].headers).to.not.have.property('Authorization');
+      expect(externalAsset.abort.called).to.be.false;
+      throw new Error('net::ERR_BLOCKED_BY_CLIENT');
+    });
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-redirect', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+  });
+
   it('should fall back to networkIdle strategy if unknown strategy provided', async () => {
     const record = { metaMetadata: { brandId: 1 } };
     const options = { readinessStrategy: 'invalidStrategy' };
@@ -221,7 +351,6 @@ describe('PDFService Unit Tests', () => {
     };
 
     mockPage.goto.onFirstCall().rejects(new Error('Navigation timeout'));
-    mockPage.goto.onSecondCall().resolves();
 
     const observable = pdfService.createPDF('oid-1', record, options, {});
     const result = await new Promise((resolve, reject) => {
@@ -263,8 +392,9 @@ describe('PDFService Unit Tests', () => {
       readinessStrategy: 'networkIdle',
     };
 
-    mockPage.goto.callsFake(async () => {
+    mockPage.goto.callsFake(async (url: string) => {
       options.readinessStrategy = 'selector';
+      return navigationResponse(url);
     });
 
     const service: any = pdfService;
@@ -276,7 +406,7 @@ describe('PDFService Unit Tests', () => {
     expect(mockPage.waitForSelector.called).to.be.false;
   });
 
-  it('should await auth headers before navigation', async () => {
+  it('should enable request interception before navigation', async () => {
     const record = { metaMetadata: { brandId: 1 } };
     let releaseHeaders: (() => void) | undefined;
     let markHeadersStarted: (() => void) | undefined;
@@ -284,7 +414,7 @@ describe('PDFService Unit Tests', () => {
       markHeadersStarted = resolve;
     });
 
-    mockPage.setExtraHTTPHeaders.callsFake(
+    mockPage.setRequestInterception.callsFake(
       () =>
         new Promise<void>(resolve => {
           markHeadersStarted?.();
@@ -297,7 +427,7 @@ describe('PDFService Unit Tests', () => {
 
     await headersStarted;
 
-    expect(mockPage.setExtraHTTPHeaders.calledOnce).to.be.true;
+    expect(mockPage.setRequestInterception.calledOnceWithExactly(true)).to.be.true;
     expect(mockPage.goto.called).to.be.false;
 
     releaseHeaders?.();
@@ -314,7 +444,7 @@ describe('PDFService Unit Tests', () => {
       markHeadersStarted = resolve;
     });
 
-    mockPage.setExtraHTTPHeaders.callsFake(
+    mockPage.setRequestInterception.callsFake(
       () =>
         new Promise<void>(resolve => {
           markHeadersStarted?.();
@@ -403,9 +533,9 @@ describe('PDFService Unit Tests', () => {
       markNavigationStarted = resolve;
     });
 
-    mockPage.goto.callsFake(() => new Promise<void>(resolve => {
+    mockPage.goto.callsFake((url: string) => new Promise(resolve => {
       markNavigationStarted?.();
-      releaseNavigation = resolve;
+      releaseNavigation = () => resolve(navigationResponse(url));
     }));
 
     const observable = pdfService.createPDF('oid-1', record, {}, {});
@@ -431,7 +561,6 @@ describe('PDFService Unit Tests', () => {
     };
 
     mockPage.goto.onFirstCall().rejects(new Error('Navigation timeout'));
-    mockPage.goto.onSecondCall().resolves();
 
     const firstObservable = pdfService.createPDF('oid-1', record, options, {});
     await new Promise((resolve, reject) => {

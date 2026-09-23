@@ -26,6 +26,16 @@ async function waitForAssertion(assertion: () => void, timeoutMs = 1000): Promis
   throw lastError;
 }
 
+function navigationResponse(url: string, status = 200, redirects: string[] = []) {
+  return {
+    status: () => status,
+    url: () => url,
+    request: () => ({
+      redirectChain: () => redirects.map(redirectUrl => ({ url: () => redirectUrl })),
+    }),
+  };
+}
+
 function installPdfgenTestGlobals(overrides: Record<string, unknown> = {}): void {
   const storageDiskPutStub = sinon.stub().resolves();
   const storageDiskDeleteStub = sinon.stub().resolves();
@@ -85,4 +95,5 @@ module.exports = {
   installPdfgenTestGlobals,
   clearPdfgenTestGlobals,
   waitForAssertion,
+  navigationResponse,
 };

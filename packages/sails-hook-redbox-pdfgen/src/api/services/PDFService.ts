@@ -336,10 +336,50 @@ export namespace Services {
           (instance) => Effect.promise(() => instance.close()).pipe(Effect.catchAll(() => Effect.void))
         );
 
+        const expectedUrl = yield* Effect.try({
+          try: () => new URL(currentURL),
+          catch: (cause) => new BrowserError(oid, currentURL, cause)
+        });
+        const isRecordUrl = (url: string): boolean => {
+          try {
+            const candidate = new URL(url);
+            return candidate.origin === expectedUrl.origin && candidate.pathname === expectedUrl.pathname;
+          } catch {
+            return false;
+          }
+        };
+        let blockedNavigationUrl: string | undefined;
+
+        // A page-wide Authorization header follows redirects and can reach other
+        // origins. Attach the token only to requests for this portal instead.
         yield* Effect.tryPromise({
-          try: () => Promise.resolve(page.setExtraHTTPHeaders({
-            Authorization: 'Bearer ' + token
-          })),
+          try: async () => {
+            page.on('request', (request) => {
+              const requestUrl = new URL(request.url());
+              if (request.isNavigationRequest() && request.frame() === page.mainFrame()
+                  && requestUrl.origin !== expectedUrl.origin) {
+                blockedNavigationUrl = request.url();
+                void request.abort('blockedbyclient').catch((error: unknown) => {
+                  sails.log.warn('PDFService::Failed to block off-origin navigation.', error);
+                });
+                return;
+              }
+
+              const headers = request.headers();
+              for (const name of Object.keys(headers)) {
+                if (name.toLowerCase() === 'authorization') {
+                  delete headers[name];
+                }
+              }
+              if (requestUrl.origin === expectedUrl.origin) {
+                headers['Authorization'] = `Bearer ${token}`;
+              }
+              void request.continue({ headers }).catch((error: unknown) => {
+                sails.log.warn('PDFService::Failed to continue PDF page request.', error);
+              });
+            });
+            await page.setRequestInterception(true);
+          },
           catch: (cause) => new BrowserError(oid, currentURL, cause)
         });
 
@@ -368,10 +408,35 @@ export namespace Services {
 
         yield* this.logDebug(`PDFService::Chromium loading page: ${currentURL}`);
 
-        yield* Effect.tryPromise({
+        const navigationResponse = yield* Effect.tryPromise({
           try: () => page.goto(currentURL, { waitUntil: 'domcontentloaded' }),
-          catch: (cause) => new BrowserError(oid, currentURL, cause)
+          catch: (cause) => new BrowserError(oid, currentURL, blockedNavigationUrl
+            ? new Error(`Blocked navigation outside the portal: ${blockedNavigationUrl}`)
+            : cause)
         }).pipe(Effect.withSpan('navigatePage', { attributes: { oid, attempt, url: currentURL } }));
+
+        const validateNavigation = () => {
+          if (blockedNavigationUrl) {
+            throw new Error(`Blocked navigation outside the portal: ${blockedNavigationUrl}`);
+          }
+          if (navigationResponse == null) {
+            throw new Error('Record navigation returned no response');
+          }
+          if (navigationResponse.status() < 200 || navigationResponse.status() >= 300) {
+            throw new Error(`Record navigation returned HTTP ${navigationResponse.status()}`);
+          }
+          const redirectUrls = navigationResponse.request().redirectChain().map(request => request.url());
+          for (const url of [...redirectUrls, navigationResponse.url(), page.url()]) {
+            if (!isRecordUrl(url)) {
+              throw new Error(`Record navigation left the expected record route: ${url}`);
+            }
+          }
+        };
+
+        yield* Effect.try({
+          try: validateNavigation,
+          catch: (cause) => new BrowserError(oid, currentURL, cause)
+        });
 
         yield* Effect.tryPromise({
           try: () => this.waitForPageReady(page, brand, options, readinessStrategy),
@@ -383,6 +448,12 @@ export namespace Services {
             strategy: readinessStrategy
           }
         }));
+
+        // The page can navigate again while the readiness strategy is waiting.
+        yield* Effect.try({
+          try: validateNavigation,
+          catch: (cause) => new BrowserError(oid, currentURL, cause)
+        });
 
         yield* Effect.sync(() => sails.log.verbose(`PDFService::Page ready: ${currentURL}, generating PDF...`));
 
