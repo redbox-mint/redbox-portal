@@ -147,16 +147,25 @@ export interface RecordSchemaRolloutEvidenceOptions {
   readonly approvedReportPath?: string;
 }
 
+// Keep the approved representative cohort stable when unrelated browser-test
+// fixtures are added to the development hook's form registry.
 const DEFAULT_FORMS: readonly RecordSchemaRolloutEvidenceForm[] = Object.freeze(
-  Object.entries(DevHookFormConfigExports)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([id, form]) =>
-      Object.freeze({
-        id: `dev-hook/${id}`,
-        form,
-        reusableFormDefinitions,
-      })
-    )
+  [
+    'dataPublication-1.0-draft',
+    'dataPublication-1.0-embargoed',
+    'dataPublication-1.0-published',
+    'dataPublication-1.0-queued',
+    'dataPublication-1.0-retired',
+    'dataRecord-1.0-draft',
+    'default-1.0-draft',
+    'existing-locations-1.0-draft',
+  ].map(id =>
+    Object.freeze({
+      id: `dev-hook/${id}`,
+      form: DevHookFormConfigExports[id],
+      reusableFormDefinitions,
+    })
+  )
 );
 
 function defaultRegistrations(): readonly RecordContractContributorRegistration[] {
