@@ -94,7 +94,10 @@ advisory validator passes as well as the initial sanitation pass.
 Sanitation runs before ordinary field and form validators, including for each
 repeatable row, so required, length, and custom validators see the value that
 can actually be persisted. Successful saves with sanitation advisories return
-`saved-with-warnings` and include the safe advisory issues.
+`saved` and include the safe advisory issues as `source: 'advisory'` problems.
+These suggestions do not imply incomplete post-save work or prevent Save & Close.
+The form save status displays the returned advisory issue messages alongside
+the confirmed save message.
 If a later blocking expression, validator, timeout, or unknown-group path makes
 the result unresolved in shadow mode, the typed unresolved result retains the
 successfully sanitized candidate and `RecordsService` persists that safe clone.

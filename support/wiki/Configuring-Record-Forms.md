@@ -240,7 +240,7 @@ on a cloned authoritative candidate and reported as the nonblocking
 the pre-sanitization copy—is used for create, update, transition, postSync, and
 persistence. Sanitation precedes field/form validators (including repeatable
 rows), and a successful save that sanitizes content returns
-`saved-with-warnings` with the advisory issue. Setting the mode to `reject`
+`saved` with the advisory issue. Setting the mode to `reject`
 leaves the submitted value unchanged
 and reports the blocking `htmlUnsafe` issue; the record-validation rollout mode
 still determines whether blocking findings are enforced or observed in shadow.

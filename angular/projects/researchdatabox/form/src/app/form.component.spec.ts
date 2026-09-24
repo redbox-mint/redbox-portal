@@ -1980,6 +1980,62 @@ describe('FormComponent', () => {
     }
   });
 
+  it('requests Save & Close for a complete save with schema and advisory diagnostics', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('changed') });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    const response = RecordActionResult.fromResponse({ meta: {
+      outcome: 'saved-with-warnings', oid: 'oid-123',
+      problems: [
+        { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] },
+        { kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Consider a FoR code' }] },
+      ],
+      completion: { attachments: { status: 'not-required', items: [] } },
+    } }, 200, '11111111-1111-4111-8111-111111111111');
+    spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => successEvents.push(event));
+
+    try {
+      await formComponent.saveForm({ closeOnSave: true });
+      expect(response.isComplete()).toBeTrue();
+      expect(successEvents.length).toBe(1);
+      expect(successEvents[0].closeOnSave).toBeTrue();
+      expect(successEvents[0].response?.problems?.[0].source).toBe('schema');
+      expect(successEvents[0].response?.problems?.[1].source).toBe('advisory');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('requests Save & Close for a complete save with advisory suggestions', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('changed') });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    const response = RecordActionResult.fromResponse({ meta: {
+      outcome: 'saved', oid: 'oid-123',
+      problems: [{ kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Consider a FoR code' }] }],
+    } }, 200, '11111111-1111-4111-8111-111111111111');
+    spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+    const bus = TestBed.inject(FormComponentEventBus);
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => successEvents.push(event));
+
+    try {
+      await formComponent.saveForm({ closeOnSave: true });
+      expect(successEvents.length).toBe(1);
+      expect(successEvents[0].closeOnSave).toBeTrue();
+      expect(successEvents[0].response?.problems?.[0].source).toBe('advisory');
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
   it('reports undefined and unmodified forms as distinct save failures', async () => {
     const undefinedFixture = TestBed.createComponent(FormComponent);
     const undefinedComponent = undefinedFixture.componentInstance;

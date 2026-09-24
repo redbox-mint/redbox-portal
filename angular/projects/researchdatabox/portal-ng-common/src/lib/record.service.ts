@@ -50,6 +50,7 @@ import {
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
+  isRecordSaveComplete,
   isRecordSaveOutcome,
   isRecordSaveProblemKind,
   isRecordSaveRequestId,
@@ -1014,7 +1015,7 @@ export class RecordActionResult implements RecordSaveResult {
   }
 
   public isComplete(): boolean {
-    return this.outcome === 'saved';
+    return isRecordSaveComplete(this);
   }
 
   public isSuccessful(): boolean {
@@ -1091,8 +1092,20 @@ export class RecordActionResult implements RecordSaveResult {
       result.metadata = meta.outcome === 'unknown' ? null : RecordActionResult.safeProjectedMetadata(meta.metadata);
       result.concurrency = meta.outcome === 'unknown' ? undefined : concurrency;
       result.concurrencyOutcome = concurrencyOutcome;
-      if (meta.completion && typeof meta.completion === 'object') {
-        result.completion = meta.completion as RecordSaveResult['completion'];
+      if (meta.completion !== undefined) {
+        const completion = RecordActionResult.plainRecord(meta.completion);
+        const attachments = RecordActionResult.plainRecord(completion?.['attachments']);
+        const attachmentStatus = attachments?.['status'];
+        const items = attachments?.['items'];
+        result.completion = {
+          attachments: (
+            (attachmentStatus === 'not-required' || attachmentStatus === 'completed' ||
+              attachmentStatus === 'incomplete' || attachmentStatus === 'unknown') &&
+            Array.isArray(items)
+          )
+            ? { status: attachmentStatus, items: items as RecordSaveResult['completion']['attachments']['items'] }
+            : { status: 'unknown', items: [] },
+        };
       }
       return result;
     }
@@ -1256,6 +1269,14 @@ export class RecordActionResult implements RecordSaveResult {
             issues,
           }
         : null;
+    }
+
+    if (
+      problem['source'] === 'advisory' &&
+      problem['kind'] === 'validation' &&
+      (problem['phase'] === 'pre-save' || problem['phase'] === 'post-save')
+    ) {
+      return { kind: 'validation', source: 'advisory', phase: problem['phase'], issues };
     }
 
     if (

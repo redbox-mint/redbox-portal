@@ -25,6 +25,9 @@ describe('SaveStatusComponent', () => {
     Object.assign(translationService.translationMap, {
       '@dmpt-form-save-error': 'Error while saving: ',
       '@dmpt-form-save-warning-create': 'The record was saved, but some follow-up processing could not be completed.',
+      '@dmpt-form-save-warning-update': 'Your changes were saved, but some follow-up processing could not be completed.',
+      '@dmpt-form-save-schema-warning': 'Saved, but the record schema check reported a problem.',
+      '@dmpt-form-save-advisory': 'Saved. The server reported these suggestions or adjustments:',
       '@dmpt-form-save-unknown-update': 'We couldn’t confirm whether your changes were saved. Reference: {{requestId}}.',
       '@storage-workspace-save-warning': 'The storage request could not be completed. Request ID: {{requestId}}. Please contact support for help.',
       '@record-save-save-not-applied': 'The changes were not saved.',
@@ -132,6 +135,84 @@ describe('SaveStatusComponent', () => {
     expect(el?.textContent).toContain('follow-up processing');
     expect(el?.textContent).toContain('The record was saved');
     expect(el?.textContent).not.toContain('88888888-8888-4888-8888-888888888888');
+  });
+
+  it('should describe schema-only warnings without suggesting unfinished processing', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      operation: 'update',
+      response: {
+        outcome: 'saved-with-warnings',
+        problems: [{ kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] }],
+      },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
+    expect(el?.textContent).toContain('schema check reported a problem');
+    expect(el?.textContent).not.toContain('follow-up processing');
+  });
+
+  it('should show both warnings when schema issues accompany incomplete post-save work', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      operation: 'update',
+      response: {
+        outcome: 'saved-with-warnings',
+        problems: [
+          { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] },
+          { kind: 'processing', phase: 'post-save', issues: [{ message: 'Hook failed' }] },
+        ],
+      },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const warnings = fixture.nativeElement.querySelectorAll('.rb-form-save-status.alert-warning');
+    expect(warnings.length).toBe(2);
+    expect(warnings[0].textContent).toContain('follow-up processing');
+    expect(warnings[1].textContent).toContain('schema check reported a problem');
+  });
+
+  it('should show advisory details without an incomplete-save warning', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      operation: 'create',
+      response: {
+        outcome: 'saved',
+        problems: [{ kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Consider a FoR code' }] }],
+      },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-success')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning')).toBeFalsy();
+    const advisory = fixture.nativeElement.querySelector('.rb-form-save-status.alert-info');
+    expect(advisory?.textContent).toContain('Saved. The server reported these suggestions or adjustments:');
+    expect(advisory?.textContent).toContain('Consider a FoR code');
   });
 
   it('should keep an unknown save outcome visible through SaveStatusComponent', async () => {

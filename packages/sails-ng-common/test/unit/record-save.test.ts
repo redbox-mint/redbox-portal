@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import {
   emptyRecordSaveCompletion,
+  isRecordSaveComplete,
   isRecordSaveOutcome,
   RECORD_SAVE_MESSAGE_MAX_LENGTH,
   RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
@@ -9,7 +10,7 @@ import {
   sanitizeRecordSaveIssue,
   sanitizeRecordSaveValidatorParameters,
 } from '../../src';
-import type { RecordSaveProblem } from '../../src';
+import type { RecordSaveCompletion, RecordSaveProblem } from '../../src';
 
 function assertRecordSaveProblemProvenanceTypes(): void {
   const schemaProblem: RecordSaveProblem = {
@@ -49,6 +50,40 @@ describe('record-save contracts', function () {
     expect(emptyRecordSaveCompletion()).to.deep.equal({
       attachments: { status: 'not-required', items: [] },
     });
+  });
+
+  it('treats a saved outcome with incomplete attachments as incomplete', function () {
+    expect(isRecordSaveComplete({
+      outcome: 'saved',
+      problems: [],
+      completion: {
+        attachments: {
+          status: 'incomplete',
+          items: [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'incomplete' }],
+        },
+      },
+    })).to.equal(false);
+  });
+
+  it('treats a saved outcome with unknown attachment completion as incomplete', function () {
+    expect(isRecordSaveComplete({
+      outcome: 'saved',
+      problems: [],
+      completion: {
+        attachments: {
+          status: 'unknown',
+          items: [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'unknown' }],
+        },
+      },
+    })).to.equal(false);
+  });
+
+  it('rejects malformed completion data without throwing', function () {
+    expect(isRecordSaveComplete({
+      outcome: 'saved',
+      problems: [],
+      completion: {} as RecordSaveCompletion,
+    })).to.equal(false);
   });
 
   it('reduces attachment statuses with uncertainty taking precedence', function () {
