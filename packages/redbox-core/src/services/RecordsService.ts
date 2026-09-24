@@ -2084,6 +2084,7 @@ export namespace Services {
       return [
         {
           kind: 'validation',
+          source: 'advisory',
           phase,
           issues: result.advisoryErrors.map(sanitizeRecordSaveIssue),
         },
