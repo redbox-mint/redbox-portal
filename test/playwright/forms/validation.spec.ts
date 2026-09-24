@@ -85,7 +85,7 @@ test('F13 validation summaries reveal hidden fields while advisory errors permit
   const { meta: body } = await response.json();
   expect(body.outcome).toBe('saved');
   expect(body.problems).toEqual([expect.objectContaining({ kind: 'validation', source: 'advisory', issues: [expect.objectContaining({ pointer: '/advisoryValue' })] })]);
-  await expect(adminPage.locator('redbox-form-save-status [role="alert"]')).toContainText('Your changes were saved');
+  await expect(adminPage.locator('redbox-form-save-status .alert-success')).toContainText('Saved successfully.');
   expect((await records.read(record.oid)).body).toMatchObject({ tabValue: 'Tab corrected', panelValue: 'Panel corrected', advisoryValue: '' });
 });
 
