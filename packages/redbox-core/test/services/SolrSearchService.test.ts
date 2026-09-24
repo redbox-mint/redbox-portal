@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { solr } from '../../src/config/solr.config';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('SolrSearchService', function() {
@@ -480,6 +481,43 @@ describe('SolrSearchService', function() {
       ]);
       expect(result.date_empty).to.deep.equal([]);
       expect(dates[0]).to.equal('2026-09-24T14:30:00+10:00');
+    });
+
+    it('normalizes numbered date fields using the production default core configuration', function() {
+      mockSails.config.solr.cores.default = structuredClone(solr.cores.default);
+      const data = {
+        redboxOid: 'record-123',
+        metaMetadata: { createdOn: '2026-09-24T14:30:00+10:00' },
+        lastSaveDate: '2026-09-24T14:45:00+10:00',
+        metadata: {
+          date_events: [
+            '2026-09-24T14:30:00+10:00',
+            new Date('2026-09-23T23:30:00-05:00'),
+            '2024',
+            'invalid',
+            null
+          ],
+          title: '2026-09-24T14:30:00+10:00',
+          finalKeywords: ['Dates', 'UTC']
+        }
+      };
+      const original = structuredClone(data);
+
+      const result = SolrSearchService.preIndex(data);
+
+      expect(result).to.include({
+        'date_events.0': '2026-09-24T04:30:00.000Z',
+        'date_events.1': '2026-09-24T04:30:00.000Z',
+        'date_events.2': '2024',
+        'date_events.3': 'invalid',
+        'date_events.4': null,
+        date_object_created: '2026-09-24T04:30:00.000Z',
+        date_object_modified: '2026-09-24T04:45:00.000Z',
+        title: data.metadata.title
+      });
+      expect(result).not.to.have.property('date_events');
+      expect(result.finalKeywords).to.deep.equal(['Dates', 'UTC']);
+      expect(data).to.deep.equal(original);
     });
 
     it('preserves invalid dates and non-date values', function() {
