@@ -414,31 +414,112 @@ describe('SolrSearchService', function() {
   });
 
   describe('preIndex', function() {
-    // Note: preIndex requires the 'flat' module which is dynamically imported
-    // These tests require integration testing with the actual module loaded
-
-    it.skip('should flatten nested data (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    beforeEach(async function() {
+      await SolrSearchService.processDynamicImports();
     });
 
-    it.skip('should apply move transformations (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('flattens and moves metadata while copying the storage identifier', function() {
+      const result = SolrSearchService.preIndex({
+        redboxOid: 'record-123',
+        metadata: { title: 'Test record', creator: { name: 'Researcher' } }
+      });
+
+      expect(result).to.deep.equal({
+        redboxOid: 'record-123', storage_id: 'record-123',
+        title: 'Test record', creator_name: 'Researcher'
+      });
     });
 
-    it.skip('should apply copy transformations (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('normalizes flattened date fields to UTC without changing other fields or the source record', function() {
+      const data = {
+        metadata: {
+          date: {
+            positiveOffset: '2026-09-24T14:30:00+10:00',
+            negativeOffset: '2026-09-23T23:30:00-05:00',
+            utc: '2026-09-24T04:30:00.123Z',
+            noOffset: '2026-09-24T04:30:00',
+            dateOnly: '2026-09-24',
+            native: new Date('2026-09-24T14:30:00+10:00')
+          },
+          title: '2026-09-24T14:30:00+10:00'
+        }
+      };
+
+      const result = SolrSearchService.preIndex(data);
+
+      expect(result).to.include({
+        date_positiveOffset: '2026-09-24T04:30:00.000Z',
+        date_negativeOffset: '2026-09-24T04:30:00.000Z',
+        date_utc: '2026-09-24T04:30:00.123Z',
+        date_noOffset: '2026-09-24T04:30:00.000Z',
+        date_dateOnly: '2026-09-24T00:00:00.000Z',
+        date_native: '2026-09-24T04:30:00.000Z',
+        title: data.metadata.title
+      });
+      expect(data.metadata.date.positiveOffset).to.equal('2026-09-24T14:30:00+10:00');
+      expect(data.metadata.date.native).to.be.instanceOf(Date);
     });
 
-    it.skip('should apply template transformations (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('normalizes every date in arrays, including nested arrays', function() {
+      const dates = [
+        '2026-09-24T14:30:00+10:00',
+        new Date('2026-09-23T23:30:00-05:00'),
+        ['2026-09-24T04:30:00Z', null, 42, 'invalid']
+      ];
+
+      const result = SolrSearchService.preIndex({ metadata: { date_events: dates, date_empty: [] } });
+
+      expect(result.date_events).to.deep.equal([
+        '2026-09-24T04:30:00.000Z',
+        '2026-09-24T04:30:00.000Z',
+        ['2026-09-24T04:30:00.000Z', null, 42, 'invalid']
+      ]);
+      expect(result.date_empty).to.deep.equal([]);
+      expect(dates[0]).to.equal('2026-09-24T14:30:00+10:00');
     });
 
-    it.skip('should convert objects to JSON strings (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('preserves invalid dates and non-date values', function() {
+      const result = SolrSearchService.preIndex({ metadata: {
+        date_invalid: 'not-a-date', date_empty: '', date_null: null,
+        date_number: 42, date_boolean: false, date_undefined: undefined,
+        date_invalidNative: new Date(NaN)
+      } });
+
+      expect(result).to.include({
+        date_invalid: 'not-a-date', date_empty: '', date_null: null,
+        date_number: 42, date_boolean: false, date_undefined: undefined
+      });
+      expect(result.date_invalidNative).to.be.instanceOf(Date);
+      expect(Number.isNaN(result.date_invalidNative.getTime())).to.equal(true);
     });
 
-    it.skip('should remove empty keys (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('normalizes dates produced by templates and special flattening', function() {
+      const preIndex = mockSails.config.solr.cores.default.preIndex;
+      preIndex.template = [{ source: 'metadata.modified', dest: 'date_modified', template: '<%= data %>' }];
+      preIndex.flatten.special = [{
+        field: 'events', source: 'metadata.events', dest: 'date_events',
+        options: { delimiter: '_', safe: true }
+      }];
+
+      const result = SolrSearchService.preIndex({ metadata: {
+        modified: '2026-09-24T14:30:00+10:00',
+        events: { start: '2026-09-23T23:30:00-05:00' }
+      } });
+
+      expect(result.date_modified).to.equal('2026-09-24T04:30:00.000Z');
+      expect(result.date_events_start).to.equal('2026-09-24T04:30:00.000Z');
+      expect(result).not.to.have.property('events_start');
+    });
+
+    it('converts configured objects to JSON and removes empty keys', function() {
+      mockSails.config.solr.cores.default.preIndex.jsonString = [
+        { source: 'metadata.details', dest: 'details_json' }
+      ];
+
+      const result = SolrSearchService.preIndex({ metadata: { details: { title: 'Test' }, '': 'remove me' } });
+
+      expect(result.details_json).to.equal('{"title":"Test"}');
+      expect(result).not.to.have.property('');
     });
   });
 
