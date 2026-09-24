@@ -78,7 +78,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   private readonly saveSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_SUCCESS);
   private readonly saveFailureEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_FAILURE);
   private readonly messageState = signal<SaveStatusMessageType>(null);
-  private readonly hasSchemaProblems = signal(false);
+  protected readonly hasSchemaProblems = signal(false);
   private readonly lastOperation = signal<'save' | 'delete' | null>(null);
   private readonly saveOperation = signal<'create' | 'update' | null>(null);
   private readonly pendingOperation = signal<'save' | 'delete' | null>(null);
