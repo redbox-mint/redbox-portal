@@ -1459,9 +1459,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               }
             }
           }
-          // A persisted warning is still a successful save, but it is not a
-          // complete save.  Keep the record open so the user can review the
-          // affected follow-up work before leaving the form.
+          // Schema diagnostics can accompany a complete save. Keep the form
+          // open only when required save work remains incomplete.
           const isComplete = response.isComplete();
           if (response.wasPersisted()) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);

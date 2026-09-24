@@ -330,8 +330,16 @@ export interface RecordSaveLifecycleProblem {
   issues: RecordSaveIssue[];
 }
 
+/** A nonblocking form suggestion, distinct from incomplete save work. */
+export interface RecordSaveAdvisoryProblem {
+  kind: 'validation';
+  source: 'advisory';
+  phase: 'pre-save' | 'post-save';
+  issues: RecordSaveIssue[];
+}
+
 /** Provenance and phase form one discriminated contract. */
-export type RecordSaveProblem = RecordSaveSchemaProblem | RecordSaveLifecycleProblem;
+export type RecordSaveProblem = RecordSaveSchemaProblem | RecordSaveLifecycleProblem | RecordSaveAdvisoryProblem;
 
 export type RecordAttachmentOperation = 'add' | 'finalize' | 'delete';
 export type RecordAttachmentItemStatus = 'completed' | 'incomplete' | 'unknown';
@@ -362,6 +370,18 @@ export interface RecordSaveResult extends ActionResult {
   completion: RecordSaveCompletion;
   requestId: string;
   concurrency?: RecordConcurrencyMetadata;
+}
+
+/** A schema warning can coexist with a complete save; unfinished work cannot. */
+export function isRecordSaveComplete(result: Pick<RecordSaveResult, 'outcome' | 'problems' | 'completion'>): boolean {
+  const attachmentStatus = result.completion?.attachments?.status;
+  if (attachmentStatus !== 'not-required' && attachmentStatus !== 'completed') {
+    return false;
+  }
+  if (result.outcome === 'saved') return true;
+  if (result.outcome !== 'saved-with-warnings') return false;
+  return result.problems.length > 0 &&
+    result.problems.every(problem => problem.source === 'schema' || problem.source === 'advisory');
 }
 
 export type StorageMutationApplicationState = 'applied' | 'not-applied' | 'unknown';

@@ -5,6 +5,7 @@ import {
   isRecordConcurrencyResolution,
   isRecordFormFingerprint,
   isRecordRevision,
+  isRecordSaveComplete,
   isRecordSaveRequestId,
   reduceAttachmentStatus,
   sanitizeRecordConcurrencyMetadata,
@@ -373,12 +374,14 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
 
   /** True only when all required awaited save phases completed. */
   public isComplete(): boolean {
-    return this.outcome === 'saved';
+    return isRecordSaveComplete(this);
   }
 
   public addProblem(problem: RecordSaveProblem): void {
     this.problems.push(cloneProblem(problem));
-    this.downgradeCompleteSave();
+    if (problem.source !== 'advisory') {
+      this.downgradeCompleteSave();
+    }
   }
 
   public setAttachmentItems(items: readonly RecordAttachmentCompletionItem[]): void {
@@ -418,7 +421,9 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
       this.totalItems = source.totalItems;
       this.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
     }
-    this.outcome = this.problems.length > 0 ? 'saved-with-warnings' : 'saved';
+    this.outcome = this.problems.some(problem => problem.source !== 'advisory')
+      ? 'saved-with-warnings'
+      : 'saved';
     this.success = true;
   }
 
@@ -523,7 +528,9 @@ export class RecordSaveTracker {
       this.response.totalItems = source.totalItems;
       this.response.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
     }
-    this.response.outcome = this.response.problems.length > 0 ? 'saved-with-warnings' : 'saved';
+    this.response.outcome = this.response.problems.some(problem => problem.source !== 'advisory')
+      ? 'saved-with-warnings'
+      : 'saved';
     this.response.success = true;
   }
 
