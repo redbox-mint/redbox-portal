@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { TOptions } from 'i18next';
 import { Subject } from 'rxjs';
@@ -46,6 +46,7 @@ class TranslationServiceStub {
 @Component({
   standalone: true,
   imports: [I18NextPipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<div class="translated">{{ key | i18next: options }}</div>`
 })
 class PipeHostComponent {

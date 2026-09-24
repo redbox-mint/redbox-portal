@@ -1,4 +1,4 @@
-import {Component, inject, Injector, Input} from '@angular/core';
+import {Component, inject, Injector, Input, ChangeDetectionStrategy} from '@angular/core';
 import { Subscription } from "rxjs";
 import {FormFieldBaseComponent, HandlebarsTemplateService, TranslationService} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
@@ -43,6 +43,7 @@ import {
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class ContentComponent extends FormFieldBaseComponent<string> {

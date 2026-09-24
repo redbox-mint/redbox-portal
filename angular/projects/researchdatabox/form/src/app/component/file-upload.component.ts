@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, Injector, Input, OnDestroy, inject } from "@angular/core";
+import { AfterViewInit, Component, Injector, Input, OnDestroy, inject, ChangeDetectionStrategy } from "@angular/core";
 import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
     FileUploadAttachmentValue,
@@ -69,6 +69,7 @@ interface TusPlugin extends Tus<UppyMeta, UppyBody> {
     selector: "redbox-file-upload",
     templateUrl: "./file-upload.component.html",
     styleUrls: ["./file-upload.component.scss"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelValueType> implements AfterViewInit, OnDestroy {
@@ -319,6 +320,7 @@ export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelV
             this.formControl.setValue(updated);
             this.formControl.markAsDirty();
             this.formControl.markAsTouched();
+            this.requestRender();
         });
     }
 

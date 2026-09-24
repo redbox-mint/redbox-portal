@@ -39,6 +39,10 @@ test('F22 components-record-relations replace references and remove related obje
   await expect(reference).not.toContainText('Relation unrelated');
   await reference.getByRole('option', { name: /Relation Alpha/ }).click();
   await expect(reference.getByRole('status')).toHaveText('Relation Alpha');
+  // A reference-only edit must enable Save without another field becoming dirty.
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(reference.getByRole('status')).toHaveText('Relation Alpha');
   await reference.getByRole('button', { name: 'Change', exact: true }).click();
   await reference.getByRole('textbox').fill('Relation Beta');
   await reference.getByRole('option', { name: /Relation Beta/ }).click();

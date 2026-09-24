@@ -1,4 +1,14 @@
-import { Component, DestroyRef, EventEmitter, Inject, Input, OnInit, Output, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  EventEmitter,
+  Inject,
+  Input,
+  OnInit,
+  Output,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -6,7 +16,7 @@ import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-co
 import {
   FigshareCrosswalkLocalEntry,
   FigshareSourceCategory,
-  FigshareVocabularyApiService
+  FigshareVocabularyApiService,
 } from '../services/figshare-vocabulary-api.service';
 
 export interface MappingPickerSelection {
@@ -34,7 +44,8 @@ const PAGE_SIZE = 25;
 @Component({
   selector: 'figshare-mapping-picker',
   templateUrl: './figshare-mapping-picker.component.html',
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class FigshareMappingPickerComponent implements OnInit {
   @Input() crosswalkId = '';
@@ -114,7 +125,7 @@ export class FigshareMappingPickerComponent implements OnInit {
 
   /** True once the target already maps to the chosen local term, so adding is a no-op. */
   isAlreadyMapped(category: FigshareSourceCategory): boolean {
-    return this.currentTargets.some((target) => target.id === category.id);
+    return this.currentTargets.some(target => target.id === category.id);
   }
 
   async toggleUnmappedOnly(unmappedOnly: boolean): Promise<void> {
@@ -142,12 +153,12 @@ export class FigshareMappingPickerComponent implements OnInit {
   }
 
   selectCategory(category: FigshareSourceCategory): void {
-    this.selectedCategoryId = this.categories.some((row) => row.id === category.id) ? category.id : '';
+    this.selectedCategoryId = this.categories.some(row => row.id === category.id) ? category.id : '';
   }
 
   confirm(): void {
     const localEntryId = this.resolvedLocalEntryId;
-    const category = this.categories.find((row) => row.id === this.selectedCategoryId);
+    const category = this.categories.find(row => row.id === this.selectedCategoryId);
     if (!localEntryId || !category) {
       return;
     }
@@ -155,7 +166,7 @@ export class FigshareMappingPickerComponent implements OnInit {
       localEntryId,
       localLabel: this.localTermLabel,
       figshareCategoryId: category.id,
-      targetLabel: `${category.sourceId} (${category.categoryId})`
+      targetLabel: `${category.sourceId} (${category.categoryId})`,
     });
   }
 
@@ -170,7 +181,7 @@ export class FigshareMappingPickerComponent implements OnInit {
         q: String(this.localSearchControl.value ?? '').trim() || undefined,
         mapped: this.unmappedOnly ? 'unmapped' : undefined,
         revision: this.revision,
-        limit: PAGE_SIZE
+        limit: PAGE_SIZE,
       });
       if (requestId !== this.localRequestId) {
         return;
@@ -180,7 +191,10 @@ export class FigshareMappingPickerComponent implements OnInit {
       this.localErrorMessage = '';
     } catch (err) {
       this.logger.error('Failed to load crosswalk local entries', err);
-      this.localErrorMessage = this.t('figshare-vocab-error-load-local-entries', 'The local terms could not be loaded.');
+      this.localErrorMessage = this.t(
+        'figshare-vocab-error-load-local-entries',
+        'The local terms could not be loaded.'
+      );
     } finally {
       if (requestId === this.localRequestId) {
         this.localLoading = false;
@@ -198,7 +212,7 @@ export class FigshareMappingPickerComponent implements OnInit {
       const result = await this.api.listSourceCategories(this.sourceId, {
         q: String(this.targetSearchControl.value ?? '').trim() || undefined,
         includeHistorical: this.includeHistorical,
-        limit: PAGE_SIZE
+        limit: PAGE_SIZE,
       });
       if (requestId !== this.categoryRequestId) {
         return;
@@ -208,7 +222,10 @@ export class FigshareMappingPickerComponent implements OnInit {
       this.targetErrorMessage = '';
     } catch (err) {
       this.logger.error('Failed to load Figshare categories', err);
-      this.targetErrorMessage = this.t('figshare-vocab-error-load-categories', 'The Figshare categories could not be loaded.');
+      this.targetErrorMessage = this.t(
+        'figshare-vocab-error-load-categories',
+        'The Figshare categories could not be loaded.'
+      );
     } finally {
       if (requestId === this.categoryRequestId) {
         this.categoriesLoading = false;
@@ -229,16 +246,17 @@ export class FigshareMappingPickerComponent implements OnInit {
       const result = await this.api.listMappings(this.crosswalkId, {
         q: localValue || undefined,
         revision: this.revision,
-        limit: 200
+        limit: 200,
       });
       if (requestId !== this.currentTargetsRequestId) return;
       this.currentTargets = result.records
-        .filter((mapping) => mapping.localEntryId === localEntryId)
-        .map((mapping) => ({
+        .filter(mapping => mapping.localEntryId === localEntryId)
+        .map(mapping => ({
           id: mapping.figshareCategoryId,
-          label: mapping.figshareCategoryNumber == null
-            ? mapping.figshareSourceId
-            : `${mapping.figshareSourceId} (${mapping.figshareCategoryNumber})`
+          label:
+            mapping.figshareCategoryNumber == null
+              ? mapping.figshareSourceId
+              : `${mapping.figshareSourceId} (${mapping.figshareCategoryNumber})`,
         }));
     } catch (err) {
       this.logger.error('Failed to load the current targets of a local term', err);

@@ -1,8 +1,8 @@
-import { AfterViewInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 declare var bootstrap: any;
 import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
@@ -46,7 +46,8 @@ interface TypefaceSlotCard {
   templateUrl: './branding-admin.component.html',
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, BrandingPreviewComponent, I18NextPipe],
+  imports: [FormsModule, BrandingPreviewComponent, I18NextPipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   providers: [BrandingAdminService],
 })
 export class BrandingAdminComponent extends BaseComponent {
@@ -226,6 +227,7 @@ export class BrandingAdminComponent extends BaseComponent {
     }
     this.inFlight.add(key);
     this.message = this.error = undefined;
+    this.requestRender();
     try {
       return await work();
     } catch (error: unknown) {
@@ -233,6 +235,7 @@ export class BrandingAdminComponent extends BaseComponent {
       return undefined;
     } finally {
       this.inFlight.delete(key);
+      this.requestRender();
     }
   }
 

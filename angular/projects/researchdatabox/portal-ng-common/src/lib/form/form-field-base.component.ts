@@ -38,7 +38,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
-  public hostBindingCssClasses?: string;
+  private readonly hostBindingCssClassesValue = signal<string | undefined>(undefined);
+
+  public get hostBindingCssClasses(): string | undefined {
+    return this.hostBindingCssClassesValue();
+  }
+
+  public set hostBindingCssClasses(value: string | undefined) {
+    this.hostBindingCssClassesValue.set(value);
+  }
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
@@ -91,7 +99,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     } catch (error) {
       this.loggerService.error(`${this.logName}: initialise component failed for '${this.name}': ${error?.toString()}`, error);
       this.status.set(FormFieldComponentStatus.ERROR);
+    } finally {
+      this.requestRender();
     }
+  }
+
+  /** Notify the dynamically created field and its layout after async or external changes. */
+  protected requestRender(): void {
+    this.formFieldCompMapEntry?.componentRef?.changeDetectorRef.markForCheck();
+    this.formFieldCompMapEntry?.layoutRef?.changeDetectorRef.markForCheck();
   }
 
   protected setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {
@@ -153,6 +169,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
         const currentValue = _get(this.componentDefinition?.config, name);
         if (currentValue !== value) {
           _set(this.componentDefinition.config, name, value);
+          this.requestRender();
         }
       }
     }
@@ -198,6 +215,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       this.componentDefinition.config.disabled = disabled;
     }
     this.model?.setDisabled(disabled, opts);
+    this.requestRender();
   }
 
   get label(): string {

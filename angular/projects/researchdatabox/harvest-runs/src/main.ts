@@ -1,6 +1,6 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 
 import { HarvestRunsModule } from './app/harvest-runs.module';
 
-platformBrowserDynamic().bootstrapModule(HarvestRunsModule)
+platformBrowser().bootstrapModule(HarvestRunsModule)
   .catch(err => console.error(err));

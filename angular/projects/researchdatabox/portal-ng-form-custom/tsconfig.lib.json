@@ -7,7 +7,6 @@
     "declarationMap": true,
     "inlineSources": true,
     "types": [],
-    "baseUrl": "./",
     "paths": {
       "@researchdatabox/portal-ng-common": [
         "../../../dist/researchdatabox/portal-ng-common"

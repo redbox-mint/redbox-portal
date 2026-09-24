@@ -18,7 +18,7 @@ import { ManageRolesComponent } from './manage-roles.component';
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
     CommonModule,
-    ModalModule.forRoot()
+    ModalModule
   ],
   providers: [
     {

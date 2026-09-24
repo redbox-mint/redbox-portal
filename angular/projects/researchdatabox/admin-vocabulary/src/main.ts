@@ -1,6 +1,6 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 
 import { AdminVocabularyModule } from './app/admin-vocabulary.module';
 
-platformBrowserDynamic().bootstrapModule(AdminVocabularyModule)
+platformBrowser().bootstrapModule(AdminVocabularyModule)
   .catch(err => console.error(err));

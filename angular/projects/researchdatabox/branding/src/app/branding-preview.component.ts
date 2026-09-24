@@ -7,8 +7,8 @@ import {
   ViewEncapsulation,
   AfterViewInit,
   OnDestroy,
+  ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 // TypeScript's DOM declarations omit the writable FontFaceSet methods.
 declare global {
@@ -50,7 +50,8 @@ declare global {
   ],
   encapsulation: ViewEncapsulation.ShadowDom,
   standalone: true,
-  imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  imports: [],
 })
 export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() baseCssHref?: string | null;

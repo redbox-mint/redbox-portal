@@ -108,93 +108,97 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let entry of draft.entries; let idx = index; trackBy: trackByEntryIndex">
-            <td class="align-middle">{{ idx + 1 }}</td>
-            <td>
-              <input
-                class="form-control form-control-sm"
-                [(ngModel)]="entry.label"
-                (ngModelChange)="onEntryEdited()"
-                [attr.placeholder]="'admin-vocabulary-entry-label-placeholder' | i18next"
-              />
-            </td>
-            <td>
-              <input
-                class="form-control form-control-sm"
-                [(ngModel)]="entry.value"
-                (ngModelChange)="onEntryEdited()"
-                [attr.placeholder]="'admin-vocabulary-entry-value-placeholder' | i18next"
-              />
-            </td>
-            <td class="align-middle text-center">
-              <input
-                type="checkbox"
-                [(ngModel)]="entry.historical"
-                (ngModelChange)="onEntryEdited()"
-                [attr.aria-label]="'admin-vocabulary-historical-checkbox' | i18next"
-              />
-            </td>
-            <td>
-              @if (draft.type === 'tree') {
-                @if (isParentEditorOpen(entry)) {
-                  <div class="d-flex">
-                    <select
-                      class="form-control form-control-sm mr-2"
-                      [ngModel]="entry.parent || ''"
-                      (ngModelChange)="onParentChanged(entry, $event)"
-                    >
-                      <option value="">{{ 'admin-vocabulary-parent-root' | i18next }}</option>
-                      <option *ngFor="let option of getParentOptions(entry)" [value]="option.id">
-                        {{ option.label }}
-                      </option>
-                    </select>
-                    <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closeParentEditor()">
-                      {{ 'admin-vocabulary-done' | i18next }}
-                    </button>
-                  </div>
-                } @else {
-                  <div class="d-flex">
-                    <input
-                      class="form-control form-control-sm mr-2"
-                      [value]="parentDisplayValue(entry) || ('admin-vocabulary-parent-root' | i18next)"
-                      disabled
-                    />
-                    <button class="btn btn-sm btn-outline-primary" type="button" (click)="openParentEditor(entry)">
-                      {{ 'admin-vocabulary-change' | i18next }}
-                    </button>
-                  </div>
-                }
-              } @else {
+          @for (entry of draft.entries; track trackByEntryIndex(idx); let idx = $index) {
+            <tr>
+              <td class="align-middle">{{ idx + 1 }}</td>
+              <td>
                 <input
                   class="form-control form-control-sm"
-                  [value]="parentDisplayValue(entry)"
-                  disabled
-                  [attr.placeholder]="'admin-vocabulary-parent-na-flat' | i18next"
+                  [(ngModel)]="entry.label"
+                  (ngModelChange)="onEntryEdited()"
+                  [attr.placeholder]="'admin-vocabulary-entry-label-placeholder' | i18next"
                 />
-              }
-            </td>
-            <td>
-              <button
-                class="btn btn-sm btn-outline-secondary mr-1"
-                type="button"
-                (click)="moveEntryUp(idx)"
-                [disabled]="idx === 0"
-              >
-                {{ 'admin-vocabulary-up' | i18next }}
-              </button>
-              <button
-                class="btn btn-sm btn-outline-secondary mr-1"
-                type="button"
-                (click)="moveEntryDown(idx)"
-                [disabled]="idx === (draft.entries?.length || 1) - 1"
-              >
-                {{ 'admin-vocabulary-down' | i18next }}
-              </button>
-              <button class="btn btn-sm btn-outline-danger" type="button" (click)="requestRemoveEntry(idx)">
-                {{ 'admin-vocabulary-remove' | i18next }}
-              </button>
-            </td>
-          </tr>
+              </td>
+              <td>
+                <input
+                  class="form-control form-control-sm"
+                  [(ngModel)]="entry.value"
+                  (ngModelChange)="onEntryEdited()"
+                  [attr.placeholder]="'admin-vocabulary-entry-value-placeholder' | i18next"
+                />
+              </td>
+              <td class="align-middle text-center">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="entry.historical"
+                  (ngModelChange)="onEntryEdited()"
+                  [attr.aria-label]="'admin-vocabulary-historical-checkbox' | i18next"
+                />
+              </td>
+              <td>
+                @if (draft.type === 'tree') {
+                  @if (isParentEditorOpen(entry)) {
+                    <div class="d-flex">
+                      <select
+                        class="form-control form-control-sm mr-2"
+                        [ngModel]="entry.parent || ''"
+                        (ngModelChange)="onParentChanged(entry, $event)"
+                      >
+                        <option value="">{{ 'admin-vocabulary-parent-root' | i18next }}</option>
+                        @for (option of getParentOptions(entry); track option) {
+                          <option [value]="option.id">
+                            {{ option.label }}
+                          </option>
+                        }
+                      </select>
+                      <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closeParentEditor()">
+                        {{ 'admin-vocabulary-done' | i18next }}
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="d-flex">
+                      <input
+                        class="form-control form-control-sm mr-2"
+                        [value]="parentDisplayValue(entry) || ('admin-vocabulary-parent-root' | i18next)"
+                        disabled
+                      />
+                      <button class="btn btn-sm btn-outline-primary" type="button" (click)="openParentEditor(entry)">
+                        {{ 'admin-vocabulary-change' | i18next }}
+                      </button>
+                    </div>
+                  }
+                } @else {
+                  <input
+                    class="form-control form-control-sm"
+                    [value]="parentDisplayValue(entry)"
+                    disabled
+                    [attr.placeholder]="'admin-vocabulary-parent-na-flat' | i18next"
+                  />
+                }
+              </td>
+              <td>
+                <button
+                  class="btn btn-sm btn-outline-secondary mr-1"
+                  type="button"
+                  (click)="moveEntryUp(idx)"
+                  [disabled]="idx === 0"
+                >
+                  {{ 'admin-vocabulary-up' | i18next }}
+                </button>
+                <button
+                  class="btn btn-sm btn-outline-secondary mr-1"
+                  type="button"
+                  (click)="moveEntryDown(idx)"
+                  [disabled]="idx === (draft.entries?.length || 1) - 1"
+                >
+                  {{ 'admin-vocabulary-down' | i18next }}
+                </button>
+                <button class="btn btn-sm btn-outline-danger" type="button" (click)="requestRemoveEntry(idx)">
+                  {{ 'admin-vocabulary-remove' | i18next }}
+                </button>
+              </td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
@@ -249,21 +253,23 @@
 }
 
 <ng-template #previewNodesTemplate let-nodes>
-  <li *ngFor="let node of nodes; trackBy: trackByPreviewNode">
-    <div class="tree-preview-node">
-      @if (hasPreviewChildren(node)) {
-        <button class="btn btn-sm btn-link tree-preview-toggle" type="button" (click)="togglePreviewNode(node)">
-          {{ isPreviewNodeCollapsed(node) ? '+' : '−' }}
-        </button>
-      } @else {
-        <span class="tree-preview-leaf-spacer"></span>
+  @for (node of nodes; track trackByPreviewNode($index, node)) {
+    <li>
+      <div class="tree-preview-node">
+        @if (hasPreviewChildren(node)) {
+          <button class="btn btn-sm btn-link tree-preview-toggle" type="button" (click)="togglePreviewNode(node)">
+            {{ isPreviewNodeCollapsed(node) ? '+' : '−' }}
+          </button>
+        } @else {
+          <span class="tree-preview-leaf-spacer"></span>
+        }
+        <span>{{ node.display }}</span>
+      </div>
+      @if (hasPreviewChildren(node) && !isPreviewNodeCollapsed(node)) {
+        <ul class="tree-preview-list">
+          <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: node.children }"></ng-container>
+        </ul>
       }
-      <span>{{ node.display }}</span>
-    </div>
-    @if (hasPreviewChildren(node) && !isPreviewNodeCollapsed(node)) {
-      <ul class="tree-preview-list">
-        <ng-container *ngTemplateOutlet="previewNodesTemplate; context: { $implicit: node.children }"></ng-container>
-      </ul>
-    }
-  </li>
+    </li>
+  }
 </ng-template>

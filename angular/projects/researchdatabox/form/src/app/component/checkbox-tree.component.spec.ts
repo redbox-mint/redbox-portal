@@ -1,4 +1,5 @@
 import { TestBed } from "@angular/core/testing";
+import { provideZonelessChangeDetection } from "@angular/core";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions } from "../helpers.spec";
@@ -450,6 +451,7 @@ describe("CheckboxTreeComponent", () => {
   });
 
   it("shows loading indicator while lazy child nodes are loading", async () => {
+    TestBed.configureTestingModule({providers: [provideZonelessChangeDetection()]});
     const vocabTreeService = TestBed.inject(VocabTreeService);
     const deferred = createDeferred<{ data: Array<Record<string, unknown>>; meta: Record<string, unknown> }>();
     spyOn(vocabTreeService, "getChildren").and.callFake((_vocabRef: string, parentId?: string) => {
@@ -483,16 +485,21 @@ describe("CheckboxTreeComponent", () => {
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.debugElement.query(By.directive(CheckboxTreeComponent)).componentInstance;
+    const expand = spyOn(component, 'toggleExpand').and.callThrough();
     (compiled.querySelector("button") as HTMLButtonElement)?.click();
-    fixture.detectChanges();
     await fixture.whenStable();
     expect((compiled.textContent ?? "").includes("Loading...")).toBeTrue();
 
-    deferred.resolve({ data: [], meta: { vocabularyId: "v1", parentId: null, total: 0 } });
+    deferred.resolve({
+      data: [{ id: 'leaf', label: 'Loaded leaf', value: '0101', notation: '0101', hasChildren: false }],
+      meta: { vocabularyId: "v1", parentId: 'root', total: 1 }
+    });
+    await expand.calls.mostRecent().returnValue;
     await fixture.whenStable();
-    fixture.detectChanges();
 
     expect((compiled.textContent ?? "").includes("Loading...")).toBeFalse();
+    expect(compiled.querySelector('input[aria-label="Loaded leaf"]')).not.toBeNull();
   });
 
   it("queues overlapping display sync while lazy child nodes are loading", async () => {

@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, ElementRef } from '@angular/core';
+import { Component, Inject, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
 import { RecordSource } from '@researchdatabox/portal-ng-common';
 import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto } from '@researchdatabox/sails-ng-common';
@@ -32,6 +32,7 @@ import { DateTime } from 'luxon';
     selector: 'report',
     templateUrl: './report.component.html',
     styleUrls: ['./report.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class ReportComponent extends BaseComponent implements RecordSource {

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, ChangeDetectionStrategy } from '@angular/core';
 import { ConfirmationDialogService } from '../confirmation-dialog.service';
 import { FormConflictState } from '../form-concurrency-state';
 import {
@@ -183,6 +183,7 @@ import {
       }
     </section>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class FormConflictPresenterComponent implements OnChanges {

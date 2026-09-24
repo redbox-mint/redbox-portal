@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 
 @Component({
@@ -6,11 +6,7 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
   template: `
     <div class="app-config-checkbox form-group">
       <label [attr.for]="id" class="app-config-checkbox-label">
-        <input
-          type="checkbox"
-          [id]="id"
-          [formControl]="formControl"
-          [formlyAttributes]="field">
+        <input type="checkbox" [id]="id" [formControl]="formControl" [formlyAttributes]="field" />
         <span>{{ props.label || field.key }}</span>
         @if (props.required) {
           <span class="app-config-checkbox-required" aria-hidden="true">*</span>
@@ -27,6 +23,7 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
       }
     </div>
   `,
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class CheckboxTypeComponent extends FieldType<FieldTypeConfig> {}

@@ -1,5 +1,5 @@
-import { Component, Input } from '@angular/core';
-import { FormFieldModel } from "@researchdatabox/portal-ng-common";
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   CheckboxOption,
   CheckboxInputModelValueType,
@@ -17,7 +17,7 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
   selector: 'redbox-checkbox',
   template: `
     @if (isVisible) {
-      <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
+      <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       @for (opt of options; track $index) {
         <div class="form-check">
           <!-- Checkbox groups share one control value, so selection is driven manually instead of binding each input with formControl. -->
@@ -34,18 +34,18 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
             (change)="onOptionChange($any($event.target).checked, opt)"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
-            [title]="tooltip | i18next">
-          <label
-            class="form-check-label"
-            [attr.for]="getOptionId(opt)">
+            [title]="tooltip | i18next"
+          />
+          <label class="form-check-label" [attr.for]="getOptionId(opt)">
             {{ opt.label | i18next }}
           </label>
         </div>
       }
-      <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
+      <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class CheckboxInputComponent extends OptionInputBaseComponent<
   CheckboxInputModelValueType,
@@ -65,9 +65,7 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
 
   public override get options(): CheckboxOption[] {
     const options = super.options;
-    return this.booleanMode && options.length === 0
-      ? [{ label: '', value: 'true' }]
-      : options;
+    return this.booleanMode && options.length === 0 ? [{ label: '', value: 'true' }] : options;
   }
 
   public override set options(value: CheckboxOption[]) {
@@ -116,7 +114,9 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
     if (this.multipleValues) {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
       const nextValue: CheckboxInputModelValueType = checked
-        ? (currentArray.includes(optionValue) ? currentArray : [...currentArray, optionValue])
+        ? currentArray.includes(optionValue)
+          ? currentArray
+          : [...currentArray, optionValue]
         : currentArray.filter((v: string) => v !== optionValue);
       this.setControlValue(nextValue);
     } else {

@@ -18,39 +18,38 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Initable } from './initable.interface';
-import { ApplicationRef, ChangeDetectorRef, Component, NgZone, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { BehaviorSubject, Subject, firstValueFrom, filter } from 'rxjs';
 /**
  * Base component class for ReDBox Portal.
- * 
+ *
  * Encapsulates boilerplate NG-specific tasks, so extensions can focus on specific features.
- *  
+ *
  * See https://angular.io/guide/lifecycle-hooks
- * 
+ *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  */
 @Component({
-    template: '<p>Base Component</p>',
-    standalone: false
+  template: '<p>Base Component</p>',
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export abstract class BaseComponent implements Initable {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
-  private readonly ngZone = inject(NgZone);
-  private readonly appRef = inject(ApplicationRef);
   private readonly wrappedAsyncMethods = new Set<string>();
-  private renderScheduled = false;
   private destroyed = false;
 
   protected isReady: boolean = false;
   protected initSubject: BehaviorSubject<any> = new BehaviorSubject(false);
   protected initDependencies: Initable[] = [];
-  private filterFn = function(initStat: boolean) { return initStat; };
+  private filterFn = function (initStat: boolean) {
+    return initStat;
+  };
   // convenience properties
   protected brandingAndPortalUrl: string = '';
 
-  constructor() {
-  }
-  
+  constructor() {}
+
   /**
    * See https://angular.io/api/core/OnInit
    */
@@ -61,28 +60,28 @@ export abstract class BaseComponent implements Initable {
       await this.waitForDeps();
       // call this to inform child class to begin own init
       await this.initComponent();
-      this.ngZone.run(() => {
-        this.isReady = true;
-        // inform interested parties in RXJS-land
-        this.initSubject.next(this.isReady);
-        // Some embeds initialise while hidden (for example inside Bootstrap collapses).
-        // Trigger an explicit render after async init so template control flow reflects `isReady`.
-        this.flushRender();
-      });
+      if (this.destroyed) {
+        return;
+      }
+      this.isReady = true;
+      // Inform interested parties in RXJS-land, then notify Angular even when
+      // this embed initialises while hidden inside a Bootstrap collapse.
+      this.initSubject.next(this.isReady);
+      this.requestRender();
     })();
   }
 
   ngOnDestroy() {
     this.destroyed = true;
   }
-  /** 
-   * Called when component specific initialisation can happen, extensions need to override. 
+  /**
+   * Called when component specific initialisation can happen, extensions need to override.
    */
-  protected abstract initComponent():Promise<void>;
+  protected abstract initComponent(): Promise<void>;
 
   /**
-   * For those interested in the init from RXJS-land. 
-   * 
+   * For those interested in the init from RXJS-land.
+   *
    * Note that it returns a BehaviorSubject instance, and will have an initial value of false, so process the return value as needed.
    */
   getInitSubject(): Subject<any> {
@@ -100,7 +99,7 @@ export abstract class BaseComponent implements Initable {
     }
   }
   /**
-   * 
+   *
    * For those interested in the init from the Promise-land
    */
   async waitForInit(): Promise<any> {
@@ -114,21 +113,10 @@ export abstract class BaseComponent implements Initable {
   }
 
   protected requestRender() {
-    if (this.destroyed || this.renderScheduled) {
+    if (this.destroyed) {
       return;
     }
-
-    this.renderScheduled = true;
-    queueMicrotask(() => {
-      this.renderScheduled = false;
-      if (this.destroyed) {
-        return;
-      }
-
-      this.ngZone.run(() => {
-        this.flushRender();
-      });
-    });
+    this.changeDetectorRef.markForCheck();
   }
 
   private wrapAsyncComponentMethodsForRender() {
@@ -157,7 +145,7 @@ export abstract class BaseComponent implements Initable {
             return Promise.resolve(result).finally(() => {
               this.requestRender();
             });
-          }
+          },
         });
         this.wrappedAsyncMethods.add(methodName);
       }
@@ -175,16 +163,4 @@ export abstract class BaseComponent implements Initable {
     return !descriptor || !!descriptor.get || !!descriptor.set;
   }
 
-  private flushRender() {
-    if (this.destroyed || this.appRef.destroyed) {
-      return;
-    }
-
-    // Angular 21 embedded apps can miss async state updates in this legacy bootstrapping setup.
-    // A local detectChanges() matches the behaviour of window.ng.applyChanges(component), and the
-    // follow-up appRef.tick() keeps nested/animated views in sync across the app tree.
-    this.changeDetectorRef.detectChanges();
-    this.changeDetectorRef.markForCheck();
-    this.appRef.tick();
-  }
 }

@@ -3,7 +3,7 @@ import {
   inject,
   Injector,
   ViewChild,
-  ViewContainerRef
+  ViewContainerRef, ChangeDetectionStrategy
 } from '@angular/core';
 import { AbstractControl, FormGroup } from "@angular/forms";
 import {
@@ -76,6 +76,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelValueType> {

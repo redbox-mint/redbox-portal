@@ -65,8 +65,8 @@ describe('ReportComponent', () => {
       ],
       imports: [
         FormsModule,
-        BsDatepickerModule.forRoot(),
-        PaginationModule.forRoot(),
+        BsDatepickerModule,
+        PaginationModule,
         RedboxPortalCoreModule
       ],
       providers: [

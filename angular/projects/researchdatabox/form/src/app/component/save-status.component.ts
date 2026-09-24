@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { isRecordSaveOutcome, RecordSaveOutcome, SaveStatusComponentName } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType, FormStateFacade } from '../form-state';
@@ -43,6 +43,7 @@ type SaveStatusMessageConfigProperty =
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {

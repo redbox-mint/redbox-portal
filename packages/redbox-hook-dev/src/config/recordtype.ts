@@ -1,3 +1,4 @@
+import { manualRecordTypes } from '../form-config/pw-remaining-manual';
 import type { RecordTypeConfig } from '@researchdatabox/redbox-core';
 
 /**
@@ -8,6 +9,116 @@ import type { RecordTypeConfig } from '@researchdatabox/redbox-core';
  * via redbox-hook-dev's registerRedboxConfig().
  */
 export const recordtype: RecordTypeConfig = {
+  ...manualRecordTypes,
+
+  'pw-12-conflict-resolution': {
+    packageType: 'pw-12-conflict-resolution',
+    searchable: true,
+    labels: { name: 'PW-12 conflict resolution', namePlural: 'PW-12 conflict resolution records' },
+    concurrentModification: { mode: 'strict' },
+  },
+  'pw-11-transport-validation': {
+    packageType: 'pw-11-transport-validation',
+    searchable: true,
+    labels: { name: 'PW-11 transport validation', namePlural: 'PW-11 transport validation records' },
+  },
+  'pw-10-save-completions': {
+    packageType: 'pw-10-save-completions',
+    searchable: true,
+    labels: { name: 'PW-10 save completions', namePlural: 'PW-10 save completion records' },
+  },
+  'pw-09-rapid-save-retry': {
+    packageType: 'pw-09-rapid-save-retry',
+    searchable: true,
+    labels: { name: 'PW-09 rapid save retry', namePlural: 'PW-09 rapid save retry records' },
+  },
+  'pw-08-save-busy': {
+    packageType: 'pw-08-save-busy',
+    searchable: true,
+    labels: { name: 'PW-08 save busy state', namePlural: 'PW-08 save busy state records' },
+    concurrentModification: { mode: 'strict' },
+  },
+  'pw-07-date-control': {
+    packageType: 'pw-07-date-control',
+    searchable: true,
+    labels: { name: 'PW-07 date control', namePlural: 'PW-07 date control records' },
+  },
+  'pw-07-date-writeback': {
+    packageType: 'pw-07-date-writeback',
+    searchable: true,
+    labels: { name: 'PW-07 date writeback', namePlural: 'PW-07 date writeback records' },
+    hooks: {
+      onUpdate: {
+        pre: [
+          {
+            function: 'sails.services.rdmpservice.runTemplates',
+            options: {
+              parseObject: false,
+              templates: [
+                {
+                  field: 'metadata.date',
+                  template: "<%= record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : '' %>",
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  },
+  'pw-06-accordion': {
+    packageType: 'pw-06-accordion',
+    searchable: true,
+    labels: { name: 'PW-06 accordion', namePlural: 'PW-06 accordion records' },
+  },
+  'pw-05-validation-focus': {
+    packageType: 'pw-05-validation-focus',
+    searchable: true,
+    labels: { name: 'PW-05 validation focus', namePlural: 'PW-05 validation focus records' },
+  },
+  'pw-05-nested-focus': {
+    packageType: 'pw-05-nested-focus',
+    searchable: true,
+    labels: { name: 'PW-05 nested focus', namePlural: 'PW-05 nested focus records' },
+  },
+  'pw-04-early-lookup': {
+    packageType: 'pw-04-early-lookup',
+    searchable: true,
+    labels: { name: 'PW-04 early lookup', namePlural: 'PW-04 early lookup records' },
+  },
+  'pw-03-source': {
+    packageType: 'pw-03-source',
+    searchable: true,
+    labels: { name: 'PW-03 metadata source', namePlural: 'PW-03 metadata sources' },
+  },
+  'pw-03-logical-row': {
+    packageType: 'pw-03-logical-row',
+    searchable: true,
+    labels: { name: 'PW-03 logical row', namePlural: 'PW-03 logical row records' },
+  },
+  'pw-02-calculations': {
+    packageType: 'pw-02-calculations',
+    searchable: true,
+    labels: { name: 'PW-02 repeatable calculations', namePlural: 'PW-02 repeatable calculation records' },
+  },
+  'pw-02-validation': {
+    packageType: 'pw-02-validation',
+    searchable: true,
+    labels: { name: 'PW-02 repeatable validation', namePlural: 'PW-02 repeatable validation records' },
+  },
+  'pw-02-nested': {
+    packageType: 'pw-02-nested',
+    searchable: true,
+    labels: { name: 'PW-02 nested repeatables', namePlural: 'PW-02 nested repeatable records' },
+  },
+  'pw-01-expression-chaining': {
+    packageType: 'pw-01-expression-chaining',
+    searchable: true,
+    labels: {
+      name: 'PW-01 chained calculated fields',
+      namePlural: 'PW-01 chained calculated field records',
+    },
+  },
   rdmp: {
     packageType: 'rdmp',
     hooks: {

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { NamedQueryDefinition } from '../named-query-api.service';
 
 export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
@@ -7,6 +7,7 @@ export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
   selector: 'nq-detail',
   templateUrl: './nq-detail.component.html',
   styleUrls: ['./nq-detail.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class NqDetailComponent {

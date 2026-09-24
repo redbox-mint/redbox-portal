@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 
 interface RelatedRecordFilterDefinition {
   collectionName: string;
@@ -15,6 +15,7 @@ interface FilterEntry extends RelatedRecordFilterDefinition {
 @Component({
   selector: 'related-filter-editor',
   templateUrl: './related-filter-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class RelatedFilterEditorComponent implements OnChanges {

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import {FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel} from "@researchdatabox/portal-ng-common";
 import {
   SimpleInputComponentName,
@@ -31,6 +31,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
     `,
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class SimpleInputComponent extends FormFieldBaseComponent<string> {

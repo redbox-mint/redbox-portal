@@ -139,7 +139,7 @@ describe('ManageUsersComponent', () => {
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
-        ModalModule.forRoot()
+        ModalModule
       ],
       providers: [
         FormBuilder,

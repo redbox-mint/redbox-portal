@@ -4,13 +4,12 @@
   "compilerOptions": {
     "paths": {
       "@researchdatabox/portal-ng-common": [
-        "dist/researchdatabox/portal-ng-common"
+        "./dist/researchdatabox/portal-ng-common"
       ],
       "@researchdatabox/portal-ng-form-custom": [
-        "dist/researchdatabox/portal-ng-form-custom"
+        "./dist/researchdatabox/portal-ng-form-custom"
       ]
     },
-    "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -37,6 +36,12 @@
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
-    "strictTemplates": true
+    "strictTemplates": true,
+    "extendedDiagnostics": {
+      "checks": {
+        "nullishCoalescingNotNullable": "suppress",
+        "optionalChainNotNullable": "suppress"
+      }
+    }
   }
 }

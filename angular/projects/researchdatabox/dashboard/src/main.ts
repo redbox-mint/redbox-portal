@@ -1,7 +1,7 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 
 import { DashboardModule } from './app/dashboard.module';
 
 
-platformBrowserDynamic().bootstrapModule(DashboardModule)
+platformBrowser().bootstrapModule(DashboardModule)
   .catch(err => console.error(err));

@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { ConfirmationDialogService } from '../confirmation-dialog.service';
 
 @Component({
@@ -18,10 +18,15 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
           <div class="modal-content" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
             <div class="modal-header">
               <h5 id="confirmationDialogTitle" class="modal-title">{{ title() | i18next }}</h5>
-              <button type="button" class="btn-close" (click)="cancel()" [attr.aria-label]="'@close-button' | i18next"></button>
+              <button
+                type="button"
+                class="btn-close"
+                (click)="cancel()"
+                [attr.aria-label]="'@close-button' | i18next"
+              ></button>
             </div>
             <div class="modal-body">
-              <p id="confirmationDialogMessage">{{ dialog()?.message | i18next }}</p>
+              <p id="confirmationDialogMessage">{{ $safeNavigationMigration(dialog()?.message) | i18next }}</p>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" (click)="cancel()" cdkFocusInitial>
@@ -36,6 +41,7 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class ConfirmationDialogComponent {

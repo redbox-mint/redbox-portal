@@ -1,4 +1,4 @@
-import { Component, NgZone } from '@angular/core';
+import { Component, NgZone, ChangeDetectionStrategy, provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BaseComponent } from './base.component';
 import { delay, firstValueFrom, of } from 'rxjs';
@@ -7,7 +7,8 @@ import { getStubConfigService } from './helper.spec';
 @Component({
   selector: 'lib-test-component',
   template: '{{ value }}',
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 class TestComponent extends BaseComponent {
   value = 'pending';
@@ -15,16 +16,12 @@ class TestComponent extends BaseComponent {
 
   constructor() {
     super();
-    const configService:any = getStubConfigService();
+    const configService: any = getStubConfigService();
     this.initDependencies = [configService];
   }
-  
+
   protected async initComponent(): Promise<any> {
-    return firstValueFrom(
-      of(true).pipe(
-        delay(300)
-      )
-    )
+    return firstValueFrom(of(true).pipe(delay(300)));
   }
 
   async updateValueOutsideAngular(value: string): Promise<void> {
@@ -44,9 +41,9 @@ describe('BaseComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ TestComponent ]
-    })
-    .compileComponents();
+      declarations: [TestComponent],
+      providers: [provideZonelessChangeDetection()],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TestComponent);
     component = fixture.componentInstance;
@@ -78,5 +75,6 @@ describe('BaseComponent', () => {
     await fixture.whenStable();
     expect(component.value).toBe('updated');
     expect(component.renderRequests).toBeGreaterThan(initialRenderRequests);
+    expect(fixture.nativeElement.textContent).toBe('updated');
   });
 });

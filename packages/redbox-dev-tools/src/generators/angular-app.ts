@@ -79,10 +79,10 @@ export class AngularAppGenerator extends Generator {
           "src/**/*.d.ts"
         ]
       }, null, 2),
-      'src/main.ts': `import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+      'src/main.ts': `import { platformBrowser } from '@angular/platform-browser';
 import { ${this.toClassName(this.name)}Module } from './app/${this.name}.module';
 
-platformBrowserDynamic().bootstrapModule(${this.toClassName(this.name)}Module)
+platformBrowser().bootstrapModule(${this.toClassName(this.name)}Module)
   .catch(err => console.error(err));
 `,
       'src/styles.scss': `/* Add application styles & imports to this file! */\n`,
@@ -197,9 +197,7 @@ export class ${this.toClassName(this.name)}Component {
               "base": `../assets/angular/${this.name}`
             },
             "index": `projects/researchdatabox/${this.name}/src/index.html`,
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": [],
             "tsConfig": `projects/researchdatabox/${this.name}/tsconfig.app.json`,
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -263,8 +261,6 @@ export class ${this.toClassName(this.name)}Component {
     </${this.name}>
   </div>
 </div>
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/polyfills<%=CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js"
-   type="module"></script>
 
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
    type="module"></script>

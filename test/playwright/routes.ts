@@ -39,7 +39,7 @@ export const smokeRoutes: SmokeRoute[] = [
     setupSelectors: ['#adminLoginShow a[data-bs-target="#adminLogin"]'],
     requiredSelectors: ['#username', '#password', 'button[type="submit"]'],
     fallbackSelectors: ['local-auth img[src$="/images/loading.svg"]'],
-    requiredAssetIncludes: ['/angular/local-auth/browser/polyfills', '/angular/local-auth/browser/main'],
+    requiredAssetIncludes: ['/angular/local-auth/browser/main'],
   },
   {
     path: '/default/rdmp/record/search',
@@ -49,7 +49,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['#basic-search-input', 'button:has-text("Search Plans")'],
     fallbackSelectors: ['record-search img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/record-search/browser/polyfills',
       '/angular/record-search/browser/main',
       '/angular/record-search/browser/styles',
     ],
@@ -62,7 +61,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['#main-title', 'dashboard'],
     fallbackSelectors: ['dashboard img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/dashboard/browser/polyfills',
       '/angular/dashboard/browser/main',
       '/angular/dashboard/browser/styles',
     ],
@@ -75,7 +73,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['redbox-form .rb-form-shell', 'redbox-form h3:has-text("My first text block component!!!")', 'redbox-form label:has-text("Server sync test value")'],
     fallbackSelectors: ['redbox-form img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/form/browser/polyfills',
       '/angular/form/browser/main',
       '/angular/form/browser/styles',
     ],
@@ -112,7 +109,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['.admin-main-content h1', 'report-config'],
     fallbackSelectors: ['report-config img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/report-config/browser/polyfills',
       '/angular/report-config/browser/main',
       '/angular/report-config/browser/styles',
     ],
@@ -125,7 +121,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['export input#after', 'export button.dropdown-toggle'],
     fallbackSelectors: ['export img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/export/browser/polyfills',
       '/angular/export/browser/main',
       '/angular/export/browser/styles',
     ],
@@ -138,7 +133,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['report', 'table'],
     fallbackSelectors: ['report img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/report/browser/polyfills',
       '/angular/report/browser/main',
       '/angular/report/browser/styles',
     ],
@@ -151,7 +145,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['#manage-users-search', 'manage-users table', 'button:has-text("Add a new local user")'],
     fallbackSelectors: ['manage-users img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/manage-users/browser/polyfills',
       '/angular/manage-users/browser/main',
       '/angular/manage-users/browser/styles',
     ],
@@ -164,7 +157,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['manage-roles table', '#role-Admin', 'input[aria-label="Search for name"]'],
     fallbackSelectors: ['manage-roles img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/manage-roles/browser/polyfills',
       '/angular/manage-roles/browser/main',
       '/angular/manage-roles/browser/styles',
     ],
@@ -177,7 +169,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['admin-vocabulary'],
     fallbackSelectors: ['admin-vocabulary img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/admin-vocabulary/browser/polyfills',
       '/angular/admin-vocabulary/browser/main',
       '/angular/admin-vocabulary/browser/styles',
     ],
@@ -190,7 +181,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['admin-figshare-vocabulary', 'h1'],
     fallbackSelectors: ['admin-figshare-vocabulary img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/admin-figshare-vocabulary/browser/polyfills',
       '/angular/admin-figshare-vocabulary/browser/main',
       '/angular/admin-figshare-vocabulary/browser/styles',
     ],
@@ -203,7 +193,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['dashboard-config-editor input[aria-label="Filter dashboard targets"]', 'dashboard-config-editor button[aria-label="Create a new dashboard type"]'],
     fallbackSelectors: ['dashboard-config-editor img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/dashboard-config-editor/browser/polyfills',
       '/angular/dashboard-config-editor/browser/main',
       '/angular/dashboard-config-editor/browser/styles',
     ],
@@ -216,7 +205,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['#named-query-search', 'named-query-editor button:has-text("Create named query")'],
     fallbackSelectors: ['named-query-editor img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/named-query-editor/browser/polyfills',
       '/angular/named-query-editor/browser/main',
       '/angular/named-query-editor/browser/styles',
     ],
@@ -229,7 +217,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['record-audit', 'table'],
     fallbackSelectors: ['record-audit img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/record-audit/browser/polyfills',
       '/angular/record-audit/browser/main',
       '/angular/record-audit/browser/styles',
     ],
@@ -242,7 +229,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['app-config'],
     fallbackSelectors: ['app-config img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/app-config/browser/polyfills',
       '/angular/app-config/browser/main',
       '/angular/app-config/browser/styles',
     ],
@@ -255,7 +241,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['branding-admin-root'],
     fallbackSelectors: ['branding-admin-root img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/branding/browser/polyfills',
       '/angular/branding/browser/main',
       '/angular/branding/browser/styles',
     ],
@@ -268,7 +253,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['app-root'],
     fallbackSelectors: ['app-root img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/translation/browser/polyfills',
       '/angular/translation/browser/main',
       '/angular/translation/browser/styles',
     ],
@@ -281,7 +265,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['deleted-records'],
     fallbackSelectors: ['deleted-records img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/deleted-records/browser/polyfills',
       '/angular/deleted-records/browser/main',
       '/angular/deleted-records/browser/styles',
     ],
@@ -294,7 +277,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['harvest-runs .hr-panel'],
     fallbackSelectors: ['harvest-runs img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
-      '/angular/harvest-runs/browser/polyfills',
       '/angular/harvest-runs/browser/main',
       '/angular/harvest-runs/browser/styles',
     ],

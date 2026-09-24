@@ -6,7 +6,9 @@
   <div class="panel-body">
     <div class="row no-gutters align-items-start nq-filters">
       <div class="col-md-6 pr-md-3 mb-2 mb-md-0">
-        <label for="named-query-search" class="small text-uppercase text-muted mb-1">{{ 'named-query-search' | i18next }}</label>
+        <label for="named-query-search" class="small text-uppercase text-muted mb-1">{{
+          'named-query-search' | i18next
+        }}</label>
         <input
           id="named-query-search"
           class="form-control form-control-sm"
@@ -39,30 +41,53 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let q of queries; trackBy: trackByName" [class.nq-selected]="selectedName === q.name"
-            tabindex="0" (keydown.enter)="open(q.name)">
-            <td><a href="#" (click)="$event.preventDefault(); open(q.name)">{{ q.name }}</a></td>
-            <td><code>{{ q.collectionName || '-' }}</code></td>
-            <td class="text-center">
-              <span *ngIf="paramCount(q) > 0" class="badge badge-info text-white">{{ paramCount(q) }}</span>
-              <span *ngIf="paramCount(q) === 0" class="text-muted">—</span>
-            </td>
-            <td class="text-center">
-              <span *ngIf="mappingCount(q) > 0" class="badge badge-info text-white">{{ mappingCount(q) }}</span>
-              <span *ngIf="mappingCount(q) === 0" class="text-muted">—</span>
-            </td>
-            <td class="text-center">
-              <span *ngIf="filterCount(q) > 0" class="badge badge-warning text-white">{{ filterCount(q) }}</span>
-              <span *ngIf="filterCount(q) === 0" class="text-muted">—</span>
-            </td>
-            <td class="text-right text-nowrap">
-              <button class="btn btn-sm btn-primary action-button" type="button" (click)="open(q.name)">{{ 'named-query-edit' | i18next }}</button>
-              <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(q.name)">{{ 'named-query-delete' | i18next }}</button>
-            </td>
-          </tr>
-          <tr *ngIf="queries.length === 0">
-            <td colspan="6" class="text-muted text-center">{{ 'named-query-empty-filtered' | i18next }}</td>
-          </tr>
+          @for (q of queries; track trackByName($index, q)) {
+            <tr [class.nq-selected]="selectedName === q.name" tabindex="0" (keydown.enter)="open(q.name)">
+              <td>
+                <a href="#" (click)="$event.preventDefault(); open(q.name)">{{ q.name }}</a>
+              </td>
+              <td>
+                <code>{{ q.collectionName || '-' }}</code>
+              </td>
+              <td class="text-center">
+                @if (paramCount(q) > 0) {
+                  <span class="badge badge-info text-white">{{ paramCount(q) }}</span>
+                }
+                @if (paramCount(q) === 0) {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+              <td class="text-center">
+                @if (mappingCount(q) > 0) {
+                  <span class="badge badge-info text-white">{{ mappingCount(q) }}</span>
+                }
+                @if (mappingCount(q) === 0) {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+              <td class="text-center">
+                @if (filterCount(q) > 0) {
+                  <span class="badge badge-warning text-white">{{ filterCount(q) }}</span>
+                }
+                @if (filterCount(q) === 0) {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+              <td class="text-right text-nowrap">
+                <button class="btn btn-sm btn-primary action-button" type="button" (click)="open(q.name)">
+                  {{ 'named-query-edit' | i18next }}
+                </button>
+                <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(q.name)">
+                  {{ 'named-query-delete' | i18next }}
+                </button>
+              </td>
+            </tr>
+          }
+          @if (queries.length === 0) {
+            <tr>
+              <td colspan="6" class="text-muted text-center">{{ 'named-query-empty-filtered' | i18next }}</td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>

@@ -1,4 +1,4 @@
-import { Component, ElementRef, Inject, Input, OnDestroy, SecurityContext } from '@angular/core';
+import { Component, ElementRef, Inject, Input, OnDestroy, SecurityContext, ChangeDetectionStrategy } from '@angular/core';
 import { Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { DomSanitizer } from '@angular/platform-browser';
 import { SubscriptionLike } from 'rxjs';
@@ -21,6 +21,7 @@ import { RecordSearchParams, RecordSearchRefiner } from './search-models';
   templateUrl: './record-search.component.html',
   styleUrls: ['./record-search.component.scss'],
   providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class RecordSearchComponent extends BaseComponent implements OnDestroy {
@@ -119,6 +120,7 @@ export class RecordSearchComponent extends BaseComponent implements OnDestroy {
         this.searchMsg = '';
         this.searchMsgType = '';
       }
+      this.requestRender();
     });
 
     this.hideLoadingIndicator();

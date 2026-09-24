@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import {
   FormValidatorSummaryErrors,
   isTypeFieldDefinitionName,
@@ -94,6 +94,7 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
       padding-left: 1.25rem;
     }
   `],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryFieldComponent {

@@ -1,7 +1,7 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 
 import { ManageRolesModule } from './app/manage-roles.module';
 
 
-platformBrowserDynamic().bootstrapModule(ManageRolesModule)
+platformBrowser().bootstrapModule(ManageRolesModule)
   .catch(err => console.error(err));

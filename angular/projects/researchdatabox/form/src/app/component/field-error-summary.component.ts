@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { FormValidatorComponentErrors } from '@researchdatabox/sails-ng-common';
 import { getAdditionalErrorCount, getPrimaryError, hasMultipleErrors } from './field-error-helpers';
 
@@ -43,6 +43,7 @@ import { getAdditionalErrorCount, getPrimaryError, hasMultipleErrors } from './f
       }
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class FieldErrorSummaryComponent implements OnChanges {

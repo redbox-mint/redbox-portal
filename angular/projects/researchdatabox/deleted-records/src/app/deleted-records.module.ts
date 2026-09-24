@@ -18,9 +18,9 @@ import {ModalModule} from "ngx-bootstrap/modal";
     FormsModule,
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
-    BsDatepickerModule.forRoot(),
-    PaginationModule.forRoot(),
-    ModalModule.forRoot(),
+    BsDatepickerModule,
+    PaginationModule,
+    ModalModule,
   ],
   providers: [
     {

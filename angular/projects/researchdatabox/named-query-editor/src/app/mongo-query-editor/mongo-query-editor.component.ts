@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 
 interface QueryEntry {
   id: number;
@@ -10,6 +10,7 @@ interface QueryEntry {
 @Component({
   selector: 'mongo-query-editor',
   templateUrl: './mongo-query-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class MongoQueryEditorComponent implements OnChanges {

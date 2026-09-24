@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   DropdownInputComponentName,
@@ -36,6 +36,7 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class DropdownInputComponent extends OptionInputBaseComponent<

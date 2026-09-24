@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   FigshareCrosswalkMapping,
@@ -9,7 +9,7 @@ import {
   FigshareSourceSummary,
   FigshareSyncRunSummary,
   FigshareTaxonomySummary,
-  FigshareVocabularyApiService
+  FigshareVocabularyApiService,
 } from './services/figshare-vocabulary-api.service';
 import { formatFigshareTimestamp } from './figshare-format';
 import { FigshareImportRequest } from './import/figshare-import-wizard.component';
@@ -23,7 +23,8 @@ const MAPPING_PAGE_SIZE = 50;
 @Component({
   selector: 'admin-figshare-vocabulary',
   templateUrl: './admin-figshare-vocabulary.component.html',
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class AdminFigshareVocabularyComponent extends BaseComponent {
   public view: FigshareView = 'sources';
@@ -63,7 +64,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     changeClass: '',
     unresolvedOnly: false,
     historicalOnly: false,
-    offset: 0
+    offset: 0,
   };
 
   public activeCrosswalk: FigshareCrosswalkSummary | null = null;
@@ -95,7 +96,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   get approvedCrosswalkCount(): number {
-    return this.crosswalks.filter((crosswalk) => crosswalk.status === 'approved').length;
+    return this.crosswalks.filter(crosswalk => crosswalk.status === 'approved').length;
   }
 
   get syncWarningCount(): number {
@@ -177,7 +178,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     try {
       const clone = await this.api.cloneSource(source.id, { name });
       this.message = this.t('figshare-vocab-clone-created', 'Editable clone created with {{count}} terms.', {
-        count: clone.entries
+        count: clone.entries,
       });
       await this.loadCrosswalks();
       this.view = 'crosswalks';
@@ -247,7 +248,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
       changeClass: '',
       unresolvedOnly: false,
       historicalOnly: false,
-      offset: 0
+      offset: 0,
     };
     this.approvedProposalIds = [];
     this.view = 'preview';
@@ -264,14 +265,14 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
         unresolvedOnly: this.previewFilters.unresolvedOnly || undefined,
         historicalOnly: this.previewFilters.historicalOnly || undefined,
         offset: this.previewFilters.offset,
-        limit: 50
+        limit: 50,
       });
       this.preview = preview;
       if (seedApprovals || this.approvedProposalIds.length === 0) {
         // Exact-code and identity proposals arrive preselected; label suggestions do not.
         this.approvedProposalIds = (preview.page.records as Array<{ proposalId?: string; preselected?: boolean }>)
-          .filter((record) => record.preselected === true && !!record.proposalId)
-          .map((record) => String(record.proposalId));
+          .filter(record => record.preselected === true && !!record.proposalId)
+          .map(record => String(record.proposalId));
       }
       this.previewError = '';
     } catch (err) {
@@ -308,7 +309,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     try {
       const result = await this.api.applyPreview(this.preview.runId, {
         remoteHash: this.preview.remoteHash,
-        approvedProposalIds: this.approvedProposalIds
+        approvedProposalIds: this.approvedProposalIds,
       });
       this.message = this.t(
         'figshare-vocab-apply-complete',
@@ -317,7 +318,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
           created: result.categories.created,
           updated: result.categories.updated,
           historical: result.categories.historical,
-          mappings: result.mappings.created
+          mappings: result.mappings.created,
         }
       );
       this.preview = null;
@@ -384,7 +385,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
         q: this.mappingSearch.q || undefined,
         status: this.mappingSearch.status || undefined,
         offset: this.mappingSearch.offset,
-        limit: this.mappingPageSize
+        limit: this.mappingPageSize,
       });
       this.mappings = result.records;
       this.mappingTotal = result.total;
@@ -402,17 +403,17 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async onMappingAdded(change: MappingChangeRequest): Promise<void> {
-    await this.saveMappingChange(change, this.t(
-      'figshare-vocab-mapping-added',
-      'Target added to the working revision.'
-    ));
+    await this.saveMappingChange(
+      change,
+      this.t('figshare-vocab-mapping-added', 'Target added to the working revision.')
+    );
   }
 
   async onMappingRemoved(change: MappingChangeRequest): Promise<void> {
-    await this.saveMappingChange(change, this.t(
-      'figshare-vocab-mapping-removed',
-      'Mapping removed from the working revision.'
-    ));
+    await this.saveMappingChange(
+      change,
+      this.t('figshare-vocab-mapping-removed', 'Mapping removed from the working revision.')
+    );
   }
 
   /**
@@ -430,7 +431,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     try {
       const updated = await this.api.saveMappings(this.activeCrosswalk.id, {
         revision: this.activeCrosswalk.workingRevision,
-        changes: [change]
+        changes: [change],
       });
       this.activeCrosswalk = updated;
       this.crosswalkMessage = successMessage;
@@ -452,7 +453,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     try {
       this.activeCrosswalk = await this.api.approveCrosswalk(this.activeCrosswalk.id, revision);
       this.crosswalkMessage = this.t('figshare-vocab-crosswalk-approved', 'Revision {{revision}} approved.', {
-        revision
+        revision,
       });
       await this.loadCrosswalks();
     } catch (err) {
@@ -514,7 +515,10 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
       );
     }
     if (status === 401) {
-      return this.t('figshare-vocab-error-session-expired', 'Your session has expired. Sign in again, then retry this action.');
+      return this.t(
+        'figshare-vocab-error-session-expired',
+        'Your session has expired. Sign in again, then retry this action.'
+      );
     }
 
     const detail = this.asErrorMessage(err).toLowerCase();

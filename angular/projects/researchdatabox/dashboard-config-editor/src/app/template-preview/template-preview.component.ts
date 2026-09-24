@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SecurityContext } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SecurityContext, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { TemplatePreviewService } from './template-preview.service';
 
@@ -18,6 +18,7 @@ import { TemplatePreviewService } from './template-preview.service';
       </div>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class TemplatePreviewComponent implements OnInit, OnChanges {

@@ -42,7 +42,7 @@ describe('ExportComponent', () => {
       imports: [
         FormsModule,
         I18NextPipe,
-        BsDatepickerModule.forRoot()
+        BsDatepickerModule
       ],
       providers: [
         {

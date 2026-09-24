@@ -1,4 +1,4 @@
-import {Component, Input, Output, EventEmitter, Inject} from '@angular/core';
+import {Component, Input, Output, EventEmitter, Inject, ChangeDetectionStrategy} from '@angular/core';
 import {BaseComponent} from "./base.component";
 import {LoggerService} from "./logger.service";
 
@@ -33,6 +33,7 @@ import {LoggerService} from "./logger.service";
         width: 0.75rem;
       }
     `],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class HeaderSortComponent extends BaseComponent {

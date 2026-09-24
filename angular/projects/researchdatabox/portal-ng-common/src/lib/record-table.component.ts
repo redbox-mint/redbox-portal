@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Component, Input, Inject, ViewChildren, QueryList} from '@angular/core';
+import {Component, Input, Inject, ViewChildren, QueryList, ChangeDetectionStrategy} from '@angular/core';
 import { BaseComponent } from './base.component';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
@@ -44,6 +44,7 @@ import {HeaderSortComponent} from "./header-sort.component";
 @Component({
     selector: 'record-table',
     templateUrl: './record-table.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class RecordTableComponent extends BaseComponent {

@@ -17,11 +17,24 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, ElementRef, ViewChild } from '@angular/core';
-import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable } from '@researchdatabox/portal-ng-common';
-import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
+import { Component, Inject, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import {
+  ConfigService,
+  LoggerService,
+  TranslationService,
+  RecordService,
+  BaseComponent,
+  RecordSource,
+  RecordResponseTable,
+} from '@researchdatabox/portal-ng-common';
+import {
+  RecordPropViewMetaDto,
+  ReportResultDto,
+  RecordPageDto,
+  ReportFilterDto,
+} from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
-import { ModalDirective } from "ngx-bootstrap/modal";
+import { ModalDirective } from 'ngx-bootstrap/modal';
 import { DateTime } from 'luxon';
 
 interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
@@ -32,10 +45,11 @@ interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
  * Restore deleted records Component
  */
 @Component({
-    selector: 'deleted-records',
-    templateUrl: './deleted-records.component.html',
-    styleUrls: ['./deleted-records.component.scss'],
-    standalone: false
+  selector: 'deleted-records',
+  templateUrl: './deleted-records.component.html',
+  styleUrls: ['./deleted-records.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class DeletedRecordsComponent extends BaseComponent implements RecordSource {
   appName: string = 'deleted-records';
@@ -45,7 +59,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   protected sysConfig: any;
 
   // State tracking
-  initTracker: any = {resultsReturned: false};
+  initTracker: any = { resultsReturned: false };
 
   // Record filter properties
   recordsPerPage: number = 10;
@@ -53,21 +67,21 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   currentPageNumber: number = 1;
   filters: ReportFilterDto[] = [
     {
-      paramName: "title",
-      type: "text",
-      message: "Filter by title",
-      property: "title",
+      paramName: 'title',
+      type: 'text',
+      message: 'Filter by title',
+      property: 'title',
     },
     {
-      paramName: "recordType",
+      paramName: 'recordType',
       type: 'drop-down',
-      message: "Filter by record type",
+      message: 'Filter by record type',
       property: '',
     },
   ];
   sort: string | undefined;
-  dropDownProperties: { [key: string]: { title: string, value: string }[] } = {
-    'recordType': [{title: 'All', value: ''}]
+  dropDownProperties: { [key: string]: { title: string; value: string }[] } = {
+    recordType: [{ title: 'All', value: '' }],
   };
 
   // Filter values entered by user
@@ -76,43 +90,43 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   // Record table properties
   tableHeaders: DeletedRecordTableHeader[] = [
     {
-      label: "deleted-records-results-table-header-title",
-      property: "title",
-      sortProperty: "deletedRecordMetadata.metadata.title",
-      template: "",
+      label: 'deleted-records-results-table-header-title',
+      property: 'title',
+      sortProperty: 'deletedRecordMetadata.metadata.title',
+      template: '',
       hide: false,
-      multivalue: false
+      multivalue: false,
     },
     {
-      label: "deleted-records-results-table-header-created-date",
-      property: "dateCreatedDisplay",
-      sortProperty: "deletedRecordMetadata.dateCreated",
-      template: "",
+      label: 'deleted-records-results-table-header-created-date',
+      property: 'dateCreatedDisplay',
+      sortProperty: 'deletedRecordMetadata.dateCreated',
+      template: '',
       hide: false,
-      multivalue: false
+      multivalue: false,
     },
     {
-      label: "deleted-records-results-table-header-modified-date",
-      property: "dateModifiedDisplay",
-      sortProperty: "deletedRecordMetadata.lastSaveDate",
-      template: "",
+      label: 'deleted-records-results-table-header-modified-date',
+      property: 'dateModifiedDisplay',
+      sortProperty: 'deletedRecordMetadata.lastSaveDate',
+      template: '',
       hide: false,
-      multivalue: false
+      multivalue: false,
     },
     {
-      label: "deleted-records-results-table-header-deleted-date",
-      property: "dateDeletedDisplay",
-      sortProperty: "dateDeleted",
-      template: "",
+      label: 'deleted-records-results-table-header-deleted-date',
+      property: 'dateDeletedDisplay',
+      sortProperty: 'dateDeleted',
+      template: '',
       hide: false,
-      multivalue: false
+      multivalue: false,
     },
   ];
   optTemplateData: any = {};
   showActions = [
-    {name: 'restore', classes: 'btn-primary', label: 'action-restore'},
-    {name: 'destroy', classes: 'btn-danger', label: 'action-destroy'},
-  ]
+    { name: 'restore', classes: 'btn-primary', label: 'action-restore' },
+    { name: 'destroy', classes: 'btn-danger', label: 'action-destroy' },
+  ];
 
   // Record list data
   deletedRecordsResult: ReportResultDto = null as any;
@@ -174,14 +188,14 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const revision = data.revision;
     if (actionName === 'restore') {
       const result = await this.recordService.restoreDeletedRecord(oid, revision);
-      this.loggerService.debug(`Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`);
+      this.loggerService.debug(
+        `Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`
+      );
       await this.gotoPage(this.currentPageNumber);
-
     } else if (actionName === 'destroy') {
       this.currentDestroyRecordModalOid = oid;
       this.currentDestroyRecordModalRevision = revision;
       this.showDestroyRecordModal();
-
     } else {
       this.loggerService.error(`Unknown record table action name '${actionName}' data ${JSON.stringify(data)}.`);
       return;
@@ -205,7 +219,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   public async confirmDestroyRecordModal(event: any) {
     if (_isUndefined(this.currentDestroyRecordModalOid)) {
-      this.loggerService.error("Record oid was not set so cannot destroy record.");
+      this.loggerService.error('Record oid was not set so cannot destroy record.');
       return;
     }
     const oid = this.currentDestroyRecordModalOid;
@@ -236,7 +250,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       name: string;
       packageType: string;
       searchFilters: [];
-      searchable: boolean
+      searchable: boolean;
     }[] = await this.recordService.getAllTypes();
     recordTypes.forEach(recordType => {
       this.dropDownProperties['recordType'].push({
@@ -264,7 +278,15 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const filterFields = 'deletedRecordMetadata.metadata.title';
 
     const records: RecordResponseTable = await this.recordService.getDeletedRecords(
-      recordType, workflowState, this.currentPageNumber, packageType, this.sort, filterFields, filterString, filterMode);
+      recordType,
+      workflowState,
+      this.currentPageNumber,
+      packageType,
+      this.sort,
+      filterFields,
+      filterString,
+      filterMode
+    );
 
     return {
       recordsPerPage: this.recordsPerPage,

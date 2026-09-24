@@ -1,4 +1,4 @@
-import { Component } from '@angular/core'; 
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType } from '@ngx-formly/core'; 
 @Component({
     selector: 'formly-object-type',
@@ -20,6 +20,7 @@ import { FieldType } from '@ngx-formly/core';
       }
     </div>
     `,
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 }) 
 export class ObjectTypeComponent extends FieldType { }

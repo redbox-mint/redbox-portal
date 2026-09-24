@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, OnDestroy } from '@angular/core';
+import { Component, computed, effect, inject, signal, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import { IntegrationStatusComponentName, IntegrationStatusFieldComponentConfigOutline } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType } from '../form-state';
@@ -181,6 +181,7 @@ import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationSe
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined> implements OnDestroy {

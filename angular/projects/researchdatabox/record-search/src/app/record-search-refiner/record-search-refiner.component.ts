@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { isEmpty as _isEmpty } from 'lodash-es';
 import { RecordSearchRefiner } from '../search-models';
 
 @Component({
   selector: 'record-search-refiner',
   templateUrl: './record-search-refiner.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class RecordSearchRefinerComponent {

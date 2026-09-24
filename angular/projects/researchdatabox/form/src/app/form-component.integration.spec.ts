@@ -73,7 +73,7 @@ describe('FormComponent Integration Tests', () => {
         "TypeaheadInputComponent": TypeaheadInputComponent
       },
       imports: {
-        "TypeaheadModule": TypeaheadModule.forRoot()
+        "TypeaheadModule": TypeaheadModule
       },
     });
 

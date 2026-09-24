@@ -1,4 +1,4 @@
-import {Component, computed, effect, signal} from '@angular/core';
+import {Component, computed, effect, signal, ChangeDetectionStrategy} from '@angular/core';
 import {SaveButtonComponentName, SaveButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {FormFieldCompMapEntry} from '@researchdatabox/portal-ng-common';
 import {FormComponentEventType, createFormSaveRequestedEvent} from '../form-state';
@@ -21,6 +21,7 @@ import {ButtonBaseComponent} from "./button-base.component";
       <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class SaveButtonComponent extends ButtonBaseComponent {

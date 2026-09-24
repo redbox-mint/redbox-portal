@@ -1,4 +1,4 @@
-import { Component, Inject, OnDestroy } from '@angular/core';
+import { Component, Inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   DashboardConfigApiService,
@@ -7,7 +7,7 @@ import {
   DashboardTableOverrideConfigData,
   DashboardTypeDefinition,
   MergedDashboardConfigResult,
-  WorkflowStateDashboardConfig
+  WorkflowStateDashboardConfig,
 } from './dashboard-config-api.service';
 
 type SelectedContext =
@@ -21,7 +21,8 @@ type NavSection = 'types' | 'records' | 'views';
   selector: 'dashboard-config-editor',
   templateUrl: './dashboard-config-editor.component.html',
   styleUrls: ['./dashboard-config-editor.component.scss'],
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.Eager,
+  standalone: false,
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {
   configInfo: DashboardConfigInfo | null = null;
@@ -59,7 +60,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
       searchable: true,
       system: false,
       formatRules: {},
-      tableConfig: { rowConfig: [] }
+      tableConfig: { rowConfig: [] },
     };
   }
 
@@ -96,7 +97,8 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   async selectDashboardType(name: string): Promise<void> {
     this.selectedContext = { type: 'dashboardType', name };
     this.dashboardTypeIsNew = false;
-    const selected = this.configInfo?.dashboardTypes.find((type) => type.name === name) ?? await this.api.getDashboardType(name);
+    const selected =
+      this.configInfo?.dashboardTypes.find(type => type.name === name) ?? (await this.api.getDashboardType(name));
     this.dashboardTypeForm = selected ? this.clone(selected) : this.emptyDashboardType();
     this.selectedMergedConfig = null;
     this.currentOverrideConfig = {};
@@ -120,9 +122,15 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     this.error = '';
     try {
       if (this.selectedContext.type === 'recordType') {
-        this.selectedMergedConfig = await this.api.getMergedConfig(this.selectedContext.recordType, this.selectedContext.step);
+        this.selectedMergedConfig = await this.api.getMergedConfig(
+          this.selectedContext.recordType,
+          this.selectedContext.step
+        );
       } else if (this.selectedContext.type === 'view') {
-        this.selectedMergedConfig = await this.api.getMergedViewConfig(this.selectedContext.view, this.selectedContext.step);
+        this.selectedMergedConfig = await this.api.getMergedViewConfig(
+          this.selectedContext.view,
+          this.selectedContext.step
+        );
       }
 
       this.currentDashboardTypeName = this.selectedMergedConfig?.dashboardType ?? 'standard';
@@ -147,23 +155,30 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
       return null;
     }
     const selected = this.selectedContext as Extract<SelectedContext, { type: 'dashboardType' }>;
-    return this.configInfo?.dashboardTypes.find((type) => type.name === selected.name) ?? null;
+    return this.configInfo?.dashboardTypes.find(type => type.name === selected.name) ?? null;
   }
 
   isSelectedDashboardType(name: string): boolean {
-    return this.selectedContext?.type === 'dashboardType' && (this.selectedContext as Extract<SelectedContext, { type: 'dashboardType' }>).name === name;
+    return (
+      this.selectedContext?.type === 'dashboardType' &&
+      (this.selectedContext as Extract<SelectedContext, { type: 'dashboardType' }>).name === name
+    );
   }
 
   isSelectedRecordType(recordType: string, step: string): boolean {
-    return this.selectedContext?.type === 'recordType'
-      && (this.selectedContext as Extract<SelectedContext, { type: 'recordType' }>).recordType === recordType
-      && (this.selectedContext as Extract<SelectedContext, { type: 'recordType' }>).step === step;
+    return (
+      this.selectedContext?.type === 'recordType' &&
+      (this.selectedContext as Extract<SelectedContext, { type: 'recordType' }>).recordType === recordType &&
+      (this.selectedContext as Extract<SelectedContext, { type: 'recordType' }>).step === step
+    );
   }
 
   isSelectedView(view: string, step: string): boolean {
-    return this.selectedContext?.type === 'view'
-      && (this.selectedContext as Extract<SelectedContext, { type: 'view' }>).view === view
-      && (this.selectedContext as Extract<SelectedContext, { type: 'view' }>).step === step;
+    return (
+      this.selectedContext?.type === 'view' &&
+      (this.selectedContext as Extract<SelectedContext, { type: 'view' }>).view === view &&
+      (this.selectedContext as Extract<SelectedContext, { type: 'view' }>).step === step
+    );
   }
 
   hasRecordOverride(recordType: string, step: string): boolean {
@@ -216,18 +231,18 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   get filteredTypeList(): DashboardTypeDefinition[] {
-    return this.typeList.filter((type) =>
-      this.matchesFilter(type.name) || (type.description ? this.matchesFilter(type.description) : false)
+    return this.typeList.filter(
+      type => this.matchesFilter(type.name) || (type.description ? this.matchesFilter(type.description) : false)
     );
   }
 
   get filteredRecordTypes(): Array<{ name: string; steps: string[] }> {
     return this.selectedRecordTypes
-      .map((rt) => {
+      .map(rt => {
         if (this.matchesFilter(rt.name)) {
           return rt;
         }
-        const steps = rt.steps.filter((step) => this.matchesFilter(step));
+        const steps = rt.steps.filter(step => this.matchesFilter(step));
         return steps.length ? { name: rt.name, steps } : null;
       })
       .filter((rt): rt is { name: string; steps: string[] } => rt !== null);
@@ -239,11 +254,11 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
 
   get filteredViews(): Array<{ name: string; steps: string[] }> {
     return this.selectedViews
-      .map((v) => {
+      .map(v => {
         if (this.matchesFilter(v.name)) {
           return v;
         }
-        const steps = v.steps.filter((step) => this.matchesFilter(step));
+        const steps = v.steps.filter(step => this.matchesFilter(step));
         return steps.length ? { name: v.name, steps } : null;
       })
       .filter((v): v is { name: string; steps: string[] } => v !== null);
@@ -281,11 +296,15 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
       } else {
         const payload: WorkflowStateDashboardConfig = {
           dashboardType: this.currentDashboardTypeName,
-          tableConfig: this.currentOverrideConfig
+          tableConfig: this.currentOverrideConfig,
         };
 
         if (this.selectedContext.type === 'recordType') {
-          await this.api.saveWorkflowStateDashboardConfig(this.selectedContext.recordType, this.selectedContext.step, payload);
+          await this.api.saveWorkflowStateDashboardConfig(
+            this.selectedContext.recordType,
+            this.selectedContext.step,
+            payload
+          );
           this.message = 'Saved workflow state configuration.';
           this.overrides = await this.api.getOverrides();
           await this.loadMergedSelection();

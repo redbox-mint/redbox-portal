@@ -75,7 +75,7 @@
               "base": "../assets/angular/local-auth"
             },
             "index": "projects/researchdatabox/local-auth/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/local-auth/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -164,7 +164,7 @@
               "base": "../assets/angular/export"
             },
             "index": "projects/researchdatabox/export/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/export/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/export/src/favicon.ico", "projects/researchdatabox/export/src/assets"],
@@ -250,7 +250,7 @@
               "base": "../assets/angular/dashboard"
             },
             "index": "projects/researchdatabox/dashboard/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/dashboard/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -339,7 +339,7 @@
               "base": "../assets/angular/report"
             },
             "index": "projects/researchdatabox/report/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/report/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/report/src/favicon.ico", "projects/researchdatabox/report/src/assets"],
@@ -425,7 +425,7 @@
               "base": "../assets/angular/report-config"
             },
             "index": "projects/researchdatabox/report-config/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/report-config/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/report-config/src/assets"],
@@ -508,7 +508,7 @@
               "base": "../assets/angular/manage-users"
             },
             "index": "projects/researchdatabox/manage-users/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/manage-users/tsconfig.app.json",
             "assets": [
               "projects/researchdatabox/manage-users/src/favicon.ico",
@@ -595,7 +595,7 @@
               "base": "../assets/angular/record-audit"
             },
             "index": "projects/researchdatabox/record-audit/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/record-audit/tsconfig.app.json",
             "assets": [
               "projects/researchdatabox/record-audit/src/favicon.ico",
@@ -682,7 +682,7 @@
               "base": "../assets/angular/admin-vocabulary"
             },
             "index": "projects/researchdatabox/admin-vocabulary/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/admin-vocabulary/tsconfig.app.json",
             "assets": ["projects/researchdatabox/admin-vocabulary/src/favicon.ico"],
             "styles": ["projects/researchdatabox/admin-vocabulary/src/styles.scss"],
@@ -763,7 +763,7 @@
               "base": "../assets/angular/admin-figshare-vocabulary"
             },
             "index": "projects/researchdatabox/admin-figshare-vocabulary/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/admin-figshare-vocabulary/tsconfig.app.json",
             "assets": ["projects/researchdatabox/admin-figshare-vocabulary/src/favicon.ico"],
             "styles": ["projects/researchdatabox/admin-figshare-vocabulary/src/styles.scss"],
@@ -844,7 +844,7 @@
               "base": "../assets/angular/dashboard-config-editor"
             },
             "index": "projects/researchdatabox/dashboard-config-editor/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/dashboard-config-editor/tsconfig.app.json",
             "assets": ["projects/researchdatabox/dashboard-config-editor/src/favicon.ico"],
             "styles": ["projects/researchdatabox/dashboard-config-editor/src/styles.scss"],
@@ -925,7 +925,7 @@
               "base": "../assets/angular/named-query-editor"
             },
             "index": "projects/researchdatabox/named-query-editor/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/named-query-editor/tsconfig.app.json",
             "assets": ["projects/researchdatabox/named-query-editor/src/favicon.ico"],
             "styles": ["projects/researchdatabox/named-query-editor/src/styles.scss"],
@@ -1006,7 +1006,7 @@
               "base": "../assets/angular/manage-roles"
             },
             "index": "projects/researchdatabox/manage-roles/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/manage-roles/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1095,7 +1095,7 @@
               "base": "../assets/angular/form"
             },
             "index": "projects/researchdatabox/form/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/form/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1191,7 +1191,7 @@
               "base": "../assets/angular/app-config"
             },
             "index": "projects/researchdatabox/app-config/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/app-config/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1280,7 +1280,7 @@
               "base": "../assets/angular/deleted-records"
             },
             "index": "projects/researchdatabox/deleted-records/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/deleted-records/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1377,7 +1377,7 @@
               "base": "../assets/angular/harvest-runs"
             },
             "index": "projects/researchdatabox/harvest-runs/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/harvest-runs/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1469,7 +1469,7 @@
               "base": "../assets/angular/branding"
             },
             "index": "projects/researchdatabox/branding/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/branding/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1558,7 +1558,7 @@
               "base": "../assets/angular/translation"
             },
             "index": "projects/researchdatabox/translation/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/translation/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -1647,7 +1647,7 @@
               "base": "../assets/angular/record-search"
             },
             "index": "projects/researchdatabox/record-search/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/record-search/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/record-search/src/assets"],

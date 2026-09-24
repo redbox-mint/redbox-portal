@@ -73,9 +73,9 @@ describe('DeletedRecordsComponent', () => {
       ],
       imports: [
         FormsModule,
-        BsDatepickerModule.forRoot(),
-        PaginationModule.forRoot(),
-        ModalModule.forRoot(),
+        BsDatepickerModule,
+        PaginationModule,
+        ModalModule,
         RedboxPortalCoreModule
       ],
       providers: [

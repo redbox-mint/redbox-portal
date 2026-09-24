@@ -8,7 +8,7 @@
  * - Live preview
  * - Drag-and-drop reordering (future enhancement)
  */
-import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import { MenuItem } from './menu-item.interface';
 
@@ -16,6 +16,7 @@ import { MenuItem } from './menu-item.interface';
   selector: 'formly-menu-editor-type',
   templateUrl: './menu-editor.type.html',
   styleUrls: ['./menu-editor.type.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit, AfterViewInit {

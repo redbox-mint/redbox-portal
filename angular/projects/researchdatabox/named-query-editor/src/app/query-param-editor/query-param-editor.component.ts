@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 
 interface NamedQueryParam {
   type: string;
@@ -18,6 +18,7 @@ interface ParamEntry extends NamedQueryParam {
 @Component({
   selector: 'query-param-editor',
   templateUrl: './query-param-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class QueryParamEditorComponent implements OnChanges {

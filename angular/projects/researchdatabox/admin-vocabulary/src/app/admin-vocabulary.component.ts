@@ -1,4 +1,4 @@
-import { Component, Inject, OnDestroy } from '@angular/core';
+import { Component, Inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { VocabularyApiService, VocabularyDetail, VocabularyEntry, VocabularySummary } from './vocabulary-api.service';
 
@@ -14,6 +14,7 @@ type VocabularyListQueryState = {
   selector: 'admin-vocabulary',
   templateUrl: './admin-vocabulary.component.html',
   styleUrls: ['./admin-vocabulary.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class AdminVocabularyComponent extends BaseComponent implements OnDestroy {

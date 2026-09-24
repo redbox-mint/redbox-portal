@@ -1,4 +1,4 @@
-import { Component, ElementRef, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, ChangeDetectionStrategy } from '@angular/core';
 import {
   AuditFieldChange,
   BaseComponent,
@@ -18,6 +18,7 @@ type RecordAuditTabName = 'audit' | 'permissions' | 'integration';
   selector: 'record-audit',
   templateUrl: './record-audit.component.html',
   styleUrls: ['./record-audit.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class RecordAuditComponent extends BaseComponent {

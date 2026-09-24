@@ -1,10 +1,11 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, inject, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { UserService } from '@researchdatabox/portal-ng-common';
 
 @Component({
   selector: 'record-audit-launcher',
   templateUrl: './record-audit-launcher.component.html',
   styleUrls: ['./record-audit-launcher.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class RecordAuditLauncherComponent {

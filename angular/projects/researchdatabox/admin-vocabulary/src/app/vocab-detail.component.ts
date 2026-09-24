@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { VocabularyDetail, VocabularyEntry } from './vocabulary-api.service';
 
 interface PreviewTreeNode {
@@ -11,6 +11,7 @@ interface PreviewTreeNode {
   selector: 'vocab-detail',
   templateUrl: './vocab-detail.component.html',
   styleUrls: ['./vocab-detail.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class VocabDetailComponent implements OnChanges {

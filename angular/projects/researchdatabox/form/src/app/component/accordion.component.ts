@@ -6,7 +6,7 @@ import {
   Injector,
   ViewChild,
   ViewContainerRef,
-  inject,
+  inject, ChangeDetectionStrategy,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
@@ -73,6 +73,7 @@ import { FormComponent } from '../form.component';
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class AccordionComponent extends FormFieldBaseComponent<undefined> {
@@ -269,6 +270,7 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {

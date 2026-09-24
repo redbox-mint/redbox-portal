@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 
 interface SortEntry {
   id: number;
@@ -9,6 +9,7 @@ interface SortEntry {
 @Component({
   selector: 'sort-editor',
   templateUrl: './sort-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class SortEditorComponent implements OnChanges {

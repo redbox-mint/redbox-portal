@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import type { CustomSetValueControl } from '../form-state/custom-set-value.control';
 import {
@@ -286,6 +286,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {
@@ -296,7 +297,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private showWeekNumbers: boolean = false;
   private robustParsing: boolean = true;
   private containerClass: string = 'theme-dark-blue';
-  private bsFullConfig: any = {};
+  public bsConfig: Partial<BsDatepickerConfig> = {};
   public enableTimePickerDefault: boolean = false;
   private lastValidValue: Date | null = null;
   private ignoreNextBlur: boolean = false;
@@ -325,12 +326,18 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
     this.robustParsing = cfg.robustParsing ?? defaultConfig.robustParsing ?? this.robustParsing;
     this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
-    this.bsFullConfig = cfg.bsFullConfig ?? {};
     if (!_isUndefined(this.model)) {
       this.model.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormatDefault;
       this.model.enableTimePicker =
         cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
     }
+    // A fresh config on every render makes the datepicker rewrite the input
+    // while the user is typing, before our blur handler can parse that text.
+    this.bsConfig = !_isEmpty(cfg.bsFullConfig) ? cfg.bsFullConfig! : {
+      dateInputFormat: this.dateFormat,
+      showWeekNumbers: this.showWeekNumbers,
+      containerClass: this.containerClass,
+    };
   }
 
   onDateChange(dateValue: DateInputModelValueType) {
@@ -478,19 +485,6 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
       inputEl.value = DateTime.fromJSDate(value, { zone: 'utc' }).toFormat(luxonFmt);
     } else {
       inputEl.value = '';
-    }
-  }
-
-  public get bsConfig(): BsDatepickerConfig {
-    if (_isEmpty(this.bsFullConfig)) {
-      //Commonly used properties only
-      return {
-        dateInputFormat: this.dateFormat,
-        showWeekNumbers: this.showWeekNumbers,
-        containerClass: this.containerClass,
-      } as BsDatepickerConfig;
-    } else {
-      return this.bsFullConfig as BsDatepickerConfig;
     }
   }
 

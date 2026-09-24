@@ -3,7 +3,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
 import { By } from '@angular/platform-browser';
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, provideZonelessChangeDetection } from '@angular/core';
 import { BrandingAdminComponent } from './branding-admin.component';
 import { BrandingAdminService } from './branding-admin.service';
 import { BrandingAdminState, BrandingTypefaceFace, BrandingTypefaceSlot } from './branding-admin.model';
@@ -123,6 +123,7 @@ describe('BrandingAdminComponent typography experience', () => {
     await TestBed.configureTestingModule({
       imports: [BrandingAdminComponent, FormsModule, HttpClientTestingModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: APP_BASE_HREF, useValue: '' },
         { provide: LoggerService, useClass: LoggerStub },
         { provide: TranslationService, useClass: TranslationStub },
@@ -213,6 +214,7 @@ describe('BrandingAdminComponent typography experience', () => {
     );
     const publish = spyOn(serviceStub, 'publish');
     const logo = spyOn(serviceStub, 'uploadLogo').and.resolveTo({});
+    const uploadAction = spyOn(component, 'uploadFace').and.callThrough();
     const inputs = Array.from(
       fixture.nativeElement.querySelectorAll('input[accept=".woff2,font/woff2"]')
     ) as HTMLInputElement[];
@@ -244,13 +246,15 @@ describe('BrandingAdminComponent typography experience', () => {
     await Promise.resolve();
     expect(logo).toHaveBeenCalledTimes(1);
     finish(adminState());
-    await settled();
+    await uploadAction.calls.first().returnValue;
+    await fixture.whenStable();
     expect(inputs.every(input => !input.disabled)).toBeTrue();
   });
 
   it('keeps conflict controls disabled until a successful reload', async () => {
     await initWith(adminState());
     component.conflict = true;
+    fixture.changeDetectorRef.markForCheck();
     fixture.detectChanges();
     const input = fixture.nativeElement.querySelector('input[accept=".woff2,font/woff2"]') as HTMLInputElement;
     expect(input.disabled).toBeTrue();
@@ -273,13 +277,13 @@ describe('BrandingAdminComponent typography experience', () => {
   async function initWith(state: BrandingAdminState) {
     serviceStub.loadConfig = () => Promise.resolve(state);
     fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await component.waitForInit();
     await fixture.whenStable();
   }
 
   async function settled() {
-    fixture.detectChanges();
+    // These assertions also follow direct test mutations of ordinary properties.
+    fixture.changeDetectorRef.markForCheck();
     await fixture.whenStable();
   }
 

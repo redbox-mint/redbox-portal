@@ -1,4 +1,4 @@
-import { Component, ComponentRef, DestroyRef, inject, ViewChild, ViewContainerRef, TemplateRef } from '@angular/core';
+import { Component, ComponentRef, DestroyRef, inject, ViewChild, ViewContainerRef, TemplateRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, AbstractControl } from '@angular/forms';
 import {
@@ -92,6 +92,7 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
@@ -950,6 +951,7 @@ export interface RepeatableElementEntry {
       }
     </ng-template>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {

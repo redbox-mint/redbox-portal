@@ -1,10 +1,11 @@
-import { Component, HostListener, OnInit, signal } from '@angular/core';
+import { Component, HostListener, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormDebugStateService } from './form-debug-state.service';
 
 @Component({
   selector: 'redbox-form-debug-panel',
   templateUrl: './form-debug-panel.component.html',
   styleUrls: ['./form-debug-panel.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class FormDebugPanelComponent implements OnInit {

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import {
   TabNavButtonComponentName,
@@ -34,6 +34,7 @@ import {FormComponent} from "../form.component";
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> implements OnInit {

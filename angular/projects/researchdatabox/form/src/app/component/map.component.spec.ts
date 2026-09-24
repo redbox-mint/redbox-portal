@@ -1,4 +1,5 @@
 import {TestBed} from "@angular/core/testing";
+import {provideZonelessChangeDetection} from "@angular/core";
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {TranslationService} from "@researchdatabox/portal-ng-common";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
@@ -1237,6 +1238,8 @@ describe("MapComponent", () => {
   });
 
   it("adds select/delete tooling and deletes selected draw features", async () => {
+    TestBed.configureTestingModule({providers: [provideZonelessChangeDetection()]});
+    const drawReady = new Promise<void>(resolve => fakeDraw.start.and.callFake(() => resolve()));
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -1277,6 +1280,7 @@ describe("MapComponent", () => {
 
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    await drawReady;
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -1296,7 +1300,7 @@ describe("MapComponent", () => {
     expect(selectedFeatureId).toMatch(uuidV4Pattern);
     expect(remainingFeatureId).toMatch(uuidV4Pattern);
     drawListeners["select"]?.forEach((listener) => listener(selectedFeatureId));
-    fixture.detectChanges();
+    await fixture.whenStable();
     const deleteButton = fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement;
     expect(deleteButton).not.toBeNull();
     expect(deleteButton.disabled).toBeFalse();

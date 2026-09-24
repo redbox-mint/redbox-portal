@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ContentFieldComponentConfig, RelatedObjectDataComponentName, RelatedObjectDataFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import { ContentComponent } from './content.component';
 
@@ -11,6 +11,7 @@ import { ContentComponent } from './content.component';
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class RelatedObjectDataComponent extends ContentComponent {

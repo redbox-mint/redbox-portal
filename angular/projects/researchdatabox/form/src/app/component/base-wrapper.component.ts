@@ -1,4 +1,4 @@
-import { Component, Type, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding } from '@angular/core';
+import { Component, Type, Input, ViewChild, OnDestroy, inject, Injector, Signal, HostBinding, ChangeDetectionStrategy } from '@angular/core';
 import { FormBaseWrapperDirective } from './base-wrapper.directive';
 
 import { set as _set, get as _get } from 'lodash-es';
@@ -41,6 +41,7 @@ const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
 @Component({
   selector: 'redbox-form-base-wrapper',
   template: ` <ng-template redboxFormBaseWrapper></ng-template> `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<ValueType> implements OnDestroy {

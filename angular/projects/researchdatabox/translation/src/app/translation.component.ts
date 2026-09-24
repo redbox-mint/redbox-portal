@@ -1,4 +1,4 @@
-import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -29,6 +29,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
   standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule, TiptapEditorDirective],
   templateUrl: './translation.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     :host { display: block; }
 

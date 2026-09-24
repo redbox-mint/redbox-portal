@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FigshareCrosswalkSummary } from '../services/figshare-vocabulary-api.service';
 
 @Component({
   selector: 'figshare-crosswalk-list',
   templateUrl: './figshare-crosswalk-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class FigshareCrosswalkListComponent {

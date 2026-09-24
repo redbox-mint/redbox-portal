@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {CancelButtonComponentName, CancelButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {ButtonBaseComponent} from "./button-base.component";
 import {createFormRedirectRequestedEvent} from "../form-state";
@@ -20,6 +20,7 @@ import {createFormRedirectRequestedEvent} from "../form-state";
       <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class CancelButtonComponent extends ButtonBaseComponent {

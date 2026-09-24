@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, Input, OnDestroy, Injector, inject } from "@angular/core";
+import { AfterViewInit, Component, Input, OnDestroy, Injector, inject, ChangeDetectionStrategy } from "@angular/core";
 import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
     DataLocationAttachmentValue,
@@ -76,6 +76,7 @@ export class DataLocationModel extends FormFieldModel<DataLocationModelValueType
     selector: "redbox-data-location",
     templateUrl: "./data-location.component.html",
     styleUrls: ["./data-location.component.scss"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class DataLocationComponent extends FormFieldBaseComponent<DataLocationModelValueType> implements AfterViewInit, OnDestroy {

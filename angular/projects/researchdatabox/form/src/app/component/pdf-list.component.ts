@@ -1,4 +1,4 @@
-import { Component, HostListener, Injector, Input, inject } from "@angular/core";
+import { Component, HostListener, Injector, Input, inject, ChangeDetectionStrategy } from "@angular/core";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
   DynamicScriptResponse, handlebarsTemplate,
@@ -27,6 +27,7 @@ export class PDFListModel extends FormFieldModel<PDFListModelValueType> {
     selector: "redbox-pdf-list",
     templateUrl: "./pdf-list.component.html",
     styleUrls: ["./pdf-list.component.scss"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueType> {

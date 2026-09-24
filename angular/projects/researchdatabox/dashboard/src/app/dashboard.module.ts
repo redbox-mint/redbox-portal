@@ -17,8 +17,8 @@ import { SortComponent } from './sort/sort.component';
     BrowserModule,
     FormsModule,
     RedboxPortalCoreModule,
-    PaginationModule.forRoot(), 
-    TooltipModule.forRoot()
+    PaginationModule,
+    TooltipModule
   ],
   providers: [
     {

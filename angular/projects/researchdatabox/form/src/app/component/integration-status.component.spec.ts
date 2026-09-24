@@ -44,7 +44,8 @@ describe('IntegrationStatusComponent', () => {
   let mockRecordService: jasmine.SpyObj<RecordService>;
 
   beforeEach(async () => {
-    mockRecordService = jasmine.createSpyObj('RecordService', ['getRecordIntegrationStatus']);
+    mockRecordService = jasmine.createSpyObj('RecordService', ['getRecordIntegrationStatus', 'waitForInit']);
+    mockRecordService.waitForInit.and.returnValue(Promise.resolve());
     mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({ integrations: [] }));
 
     await createTestbedModule({

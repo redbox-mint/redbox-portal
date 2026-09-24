@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   PublishDataLocationRefreshComponentName,
@@ -10,6 +10,7 @@ import { createFieldValueChangedEvent } from '../form-state/events/form-componen
 @Component({
   selector: 'redbox-publish-data-location-refresh',
   templateUrl: './publish-data-location-refresh.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 /**

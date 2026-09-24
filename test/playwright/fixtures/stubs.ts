@@ -43,7 +43,11 @@ export const fontStylesheetUrls = new Set([
 export async function installExternalAssetStubs(context: BrowserContext): Promise<void> {
   await context.route(url => fontStylesheetUrls.has(url.href), async route => {
     const base = process.env.PLAYWRIGHT_STUB_URL ?? 'http://playwright-stubs:8787';
-    const response = await context.request.get(`${base}/fonts/css`, { params: { family: new URL(route.request().url()).searchParams.get('family')! } });
+    const response = await context.request.get(`${base}/fonts/css`, {
+      params: { family: new URL(route.request().url()).searchParams.get('family')! },
+      // The fixture server can close an idle keep-alive socket between page visits.
+      maxRetries: 1,
+    });
     if (!response.ok()) throw new Error(`Local font stylesheet failed (${response.status()}).`);
     await route.fulfill({ response });
   });

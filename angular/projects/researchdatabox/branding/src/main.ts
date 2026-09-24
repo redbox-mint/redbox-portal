@@ -1,7 +1,7 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 
 import { BrandingAdminModule } from './app/branding-admin.module';
 
 
-platformBrowserDynamic().bootstrapModule(BrandingAdminModule)
+platformBrowser().bootstrapModule(BrandingAdminModule)
   .catch(err => console.error(err));

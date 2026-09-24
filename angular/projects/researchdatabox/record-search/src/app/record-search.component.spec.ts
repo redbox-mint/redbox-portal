@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF, Location } from '@angular/common';
+import { SpyLocation } from '@angular/common/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ConfigService, I18NextPipe, LoggerService, TranslationService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
@@ -176,6 +179,69 @@ describe('RecordSearchComponent', () => {
     await component.pageChanged({ page: 2 });
 
     expect(requestedPages).toEqual([1, 2]);
+  });
+
+  it('keeps pagination mounted while loading a page without emitting repeated searches', async () => {
+    await TestBed.configureTestingModule({
+      imports: [PaginationModule],
+      providers: [provideZonelessChangeDetection()],
+    }).compileComponents();
+    let resolveSecondPage!: (value: any) => void;
+    const search = jasmine.createSpy('search').and.callFake((params: RecordSearchParams) => {
+      if (params.currentPage === 1) {
+        return Promise.resolve({ records: [{ storage_id: 'first', title: 'First page' }], totalItems: 12, page: 1, facets: [] });
+      }
+      return new Promise(resolve => { resolveSecondPage = resolve; });
+    });
+    searchService.search = search;
+    const fixture = TestBed.createComponent(RecordSearchComponent);
+    const component = fixture.componentInstance;
+    fixture.autoDetectChanges();
+    await component.waitForInit();
+    component.params.basicSearch = 'owned records';
+    await component.search();
+    await fixture.whenStable();
+
+    const pagination = fixture.nativeElement.querySelector('pagination');
+    const pageChanged = spyOn(component, 'pageChanged').and.callThrough();
+    const secondPage = Array.from(pagination.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>)
+      .find(link => link.textContent?.trim() === '2')!;
+    secondPage.click();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('pagination')).toBe(pagination);
+
+    resolveSecondPage({ records: [{ storage_id: 'second', title: 'Second page' }], totalItems: 12, page: 2, facets: [] });
+    await pageChanged.calls.mostRecent().returnValue;
+    await fixture.whenStable();
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(component.params.currentPage).toBe(2);
+    expect(fixture.nativeElement.querySelector('h3 a')?.textContent).toContain('Second page');
+  });
+
+  it('clears rendered results when browser history returns to an empty search', async () => {
+    await TestBed.configureTestingModule({
+      imports: [PaginationModule],
+      providers: [provideZonelessChangeDetection()],
+    }).compileComponents();
+    TestBed.overrideComponent(RecordSearchComponent, {
+      set: {providers: [{provide: Location, useClass: SpyLocation}]},
+    });
+    searchService.search = async () => ({
+      records: [{storage_id: 'first', title: 'History result'}], totalItems: 1, page: 1, facets: [],
+    });
+    const fixture = TestBed.createComponent(RecordSearchComponent);
+    fixture.autoDetectChanges();
+    await fixture.componentInstance.waitForInit();
+    fixture.componentInstance.params.basicSearch = 'history';
+    await fixture.componentInstance.search();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('h3 a')?.textContent).toContain('History result');
+
+    (fixture.debugElement.injector.get(Location) as SpyLocation).simulateUrlPop('/record/search');
+    expect(fixture.componentInstance.params.basicSearch).toBeNull();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('h3 a')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#basic-search-input').value).toBe('');
   });
 
   it('search should set fallback dashboardTitle when title is missing', async () => {

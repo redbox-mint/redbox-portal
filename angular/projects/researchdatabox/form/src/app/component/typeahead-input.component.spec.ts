@@ -45,7 +45,7 @@ describe("TypeaheadInputComponent", () => {
                 "GroupFieldComponent": GroupFieldComponent,
             },
             imports: {
-                "TypeaheadModule": TypeaheadModule.forRoot()
+                "TypeaheadModule": TypeaheadModule
             }
         }));
       translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');

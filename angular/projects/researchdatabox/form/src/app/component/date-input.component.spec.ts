@@ -60,7 +60,7 @@ describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
       declarations: [DateInputComponent],
-      imports: [BsDatepickerModule.forRoot()],
+      imports: [BsDatepickerModule],
     });
   });
 

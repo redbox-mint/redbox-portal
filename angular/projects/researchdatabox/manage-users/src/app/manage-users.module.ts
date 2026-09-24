@@ -18,7 +18,7 @@ import { ManageUsersComponent } from './manage-users.component';
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
     CommonModule,
-    ModalModule.forRoot()
+    ModalModule
   ],
   providers: [
     {

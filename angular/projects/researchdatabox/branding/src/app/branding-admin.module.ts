@@ -18,9 +18,9 @@ import { BrandingAdminComponent } from './branding-admin.component';
     FormsModule,
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
-    BsDatepickerModule.forRoot(),
-    PaginationModule.forRoot(),
-    ModalModule.forRoot(),
+    BsDatepickerModule,
+    PaginationModule,
+    ModalModule,
     BrandingAdminComponent
   ],
   providers: [

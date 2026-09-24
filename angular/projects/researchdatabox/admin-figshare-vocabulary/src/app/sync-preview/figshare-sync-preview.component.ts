@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import {
   FigshareDiffRow,
   FigsharePagedPreview,
@@ -22,6 +22,7 @@ export interface PreviewFilterState {
 @Component({
   selector: 'figshare-sync-preview',
   templateUrl: './figshare-sync-preview.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false
 })
 export class FigshareSyncPreviewComponent {
