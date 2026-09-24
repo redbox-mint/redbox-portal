@@ -1,9 +1,24 @@
 import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
-import { isRecordSaveOutcome, RecordSaveOutcome, SaveStatusComponentName } from '@researchdatabox/sails-ng-common';
+import {
+  emptyRecordSaveCompletion,
+  isRecordSaveComplete,
+  isRecordSaveOutcome,
+  RecordSaveOutcome,
+  RecordSaveIssue,
+  SaveStatusComponentName,
+} from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType, FormStateFacade } from '../form-state';
 
-type SaveStatusMessageType = 'saving' | 'deleting' | 'error' | 'warning' | 'unknown' | 'success' | null;
+type SaveStatusMessageType =
+  | 'saving'
+  | 'deleting'
+  | 'error'
+  | 'warning'
+  | 'schema-warning'
+  | 'unknown'
+  | 'success'
+  | null;
 type SaveStatusMessageConfigProperty =
   | 'warningMessageCreate'
   | 'warningMessageUpdate'
@@ -31,6 +46,10 @@ type SaveStatusMessageConfigProperty =
         <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
           {{ warningMessage() | i18next: { requestId: requestId() } }}
         </div>
+      } @else if (messageType() === 'schema-warning') {
+        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
+          {{ '@dmpt-form-save-schema-warning' | i18next: { requestId: requestId() } }}
+        </div>
       } @else if (messageType() === 'unknown') {
         <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
           {{ unknownMessage() | i18next: { requestId: requestId() } }}
@@ -38,6 +57,21 @@ type SaveStatusMessageConfigProperty =
       } @else if (messageType() === 'success') {
         <div class="rb-form-save-status alert alert-success" role="status" aria-live="polite" aria-atomic="true">
           {{ successMessage() | i18next }}
+        </div>
+      }
+      @if (advisoryIssues().length > 0) {
+        <div class="rb-form-save-status alert alert-info" role="status" aria-live="polite">
+          {{ '@dmpt-form-save-advisory' | i18next }}
+          <ul>
+            @for (issue of advisoryIssues(); track $index) {
+              <li>{{ issue.message | i18next: issue.params }}</li>
+            }
+          </ul>
+        </div>
+      }
+      @if (messageType() === 'warning' && hasSchemaProblems()) {
+        <div class="rb-form-save-status alert alert-warning" role="alert" aria-atomic="true">
+          {{ '@dmpt-form-save-schema-warning' | i18next: { requestId: requestId() } }}
         </div>
       }
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -56,6 +90,8 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   private readonly saveSuccessEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_SUCCESS);
   private readonly saveFailureEvent = this.eventBus.selectSignal(FormComponentEventType.FORM_SAVE_FAILURE);
   private readonly messageState = signal<SaveStatusMessageType>(null);
+  protected readonly advisoryIssues = signal<RecordSaveIssue[]>([]);
+  protected readonly hasSchemaProblems = signal(false);
   private readonly lastOperation = signal<'save' | 'delete' | null>(null);
   private readonly saveOperation = signal<'create' | 'update' | null>(null);
   private readonly pendingOperation = signal<'save' | 'delete' | null>(null);
@@ -79,6 +115,8 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
       const isDeleting = this.formStateFacade.isDeleting();
 
       if (isSaving) {
+        this.advisoryIssues.set([]);
+        this.hasSchemaProblems.set(false);
         this.lastOperation.set('save');
         this.pendingOperation.set('save');
         this.clearSuccessTimeout();
@@ -87,6 +125,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
       }
 
       if (isDeleting) {
+        this.advisoryIssues.set([]);
         this.lastOperation.set('delete');
         this.pendingOperation.set('delete');
         this.clearSuccessTimeout();
@@ -113,11 +152,22 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
         this.lastOperation.set('save');
         this.pendingOperation.set(null);
         const outcome = this.saveOutcome(saveSuccessEvent.response);
+        this.advisoryIssues.set(saveSuccessEvent.response?.problems?.flatMap(problem =>
+          problem.source === 'advisory' ? problem.issues : []
+        ) ?? []);
+        const schemaProblems = saveSuccessEvent.response?.problems?.some(problem => problem.source === 'schema') ?? false;
+        this.hasSchemaProblems.set(schemaProblems);
         this.saveOperation.set(saveSuccessEvent.operation ?? null);
         this.requestId.set(saveSuccessEvent.requestId ?? saveSuccessEvent.response?.requestId ?? '');
         if (outcome === 'saved-with-warnings') {
           this.clearSuccessTimeout();
-          this.messageState.set('warning');
+          const complete = saveSuccessEvent.response &&
+            isRecordSaveComplete({
+              outcome,
+              problems: saveSuccessEvent.response.problems ?? [],
+              completion: saveSuccessEvent.response.completion ?? emptyRecordSaveCompletion(),
+            });
+          this.messageState.set(schemaProblems && complete ? 'schema-warning' : 'warning');
         } else {
           this.showSuccessMessage(onCleanup);
         }

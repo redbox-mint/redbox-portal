@@ -7075,7 +7075,7 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
 
-    it('reports advisory failures without blocking an enforced save', async function () {
+    it('reports advisory failures without downgrading an enforced save', async function () {
       const advisoryErrors: RecordSaveIssue[] = [
         {
           message: '@validator-error-recommended',
@@ -7104,9 +7104,10 @@ describe('RecordsService', function () {
         { username: 'user-1' }
       );
 
-      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.outcome).to.equal('saved');
+      expect(result.isComplete()).to.equal(true);
       expect(result.problems).to.have.length(1);
-      expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+      expect(result.problems[0]).to.deep.include({ kind: 'validation', source: 'advisory', phase: 'pre-save' });
       expect(result.problems[0].issues).to.deep.equal(advisoryErrors);
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
@@ -7126,7 +7127,7 @@ describe('RecordsService', function () {
           { username: 'user-1' }
         );
 
-        expect(result.outcome, mode).to.equal('saved-with-warnings');
+        expect(result.outcome, mode).to.equal('saved');
         expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
         expect(
           result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class),
@@ -7177,7 +7178,7 @@ describe('RecordsService', function () {
         false
       );
       const createdCandidate = mockStorageService.create.firstCall.args[1];
-      expect(createResult.outcome).to.equal('saved-with-warnings');
+      expect(createResult.outcome).to.equal('saved');
       expect(createdCandidate.metadata.description).to.equal('<p>Validator pass</p><img src="x">');
       expect(JSON.stringify(createdCandidate)).not.to.match(/<script|onerror/);
 
@@ -7203,7 +7204,7 @@ describe('RecordsService', function () {
         false
       );
       const updatedCandidate = mockStorageService.updateMeta.firstCall.args[2];
-      expect(updateResult.outcome).to.equal('saved-with-warnings');
+      expect(updateResult.outcome).to.equal('saved');
       expect(updatedCandidate.metadata.description).to.equal('<p>Validator pass</p><img src="x">');
       expect(JSON.stringify(updatedCandidate)).not.to.match(/<script|onerror/);
     });
@@ -7372,7 +7373,7 @@ describe('RecordsService', function () {
           targetStep
         );
 
-        expect(result.outcome, writeKind).to.equal('saved-with-warnings');
+        expect(result.outcome, writeKind).to.equal('saved');
         expect(
           result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class),
           writeKind
@@ -7427,8 +7428,8 @@ describe('RecordsService', function () {
         );
         await new Promise(resolveImmediate => setImmediate(resolveImmediate));
 
-        expect(result.outcome).to.equal('saved-with-warnings');
-        expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'post-save' });
+        expect(result.outcome).to.equal('saved');
+        expect(result.problems[0]).to.deep.include({ kind: 'validation', source: 'advisory', phase: 'post-save' });
         expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class)).to.deep.equal(['htmlSanitized']);
         expect(resolve.callCount).to.equal(2);
         const validationResult = await resolve.secondCall.returnValue;
