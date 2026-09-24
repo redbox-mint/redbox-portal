@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
+import { Settings } from 'luxon';
 import { Controllers } from '../../src/controllers/RecordController';
 import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
 import { RecordSaveResponse } from '../../src/RecordSaveResponse';
@@ -99,6 +100,56 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormsService = originalFormsService;
     (global as any).FormRecordConsistencyService = originalFormRecordConsistencyService;
     (global as any).TranslationService = originalTranslationService;
+  });
+
+  describe('metadata update timestamps', () => {
+    let originalZone: typeof Settings.defaultZone;
+
+    beforeEach(() => {
+      originalZone = Settings.defaultZone;
+      Settings.defaultZone = 'Australia/Brisbane';
+      sinon.stub(Date, 'now').returns(Date.parse('2026-09-24T04:30:00Z'));
+    });
+
+    afterEach(() => {
+      Settings.defaultZone = originalZone;
+    });
+
+    it('passes a UTC save timestamp and the updated metadata to the record service', async () => {
+      const brand = { id: 'brand-1' };
+      const user = { username: 'user-1' };
+      const record = {
+        metaMetadata: { brandId: brand.id, createdOn: '2026-09-01T00:00:00Z' },
+        metadata: { title: 'Original title' },
+      };
+      const metadata = { title: 'Updated title' };
+      const saved = { success: true };
+      const updateMeta = sinon.stub().resolves(saved);
+      controller.recordsService.updateMeta = updateMeta;
+
+      const result = await firstValueFrom((controller as any).saveMetadata(brand, 'oid-1', record, metadata, user));
+
+      expect(result).to.equal(saved);
+      expect(updateMeta.calledOnce).to.equal(true);
+      expect(updateMeta.firstCall.args).to.deep.equal([
+        brand,
+        'oid-1',
+        {
+          metaMetadata: {
+            brandId: brand.id,
+            createdOn: '2026-09-01T00:00:00Z',
+            lastSavedBy: user.username,
+            lastSaveDate: '2026-09-24T04:30:00.000Z',
+          },
+          metadata,
+        },
+        user,
+        true,
+        true,
+        {},
+        { metadata, mode: 'pre-applied' },
+      ]);
+    });
   });
 
   it('renders record view with saved metadata title', async () => {
