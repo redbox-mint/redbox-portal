@@ -374,11 +374,11 @@ export interface RecordSaveResult extends ActionResult {
 
 /** A schema warning can coexist with a complete save; unfinished work cannot. */
 export function isRecordSaveComplete(result: Pick<RecordSaveResult, 'outcome' | 'problems' | 'completion'>): boolean {
-  if (result.outcome === 'saved') return true;
-  if (result.outcome !== 'saved-with-warnings') return false;
   if (result.completion.attachments.status === 'incomplete' || result.completion.attachments.status === 'unknown') {
     return false;
   }
+  if (result.outcome === 'saved') return true;
+  if (result.outcome !== 'saved-with-warnings') return false;
   return result.problems.length > 0 &&
     result.problems.every(problem => problem.source === 'schema' || problem.source === 'advisory');
 }
