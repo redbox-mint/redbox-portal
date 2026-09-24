@@ -2197,6 +2197,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new DateInputFieldModelConfig();
 
     this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    this.sharedProps.setPropOverride('dateOnly', item.config, currentData?.config);
 
     this.setModelValue(item, currentData?.config);
   }

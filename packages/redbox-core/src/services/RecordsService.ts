@@ -3946,7 +3946,7 @@ export namespace Services {
           throw new Error('RecordsService storageService is not initialized');
         }
         const meta = (recordObj.metaMetadata ?? {}) as AnyRecord;
-        const nowIso = String(DateTime.local().toISO());
+        const nowIso = String(DateTime.utc().toISO());
         meta.brandId = meta.brandId ?? String(brandObj?.id ?? '');
         meta.type = meta.type ?? recordTypeName;
         meta.createdBy = meta.createdBy ?? String(userObj?.username ?? 'unknown');
@@ -4167,7 +4167,7 @@ export namespace Services {
         recordTypeObj,
         wfStep,
         form,
-        String(DateTime.local().toISO())
+        String(DateTime.utc().toISO())
       );
       _.set(recordObj, 'metaMetadata', metaMetadata);
 
@@ -5434,7 +5434,7 @@ export namespace Services {
       if (!_.isUndefined(userObj) && !_.isEmpty(_.get(userObj, 'username', ''))) {
         recordMeta.lastSavedBy = _.get(userObj, 'username');
       }
-      recordMeta.lastSaveDate = DateTime.local().toISO();
+      recordMeta.lastSaveDate = DateTime.utc().toISO();
 
       const attachmentFields = (recordMeta.attachmentFields ?? []) as unknown[];
       try {
