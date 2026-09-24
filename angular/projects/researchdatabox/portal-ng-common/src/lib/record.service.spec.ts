@@ -277,6 +277,17 @@ describe('RecordService', () => {
     ]);
   });
 
+  it('keeps a saved result with partial attachment completion safe and incomplete', () => {
+    const result = RecordActionResult.fromResponse({ meta: {
+      outcome: 'saved',
+      completion: {},
+    } }, 200, '11111111-1111-4111-8111-111111111111');
+
+    expect(result.wasPersisted()).toBeTrue();
+    expect(result.completion.attachments).toEqual({ status: 'unknown', items: [] });
+    expect(result.isComplete()).toBeFalse();
+  });
+
   it('allows a schema-only warning to be complete but keeps post-save failures incomplete', () => {
     const schema = { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] };
     const response = (problems: unknown[]) => RecordActionResult.fromResponse({ meta: {

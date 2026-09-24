@@ -3084,6 +3084,11 @@
     "description": "Success message shown after saving an RDMP form",
     "contentFormat": "plain"
   },
+  "@dmpt-form-save-advisory": {
+    "category": "rdmp",
+    "description": "Introduces nonblocking validation suggestions or adjustments shown after a confirmed save",
+    "contentFormat": "plain"
+  },
   "@dmpt-form-save-warning-create": {
     "category": "rdmp",
     "description": "Warning shown after record creation when follow-up processing is incomplete. Includes the save request reference.",

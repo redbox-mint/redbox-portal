@@ -10,7 +10,7 @@ import {
   sanitizeRecordSaveIssue,
   sanitizeRecordSaveValidatorParameters,
 } from '../../src';
-import type { RecordSaveProblem } from '../../src';
+import type { RecordSaveCompletion, RecordSaveProblem } from '../../src';
 
 function assertRecordSaveProblemProvenanceTypes(): void {
   const schemaProblem: RecordSaveProblem = {
@@ -75,6 +75,14 @@ describe('record-save contracts', function () {
           items: [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'unknown' }],
         },
       },
+    })).to.equal(false);
+  });
+
+  it('rejects malformed completion data without throwing', function () {
+    expect(isRecordSaveComplete({
+      outcome: 'saved',
+      problems: [],
+      completion: {} as RecordSaveCompletion,
     })).to.equal(false);
   });
 

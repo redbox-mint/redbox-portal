@@ -374,7 +374,8 @@ export interface RecordSaveResult extends ActionResult {
 
 /** A schema warning can coexist with a complete save; unfinished work cannot. */
 export function isRecordSaveComplete(result: Pick<RecordSaveResult, 'outcome' | 'problems' | 'completion'>): boolean {
-  if (result.completion.attachments.status === 'incomplete' || result.completion.attachments.status === 'unknown') {
+  const attachmentStatus = result.completion?.attachments?.status;
+  if (attachmentStatus !== 'not-required' && attachmentStatus !== 'completed') {
     return false;
   }
   if (result.outcome === 'saved') return true;

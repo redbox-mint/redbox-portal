@@ -1092,8 +1092,20 @@ export class RecordActionResult implements RecordSaveResult {
       result.metadata = meta.outcome === 'unknown' ? null : RecordActionResult.safeProjectedMetadata(meta.metadata);
       result.concurrency = meta.outcome === 'unknown' ? undefined : concurrency;
       result.concurrencyOutcome = concurrencyOutcome;
-      if (meta.completion && typeof meta.completion === 'object') {
-        result.completion = meta.completion as RecordSaveResult['completion'];
+      if (meta.completion !== undefined) {
+        const completion = RecordActionResult.plainRecord(meta.completion);
+        const attachments = RecordActionResult.plainRecord(completion?.['attachments']);
+        const attachmentStatus = attachments?.['status'];
+        const items = attachments?.['items'];
+        result.completion = {
+          attachments: (
+            (attachmentStatus === 'not-required' || attachmentStatus === 'completed' ||
+              attachmentStatus === 'incomplete' || attachmentStatus === 'unknown') &&
+            Array.isArray(items)
+          )
+            ? { status: attachmentStatus, items: items as RecordSaveResult['completion']['attachments']['items'] }
+            : { status: 'unknown', items: [] },
+        };
       }
       return result;
     }
