@@ -132,7 +132,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
 
 USER node
 
-RUN node -e "require('@researchdatabox/redbox-core'); require('@uppy/companion')"
+RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
 
 CMD ["node", "app.js"]
 
