@@ -47,6 +47,7 @@ import {
   timeout
 } from 'rxjs';
 import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   AbstractControl,
   FormControlStatus,
@@ -286,6 +287,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
+  readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
   private readonly serverSyncService = inject(FormServerSyncService);
   private readonly recordBaselineState = signal<FormRecordBaselineState | null>(null);
@@ -404,6 +406,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     super();
     this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
     this.window = this.document.defaultView;
+    this.debugState.refreshFromUrl();
     // Params can be injected via HTML if the app is used outside of Angular
     if (_isEmpty(this.trimmedParams.oid())) {
       this.oid.set(elementRef.nativeElement.getAttribute('oid'));
@@ -457,9 +460,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     } catch (error) {
       this.loggerService.error(`${this.logName}: Error loading form`, error);
       // Dispatch load failure action instead of direct mutation
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred during form load';
+      const missingRecord = error instanceof HttpErrorResponse && error.status === 404 &&
+        /\/record\/(form|metadata)\//.test(error.url ?? '');
+      const errorMsg = missingRecord ? 'missing-record' : 'form-load-error';
       this.store.dispatch(FormActions.loadInitialDataFailure({ error: errorMsg }));
-      throw error;
     }
   }
 
