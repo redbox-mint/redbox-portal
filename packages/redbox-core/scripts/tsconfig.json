@@ -3,7 +3,10 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": "../..",
-    "types": ["node", "mocha", "chai"]
+    "types": ["node", "mocha", "chai"],
+    "paths": {
+      "@researchdatabox/redbox-core": ["../src/index.ts"]
+    }
   },
   "include": [
     "verify-record-contract-coverage.ts",

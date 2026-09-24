@@ -16,8 +16,16 @@ function textField(name: string, label: string, defaultValue = 'Valid'): SimpleI
 
 function required(name: string, label: string, message: string, group = 'ordinary') {
   const field = textField(name, label, group === 'recommended' ? '' : 'Valid');
-  field.model.config.validators = [{ class: 'required', message, groups: { include: [group] } }];
-  return field;
+  return {
+    ...field,
+    model: {
+      class: 'SimpleInputModel',
+      config: {
+        ...field.model?.config,
+        validators: [{ class: 'required', message, groups: { include: [group] } }],
+      },
+    },
+  } satisfies SimpleInputFormComponentDefinitionFrame;
 }
 
 function tabs(details: FormConfigFrame['componentDefinitions']): TabFormComponentDefinitionFrame {

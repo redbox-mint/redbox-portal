@@ -11,19 +11,28 @@ test('F21 components-vocabulary searches terms, handles empty results and persis
   await adminPage.getByRole('option', { name: 'Coastal ecology', exact: true }).click();
   await expect(term).toHaveValue('Coastal ecology');
   const tree = adminPage.locator('redbox-checkbox-tree');
-  await tree.getByRole('button', { name: 'Expand', exact: true }).first().click();
-  await tree.getByRole('button', { name: 'Expand', exact: true }).first().click();
+  const expandPath = async () => {
+    for (const label of ['Science', 'Ecology']) {
+      const row = tree.locator('.rb-tree-row').filter({ has: adminPage.getByText(label, { exact: true }) });
+      const node = row.locator('..');
+      await expect(row).toBeVisible();
+      if (await node.getAttribute('aria-expanded') === 'false') {
+        await row.getByRole('button', { name: 'Expand', exact: true }).click();
+      }
+      // Wait for the render before targeting the next ancestor. Otherwise two
+      // rapid "first Expand" clicks can toggle the same node open and closed.
+      await expect(node).toHaveAttribute('aria-expanded', 'true');
+    }
+  };
+  await expandPath();
   await tree.getByRole('checkbox', { name: /Coastal systems/ }).check();
   await expect(tree.getByRole('checkbox', { name: /Forest systems/ })).not.toBeChecked();
   await saveForm(adminPage);
   expect((await records.read(record.oid)).body).toMatchObject({ term: { label: 'Coastal ecology', value: 'term-coast', sourceType: 'static' }, subjects: [expect.objectContaining({ notation: '101', label: 'Coastal systems' })] });
   await adminPage.reload();
   await expect(term).toHaveValue('Coastal ecology');
-  // Expand only collapsed ancestors: saved selections may expand their own path.
-  for (let depth = 0; depth < 2; depth++) {
-    if (await tree.getByRole('checkbox', { name: /Coastal systems/ }).isVisible()) break;
-    await tree.getByRole('button', { name: 'Expand', exact: true }).first().click();
-  }
+  // Saved selections may already have expanded their own path.
+  await expandPath();
   await expect(tree.getByRole('checkbox', { name: /Coastal systems/ })).toBeChecked();
 });
 
