@@ -75,7 +75,7 @@ type LinkingUserService = UserService & {
 @Component({
   selector: 'manage-users',
   templateUrl: './manage-users.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class ManageUsersComponent extends BaseComponent {

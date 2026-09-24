@@ -38,7 +38,7 @@ import {
 @Component({
   selector: 'local-auth',
   templateUrl: './local-auth.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class LocalAuthComponent extends BaseComponent {

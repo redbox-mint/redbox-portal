@@ -46,7 +46,7 @@ class TranslationServiceStub {
 @Component({
   standalone: true,
   imports: [I18NextPipe],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div class="translated">{{ key | i18next: options }}</div>`
 })
 class PipeHostComponent {

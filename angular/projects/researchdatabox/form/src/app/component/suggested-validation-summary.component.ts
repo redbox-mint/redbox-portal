@@ -94,7 +94,7 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
       padding-left: 1.25rem;
     }
   `],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class SuggestedValidationSummaryFieldComponent extends ValidationSummaryFieldComponent {

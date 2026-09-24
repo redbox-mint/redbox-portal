@@ -29,7 +29,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
   standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule, TiptapEditorDirective],
   templateUrl: './translation.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host { display: block; }
 

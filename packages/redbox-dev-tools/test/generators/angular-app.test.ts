@@ -74,6 +74,7 @@ export const auth: any = {
     expect(fs.existsSync(path.join(projectPath, 'src', 'main.ts'))).to.be.true;
     expect(fs.existsSync(path.join(projectPath, 'src', 'app', 'test-app.module.ts'))).to.be.true;
     expect(fs.existsSync(path.join(projectPath, 'src', 'app', 'test-app.component.ts'))).to.be.true;
+    expect(fs.readFileSync(path.join(projectPath, 'src', 'app', 'test-app.component.ts'), 'utf-8')).to.contain('changeDetection: ChangeDetectionStrategy.OnPush');
     expect(fs.readFileSync(path.join(projectPath, 'src', 'main.ts'), 'utf-8')).to.contain('platformBrowser().bootstrapModule');
 
     // Check angular.json

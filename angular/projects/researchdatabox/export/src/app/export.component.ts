@@ -27,7 +27,7 @@ import { DateTime } from 'luxon';
 @Component({
     selector: 'export',
     templateUrl: './export.component.html',
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class ExportComponent extends BaseComponent {

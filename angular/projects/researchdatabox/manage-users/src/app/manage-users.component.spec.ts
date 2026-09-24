@@ -289,25 +289,26 @@ describe('ManageUsersComponent', () => {
 
   it('should render loading, empty, truncated, and error audit states', async () => {
     const { fixture, app } = await createComponent();
-
-    app.auditModalUser = usersData[0] as any;
-    app.isAuditModalShown = true;
-    app.isAuditLoading = true;
+    let resolveAudit!: (response: any) => void;
+    userService.getUserAudit.and.returnValue(new Promise(resolve => { resolveAudit = resolve; }));
+    const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find(item => item.textContent?.includes('manage-users-audit-action'))!;
+    button.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-loading');
 
-    app.isAuditLoading = false;
-    app.auditRecords = [];
-    app.auditError = '';
-    app.auditSummary = { returnedCount: 0, truncated: false };
+    resolveAudit({records: [], summary: {returnedCount: 0, truncated: false}});
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-empty');
 
-    app.auditSummary = { returnedCount: 100, truncated: true };
+    userService.getUserAudit.and.resolveTo({records: [], summary: {returnedCount: 100, truncated: true}});
+    await app.viewAudit(usersData[0] as any);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-truncated');
 
-    app.auditError = 'failed';
+    userService.getUserAudit.and.rejectWith(new Error('failed'));
+    await app.viewAudit(usersData[0] as any);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('failed');
   });
@@ -321,7 +322,8 @@ describe('ManageUsersComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-raw-toggle');
 
-    app.toggleAuditRow('audit-1');
+    Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find(item => item.textContent?.includes('manage-users-audit-raw-toggle'))!.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-raw-label');

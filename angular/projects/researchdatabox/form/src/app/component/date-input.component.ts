@@ -286,7 +286,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {

@@ -174,7 +174,7 @@ type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class TableConfigEditorComponent {
@@ -184,6 +184,7 @@ export class TableConfigEditorComponent {
   activeTab: Tab = 'columns';
 
   private emitConfig(): void {
+    this.config = { ...this.config };
     this.configChange.emit(this.config);
   }
 

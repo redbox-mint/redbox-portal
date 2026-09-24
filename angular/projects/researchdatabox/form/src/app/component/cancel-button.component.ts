@@ -20,7 +20,7 @@ import {createFormRedirectRequestedEvent} from "../form-state";
       <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class CancelButtonComponent extends ButtonBaseComponent {

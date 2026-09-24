@@ -364,7 +364,7 @@ import { DashboardTableConfig } from '../dashboard-config-api.service';
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class TableConfigPreviewComponent {

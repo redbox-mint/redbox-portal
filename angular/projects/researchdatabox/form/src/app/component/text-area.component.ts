@@ -24,7 +24,7 @@ export class TextAreaModel extends FormFieldModel<string> {
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class TextAreaComponent extends FormFieldBaseComponent<string> {

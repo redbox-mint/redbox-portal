@@ -33,7 +33,7 @@ import { AppConfig } from '@researchdatabox/portal-ng-common';
 @Component({
     selector: 'app-config',
     templateUrl: './app-config.component.html',
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class AppConfigComponent extends BaseComponent {

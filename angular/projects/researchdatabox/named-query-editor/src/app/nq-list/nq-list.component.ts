@@ -9,7 +9,7 @@ export type NamedQueryListQueryState = {
   selector: 'nq-list',
   templateUrl: './nq-list.component.html',
   styleUrls: ['./nq-list.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class NqListComponent implements OnChanges, OnDestroy {

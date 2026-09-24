@@ -44,7 +44,7 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RadioInputComponent extends OptionInputBaseComponent<

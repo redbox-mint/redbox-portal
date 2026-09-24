@@ -228,7 +228,7 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RuleSetEditorComponent {

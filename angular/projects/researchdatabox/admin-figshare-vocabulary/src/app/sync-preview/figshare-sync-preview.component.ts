@@ -22,7 +22,7 @@ export interface PreviewFilterState {
 @Component({
   selector: 'figshare-sync-preview',
   templateUrl: './figshare-sync-preview.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareSyncPreviewComponent {

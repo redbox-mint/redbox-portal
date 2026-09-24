@@ -18,7 +18,7 @@ import { TemplatePreviewService } from './template-preview.service';
       </div>
     </div>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class TemplatePreviewComponent implements OnInit, OnChanges {

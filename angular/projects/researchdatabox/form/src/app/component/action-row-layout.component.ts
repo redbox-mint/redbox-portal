@@ -28,7 +28,7 @@ import { GroupFieldComponent } from './group.component';
       <ng-container #componentContainer></ng-container>
     </div>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {

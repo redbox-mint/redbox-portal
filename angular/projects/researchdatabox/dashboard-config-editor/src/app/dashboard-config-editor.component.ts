@@ -21,7 +21,7 @@ type NavSection = 'types' | 'records' | 'views';
   selector: 'dashboard-config-editor',
   templateUrl: './dashboard-config-editor.component.html',
   styleUrls: ['./dashboard-config-editor.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {

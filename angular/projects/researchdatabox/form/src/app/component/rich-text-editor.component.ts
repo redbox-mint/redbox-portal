@@ -195,7 +195,7 @@ type RichTextEditorChain = {
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RichTextEditorComponent extends FormFieldBaseComponent<string> implements OnDestroy {
@@ -270,6 +270,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   private applyViewValue(value: string): void {
     this.sourceValue = value;
     this.renderedViewHtml = this.toViewHtml(value);
+    this.requestRender();
   }
 
   private applyEditorValue(value: string): void {

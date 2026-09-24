@@ -4,7 +4,7 @@ import { FigshareCrosswalkSummary } from '../services/figshare-vocabulary-api.se
 @Component({
   selector: 'figshare-crosswalk-list',
   templateUrl: './figshare-crosswalk-list.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareCrosswalkListComponent {

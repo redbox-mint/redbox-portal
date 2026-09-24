@@ -18,7 +18,7 @@ interface ParamEntry extends NamedQueryParam {
 @Component({
   selector: 'query-param-editor',
   templateUrl: './query-param-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class QueryParamEditorComponent implements OnChanges {

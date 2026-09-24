@@ -31,7 +31,7 @@ import { BehaviorSubject, Subject, firstValueFrom, filter } from 'rxjs';
  */
 @Component({
   template: '<p>Base Component</p>',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export abstract class BaseComponent implements Initable {

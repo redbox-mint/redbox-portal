@@ -5,7 +5,7 @@ import { RecordSearchRefiner } from '../search-models';
 @Component({
   selector: 'record-search-refiner',
   templateUrl: './record-search-refiner.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordSearchRefinerComponent {

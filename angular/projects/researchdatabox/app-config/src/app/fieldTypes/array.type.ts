@@ -42,7 +42,7 @@ import { FieldArrayType } from '@ngx-formly/core';
       </div>
     </div>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class ArrayTypeComponent extends FieldArrayType {}

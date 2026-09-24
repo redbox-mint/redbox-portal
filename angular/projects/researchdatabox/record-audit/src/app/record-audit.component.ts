@@ -18,7 +18,7 @@ type RecordAuditTabName = 'audit' | 'permissions' | 'integration';
   selector: 'record-audit',
   templateUrl: './record-audit.component.html',
   styleUrls: ['./record-audit.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordAuditComponent extends BaseComponent {

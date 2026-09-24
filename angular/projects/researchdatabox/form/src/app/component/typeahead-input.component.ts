@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, DestroyRef, inject, Input, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, Input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import {
@@ -93,13 +93,10 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class TypeaheadInputComponent
-  extends FormFieldBaseComponent<TypeaheadInputModelValueType>
-  implements AfterViewChecked
-{
+export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInputModelValueType> {
   protected override logName = TypeaheadInputComponentName;
 
   public tooltip = '';
@@ -143,8 +140,6 @@ export class TypeaheadInputComponent
   private lastConfirmedDisplayValue = '';
   private modelSubscriptionInitialised = false;
   private modelDisabledSubscriptionInitialised = false;
-  private autoDisplaySyncInFlight: boolean = false;
-  private lastAutoDisplaySyncSignature = '';
   private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];
   private compiledItems?: DynamicScriptResponse;
@@ -225,25 +220,6 @@ export class TypeaheadInputComponent
       return;
     }
     await this.prepareLabelTemplate();
-  }
-
-  public ngAfterViewChecked(): void {
-    if (!this.shouldAutoSyncDisplayFromModel()) {
-      return;
-    }
-    const signature = this.getAutoDisplaySyncSignature();
-    if (!signature || signature === this.lastAutoDisplaySyncSignature || this.autoDisplaySyncInFlight) {
-      return;
-    }
-    this.autoDisplaySyncInFlight = true;
-    const p = this.syncDisplayFromModel();
-    void p
-      .then(() => {
-        this.lastAutoDisplaySyncSignature = signature;
-      })
-      .finally(() => {
-        this.autoDisplaySyncInFlight = false;
-      });
   }
 
   public onSelect(event: TypeaheadMatch): void {
@@ -512,32 +488,11 @@ export class TypeaheadInputComponent
     }
   }
 
-  private async syncDisplayFromModel(): Promise<void> {
+  public async syncDisplayFromModel(): Promise<void> {
     this.applyInitialDisplayFromModel();
     const value = this.model?.getValue();
     this.setHistoricalLookupState(this.isHistoricalOrUnknownModelValue(value));
-  }
-
-  private shouldAutoSyncDisplayFromModel(): boolean {
-    if (this.programmaticDisplayUpdate) {
-      return false;
-    }
-    if (String(this.displayControl.value ?? '').trim().length > 0) {
-      return false;
-    }
-    const value = this.model?.getValue();
-    if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      return this.getOptionObjectLabel(value).trim().length > 0;
-    }
-    return typeof value === 'string' && value.trim().length > 0;
-  }
-
-  private getAutoDisplaySyncSignature(): string {
-    const value = this.model?.getValue();
-    if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      return `option:${this.getOptionObjectValue(value)}:${this.getOptionObjectLabel(value)}`;
-    }
-    return typeof value === 'string' ? `value:${value}` : '';
+    this.requestRender();
   }
 
   private setModelFromOption(option: TypeaheadOption): void {

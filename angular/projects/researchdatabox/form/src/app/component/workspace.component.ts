@@ -19,7 +19,7 @@ import { FormComponentEventBus, FormComponentEventType, createFormSaveRequestedE
   selector: 'redbox-form-workspace',
   templateUrl: './workspace.component.html',
   styleUrl: './workspace.component.scss',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class WorkspaceSelectorComponent extends FormFieldBaseComponent<undefined> implements OnDestroy {
@@ -181,5 +181,6 @@ export class WorkspaceSelectorComponent extends FormFieldBaseComponent<undefined
   private clearPendingLaunch(): void {
     this.launchPending = false;
     this.pendingWorkspace = undefined;
+    this.requestRender();
   }
 }

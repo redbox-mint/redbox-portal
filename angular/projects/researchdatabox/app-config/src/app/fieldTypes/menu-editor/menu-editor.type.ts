@@ -16,7 +16,7 @@ import { MenuItem } from './menu-item.interface';
   selector: 'formly-menu-editor-type',
   templateUrl: './menu-editor.type.html',
   styleUrls: ['./menu-editor.type.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit, AfterViewInit {

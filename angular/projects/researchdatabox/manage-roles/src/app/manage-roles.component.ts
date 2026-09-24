@@ -8,7 +8,7 @@ import * as _ from 'lodash';
     selector: 'manage-roles',
     templateUrl: './manage-roles.component.html',
     styleUrls: ['./manage-roles.component.scss'],
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class ManageRolesComponent extends BaseComponent {

@@ -64,7 +64,7 @@ export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType
     <ng-container #componentContainer />
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeModelValueType> {

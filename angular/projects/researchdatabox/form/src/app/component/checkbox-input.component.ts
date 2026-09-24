@@ -44,7 +44,7 @@ export class CheckboxInputModel extends FormFieldModel<CheckboxInputModelValueTy
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class CheckboxInputComponent extends OptionInputBaseComponent<

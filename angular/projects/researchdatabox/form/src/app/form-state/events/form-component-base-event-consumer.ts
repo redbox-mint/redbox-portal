@@ -517,6 +517,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       // The model.disabled property must be handled specially.
       const disabled = toBoolean(targetValue);
       this.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
+      this.options?.component?.requestRender?.();
     } else if (exprTarget.startsWith(FormExpressionsTargetLayoutPrefix)) {
       const name = exprTarget.substring(FormExpressionsTargetLayoutPrefix.length);
       this.options?.definition?.layout?.setProperty?.(name, targetValue);

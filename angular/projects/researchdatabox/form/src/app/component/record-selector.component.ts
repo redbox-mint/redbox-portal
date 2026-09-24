@@ -208,7 +208,7 @@ export class RecordSelectorModel extends FormFieldModel<RecordSelectorModelValue
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelectorModelValueType> {

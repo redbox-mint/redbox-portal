@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, Optional, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Inject, OnInit, Optional, ChangeDetectionStrategy, signal } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import {
   FigshareCrosswalkApiService,
@@ -122,7 +122,7 @@ const HUMAN_LABELS: Record<string, string> = {
     }
     .binding-badge { font-size: 0.7rem; font-weight: 500; }
   `],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
@@ -133,7 +133,9 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
 
   vocabularies: FigshareLocalVocabularyOption[] = [];
   crosswalks: FigshareCrosswalkOption[] = [];
-  crosswalksLoading = false;
+  private readonly crosswalksLoadingState = signal(false);
+  get crosswalksLoading(): boolean { return this.crosswalksLoadingState(); }
+  set crosswalksLoading(value: boolean) { this.crosswalksLoadingState.set(value); }
   crosswalksLoadError = '';
   adminUrl = '';
 

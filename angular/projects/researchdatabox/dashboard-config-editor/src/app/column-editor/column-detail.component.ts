@@ -110,7 +110,7 @@ import { DashboardRowConfig } from '../dashboard-config-api.service';
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class ColumnDetailComponent {

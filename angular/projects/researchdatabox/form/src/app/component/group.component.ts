@@ -76,7 +76,7 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelValueType> {

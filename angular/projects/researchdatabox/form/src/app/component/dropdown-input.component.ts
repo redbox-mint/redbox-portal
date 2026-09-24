@@ -36,7 +36,7 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DropdownInputComponent extends OptionInputBaseComponent<

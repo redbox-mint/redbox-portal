@@ -8,6 +8,7 @@ import {
   Output,
   inject,
   ChangeDetectionStrategy,
+  signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
@@ -44,7 +45,7 @@ const PAGE_SIZE = 25;
 @Component({
   selector: 'figshare-mapping-picker',
   templateUrl: './figshare-mapping-picker.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class FigshareMappingPickerComponent implements OnInit {
@@ -63,18 +64,24 @@ export class FigshareMappingPickerComponent implements OnInit {
 
   public localEntries: FigshareCrosswalkLocalEntry[] = [];
   public localTotal = 0;
-  public localLoading = false;
+  private readonly localLoadingState = signal(false);
+  public get localLoading(): boolean { return this.localLoadingState(); }
+  public set localLoading(value: boolean) { this.localLoadingState.set(value); }
   public unmappedOnly = false;
   public selectedLocalEntry: FigshareCrosswalkLocalEntry | null = null;
 
   public categories: FigshareSourceCategory[] = [];
   public categoryTotal = 0;
-  public categoriesLoading = false;
+  private readonly categoriesLoadingState = signal(false);
+  public get categoriesLoading(): boolean { return this.categoriesLoadingState(); }
+  public set categoriesLoading(value: boolean) { this.categoriesLoadingState.set(value); }
   public includeHistorical = false;
   public selectedCategoryId = '';
 
   /** Targets the chosen local term already has in this revision. */
-  public currentTargets: Array<{ id: string; label: string }> = [];
+  private readonly targets = signal<Array<{ id: string; label: string }>>([]);
+  public get currentTargets(): Array<{ id: string; label: string }> { return this.targets(); }
+  public set currentTargets(value: Array<{ id: string; label: string }>) { this.targets.set(value); }
   /** Kept per search: the two lists load in parallel, so one must not clear the other. */
   public localErrorMessage = '';
   public targetErrorMessage = '';

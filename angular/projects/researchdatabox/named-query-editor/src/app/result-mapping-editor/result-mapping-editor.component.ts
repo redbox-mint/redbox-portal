@@ -9,7 +9,7 @@ interface MappingEntry {
 @Component({
   selector: 'result-mapping-editor',
   templateUrl: './result-mapping-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ResultMappingEditorComponent implements OnChanges {

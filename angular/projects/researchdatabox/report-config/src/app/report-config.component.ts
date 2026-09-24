@@ -7,7 +7,7 @@ import { ReportConfigService } from './report-config.service';
   selector: 'report-config',
   templateUrl: './report-config.component.html',
   styleUrls: ['./report-config.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ReportConfigComponent extends BaseComponent {

@@ -4,7 +4,7 @@ import { Component, EventEmitter, Output, ChangeDetectionStrategy } from '@angul
   selector: 'rva-import',
   templateUrl: './rva-import.component.html',
   styleUrls: ['./rva-import.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class RvaImportComponent {

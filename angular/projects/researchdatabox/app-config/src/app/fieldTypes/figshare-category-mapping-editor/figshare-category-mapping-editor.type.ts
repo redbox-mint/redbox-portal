@@ -9,7 +9,7 @@ interface CategoryMappingRow {
 @Component({
   selector: 'formly-figshare-category-mapping-editor-type',
   templateUrl: './figshare-category-mapping-editor.type.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareCategoryMappingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {

@@ -74,7 +74,7 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
 @Component({
   selector: 'redbox-record-metadata-retriever',
   template: '',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<never> implements OnDestroy {

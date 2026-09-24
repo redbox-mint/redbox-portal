@@ -128,12 +128,13 @@ import { ${this.toClassName(this.name)}Component } from './${this.name}.componen
 })
 export class ${this.toClassName(this.name)}Module { }
 `,
-      [`src/app/${this.name}.component.ts`]: `import { Component } from '@angular/core';
+      [`src/app/${this.name}.component.ts`]: `import { Component, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: '${this.name}',
   templateUrl: './${this.name}.component.html',
   styleUrls: ['./${this.name}.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ${this.toClassName(this.name)}Component {

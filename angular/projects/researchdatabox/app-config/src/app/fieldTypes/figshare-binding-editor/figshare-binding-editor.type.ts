@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 
 type BindingKind = 'path' | 'handlebars' | 'jsonata';
@@ -13,6 +13,7 @@ interface FigshareBindingValue {
 @Component({
   selector: 'formly-figshare-binding-editor-type',
   templateUrl: './figshare-binding-editor.type.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareBindingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {

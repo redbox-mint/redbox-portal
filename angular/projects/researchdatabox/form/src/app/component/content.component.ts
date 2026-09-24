@@ -1,4 +1,4 @@
-import {Component, inject, Injector, Input, ChangeDetectionStrategy} from '@angular/core';
+import {Component, inject, Injector, Input, ChangeDetectionStrategy, signal} from '@angular/core';
 import { Subscription } from "rxjs";
 import {FormFieldBaseComponent, HandlebarsTemplateService, TranslationService} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
@@ -43,12 +43,14 @@ import {
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ContentComponentName;
-  public content:string = '';
+  private readonly contentValue = signal('');
+  public get content(): string { return this.contentValue(); }
+  public set content(value: string) { this.contentValue.set(value); }
   public isRichTextContent = false;
   protected formValueChangesSub?: Subscription;
   protected formBindTimeoutId?: ReturnType<typeof setTimeout>;

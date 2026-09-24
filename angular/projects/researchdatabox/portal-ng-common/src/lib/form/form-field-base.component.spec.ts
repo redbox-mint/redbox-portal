@@ -1,16 +1,40 @@
 import {TestBed} from '@angular/core/testing';
-import {ChangeDetectionStrategy, Component, provideZonelessChangeDetection} from '@angular/core';
+import {ChangeDetectionStrategy, Component, ViewChild, ViewContainerRef, provideZonelessChangeDetection, signal} from '@angular/core';
 import {FormFieldComponentStatus} from '@researchdatabox/sails-ng-common';
 import {LoggerService} from '../logger.service';
 import {UtilityService} from '../utility.service';
 import {FormFieldBaseComponent} from './form-field-base.component';
 import {FormFieldModel} from "./base.model";
 
-@Component({template: '<p [hidden]="!isVisible">{{ label }}</p>', standalone: true, changeDetection: ChangeDetectionStrategy.Eager})
+@Component({
+  template: `<p [hidden]="!isVisible">{{ label }}</p>
+    @if (model) {
+      <output [class.invalid]="!isValid" [class.touched]="formControl.touched">{{ renderedValue }}</output>
+    }`,
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
 class TestFormFieldBaseComponent extends FormFieldBaseComponent<unknown> {
+  valueReads = 0;
+
+  get renderedValue(): unknown {
+    this.valueReads++;
+    return this.model?.getValue();
+  }
+
   public waitForViewReady(): Promise<void> {
     return this.untilViewIsInitialised();
   }
+}
+
+@Component({
+  template: '{{ unrelated() }}<ng-container #fields />',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+class FormFieldsHostComponent {
+  readonly unrelated = signal(0);
+  @ViewChild('fields', {read: ViewContainerRef, static: true}) fields!: ViewContainerRef;
 }
 
 class TestFormFieldModel extends FormFieldModel<unknown> {
@@ -23,7 +47,7 @@ describe('FormFieldBaseComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [TestFormFieldBaseComponent],
+      imports: [TestFormFieldBaseComponent, FormFieldsHostComponent],
       providers: [LoggerService, UtilityService, provideZonelessChangeDetection()]
     });
     component = TestBed.runInInjectionContext(() => new TestFormFieldBaseComponent());
@@ -86,6 +110,45 @@ describe('FormFieldBaseComponent', () => {
     } finally {
       jasmine.clock().uninstall();
     }
+  });
+
+  it('renders external control changes while skipping unaffected fields and unsubscribes on destruction', async () => {
+    const fixture = TestBed.createComponent(FormFieldsHostComponent);
+    await fixture.whenStable();
+    const left = fixture.componentInstance.fields.createComponent(TestFormFieldBaseComponent);
+    const right = fixture.componentInstance.fields.createComponent(TestFormFieldBaseComponent);
+    const leftModel = new TestFormFieldModel({class: 'SimpleInputModel', config: {value: 'Left'}});
+    const rightModel = new TestFormFieldModel({class: 'SimpleInputModel', config: {value: 'Right'}});
+    for (const [ref, model] of [[left, leftModel], [right, rightModel]] as const) {
+      await ref.instance.initComponent({
+        componentRef: ref,
+        model,
+        compConfigJson: {name: 'field', component: {class: 'SimpleInputComponent', config: {}}}
+      });
+    }
+    await fixture.whenStable();
+    const rightReads = right.instance.valueReads;
+
+    leftModel.setValue('Updated remotely');
+    leftModel.formControl!.markAsTouched();
+    leftModel.formControl!.setErrors({required: true});
+    await fixture.whenStable();
+    const output: HTMLOutputElement = left.location.nativeElement.querySelector('output');
+    expect(output.textContent).toBe('Updated remotely');
+    expect(output.classList.contains('invalid')).toBeTrue();
+    expect(output.classList.contains('touched')).toBeTrue();
+    expect(right.instance.valueReads).toBe(rightReads);
+
+    const leftReads = left.instance.valueReads;
+    fixture.componentInstance.unrelated.set(1);
+    await fixture.whenStable();
+    expect(left.instance.valueReads).toBe(leftReads);
+    expect(right.instance.valueReads).toBe(rightReads);
+
+    const render = spyOn(left.instance, 'requestRender').and.callThrough();
+    left.destroy();
+    leftModel.setValue('After destruction');
+    expect(render).not.toHaveBeenCalled();
   });
   it('should set formControl to disabled', async () => {
     await component.initComponent({

@@ -10,7 +10,7 @@ import { createFieldValueChangedEvent } from '../form-state/events/form-componen
 @Component({
   selector: 'redbox-publish-data-location-refresh',
   templateUrl: './publish-data-location-refresh.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 /**

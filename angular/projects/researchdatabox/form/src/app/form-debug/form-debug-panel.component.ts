@@ -5,7 +5,7 @@ import { FormDebugStateService } from './form-debug-state.service';
   selector: 'redbox-form-debug-panel',
   templateUrl: './form-debug-panel.component.html',
   styleUrls: ['./form-debug-panel.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FormDebugPanelComponent implements OnInit {

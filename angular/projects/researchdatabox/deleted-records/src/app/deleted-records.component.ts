@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Inject, ElementRef, ViewChild, ChangeDetectionStrategy, signal } from '@angular/core';
 import {
   ConfigService,
   LoggerService,
@@ -48,7 +48,7 @@ interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
   selector: 'deleted-records',
   templateUrl: './deleted-records.component.html',
   styleUrls: ['./deleted-records.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DeletedRecordsComponent extends BaseComponent implements RecordSource {
@@ -129,7 +129,9 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   ];
 
   // Record list data
-  deletedRecordsResult: ReportResultDto = null as any;
+  private readonly deletedResults = signal<ReportResultDto>(null as any);
+  get deletedRecordsResult(): ReportResultDto { return this.deletedResults(); }
+  set deletedRecordsResult(value: ReportResultDto) { this.deletedResults.set(value); }
 
   // destroy record confirm modal
   currentDestroyRecordModalOid: string | undefined;

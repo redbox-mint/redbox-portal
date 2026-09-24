@@ -1,4 +1,4 @@
-import { Component, ComponentRef, DestroyRef, inject, ViewChild, ViewContainerRef, TemplateRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ComponentRef, DestroyRef, inject, ViewChild, ViewContainerRef, TemplateRef, ChangeDetectionStrategy, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, AbstractControl } from '@angular/forms';
 import {
@@ -92,7 +92,7 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
     </div>
     <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> {
@@ -951,7 +951,7 @@ export interface RepeatableElementEntry {
       }
     </ng-template>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutComponent<ValueType> {
@@ -959,10 +959,18 @@ export class RepeatableElementLayoutComponent<ValueType> extends DefaultLayoutCo
   public removeFn?: () => void;
   public moveUpFn?: () => void;
   public moveDownFn?: () => void;
-  public canRemove = false;
-  public canSort = false;
-  public canMoveUp = false;
-  public canMoveDown = false;
+  private readonly canRemoveState = signal(false);
+  public get canRemove(): boolean { return this.canRemoveState(); }
+  public set canRemove(value: boolean) { this.canRemoveState.set(value); }
+  private readonly canSortState = signal(false);
+  public get canSort(): boolean { return this.canSortState(); }
+  public set canSort(value: boolean) { this.canSortState.set(value); }
+  private readonly canMoveUpState = signal(false);
+  public get canMoveUp(): boolean { return this.canMoveUpState(); }
+  public set canMoveUp(value: boolean) { this.canMoveUpState.set(value); }
+  private readonly canMoveDownState = signal(false);
+  public get canMoveDown(): boolean { return this.canMoveDownState(); }
+  public set canMoveDown(value: boolean) { this.canMoveDownState.set(value); }
 
   protected get isInlineLayout(): boolean {
     const hostCssClasses = this.formFieldCompMapEntry?.compConfigJson?.component?.config?.hostCssClasses;

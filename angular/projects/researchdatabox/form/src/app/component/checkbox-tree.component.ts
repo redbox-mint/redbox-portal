@@ -241,7 +241,7 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeModelValueType> {

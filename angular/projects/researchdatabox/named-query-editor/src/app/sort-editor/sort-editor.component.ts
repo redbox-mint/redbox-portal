@@ -9,7 +9,7 @@ interface SortEntry {
 @Component({
   selector: 'sort-editor',
   templateUrl: './sort-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class SortEditorComponent implements OnChanges {

@@ -11,7 +11,7 @@ import { ContentComponent } from './content.component';
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RelatedObjectDataComponent extends ContentComponent {

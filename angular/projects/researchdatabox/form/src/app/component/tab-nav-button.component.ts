@@ -34,7 +34,7 @@ import {FormComponent} from "../form.component";
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class TabNavButtonComponent extends FormFieldBaseComponent<undefined> implements OnInit {

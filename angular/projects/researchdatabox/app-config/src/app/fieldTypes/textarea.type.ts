@@ -7,7 +7,7 @@ import { FieldType } from '@ngx-formly/core';
   <textarea [id]="id" [class.is-invalid]="showError" 
               [formlyAttributes]="field" class="form-control"></textarea>
   `,
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class TextAreaComponent extends FieldType {}

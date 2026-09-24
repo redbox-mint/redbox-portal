@@ -7,7 +7,7 @@ export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
   selector: 'nq-detail',
   templateUrl: './nq-detail.component.html',
   styleUrls: ['./nq-detail.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class NqDetailComponent {

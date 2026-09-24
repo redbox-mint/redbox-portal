@@ -183,7 +183,7 @@ import {
       }
     </section>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class FormConflictPresenterComponent implements OnChanges {

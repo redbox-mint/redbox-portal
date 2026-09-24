@@ -41,7 +41,7 @@ import { ConfirmationDialogService } from '../confirmation-dialog.service';
       </div>
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class ConfirmationDialogComponent {

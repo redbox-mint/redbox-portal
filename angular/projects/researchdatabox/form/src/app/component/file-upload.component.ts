@@ -69,7 +69,7 @@ interface TusPlugin extends Tus<UppyMeta, UppyBody> {
     selector: "redbox-file-upload",
     templateUrl: "./file-upload.component.html",
     styleUrls: ["./file-upload.component.scss"],
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class FileUploadComponent extends FormFieldBaseComponent<FileUploadModelValueType> implements AfterViewInit, OnDestroy {

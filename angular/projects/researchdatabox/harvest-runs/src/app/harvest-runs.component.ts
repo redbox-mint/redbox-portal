@@ -21,7 +21,7 @@ type StatusOption = {
   selector: 'harvest-runs',
   templateUrl: './harvest-runs.component.html',
   styleUrls: ['./harvest-runs.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class HarvestRunsComponent extends BaseComponent {

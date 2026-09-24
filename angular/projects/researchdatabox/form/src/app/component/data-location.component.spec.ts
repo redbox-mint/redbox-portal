@@ -403,14 +403,14 @@ describe("DataLocationComponent", () => {
         expect((formComponent as any).form.value.dataLocations).toBeNull();
     });
 
-    it("disables location input and add button when component is disabled", async () => {
+    it("hides location editing controls when component is disabled", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing_ui_disabled_state",
             componentDefinitions: [
                 {
                     name: "dataLocations",
                     component: {
-                        class: "DataLocationComponent"
+                        class: "DataLocationComponent", config: {}
                     },
                     model: {
                         class: "DataLocationModel",
@@ -426,25 +426,25 @@ describe("DataLocationComponent", () => {
         const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
 
         component.updateDraftLocation("https://example.com");
-        spyOnProperty(component, "isDisabled", "get").and.returnValue(true);
+        component.setDisabled(true);
         fixture.detectChanges();
 
         const nativeEl = fixture.nativeElement as HTMLElement;
         const locationInput = nativeEl.querySelector("input.form-control") as HTMLInputElement;
         const addButton = nativeEl.querySelector("button.btn-success") as HTMLButtonElement;
 
-        expect(locationInput.disabled).toBeTrue();
-        expect(addButton.disabled).toBeTrue();
+        expect(locationInput).toBeNull();
+        expect(addButton).toBeNull();
     });
 
-    it("disables location input and add button when component is readonly", async () => {
+    it("hides location editing controls when component is readonly", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing_ui_readonly_state",
             componentDefinitions: [
                 {
                     name: "dataLocations",
                     component: {
-                        class: "DataLocationComponent"
+                        class: "DataLocationComponent", config: {}
                     },
                     model: {
                         class: "DataLocationModel",
@@ -460,16 +460,15 @@ describe("DataLocationComponent", () => {
         const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
 
         component.updateDraftLocation("https://example.com");
-        spyOn(component, "isEditMode").and.returnValue(true);
-        spyOnProperty(component, "isReadonly", "get").and.returnValue(true);
+        component.setProperty("readonly", true);
         fixture.detectChanges();
 
         const nativeEl = fixture.nativeElement as HTMLElement;
         const locationInput = nativeEl.querySelector("input.form-control") as HTMLInputElement;
         const addButton = nativeEl.querySelector("button.btn-success") as HTMLButtonElement;
 
-        expect(locationInput.disabled).toBeTrue();
-        expect(addButton.disabled).toBeTrue();
+        expect(locationInput).toBeNull();
+        expect(addButton).toBeNull();
     });
 
     it("adds non-attachment locations to the form model", async () => {

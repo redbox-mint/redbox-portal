@@ -15,7 +15,7 @@ interface FilterEntry extends RelatedRecordFilterDefinition {
 @Component({
   selector: 'related-filter-editor',
   templateUrl: './related-filter-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class RelatedFilterEditorComponent implements OnChanges {

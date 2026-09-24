@@ -20,7 +20,7 @@ import {ButtonBaseComponent} from "./button-base.component";
       <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DeleteButtonComponent extends ButtonBaseComponent {

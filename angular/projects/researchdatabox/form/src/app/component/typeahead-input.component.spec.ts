@@ -1,3 +1,4 @@
+import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 import { TestBed } from "@angular/core/testing";
 import { TypeaheadModule } from "ngx-bootstrap/typeahead";
 import { By } from "@angular/platform-browser";
@@ -334,7 +335,7 @@ describe("TypeaheadInputComponent", () => {
         const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
 
         (formComponent as any).form.get("person_lookup")?.setValue("Alice Scott", { emitEvent: false });
-        fixture.detectChanges();
+        await syncComponentDisplayFromModel(formComponent.getComponentDefByName('person_lookup')?.component);
         await fixture.whenStable();
         fixture.detectChanges();
 

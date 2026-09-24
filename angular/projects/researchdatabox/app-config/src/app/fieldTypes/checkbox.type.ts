@@ -23,7 +23,7 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
       }
     </div>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class CheckboxTypeComponent extends FieldType<FieldTypeConfig> {}

@@ -1,4 +1,4 @@
-import { Component, Inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Inject, OnDestroy, ChangeDetectionStrategy, signal } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { VocabularyApiService, VocabularyDetail, VocabularyEntry, VocabularySummary } from './vocabulary-api.service';
 
@@ -14,7 +14,7 @@ type VocabularyListQueryState = {
   selector: 'admin-vocabulary',
   templateUrl: './admin-vocabulary.component.html',
   styleUrls: ['./admin-vocabulary.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class AdminVocabularyComponent extends BaseComponent implements OnDestroy {
@@ -38,7 +38,9 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   syncStatusVariant: '' | 'info' | 'success' | 'warning' | 'danger' = '';
   isSyncInProgress = false;
   isSyncConfirmationOpen = false;
-  isDeleteVocabularyModalOpen = false;
+  private readonly isDeleteVocabularyModalOpenState = signal(false);
+  get isDeleteVocabularyModalOpen(): boolean { return this.isDeleteVocabularyModalOpenState(); }
+  set isDeleteVocabularyModalOpen(value: boolean) { this.isDeleteVocabularyModalOpenState.set(value); }
   isEditModalOpen = false;
   isImportModalOpen = false;
   pendingDeleteVocabularyId: string | null = null;

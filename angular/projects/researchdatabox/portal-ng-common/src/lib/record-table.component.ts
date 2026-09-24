@@ -44,7 +44,7 @@ import {HeaderSortComponent} from "./header-sort.component";
 @Component({
     selector: 'record-table',
     templateUrl: './record-table.component.html',
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class RecordTableComponent extends BaseComponent {

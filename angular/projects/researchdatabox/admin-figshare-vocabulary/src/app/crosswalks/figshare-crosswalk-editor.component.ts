@@ -24,7 +24,7 @@ export interface MappingChangeRequest {
 @Component({
   selector: 'figshare-crosswalk-editor',
   templateUrl: './figshare-crosswalk-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareCrosswalkEditorComponent {

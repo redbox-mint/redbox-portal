@@ -20,7 +20,7 @@ import { FieldType } from '@ngx-formly/core';
       }
     </div>
     `,
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 }) 
 export class ObjectTypeComponent extends FieldType { }

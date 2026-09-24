@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, Input, OnDestroy, Injector, inject, ChangeDetectionStrategy } from "@angular/core";
+import { AfterViewInit, Component, Input, OnDestroy, Injector, inject, ChangeDetectionStrategy, signal } from "@angular/core";
 import { ConfigService, FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from "@researchdatabox/portal-ng-common";
 import {
     DataLocationAttachmentValue,
@@ -76,7 +76,7 @@ export class DataLocationModel extends FormFieldModel<DataLocationModelValueType
     selector: "redbox-data-location",
     templateUrl: "./data-location.component.html",
     styleUrls: ["./data-location.component.scss"],
-    changeDetection: ChangeDetectionStrategy.Eager,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class DataLocationComponent extends FormFieldBaseComponent<DataLocationModelValueType> implements AfterViewInit, OnDestroy {
@@ -91,7 +91,8 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     public companionUrl?: string;
     public tusHeaders: Record<string, string> = {};
     public notesEnabled = true;
-    public iscEnabled = false;
+    public get iscEnabled(): boolean { return this.getBooleanProperty('iscEnabled', false); }
+    public set iscEnabled(value: boolean) { this.setProperty('iscEnabled', value); }
     public iscHeader = "@form-data-location-isc";
     public defaultSelect = "confidential";
     public securityClassificationOptions: DataLocationOption[] = [];
@@ -120,7 +121,9 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     public hideNotesForLocationTypes: string[] = [];
     public attachmentText = "@form-file-upload-add-attachment";
     public attachmentTextDisabled = "@form-file-upload-save-before-attach";
-    public draftLocation: DraftLocation = this.createDraftLocation();
+    private readonly draft = signal<DraftLocation>(this.createDraftLocation());
+    public get draftLocation(): DraftLocation { return this.draft(); }
+    public set draftLocation(value: DraftLocation) { this.draft.set(value); }
     public editingNotesIndex = -1;
     public editingNotesValue = "";
 

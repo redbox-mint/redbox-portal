@@ -26,7 +26,7 @@ export class PublishDataLocationSelectorModel extends FormFieldModel<PublishData
 @Component({
   selector: "redbox-publish-data-location-selector",
   templateUrl: "./publish-data-location-selector.component.html",
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent<PublishDataLocationModelValueType> {

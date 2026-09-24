@@ -7,7 +7,7 @@ import { getStubConfigService } from './helper.spec';
 @Component({
   selector: 'lib-test-component',
   template: '{{ value }}',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 class TestComponent extends BaseComponent {

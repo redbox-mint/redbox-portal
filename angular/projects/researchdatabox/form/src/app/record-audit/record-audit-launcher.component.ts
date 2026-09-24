@@ -5,7 +5,7 @@ import { UserService } from '@researchdatabox/portal-ng-common';
   selector: 'record-audit-launcher',
   templateUrl: './record-audit-launcher.component.html',
   styleUrls: ['./record-audit-launcher.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordAuditLauncherComponent {

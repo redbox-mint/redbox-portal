@@ -16,7 +16,7 @@ import { HomePanel, HomePanelItem } from './home-panel.interface';
   selector: 'formly-home-panels-editor-type',
   templateUrl: './home-panels-editor.type.html',
   styleUrls: ['./home-panels-editor.type.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {

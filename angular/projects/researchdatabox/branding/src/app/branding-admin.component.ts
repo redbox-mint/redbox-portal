@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 declare var bootstrap: any;
 import { Component, Inject } from '@angular/core';
@@ -47,7 +47,7 @@ interface TypefaceSlotCard {
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
   imports: [FormsModule, BrandingPreviewComponent, I18NextPipe],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [BrandingAdminService],
 })
 export class BrandingAdminComponent extends BaseComponent {
@@ -70,7 +70,9 @@ export class BrandingAdminComponent extends BaseComponent {
   /** Unsaved local sample text for the preview; never sent to the server. */
   sampleText = '';
   /** Stale-write conflict flag with reload UX (local sample text is preserved). */
-  conflict = false;
+  private readonly conflictState = signal(false);
+  get conflict(): boolean { return this.conflictState(); }
+  set conflict(value: boolean) { this.conflictState.set(value); }
   /** Two-step restore confirmation target (retained version row ID). */
   pendingRestoreId: string | null = null;
   /** In-flight mutation keys (slot or action) to disable only affected controls. */

@@ -21,7 +21,7 @@ import { RecordSearchParams, RecordSearchRefiner } from './search-models';
   templateUrl: './record-search.component.html',
   styleUrls: ['./record-search.component.scss'],
   providers: [Location, { provide: LocationStrategy, useClass: PathLocationStrategy }],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordSearchComponent extends BaseComponent implements OnDestroy {

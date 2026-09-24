@@ -181,7 +181,7 @@ import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationSe
       </div>
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined> implements OnDestroy {

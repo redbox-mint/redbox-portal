@@ -40,7 +40,7 @@ import {
 @Component({
   selector: 'dashboard',
   templateUrl: './dashboard.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DashboardComponent extends BaseComponent {

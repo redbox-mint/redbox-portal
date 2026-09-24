@@ -43,7 +43,7 @@ type SaveStatusMessageConfigProperty =
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {

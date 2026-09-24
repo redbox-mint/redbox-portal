@@ -7,7 +7,7 @@ import { NamedQueryListQueryState } from './nq-list/nq-list.component';
   selector: 'named-query-editor',
   templateUrl: './named-query-editor.component.html',
   styleUrls: ['./named-query-editor.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class NamedQueryEditorComponent extends BaseComponent implements OnDestroy {

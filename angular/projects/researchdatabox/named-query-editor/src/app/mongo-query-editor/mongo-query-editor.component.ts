@@ -10,7 +10,7 @@ interface QueryEntry {
 @Component({
   selector: 'mongo-query-editor',
   templateUrl: './mongo-query-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class MongoQueryEditorComponent implements OnChanges {

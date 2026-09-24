@@ -43,7 +43,7 @@ import { getAdditionalErrorCount, getPrimaryError, hasMultipleErrors } from './f
       }
     }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class FieldErrorSummaryComponent implements OnChanges {

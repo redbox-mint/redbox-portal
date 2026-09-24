@@ -166,7 +166,7 @@ import { DashboardFormatRules } from '../dashboard-config-api.service';
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class FormatRulesEditorComponent implements OnChanges {

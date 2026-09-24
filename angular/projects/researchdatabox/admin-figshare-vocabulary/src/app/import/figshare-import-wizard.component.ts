@@ -23,7 +23,7 @@ export interface FigshareImportRequest {
 @Component({
   selector: 'figshare-import-wizard',
   templateUrl: './figshare-import-wizard.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareImportWizardComponent {

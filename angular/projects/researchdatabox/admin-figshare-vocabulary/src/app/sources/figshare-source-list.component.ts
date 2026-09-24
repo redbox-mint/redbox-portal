@@ -5,7 +5,7 @@ import { formatFigshareTimestamp } from '../figshare-format';
 @Component({
   selector: 'figshare-source-list',
   templateUrl: './figshare-source-list.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareSourceListComponent {

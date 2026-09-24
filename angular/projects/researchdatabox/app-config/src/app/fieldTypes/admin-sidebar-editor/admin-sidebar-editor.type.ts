@@ -17,7 +17,7 @@ import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './adm
   selector: 'formly-admin-sidebar-editor-type',
   templateUrl: './admin-sidebar-editor.type.html',
   styleUrls: ['./admin-sidebar-editor.type.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {

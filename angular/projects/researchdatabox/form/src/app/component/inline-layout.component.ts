@@ -71,7 +71,7 @@ import { FormService } from "../form.service";
     </ng-template>
   }
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })

@@ -13,7 +13,7 @@ type VocabularyListQueryState = {
   selector: 'vocab-list',
   templateUrl: './vocab-list.component.html',
   styleUrls: ['./vocab-list.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class VocabListComponent implements OnChanges, OnDestroy {

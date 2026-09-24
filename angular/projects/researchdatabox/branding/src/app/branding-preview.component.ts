@@ -50,7 +50,7 @@ declare global {
   ],
   encapsulation: ViewEncapsulation.ShadowDom,
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [],
 })
 export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDestroy {

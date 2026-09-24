@@ -14,10 +14,24 @@ renders when a template signal changes, an Angular event listener runs, an
 Asynchronous callbacks that update ordinary properties must notify Angular;
 `NgZone.run()` alone does not schedule a render in a zoneless application.
 
-Existing components explicitly use `ChangeDetectionStrategy.Eager` to preserve
-their pre-upgrade component checking behaviour. This still requires a render
-notification and does not enable Zone.js. See the
-[Angular zoneless guide](https://angular.dev/guide/zoneless).
+Components use `ChangeDetectionStrategy.OnPush` so unchanged component subtrees
+can be skipped. Use signals for template state and replace input objects/arrays
+when updating a child from its parent. Angular template events and the shared
+`BaseComponent` asynchronous method helper notify the affected view.
+State read through a shared data source must also notify its consumers. Report
+and deleted-record results use signal-backed accessors so `record-table` updates
+even when its data-source input keeps the same object reference.
+
+Dynamic form fields observe their control's `events` stream to render value,
+validity, touched, and pristine changes, with subscriptions disposed when the
+field is destroyed. Field configuration changes go through `setProperty()`.
+Silent control writes (`emitEvent: false`) must explicitly synchronize their
+display with `syncComponentDisplayFromModel()`; expression consumers do this
+automatically. This also refreshes nested fields and their validation layouts.
+Tabs, accordions, and rendered content use signals so dependent views update
+without checking every field after unrelated events. See the
+[Angular zoneless guide](https://angular.dev/guide/zoneless) and
+[OnPush guide](https://angular.dev/best-practices/skipping-subtrees).
 
 ## Build 
 

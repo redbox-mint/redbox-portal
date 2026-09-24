@@ -5,7 +5,7 @@ import { FormDebugStateService } from './form-debug-state.service';
   selector: 'redbox-form-debug-events-tab',
   templateUrl: './form-debug-events-tab.component.html',
   styleUrls: ['./form-debug-events-tab.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FormDebugEventsTabComponent implements AfterViewInit {

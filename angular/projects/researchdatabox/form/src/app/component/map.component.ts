@@ -10,6 +10,7 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  signal,
 } from '@angular/core';
 import {
   FormFieldBaseComponent,
@@ -487,7 +488,7 @@ function expandTileUrl(url: string, subdomains?: unknown): string | string[] {
       }
     `,
   ],
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class MapComponent extends FormFieldBaseComponent<MapModelValueType> implements AfterViewInit, OnDestroy {
@@ -508,7 +509,9 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
   public importLabel = 'Enter KML or GeoJSON';
   public importDataString = '';
   public importError = '';
-  public mapError = '';
+  private readonly mapErrorMessage = signal('');
+  public get mapError(): string { return this.mapErrorMessage(); }
+  public set mapError(value: string) { this.mapErrorMessage.set(value); }
 
   private map?: OLMap;
   private draw?: any;
@@ -656,6 +659,7 @@ export class MapComponent extends FormFieldBaseComponent<MapModelValueType> impl
         }
         this.mapDeps = deps;
         this.initialiseMap();
+        this.requestRender();
       })
       .catch(error => {
         this.loggerService.warn(`${this.logName}: failed to load map dependencies, map will not render.`, error);

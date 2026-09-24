@@ -23,7 +23,7 @@ const MAPPING_PAGE_SIZE = 50;
 @Component({
   selector: 'admin-figshare-vocabulary',
   templateUrl: './admin-figshare-vocabulary.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class AdminFigshareVocabularyComponent extends BaseComponent {

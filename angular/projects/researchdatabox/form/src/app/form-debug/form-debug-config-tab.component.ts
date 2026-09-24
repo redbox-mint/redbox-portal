@@ -4,7 +4,7 @@ import { FormDebugStateService } from './form-debug-state.service';
 @Component({
   selector: 'redbox-form-debug-config-tab',
   templateUrl: './form-debug-config-tab.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FormDebugConfigTabComponent {

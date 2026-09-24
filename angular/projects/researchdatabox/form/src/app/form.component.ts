@@ -187,7 +187,7 @@ interface FormValueGenerationSnapshot {
     FormDebugStateService,
   ],
   encapsulation: ViewEncapsulation.None,
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
