@@ -69,6 +69,7 @@ RUN cp -a node_modules /tmp/test-node_modules \
       packages/rva-registry \
       packages/sails-ng-common \
       packages/redbox-core \
+      packages/redbox-dev-tools \
       packages/sails-hook-redbox-storage-mongo \
       packages/redbox-hook-dev \
       packages/sails-hook-redbox-pdfgen; do \
@@ -78,18 +79,22 @@ RUN cp -a node_modules /tmp/test-node_modules \
       fi; \
     done
 
-RUN npm prune --omit=dev --no-audit \
- && rm -rf \
-    node_modules/redbox-hook-dev \
+# Reinstall the production graph after compilation. Removing nested dependency
+# directories after npm prunes them also removes required runtime versions.
+RUN rm -rf \
+    packages/agenda-sqs-backend/node_modules \
     packages/redbox-core/node_modules \
+    packages/redbox-dev-tools/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
     packages/rva-registry/node_modules \
     packages/redbox-hook-dev/node_modules \
+    packages/sails-hook-redbox-storage-mongo/node_modules \
     packages/sails-hook-redbox-pdfgen/node_modules \
     angular/node_modules \
     angular-legacy/node_modules \
-    support/build/api-descriptors/node_modules
+    support/build/api-descriptors/node_modules \
+ && npm ci --omit=dev --no-audit
 
 FROM node:26.9.0-bookworm-slim AS runtime
 
@@ -126,6 +131,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
   CMD ["sh", "-c", "curl -fsS \"http://localhost:${PORT:-1337}/\" >/dev/null"]
 
 USER node
+
+RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
 
 CMD ["node", "app.js"]
 
@@ -184,6 +191,7 @@ FROM runtime_puppeteer_base AS runtime_pdfgen
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
 RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --no-audit \
     ./packages/sails-hook-redbox-pdfgen
+RUN node -e "require('@researchdatabox/redbox-core'); require('@researchdatabox/sails-hook-redbox-pdfgen')"
 USER root
 RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
