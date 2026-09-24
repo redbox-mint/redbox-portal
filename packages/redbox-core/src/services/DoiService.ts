@@ -6,6 +6,7 @@
 import { of } from 'rxjs';
 import axios from 'axios';
 import _ from 'lodash';
+import { toBoolean } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -265,11 +266,12 @@ export namespace Services {
       }
     }
 
+    /** Sends a DOI request and records the DataCite result in the integration audit. */
     private async publishV2Doi(
       oid: string,
       record: DoiRecordModel,
       config: DoiPublishing,
-      event: string,
+      event: string | undefined,
       action: DoiAction,
       options: DoiAuditOptions
     ): Promise<string | null> {
@@ -286,7 +288,7 @@ export namespace Services {
         auditAction,
         runContext,
         {
-          event,
+          ...(event != null ? { event } : {}),
           action,
           profile: resolvedProfile.name,
         },
@@ -305,7 +307,13 @@ export namespace Services {
         if (action === 'update' && citationDoi == null) {
           throw new RBValidationError({
             message: `Could not update DOI for oid ${oid}: doi-required`,
-            displayErrors: [{ code: 'doi-required', title: 'datacite-validation-error', meta: { oid, action, event } }],
+            displayErrors: [
+              {
+                code: 'doi-required',
+                title: 'datacite-validation-error',
+                meta: { oid, action, ...(event != null ? { event } : {}) },
+              },
+            ],
           });
         }
         if (action === 'update' && citationDoi != null && prefix != null && !citationDoi.startsWith(prefix)) {
@@ -320,7 +328,7 @@ export namespace Services {
 
         const payload = await buildDoiPayload(record, oid, resolvedProfile.profile, action, event);
         requestSummary = {
-          event,
+          ...(event != null ? { event } : {}),
           action,
           profile: resolvedProfile.name,
           ...(citationDoi != null ? { doi: citationDoi } : {}),
@@ -359,6 +367,7 @@ export namespace Services {
       }
     }
 
+    /** Creates or updates a DOI, optionally refreshing metadata without a state change. */
     public async publishDoi(
       oid: string,
       record: DoiRecordModel,
@@ -370,8 +379,17 @@ export namespace Services {
       if (config == null) {
         return null;
       }
+      // A metadata-only update sends no event, leaving an existing DataCite DOI in its current state.
+      const metadataOnly = toBoolean(options.metadataOnly);
+      if (metadataOnly && action === 'create') {
+        sails.log.warn(
+          `Ignoring metadataOnly for oid ${oid}: a new DOI is created with the '${event || config.operations.createEvent}' event.`
+        );
+      }
       const effectiveEvent =
-        event || (action === 'update' ? config.operations.updateEvent : config.operations.createEvent);
+        metadataOnly && action === 'update'
+          ? undefined
+          : event || (action === 'update' ? config.operations.updateEvent : config.operations.createEvent);
       return this.publishV2Doi(oid, record, config, effectiveEvent, action, options);
     }
 
@@ -410,19 +428,27 @@ export namespace Services {
       }
     }
 
-    public async changeDoiState(brand: BrandingModel, doi: string, event: string): Promise<boolean> {
+    /**
+     * Sends a DataCite state change event for a DOI. Pass the record's oid so the audit appears in
+     * that record's integration status; without it, the audit is filed under the DOI.
+     */
+    public async changeDoiState(brand: BrandingModel, doi: string, event: string, oid?: string): Promise<boolean> {
       const config = resolveDoiPublishingConfigForBrand(brand);
       if (config == null) {
         return false;
       }
 
+      const recordOid = asTrimmedString(oid);
       const runContext = createRunContext(
-        { metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } },
+        { redboxOid: recordOid, metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } },
         undefined,
         undefined,
         'changeDoiState'
       );
-      const auditCtx = startDoiAudit(doi, IntegrationAuditAction.changeDoiState, runContext, { doi, event });
+      const auditCtx = startDoiAudit(recordOid ?? doi, IntegrationAuditAction.changeDoiState, runContext, {
+        doi,
+        event,
+      });
       try {
         const result = await runChangeDoiStateProgram(config, runContext, doi, event, {
           auditContext: auditCtx,

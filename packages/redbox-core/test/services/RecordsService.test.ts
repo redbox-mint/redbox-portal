@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { Settings } from 'luxon';
 import _ from 'lodash';
 import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
@@ -359,6 +360,99 @@ describe('RecordsService', function () {
       workflow: { stage: 'draft' },
     });
   }
+
+  describe('UTC metadata timestamps', function () {
+    let originalZone: typeof Settings.defaultZone;
+
+    beforeEach(function () {
+      originalZone = Settings.defaultZone;
+      Settings.defaultZone = 'Australia/Brisbane';
+      sinon.stub(Date, 'now').returns(Date.parse('2026-09-24T04:30:00Z'));
+    });
+
+    afterEach(function () {
+      Settings.defaultZone = originalZone;
+    });
+
+    for (const [name, recordType] of [
+      ['configured', { name: 'rdmp', hooks: {}, searchable: false }],
+      ['bootstrap', {}],
+    ] as const) {
+      it(`creates ${name} records with UTC creation and save timestamps`, async function () {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'UTC record' } },
+          recordType,
+          { username: 'user-1' },
+          false,
+          false
+        );
+
+        expect(result.wasPersisted()).to.equal(true);
+        expect(mockStorageService.create.calledOnce).to.equal(true);
+        expect(mockStorageService.create.firstCall.args[1].metaMetadata).to.include({
+          createdOn: '2026-09-24T04:30:00.000Z',
+          lastSaveDate: '2026-09-24T04:30:00.000Z',
+        });
+      });
+    }
+
+    it('preserves supplied bootstrap timestamps', async function () {
+      const metaMetadata = {
+        createdOn: '2026-09-01T10:00:00+10:00',
+        lastSaveDate: '2026-09-02T10:00:00+10:00',
+      };
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Imported record' }, metaMetadata },
+        {},
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.create.firstCall.args[1].metaMetadata).to.include({
+        createdOn: '2026-09-01T10:00:00+10:00',
+        lastSaveDate: '2026-09-02T10:00:00+10:00',
+      });
+    });
+
+    it('updates the save timestamp in UTC while preserving the creation timestamp', async function () {
+      const record = {
+        redboxOid: 'record-123',
+        metaMetadata: {
+          type: 'rdmp',
+          form: 'default-form',
+          brandId: 'brand-1',
+          createdOn: '2026-09-01T10:00:00+10:00',
+          lastSaveDate: '2026-09-02T10:00:00+10:00',
+        },
+        metadata: { title: 'Test record' },
+        authorization: {},
+      };
+      mockStorageService.getMeta.resolves(_.cloneDeep(record));
+      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        record,
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata).to.include({
+        createdOn: '2026-09-01T10:00:00+10:00',
+        lastSaveDate: '2026-09-24T04:30:00.000Z',
+        lastSavedBy: 'user-1',
+      });
+    });
+  });
 
   describe('constructor', function () {
     it('should set logHeader', function () {

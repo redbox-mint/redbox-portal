@@ -51,9 +51,11 @@ export interface DateInputFieldComponentDefinitionOutline extends DateInputField
 /* Date Input Model */
 export const DateInputModelName = "DateInputModel" as const;
 export type DateInputModelNameType = typeof DateInputModelName;
-export type DateInputModelValueType = Date | null;
+export type DateInputModelValueType = Date | string | null;
 
 export interface DateInputFieldModelConfigFrame extends FieldModelConfigFrame<DateInputModelValueType> {
+    /** Store a calendar date as YYYY-MM-DD (or null), without a time or timezone. Defaults to false. */
+    dateOnly?: boolean;
 }
 
 
