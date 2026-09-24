@@ -52,7 +52,7 @@ test('F12 validation groups switch all, none, selected and conditional membershi
   expect((await records.read(record.oid)).body).toMatchObject({ mode: 'conditional', extra: 'no', requiredValue: 'Selected group satisfied' });
 });
 
-test('F13 validation summaries reveal hidden fields while advisory errors permit saving', async ({ adminPage, records }) => {
+test('F13 validation summaries reveal hidden fields while advisory errors permit a complete save', async ({ adminPage, records }) => {
   const record = await records.create('e2e-validation-summaries', { title: 'Summaries', requiredValue: 'Valid', tabValue: 'Valid', panelValue: 'Valid', advisoryValue: '' });
   await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
   await adminPage.getByRole('tab', { name: 'Details', exact: true }).click();
@@ -83,8 +83,8 @@ test('F13 validation summaries reveal hidden fields while advisory errors permit
   const response = await saved;
   expect(response.ok()).toBeTruthy();
   const { meta: body } = await response.json();
-  expect(body.outcome).toBe('saved-with-warnings');
-  expect(body.problems).toEqual([expect.objectContaining({ kind: 'validation', issues: [expect.objectContaining({ pointer: '/advisoryValue' })] })]);
+  expect(body.outcome).toBe('saved');
+  expect(body.problems).toEqual([expect.objectContaining({ kind: 'validation', source: 'advisory', issues: [expect.objectContaining({ pointer: '/advisoryValue' })] })]);
   await expect(adminPage.locator('redbox-form-save-status [role="alert"]')).toContainText('Your changes were saved');
   expect((await records.read(record.oid)).body).toMatchObject({ tabValue: 'Tab corrected', panelValue: 'Panel corrected', advisoryValue: '' });
 });
