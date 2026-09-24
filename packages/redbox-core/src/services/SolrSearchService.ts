@@ -43,6 +43,10 @@ const luceneEscapeQuery: (value: string) => string =
     ? luceneEscapeQueryModule
     : (luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default || ((value: string) => value));
 
+/**
+ * Convert full ISO calendar dates and native dates to UTC for Solr.
+ * Leave incomplete or invalid values unchanged instead of inventing missing date parts.
+ */
 function normalizeSolrDateValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(normalizeSolrDateValue);
@@ -51,7 +55,7 @@ function normalizeSolrDateValue(value: unknown): unknown {
     const date = DateTime.fromJSDate(value, { zone: 'utc' });
     return date.isValid ? date.toUTC().toISO() ?? value : value;
   }
-  if (typeof value !== 'string') {
+  if (typeof value !== 'string' || !/^(?:[+-]\d{6}|\d{4})-?\d{2}-?\d{2}(?:T|$)/.test(value)) {
     return value;
   }
   const date = DateTime.fromISO(value, { zone: 'utc', setZone: true });

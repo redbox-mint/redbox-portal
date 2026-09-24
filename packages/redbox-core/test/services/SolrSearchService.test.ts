@@ -439,6 +439,8 @@ describe('SolrSearchService', function() {
             utc: '2026-09-24T04:30:00.123Z',
             noOffset: '2026-09-24T04:30:00',
             dateOnly: '2026-09-24',
+            basicDate: '20260924',
+            basicTimestamp: '20260924T143000+1000',
             native: new Date('2026-09-24T14:30:00+10:00')
           },
           title: '2026-09-24T14:30:00+10:00'
@@ -453,6 +455,8 @@ describe('SolrSearchService', function() {
         date_utc: '2026-09-24T04:30:00.123Z',
         date_noOffset: '2026-09-24T04:30:00.000Z',
         date_dateOnly: '2026-09-24T00:00:00.000Z',
+        date_basicDate: '2026-09-24T00:00:00.000Z',
+        date_basicTimestamp: '2026-09-24T04:30:00.000Z',
         date_native: '2026-09-24T04:30:00.000Z',
         title: data.metadata.title
       });
@@ -482,16 +486,27 @@ describe('SolrSearchService', function() {
       const result = SolrSearchService.preIndex({ metadata: {
         date_invalid: 'not-a-date', date_empty: '', date_null: null,
         date_number: 42, date_boolean: false, date_undefined: undefined,
+        date_invalidCalendar: '2026-02-30T10:30:00+10:00',
         date_invalidNative: new Date(NaN)
       } });
 
       expect(result).to.include({
         date_invalid: 'not-a-date', date_empty: '', date_null: null,
-        date_number: 42, date_boolean: false, date_undefined: undefined
+        date_number: 42, date_boolean: false, date_undefined: undefined,
+        date_invalidCalendar: '2026-02-30T10:30:00+10:00'
       });
       expect(result.date_invalidNative).to.be.instanceOf(Date);
       expect(Number.isNaN(result.date_invalidNative.getTime())).to.equal(true);
     });
+
+    for (const value of ['10:30', '10:30:00+10:00', '2024', '2024-09', '202409', '2024-09T10:30', '2024-W39']) {
+      it(`preserves incomplete date ${value} in scalar and array fields`, function() {
+        const result = SolrSearchService.preIndex({ metadata: { date_incomplete: value, date_array: [value] } });
+
+        expect(result.date_incomplete).to.equal(value);
+        expect(result.date_array).to.deep.equal([value]);
+      });
+    }
 
     it('normalizes dates produced by templates and special flattening', function() {
       const preIndex = mockSails.config.solr.cores.default.preIndex;
