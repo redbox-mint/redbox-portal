@@ -3094,6 +3094,11 @@
     "description": "Warning shown after an update when follow-up processing is incomplete. Includes the save request reference.",
     "contentFormat": "plain"
   },
+  "@dmpt-form-save-schema-warning": {
+    "category": "rdmp",
+    "description": "Warning shown after a saved record has structural schema validation issues. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
   "@dmpt-form-save-unknown-create": {
     "category": "rdmp",
     "description": "Guidance shown when record creation cannot be confirmed. Includes the save request reference.",

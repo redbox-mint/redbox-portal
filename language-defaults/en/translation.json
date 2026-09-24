@@ -624,6 +624,7 @@
   "@dmpt-form-save-success": "Saved successfully.",
   "@dmpt-form-save-warning-create": "The record was saved, but some follow-up processing could not be completed. You can continue editing this record. Reference: {{requestId}}.",
   "@dmpt-form-save-warning-update": "Your changes were saved, but some follow-up processing could not be completed. You can continue editing this record. Reference: {{requestId}}.",
+  "@dmpt-form-save-schema-warning": "Saved, but the record schema check reported a problem. Review the record or contact support. Reference: {{requestId}}.",
   "@dmpt-form-save-unknown-create": "We couldn’t confirm whether the record was created. Do not retry until you have refreshed and checked for the record. Reference: {{requestId}}.",
   "@dmpt-form-save-unknown-update": "We couldn’t confirm whether your changes were saved. Refresh the page and review the record before trying again. Reference: {{requestId}}.",
   "@record-save-failed": "The record could not be saved.",

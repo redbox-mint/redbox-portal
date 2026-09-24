@@ -131,6 +131,9 @@ pointers, and allowlisted expected-type details. When schema resolution
 succeeds, the non-persisted `schemaOutcome` reports the digest, immutable URL,
 `complete` or `partial` completeness, and effective enforcement mode. Do not
 copy `schemaOutcome` into record metadata.
+Schema-only warnings are complete saves: the browser shows a schema-specific
+warning and permits Save & Close. If required post-save work also fails, the
+save remains incomplete and the follow-up warning remains visible.
 
 Shadow is not an authorization or concurrency bypass. An unknown or
 unauthorized validation operation, denied record access, missing authoritative

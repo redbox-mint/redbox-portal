@@ -265,6 +265,31 @@ describe('RecordService', () => {
     ]);
   });
 
+  it('keeps saved advisory issues without treating them as incomplete work', () => {
+    const result = RecordActionResult.fromResponse({ meta: {
+      outcome: 'saved',
+      problems: [{ kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Suggestion' }] }],
+    } }, 200, '11111111-1111-4111-8111-111111111111');
+
+    expect(result.isComplete()).toBeTrue();
+    expect(result.problems).toEqual([
+      { kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'Suggestion' }] },
+    ]);
+  });
+
+  it('allows a schema-only warning to be complete but keeps post-save failures incomplete', () => {
+    const schema = { kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'Type mismatch' }] };
+    const response = (problems: unknown[]) => RecordActionResult.fromResponse({ meta: {
+      outcome: 'saved-with-warnings', problems,
+      completion: { attachments: { status: 'not-required', items: [] } },
+    } }, 200, '11111111-1111-4111-8111-111111111111');
+
+    const schemaOnly = response([schema]);
+    expect(schemaOnly.isComplete()).toBeTrue();
+    expect(schemaOnly.problems[0].source).toBe('schema');
+    expect(response([schema, { kind: 'processing', phase: 'post-save', issues: [{ message: 'Hook failed' }] }]).isComplete()).toBeFalse();
+  });
+
   it('normalises only bounded concurrency result metadata', async () => {
     const updatePromise = recordService.update('oid-123', { title: 'Test record' });
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);

@@ -50,6 +50,7 @@ import {
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
+  isRecordSaveComplete,
   isRecordSaveOutcome,
   isRecordSaveProblemKind,
   isRecordSaveRequestId,
@@ -1014,7 +1015,7 @@ export class RecordActionResult implements RecordSaveResult {
   }
 
   public isComplete(): boolean {
-    return this.outcome === 'saved';
+    return isRecordSaveComplete(this);
   }
 
   public isSuccessful(): boolean {
@@ -1256,6 +1257,14 @@ export class RecordActionResult implements RecordSaveResult {
             issues,
           }
         : null;
+    }
+
+    if (
+      problem['source'] === 'advisory' &&
+      problem['kind'] === 'validation' &&
+      (problem['phase'] === 'pre-save' || problem['phase'] === 'post-save')
+    ) {
+      return { kind: 'validation', source: 'advisory', phase: problem['phase'], issues };
     }
 
     if (
