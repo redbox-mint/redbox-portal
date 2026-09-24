@@ -27,6 +27,7 @@ import { RecordModel } from '../model/storage/RecordModel';
 import { SolrDocument } from '../model/SolrDocument';
 import { Services as services } from '../CoreService';
 import { RecordsService } from '../RecordsService';
+import { DateTime } from 'luxon';
 
 type SolrOptions = SolrCoreOptions;
 type SolrCore = SolrCoreConfig;
@@ -42,7 +43,20 @@ const luceneEscapeQuery: (value: string) => string =
     ? luceneEscapeQueryModule
     : (luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default || ((value: string) => value));
 
-
+function normalizeSolrDateValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeSolrDateValue);
+  }
+  if (value instanceof Date) {
+    const date = DateTime.fromJSDate(value, { zone: 'utc' });
+    return date.isValid ? date.toUTC().toISO() ?? value : value;
+  }
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const date = DateTime.fromISO(value, { zone: 'utc', setZone: true });
+  return date.isValid ? date.toUTC().toISO() ?? value : value;
+}
 
 class SolrClient {
   options: SolrOptions;
@@ -543,6 +557,13 @@ export namespace Services {
         }
         const flattened = flatModule.flatten(dataToFlatten, specialFlattenConfig.options);
         _.merge(processedData, flattened);
+      });
+
+      // Solr pdate fields require UTC ISO values with a Z suffix.
+      _.forOwn(processedData, (value: unknown, fieldName: string) => {
+        if (fieldName.startsWith('date_')) {
+          processedData[fieldName] = normalizeSolrDateValue(value);
+        }
       });
 
       // sanitise any empty keys so SOLR doesn't complain

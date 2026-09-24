@@ -1560,7 +1560,7 @@ export namespace Controllers {
         );
       }
       metaMetadata['lastSavedBy'] = user?.['username'];
-      metaMetadata['lastSaveDate'] = DateTime.local().toISO();
+      metaMetadata['lastSaveDate'] = DateTime.utc().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
       return from(
