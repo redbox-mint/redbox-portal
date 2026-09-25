@@ -1,0 +1,33 @@
+meta {
+  name: Save With Stale Revision Is Rejected
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{host}}/default/rdmp/api/dashboard-config/workflows/rdmp/draft
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "expectedRevision": {{dashboardConfigRevision}},
+    "settings": {{dashboardConfigDraftSettings}}
+  }
+}
+
+tests {
+  test("Status code is 409", function () {
+    expect(res.getStatus()).to.equal(409);
+  });
+
+  test("Reports a stale revision", function () {
+    expect(res.getBody().errors[0].code).to.equal("stale-revision");
+  });
+}

@@ -1,0 +1,38 @@
+meta {
+  name: Copy Apply
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/default/rdmp/api/dashboard-config/copy/apply
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  var preview = JSON.parse(bru.getVar("dashboardCopyPreview"));
+  req.setBody({
+    source: preview.source,
+    destinations: preview.destinations,
+    groups: preview.groups,
+    expectedRevision: preview.expectedRevision,
+    previewFingerprint: preview.previewFingerprint,
+    acknowledgedWarningIds: preview.warnings.map(function (w) { return w.id; })
+  });
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Updates the destination", function () {
+    expect(res.getBody().data.updated).to.equal(1);
+  });
+}

@@ -179,6 +179,8 @@ export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
 
 export * from './configmodels/ConfigModels';
+export * from './configmodels/DashboardSettings';
+export * from './services/DashboardLegacyConversion';
 export * from './configmodels/MenuConfig';
 export * from './configmodels/HomePanelConfig';
 export * from './configmodels/AdminSidebarConfig';

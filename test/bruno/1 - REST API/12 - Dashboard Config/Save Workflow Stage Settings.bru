@@ -1,0 +1,33 @@
+meta {
+  name: Save Workflow Stage Settings
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{host}}/default/rdmp/api/dashboard-config/workflows/rdmp/draft
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "expectedRevision": {{dashboardConfigRevision}},
+    "settings": {{dashboardConfigDraftSettings}}
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Revision advances", function () {
+    expect(res.getBody().data.revision).to.equal(Number(bru.getVar("dashboardConfigRevision")) + 1);
+  });
+}

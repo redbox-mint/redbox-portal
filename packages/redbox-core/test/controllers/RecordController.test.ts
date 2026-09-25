@@ -1370,7 +1370,6 @@ describe('RecordController getWorkflowSteps', () => {
         sourceRecordType: 'rdmp',
         sourceWorkflowStage: undefined,
         fetchMode: 'allForRecordType',
-        dashboardTable: { rowConfig: [] },
         baseRecordType: undefined,
       },
     ]);

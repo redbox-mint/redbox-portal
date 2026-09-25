@@ -1,21 +1,30 @@
-import { Component, Inject, OnDestroy } from '@angular/core';
+import { Component, HostListener, Inject, OnDestroy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
+  DashboardConfigApiError,
   DashboardConfigApiService,
-  DashboardConfigInfo,
+  DashboardCopyPreview,
+  DashboardCopySelection,
+  DashboardFinding,
+  DashboardGroupChange,
+  DashboardSettings,
   DashboardTableConfig,
-  DashboardTableOverrideConfigData,
-  DashboardTypeDefinition,
-  MergedDashboardConfigResult,
-  WorkflowStateDashboardConfig
+  DashboardTargetInfo
 } from './dashboard-config-api.service';
+import { COPY_GROUPS, applyCopyGroups, cloneSettings, describeGroupChanges, selectionToGroups } from './dashboard-settings.util';
 
-type SelectedContext =
-  | { type: 'recordType'; recordType: string; step: string }
-  | { type: 'view'; view: string; step: string }
-  | { type: 'dashboardType'; name: string };
+interface NavGroup {
+  kind: 'workflow' | 'view';
+  owner: string;
+  label: string;
+  targets: DashboardTargetInfo[];
+}
 
-type NavSection = 'types' | 'records' | 'views';
+type SelectionState = Record<DashboardCopySelection, boolean>;
+
+function emptySelection(): SelectionState {
+  return { columnsAndActions: false, filtersAndSearch: false, grouping: false, all: false };
+}
 
 @Component({
   selector: 'dashboard-config-editor',
@@ -24,20 +33,50 @@ type NavSection = 'types' | 'records' | 'views';
   standalone: false
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {
-  configInfo: DashboardConfigInfo | null = null;
-  overrides: DashboardTableOverrideConfigData = { recordTypes: {}, views: {} };
-  selectedContext: SelectedContext | null = null;
-  selectedMergedConfig: MergedDashboardConfigResult | null = null;
-  currentDashboardTypeName = 'standard';
-  currentOverrideConfig: DashboardTableConfig = {};
-  dashboardTypeForm: DashboardTypeDefinition = this.emptyDashboardType();
-  dashboardTypeIsNew = true;
+  readonly copyGroups = COPY_GROUPS;
+
+  targets: DashboardTargetInfo[] = [];
+  selected: DashboardTargetInfo | null = null;
+  draft: DashboardSettings | null = null;
+  baseRevision = 0;
+  private savedJson = '';
+
   loading = false;
   saving = false;
   message = '';
   error = '';
   navFilter = '';
-  private collapsedNavSections = new Set<NavSection>();
+  private collapsedGroups = new Set<string>();
+
+  /** Findings from the last validation of the draft. */
+  errors: DashboardFinding[] = [];
+  warnings: DashboardFinding[] = [];
+  warningFingerprint = '';
+  acknowledgedWarnings = new Set<string>();
+  staleConflict = false;
+
+  copyFrom = {
+    open: false,
+    sourceKey: '',
+    selection: emptySelection(),
+    loading: false,
+    candidate: null as DashboardSettings | null,
+    changes: [] as DashboardGroupChange[],
+    errors: [] as DashboardFinding[],
+    warnings: [] as DashboardFinding[],
+    error: ''
+  };
+
+  copyTo = {
+    open: false,
+    destinations: new Set<string>(),
+    selection: emptySelection(),
+    filter: '',
+    loading: false,
+    preview: null as DashboardCopyPreview | null,
+    acknowledged: new Set<string>(),
+    error: ''
+  };
 
   constructor(
     @Inject(LoggerService) private logger: LoggerService,
@@ -49,312 +88,386 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   protected override async initComponent(): Promise<void> {
-    await this.reloadMetadata();
-  }
-
-  private emptyDashboardType(): DashboardTypeDefinition {
-    return {
-      name: '',
-      description: '',
-      searchable: true,
-      system: false,
-      formatRules: {},
-      tableConfig: { rowConfig: [] }
-    };
-  }
-
-  private clone<T>(value: T): T {
-    return JSON.parse(JSON.stringify(value ?? {})) as T;
-  }
-
-  private async reloadMetadata(): Promise<void> {
-    this.loading = true;
-    this.error = '';
-    try {
-      this.configInfo = await this.api.getConfigInfo();
-      this.overrides = await this.api.getOverrides();
-      if (!this.selectedContext && this.configInfo.dashboardTypes.length > 0) {
-        await this.selectDashboardType(this.configInfo.dashboardTypes[0].name);
-      }
-    } catch (e) {
-      this.error = 'Failed to load dashboard configuration metadata.';
-      this.logger.error('Failed to load dashboard config info', e);
+    await this.reloadTargets();
+    const first = this.targets.find((t) => !t.hidden) ?? this.targets[0];
+    if (first) {
+      await this.selectTarget(first, true);
     }
-    this.loading = false;
   }
 
-  async selectRecordType(recordType: string, step: string): Promise<void> {
-    this.selectedContext = { type: 'recordType', recordType, step };
-    await this.loadMergedSelection();
+  // ---------------------------------------------------------------------
+  // Navigation
+  // ---------------------------------------------------------------------
+
+  private async reloadTargets(): Promise<void> {
+    try {
+      this.targets = (await this.api.getTargets()).targets;
+    } catch (e) {
+      this.error = this.describeError(e, 'Failed to load dashboard targets.');
+      this.logger.error('Failed to load dashboard targets', e);
+    }
   }
 
-  async selectView(view: string, step: string): Promise<void> {
-    this.selectedContext = { type: 'view', view, step };
-    await this.loadMergedSelection();
+  get navGroups(): NavGroup[] {
+    const groups = new Map<string, NavGroup>();
+    const term = this.navFilter.trim().toLowerCase();
+    for (const info of this.targets) {
+      const owner = info.target.kind === 'workflow' ? info.target.recordType : info.target.view;
+      const key = `${info.target.kind}:${owner}`;
+      const matches = !term || [owner, info.ownerLabel, info.stepLabel, info.target.kind === 'workflow' ? info.target.stage : info.target.step].some((v) => v.toLowerCase().includes(term));
+      if (!matches) {
+        continue;
+      }
+      if (!groups.has(key)) {
+        groups.set(key, { kind: info.target.kind, owner, label: info.ownerLabel, targets: [] });
+      }
+      groups.get(key)!.targets.push(info);
+    }
+    return Array.from(groups.values());
   }
 
-  async selectDashboardType(name: string): Promise<void> {
-    this.selectedContext = { type: 'dashboardType', name };
-    this.dashboardTypeIsNew = false;
-    const selected = this.configInfo?.dashboardTypes.find((type) => type.name === name) ?? await this.api.getDashboardType(name);
-    this.dashboardTypeForm = selected ? this.clone(selected) : this.emptyDashboardType();
-    this.selectedMergedConfig = null;
-    this.currentOverrideConfig = {};
-    this.currentDashboardTypeName = this.dashboardTypeForm.name || name;
+  get workflowGroups(): NavGroup[] {
+    return this.navGroups.filter((g) => g.kind === 'workflow');
   }
 
-  startNewDashboardType(): void {
-    this.selectedContext = { type: 'dashboardType', name: '' };
-    this.dashboardTypeIsNew = true;
-    this.dashboardTypeForm = this.emptyDashboardType();
-    this.selectedMergedConfig = null;
-    this.currentOverrideConfig = {};
-    this.currentDashboardTypeName = 'standard';
+  get viewGroups(): NavGroup[] {
+    return this.navGroups.filter((g) => g.kind === 'view');
   }
 
-  private async loadMergedSelection(): Promise<void> {
-    if (!this.selectedContext) {
+  toggleGroup(group: NavGroup): void {
+    const key = `${group.kind}:${group.owner}`;
+    if (this.collapsedGroups.has(key)) {
+      this.collapsedGroups.delete(key);
+    } else {
+      this.collapsedGroups.add(key);
+    }
+  }
+
+  isGroupCollapsed(group: NavGroup): boolean {
+    return this.collapsedGroups.has(`${group.kind}:${group.owner}`) && !this.navFilter.trim();
+  }
+
+  stepName(info: DashboardTargetInfo): string {
+    return info.target.kind === 'workflow' ? info.target.stage : info.target.step;
+  }
+
+  targetLabel(info: DashboardTargetInfo | null | undefined): string {
+    if (!info) {
+      return '';
+    }
+    const owner = info.target.kind === 'workflow' ? info.target.recordType : `View ${info.target.view}`;
+    const step = info.stepLabel && info.stepLabel !== this.stepName(info) ? `${info.stepLabel} (${this.stepName(info)})` : this.stepName(info);
+    return `${owner} / ${step}${info.hidden ? ' — hidden stage' : ''}`;
+  }
+
+  isSelected(info: DashboardTargetInfo): boolean {
+    return this.selected?.key === info.key;
+  }
+
+  get isDirty(): boolean {
+    return !!this.draft && JSON.stringify(this.draft) !== this.savedJson;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.isDirty) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
+
+  private confirmDiscard(action: string): boolean {
+    return !this.isDirty || window.confirm(`You have unsaved changes to ${this.targetLabel(this.selected)}. Discard them and ${action}?`);
+  }
+
+  async selectTarget(info: DashboardTargetInfo, force = false): Promise<void> {
+    if (!force && (this.isSelected(info) || !this.confirmDiscard('open another dashboard'))) {
+      return;
+    }
+    this.closeDialogs();
+    this.selected = info;
+    await this.loadSelected();
+  }
+
+  private async loadSelected(): Promise<void> {
+    if (!this.selected) {
       return;
     }
     this.loading = true;
     this.error = '';
+    this.message = '';
+    this.clearFindings();
+    this.staleConflict = false;
     try {
-      if (this.selectedContext.type === 'recordType') {
-        this.selectedMergedConfig = await this.api.getMergedConfig(this.selectedContext.recordType, this.selectedContext.step);
-      } else if (this.selectedContext.type === 'view') {
-        this.selectedMergedConfig = await this.api.getMergedViewConfig(this.selectedContext.view, this.selectedContext.step);
-      }
-
-      this.currentDashboardTypeName = this.selectedMergedConfig?.dashboardType ?? 'standard';
-      this.currentOverrideConfig = this.clone(this.selectedMergedConfig?.overrideConfig ?? {});
+      const result = await this.api.getSettings(this.selected.target);
+      this.draft = cloneSettings(result.settings);
+      this.savedJson = JSON.stringify(this.draft);
+      this.baseRevision = result.revision;
     } catch (e) {
-      this.error = 'Failed to load selected dashboard configuration.';
-      this.logger.error('Failed to load dashboard config selection', e);
+      this.draft = null;
+      this.error = this.describeError(e, 'Failed to load dashboard settings.');
+      this.logger.error('Failed to load dashboard settings', e);
     }
     this.loading = false;
   }
 
-  get selectedRecordTypes(): Array<{ name: string; steps: string[] }> {
-    return this.configInfo?.recordTypes ?? [];
-  }
-
-  get selectedViews(): Array<{ name: string; steps: string[] }> {
-    return this.configInfo?.views ?? [];
-  }
-
-  get currentTypeDefinition(): DashboardTypeDefinition | null {
-    if (this.selectedContext?.type !== 'dashboardType') {
-      return null;
+  async reloadDiscardingDraft(): Promise<void> {
+    if (this.confirmDiscard('reload the saved settings')) {
+      await this.loadSelected();
     }
-    const selected = this.selectedContext as Extract<SelectedContext, { type: 'dashboardType' }>;
-    return this.configInfo?.dashboardTypes.find((type) => type.name === selected.name) ?? null;
   }
 
-  isSelectedDashboardType(name: string): boolean {
-    return this.selectedContext?.type === 'dashboardType' && (this.selectedContext as Extract<SelectedContext, { type: 'dashboardType' }>).name === name;
+  onTableConfigChange(config: DashboardTableConfig): void {
+    if (this.draft) {
+      this.draft.tableConfig = config as DashboardSettings['tableConfig'];
+      this.clearFindings();
+    }
   }
 
-  isSelectedRecordType(recordType: string, step: string): boolean {
-    return this.selectedContext?.type === 'recordType'
-      && (this.selectedContext as Extract<SelectedContext, { type: 'recordType' }>).recordType === recordType
-      && (this.selectedContext as Extract<SelectedContext, { type: 'recordType' }>).step === step;
+  onDraftChanged(): void {
+    this.clearFindings();
   }
 
-  isSelectedView(view: string, step: string): boolean {
-    return this.selectedContext?.type === 'view'
-      && (this.selectedContext as Extract<SelectedContext, { type: 'view' }>).view === view
-      && (this.selectedContext as Extract<SelectedContext, { type: 'view' }>).step === step;
+  // ---------------------------------------------------------------------
+  // Validation and save
+  // ---------------------------------------------------------------------
+
+  private clearFindings(): void {
+    this.errors = [];
+    this.warnings = [];
+    this.warningFingerprint = '';
+    this.acknowledgedWarnings = new Set();
   }
 
-  hasRecordOverride(recordType: string, step: string): boolean {
-    const entry = this.overrides?.recordTypes?.[recordType];
-    return !!(entry?.steps && entry.steps[step]);
-  }
-
-  hasViewOverride(view: string, step: string): boolean {
-    const entry = this.overrides?.views?.[view];
-    return !!(entry?.steps && entry.steps[step]);
-  }
-
-  get hasOverrideContent(): boolean {
-    const c = this.currentOverrideConfig || {};
-    return !!(
-      (c.rowConfig && c.rowConfig.length) ||
-      (c.formatRules && Object.keys(c.formatRules).length) ||
-      (c.rowRulesConfig && c.rowRulesConfig.length) ||
-      (c.groupRowConfig && c.groupRowConfig.length) ||
-      (c.groupRowRulesConfig && c.groupRowRulesConfig.length)
-    );
-  }
-
-  toggleNavSection(section: NavSection): void {
-    if (this.collapsedNavSections.has(section)) {
-      this.collapsedNavSections.delete(section);
+  toggleWarning(finding: DashboardFinding, set: Set<string>): void {
+    if (set.has(finding.id)) {
+      set.delete(finding.id);
     } else {
-      this.collapsedNavSections.add(section);
+      set.add(finding.id);
     }
   }
 
-  isNavSectionCollapsed(section: NavSection): boolean {
-    return this.collapsedNavSections.has(section);
-  }
-
-  onNavFilterChange(): void {
-    // Filtering is reactive via getters — this is here for future debounce hooks.
-  }
-
-  clearNavFilter(): void {
-    this.navFilter = '';
-  }
-
-  private matchesFilter(value: string): boolean {
-    const term = this.navFilter.trim().toLowerCase();
-    if (!term) {
-      return true;
-    }
-    return value.toLowerCase().includes(term);
-  }
-
-  get filteredTypeList(): DashboardTypeDefinition[] {
-    return this.typeList.filter((type) =>
-      this.matchesFilter(type.name) || (type.description ? this.matchesFilter(type.description) : false)
-    );
-  }
-
-  get filteredRecordTypes(): Array<{ name: string; steps: string[] }> {
-    return this.selectedRecordTypes
-      .map((rt) => {
-        if (this.matchesFilter(rt.name)) {
-          return rt;
-        }
-        const steps = rt.steps.filter((step) => this.matchesFilter(step));
-        return steps.length ? { name: rt.name, steps } : null;
-      })
-      .filter((rt): rt is { name: string; steps: string[] } => rt !== null);
-  }
-
-  get filteredRecordTypeCount(): number {
-    return this.filteredRecordTypes.reduce((acc, rt) => acc + rt.steps.length, 0);
-  }
-
-  get filteredViews(): Array<{ name: string; steps: string[] }> {
-    return this.selectedViews
-      .map((v) => {
-        if (this.matchesFilter(v.name)) {
-          return v;
-        }
-        const steps = v.steps.filter((step) => this.matchesFilter(step));
-        return steps.length ? { name: v.name, steps } : null;
-      })
-      .filter((v): v is { name: string; steps: string[] } => v !== null);
-  }
-
-  get filteredViewCount(): number {
-    return this.filteredViews.reduce((acc, v) => acc + v.steps.length, 0);
+  get allWarningsAcknowledged(): boolean {
+    return this.warnings.every((w) => this.acknowledgedWarnings.has(w.id));
   }
 
   async save(): Promise<void> {
-    if (!this.selectedContext) {
+    if (!this.selected || !this.draft) {
       return;
     }
-
     this.saving = true;
     this.message = '';
     this.error = '';
-
     try {
-      if (this.selectedContext.type === 'dashboardType') {
-        const payload = this.clone(this.dashboardTypeForm);
-        payload.tableConfig = payload.tableConfig ?? { rowConfig: [] };
-        if (this.dashboardTypeIsNew) {
-          if (!payload.name.trim()) {
-            throw new Error('Dashboard type name is required');
-          }
-          await this.api.createDashboardType(payload);
-          this.message = `Created dashboard type ${payload.name}.`;
-        } else {
-          await this.api.updateDashboardType(this.selectedContext.name, payload);
-          this.message = `Saved dashboard type ${payload.name}.`;
-        }
-        await this.reloadMetadata();
-        await this.selectDashboardType(payload.name);
-      } else {
-        const payload: WorkflowStateDashboardConfig = {
-          dashboardType: this.currentDashboardTypeName,
-          tableConfig: this.currentOverrideConfig
-        };
-
-        if (this.selectedContext.type === 'recordType') {
-          await this.api.saveWorkflowStateDashboardConfig(this.selectedContext.recordType, this.selectedContext.step, payload);
-          this.message = 'Saved workflow state configuration.';
-          this.overrides = await this.api.getOverrides();
-          await this.loadMergedSelection();
-        } else if (this.selectedContext.type === 'view') {
-          await this.api.saveDashboardViewStepConfig(this.selectedContext.view, this.selectedContext.step, payload);
-          this.message = 'Saved dashboard view step configuration.';
-          this.overrides = await this.api.getOverrides();
-          await this.loadMergedSelection();
-        }
+      const reviewedWarnings = this.warnings.length > 0 && this.allWarningsAcknowledged ? this.warningFingerprint : '';
+      const validation = await this.api.validate(this.selected.target, this.baseRevision, this.draft);
+      this.errors = validation.errors;
+      if (validation.errors.length) {
+        this.warnings = validation.warnings;
+        this.error = 'Fix the errors below before saving.';
+        return;
       }
+      if (validation.warnings.length && reviewedWarnings !== validation.validationFingerprint) {
+        this.warnings = validation.warnings;
+        this.warningFingerprint = validation.validationFingerprint;
+        this.acknowledgedWarnings = new Set();
+        this.error = 'Review and acknowledge each warning, then save again.';
+        return;
+      }
+      const saved = await this.api.save(this.selected.target, {
+        expectedRevision: this.baseRevision,
+        settings: this.draft,
+        validationFingerprint: validation.validationFingerprint,
+        acknowledgedWarningIds: validation.warnings.map((w) => w.id)
+      });
+      this.draft = cloneSettings(saved.settings);
+      this.savedJson = JSON.stringify(this.draft);
+      this.baseRevision = saved.revision;
+      this.clearFindings();
+      this.message = `Saved ${this.targetLabel(this.selected)}.`;
     } catch (e) {
-      this.error = e instanceof Error ? e.message : 'Failed to save dashboard configuration.';
-      this.logger.error('Failed to save dashboard config', e);
+      this.handleWriteError(e, 'Failed to save dashboard settings.');
     } finally {
       this.saving = false;
     }
   }
 
-  async duplicateDashboardType(): Promise<void> {
-    if (this.selectedContext?.type !== 'dashboardType' || !this.currentTypeDefinition) {
-      return;
+  private handleWriteError(e: unknown, fallback: string): void {
+    if (e instanceof DashboardConfigApiError) {
+      if (e.code === 'stale-revision') {
+        this.staleConflict = true;
+      }
+      if (Array.isArray(e.details['errors'])) {
+        this.errors = e.details['errors'];
+      }
+      if (Array.isArray(e.details['warnings'])) {
+        this.warnings = e.details['warnings'];
+        this.warningFingerprint = e.details['validationFingerprint'] ?? '';
+      }
     }
-    const proposedName = window.prompt('New dashboard type name', `${this.currentTypeDefinition.name}-copy`)?.trim();
-    if (!proposedName) {
-      return;
-    }
-    const clone = this.clone(this.currentTypeDefinition);
-    clone.name = proposedName;
-    clone.system = false;
-    this.dashboardTypeForm = clone;
-    this.dashboardTypeIsNew = true;
-    this.selectedContext = { type: 'dashboardType', name: proposedName };
-    await this.save();
+    this.error = this.describeError(e, fallback);
+    this.logger.error(fallback, e);
   }
 
-  async deleteDashboardType(): Promise<void> {
-    if (this.selectedContext?.type !== 'dashboardType' || !this.currentTypeDefinition) {
+  private describeError(e: unknown, fallback: string): string {
+    return e instanceof Error && e.message ? e.message : fallback;
+  }
+
+  // ---------------------------------------------------------------------
+  // Copy from (draft only)
+  // ---------------------------------------------------------------------
+
+  get copySources(): DashboardTargetInfo[] {
+    return this.targets.filter((t) => t.key !== this.selected?.key);
+  }
+
+  private selectedCopyGroups(selection: SelectionState): DashboardCopySelection[] {
+    return (Object.keys(selection) as DashboardCopySelection[]).filter((k) => selection[k]);
+  }
+
+  onSelectAll(selection: SelectionState): void {
+    for (const group of COPY_GROUPS) {
+      selection[group.id] = selection.all;
+    }
+  }
+
+  onSelectGroup(selection: SelectionState): void {
+    selection.all = COPY_GROUPS.every((g) => selection[g.id]);
+  }
+
+  openCopyFrom(): void {
+    this.closeDialogs();
+    this.copyFrom = { ...this.copyFrom, open: true, sourceKey: '', selection: emptySelection(), candidate: null, changes: [], errors: [], warnings: [], error: '' };
+  }
+
+  resetCopyFromPreview(): void {
+    this.copyFrom.candidate = null;
+    this.copyFrom.changes = [];
+    this.copyFrom.errors = [];
+    this.copyFrom.warnings = [];
+    this.copyFrom.error = '';
+  }
+
+  /** Load the saved source and show what the selected groups would replace in the draft. */
+  async previewCopyFrom(): Promise<void> {
+    const source = this.targets.find((t) => t.key === this.copyFrom.sourceKey);
+    const selection = this.selectedCopyGroups(this.copyFrom.selection);
+    if (!source || !this.draft || !this.selected || selection.length === 0) {
+      this.copyFrom.error = 'Choose a saved source and at least one group of settings.';
       return;
     }
-    if (!window.confirm(`Delete dashboard type "${this.currentTypeDefinition.name}"?`)) {
-      return;
-    }
+    this.copyFrom.loading = true;
+    this.resetCopyFromPreview();
     try {
-      await this.api.deleteDashboardType(this.currentTypeDefinition.name);
-      this.message = `Deleted dashboard type ${this.currentTypeDefinition.name}.`;
-      this.selectedContext = null;
-      this.dashboardTypeForm = this.emptyDashboardType();
-      await this.reloadMetadata();
+      const saved = await this.api.getSettings(source.target);
+      const groups = selectionToGroups(selection);
+      const candidate = applyCopyGroups(saved.settings, this.draft, groups);
+      this.copyFrom.candidate = candidate;
+      this.copyFrom.changes = describeGroupChanges(this.draft, candidate, groups);
+      // Validate against the destination's base revision; the source revision never advances it.
+      const validation = await this.api.validate(this.selected.target, this.baseRevision, candidate);
+      this.copyFrom.errors = validation.errors;
+      this.copyFrom.warnings = validation.warnings;
     } catch (e) {
-      this.error = e instanceof Error ? e.message : 'Failed to delete dashboard type.';
-      this.logger.error('Failed to delete dashboard type', e);
+      this.copyFrom.error = this.describeError(e, 'Could not load the source settings.');
+    } finally {
+      this.copyFrom.loading = false;
     }
   }
 
-  get contextLabel(): string {
-    if (!this.selectedContext) {
-      return '';
+  applyCopyFrom(): void {
+    if (!this.copyFrom.candidate) {
+      return;
     }
-    if (this.selectedContext.type === 'recordType') {
-      return `${this.selectedContext.recordType} / ${this.selectedContext.step}`;
-    }
-    if (this.selectedContext.type === 'view') {
-      return `${this.selectedContext.view} / ${this.selectedContext.step}`;
-    }
-    return this.dashboardTypeIsNew ? 'New Dashboard Type' : this.selectedContext.name;
+    this.draft = this.copyFrom.candidate;
+    this.clearFindings();
+    const source = this.targets.find((t) => t.key === this.copyFrom.sourceKey);
+    this.message = `Loaded ${this.copyFrom.changes.map((c) => c.label.toLowerCase()).join(', ')} from ${this.targetLabel(source)} into the draft. Review and save to keep the changes.`;
+    this.copyFrom.open = false;
   }
 
-  get typeList(): DashboardTypeDefinition[] {
-    return this.configInfo?.dashboardTypes ?? [];
+  // ---------------------------------------------------------------------
+  // Copy to (bulk, saved source only)
+  // ---------------------------------------------------------------------
+
+  get copyDestinations(): DashboardTargetInfo[] {
+    const term = this.copyTo.filter.trim().toLowerCase();
+    return this.copySources.filter((t) => !term || this.targetLabel(t).toLowerCase().includes(term));
+  }
+
+  openCopyTo(): void {
+    if (this.isDirty) {
+      this.error = 'Save or discard your changes first. Copy to only copies saved settings.';
+      return;
+    }
+    this.closeDialogs();
+    this.copyTo = { ...this.copyTo, open: true, destinations: new Set(), selection: emptySelection(), filter: '', preview: null, acknowledged: new Set(), error: '' };
+  }
+
+  toggleDestination(info: DashboardTargetInfo): void {
+    if (this.copyTo.destinations.has(info.key)) {
+      this.copyTo.destinations.delete(info.key);
+    } else {
+      this.copyTo.destinations.add(info.key);
+    }
+    this.copyTo.preview = null;
+  }
+
+  async previewCopyTo(): Promise<void> {
+    const selection = this.selectedCopyGroups(this.copyTo.selection);
+    const destinations = this.targets.filter((t) => this.copyTo.destinations.has(t.key)).map((t) => t.target);
+    if (!this.selected || destinations.length === 0 || selection.length === 0) {
+      this.copyTo.error = 'Choose at least one destination and one group of settings.';
+      return;
+    }
+    this.copyTo.loading = true;
+    this.copyTo.error = '';
+    this.copyTo.preview = null;
+    this.copyTo.acknowledged = new Set();
+    try {
+      this.copyTo.preview = await this.api.previewCopy(this.selected.target, destinations, selection.includes('all') ? ['all'] : selection);
+    } catch (e) {
+      this.copyTo.error = this.describeError(e, 'Could not preview the copy.');
+    } finally {
+      this.copyTo.loading = false;
+    }
+  }
+
+  get canApplyCopyTo(): boolean {
+    const preview = this.copyTo.preview;
+    return !!preview && preview.errors.length === 0 && preview.warnings.every((w) => this.copyTo.acknowledged.has(w.id)) && !this.copyTo.loading;
+  }
+
+  async applyCopyTo(): Promise<void> {
+    const preview = this.copyTo.preview;
+    if (!preview || !this.canApplyCopyTo) {
+      return;
+    }
+    this.copyTo.loading = true;
+    this.copyTo.error = '';
+    try {
+      const result = await this.api.applyCopy(preview, Array.from(this.copyTo.acknowledged));
+      this.copyTo.open = false;
+      this.baseRevision = result.revision;
+      this.message = `Copied settings to ${result.updated} dashboard${result.updated === 1 ? '' : 's'}.`;
+    } catch (e) {
+      this.copyTo.error = this.describeError(e, 'Could not apply the copy. Nothing was changed.');
+      if (e instanceof DashboardConfigApiError && (e.code === 'stale-preview' || e.code === 'stale-revision')) {
+        this.copyTo.preview = null;
+      }
+    } finally {
+      this.copyTo.loading = false;
+    }
+  }
+
+  findingTargetLabel(finding: DashboardFinding): string {
+    const info = this.targets.find((t) => JSON.stringify(t.target) === JSON.stringify(finding.target));
+    return info ? this.targetLabel(info) : '';
+  }
+
+  closeDialogs(): void {
+    this.copyFrom.open = false;
+    this.copyTo.open = false;
   }
 
   override ngOnDestroy(): void {

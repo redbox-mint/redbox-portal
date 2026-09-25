@@ -9,6 +9,16 @@
     "description": "Dashboard heading shown for the one-step dashboard variant",
     "contentFormat": "plain"
   },
+  "dashboard-settings-unavailable": {
+    "category": "dashboard",
+    "description": "Shown when a dashboard's saved settings cannot be loaded (for example before the dashboard migration has completed)",
+    "contentFormat": "plain"
+  },
+  "dashboard-no-columns": {
+    "category": "dashboard",
+    "description": "Shown when a dashboard stage has records but its settings define no columns",
+    "contentFormat": "plain"
+  },
   "create-plan": {
     "category": "create",
     "description": "Action label to create a plan from the dashboard or homepage",

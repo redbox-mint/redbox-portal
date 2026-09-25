@@ -5,48 +5,77 @@ import { DashboardFormatRules } from '../dashboard-config-api.service';
   selector: 'format-rules-editor',
   template: `
     <div class="dc-format-rules-editor">
-      <header class="dc-format-rules-header">
-        <h5 class="dc-format-rules-title">
-          <i class="fa fa-sliders"></i>
-          Format Rules
-        </h5>
-        <small class="dc-format-rules-subtitle">Control sorting, grouping, and filtering for the rendered table.</small>
-      </header>
+      <ng-container *ngIf="section === 'filters'">
+        <header class="dc-format-rules-header">
+          <h5 class="dc-format-rules-title">
+            <i class="fa fa-sliders"></i>
+            Filters, sorting and search
+          </h5>
+          <small class="dc-format-rules-subtitle">Which records this dashboard lists, how they are sorted, and which fields users can search.</small>
+        </header>
 
-      <div class="dc-format-rules-grid">
-        <div class="form-group">
-          <label class="dc-form-label">Sort By</label>
-          <input type="text" class="form-control" [(ngModel)]="formatRules.sortBy" placeholder="e.g. metaMetadata.lastSaveDate" (ngModelChange)="emit()" />
-          <small class="dc-form-help">Field used to sort the records.</small>
+        <div class="dc-format-rules-grid">
+          <div class="form-group">
+            <label class="dc-form-label" for="dc-sort-by">Overall sort</label>
+            <input id="dc-sort-by" type="text" class="form-control" [(ngModel)]="formatRules.sortBy" placeholder="e.g. metaMetadata.lastSaveDate:-1" (ngModelChange)="onTextChange('sortBy', $event)" />
+            <small class="dc-form-help">Used when no column declares an initial sort. Format <code>field:1</code> (ascending) or <code>field:-1</code> (descending). Empty means last modified first.</small>
+          </div>
+          <div class="form-group dc-format-rules-full">
+            <label class="dc-form-label" for="dc-filter-by">
+              Record filter
+              <span class="dc-json-hint" [class.invalid]="!filterByValid">JSON</span>
+            </label>
+            <textarea id="dc-filter-by" class="form-control dc-mono" rows="4" [(ngModel)]="filterByJson" (ngModelChange)="onJsonChange('filterBy', $event)" placeholder='{ "filterBase": "user", "filterBaseFieldOrValue": "user.email", "filterField": "metadata.contributor_ci.email", "filterMode": "equal" }'></textarea>
+            <small class="dc-form-help" [class.dc-form-help-error]="!filterByValid">
+              <ng-container *ngIf="filterByValid">Limits the records listed when nobody is searching. Leave empty for no filter.</ng-container>
+              <ng-container *ngIf="!filterByValid">Invalid JSON — this change has not been applied.</ng-container>
+            </small>
+          </div>
+          <div class="form-group dc-format-rules-full">
+            <label class="dc-form-label" for="dc-query-filters">
+              Search filter fields
+              <span class="dc-json-hint" [class.invalid]="!queryFiltersValid">JSON</span>
+            </label>
+            <textarea id="dc-query-filters" class="form-control dc-mono" rows="6" [(ngModel)]="queryFiltersJson" (ngModelChange)="onJsonChange('queryFilters', $event)" placeholder='{ "rdmp": [{ "filterType": "text", "filterFields": [{ "name": "Title", "path": "metadata.title" }] }] }'></textarea>
+            <small class="dc-form-help" [class.dc-form-help-error]="!queryFiltersValid">
+              <ng-container *ngIf="queryFiltersValid">Fields offered in the "Filter by" menu, keyed by the record type of the dashboard page<ng-container *ngIf="queryFilterKeys.length"> (this dashboard uses {{ queryFilterKeys.join(' or ') }})</ng-container>. Empty means search by title.</ng-container>
+              <ng-container *ngIf="!queryFiltersValid">Invalid JSON — this change has not been applied.</ng-container>
+            </small>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="dc-form-label">Group By</label>
-          <input type="text" class="form-control" [(ngModel)]="formatRules.groupBy" placeholder="Optional grouping field" (ngModelChange)="emit()" />
-          <small class="dc-form-help">Field used to group rows together.</small>
+      </ng-container>
+
+      <ng-container *ngIf="section === 'grouping'">
+        <header class="dc-format-rules-header">
+          <h5 class="dc-format-rules-title">
+            <i class="fa fa-object-group"></i>
+            Grouping
+          </h5>
+          <small class="dc-format-rules-subtitle" *ngIf="targetKind === 'view'">Group related records together in this view step.</small>
+          <small class="dc-format-rules-subtitle dc-form-help-warning" *ngIf="targetKind === 'workflow'">Grouping is only applied by custom views. Workflow stage dashboards list records without grouping.</small>
+        </header>
+        <div class="dc-format-rules-grid">
+          <div class="form-group">
+            <label class="dc-form-label" for="dc-group-by">Group by</label>
+            <select id="dc-group-by" class="form-control" [(ngModel)]="groupBy" (ngModelChange)="onTextChange('groupBy', $event)">
+              <option value="">No grouping</option>
+              <option value="groupedByRecordType">Record type</option>
+              <option value="groupedByRelationships">Related records</option>
+            </select>
+          </div>
+          <div class="form-group dc-format-rules-full">
+            <label class="dc-form-label" for="dc-sort-group-by">
+              Group levels
+              <span class="dc-json-hint" [class.invalid]="!sortGroupByValid">JSON</span>
+            </label>
+            <textarea id="dc-sort-group-by" class="form-control dc-mono" rows="4" [(ngModel)]="sortGroupByJson" (ngModelChange)="onJsonChange('sortGroupBy', $event)" placeholder='[{ "rowLevel": 0, "compareFieldValue": "rdmp" }]'></textarea>
+            <small class="dc-form-help" [class.dc-form-help-error]="!sortGroupByValid">
+              <ng-container *ngIf="sortGroupByValid">One entry per level, in order.</ng-container>
+              <ng-container *ngIf="!sortGroupByValid">Invalid JSON — this change has not been applied.</ng-container>
+            </small>
+          </div>
         </div>
-        <div class="form-group dc-format-rules-full">
-          <label class="dc-form-label">
-            Filter By
-            <span class="dc-json-hint" [class.invalid]="!filterByValid">JSON</span>
-          </label>
-          <textarea class="form-control dc-mono" rows="3" [(ngModel)]="filterByJson" (ngModelChange)="onFilterByChange($event)" placeholder='{ "field": "value" }'></textarea>
-          <small class="dc-form-help" [class.dc-form-help-error]="!filterByValid">
-            <ng-container *ngIf="filterByValid">Mongo-style filter applied to the dashboard query.</ng-container>
-            <ng-container *ngIf="!filterByValid">Invalid JSON — last change ignored.</ng-container>
-          </small>
-        </div>
-        <div class="form-group dc-format-rules-full">
-          <label class="dc-form-label">
-            Sort Group By
-            <span class="dc-json-hint" [class.invalid]="!sortGroupByValid">JSON</span>
-          </label>
-          <textarea class="form-control dc-mono" rows="3" [(ngModel)]="sortGroupByJson" (ngModelChange)="onSortGroupByChange($event)" placeholder='[{ "field": "asc" }]'></textarea>
-          <small class="dc-form-help" [class.dc-form-help-error]="!sortGroupByValid">
-            <ng-container *ngIf="sortGroupByValid">Multi-field ordering for grouped rows.</ng-container>
-            <ng-container *ngIf="!sortGroupByValid">Invalid JSON — last change ignored.</ng-container>
-          </small>
-        </div>
-      </div>
+      </ng-container>
     </div>
   `,
   styles: [`
@@ -97,6 +126,9 @@ import { DashboardFormatRules } from '../dashboard-config-api.service';
       color: var(--dc-text-subtle, #6b7280);
       font-size: 12px;
     }
+    .dc-form-help-warning {
+      color: var(--dc-warning, #d97706);
+    }
     .dc-form-help-error {
       color: var(--dc-danger, #b91c1c);
     }
@@ -128,16 +160,18 @@ import { DashboardFormatRules } from '../dashboard-config-api.service';
 })
 export class FormatRulesEditorComponent implements OnChanges {
   @Input() formatRules: DashboardFormatRules = {};
+  @Input() section: 'filters' | 'grouping' = 'filters';
+  @Input() targetKind: 'workflow' | 'view' = 'workflow';
+  @Input() queryFilterKeys: string[] = [];
   @Output() formatRulesChange = new EventEmitter<DashboardFormatRules>();
 
   filterByJson = '';
+  queryFiltersJson = '';
   sortGroupByJson = '';
   filterByValid = true;
+  queryFiltersValid = true;
   sortGroupByValid = true;
-
-  ngOnInit(): void {
-    this.syncJson();
-  }
+  groupBy = '';
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['formatRules']) {
@@ -145,46 +179,52 @@ export class FormatRulesEditorComponent implements OnChanges {
     }
   }
 
-  private syncJson(): void {
-    this.filterByJson = this.formatRules.filterBy ? JSON.stringify(this.formatRules.filterBy, null, 2) : '';
-    this.sortGroupByJson = this.formatRules.sortGroupBy ? JSON.stringify(this.formatRules.sortGroupBy, null, 2) : '';
-    this.filterByValid = true;
-    this.sortGroupByValid = true;
+  private toJson(value: unknown): string {
+    return value === undefined ? '' : JSON.stringify(value, null, 2);
   }
 
-  emit(): void {
+  private syncJson(): void {
+    this.formatRules = this.formatRules ?? {};
+    this.filterByJson = this.toJson(this.formatRules.filterBy);
+    this.queryFiltersJson = this.toJson(this.formatRules.queryFilters);
+    this.sortGroupByJson = this.toJson(this.formatRules.sortGroupBy);
+    this.groupBy = this.formatRules.groupBy ?? '';
+    this.filterByValid = this.queryFiltersValid = this.sortGroupByValid = true;
+  }
+
+  private setValid(field: 'filterBy' | 'queryFilters' | 'sortGroupBy', valid: boolean): void {
+    if (field === 'filterBy') {
+      this.filterByValid = valid;
+    } else if (field === 'queryFilters') {
+      this.queryFiltersValid = valid;
+    } else {
+      this.sortGroupByValid = valid;
+    }
+  }
+
+  /** Clearing a field removes the setting; nothing is filled in from elsewhere. */
+  onTextChange(field: 'sortBy' | 'groupBy', value: string): void {
+    if (value === '' || value === undefined || value === null) {
+      delete this.formatRules[field];
+    } else {
+      this.formatRules[field] = value;
+    }
     this.formatRulesChange.emit(this.formatRules);
   }
 
-  onFilterByChange(value: string): void {
+  onJsonChange(field: 'filterBy' | 'queryFilters' | 'sortGroupBy', value: string): void {
     if (!value.trim()) {
-      this.formatRules.filterBy = undefined;
-      this.filterByValid = true;
-      this.emit();
+      delete this.formatRules[field];
+      this.setValid(field, true);
+      this.formatRulesChange.emit(this.formatRules);
       return;
     }
     try {
-      this.formatRules.filterBy = JSON.parse(value);
-      this.filterByValid = true;
-      this.emit();
+      (this.formatRules as Record<string, unknown>)[field] = JSON.parse(value);
+      this.setValid(field, true);
+      this.formatRulesChange.emit(this.formatRules);
     } catch {
-      this.filterByValid = false;
-    }
-  }
-
-  onSortGroupByChange(value: string): void {
-    if (!value.trim()) {
-      this.formatRules.sortGroupBy = undefined;
-      this.sortGroupByValid = true;
-      this.emit();
-      return;
-    }
-    try {
-      this.formatRules.sortGroupBy = JSON.parse(value);
-      this.sortGroupByValid = true;
-      this.emit();
-    } catch {
-      this.sortGroupByValid = false;
+      this.setValid(field, false);
     }
   }
 }

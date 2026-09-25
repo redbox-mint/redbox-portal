@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient, HttpContext } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
 
@@ -11,6 +11,7 @@ export interface DashboardRowConfig {
   initialSort?: 'asc' | 'desc';
   defaultSort?: boolean;
   secondarySort?: string;
+  [extra: string]: unknown;
 }
 
 export interface DashboardRowRule {
@@ -19,6 +20,7 @@ export interface DashboardRowRule {
   mode?: 'all' | 'alo';
   renderItemTemplate: string;
   evaluateRulesTemplate?: string;
+  [extra: string]: unknown;
 }
 
 export interface DashboardRulesConfig {
@@ -28,17 +30,16 @@ export interface DashboardRulesConfig {
   separator?: string;
   mode?: 'all' | 'alo';
   rules: DashboardRowRule[];
+  [extra: string]: unknown;
 }
 
 export interface DashboardFormatRules {
   filterBy?: Record<string, unknown>;
-  filterWorkflowStepsBy?: string[];
-  recordTypeFilterBy?: string;
   queryFilters?: Record<string, unknown>;
   sortBy?: string;
   groupBy?: string;
   sortGroupBy?: Array<Record<string, unknown>>;
-  hideWorkflowStepTitleForRecordType?: string[];
+  [extra: string]: unknown;
 }
 
 export interface DashboardTableConfig {
@@ -47,44 +48,99 @@ export interface DashboardTableConfig {
   rowRulesConfig?: DashboardRulesConfig[];
   groupRowConfig?: DashboardRowConfig[];
   groupRowRulesConfig?: DashboardRulesConfig[];
+  [extra: string]: unknown;
 }
 
-export interface DashboardTypeDefinition {
-  name: string;
-  description?: string;
-  searchable?: boolean;
-  system?: boolean;
-  formatRules: DashboardFormatRules;
-  tableConfig: DashboardTableConfig;
+/** Complete, independent settings for one workflow stage or view step. */
+export interface DashboardSettings {
+  searchable: boolean;
+  showStageTitle: boolean;
+  tableConfig: {
+    rowConfig: DashboardRowConfig[];
+    rowRulesConfig: DashboardRulesConfig[];
+    groupRowConfig: DashboardRowConfig[];
+    groupRowRulesConfig: DashboardRulesConfig[];
+    formatRules: DashboardFormatRules;
+    [extra: string]: unknown;
+  };
+  [extra: string]: unknown;
 }
 
-export interface DashboardConfigInfo {
-  recordTypes: Array<{ name: string; steps: string[] }>;
-  views: Array<{ name: string; steps: string[] }>;
-  dashboardTypes: DashboardTypeDefinition[];
+export type DashboardTarget =
+  | { kind: 'workflow'; recordType: string; stage: string }
+  | { kind: 'view'; view: string; step: string };
+
+export interface DashboardTargetInfo {
+  target: DashboardTarget;
+  key: string;
+  ownerLabel: string;
+  stepLabel: string;
+  hidden: boolean;
+  recordType: string;
+  queryFilterKeys: string[];
 }
 
-export interface WorkflowStateDashboardConfig {
-  dashboardType: string;
-  tableConfig?: DashboardTableConfig;
+export interface DashboardTargetSettings {
+  target: DashboardTarget;
+  settings: DashboardSettings;
+  revision: number;
+  schemaVersion: number;
+  hidden: boolean;
 }
 
-export interface DashboardTableOverrideConfigData {
-  recordTypes?: Record<string, { default?: WorkflowStateDashboardConfig; steps?: Record<string, WorkflowStateDashboardConfig> }>;
-  views?: Record<string, { default?: WorkflowStateDashboardConfig; steps?: Record<string, WorkflowStateDashboardConfig> }>;
+export interface DashboardFinding {
+  id: string;
+  severity: 'error' | 'warning';
+  code: string;
+  target: DashboardTarget;
+  path: string;
+  message: string;
 }
 
-export interface MergedDashboardConfigResult {
-  dashboardType: string;
-  inheritedTypeConfig: DashboardTableConfig;
-  workflowConfig: DashboardTableConfig | null;
-  overrideConfig: DashboardTableConfig | null;
-  mergedConfig: DashboardTableConfig;
-  formatRules: DashboardFormatRules;
+export interface DashboardValidationResult {
+  target: DashboardTarget;
+  expectedRevision: number;
+  errors: DashboardFinding[];
+  warnings: DashboardFinding[];
+  validationFingerprint: string;
+}
+
+export type DashboardCopyGroup = 'columnsAndActions' | 'filtersAndSearch' | 'grouping';
+export type DashboardCopySelection = DashboardCopyGroup | 'all';
+
+export interface DashboardChangeItem {
+  label: string;
+  before: string;
+  after: string;
+  cleared: boolean;
+}
+
+export interface DashboardGroupChange {
+  group: DashboardCopyGroup;
+  label: string;
+  changed: boolean;
+  items: DashboardChangeItem[];
+}
+
+export interface DashboardCopyPreview {
+  expectedRevision: number;
+  previewFingerprint: string;
+  source: DashboardTarget;
+  destinations: DashboardTarget[];
+  groups: DashboardCopySelection[];
+  changes: Array<{ target: DashboardTarget; label: string; hidden: boolean; groups: DashboardGroupChange[] }>;
+  errors: DashboardFinding[];
+  warnings: DashboardFinding[];
+}
+
+/** Error carrying the server's typed code and structured details (findings, revision). */
+export class DashboardConfigApiError extends Error {
+  constructor(message: string, public readonly status: number, public readonly code: string, public readonly details: Record<string, any>) {
+    super(message);
+  }
 }
 
 type ApiResponse<T> = { data: T };
-type JsonRequestOptions = { responseType: 'json'; observe: 'body'; context: HttpContext };
 
 @Injectable()
 export class DashboardConfigApiService extends HttpClientService {
@@ -103,93 +159,70 @@ export class DashboardConfigApiService extends HttpClientService {
     return this;
   }
 
-  private getJsonRequestOptions(): JsonRequestOptions {
+  private options(): { responseType: 'json'; observe: 'body'; context: HttpContext; headers: HttpHeaders } {
     return {
-      ...(this.reqOptsJsonBodyOnly as { responseType: 'json'; observe: 'body' }),
-      context: this.httpContext
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext,
+      headers: new HttpHeaders({ 'X-ReDBox-Api-Version': '2.0' })
     };
   }
 
-  private unwrap<T>(response: ApiResponse<T> | T): T {
-    const maybeWrapped = response as ApiResponse<T>;
-    if (maybeWrapped && typeof maybeWrapped === 'object' && 'data' in maybeWrapped && typeof maybeWrapped.data !== 'undefined') {
-      return maybeWrapped.data;
+  /** CSRF-protected session routes used by the editor. */
+  private url(path: string): string {
+    return `${this.brandingAndPortalUrl}/admin/dashboard-config${path}`;
+  }
+
+  private targetPath(target: DashboardTarget): string {
+    return target.kind === 'workflow'
+      ? `/workflows/${encodeURIComponent(target.recordType)}/${encodeURIComponent(target.stage)}`
+      : `/views/${encodeURIComponent(target.view)}/${encodeURIComponent(target.step)}`;
+  }
+
+  private async request<T>(work: Promise<ApiResponse<T>>): Promise<T> {
+    try {
+      const response = await work;
+      return response.data;
+    } catch (error) {
+      if (error instanceof HttpErrorResponse) {
+        const body = error.error ?? {};
+        const first = Array.isArray(body.errors) ? body.errors[0] ?? {} : {};
+        const message = first.detail || first.title || error.message || 'Request failed.';
+        throw new DashboardConfigApiError(message, error.status, first.code || String(error.status), { ...(body.meta ?? {}), ...(first.meta ?? {}) });
+      }
+      throw error;
     }
-    return response as T;
   }
 
-  private apiUrl(path: string): string {
-    return `${this.brandingAndPortalUrl}/api/dashboard-config${path}`;
+  async getTargets(): Promise<{ targets: DashboardTargetInfo[]; catalogueFingerprint: string }> {
+    return this.request(firstValueFrom(this.http.get<ApiResponse<{ targets: DashboardTargetInfo[]; catalogueFingerprint: string }>>(this.url('/targets'), this.options())));
   }
 
-  async getConfigInfo(): Promise<DashboardConfigInfo> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<DashboardConfigInfo>>(this.apiUrl('/info'), this.getJsonRequestOptions()));
-    return this.unwrap(response);
+  async getSettings(target: DashboardTarget): Promise<DashboardTargetSettings> {
+    return this.request(firstValueFrom(this.http.get<ApiResponse<DashboardTargetSettings>>(this.url(this.targetPath(target)), this.options())));
   }
 
-  async getDefaults(params?: { recordType?: string; workflowStage?: string; viewName?: string; stepName?: string; dashboardType?: string }): Promise<Record<string, unknown>> {
-    const query = params ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]).toString() : '';
-    const response = await firstValueFrom(this.http.get<ApiResponse<Record<string, unknown>>>(this.apiUrl(`/defaults${query}`), this.getJsonRequestOptions()));
-    return this.unwrap(response);
+  async validate(target: DashboardTarget, expectedRevision: number, settings: DashboardSettings): Promise<DashboardValidationResult> {
+    return this.request(firstValueFrom(this.http.post<ApiResponse<DashboardValidationResult>>(this.url('/validate'), { target, expectedRevision, settings }, this.options())));
   }
 
-  async getOverrides(): Promise<DashboardTableOverrideConfigData> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl('/overrides'), this.getJsonRequestOptions()));
-    return this.unwrap(response);
+  async save(target: DashboardTarget, body: { expectedRevision: number; settings: DashboardSettings; validationFingerprint?: string; acknowledgedWarningIds?: string[] }): Promise<DashboardTargetSettings> {
+    return this.request(firstValueFrom(this.http.put<ApiResponse<DashboardTargetSettings>>(this.url(this.targetPath(target)), body, this.options())));
   }
 
-  async saveOverrides(overrides: DashboardTableOverrideConfigData): Promise<DashboardTableOverrideConfigData> {
-    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl('/overrides'), overrides, this.getJsonRequestOptions()));
-    return this.unwrap(response);
+  async previewCopy(source: DashboardTarget, destinations: DashboardTarget[], groups: DashboardCopySelection[]): Promise<DashboardCopyPreview> {
+    return this.request(firstValueFrom(this.http.post<ApiResponse<DashboardCopyPreview>>(this.url('/copy/preview'), { source, destinations, groups }, this.options())));
   }
 
-  async getDashboardTypes(): Promise<DashboardTypeDefinition[]> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<{ dashboardTypes: DashboardTypeDefinition[] }>>(this.apiUrl('/dashboard-types'), this.getJsonRequestOptions()));
-    return this.unwrap(response).dashboardTypes;
-  }
-
-  async getDashboardType(name: string): Promise<DashboardTypeDefinition | null> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<DashboardTypeDefinition | null>>(this.apiUrl(`/dashboard-types/${encodeURIComponent(name)}`), this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async createDashboardType(input: Partial<DashboardTypeDefinition> & { name: string }): Promise<DashboardTypeDefinition> {
-    const response = await firstValueFrom(this.http.post<ApiResponse<DashboardTypeDefinition>>(this.apiUrl('/dashboard-types'), input, this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async updateDashboardType(name: string, input: Partial<DashboardTypeDefinition>): Promise<DashboardTypeDefinition> {
-    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTypeDefinition>>(this.apiUrl(`/dashboard-types/${encodeURIComponent(name)}`), input, this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async deleteDashboardType(name: string): Promise<{ deleted: boolean }> {
-    const response = await firstValueFrom(this.http.delete<ApiResponse<{ deleted: boolean }>>(this.apiUrl(`/dashboard-types/${encodeURIComponent(name)}`), this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async saveWorkflowStateDashboardConfig(recordType: string, workflowStage: string, config: WorkflowStateDashboardConfig): Promise<DashboardTableOverrideConfigData> {
-    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/merged/${encodeURIComponent(recordType)}/${encodeURIComponent(workflowStage)}`), config, this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async saveDashboardViewStepConfig(viewName: string, stepName: string, config: WorkflowStateDashboardConfig): Promise<DashboardTableOverrideConfigData> {
-    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/merged-view/${encodeURIComponent(viewName)}/${encodeURIComponent(stepName)}`), config, this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async getMergedConfig(recordType: string, workflowStage: string): Promise<MergedDashboardConfigResult | null> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<MergedDashboardConfigResult | null>>(this.apiUrl(`/merged/${encodeURIComponent(recordType)}/${encodeURIComponent(workflowStage)}`), this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async getMergedViewConfig(viewName: string, stepName: string): Promise<MergedDashboardConfigResult | null> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<MergedDashboardConfigResult | null>>(this.apiUrl(`/merged-view/${encodeURIComponent(viewName)}/${encodeURIComponent(stepName)}`), this.getJsonRequestOptions()));
-    return this.unwrap(response);
-  }
-
-  async getMergedTypeFormatRules(dashboardType: string): Promise<DashboardFormatRules | null> {
-    const response = await firstValueFrom(this.http.get<ApiResponse<DashboardFormatRules | null>>(this.apiUrl(`/merged-type/${encodeURIComponent(dashboardType)}`), this.getJsonRequestOptions()));
-    return this.unwrap(response);
+  async applyCopy(preview: DashboardCopyPreview, acknowledgedWarningIds: string[]): Promise<{ updated: number; revision: number }> {
+    const body = {
+      source: preview.source,
+      destinations: preview.destinations,
+      groups: preview.groups,
+      expectedRevision: preview.expectedRevision,
+      previewFingerprint: preview.previewFingerprint,
+      acknowledgedWarningIds
+    };
+    return this.request(firstValueFrom(this.http.post<ApiResponse<{ updated: number; revision: number }>>(this.url('/copy/apply'), body, this.options())));
   }
 }

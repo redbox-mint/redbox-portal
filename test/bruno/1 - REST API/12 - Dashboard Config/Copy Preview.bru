@@ -1,0 +1,41 @@
+meta {
+  name: Copy Preview
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/api/dashboard-config/copy/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "source": { "kind": "workflow", "recordType": "rdmp", "stage": "draft" },
+    "destinations": [{ "kind": "workflow", "recordType": "dataRecord", "stage": "draft" }],
+    "groups": ["columnsAndActions"]
+  }
+}
+
+script:post-response {
+  bru.setVar("dashboardCopyPreview", JSON.stringify(res.getBody().data));
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns changes, findings and a fingerprint", function () {
+    var data = res.getBody().data;
+    expect(data.previewFingerprint).to.be.a("string");
+    expect(data.changes).to.have.length(1);
+    expect(data.errors).to.be.an("array");
+  });
+}

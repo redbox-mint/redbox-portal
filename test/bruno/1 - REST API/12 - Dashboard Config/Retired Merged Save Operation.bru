@@ -1,0 +1,26 @@
+meta {
+  name: Retired Merged Save Operation
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{host}}/default/rdmp/api/dashboard-config/merged/rdmp/draft
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  { "dashboardType": "standard" }
+}
+
+tests {
+  test("Status code is 410", function () {
+    expect(res.getStatus()).to.equal(410);
+  });
+}

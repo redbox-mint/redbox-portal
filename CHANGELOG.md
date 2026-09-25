@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Breaking:** Dashboard profiles, record-type defaults and overrides were replaced by independent settings for every workflow stage and custom-view step, with a new editor (save, copy from, bulk copy to with preview, revision-checked writes) and API. Retired `/api/dashboard-config` operations return `410`. A one-time migration converts v5.0.1 configuration and stops on material differences; see [Configuring Dashboard Tables](support/wiki/Configuring-Dashboard-Tables.md#upgrading-from-v501).
 - Added concurrent-record modification protection across browser, API v1/v2,
   datastream, internal-writer, and delete/restore/purge paths. Record types can
   use compatible `last-write-wins`, migration `observe`, or enforcing `strict`

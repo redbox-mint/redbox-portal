@@ -6,6 +6,7 @@ import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import type { DashboardTableConfig as WorkflowDashboardTableConfig } from '../config/workflow.config';
 import type { DashboardTypeConfigData, WorkflowStateDashboardConfig, RecordTypeOverride, ViewOverride } from '../configmodels/DashboardTableOverrideConfig';
+import type { DashboardSettings, DashboardTarget } from '../configmodels/DashboardSettings';
 
 type DashboardTypeDefinition = {
   name: string;
@@ -83,7 +84,8 @@ export namespace Services {
       'extractDashboardTemplates',
       'getDashboardView',
       'getDashboardViewStep',
-      'extractDashboardViewTemplates'
+      'extractDashboardViewTemplates',
+      'buildDashboardTemplateKeyPrefix'
     ];
 
     protected dashboardTypes: DashboardTypeModel[] = [];
@@ -188,7 +190,9 @@ export namespace Services {
     }
 
     private async listAssignedDashboardTypeNames(brand: BrandingModel): Promise<Set<string>> {
-      const overrides = await AppConfigService.getAppConfigByBrandAndKey(String(brand.id), 'dashboardTableConfig') as Partial<{ recordTypes: Record<string, RecordTypeOverride>; views: Record<string, ViewOverride> }>;
+      // Retired overrides may still reference profiles; read the latest legacy row directly.
+      const legacyRows = await AppConfig.find({ branding: brand.id, configKey: 'dashboardTableConfig' }) as unknown as Array<{ configData?: unknown }>;
+      const overrides = (legacyRows[legacyRows.length - 1]?.configData ?? {}) as Partial<{ recordTypes: Record<string, RecordTypeOverride>; views: Record<string, ViewOverride> }>;
       const assigned = new Set<string>();
       for (const recordType of Object.values(overrides.recordTypes ?? {}) as Array<RecordTypeOverride>) {
         if (recordType.default?.dashboardType) {
@@ -349,34 +353,13 @@ export namespace Services {
       })());
     }
 
+    /**
+     * The independent table settings for a workflow stage. There is no profile,
+     * override or built-in fallback: missing settings return null.
+     */
     public async getDashboardTableConfig(brand: BrandingModel, recordType: string, workflowStage: string): Promise<DashboardTableConfig | null> {
-      try {
-        if (typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardTableConfig) {
-          const mergedConfig = await DashboardConfigService.getMergedDashboardTableConfig(brand, recordType, workflowStage);
-          if (mergedConfig) {
-            sails.log.verbose(`DashboardTypesService: using merged config for ${recordType}/${workflowStage}`);
-            return mergedConfig.mergedConfig;
-          }
-        }
-
-        const recType = await firstValueFrom(RecordTypesService.get(brand, recordType));
-        if (!recType) {
-          sails.log.warn(`Record type not found: ${recordType}`);
-          return null;
-        }
-
-        const workflowStep = await firstValueFrom(WorkflowStepsService.get(recType, workflowStage));
-        if (!workflowStep) {
-          sails.log.warn(`Workflow step not found: ${workflowStage} for record type: ${recordType}`);
-          return null;
-        }
-
-        const dashboardConfig = _.get(workflowStep, 'config.dashboard.table', {}) as DashboardTableConfig;
-        return this.normalizeTableConfig(dashboardConfig);
-      } catch (error) {
-        sails.log.error(`Error getting dashboard table config for ${recordType}/${workflowStage}:`, error);
-        return null;
-      }
+      const runtime = await DashboardConfigService.getRuntimeTargetSettings(brand, { kind: 'workflow', recordType, stage: workflowStage });
+      return runtime ? (runtime.settings.tableConfig as unknown as DashboardTableConfig) : null;
     }
 
     public async getRecordTypeDashboardConfig(brand: BrandingModel, recordType: string): Promise<RecordTypeDashboardConfig | null> {
@@ -417,145 +400,74 @@ export namespace Services {
       return dashboardStep;
     }
 
-    private async extractQueryFilterTemplates(
-      brand: BrandingModel,
-      queryRecordType: string,
-      dashboardType: string,
-      templateKeyPrefix: string[]
-    ): Promise<TemplateCompileInput[]> {
+    /**
+     * Template key prefix shared with the dashboard client. It identifies the
+     * brand, target and exact settings version, so a page never mixes templates
+     * from different saves.
+     */
+    public buildDashboardTemplateKeyPrefix(brandName: string, target: DashboardTarget, settingsFingerprint: string): string[] {
+      return target.kind === 'workflow'
+        ? [brandName, 'workflow', target.recordType, target.stage, settingsFingerprint.slice(0, 16)]
+        : [brandName, 'view', target.view, target.step, settingsFingerprint.slice(0, 16)];
+    }
+
+    private extractSettingsTemplates(prefix: string[], settings: DashboardSettings): TemplateCompileInput[] {
       const entries: TemplateCompileInput[] = [];
-      try {
-        const dashboardTypeModel = typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardTypeFormatRules
-          ? await DashboardConfigService.getMergedDashboardTypeFormatRules(brand, dashboardType)
-          : (await firstValueFrom(this.get(brand, dashboardType)))?.formatRules;
-        const queryFilters = _.get(dashboardTypeModel as Record<string, unknown> | null, `queryFilters.${queryRecordType}`) as Array<{ filterFields?: Array<{ template?: string }> }> | undefined;
-        if (_.isArray(queryFilters)) {
-          for (let i = 0; i < queryFilters.length; i++) {
-            const queryFilter = queryFilters[i];
-            if (_.isArray(queryFilter.filterFields)) {
-              for (let j = 0; j < queryFilter.filterFields.length; j++) {
-                const filterField = queryFilter.filterFields[j];
-                if (filterField.template) {
-                  entries.push({
-                    key: [...templateKeyPrefix, dashboardType, 'filters', i.toString(), 'fields', j.toString(), 'template'],
-                    kind: 'handlebars',
-                    value: filterField.template
-                  });
-                }
-              }
+      const table = settings.tableConfig;
+      // Empty column lists stay empty; no built-in columns are substituted.
+      table.rowConfig.forEach((row, i) => {
+        if (row.template) {
+          entries.push({ key: [...prefix, 'rowConfig', i.toString(), row.variable], kind: 'handlebars', value: row.template });
+        }
+      });
+      table.groupRowConfig.forEach((row, i) => {
+        if (row.template) {
+          entries.push({ key: [...prefix, 'groupRowConfig', i.toString(), row.variable], kind: 'handlebars', value: row.template });
+        }
+      });
+      const addRules = (sets: DashboardSettings['tableConfig']['rowRulesConfig'], kind: 'rowRules' | 'groupRowRules') => {
+        for (const ruleSet of sets) {
+          (ruleSet.rules || []).forEach((rule, ruleIdx) => {
+            if (rule.renderItemTemplate) {
+              entries.push({ key: [...prefix, kind, ruleSet.ruleSetName, ruleIdx.toString(), 'render'], kind: 'handlebars', value: rule.renderItemTemplate });
             }
-          }
-        }
-      } catch (e) {
-        sails.log.warn(`Could not load dashboard type ${dashboardType} for template extraction`, e);
-      }
-      return entries;
-    }
-
-    private extractDashboardTableTemplates(configKeyPrefix: string[], dashboardConfig: DashboardTableConfig | null): TemplateCompileInput[] {
-      const entries: TemplateCompileInput[] = [];
-
-      if (!dashboardConfig) {
-        return entries;
-      }
-
-      const rowConfig: DashboardRowConfig[] = (!_.isEmpty(dashboardConfig.rowConfig)) ? (dashboardConfig.rowConfig as DashboardRowConfig[]) : this.defaultTableConfig().rowConfig;
-      for (let i = 0; i < rowConfig.length; i++) {
-        const row = rowConfig[i] as DashboardRowConfig;
-        if (row.template) {
-          entries.push({
-            key: [...configKeyPrefix, 'rowConfig', i.toString(), row.variable],
-            kind: 'handlebars',
-            value: row.template
+            if (rule.evaluateRulesTemplate) {
+              entries.push({ key: [...prefix, kind, ruleSet.ruleSetName, ruleIdx.toString(), 'evaluate'], kind: 'handlebars', value: rule.evaluateRulesTemplate });
+            }
           });
         }
-      }
-
-      const groupRowConfig = dashboardConfig.groupRowConfig || [];
-      for (let i = 0; i < groupRowConfig.length; i++) {
-        const row = groupRowConfig[i];
-        if (row.template) {
-          entries.push({
-            key: [...configKeyPrefix, 'groupRowConfig', i.toString(), row.variable],
-            kind: 'handlebars',
-            value: row.template
+      };
+      addRules(table.rowRulesConfig, 'rowRules');
+      addRules(table.groupRowRulesConfig, 'groupRowRules');
+      for (const [recordTypeKey, queryFilters] of Object.entries(table.formatRules.queryFilters ?? {})) {
+        (queryFilters || []).forEach((queryFilter, i) => {
+          (queryFilter.filterFields || []).forEach((filterField, j) => {
+            if (filterField.template) {
+              entries.push({ key: [...prefix, 'filters', recordTypeKey, i.toString(), 'fields', j.toString(), 'template'], kind: 'handlebars', value: filterField.template });
+            }
           });
-        }
+        });
       }
-
-      const rowRulesConfig = dashboardConfig.rowRulesConfig || [];
-      for (let ruleSetIdx = 0; ruleSetIdx < rowRulesConfig.length; ruleSetIdx++) {
-        const ruleSet = rowRulesConfig[ruleSetIdx];
-        const rules = ruleSet.rules || [];
-        for (let ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
-          const rule = rules[ruleIdx];
-          if (rule.renderItemTemplate) {
-            entries.push({
-              key: [...configKeyPrefix, 'rowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'render'],
-              kind: 'handlebars',
-              value: rule.renderItemTemplate
-            });
-          }
-          if (rule.evaluateRulesTemplate) {
-            entries.push({
-              key: [...configKeyPrefix, 'rowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'evaluate'],
-              kind: 'handlebars',
-              value: rule.evaluateRulesTemplate
-            });
-          }
-        }
-      }
-
-      const groupRowRulesConfig = dashboardConfig.groupRowRulesConfig || [];
-      for (let ruleSetIdx = 0; ruleSetIdx < groupRowRulesConfig.length; ruleSetIdx++) {
-        const ruleSet = groupRowRulesConfig[ruleSetIdx];
-        const rules = ruleSet.rules || [];
-        for (let ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
-          const rule = rules[ruleIdx];
-          if (rule.renderItemTemplate) {
-            entries.push({
-              key: [...configKeyPrefix, 'groupRowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'render'],
-              kind: 'handlebars',
-              value: rule.renderItemTemplate
-            });
-          }
-          if (rule.evaluateRulesTemplate) {
-            entries.push({
-              key: [...configKeyPrefix, 'groupRowRules', ruleSet.ruleSetName, ruleIdx.toString(), 'evaluate'],
-              kind: 'handlebars',
-              value: rule.evaluateRulesTemplate
-            });
-          }
-        }
-      }
-
       return entries;
     }
 
-    public async extractDashboardTemplates(brand: BrandingModel, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<TemplateCompileInput[]> {
-      const dashboardConfig = await this.getDashboardTableConfig(brand, recordType, workflowStage);
-      const entries = this.extractDashboardTableTemplates([recordType, workflowStage], dashboardConfig);
-      entries.push(...await this.extractQueryFilterTemplates(brand, recordType, dashboardType, [recordType]));
-      return entries;
-    }
-
-    public async extractDashboardViewTemplates(brand: BrandingModel, dashboardView: string, stepName: string, dashboardType?: string): Promise<TemplateCompileInput[]> {
-      const dashboardViewConfig = this.getDashboardView(dashboardView);
-      const dashboardStepConfig = this.getDashboardViewStep(dashboardView, stepName);
-      if (!dashboardViewConfig || !dashboardStepConfig) {
+    private async extractTargetTemplates(brand: BrandingModel, target: DashboardTarget, settingsFingerprint?: string): Promise<TemplateCompileInput[]> {
+      const runtime = await DashboardConfigService.getRuntimeTargetSettings(brand, target, settingsFingerprint);
+      if (!runtime) {
         return [];
       }
+      return this.extractSettingsTemplates(this.buildDashboardTemplateKeyPrefix(brand.name, target, runtime.fingerprint), runtime.settings);
+    }
 
-      const resolvedDashboardType = dashboardType || dashboardViewConfig.dashboardType;
-      let mergedTableConfig: DashboardTableConfig | null = dashboardStepConfig.dashboardTable ?? null;
-      if (typeof DashboardConfigService !== 'undefined' && DashboardConfigService.getMergedDashboardViewTableConfig) {
-        const mergedConfig = await DashboardConfigService.getMergedDashboardViewTableConfig(brand, dashboardView, stepName);
-        mergedTableConfig = mergedConfig?.mergedConfig ?? mergedTableConfig;
+    public async extractDashboardTemplates(brand: BrandingModel, recordType: string, workflowStage: string, settingsFingerprint?: string): Promise<TemplateCompileInput[]> {
+      return this.extractTargetTemplates(brand, { kind: 'workflow', recordType, stage: workflowStage }, settingsFingerprint);
+    }
+
+    public async extractDashboardViewTemplates(brand: BrandingModel, dashboardView: string, stepName: string, settingsFingerprint?: string): Promise<TemplateCompileInput[]> {
+      if (!this.getDashboardViewStep(dashboardView, stepName)) {
+        return [];
       }
-
-      const entries = this.extractDashboardTableTemplates([dashboardView, stepName], mergedTableConfig);
-      entries.push(...await this.extractQueryFilterTemplates(brand, dashboardStepConfig.sourceRecordType, resolvedDashboardType, [dashboardView]));
-      return entries;
+      return this.extractTargetTemplates(brand, { kind: 'view', view: dashboardView, step: stepName }, settingsFingerprint);
     }
   }
 }

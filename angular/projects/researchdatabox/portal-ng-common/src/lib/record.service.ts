@@ -42,7 +42,7 @@ import {
   isString as _isString,
   isNumber as _isNumber,
 } from 'lodash-es';
-import { RecordResponseTable } from './dashboard-models';
+import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
 import {
   emptyRecordSaveCompletion,
   isRecordConcurrencyProblemCode,
@@ -216,7 +216,6 @@ export interface DashboardViewStepDefinitionResponse {
   sourceRecordType: string;
   sourceWorkflowStage?: string;
   fetchMode: 'allForRecordType' | 'workflowStage';
-  dashboardTable: Record<string, unknown>;
   baseRecordType?: string;
 }
 
@@ -786,6 +785,19 @@ export class RecordService extends HttpClientService {
     const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
     const result = await firstValueFrom(result$);
     return (_get(result, 'data') ?? result) as DashboardViewDefinitionResponse;
+  }
+
+  /**
+   * Independent dashboard settings for all stages of a record type (kind
+   * `workflow`) or all steps of a dashboard view (kind `view`), from one saved
+   * revision.
+   */
+  public async getDashboardSettings(kind: 'workflow' | 'view', owner: string): Promise<DashboardRuntimeSettings> {
+    const url = `${this.brandingAndPortalUrl}/dashboard/settings/${kind}/${encodeURIComponent(owner)}`;
+    const requestOptions = this.getHttpOptions();
+    const result$ = this.http.get<Record<string, unknown>>(url, { context: requestOptions?.context, observe: 'body', responseType: 'json' });
+    const result = await firstValueFrom(result$);
+    return (_get(result, 'data') ?? result) as DashboardRuntimeSettings;
   }
 
   public async getAllDashboardTypes() {
