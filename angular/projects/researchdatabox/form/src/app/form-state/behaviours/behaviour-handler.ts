@@ -291,8 +291,8 @@ export class BehaviourHandler {
    *
    * Checks applied:
    * - `logical` targeting rules for `setValue`, `setValues` entries,
-   *   `setUIProperty`, and `setUIProperties` (action-level defaults and
-   *   entries that own their field path): only `actions` may use `logical`,
+   *   `setUIProperty`, and `setUIProperties` (each entry's effective field
+   *   path, whether inherited or owned): only `actions` may use `logical`,
    *   and the target must live inside a repeatable element
    * - `runTemplate` `resultKey` must be a valid identifier and must not
    *   shadow a reserved pipeline context key
@@ -321,13 +321,9 @@ export class BehaviourHandler {
           if (!this.validateEntryList(listName, actionIndex, 'properties', action.config?.properties)) {
             return;
           }
-          // Action-level defaults may be logical; an invalid default skips the
-          // whole action because every inheriting entry would fail anyway.
-          this.validateLogicalEntry(listName, actionIndex, undefined, action.config);
           action.config.properties.forEach((entry, entryIndex) => {
-            if (entry.fieldPath !== undefined || entry.hasFieldPathTemplate === true) {
-              this.validateLogicalEntry(listName, actionIndex, entryIndex, entry);
-            }
+            const usesOwnFieldPath = entry.fieldPath !== undefined || entry.hasFieldPathTemplate === true;
+            this.validateLogicalEntry(listName, actionIndex, entryIndex, usesOwnFieldPath ? entry : action.config);
           });
           return;
         }

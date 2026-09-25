@@ -600,6 +600,84 @@ describe('FormBehaviourManager', () => {
       );
     }));
 
+    it('skips only entries inheriting an invalid logical setUIProperties default', fakeAsync(() => {
+      const title = createFieldEntry('/main/title');
+      const formComponent = createFormComponent(
+        [
+          {
+            name: 'mixed-ui-targets',
+            condition: '/main/source::field.value.changed',
+            conditionKind: 'jsonpointer',
+            actions: [
+              {
+                type: 'setUIProperties',
+                config: {
+                  fieldPath: '/main/missing',
+                  fieldPathKind: 'logical',
+                  properties: [
+                    { target: 'field.visible', value: false },
+                    {
+                      fieldPath: '/main/title',
+                      fieldPathKind: 'componentJsonPointer',
+                      target: 'field.visible',
+                      value: true,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        { title }
+      );
+
+      manager.bind(formComponent);
+      expect(logger.warn).toHaveBeenCalledWith(
+        jasmine.stringContaining('logical fieldPathKind must target a repeatable field'),
+        jasmine.objectContaining({ entryIndex: 0, fieldPath: '/main/missing' })
+      );
+
+      fieldEvents$.next(sourceChangedEvent('anything'));
+      tick();
+
+      expect(title.componentSetProperty).toHaveBeenCalledWith('visible', true);
+      expect(title.layoutSetProperty).toHaveBeenCalledWith('visible', true);
+      expect(logger.warn).toHaveBeenCalledTimes(1);
+    }));
+
+    it('setUIProperties resolves a valid inherited logical target', fakeAsync(() => {
+      const title = createFieldEntry('/main/title');
+      title.entry.lineagePaths.formConfig = '/main/elementTemplate/title';
+      const formComponent = createFormComponent(
+        [
+          {
+            name: 'repeatable-ui-target',
+            condition: '/main/source::field.value.changed',
+            conditionKind: 'jsonpointer',
+            actions: [
+              {
+                type: 'setUIProperties',
+                config: {
+                  fieldPath: '/main/title',
+                  fieldPathKind: 'logical',
+                  properties: [{ target: 'field.visible', value: false }],
+                },
+              },
+            ],
+          },
+        ],
+        { title }
+      );
+
+      manager.bind(formComponent);
+      fieldEvents$.next(sourceChangedEvent('anything'));
+      tick();
+
+      expect(title.componentSetProperty).toHaveBeenCalledWith('visible', false);
+      expect(title.layoutSetProperty).toHaveBeenCalledWith('visible', false);
+      expect(logger.warn).not.toHaveBeenCalled();
+    }));
+
     it('skips logical setValues entries in onError but still runs sibling entries', fakeAsync(() => {
       const fallback = createFieldEntry('/main/fallback');
       const formComponent = createFormComponent(

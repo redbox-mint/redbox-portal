@@ -307,7 +307,7 @@ async function executeSetUIPropertiesAction(
       usesOwnFieldPath ? entry : action.config,
       usesOwnFieldPath ? entryKeyPath : ACTION_CONFIG_KEY_PATH,
       entryKeyPath,
-      usesOwnFieldPath ? entryIndex : undefined,
+      entryIndex,
       pipelineContext,
       ctx
     );
@@ -319,9 +319,8 @@ async function executeSetUIPropertiesAction(
  * `setUIProperties` entry.
  *
  * `fieldPathConfig` / `fieldPathKeyPath` may point at the action-level
- * defaults when a plural entry inherits them; `logicalEntryIndex` is only set
- * when the entry owns its (logical) field path so the right bind-time lock is
- * consulted.
+ * defaults when a plural entry inherits them. `logicalEntryIndex` identifies
+ * the nested entry's bind-time lock, including inherited logical defaults.
  */
 async function applySingleUIProperty(
   entry: FormBehaviourSetUIPropertyEntry,
@@ -455,7 +454,8 @@ async function resolveDynamicField(
 /**
  * Resolve a logical target using the locked repeatable entry identity captured
  * by the handler during binding. `entryIndex` addresses nested
- * `values`/`properties` entries that own their logical field path.
+ * `values`/`properties` entries, including properties that inherit a logical
+ * field path from their action.
  */
 function resolveLogicalField(
   ctx: BehaviourActionExecutionContext,
