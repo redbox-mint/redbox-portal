@@ -47,8 +47,8 @@ describe('DashboardTypesService', function () {
       updateOne: sinon.stub().callsFake(() => ({ set: sinon.stub().callsFake((data: unknown) => mockDeferred(data)) }))
     };
 
-    (global as any).AppConfigService = {
-      getAppConfigByBrandAndKey: sinon.stub().resolves({ recordTypes: {}, views: {} })
+    (global as any).AppConfig = {
+      find: sinon.stub().resolves([])
     };
 
     (global as any).RecordTypesService = {
@@ -70,9 +70,7 @@ describe('DashboardTypesService', function () {
     };
 
     (global as any).DashboardConfigService = {
-      getMergedDashboardTableConfig: sinon.stub().resolves(null),
-      getMergedDashboardViewTableConfig: sinon.stub().resolves(null),
-      getMergedDashboardTypeFormatRules: sinon.stub().resolves({ filterBy: {}, queryFilters: {} })
+      getRuntimeTargetSettings: sinon.stub().resolves(null)
     };
 
     service = new Services.DashboardTypes();
@@ -81,7 +79,7 @@ describe('DashboardTypesService', function () {
   afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).DashboardType;
-    delete (global as any).AppConfigService;
+    delete (global as any).AppConfig;
     delete (global as any).RecordTypesService;
     delete (global as any).WorkflowStepsService;
     delete (global as any).DashboardConfigService;
@@ -116,14 +114,20 @@ describe('DashboardTypesService', function () {
   });
 
   it('rejects deleting assigned dashboard types', async function () {
-    (global as any).AppConfigService.getAppConfigByBrandAndKey = sinon.stub().resolves({
-      recordTypes: {
-        rdmp: {
-          default: { dashboardType: 'standard' }
+    (global as any).AppConfig.find = sinon.stub().resolves([
+      {
+        updatedAt: '2026-02-01T00:00:00.000Z',
+        configData: {
+          recordTypes: {
+            rdmp: {
+              default: { dashboardType: 'standard' }
+            }
+          },
+          views: {}
         }
       },
-      views: {}
-    });
+      { updatedAt: '2026-01-01T00:00:00.000Z', configData: { recordTypes: {}, views: {} } }
+    ]);
     (global as any).DashboardType.findOne = sinon.stub().callsFake(() => ({
       exec: (cb: (err: any, result: any) => void) => cb(null, {
         branding: { id: 'brand1', name: 'default' },
@@ -186,18 +190,53 @@ describe('DashboardTypesService', function () {
     }
   });
 
-  it('merges dashboard view templates with merged dashboard config', async function () {
-    (global as any).DashboardConfigService.getMergedDashboardViewTableConfig = sinon.stub().resolves({
-      dashboardType: 'consolidated',
-      inheritedTypeConfig: { rowConfig: [] },
-      workflowConfig: { rowConfig: [{ title: 'Override', variable: 'metadata.title', template: 'override' }] },
-      overrideConfig: null,
-      mergedConfig: { rowConfig: [{ title: 'Override', variable: 'metadata.title', template: 'override' }] },
-      formatRules: {}
+  describe('template extraction from independent settings', function () {
+    const settings = {
+      searchable: true,
+      showStageTitle: true,
+      tableConfig: {
+        rowConfig: [{ title: 'Title', variable: 'metadata.title', template: '{{metadata.title}}' }, { title: 'Blank', variable: 'x', template: '' }],
+        rowRulesConfig: [{ ruleSetName: 'actions', applyRuleSet: true, rules: [{ name: 'Edit', action: 'show', renderItemTemplate: 'edit', evaluateRulesTemplate: 'true' }] }],
+        groupRowConfig: [],
+        groupRowRulesConfig: [],
+        formatRules: { queryFilters: { rdmp: [{ filterType: 'text', filterFields: [{ name: 'Title', path: 'metadata.title', template: '{{value}}*' }] }] } }
+      }
+    };
+
+    it('keys templates by brand, target and settings fingerprint', async function () {
+      (global as any).DashboardConfigService.getRuntimeTargetSettings = sinon.stub().resolves({ settings, fingerprint: 'abcdef0123456789ffff' });
+
+      const templates = await service.extractDashboardTemplates({ id: 'brand1', name: 'default' } as any, 'rdmp', 'draft', 'abcdef0123456789ffff');
+      const keys = templates.map((t) => t.key.join('|'));
+
+      expect((global as any).DashboardConfigService.getRuntimeTargetSettings.firstCall.args.slice(1)).to.deep.equal([{ kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, 'abcdef0123456789ffff']);
+      expect(keys).to.include('default|workflow|rdmp|draft|abcdef0123456789|rowConfig|0|metadata.title');
+      expect(keys).to.include('default|workflow|rdmp|draft|abcdef0123456789|rowRules|actions|0|render');
+      expect(keys).to.include('default|workflow|rdmp|draft|abcdef0123456789|rowRules|actions|0|evaluate');
+      expect(keys).to.include('default|workflow|rdmp|draft|abcdef0123456789|filters|rdmp|0|fields|0|template');
+      // Empty templates stay empty rather than being replaced.
+      expect(keys.some((k) => k.includes('rowConfig|1'))).to.equal(false);
     });
 
-    const templates = await service.extractDashboardViewTemplates({ id: 'brand1' } as any, 'consolidated', 'consolidated');
-    expect(templates).to.be.an('array');
-    expect(templates.length).to.be.greaterThan(0);
+    it('does not substitute built-in columns for an empty column list', async function () {
+      (global as any).DashboardConfigService.getRuntimeTargetSettings = sinon.stub().resolves({
+        settings: { ...settings, tableConfig: { ...settings.tableConfig, rowConfig: [], rowRulesConfig: [], formatRules: {} } },
+        fingerprint: 'ffff'
+      });
+      const templates = await service.extractDashboardTemplates({ id: 'brand1', name: 'default' } as any, 'rdmp', 'draft');
+      expect(templates).to.deep.equal([]);
+    });
+
+    it('extracts view step templates under the view target', async function () {
+      (global as any).DashboardConfigService.getRuntimeTargetSettings = sinon.stub().resolves({ settings, fingerprint: '1234' });
+      const templates = await service.extractDashboardViewTemplates({ id: 'brand1', name: 'default' } as any, 'consolidated', 'consolidated');
+      expect(templates[0].key.slice(0, 5)).to.deep.equal(['default', 'view', 'consolidated', 'consolidated', '1234']);
+    });
+
+    it('returns nothing for an unknown view step', async function () {
+      const templates = await service.extractDashboardViewTemplates({ id: 'brand1', name: 'default' } as any, 'consolidated', 'missing');
+      expect(templates).to.deep.equal([]);
+      expect((global as any).DashboardConfigService.getRuntimeTargetSettings.called).to.equal(false);
+    });
   });
 });

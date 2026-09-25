@@ -275,7 +275,8 @@ dashboard-config-editor {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.dc-nav-item.active .dc-badge-override {
+.dc-nav-item.active .dc-badge-dirty,
+.dc-nav-item.active .dc-badge-hidden {
   background: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.3);
   color: #fff;
@@ -341,10 +342,23 @@ dashboard-config-editor {
   color: #047857;
 }
 
-.dc-badge-override {
+.dc-badge-hidden {
+  background: var(--dc-surface-deeper);
+  border-color: var(--dc-border-strong);
+  color: var(--dc-text-muted);
+}
+
+.dc-badge-dirty {
   background: var(--dc-warning-soft);
   border-color: #fde68a;
   color: var(--dc-warning);
+}
+
+.dc-badge-cleared {
+  background: var(--dc-danger-soft);
+  border-color: #fecaca;
+  color: var(--dc-danger);
+  margin-left: 6px;
 }
 
 // ---- Editor pane -------------------------------------------------------
@@ -657,4 +671,192 @@ dashboard-config-editor {
 .dc-empty-state p {
   margin: 0;
   max-width: 360px;
+}
+
+// ---- Navigation groups -------------------------------------------------
+
+.dc-nav-section-header-static {
+  cursor: default;
+}
+
+.dc-nav-group-toggle {
+  align-items: center;
+  background: none;
+  border: 0;
+  display: flex;
+  gap: 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.dc-nav-group-toggle:hover {
+  color: var(--dc-text);
+}
+
+// ---- Findings ----------------------------------------------------------
+
+.dc-findings .dc-card-body {
+  display: grid;
+  gap: 8px;
+}
+
+.dc-finding {
+  align-items: flex-start;
+  border-radius: 4px;
+  display: flex;
+  font-weight: normal;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding: 8px 12px;
+}
+
+.dc-finding i,
+.dc-finding input {
+  margin-top: 3px;
+}
+
+.dc-finding-error {
+  background: var(--dc-danger-soft);
+  color: var(--dc-danger);
+}
+
+.dc-finding-warning {
+  background: var(--dc-warning-soft);
+  color: #92400e;
+  cursor: pointer;
+}
+
+// ---- Copy dialogs --------------------------------------------------------
+
+.dc-modal-backdrop {
+  background: rgba(17, 24, 39, 0.45);
+  inset: 0;
+  position: fixed;
+  z-index: 1040;
+}
+
+.dc-modal {
+  background: var(--dc-surface);
+  border-radius: 8px;
+  box-shadow: 0 20px 45px rgba(17, 24, 39, 0.25);
+  display: flex;
+  flex-direction: column;
+  left: 50%;
+  max-height: calc(100vh - 64px);
+  max-width: calc(100vw - 32px);
+  position: fixed;
+  top: 32px;
+  transform: translateX(-50%);
+  width: 720px;
+  z-index: 1050;
+}
+
+.dc-modal-wide {
+  width: 960px;
+}
+
+.dc-modal-header,
+.dc-modal-footer {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  padding: 14px 18px;
+}
+
+.dc-modal-header {
+  border-bottom: 1px solid var(--dc-border);
+}
+
+.dc-modal-header h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dc-modal-header .close {
+  margin-left: auto;
+}
+
+.dc-modal-footer {
+  border-top: 1px solid var(--dc-border);
+  justify-content: flex-end;
+}
+
+.dc-modal-body {
+  overflow-y: auto;
+  padding: 16px 18px;
+}
+
+.dc-group-choices {
+  border: 0;
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 0;
+}
+
+.dc-choice {
+  align-items: flex-start;
+  display: flex;
+  font-weight: normal;
+  gap: 8px;
+  margin: 0;
+}
+
+.dc-choice input {
+  margin-top: 3px;
+}
+
+.dc-copy-to-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+@media (max-width: 767px) {
+  .dc-copy-to-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dc-destination-list {
+  border: 1px solid var(--dc-border);
+  border-radius: 4px;
+  list-style: none;
+  margin: 6px 0 0;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px 10px;
+}
+
+.dc-destination-list li + li {
+  margin-top: 4px;
+}
+
+.dc-destination-preview h6 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 16px 0 6px;
+}
+
+.dc-changes-table {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.dc-changes-table .dc-changes-group th {
+  background: var(--dc-surface-deeper);
+}
+
+.dc-change-value {
+  max-width: 320px;
+  overflow-wrap: anywhere;
+}
+
+.dc-change-same td {
+  color: var(--dc-text-subtle);
+}
+
+.dc-change-cleared td {
+  background: var(--dc-danger-soft);
 }

@@ -1,247 +1,141 @@
-import { firstValueFrom } from 'rxjs';
 import { Controllers as controllers } from '../../CoreController';
-import type { DashboardTableOverrideConfigData, WorkflowStateDashboardConfig } from '../../configmodels/DashboardTableOverrideConfig';
 import { BrandingModel } from '../../model/storage/BrandingModel';
+import { Services as DashboardConfigServices } from '../../services/DashboardConfigService';
+
+const RETIRED_OPERATION_GUIDANCE =
+  'Dashboard profiles, defaults and overrides were replaced by independent settings for each workflow stage and dashboard-view step. ' +
+  'Use GET /api/dashboard-config/targets, GET|PUT /api/dashboard-config/workflows/:recordType/:stage, ' +
+  'GET|PUT /api/dashboard-config/views/:view/:step and the /api/dashboard-config/copy operations.';
 
 export namespace Controllers {
+  /**
+   * Independent dashboard configuration API. Controllers resolve the brand,
+   * validate the request envelope and delegate to DashboardConfigService.
+   */
   export class DashboardConfig extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = [
-      'getConfigInfo',
-      'getDefaults',
-      'getOverrides',
-      'saveOverrides',
-      'getDashboardTypes',
-      'createDashboardType',
-      'getDashboardType',
-      'updateDashboardType',
-      'deleteDashboardType',
-      'saveWorkflowStateDashboardConfig',
-      'saveDashboardViewStepConfig',
-      'getMergedConfig',
-      'getMergedViewConfig',
-      'getMergedTypeFormatRules'
+      'listTargets',
+      'getWorkflowTarget',
+      'saveWorkflowTarget',
+      'getViewTarget',
+      'saveViewTarget',
+      'validateSettings',
+      'previewCopy',
+      'applyCopy',
+      'getWorkflowFields',
+      'getViewFields',
+      'migrationPreflight',
+      'retiredOperation'
     ];
 
-    private asError(error: unknown): Error {
-      return error instanceof Error ? error : new Error(String(error));
-    }
-
-    private statusForError(error: unknown): number {
-      const message = this.asError(error).message;
-      if (/not found|was not found/i.test(message)) {
-        return 404;
-      }
-      if (/system dashboard type|cannot be converted/i.test(message)) {
-        return 403;
-      }
-      if (/already exists|is assigned/i.test(message)) {
-        return 409;
-      }
-      if (/required|immutable|invalid/i.test(message)) {
-        return 400;
-      }
-      return 500;
-    }
-
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
-      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      if (error instanceof DashboardConfigServices.DashboardConfigError) {
+        return this.sendResp(req, res, {
+          status: error.status,
+          displayErrors: [{ status: String(error.status), code: error.code, title: error.code, detail: error.message, meta: error.details }],
+          meta: error.details,
+          headers: this.getNoCacheHeaders()
+        });
+      }
+      return this.sendResp(req, res, {
+        status: 500,
+        errors: [error instanceof Error ? error : new Error(String(error))],
+        headers: this.getNoCacheHeaders()
+      });
     }
 
+    /** The brand comes from the route; never fall back to the default brand. */
     private resolveBrand(req: Sails.Req): BrandingModel {
-      return BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+      const brandName = String(req.param('branding') ?? '').trim();
+      const brand = brandName ? BrandingService.getBrand(brandName) : null;
+      if (!brand) {
+        throw new DashboardConfigServices.DashboardConfigError('target-not-found', `Brand "${brandName}" was not found.`);
+      }
+      return brand;
     }
 
-    private getParam(req: Sails.Req, name: string): string {
-      return String(req.param(name) || '').trim();
+    /** The signed-in administrator; record field catalogues follow their access. */
+    private callerOptions(req: Sails.Req, brand: BrandingModel): DashboardConfigServices.DashboardCallerOptions {
+      const user = req.user as unknown as Record<string, unknown> | undefined;
+      return user ? { caller: { user, brand } as unknown as DashboardConfigServices.DashboardCallerOptions['caller'], portal: this.param(req, 'portal') } : {};
     }
 
-    public async getConfigInfo(req: Sails.Req, res: Sails.Res) {
+    private param(req: Sails.Req, name: string): string {
+      return String(req.param(name) ?? '').trim();
+    }
+
+    private body(req: Sails.Req): Record<string, unknown> {
+      const body = req.body;
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        throw new DashboardConfigServices.DashboardConfigError('invalid-request', 'Request body must be a JSON object.');
+      }
+      return body as Record<string, unknown>;
+    }
+
+    private async run(req: Sails.Req, res: Sails.Res, work: (brand: BrandingModel) => Promise<unknown>) {
       try {
-        const info = await DashboardConfigService.getDashboardConfigInfo(this.resolveBrand(req));
-        return this.sendResp(req, res, { data: info, headers: this.getNoCacheHeaders() });
+        const data = await work(this.resolveBrand(req));
+        return this.sendResp(req, res, { data, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
       }
     }
 
-    public async getDefaults(req: Sails.Req, res: Sails.Res) {
-      try {
-        const brand = this.resolveBrand(req);
-        const recordType = this.getParam(req, 'recordType');
-        const workflowStage = this.getParam(req, 'workflowStage');
-        const viewName = this.getParam(req, 'viewName');
-        const stepName = this.getParam(req, 'stepName');
-        const dashboardType = this.getParam(req, 'dashboardType');
-        const defaults: Record<string, unknown> = {};
-
-        if (recordType && workflowStage) {
-          const merged = await DashboardConfigService.getMergedDashboardTableConfig(brand, recordType, workflowStage);
-          defaults.recordType = merged;
-        }
-
-        if (viewName && stepName) {
-          const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(brand, viewName, stepName);
-          defaults.view = merged;
-        }
-
-        if (dashboardType) {
-          defaults.dashboardType = await firstValueFrom(DashboardTypesService.get(brand, dashboardType));
-        }
-
-        return this.sendResp(req, res, { data: defaults, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async listTargets(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, async (brand) => {
+        const catalogue = await DashboardConfigService.getTargetCatalogue(brand);
+        return { targets: catalogue.targets, catalogueFingerprint: catalogue.fingerprint };
+      });
     }
 
-    public async getOverrides(req: Sails.Req, res: Sails.Res) {
-      try {
-        const overrides = await DashboardConfigService.getDashboardOverrides(this.resolveBrand(req));
-        return this.sendResp(req, res, { data: overrides, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async getWorkflowTarget(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.getTargetSettings(brand, { kind: 'workflow', recordType: this.param(req, 'recordType'), stage: this.param(req, 'stage') }));
     }
 
-    public async saveOverrides(req: Sails.Req, res: Sails.Res) {
-      try {
-        const brand = this.resolveBrand(req);
-        const overrides = req.body as DashboardTableOverrideConfigData;
-        const saved = await DashboardConfigService.saveDashboardOverrides(brand, overrides);
-        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async saveWorkflowTarget(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.saveTargetSettings(brand, { kind: 'workflow', recordType: this.param(req, 'recordType'), stage: this.param(req, 'stage') }, this.body(req) as unknown as DashboardConfigServices.DashboardSaveRequest, this.callerOptions(req, brand)));
     }
 
-    public async getDashboardTypes(req: Sails.Req, res: Sails.Res) {
-      try {
-        const brand = this.resolveBrand(req);
-        const dashboardTypes = await DashboardTypesService.getAllDashboardTypeDefinitions(brand);
-        return this.sendResp(req, res, { data: { dashboardTypes }, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async getViewTarget(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.getTargetSettings(brand, { kind: 'view', view: this.param(req, 'view'), step: this.param(req, 'step') }));
     }
 
-    public async createDashboardType(req: Sails.Req, res: Sails.Res) {
-      try {
-        const brand = this.resolveBrand(req);
-        const saved = await firstValueFrom(DashboardTypesService.createDashboardType(brand, req.body));
-        return this.sendResp(req, res, { status: 201, data: saved, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async saveViewTarget(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.saveTargetSettings(brand, { kind: 'view', view: this.param(req, 'view'), step: this.param(req, 'step') }, this.body(req) as unknown as DashboardConfigServices.DashboardSaveRequest, this.callerOptions(req, brand)));
     }
 
-    public async getDashboardType(req: Sails.Req, res: Sails.Res) {
-      try {
-        const dashboardType = this.getParam(req, 'dashboardType');
-        if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
-        }
-        const brand = this.resolveBrand(req);
-        const saved = await DashboardTypesService.getDashboardTypeDefinition(brand, dashboardType);
-        if (!saved) {
-          return this.sendResp(req, res, { status: 404, errors: [new Error(`Dashboard type '${dashboardType}' not found`)], headers: this.getNoCacheHeaders() });
-        }
-        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async validateSettings(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => {
+        const body = this.body(req);
+        return DashboardConfigService.validateTargetSettings(brand, body.target, body.expectedRevision, body.settings, this.callerOptions(req, brand));
+      });
     }
 
-    public async updateDashboardType(req: Sails.Req, res: Sails.Res) {
-      try {
-        const dashboardType = this.getParam(req, 'dashboardType');
-        if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
-        }
-        const brand = this.resolveBrand(req);
-        const saved = await firstValueFrom(DashboardTypesService.updateDashboardType(brand, dashboardType, req.body));
-        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async previewCopy(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.previewCopy(brand, this.body(req) as unknown as DashboardConfigServices.DashboardCopyRequest, this.callerOptions(req, brand)));
     }
 
-    public async deleteDashboardType(req: Sails.Req, res: Sails.Res) {
-      try {
-        const dashboardType = this.getParam(req, 'dashboardType');
-        if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
-        }
-        const brand = this.resolveBrand(req);
-        const saved = await firstValueFrom(DashboardTypesService.deleteDashboardType(brand, dashboardType));
-        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async applyCopy(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.applyCopy(brand, this.body(req) as unknown as DashboardConfigServices.DashboardCopyApplyRequest, this.callerOptions(req, brand)));
     }
 
-    public async saveWorkflowStateDashboardConfig(req: Sails.Req, res: Sails.Res) {
-      try {
-        const brand = this.resolveBrand(req);
-        const recordType = this.getParam(req, 'recordType');
-        const workflowStage = this.getParam(req, 'workflowStage');
-        const saved = await DashboardConfigService.saveWorkflowStateDashboardConfig(brand, recordType, workflowStage, req.body as WorkflowStateDashboardConfig);
-        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    /** Record fields available to a stage, from its record JSON schema. */
+    public async getWorkflowFields(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.getFieldCatalogue(brand, { kind: 'workflow', recordType: this.param(req, 'recordType'), stage: this.param(req, 'stage') }, this.callerOptions(req, brand)));
     }
 
-    public async saveDashboardViewStepConfig(req: Sails.Req, res: Sails.Res) {
-      try {
-        const brand = this.resolveBrand(req);
-        const viewName = this.getParam(req, 'viewName');
-        const stepName = this.getParam(req, 'stepName');
-        const saved = await DashboardConfigService.saveDashboardViewStepConfig(brand, viewName, stepName, req.body as WorkflowStateDashboardConfig);
-        return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    public async getViewFields(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.getFieldCatalogue(brand, { kind: 'view', view: this.param(req, 'view'), step: this.param(req, 'step') }, this.callerOptions(req, brand)));
     }
 
-    public async getMergedConfig(req: Sails.Req, res: Sails.Res) {
-      try {
-        const recordType = this.getParam(req, 'recordType');
-        const workflowStage = this.getParam(req, 'workflowStage');
-        if (!recordType || !workflowStage) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('recordType and workflowStage are required')], headers: this.getNoCacheHeaders() });
-        }
-        const merged = await DashboardConfigService.getMergedDashboardTableConfig(this.resolveBrand(req), recordType, workflowStage);
-        return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    /** Read-only legacy migration preflight: JSON report plus readable summary. */
+    public async migrationPreflight(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, async (brand) => ({ reports: await DashboardConfigService.preflightLegacyMigration(brand) }));
     }
 
-    public async getMergedViewConfig(req: Sails.Req, res: Sails.Res) {
-      try {
-        const viewName = this.getParam(req, 'viewName');
-        const stepName = this.getParam(req, 'stepName');
-        if (!viewName || !stepName) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('viewName and stepName are required')], headers: this.getNoCacheHeaders() });
-        }
-        const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(this.resolveBrand(req), viewName, stepName);
-        return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
-    }
-
-    public async getMergedTypeFormatRules(req: Sails.Req, res: Sails.Res) {
-      try {
-        const dashboardType = this.getParam(req, 'dashboardType');
-        if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
-        }
-        const merged = await DashboardConfigService.getMergedDashboardTypeFormatRules(this.resolveBrand(req), dashboardType);
-        return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        return this.sendError(req, res, error);
-      }
+    /** Retired profile/default/override operations. Authentication has already run. */
+    public async retiredOperation(req: Sails.Req, res: Sails.Res) {
+      return this.sendError(req, res, new DashboardConfigServices.DashboardConfigError('legacy-operation-retired', `This dashboard configuration operation has been retired. ${RETIRED_OPERATION_GUIDANCE}`, { replacement: '/api/dashboard-config/targets' }));
     }
   }
 }
