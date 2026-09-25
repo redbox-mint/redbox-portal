@@ -53,6 +53,26 @@ import {
 
 type AnyRecord = Record<string, unknown>;
 
+function isPlainObject(value: unknown): value is AnyRecord {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+interface DashboardMigrationReplacement {
+  brand: string;
+  target: unknown;
+  settings: unknown;
+}
+
+interface DashboardMigrationResolutions {
+  captureFingerprints: Record<string, string>;
+  acceptedFindingIdsByBrand: Record<string, string[]>;
+  replacements: DashboardMigrationReplacement[];
+}
+
 /** Name of the app-local migration wrapper that runs the legacy conversion. */
 export const DASHBOARD_CONFIGURATION_MIGRATION_NAME = '20260925T000000-dashboard-stage-configuration';
 /** AppConfig key holding the immutable pre-migration recovery snapshot. */
@@ -258,7 +278,9 @@ export namespace Services {
     private async ensureStorage(): Promise<void> {
       const collection = this.getCollection();
       if (collection?.createIndex) {
-        await collection.createIndex({ branding: 1 }, { unique: true, name: 'dashboardconfiguration_branding_unique' });
+        // Use Mongo's default name (`branding_1`) so this is idempotent with
+        // the identical index Waterline may already have created.
+        await collection.createIndex({ branding: 1 }, { unique: true });
       } else {
         sails.log.warn('DashboardConfigService: datastore does not expose a native collection; unique brand index not verified.');
       }
@@ -876,7 +898,18 @@ export namespace Services {
       if (options.includeOverrides !== false) {
         overrideRows = (await AppConfig.find({ branding: brandId, configKey: DASHBOARD_LEGACY_OVERRIDE_KEY })) as unknown as AnyRecord[];
         // The old service selected the most recently updated row.
-        const selected = [...overrideRows].sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')) || String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))[0];
+        const timestamp = (row: AnyRecord) => {
+          const updatedAt = Date.parse(String(row.updatedAt ?? ''));
+          if (!Number.isNaN(updatedAt)) {
+            return updatedAt;
+          }
+          const createdAt = Date.parse(String(row.createdAt ?? ''));
+          return Number.isNaN(createdAt) ? 0 : createdAt;
+        };
+        const selected = overrideRows.reduce<AnyRecord | undefined>(
+          (latest, row) => !latest || timestamp(row) >= timestamp(latest) ? row : latest,
+          undefined
+        );
         if (selected) {
           overrides = selected.configData as LegacyOverrideInput;
           overrideSource = `appconfig:${String(selected.id)}`;
@@ -921,18 +954,61 @@ export namespace Services {
       return reports;
     }
 
-    private loadResolutions(): { captureFingerprints: Record<string, string>; acceptedFindingIds: string[]; replacements: Array<{ brand?: string; target?: unknown; settings?: unknown }> } | null {
+    private loadResolutions(): DashboardMigrationResolutions | null {
       const file = process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS;
       if (!file) {
         return null;
       }
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs') as typeof import('fs');
-      const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as AnyRecord;
+      const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as unknown;
+      if (!isPlainObject(parsed)) {
+        throw new Error('Dashboard migration resolutions must be a JSON object.');
+      }
+      if (parsed.acceptedFindingIds !== undefined) {
+        const legacyIds = parsed.acceptedFindingIds;
+        if (!Array.isArray(legacyIds) || legacyIds.length > 0) {
+          throw new Error(
+            'Unscoped acceptedFindingIds are unsafe across brands. Use acceptedFindingIdsByBrand and bind each decision to captureFingerprints.<brand>.'
+          );
+        }
+      }
+      const captureFingerprints = parsed.captureFingerprints ?? {};
+      const acceptedFindingIdsByBrand = parsed.acceptedFindingIdsByBrand ?? {};
+      const replacements = parsed.replacements ?? [];
+      if (
+        !isPlainObject(captureFingerprints) ||
+        Object.values(captureFingerprints).some(value => typeof value !== 'string' || value.trim() === '')
+      ) {
+        throw new Error(
+          'Dashboard migration captureFingerprints must map brand names to non-empty preflight fingerprints.'
+        );
+      }
+      if (
+        !isPlainObject(acceptedFindingIdsByBrand) ||
+        Object.values(acceptedFindingIdsByBrand).some(
+          ids => !Array.isArray(ids) || ids.some(id => typeof id !== 'string' || id.trim() === '')
+        )
+      ) {
+        throw new Error('Dashboard migration acceptedFindingIdsByBrand must map brand names to arrays of finding IDs.');
+      }
+      if (
+        !Array.isArray(replacements) ||
+        replacements.some(
+          replacement =>
+            !isPlainObject(replacement) ||
+            typeof replacement.brand !== 'string' ||
+            replacement.brand.trim() === '' ||
+            !parseDashboardTarget(replacement.target) ||
+            !isPlainObject(replacement.settings)
+        )
+      ) {
+        throw new Error('Dashboard migration replacements must include a brand, a valid target and complete settings.');
+      }
       return {
-        captureFingerprints: (parsed.captureFingerprints ?? {}) as Record<string, string>,
-        acceptedFindingIds: (parsed.acceptedFindingIds ?? []) as string[],
-        replacements: (Array.isArray(parsed.replacements) ? parsed.replacements : []) as Array<{ brand?: string; target?: unknown; settings?: unknown }>
+        captureFingerprints: captureFingerprints as Record<string, string>,
+        acceptedFindingIdsByBrand: acceptedFindingIdsByBrand as Record<string, string[]>,
+        replacements: replacements as DashboardMigrationReplacement[],
       };
     }
 
@@ -963,32 +1039,76 @@ export namespace Services {
         const summary = summariseLegacyConversion(conversion, brand.name);
         sails.log.info(summary);
 
-        const expectedFingerprint = resolutions?.captureFingerprints?.[brand.name];
-        if (resolutions && expectedFingerprint && expectedFingerprint !== conversion.inputFingerprint) {
-          throw new Error(`Dashboard migration resolutions for brand ${brand.name} were prepared for input ${expectedFingerprint}, but the deployed configuration is ${conversion.inputFingerprint}. Re-run the preflight.`);
+        const acceptedIds = resolutions && Object.prototype.hasOwnProperty.call(resolutions.acceptedFindingIdsByBrand, brand.name)
+          ? resolutions.acceptedFindingIdsByBrand[brand.name]
+          : [];
+        const accepted = new Set(acceptedIds);
+        const replacements = (resolutions?.replacements ?? []).filter(replacement => replacement.brand === brand.name);
+        const replacementTargets = new Map<string, DashboardTarget>();
+        for (const replacement of replacements) {
+          const target = parseDashboardTarget(replacement.target)!;
+          const key = targetKey(target);
+          if (replacementTargets.has(key)) {
+            throw new Error(
+              `Dashboard migration resolutions contain more than one replacement for ${brand.name} / ${targetLabel(target)}.`
+            );
+          }
+          replacementTargets.set(key, target);
         }
-        const accepted = new Set(resolutions?.acceptedFindingIds ?? []);
-        const unresolved = conversion.findings.filter((f: LegacyMigrationFinding) => f.severity === 'resolution' && !accepted.has(f.id));
+
+        const resolutionFindings = conversion.findings.filter(
+          (f: LegacyMigrationFinding) => f.severity === 'resolution'
+        );
+        const unmatchedReplacements = Array.from(replacementTargets.values()).filter(
+          target =>
+            !resolutionFindings.some(finding => finding.target && targetKey(finding.target) === targetKey(target))
+        );
+        if (unmatchedReplacements.length) {
+          throw new Error(
+            `Dashboard migration replacement for brand ${brand.name} does not match a finding that needs resolution (${unmatchedReplacements.map(targetLabel).join(', ')}). Re-run preflight and check the target.`
+          );
+        }
+
+        const hasDecisions = accepted.size > 0 || replacements.length > 0;
+        const expectedFingerprint = resolutions && Object.prototype.hasOwnProperty.call(resolutions.captureFingerprints, brand.name)
+          ? resolutions.captureFingerprints[brand.name]
+          : undefined;
+        if (hasDecisions && !expectedFingerprint) {
+          throw new Error(
+            `Dashboard migration resolutions contain decisions for brand ${brand.name}, but captureFingerprints.${brand.name} is missing. Run the migration preflight and add that brand's inputFingerprint before upgrading.`
+          );
+        }
+        if (hasDecisions && expectedFingerprint !== conversion.inputFingerprint) {
+          throw new Error(
+            `Dashboard migration resolutions for brand ${brand.name} were prepared for input ${expectedFingerprint}, but the deployed configuration is ${conversion.inputFingerprint}. Do not reuse those decisions; re-run preflight, review the new findings and update captureFingerprints.${brand.name}.`
+          );
+        }
+
+        const unresolved = resolutionFindings.filter(
+          (f: LegacyMigrationFinding) =>
+            !accepted.has(f.id) && (!f.target || !replacementTargets.has(targetKey(f.target)))
+        );
         if (unresolved.length) {
           blocked.push(`${brand.name}: ${unresolved.map((f) => `${f.id} (${f.message})`).join('; ')}`);
           continue;
         }
         const data = conversion.data;
         // Operator-reviewed replacement settings for unavoidable differences.
-        for (const replacement of resolutions?.replacements ?? []) {
-          const target = parseDashboardTarget(replacement.target);
-          if (replacement.brand === brand.name && target && replacement.settings) {
-            setTargetSettings(data, target, normaliseDashboardSettings(replacement.settings));
-          }
+        for (const replacement of replacements) {
+          const target = parseDashboardTarget(replacement.target)!;
+          setTargetSettings(data, target, normaliseDashboardSettings(replacement.settings));
         }
         await this.createDocument(brand.id, data, {
           migration: {
             name: DASHBOARD_CONFIGURATION_MIGRATION_NAME,
             migratedAt: new Date().toISOString(),
             inputFingerprint: conversion.inputFingerprint,
-            acceptedFindingIds: conversion.findings.filter((f) => accepted.has(f.id)).map((f) => f.id),
-            findings: conversion.findings
-          }
+            acceptedFindingIds: conversion.findings.filter(f => accepted.has(f.id)).map(f => f.id),
+            replacementResolvedFindingIds: resolutionFindings
+              .filter(f => f.target && replacementTargets.has(targetKey(f.target)))
+              .map(f => f.id),
+            findings: conversion.findings,
+          },
         });
         sails.log.info(`Dashboard configuration migration: published independent settings for brand ${brand.name} (${conversion.targets.length} targets).`);
       }

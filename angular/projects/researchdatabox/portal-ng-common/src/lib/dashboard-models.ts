@@ -26,6 +26,8 @@ export declare class FilterField {
   name: string;
   path: string;
   template?: string;
+  /** Preserve the v5.0.1 workspace result when its compiled template lookup missed. */
+  legacyTemplateLookupFailed?: boolean;
 }
 
 export declare class QueryFilter {

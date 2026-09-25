@@ -182,10 +182,12 @@ Recommended procedure for each production deployment:
    ```json
    {
      "captureFingerprints": { "default": "<inputFingerprint from the preflight>" },
-     "acceptedFindingIds": ["<finding id>"],
+     "acceptedFindingIdsByBrand": { "default": ["<finding id>"] },
      "replacements": [{ "brand": "default", "target": { "kind": "workflow", "recordType": "existing-locations", "stage": "existing-locations-draft" }, "settings": { "...": "complete settings" } }]
    }
    ```
+
+   A brand fingerprint is required whenever that brand has accepted findings or replacement settings. Acceptances are scoped by brand; the old unscoped `acceptedFindingIds` array is rejected because identical findings can occur in more than one brand. A fingerprint for a brand with no applicable decisions is ignored.
 
    Point `REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS` at the file. The migration refuses to run if the deployed configuration no longer matches the fingerprint.
 4. Restart without `REDBOX_SKIP_MIGRATIONS`, using a single instance. Compare the dashboards with step 1, then check that the editor can save and copy.

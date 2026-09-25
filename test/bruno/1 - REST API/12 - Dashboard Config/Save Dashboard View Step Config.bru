@@ -1,11 +1,11 @@
 meta {
-  name: Save Dashboard View Step Config
+  name: Save Dashboard View Step Settings
   type: http
-  seq: 7
+  seq: 11
 }
 
 put {
-  url: {{host}}/default/rdmp/api/dashboard-config/merged-view/consolidated/consolidated
+  url: {{host}}/default/rdmp/api/dashboard-config/views/consolidated/consolidated
   body: json
   auth: none
 }
@@ -15,15 +15,13 @@ headers {
   X-ReDBox-Api-Version: 2.0
 }
 
-body:json {
-  {
-    "dashboardType": "consolidated",
-    "tableConfig": {
-      "formatRules": {
-        "sortBy": "metadata.title"
-      }
-    }
-  }
+script:pre-request {
+  req.setBody({
+    expectedRevision: Number(bru.getVar("dashboardViewConfigRevision")),
+    settings: JSON.parse(bru.getVar("dashboardViewSettings")),
+    validationFingerprint: bru.getVar("dashboardViewValidationFingerprint"),
+    acknowledgedWarningIds: JSON.parse(bru.getVar("dashboardViewAcknowledgedWarningIds"))
+  });
 }
 
 tests {
@@ -31,9 +29,10 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 
-  test("Saves the dashboard view step override", function () {
-    var jsonData = res.getBody();
-    expect(jsonData.data.views.consolidated.steps.consolidated.dashboardType).to.equal("consolidated");
-    expect(jsonData.data.views.consolidated.steps.consolidated.tableConfig.formatRules.sortBy).to.equal("metadata.title");
+  test("Saves the complete independent view-step settings", function () {
+    var data = res.getBody().data;
+    expect(data.target).to.deep.equal({ kind: "view", view: "consolidated", step: "consolidated" });
+    expect(data.settings).to.have.property("tableConfig");
+    expect(data.revision).to.equal(Number(bru.getVar("dashboardViewConfigRevision")) + 1);
   });
 }

@@ -1,0 +1,43 @@
+meta {
+  name: Validate Dashboard View Step Settings
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/default/rdmp/api/dashboard-config/validate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "target": { "kind": "view", "view": "consolidated", "step": "consolidated" },
+    "expectedRevision": {{dashboardViewConfigRevision}},
+    "settings": {{dashboardViewSettings}}
+  }
+}
+
+script:post-response {
+  var data = res.getBody().data;
+  bru.setVar("dashboardViewValidationFingerprint", data.validationFingerprint);
+  bru.setVar("dashboardViewAcknowledgedWarningIds", JSON.stringify(data.warnings.map(function (warning) { return warning.id; })));
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("View settings are valid and warnings can be reviewed before save", function () {
+    var data = res.getBody().data;
+    expect(data.errors).to.deep.equal([]);
+    expect(data.validationFingerprint).to.be.a("string");
+    expect(data.warnings).to.be.an("array");
+  });
+}

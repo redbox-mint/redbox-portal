@@ -114,16 +114,20 @@ describe('DashboardTypesService', function () {
   });
 
   it('rejects deleting assigned dashboard types', async function () {
-    (global as any).AppConfig.find = sinon.stub().resolves([{
-      configData: {
-        recordTypes: {
-          rdmp: {
-            default: { dashboardType: 'standard' }
-          }
-        },
-        views: {}
-      }
-    }]);
+    (global as any).AppConfig.find = sinon.stub().resolves([
+      {
+        updatedAt: '2026-02-01T00:00:00.000Z',
+        configData: {
+          recordTypes: {
+            rdmp: {
+              default: { dashboardType: 'standard' }
+            }
+          },
+          views: {}
+        }
+      },
+      { updatedAt: '2026-01-01T00:00:00.000Z', configData: { recordTypes: {}, views: {} } }
+    ]);
     (global as any).DashboardType.findOne = sinon.stub().callsFake(() => ({
       exec: (cb: (err: any, result: any) => void) => cb(null, {
         branding: { id: 'brand1', name: 'default' },

@@ -1,7 +1,7 @@
 meta {
   name: Save Workflow Stage Settings
   type: http
-  seq: 3
+  seq: 4
 }
 
 put {
@@ -15,11 +15,13 @@ headers {
   X-ReDBox-Api-Version: 2.0
 }
 
-body:json {
-  {
-    "expectedRevision": {{dashboardConfigRevision}},
-    "settings": {{dashboardConfigDraftSettings}}
-  }
+script:pre-request {
+  req.setBody({
+    expectedRevision: Number(bru.getVar("dashboardConfigRevision")),
+    settings: JSON.parse(bru.getVar("dashboardConfigDraftSettings")),
+    validationFingerprint: bru.getVar("dashboardConfigValidationFingerprint"),
+    acknowledgedWarningIds: JSON.parse(bru.getVar("dashboardConfigAcknowledgedWarningIds"))
+  });
 }
 
 tests {

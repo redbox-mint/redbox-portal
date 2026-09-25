@@ -470,6 +470,8 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     try {
       const result = await this.api.applyCopy(preview, Array.from(this.copyTo.acknowledged));
       this.copyTo.open = false;
+      // Copy is atomic and the selected source cannot be a destination, so its
+      // settings remain the same at the returned document revision.
       this.baseRevision = result.revision;
       this.message = `Copied settings to ${result.updated} dashboard${result.updated === 1 ? '' : 's'}.`;
     } catch (e) {

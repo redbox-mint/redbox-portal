@@ -2,6 +2,8 @@ declare var DashboardConfigService: any;
 declare var DashboardConfiguration: any;
 declare var BrandingService: any;
 
+const dashboardMigration = require('@researchdatabox/redbox-core').DashboardConfigService;
+
 /**
  * Exercises revision-conditioned writes against the real datastore. Mock-only
  * concurrency tests cannot show that two writers based on the same revision
@@ -75,5 +77,61 @@ describe('DashboardConfigService (datastore)', function () {
     }
     expect(code).to.equal('stale-preview');
     expect((await current()).revision).to.equal(result.revision);
+  });
+
+  it('creates one migrated document and preserves the first recovery snapshot on rerun', async function () {
+    const suffix = Date.now().toString();
+    const createdBrand = await BrandingConfig.create({ name: `dashboard-migration-${suffix}`, variables: {} }).fetch();
+    const brandId = String(createdBrand.id);
+    const previousDashboardViews = sails.config.dashboardview;
+    const previousDashboardTypes = sails.config.dashboardtype;
+    let legacyOverride: any;
+
+    try {
+      // Keep this test focused on persistence: the new brand has no workflow
+      // stages, views or profiles to migrate, but it has legacy AppConfig data.
+      sails.config.dashboardview = {};
+      sails.config.dashboardtype = {};
+      legacyOverride = await AppConfig.create({
+        branding: brandId,
+        configKey: dashboardMigration.DASHBOARD_LEGACY_OVERRIDE_KEY,
+        configData: { recordTypes: {}, views: {} },
+      }).fetch();
+
+      await sails.services.dashboardconfigservice.migrateLegacyConfiguration();
+
+      const docs = await DashboardConfiguration.find({ branding: brandId });
+      expect(docs).to.have.length(1);
+      expect(docs[0].revision).to.equal(1);
+      const snapshots = await AppConfig.find({
+        branding: brandId,
+        configKey: dashboardMigration.DASHBOARD_LEGACY_SNAPSHOT_KEY,
+      });
+      expect(snapshots).to.have.length(1);
+      const firstSnapshot = JSON.parse(JSON.stringify(snapshots[0].configData));
+      expect(firstSnapshot.appConfigDashboardTableConfigRows).to.have.length(1);
+      expect(firstSnapshot.appConfigDashboardTableConfigRows[0].configData).to.deep.equal({ recordTypes: {}, views: {} });
+
+      await AppConfig.updateOne({ id: legacyOverride.id }).set({
+        configData: { recordTypes: { changedAfterMigration: {} }, views: {} },
+      });
+      await sails.services.dashboardconfigservice.migrateLegacyConfiguration();
+
+      const rerunDocs = await DashboardConfiguration.find({ branding: brandId });
+      const rerunSnapshots = await AppConfig.find({
+        branding: brandId,
+        configKey: dashboardMigration.DASHBOARD_LEGACY_SNAPSHOT_KEY,
+      });
+      expect(rerunDocs).to.have.length(1);
+      expect(rerunDocs[0].revision).to.equal(1);
+      expect(rerunSnapshots).to.have.length(1);
+      expect(rerunSnapshots[0].configData).to.deep.equal(firstSnapshot);
+    } finally {
+      sails.config.dashboardview = previousDashboardViews;
+      sails.config.dashboardtype = previousDashboardTypes;
+      await DashboardConfiguration.destroy({ branding: brandId });
+      await AppConfig.destroy({ branding: brandId });
+      await BrandingConfig.destroy({ id: brandId });
+    }
   });
 });

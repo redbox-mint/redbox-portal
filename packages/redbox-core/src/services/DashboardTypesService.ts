@@ -191,8 +191,22 @@ export namespace Services {
 
     private async listAssignedDashboardTypeNames(brand: BrandingModel): Promise<Set<string>> {
       // Retired overrides may still reference profiles; read the latest legacy row directly.
-      const legacyRows = await AppConfig.find({ branding: brand.id, configKey: 'dashboardTableConfig' }) as unknown as Array<{ configData?: unknown }>;
-      const overrides = (legacyRows[legacyRows.length - 1]?.configData ?? {}) as Partial<{ recordTypes: Record<string, RecordTypeOverride>; views: Record<string, ViewOverride> }>;
+      const legacyRows = await AppConfig.find({ branding: brand.id, configKey: 'dashboardTableConfig' }) as unknown as Array<{
+        configData?: unknown;
+        updatedAt?: unknown;
+        createdAt?: unknown;
+      }>;
+      const timestamp = (row: (typeof legacyRows)[number]) => {
+        const updatedAt = Date.parse(String(row.updatedAt ?? ''));
+        if (!Number.isNaN(updatedAt)) {
+          return updatedAt;
+        }
+        const createdAt = Date.parse(String(row.createdAt ?? ''));
+        return Number.isNaN(createdAt) ? 0 : createdAt;
+      };
+      const latestLegacyRow = legacyRows.reduce<(typeof legacyRows)[number] | undefined>((latest, row) =>
+        !latest || timestamp(row) >= timestamp(latest) ? row : latest, undefined);
+      const overrides = (latestLegacyRow?.configData ?? {}) as Partial<{ recordTypes: Record<string, RecordTypeOverride>; views: Record<string, ViewOverride> }>;
       const assigned = new Set<string>();
       for (const recordType of Object.values(overrides.recordTypes ?? {}) as Array<RecordTypeOverride>) {
         if (recordType.default?.dashboardType) {

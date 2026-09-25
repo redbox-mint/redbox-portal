@@ -1,9 +1,13 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Services, DASHBOARD_CONFIGURATION_MIGRATION_NAME, DASHBOARD_LEGACY_SNAPSHOT_KEY } from '../../src/services/DashboardConfigService';
 import { DashboardSettings, fingerprint, normaliseDashboardSettings } from '../../src/configmodels/DashboardSettings';
+import { convertLegacyDashboardConfiguration } from '../../src/services/DashboardLegacyConversion';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 type Doc = { id: string; branding: string; revision: number; configData: any; provenance?: any };
@@ -59,12 +63,46 @@ describe('DashboardConfigService', function () {
   let service: Services.DashboardConfig;
   let store: ReturnType<typeof createStore>;
   let mockSails: any;
+  let previousResolutionFile: string | undefined;
+  let resolutionDirectory: string | undefined;
+
+  function writeResolutionFile(value: Record<string, unknown>) {
+    resolutionDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-dashboard-migration-'));
+    const file = path.join(resolutionDirectory, 'resolutions.json');
+    fs.writeFileSync(file, JSON.stringify(value));
+    process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS = file;
+  }
+
+  function useWorkspaceConflictFixture(workspaceBrandIds: string[] = ['brand1']) {
+    (global as any).DashboardType.find = sinon.stub().callsFake(async ({ branding }: { branding: string }) => {
+      const types: Array<{ name: string; formatRules: Record<string, unknown> }> = [{ name: 'standard', formatRules: { filterBy: {} } }];
+      if (workspaceBrandIds.includes(branding)) {
+        types.push({ name: 'workspace', formatRules: { filterBy: {}, recordTypeFilterBy: 'rdmp', filterWorkflowStepsBy: ['draft'] } });
+      }
+      return types;
+    });
+    (global as any).WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: { recordType: string }) => recordType === 'rt1'
+      ? [{ name: 'draft', config: { displayIndex: 1, dashboard: { table: { rowConfig: [{ title: 'Title', variable: 'metadata.title', template: '{{metadata.title}}' }] } } } }]
+      : []);
+  }
+
+  async function workspaceConflict(brandInfo = brand) {
+    const { input } = await service.captureLegacyInput(brandInfo);
+    const conversion = convertLegacyDashboardConfiguration(input);
+    const finding = conversion.findings.find((item) => item.severity === 'resolution');
+    if (!finding) {
+      throw new Error('Workspace fixture did not produce a resolution finding.');
+    }
+    return { conversion, finding };
+  }
 
   async function seed(workflows: Record<string, Record<string, DashboardSettings>> = {}) {
     await store.model.create({ id: '', branding: 'brand1', revision: 1, configData: { schemaVersion: 1, workflows, views: {}, contexts: {} } });
   }
 
   beforeEach(function () {
+    previousResolutionFile = process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS;
+    resolutionDirectory = undefined;
     mockSails = createMockSails();
     mockSails.config.dashboardview = {
       consolidated: { name: 'consolidated', titleLabelKey: 'consolidated', dashboardType: 'consolidated', sourceRecordType: 'rdmp', steps: [{ name: 'consolidated', sourceRecordType: 'rdmp', fetchMode: 'allForRecordType' }] }
@@ -94,6 +132,14 @@ describe('DashboardConfigService', function () {
   });
 
   afterEach(function () {
+    if (previousResolutionFile === undefined) {
+      delete process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS;
+    } else {
+      process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS = previousResolutionFile;
+    }
+    if (resolutionDirectory) {
+      fs.rmSync(resolutionDirectory, { recursive: true, force: true });
+    }
     cleanupServiceTestGlobals();
     for (const name of ['DashboardConfiguration', 'RecordTypesService', 'WorkflowStepsService', 'BrandingService', 'RecordType', 'WorkflowStep', 'DashboardType', 'AppConfig', 'BrandingConfig']) {
       delete (global as any)[name];
@@ -414,6 +460,25 @@ describe('DashboardConfigService', function () {
   });
 
   describe('legacy migration', function () {
+    it('captures the most recently updated legacy AppConfig override row', async function () {
+      (global as any).AppConfig.find = sinon.stub().resolves([
+        {
+          id: 'newer',
+          updatedAt: new Date('2025-11-15T00:00:00.000Z'),
+          configData: { recordTypes: { rdmp: { default: { dashboardType: 'newer-profile' } } } }
+        },
+        {
+          id: 'older',
+          updatedAt: new Date('2025-01-15T00:00:00.000Z'),
+          configData: { recordTypes: { rdmp: { default: { dashboardType: 'older-profile' } } } }
+        }
+      ]);
+
+      const { input } = await service.captureLegacyInput(brand);
+
+      expect(input.overrides?.recordTypes?.rdmp?.default?.dashboardType).to.equal('newer-profile');
+    });
+
     it('snapshots, converts and publishes once; reruns leave published settings alone', async function () {
       (global as any).WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: any) => (recordType === 'rt1' ? [{ name: 'draft', config: { displayIndex: 1 } }] : []));
       await service.migrateLegacyConfiguration();
@@ -442,6 +507,157 @@ describe('DashboardConfigService', function () {
       expect(store.docs).to.have.length(0);
       // The recovery snapshot was still captured first.
       expect((global as any).AppConfig.create.calledOnce).to.equal(true);
+    });
+
+    it('accepts a resolution only when its brand fingerprint matches the preflight capture', async function () {
+      useWorkspaceConflictFixture();
+      const { conversion, finding } = await workspaceConflict();
+      writeResolutionFile({
+        captureFingerprints: { default: conversion.inputFingerprint },
+        acceptedFindingIdsByBrand: { default: [finding.id] }
+      });
+
+      await service.migrateLegacyConfiguration();
+
+      expect(store.docs).to.have.length(1);
+      expect(store.docs[0].provenance.migration.acceptedFindingIds).to.deep.equal([finding.id]);
+    });
+
+    it('refuses resolutions prepared against a different brand fingerprint', async function () {
+      useWorkspaceConflictFixture();
+      const { finding } = await workspaceConflict();
+      writeResolutionFile({
+        captureFingerprints: { default: 'stale-input-fingerprint' },
+        acceptedFindingIdsByBrand: { default: [finding.id] }
+      });
+
+      try {
+        await service.migrateLegacyConfiguration();
+        expect.fail('expected stale resolutions to be rejected');
+      } catch (error: any) {
+        expect(error.message).to.contain('Do not reuse those decisions');
+        expect(error.message).to.contain('captureFingerprints.default');
+      }
+      expect(store.docs).to.have.length(0);
+      expect((global as any).AppConfig.create.calledOnce).to.equal(true);
+    });
+
+    it('requires a fingerprint when accepted findings are supplied for a brand', async function () {
+      useWorkspaceConflictFixture();
+      const { finding } = await workspaceConflict();
+      writeResolutionFile({ acceptedFindingIdsByBrand: { default: [finding.id] } });
+
+      try {
+        await service.migrateLegacyConfiguration();
+        expect.fail('expected unbound resolutions to be rejected');
+      } catch (error: any) {
+        expect(error.message).to.contain('captureFingerprints.default is missing');
+        expect(error.message).to.contain('Run the migration preflight');
+      }
+      expect(store.docs).to.have.length(0);
+    });
+
+    it('requires a fingerprint when replacement settings are supplied for a brand', async function () {
+      useWorkspaceConflictFixture();
+      const { finding } = await workspaceConflict();
+      writeResolutionFile({
+        replacements: [{ brand: 'default', target: finding.target, settings: normaliseDashboardSettings({}) }]
+      });
+
+      try {
+        await service.migrateLegacyConfiguration();
+        expect.fail('expected an unbound replacement to be rejected');
+      } catch (error: any) {
+        expect(error.message).to.contain('captureFingerprints.default is missing');
+      }
+      expect(store.docs).to.have.length(0);
+    });
+
+    it('rejects legacy unscoped finding acceptances as unsafe across brands', async function () {
+      writeResolutionFile({ acceptedFindingIds: ['finding-id'] });
+
+      try {
+        await service.migrateLegacyConfiguration();
+        expect.fail('expected an unscoped acceptance to be rejected');
+      } catch (error: any) {
+        expect(error.message).to.contain('Unscoped acceptedFindingIds are unsafe across brands');
+        expect(error.message).to.contain('acceptedFindingIdsByBrand');
+      }
+      expect(store.docs).to.have.length(0);
+    });
+
+    it('allows a replacement to resolve a material finding and records its resolution', async function () {
+      useWorkspaceConflictFixture();
+      const { conversion, finding } = await workspaceConflict();
+      const replacement = normaliseDashboardSettings({
+        searchable: true,
+        showStageTitle: true,
+        tableConfig: { rowConfig: [{ title: 'Operator choice', variable: 'metadata.title', template: '{{metadata.title}}' }] }
+      });
+      writeResolutionFile({
+        captureFingerprints: { default: conversion.inputFingerprint },
+        replacements: [{ brand: 'default', target: finding.target, settings: replacement }]
+      });
+
+      await service.migrateLegacyConfiguration();
+
+      expect(store.docs).to.have.length(1);
+      expect(store.docs[0].configData.workflows.rdmp.draft.tableConfig.rowConfig[0].title).to.equal('Operator choice');
+      expect(store.docs[0].provenance.migration.replacementResolvedFindingIds).to.deep.equal([finding.id]);
+    });
+
+    it('scopes identical finding IDs to their brand instead of leaking an acceptance', async function () {
+      const otherBrand = { id: 'brand2', name: 'other' };
+      (global as any).BrandingConfig.find = sinon.stub().resolves([{ id: 'brand1', name: 'default' }, otherBrand]);
+      useWorkspaceConflictFixture(['brand1', 'brand2']);
+      const first = await workspaceConflict(brand);
+      const second = await workspaceConflict(otherBrand);
+      expect(first.finding.id).to.equal(second.finding.id);
+      writeResolutionFile({
+        captureFingerprints: { default: first.conversion.inputFingerprint },
+        acceptedFindingIdsByBrand: { default: [first.finding.id] }
+      });
+
+      try {
+        await service.migrateLegacyConfiguration();
+        expect.fail('the second brand still has an unresolved finding');
+      } catch (error: any) {
+        expect(error.message).to.contain('other:');
+      }
+      expect(store.docs.map((doc) => doc.branding)).to.deep.equal(['brand1']);
+    });
+
+    it('does not require or compare a fingerprint for a brand with no applicable resolution decisions', async function () {
+      const otherBrand = { id: 'brand2', name: 'other' };
+      (global as any).BrandingConfig.find = sinon.stub().resolves([{ id: 'brand1', name: 'default' }, otherBrand]);
+      useWorkspaceConflictFixture(['brand2']);
+      const { conversion, finding } = await workspaceConflict(otherBrand);
+      writeResolutionFile({
+        captureFingerprints: { other: conversion.inputFingerprint },
+        acceptedFindingIdsByBrand: { other: [finding.id] }
+      });
+
+      await service.migrateLegacyConfiguration();
+
+      expect(store.docs.map((doc) => doc.branding)).to.deep.equal(['brand1', 'brand2']);
+    });
+
+    it('does not enforce a stale unused fingerprint when the file has no applicable decisions', async function () {
+      writeResolutionFile({ captureFingerprints: { other: 'old-fingerprint' }, acceptedFindingIdsByBrand: { other: [] } });
+
+      await service.migrateLegacyConfiguration();
+
+      expect(store.docs).to.have.length(1);
+    });
+
+    it('does not treat inherited object properties as resolution decisions for a brand', async function () {
+      const reservedNameBrand = { id: 'brand1', name: 'constructor' };
+      (global as any).BrandingConfig.find = sinon.stub().resolves([reservedNameBrand]);
+      writeResolutionFile({});
+
+      await service.migrateLegacyConfiguration();
+
+      expect(store.docs.map((doc) => doc.branding)).to.deep.equal(['brand1']);
     });
 
     it('treats a fresh installation (no brands yet) as nothing to migrate', async function () {

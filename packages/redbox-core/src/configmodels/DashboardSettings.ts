@@ -51,6 +51,8 @@ export interface DashboardSettingsFilterField {
   name: string;
   path: string;
   template?: string;
+  /** Preserves v5.0.1 workspace search behavior when its template lookup missed. */
+  legacyTemplateLookupFailed?: boolean;
   [extra: string]: unknown;
 }
 

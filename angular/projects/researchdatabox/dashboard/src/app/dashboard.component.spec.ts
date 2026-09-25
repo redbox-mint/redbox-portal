@@ -197,13 +197,43 @@ describe('DashboardComponent', () => {
       { name: 'existing-locations-draft', config: { workflow: { stage: 'existing-locations-draft' } } },
       { name: 'other', config: { workflow: { stage: 'other' } } },
     ]);
-    recordService.getDashboardSettings.and.resolveTo({ revision: 1, targets: { 'existing-locations-draft': { settings: settings('Workspace'), fingerprint: 'w' } } });
+    recordService.getDashboardSettings.and.resolveTo({
+      revision: 1,
+      targets: {
+        'existing-locations-draft': {
+          settings: settings('Workspace', {
+            formatRules: {
+              filterBy: {
+                filterBase: 'record',
+                filterBaseFieldOrValue: 'published',
+                filterField: 'metaMetadata.status',
+                filterMode: 'equal',
+              },
+              queryFilters: {
+                workspace: [
+                  {
+                    filterType: 'text',
+                    filterFields: [{ name: 'Title', path: 'metadata.title', template: '', legacyTemplateLookupFailed: true }],
+                  },
+                ],
+              },
+            },
+          }),
+          fingerprint: 'w',
+        },
+      },
+    });
     const component = create();
     await init(component);
     expect(recordService.getDashboardSettings).toHaveBeenCalledWith('workflow', 'existing-locations');
     expect(component.workflowSteps.map((s: any) => s.name)).toEqual(['existing-locations-draft']);
     expect(recordService.getRecords.calls.mostRecent().args.slice(0, 4)).toEqual(['', '', 1, 'workspace']);
+    expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metaMetadata.status', 'published', 'equal']);
     expect(component.isStageTitleShown('existing-locations-draft')).toBeFalse();
+    component.filterSearchString['existing-locations-draft'] = 'a search term';
+    expect(component.getFilterSearchString('existing-locations-draft')).toBe('');
+    await component.filterChanged('existing-locations-draft');
+    expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
   });
 
   it('renders custom view steps with their own grouping and group rows', async () => {

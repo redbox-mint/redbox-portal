@@ -373,12 +373,22 @@ export function convertLegacyDashboardConfiguration(input: LegacyCaptureInput): 
         formatForTarget.queryFilters = {
           [pageRecordType]: (searchFilters as DashboardSettingsQueryFilter[]).map((filter) => ({
             ...filter,
-            filterFields: (filter.filterFields || []).map((field) => (field.template && searchFilterNote ? { ...field, template: '' } : field))
+            filterFields: (filter.filterFields || []).map((field) =>
+              // An explicit empty template means "use the entered text". A
+              // non-empty v5.0.1 workspace template instead looked up a missing
+              // module and returned empty text, so retain that distinction.
+              field.template && searchFilterNote
+                ? { ...field, template: '', legacyTemplateLookupFailed: true }
+                : field
+            )
           }))
         };
       }
 
       const settings = normaliseDashboardSettings({
+        // DashboardType.searchable was returned by the v5.0.1 API/editor but
+        // never read by the dashboard component. Standard/workspace search UI
+        // was mode-driven, so preserve it independently of that stored flag.
         searchable: true,
         showStageTitle: TITLE_MODES.includes(mode) ? !(steps.length === 1 && hideTitle) : true,
         tableConfig: {
@@ -504,15 +514,21 @@ export function convertLegacyDashboardConfiguration(input: LegacyCaptureInput): 
       const rows = (table.rowConfig !== undefined ? table.rowConfig : builtInDashboardRowConfig()) as DashboardSettingsRowConfig[];
       const notes: ReconcileNotes = { replaced: [], blanked: [] };
       const compiled = indexCompiledTemplates(mergedWorkflowTable(recordType.name, step));
-      setTargetSettings(data, target, normaliseDashboardSettings({
-        searchable: true,
-        showStageTitle: true,
-        tableConfig: {
-          ...table,
-          rowConfig: reconcileRows(clone(rows), compiled.rows, true, 'columns', notes),
-          formatRules: editableFormatRules(isPlainObject(table.formatRules) ? table.formatRules : {})
-        }
-      }));
+      setTargetSettings(
+        data,
+        target,
+        normaliseDashboardSettings({
+          // Hidden/filtered workflow targets inherit the same legacy search UI
+          // behaviour if they are later made visible.
+          searchable: true,
+          showStageTitle: true,
+          tableConfig: {
+            ...table,
+            rowConfig: reconcileRows(clone(rows), compiled.rows, true, 'columns', notes),
+            formatRules: editableFormatRules(isPlainObject(table.formatRules) ? table.formatRules : {}),
+          },
+        })
+      );
       targets.push({ target, outcome: 'inactive', contexts: [] });
       findings.push(finding('info', 'not-displayed', `${targetLabel(target)} was not shown on any v5.0.1 dashboard${step.hidden ? ' (hidden stage)' : ''}. Settings were created from its declaration.`, target));
     }

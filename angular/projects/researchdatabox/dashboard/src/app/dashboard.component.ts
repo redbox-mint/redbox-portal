@@ -309,9 +309,15 @@ export class DashboardComponent extends BaseComponent {
 
   /** Search text when the user has searched, otherwise the step's own filter. */
   private getActiveFilter(stepKey: string): { filterFields: any; filterString: any; filterMode: any } {
-    const searchString = this.getFilterSearchString(stepKey);
-    if (!_isEmpty(searchString)) {
-      return { filterFields: this.getFilterFieldPath(stepKey), filterString: searchString, filterMode: '' };
+    // An entered search whose legacy template resolved to an empty string must
+    // still replace the initial record filter, as v5.0.1 did. The presence
+    // check also distinguishes an untouched input from an explicit reset.
+    if (Object.prototype.hasOwnProperty.call(this.filterSearchString, stepKey)) {
+      return {
+        filterFields: this.getFilterFieldPath(stepKey),
+        filterString: this.getFilterSearchString(stepKey),
+        filterMode: ''
+      };
     }
     return this.getStepFilter(stepKey);
   }
@@ -741,6 +747,16 @@ export class DashboardComponent extends BaseComponent {
       const filterFields = queryFilters[i].filterFields ?? [];
       for (let j = 0; j < filterFields.length; j++) {
         const filterField = filterFields[j];
+        if (
+          filterField.path == filterFieldPath &&
+          filterField.legacyTemplateLookupFailed === true &&
+          !filterField.template
+        ) {
+          // v5.0.1 workspace lookup missed a configured non-empty template
+          // and passed its empty result to search. Migration keeps that apart
+          // from a genuinely empty template, which uses the entered text.
+          return '';
+        }
         if (filterField.path == filterFieldPath && filterField.template) {
           const key = this.templateKey(step, 'filters', this.recordType, i.toString(), 'fields', j.toString(), 'template');
           return this.handlebarsTemplateService.compileAndRunTemplate(filterField.template, { value: filterString }, key);
