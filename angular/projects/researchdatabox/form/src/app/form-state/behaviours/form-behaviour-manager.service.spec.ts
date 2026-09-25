@@ -491,7 +491,9 @@ describe('FormBehaviourManager', () => {
       tick();
 
       expect(target.control.value).toBe('set-via-instruction');
+      expect(target.control.dirty).toBeTrue();
       expect(ui.componentSetProperty).toHaveBeenCalledWith('visible', false);
+      expect(ui.control.pristine).toBeTrue();
       // One warn for the unresolvable pointer and one for the non-object entry.
       expect(logger.warn).toHaveBeenCalledTimes(2);
     }));

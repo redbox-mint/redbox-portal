@@ -264,6 +264,9 @@ async function applyRunTemplateInstructions(
     }
 
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
+    if (target === FormExpressionsTargetModelValue) {
+      host.model?.formControl?.markAsDirty();
+    }
   }
 }
 
