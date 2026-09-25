@@ -1,5 +1,6 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
+  createFieldValueChangedEvent,
   FormComponentEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
@@ -13,11 +14,12 @@ import {
   FormExpressionsConfigFrame,
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
+  FormExpressionsTargetModelValue,
   FormExpressionsTargetValidationGroups,
   DynamicScriptResponse,
   jsonataDecodeCompile,
 } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty } from 'lodash-es';
+import { isEmpty as _isEmpty, isEqual as _isEqual } from 'lodash-es';
 import { isTypeFormValidationGroupsChangeRequestInfo } from '../custom-set-value.control';
 import { applyExpressionTarget } from '../apply-expression-target';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
@@ -489,6 +491,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return;
     }
 
+    const control = exprTarget === FormExpressionsTargetModelValue ? this.model?.formControl : undefined;
+    const previousValue = control?.value;
+
     await applyExpressionTarget(
       exprTarget,
       targetValue,
@@ -505,6 +510,21 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         eventFieldId: event.fieldId,
       }
     );
+
+    // Silent control writes bypass the regular value-change producer. Publish
+    // the resulting change so expressions depending on this field can run.
+    if (control && !_isEqual(previousValue, control.value)) {
+      const fieldId = this.options && this.resolveFieldId(this.options);
+      if (fieldId) {
+        this.eventBus.publish(createFieldValueChangedEvent({
+          fieldId,
+          sourceId: '*',
+          value: control.value,
+          previousValue,
+          behaviourChain: event.behaviourChain,
+        }));
+      }
+    }
   }
 
   /**

@@ -1,5 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { FormControl } from '@angular/forms';
+import { FormControl, FormGroup } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { LoggerService, RecordService } from '@researchdatabox/portal-ng-common';
 import { FormBehaviourManager } from './form-behaviour-manager.service';
@@ -709,6 +709,7 @@ describe('FormBehaviourManager', () => {
         ],
         { title }
       );
+      formComponent.form = new FormGroup({ title: title.control });
 
       manager.bind(formComponent);
       fieldEvents$.next(sourceChangedEvent('anything'));

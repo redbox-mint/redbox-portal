@@ -556,7 +556,11 @@ describe('GroupFieldComponent', () => {
 
     expect(group.value).toEqual({ name: 'Ada', email: 'Ada' });
     expect(groupChanges).toBe(1);
-    expect(events).toHaveSize(2);
+    expect(events).toEqual([
+      '/contributor/reusable_fields/name',
+      '/contributor',
+      '/contributor/reusable_fields/email',
+    ]);
     const settledEvents = events.length;
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(events.length).toBe(settledEvents);

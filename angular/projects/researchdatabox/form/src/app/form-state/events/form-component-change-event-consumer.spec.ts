@@ -51,6 +51,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
           fieldId: event.fieldId,
           sourceId: event.sourceId,
           value: event.value,
+          behaviourChain: event.behaviourChain,
           timestamp: Date.now(),
         });
       }
@@ -58,10 +59,20 @@ describe('FormComponentValueChangeEventConsumer', () => {
     consumer.bind(first);
     downstream.bind(second);
     try {
-      eventStream$.next({ type: 'field.value.changed', fieldId: '/source', sourceId: '/source', value: 'changed', timestamp: 1 });
+      eventStream$.next({
+        type: 'field.value.changed',
+        fieldId: '/source',
+        sourceId: '/source',
+        value: 'changed',
+        behaviourChain: [7],
+        timestamp: 1,
+      });
       tick();
       expect(first.control.value).toBe('changed');
       expect(second.control.value).toBe('changed');
+      expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({
+        fieldId: '/first', behaviourChain: [7],
+      }));
     } finally {
       downstream.destroy();
     }
