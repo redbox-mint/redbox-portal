@@ -146,15 +146,16 @@ export namespace Controllers {
     }
 
     /**
-    * Provide the client script that can run the dashboard expressions as jsonata expressions.
-    * @param req
-    * @param res
+    * Compiled templates for one workflow stage's independent dashboard settings.
+    * `settingsFingerprint` pins the exact settings the page loaded; if they have
+    * since changed the response is 409 so the page reloads settings and
+    * templates together instead of mixing versions.
     */
     public async getRecordDashboardTemplates(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const recordType = req.param("recordType") || "";
       const workflowStage = req.param("workflowStage") || "";
-      const dashboardType = req.param("dashboardType") || "standard";
+      const settingsFingerprint = req.param("settingsFingerprint") || undefined;
 
       if (!recordType || !workflowStage) {
         sails.log.warn(`getRecordDashboardTemplates called without recordType or workflowStage`);
@@ -162,11 +163,10 @@ export namespace Controllers {
       }
 
       try {
-        const entries = await DashboardTypesService.extractDashboardTemplates(brand, recordType, workflowStage, dashboardType);
+        const entries = await DashboardTypesService.extractDashboardTemplates(brand, recordType, workflowStage, settingsFingerprint);
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
-        sails.log.error("Could not build dashboard templates:", error);
-        return res.serverError();
+        return this.sendDashboardTemplateError(res, error, "Could not build dashboard templates:");
       }
     }
 
@@ -174,7 +174,7 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const dashboardView = req.param("dashboardView") || "";
       const stepName = req.param("stepName") || "";
-      const dashboardType = req.param("dashboardType") || "";
+      const settingsFingerprint = req.param("settingsFingerprint") || undefined;
 
       if (!dashboardView || !stepName) {
         sails.log.warn(`getDashboardViewTemplates called without dashboardView or stepName`);
@@ -182,12 +182,22 @@ export namespace Controllers {
       }
 
       try {
-        const entries = await DashboardTypesService.extractDashboardViewTemplates(brand, dashboardView, stepName, dashboardType);
+        const entries = await DashboardTypesService.extractDashboardViewTemplates(brand, dashboardView, stepName, settingsFingerprint);
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
-        sails.log.error("Could not build dashboard view templates:", error);
-        return res.serverError();
+        return this.sendDashboardTemplateError(res, error, "Could not build dashboard view templates:");
       }
+    }
+
+    private sendDashboardTemplateError(res: Sails.Res, error: unknown, logMessage: string) {
+      const status = (error as { status?: number })?.status;
+      if (status === 409 || status === 503) {
+        sails.log.verbose(`${logMessage} ${(error as Error).message}`);
+        res.status(status);
+        return res.send((error as Error).message);
+      }
+      sails.log.error(logMessage, error);
+      return res.serverError();
     }
 
     private sendClientMappingJavascript(res: Sails.Res, inputs: TemplateCompileInput[]) {

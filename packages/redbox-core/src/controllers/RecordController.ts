@@ -42,7 +42,6 @@ import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
-import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
@@ -151,6 +150,8 @@ export namespace Controllers {
       'getAllDashboardTypes',
       'getDashboardType',
       'getDashboardView',
+      'getDashboardWorkflowSettings',
+      'getDashboardViewSettings',
       'redirectLegacyConsolidatedDashboard',
       'renderDeletedRecords',
       'getDeletedRecordList',
@@ -1791,25 +1792,45 @@ export namespace Controllers {
       );
     }
 
-    public getDashboardType(req: Sails.Req, res: Sails.Res) {
+    private async buildDashboardTypeResponse(
+      brand: BrandingModel,
+      dashboardType: globalThis.Record<string, unknown>
+    ): Promise<DashboardTypeResponseModel> {
+      const name = String(_.get(dashboardType, 'name', ''));
+      return new DashboardTypeResponseModel({
+        name,
+        description: _.get(dashboardType, 'description') as string | undefined,
+        formatRules: (await DashboardConfigService.getDashboardContext(brand, name)) as globalThis.Record<string, unknown>,
+        searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+        system: _.get(dashboardType, 'system') as boolean | undefined,
+      });
+    }
+
+    private sendDashboardConfigError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      const typed = error as { status?: number; code?: string; message?: string };
+      if (typed?.status && typed?.code) {
+        return this.sendResp(req, res, {
+          status: typed.status,
+          displayErrors: [{ status: String(typed.status), code: typed.code, detail: typed.message }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
+      return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+    }
+
+    public async getDashboardType(req: Sails.Req, res: Sails.Res) {
       const dashboardTypeParam = req.param('dashboardType') || '';
       const brand: BrandingModel = this.getReqBrand(req);
-      DashboardTypesService.get(brand, dashboardTypeParam).subscribe(
-        dashboardType => {
-          const dashboardTypeModel = new DashboardTypeResponseModel({
-            name: String(_.get(dashboardType, 'name', '')),
-            description: _.get(dashboardType, 'description') as string | undefined,
-            formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
-            tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
-            searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
-            system: _.get(dashboardType, 'system') as boolean | undefined,
-          });
-          this.sendResp(req, res, { data: dashboardTypeModel });
-        },
-        error => {
-          this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
-        }
-      );
+      try {
+        const dashboardType = await firstValueFrom(DashboardTypesService.get(brand, dashboardTypeParam));
+        const data = await this.buildDashboardTypeResponse(
+          brand,
+          (dashboardType ?? { name: dashboardTypeParam }) as unknown as globalThis.Record<string, unknown>
+        );
+        return this.sendResp(req, res, { data });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
     }
 
     private isValidDashboardViewDefinition(dashboardView: unknown): dashboardView is DashboardViewDefinition {
@@ -1837,37 +1858,54 @@ export namespace Controllers {
             !_.isEmpty(dashboardViewStep.name.trim()) &&
             _.isString(dashboardViewStep.sourceRecordType) &&
             !_.isEmpty(dashboardViewStep.sourceRecordType.trim()) &&
-            (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage') &&
-            _.isObject(dashboardViewStep.dashboardTable)
+            (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage')
           );
         })
       );
     }
 
-    public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
+    public async getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
-      DashboardTypesService.getAll(brand).subscribe(
-        dashboardTypes => {
-          const dashboardTypesModel = { dashboardTypes: [] };
-          const dashboardTypesModelList = [];
-          for (const dashboardType of dashboardTypes) {
-            const dashboardTypeModel = new DashboardTypeResponseModel({
-              name: String(_.get(dashboardType, 'name', '')),
-              description: _.get(dashboardType, 'description') as string | undefined,
-              formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
-              tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
-              searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
-              system: _.get(dashboardType, 'system') as boolean | undefined,
-            });
-            dashboardTypesModelList.push(dashboardTypeModel);
-          }
-          _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
-          this.sendResp(req, res, { data: dashboardTypesModel });
-        },
-        error => {
-          this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
+      try {
+        const dashboardTypes = await firstValueFrom(DashboardTypesService.getAll(brand));
+        const models: DashboardTypeResponseModel[] = [];
+        for (const dashboardType of dashboardTypes) {
+          models.push(await this.buildDashboardTypeResponse(brand, dashboardType as unknown as globalThis.Record<string, unknown>));
         }
-      );
+        return this.sendResp(req, res, { data: { dashboardTypes: models } });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
+    }
+
+    /**
+     * Independent settings for every stage of a record type, from one
+     * configuration snapshot. Available to ordinary dashboard users.
+     */
+    public async getDashboardWorkflowSettings(req: Sails.Req, res: Sails.Res) {
+      const recordType = String(req.param('recordType') ?? '').trim();
+      if (!recordType) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type is required' }] });
+      }
+      try {
+        const data = await DashboardConfigService.getRuntimeSettings(this.getReqBrand(req), 'workflow', recordType);
+        return this.sendResp(req, res, { data, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
+    }
+
+    public async getDashboardViewSettings(req: Sails.Req, res: Sails.Res) {
+      const dashboardView = String(req.param('dashboardView') ?? '').trim();
+      if (!this.isValidDashboardViewDefinition(DashboardTypesService.getDashboardView(dashboardView))) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+      }
+      try {
+        const data = await DashboardConfigService.getRuntimeSettings(this.getReqBrand(req), 'view', dashboardView);
+        return this.sendResp(req, res, { data, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
     }
 
     public getDashboardView(req: Sails.Req, res: Sails.Res) {

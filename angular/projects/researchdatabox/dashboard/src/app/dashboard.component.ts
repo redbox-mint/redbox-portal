@@ -9,33 +9,34 @@ import {
   PlanTable,
   UserService,
   ConfigService,
-  FormatRules,
   SortGroupBy,
   QueryFilter,
   FilterField,
   HandlebarsTemplateService,
+  DashboardTemplateTarget,
   DashboardViewDefinitionResponse,
   DashboardViewStepDefinitionResponse,
+  DashboardSettings,
+  DashboardSettingsRowConfig,
+  DashboardSettingsRuleSet,
+  DashboardModeContext,
+  DashboardRuntimeSettings
 } from '@researchdatabox/portal-ng-common';
 import { handlebarsInstance } from '@researchdatabox/sails-ng-common';
-import {
-  get as _get,
-  set as _set,
-  isEmpty as _isEmpty,
-  isUndefined as _isUndefined,
-  trim as _trim,
-  isNull as _isNull,
-  orderBy as _orderBy,
-  map as _map,
-  find as _find,
-  indexOf as _indexOf,
-  isArray as _isArray,
-  forEach as _forEach,
-  join as _join,
-  first as _first,
-  has as _has,
-  unset as _unset,
-} from 'lodash-es';
+import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, has as _has } from 'lodash-es';
+
+/**
+ * Settings and interaction state owned by one dashboard stage/step. Nothing in
+ * here is shared between stages, so the order in which stages are initialised
+ * or rendered cannot leak configuration from one to another.
+ */
+interface StepState {
+  target: DashboardTemplateTarget;
+  settings: DashboardSettings;
+  fingerprint: string;
+  templatePrefix: string[];
+  filterField: FilterField;
+}
 
 @Component({
   selector: 'dashboard',
@@ -57,61 +58,21 @@ export class DashboardComponent extends BaseComponent {
   packageType: string;
   records: any = {};
   sortMap: any = {};
-  tableConfig: any = {};
+  tableConfig: { [step: string]: DashboardSettingsRowConfig[] } = {};
+  stepState: { [step: string]: StepState } = {};
   dashboardTypeOptions: any = ['standard', 'workspace', 'consolidated'];
   defaultDashboardTypeSelected: string = this.dashboardTypeOptions[0];
   dashboardTypeSelected: string;
   rulesService: object;
   currentUser: object = {};
   enableSort: boolean = true;
-  filterFieldName: string = 'Title';
-  filterFieldPath: string = 'metadata.title';
-  defaultFilterField: FilterField = { name: this.filterFieldName, path: this.filterFieldPath };
+  defaultFilterField: FilterField = { name: 'Title', path: 'metadata.title' };
   filterSearchString: any = {};
-  hideWorkflowStepTitle: boolean = false;
+  private submittedSearch: Record<string, string> = {};
   isFilterSearchDisplayed: any = {};
   isSearching: any = {};
   isProcessingPageChange: boolean = false;
-
-  defaultRowConfig = [
-    {
-      title: 'Record Title',
-      variable: 'metadata.title',
-      template: `<a href='{{rootContext}}/{{branding}}/{{portal}}/record/view/{{oid}}'>{{metadata.title}}</a>
-          <span class="dashboard-controls">
-            {{#if hasEditAccess}}
-              <a href='{{rootContext}}/{{branding}}/{{portal}}/record/edit/{{oid}}' aria-label='{{t "edit-link-label"}}'><i class="fa fa-pencil" aria-hidden="true"></i></a>
-            {{/if}}
-          </span>
-        `,
-      initialSort: 'desc',
-    },
-    {
-      title: 'header-ci',
-      variable: 'metadata.contributor_ci.text_full_name',
-      template: '{{#if metadata.contributor_ci}}{{metadata.contributor_ci.text_full_name}}{{/if}}',
-      initialSort: 'desc',
-    },
-    {
-      title: 'header-data-manager',
-      variable: 'metadata.contributor_data_manager.text_full_name',
-      template: '{{#if metadata.contributor_data_manager}}{{metadata.contributor_data_manager.text_full_name}}{{/if}}',
-      initialSort: 'desc',
-    },
-    {
-      title: 'header-created',
-      variable: 'metaMetadata.createdOn',
-      template: '{{formatDateLocale dateCreated "DATETIME_MED"}}',
-      initialSort: 'desc',
-    },
-    {
-      title: 'header-modified',
-      variable: 'metaMetadata.lastSaveDate',
-      template: '{{formatDateLocale dateModified "DATETIME_MED"}}',
-      initialSort: 'desc',
-      defaultSort: true,
-    },
-  ];
+  settingsUnavailable: boolean = false;
 
   dashboardColumnMappings: any = {
     dateCreated: 'dateCreated',
@@ -124,68 +85,8 @@ export class DashboardComponent extends BaseComponent {
     packageType: 'metadata.packageType',
     workflow: 'metadata.workflow',
     hasEditAccess: 'hasEditAccess',
-    recordType: 'metadata.metaMetadata.type',
+    recordType: 'metadata.metaMetadata.type'
   };
-
-  //Format rule types :
-  // filter(record types, field values, workflow steps) and sortBy(simple) or groupBy(relationships hierarchy )
-
-  //Format rule modes:
-  // per grouped records or table wide
-
-  sortFields = {
-    draft: [
-      'metaMetadata.lastSaveDate',
-      'metaMetadata.createdOn',
-      'metadata.title',
-      'metadata.contributor_ci.text_full_name',
-      'metadata.contributor_data_manager.text_full_name',
-    ],
-  };
-
-  defaultFormatRules: FormatRules = {
-    filterBy: {}, //filterBase can only have two values user or record
-    filterWorkflowStepsBy: [], //values: empty array (all) or a list with particular types i.e. [ 'draft', 'finalised' ]
-    recordTypeFilterBy: '',
-    queryFilters: {
-      rdmp: [
-        {
-          filterType: 'text',
-          filterFields: [
-            {
-              name: 'Title',
-              path: 'metadata.title',
-            },
-          ],
-        },
-      ],
-    },
-    sortBy: 'metaMetadata.lastSaveDate:-1',
-    groupBy: '', //values: empty (not grouped any order), groupedByRecordType, groupedByRelationships
-    sortGroupBy: [], //values: as many levels as required?
-    hideWorkflowStepTitleForRecordType: [],
-  };
-  formatRules: FormatRules = this.defaultFormatRules;
-
-  defaultGroupRowConfig = {};
-  groupRowConfig = {};
-
-  //Per group rules like show/hide buttons/activities(links) that apply to one group
-  defaultGroupRowRules: any = {};
-  groupRowRules: any = {};
-
-  //Per each row rules show/hide fields or buttons/activities(links) that apply to one row
-  defaultRowLevelRules: any = {};
-  rowLevelRules: any = {};
-  private dashboardViewStepConfigByStep: Record<
-    string,
-    {
-      rowLevelRules: any;
-      groupRowConfig: any;
-      groupRowRules: any;
-      formatRules: FormatRules;
-    }
-  > = {};
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -207,30 +108,16 @@ export class DashboardComponent extends BaseComponent {
     } else {
       this.dashboardTypeSelected = dashboardType;
     }
-    if (
-      _isEmpty(this.dashboardView) &&
-      !_isUndefined(this.packageType) &&
-      !_isNull(this.packageType) &&
-      !_isEmpty(this.packageType) &&
-      this.packageType == 'workspace'
-    ) {
+    if (_isEmpty(this.dashboardView) && !_isEmpty(this.packageType) && this.packageType == 'workspace') {
       this.dashboardTypeSelected = this.packageType;
     }
 
-    this.initDependencies = [
-      this.translationService,
-      this.recordService,
-      this.userService,
-      this.handlebarsTemplateService,
-    ];
-    console.log(`constructor dashboardTypeSelected ${this.dashboardTypeSelected} ${this.packageType}`);
+    this.initDependencies = [this.translationService, this.recordService, this.userService, this.handlebarsTemplateService];
     this.rulesService = this;
   }
 
   protected override async initComponent(): Promise<void> {
     if (_indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
-      this.loggerService.debug(`Dashboard waiting for deps to init...`);
-      this.loggerService.debug(`Dashboard initialised.`);
       this.config = this.recordService.getConfig();
       this.baseUrl = _get(this.config, 'baseUrl');
       this.rootContext = this.configService.rootContext;
@@ -256,8 +143,8 @@ export class DashboardComponent extends BaseComponent {
     return _get(step, 'config.workflow.stageLabel', _get(step, 'name', ''));
   }
 
-  private getTemplateContextKey(recordType: string): string {
-    return !_isEmpty(this.dashboardView) ? this.dashboardView : recordType;
+  private get isViewPage(): boolean {
+    return !_isEmpty(this.dashboardView);
   }
 
   private normalizeDashboardViewStep(step: DashboardViewStepDefinitionResponse) {
@@ -267,82 +154,107 @@ export class DashboardComponent extends BaseComponent {
       config: {
         workflow: {
           stage: step.name,
-          stageLabel: step.name,
+          stageLabel: step.name
         },
-        baseRecordType: step.baseRecordType,
-        dashboard: {
-          table: step.dashboardTable,
-        },
+        baseRecordType: step.baseRecordType
       },
-      dashboardViewStep: step,
+      dashboardViewStep: step
     };
   }
 
+  /**
+   * Build per-step state from one settings snapshot and load the templates
+   * compiled for exactly those settings. If the server reports that settings
+   * changed in between, reload settings and templates together once rather
+   * than rendering a mix of versions.
+   */
+  private async loadStepStates(kind: 'workflow' | 'view', owner: string, stepKeys: string[]): Promise<boolean> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let snapshot: DashboardRuntimeSettings;
+      try {
+        snapshot = await this.recordService.getDashboardSettings(kind, owner);
+      } catch (error) {
+        this.loggerService.error(`Dashboard settings are unavailable for ${kind} ${owner}`, error);
+        this.settingsUnavailable = true;
+        return false;
+      }
+      const states: { [step: string]: StepState } = {};
+      for (const stepKey of stepKeys) {
+        const entry = snapshot?.targets?.[stepKey];
+        if (!entry) {
+          this.loggerService.error(`No dashboard settings are saved for ${kind} ${owner} / ${stepKey}`);
+          continue;
+        }
+        const target: DashboardTemplateTarget = kind === 'workflow' ? { kind, recordType: owner, stage: stepKey } : { kind, view: owner, step: stepKey };
+        states[stepKey] = {
+          target,
+          settings: entry.settings,
+          fingerprint: entry.fingerprint,
+          templatePrefix: this.handlebarsTemplateService.buildDashboardTemplateKeyPrefix(this.branding, target, entry.fingerprint),
+          filterField: this.defaultFilterField
+        };
+      }
+      let consistent = Object.keys(states).length === stepKeys.length;
+      for (const state of Object.values(states)) {
+        const loaded = await this.handlebarsTemplateService.loadDashboardTargetTemplates(this.branding, this.portal, state.target, state.fingerprint);
+        consistent = consistent && loaded;
+      }
+      if (consistent) {
+        this.stepState = { ...this.stepState, ...states };
+        for (const [stepKey, state] of Object.entries(states)) {
+          this.tableConfig[stepKey] = state.settings.tableConfig.rowConfig;
+          state.filterField = this.getFirstTextFilter(stepKey);
+        }
+        return true;
+      }
+      this.loggerService.warn(`Dashboard settings changed while loading ${kind} ${owner}; reloading settings and templates.`);
+    }
+    this.loggerService.error(`Dashboard settings or templates are unavailable for ${kind} ${owner} after reloading.`);
+    this.settingsUnavailable = true;
+    return false;
+  }
+
   public async initView(recordType: string) {
+    this.settingsUnavailable = false;
     this.workflowSteps = [];
     this.records = {};
     this.tableConfig = {};
+    this.stepState = {};
     this.sortMap = {};
-    this.hideWorkflowStepTitle = false;
 
-    this.formatRules = this.defaultFormatRules;
-    this.rowLevelRules = this.defaultRowLevelRules;
-    this.groupRowConfig = this.defaultGroupRowConfig;
-    this.groupRowRules = this.defaultGroupRowRules;
+    // Structural context of the dashboard mode, e.g. which record type the workspace page lists.
+    const dashboardTypeConfig: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
+    const context: DashboardModeContext = _get(dashboardTypeConfig, 'data.formatRules', _get(dashboardTypeConfig, 'formatRules', {})) ?? {};
+    const settingsRecordType = !_isEmpty(context.recordTypeFilterBy) ? String(context.recordTypeFilterBy) : recordType;
 
-    let dashboardTypeConfig: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
-    let formatRules: FormatRules = _get(dashboardTypeConfig, 'formatRules');
-    if (!_isUndefined(formatRules) && !_isNull(formatRules) && !_isEmpty(formatRules)) {
-      //global format rules from dashboardtype.js config
-      this.formatRules = formatRules;
+    const steps = await this.initWorkflowSteps(settingsRecordType, context);
+    if (!await this.loadStepStates('workflow', settingsRecordType, steps.map((step: any) => this.getStepKey(step)))) {
+      return;
     }
 
-    let recordTypeFilterBy = _get(this.formatRules, 'recordTypeFilterBy');
-    if (!_isUndefined(recordTypeFilterBy) && !_isNull(formatRules) && !_isEmpty(formatRules)) {
-      recordType = recordTypeFilterBy;
-    }
-
-    for (let recType of formatRules.hideWorkflowStepTitleForRecordType ?? []) {
-      if (recType == recordType) {
-        this.hideWorkflowStepTitle = true;
-      }
-    }
-
-    let steps = await this.initWorkflowSteps(recordType);
-
-    let startIndex = 1;
-    for (let step of steps) {
+    for (const step of steps) {
       const stepKey = this.getStepKey(step);
-
-      this.initStepTableConfig(recordType, step);
-
-      let defaultSortObject = this.initSortMap(step);
-
+      if (!this.stepState[stepKey]) {
+        continue;
+      }
+      const defaultSortObject = this.initSortMap(step);
       this.workflowSteps.push(step);
 
-      let packageType = '';
-      let stepName = '';
-      let evaluateStepName = stepKey;
       if (this.dashboardTypeSelected == 'workspace') {
-        stepName = '';
-        packageType = this.packageType;
-        recordType = '';
+        await this.initStep('', stepKey, '', this.packageType, 1);
       } else {
-        packageType = '';
-        stepName = stepKey;
+        await this.initStep(stepKey, stepKey, settingsRecordType, '', 1);
       }
-
-      await this.initStep(stepName, evaluateStepName, recordType, packageType, startIndex, defaultSortObject);
     }
   }
 
   public async initDashboardView(dashboardView: string) {
+    this.settingsUnavailable = false;
     this.workflowSteps = [];
     this.records = {};
     this.tableConfig = {};
+    this.stepState = {};
     this.sortMap = {};
-    this.dashboardViewStepConfigByStep = {};
-    this.hideWorkflowStepTitle = false;
 
     const dashboardViewConfig = await this.recordService.getDashboardView(dashboardView);
     this.dashboardViewConfig = dashboardViewConfig;
@@ -350,302 +262,151 @@ export class DashboardComponent extends BaseComponent {
     this.dashboardTypeSelected = dashboardViewConfig.dashboardType || this.dashboardTypeSelected;
     this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
 
-    const dashboardTypeConfig: any = await this.recordService.getDashboardType(this.dashboardTypeSelected);
-    const formatRules: FormatRules = _get(dashboardTypeConfig, 'formatRules');
-    this.formatRules =
-      !_isUndefined(formatRules) && !_isNull(formatRules) && !_isEmpty(formatRules)
-        ? formatRules
-        : this.defaultFormatRules;
-    this.rowLevelRules = this.defaultRowLevelRules;
-    this.groupRowConfig = this.defaultGroupRowConfig;
-    this.groupRowRules = this.defaultGroupRowRules;
-
-    const dashboardFormatRules = this.formatRules;
-    const steps = (dashboardViewConfig.steps || []).map(step => this.normalizeDashboardViewStep(step));
-    for (const step of steps) {
-      const stepKey = this.getStepKey(step);
-      const dashboardTable: any = _get(step, 'config.dashboard.table', {});
-      this.dashboardViewStepConfigByStep[stepKey] = {
-        rowLevelRules: _get(dashboardTable, 'rowRulesConfig', this.defaultRowLevelRules),
-        groupRowConfig: _get(dashboardTable, 'groupRowConfig', this.defaultGroupRowConfig),
-        groupRowRules: _get(dashboardTable, 'groupRowRulesConfig', this.defaultGroupRowRules),
-        formatRules: _get(dashboardTable, 'formatRules', dashboardFormatRules),
-      };
-      this.initStepTableConfig(this.dashboardView || this.recordType, step);
-      this.restoreDashboardViewStepConfig(stepKey);
-      const defaultSortObject = this.initSortMap(step);
-      this.workflowSteps.push(step);
-      await this.handlebarsTemplateService.loadDashboardViewTemplates(
-        this.branding,
-        this.portal,
-        dashboardView,
-        stepKey,
-        this.dashboardTypeSelected
-      );
-
-      const dashboardStep = _get(step, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
-      const stepName = dashboardStep.fetchMode == 'workflowStage' ? dashboardStep.sourceWorkflowStage || stepKey : '';
-      const stepRecordType = dashboardStep.sourceRecordType || this.recordType;
-      await this.initStep(stepName, stepKey, stepRecordType, '', 1, defaultSortObject);
-    }
-  }
-
-  private restoreDashboardViewStepConfig(stepName: string) {
-    const stepConfig = this.dashboardViewStepConfigByStep[stepName];
-    if (_isUndefined(stepConfig)) {
+    const steps = (dashboardViewConfig.steps || []).map((step) => this.normalizeDashboardViewStep(step));
+    if (!await this.loadStepStates('view', dashboardView, steps.map((step) => this.getStepKey(step)))) {
       return;
     }
 
-    this.rowLevelRules = stepConfig.rowLevelRules;
-    this.groupRowConfig = stepConfig.groupRowConfig;
-    this.groupRowRules = stepConfig.groupRowRules;
-    this.formatRules = stepConfig.formatRules;
+    for (const step of steps) {
+      const stepKey = this.getStepKey(step);
+      if (!this.stepState[stepKey]) {
+        continue;
+      }
+      this.initSortMap(step);
+      this.workflowSteps.push(step);
+      const dashboardStep = step.dashboardViewStep;
+      const stepName = dashboardStep.fetchMode == 'workflowStage' ? (dashboardStep.sourceWorkflowStage || stepKey) : '';
+      const stepRecordType = dashboardStep.sourceRecordType || this.recordType;
+      await this.initStep(stepName, stepKey, stepRecordType, '', 1);
+    }
   }
 
-  private async initWorkflowSteps(recordType: string) {
-    let beforeFilterSteps: any = await this.recordService.getWorkflowSteps(recordType);
-
-    let filterWorkflowStepsBy = _get(this.formatRules, 'filterWorkflowStepsBy');
-    let steps = [];
-
-    // Filter steps logic...
-    if (!_isUndefined(filterWorkflowStepsBy) && _isArray(filterWorkflowStepsBy) && !_isEmpty(filterWorkflowStepsBy)) {
-      for (let bfStep of beforeFilterSteps) {
-        let filterByStage = _get(bfStep, 'config.workflow.stage');
-        if (!_isUndefined(filterByStage)) {
-          let indexFilterByStage = _indexOf(filterWorkflowStepsBy, filterByStage);
-          if (indexFilterByStage >= 0) {
-            steps.push(bfStep);
-          }
+  private async initWorkflowSteps(recordType: string, context: DashboardModeContext) {
+    const beforeFilterSteps: any = await this.recordService.getWorkflowSteps(recordType);
+    const filterWorkflowStepsBy = context.filterWorkflowStepsBy;
+    let steps: any[] = [];
+    if (_isArray(filterWorkflowStepsBy) && !_isEmpty(filterWorkflowStepsBy)) {
+      for (const bfStep of beforeFilterSteps) {
+        const filterByStage = _get(bfStep, 'config.workflow.stage');
+        if (!_isUndefined(filterByStage) && _indexOf(filterWorkflowStepsBy, filterByStage) >= 0) {
+          steps.push(bfStep);
         }
       }
     } else {
       steps = beforeFilterSteps;
     }
-    steps = _orderBy(steps, ['config.displayIndex'], ['asc']);
-
-    // Pre-load templates for all steps
-    for (const step of steps) {
-      if (step.name) {
-        await this.handlebarsTemplateService.loadDashboardTemplates(
-          this.branding,
-          this.portal,
-          recordType,
-          this.getStepKey(step),
-          this.dashboardTypeSelected
-        );
-      }
-    }
-
-    return steps;
+    return _orderBy(steps, ['config.displayIndex'], ['asc']);
   }
 
-  private initStepTableConfig(recordType: string, step: any) {
-    let stepRowConfig = this.defaultRowConfig;
-
-    if (_isEmpty(this.defaultRowConfig[0].title)) {
-      this.defaultRowConfig[0].title = `${recordType}-title` || 'Title';
-    }
-
-    if (!_isUndefined(_get(step, 'config.dashboard')) && !_isUndefined(_get(step, 'config.dashboard.table'))) {
-      if (!_isUndefined(_get(step, 'config.dashboard.table.rowConfig'))) {
-        stepRowConfig = _get(step, 'config.dashboard.table.rowConfig');
-        _unset(this.sortFields, this.getStepKey(step));
-        _set(
-          this.sortFields,
-          this.getStepKey(step),
-          _map(stepRowConfig, config => {
-            return config.variable;
-          })
-        );
-      }
-
-      if (!_isUndefined(_get(step, 'config.dashboard.table.rowRulesConfig'))) {
-        this.rowLevelRules = _get(step, 'config.dashboard.table.rowRulesConfig');
-      }
-
-      if (!_isUndefined(_get(step, 'config.dashboard.table.groupRowConfig'))) {
-        this.groupRowConfig = _get(step, 'config.dashboard.table.groupRowConfig');
-      }
-
-      if (!_isUndefined(_get(step, 'config.dashboard.table.groupRowRulesConfig'))) {
-        this.groupRowRules = _get(step, 'config.dashboard.table.groupRowRulesConfig');
-      }
-
-      //formtatRules override at step level from workflow.js config
-      if (!_isUndefined(_get(step, 'config.dashboard.table.formatRules'))) {
-        this.formatRules = _get(step, 'config.dashboard.table.formatRules');
-      }
-    }
-
-    this.tableConfig[this.getStepKey(step)] = stepRowConfig;
+  private getFormatRules(stepKey: string) {
+    return this.stepState[stepKey]?.settings?.tableConfig?.formatRules ?? {};
   }
 
-  public async initStep(
-    stepName: string,
-    evaluateStepName: string,
-    recordType: string,
-    packageType: string,
-    startIndex: number,
-    defaultSortObject: any
-  ) {
-    let filterBy = _get(this.formatRules, 'filterBy');
+  /** The step's own editable filter, used before search or reset is submitted. */
+  private getStepFilter(stepKey: string): { filterFields: any; filterString: any; filterMode: any } {
+    const filterBy: any = this.getFormatRules(stepKey).filterBy;
+    if (_isEmpty(filterBy)) {
+      return { filterFields: undefined, filterString: undefined, filterMode: undefined };
+    }
     let filterString;
-    let filterFields;
-    let filterMode;
-    if (!_isUndefined(filterBy) && !_isEmpty(filterBy)) {
-      let filterBase = _get(filterBy, 'filterBase');
-      if (filterBase == 'user') {
-        let filterBaseObj = this.currentUser;
-        filterString = _get(filterBaseObj, _get(filterBy, 'filterBaseFieldOrValue'));
-      } else if (filterBase == 'record') {
-        filterString = _get(filterBy, 'filterBaseFieldOrValue');
-      }
-      filterFields = _get(filterBy, 'filterField');
-      filterMode = _get(filterBy, 'filterMode');
+    const filterBase = _get(filterBy, 'filterBase');
+    if (filterBase == 'user') {
+      filterString = _get(this.currentUser, _get(filterBy, 'filterBaseFieldOrValue'));
+    } else if (filterBase == 'record') {
+      filterString = _get(filterBy, 'filterBaseFieldOrValue');
     }
+    return { filterFields: _get(filterBy, 'filterField'), filterString, filterMode: _get(filterBy, 'filterMode') };
+  }
 
-    let sortByString = this.getSortStringFromSortMap(this.sortMap[stepName], stepName, true);
+  /** Submitted search text, otherwise the step's own filter. */
+  private getActiveFilter(stepKey: string): { filterFields: any; filterString: any; filterMode: any } {
+    // An empty submitted search, including Reset or a legacy workspace
+    // template miss, replaced the initial record filter in v5.0.1.
+    if (Object.prototype.hasOwnProperty.call(this.submittedSearch, stepKey)) {
+      return {
+        filterFields: this.getFilterFieldPath(stepKey),
+        filterString: this.submittedSearch[stepKey],
+        filterMode: ''
+      };
+    }
+    return this.getStepFilter(stepKey);
+  }
 
-    let stagedRecords = await this.recordService.getRecords(
-      recordType,
-      stepName,
-      startIndex,
-      packageType,
-      sortByString,
-      filterFields,
-      filterString,
-      filterMode
-    );
+  public async initStep(stepName: string, stepKey: string, recordType: string, packageType: string, startIndex: number) {
+    const { filterFields, filterString, filterMode } = this.getActiveFilter(stepKey);
+    const sortByString = this.getSortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
+    const secondarySortString = this.getSecondarySortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
+    const stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, secondarySortString);
 
     let planTable: PlanTable;
+    const formatRules = this.getFormatRules(stepKey);
+    const groupBy = formatRules.groupBy;
+    const sortGroupBy = formatRules.sortGroupBy;
 
-    if (!_isEmpty(this.dashboardView)) {
-      let items: any = _get(stagedRecords, 'items');
-      let totalItems = _get(stagedRecords, 'totalItems');
-      let noItemsPerPage = _get(stagedRecords, 'noItems');
-      let allItemsByGroup = [];
-
-      let groupBy = _get(this.formatRules, 'groupBy');
-      let sortGroupBy = _get(this.formatRules, 'sortGroupBy');
-
-      if (groupBy == 'groupedByRelationships' && !_isUndefined(sortGroupBy) && !_isEmpty(sortGroupBy)) {
-        allItemsByGroup = await this.getAllItemsGroupedByRelationships(items, sortGroupBy);
-      } else if (groupBy == 'groupedByRecordType' && !_isUndefined(sortGroupBy) && !_isEmpty(sortGroupBy)) {
-        allItemsByGroup = await this.getAllItemsGroupedByRecordType(
-          sortGroupBy,
-          stepName,
-          startIndex,
-          packageType,
-          sortByString,
-          filterFields,
-          filterString,
-          filterMode
-        );
+    // Grouping is a custom-view feature; workflow stage dashboards list records directly.
+    if (this.isViewPage) {
+      let allItemsByGroup: any[] = [];
+      if (groupBy == 'groupedByRelationships' && !_isEmpty(sortGroupBy)) {
+        allItemsByGroup = await this.getAllItemsGroupedByRelationships(_get(stagedRecords, 'items'), sortGroupBy as SortGroupBy[]);
+      } else if (groupBy == 'groupedByRecordType' && !_isEmpty(sortGroupBy)) {
+        allItemsByGroup = await this.getAllItemsGroupedByRecordType(sortGroupBy as SortGroupBy[], stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
       }
-
-      let pageNumber = _get(stagedRecords, 'currentPage');
-
-      let groupedRecords: any = {};
-      _set(groupedRecords, 'totalItems', totalItems);
-      _set(groupedRecords, 'currentPage', pageNumber);
-      _set(groupedRecords, 'noItems', noItemsPerPage);
-      _set(groupedRecords, 'itemsByGroup', true);
-      _set(groupedRecords, 'groupedItems', allItemsByGroup);
-
-      planTable = this.evaluatePlanTableColumns(
-        this.groupRowConfig,
-        this.groupRowRules,
-        this.rowLevelRules,
-        evaluateStepName,
-        groupedRecords,
-        recordType
-      );
+      const groupedRecords: any = {
+        totalItems: _get(stagedRecords, 'totalItems'),
+        currentPage: _get(stagedRecords, 'currentPage'),
+        noItems: _get(stagedRecords, 'noItems'),
+        itemsByGroup: !_isEmpty(groupBy),
+        groupedItems: allItemsByGroup,
+        items: _get(stagedRecords, 'items')
+      };
+      planTable = this.evaluatePlanTableColumns(stepKey, groupedRecords, recordType);
     } else {
-      planTable = this.evaluatePlanTableColumns({}, {}, {}, evaluateStepName, stagedRecords, recordType);
-
-      if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-        let filter: FilterField = this.getFirstTextFilter();
-        this.filterFieldName = filter.name;
-        this.filterFieldPath = filter.path;
-      }
+      planTable = this.evaluatePlanTableColumns(stepKey, stagedRecords, recordType);
     }
 
-    this.records[evaluateStepName] = planTable;
+    this.records[stepKey] = planTable;
   }
 
-  private async getAllItemsGroupedByRecordType(
-    sortGroupBy: SortGroupBy[],
-    stepName: string,
-    startIndex: number,
-    packageType: string,
-    sortByString: string,
-    filterFields: any,
-    filterString: any,
-    filterMode: any
-  ) {
-    let allItemsByGroup: any[] = [];
-    let countHerarchyLevels = sortGroupBy.length;
-    for (let i = 0; i < countHerarchyLevels; i++) {
-      let rule = _find(sortGroupBy, function (o) {
-        if (_get(o, 'rowLevel') == i) {
-          return true;
-        }
-        return false;
-      });
-      let compareFieldValue = _get(rule, 'compareFieldValue', '');
-      let itemsGroupRelated: any = await this.recordService.getRecords(
-        compareFieldValue,
-        stepName,
-        startIndex,
-        packageType,
-        sortByString,
-        filterFields,
-        filterString,
-        filterMode
-      );
-
+  private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any) {
+    const allItemsByGroup: any[] = [];
+    for (let i = 0; i < sortGroupBy.length; i++) {
+      const rule = _find(sortGroupBy, (o) => _get(o, 'rowLevel') == i);
+      const compareFieldValue = _get(rule, 'compareFieldValue', '');
+      const itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
       allItemsByGroup.push(itemsGroupRelated);
     }
-
     return allItemsByGroup;
   }
 
   private async getAllItemsGroupedByRelationships(items: any, sortGroupBy: SortGroupBy[]) {
-    let allItemsByGroup: any[] = [];
-    for (let item of items) {
-      let oid = _get(item, 'oid');
-      let itemsAfterApplyInnerGroupFormatRules = [];
+    const allItemsByGroup: any[] = [];
+    for (const item of items ?? []) {
+      const oid = _get(item, 'oid');
+      const itemsAfterApplyInnerGroupFormatRules: any[] = [];
 
-      let itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
-      let sortItems = _get(itemsGroupRelated, 'items');
-      let totalSortItems = sortItems.length;
-      let countHerarchyLevels = sortGroupBy.length;
+      const itemsGroupRelated: any = await this.recordService.getRelatedRecords(oid);
+      const sortItems = _get(itemsGroupRelated, 'items');
+      const countHerarchyLevels = sortGroupBy.length;
 
-      for (let j = 0; j < totalSortItems; j++) {
+      for (let j = 0; j < sortItems.length; j++) {
         let parentTreeNodeOid = oid;
         for (let i = 0; i < countHerarchyLevels; i++) {
-          let rule = _find(sortGroupBy, function (o) {
-            if (_get(o, 'rowLevel') == i) {
-              return true;
-            }
-            return false;
-          });
-          let compareField = _get(rule, 'compareField', '');
-          let compareFieldValue = _get(rule, 'compareFieldValue', '');
-          let relatedTo = _get(rule, 'relatedTo', '');
+          const rule = _find(sortGroupBy, (o) => _get(o, 'rowLevel') == i);
+          const compareField = _get(rule, 'compareField', '');
+          const compareFieldValue = _get(rule, 'compareFieldValue', '');
+          const relatedTo = _get(rule, 'relatedTo', '');
 
-          for (let sortItem of sortItems) {
-            let relatedToOid = _get(sortItem, relatedTo);
-            let foundParent = relatedToOid == parentTreeNodeOid;
-            let foundRecord = _get(sortItem, compareField) == compareFieldValue;
-            let foundTopLevelParent = relatedTo == '';
+          for (const sortItem of sortItems) {
+            const relatedToOid = _get(sortItem, relatedTo);
+            const foundParent = relatedToOid == parentTreeNodeOid;
+            const foundRecord = _get(sortItem, compareField) == compareFieldValue;
+            const foundTopLevelParent = relatedTo == '';
             if (foundRecord && (foundParent || foundTopLevelParent)) {
-              let currentOid = _get(sortItem, 'oid');
-              let rowExists = _find(itemsAfterApplyInnerGroupFormatRules, ['oid', currentOid]);
+              const currentOid = _get(sortItem, 'oid');
+              const rowExists = _find(itemsAfterApplyInnerGroupFormatRules, ['oid', currentOid]);
               if (_isUndefined(rowExists)) {
                 itemsAfterApplyInnerGroupFormatRules.push(sortItem);
-                if (i + 1 < countHerarchyLevels) {
+                if ((i + 1) < countHerarchyLevels) {
                   parentTreeNodeOid = currentOid;
                   break;
                 }
@@ -658,178 +419,90 @@ export class DashboardComponent extends BaseComponent {
       if (!_isEmpty(itemsAfterApplyInnerGroupFormatRules)) {
         _set(itemsGroupRelated, 'items', itemsAfterApplyInnerGroupFormatRules);
       }
-
       allItemsByGroup.push(itemsGroupRelated);
     }
     return allItemsByGroup;
   }
 
-  public evaluatePlanTableColumns(
-    groupRowConfig: any,
-    groupRowRules: any,
-    rowLevelRulesConfig: any,
-    stepName: string,
-    stagedOrGroupedRecords: any,
-    recordType: string
-  ): PlanTable {
-    let recordRows: any = [];
-    let planTable: PlanTable = {
+  private templateKey(stepKey: string, ...parts: string[]): string[] {
+    return [...(this.stepState[stepKey]?.templatePrefix ?? [stepKey]), ...parts];
+  }
+
+  private buildRowImports(stepKey: string, recordType: string, stagedRecord: any): any {
+    const settings = this.stepState[stepKey]?.settings;
+    const imports: any = {};
+    this.setRuleEvaluationContext(imports, recordType, stepKey);
+    _forEach(this.dashboardColumnMappings, (value, key) => {
+      _set(imports, key, _get(stagedRecord, value));
+    });
+    _set(imports, 'branding', this.branding);
+    _set(imports, 'rootContext', this.rootContext);
+    _set(imports, 'baseUrl', this.baseUrl);
+    _set(imports, 'portal', this.portal);
+    _set(imports, 'translationService', this.translationService);
+    _set(imports, 'rulesService', this.rulesService);
+    _set(imports, 'rulesConfig', settings?.tableConfig?.rowRulesConfig ?? []);
+    return imports;
+  }
+
+  private renderRow(stepKey: string, rows: DashboardSettingsRowConfig[], kind: 'rowConfig' | 'groupRowConfig', imports: any): any {
+    const record: any = {};
+    for (let i = 0; i < rows.length; i++) {
+      const columnConfig = rows[i];
+      record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, this.templateKey(stepKey, kind, i.toString(), columnConfig.variable));
+    }
+    return record;
+  }
+
+  public evaluatePlanTableColumns(stepKey: string, stagedOrGroupedRecords: any, recordType: string): PlanTable {
+    const recordRows: any[] = [];
+    const planTable: PlanTable = {
       items: [],
       totalItems: _get(stagedOrGroupedRecords, 'totalItems'),
       currentPage: _get(stagedOrGroupedRecords, 'currentPage'),
-      noItems: _get(stagedOrGroupedRecords, 'noItems'),
+      noItems: _get(stagedOrGroupedRecords, 'noItems')
     };
+    const settings = this.stepState[stepKey]?.settings;
+    const stepRowConfig = this.tableConfig[stepKey] ?? [];
+    const groupRowConfig = settings?.tableConfig?.groupRowConfig ?? [];
+    const groupRowRules = settings?.tableConfig?.groupRowRulesConfig ?? [];
 
-    let columnMappings = this.dashboardColumnMappings;
-
-    let isGrouped = _get(stagedOrGroupedRecords, 'itemsByGroup');
-    let allGroupedItems = _get(stagedOrGroupedRecords, 'groupedItems');
-    if (isGrouped && !_isUndefined(allGroupedItems) && !_isEmpty(allGroupedItems)) {
-      const imports: any = {};
-      this.setRuleEvaluationContext(imports, recordType, stepName);
-      for (let groupedRecords of allGroupedItems) {
-        let groupedItems = _get(groupedRecords, 'items');
-
-        for (let stagedRecord of groupedItems) {
-          _forEach(columnMappings, (value, key) => {
-            _set(imports, key, _get(stagedRecord, value));
-          });
-
-          _set(imports, 'branding', this.branding);
-          _set(imports, 'rootContext', this.rootContext);
-          _set(imports, 'baseUrl', this.baseUrl);
-          _set(imports, 'portal', this.portal);
-          _set(imports, 'translationService', this.translationService);
-          _set(imports, 'rulesService', this.rulesService);
-          _set(imports, 'rulesConfig', rowLevelRulesConfig);
-          if (!_isUndefined(groupRowRules) && !_isEmpty(groupRowRules)) {
+    const isGrouped = _get(stagedOrGroupedRecords, 'itemsByGroup');
+    const allGroupedItems = _get(stagedOrGroupedRecords, 'groupedItems');
+    if (isGrouped && !_isEmpty(allGroupedItems)) {
+      for (const groupedRecords of allGroupedItems) {
+        const groupedItems = _get(groupedRecords, 'items') ?? [];
+        let imports: any = null;
+        for (const stagedRecord of groupedItems) {
+          imports = this.buildRowImports(stepKey, recordType, stagedRecord);
+          if (!_isEmpty(groupRowRules)) {
             _set(imports, 'groupRulesConfig', groupRowRules);
             _set(imports, 'groupedItems', groupedItems);
           }
-
-          let record: any = {};
-
-          let stepRowConfig: any[] = this.tableConfig[stepName];
-
-          // for (let columnConfig of stepRowConfig) {
-          //   const templateRes = this.runTemplate(columnConfig.template, imports)
-          //   record[columnConfig.variable] = templateRes;
-          // }
-          for (let i = 0; i < stepRowConfig.length; i++) {
-            const columnConfig = stepRowConfig[i];
-            const keyParts = [
-              this.getTemplateContextKey(recordType),
-              stepName,
-              'rowConfig',
-              i.toString(),
-              columnConfig.variable,
-            ];
-            record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(
-              columnConfig.template,
-              imports,
-              keyParts
-            );
-          }
-
-          recordRows.push(record);
+          recordRows.push(this.renderRow(stepKey, stepRowConfig, 'rowConfig', imports));
         }
-
-        //Don't evaluate group rules if no records were retrieved meaning recordsRows array has length 0
-        if (!_isUndefined(groupRowConfig) && !_isEmpty(groupRowConfig) && recordRows.length > 0 && !_isEmpty(imports)) {
-          let groupRecord: any = {};
-          // for (let groupRow of groupRowConfig) {
-          //   const groupTemplateRes = this.runTemplate(groupRow.template, imports);
-          //   groupRecord[groupRow.variable] = groupTemplateRes;
-          // }
-          for (let i = 0; i < groupRowConfig.length; i++) {
-            const groupRow = groupRowConfig[i];
-            const keyParts = [
-              this.getTemplateContextKey(recordType),
-              stepName,
-              'groupRowConfig',
-              i.toString(),
-              groupRow.variable,
-            ];
-            groupRecord[groupRow.variable] = this.handlebarsTemplateService.compileAndRunTemplate(
-              groupRow.template,
-              imports,
-              keyParts
-            );
-          }
-
-          recordRows.push(groupRecord);
+        // Group rows only render for groups that returned records.
+        if (!_isEmpty(groupRowConfig) && groupedItems.length > 0 && imports) {
+          recordRows.push(this.renderRow(stepKey, groupRowConfig, 'groupRowConfig', imports));
         }
       }
     } else {
-      let stagedOrGroupedRecordItems = _get(stagedOrGroupedRecords, 'items');
-      if (!_isUndefined(stagedOrGroupedRecordItems) && !_isEmpty(stagedOrGroupedRecordItems)) {
-        for (let stagedRecord of stagedOrGroupedRecordItems) {
-          const imports: any = {};
-          this.setRuleEvaluationContext(imports, recordType, stepName);
-
-          _forEach(columnMappings, (value, key) => {
-            _set(imports, key, _get(stagedRecord, value));
-          });
-
-          _set(imports, 'branding', this.branding);
-          _set(imports, 'rootContext', this.rootContext);
-          _set(imports, 'portal', this.portal);
-          _set(imports, 'translationService', this.translationService);
-          _set(imports, 'rulesConfig', rowLevelRulesConfig);
-
-          let record: any = {};
-          let stepRowConfig = this.tableConfig[stepName];
-
-          // for (let columnConfig of stepRowConfig) {
-          //   const templateRes = this.runTemplate(columnConfig.template, imports);
-          //   record[columnConfig.variable] = templateRes;
-          // }
-          for (let i = 0; i < stepRowConfig.length; i++) {
-            const columnConfig = stepRowConfig[i];
-            const keyParts = [
-              this.getTemplateContextKey(recordType),
-              stepName,
-              'rowConfig',
-              i.toString(),
-              columnConfig.variable,
-            ];
-            record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(
-              columnConfig.template,
-              imports,
-              keyParts
-            );
-          }
-
-          recordRows.push(record);
-        }
+      for (const stagedRecord of _get(stagedOrGroupedRecords, 'items') ?? []) {
+        recordRows.push(this.renderRow(stepKey, stepRowConfig, 'rowConfig', this.buildRowImports(stepKey, recordType, stagedRecord)));
       }
     }
 
     planTable.items = recordRows;
-
     return planTable;
   }
 
   private setRuleEvaluationContext(imports: any, recordType: string, stepName: string): void {
     const handlebars = handlebarsInstance();
 
-    _set(
-      imports,
-      'evaluateRowLevelRules',
-      (rulesConfig: any, metadata: any, metaMetadata: any, workflow: any, oid: string, ruleSetName: string) => {
-        const result = this.evaluateRowLevelRules(
-          rulesConfig,
-          metadata,
-          metaMetadata,
-          workflow,
-          oid,
-          ruleSetName,
-          recordType,
-          stepName
-        );
-        return new handlebars.SafeString(result ?? '');
-      }
-    );
+    _set(imports, 'evaluateRowLevelRules', (rulesConfig: any, metadata: any, metaMetadata: any, workflow: any, oid: string, ruleSetName: string) => {
+      const result = this.evaluateRowLevelRules(rulesConfig, metadata, metaMetadata, workflow, oid, ruleSetName, recordType, stepName);
+      return new handlebars.SafeString(result ?? '');
+    });
     _set(imports, 'evaluateGroupRowRules', (groupRulesConfig: any, groupedItems: any, ruleSetName: string) => {
       const result = this.evaluateGroupRowRules(groupRulesConfig, groupedItems, ruleSetName, recordType, stepName);
       return new handlebars.SafeString(result ?? '');
@@ -840,263 +513,102 @@ export class DashboardComponent extends BaseComponent {
     if (_isArray(rulesConfig)) {
       return _find(rulesConfig, (ruleSet: any) => _get(ruleSet, 'ruleSetName') === ruleSetName);
     }
-
-    return rulesConfig;
+    return undefined;
   }
 
-  public evaluateRowLevelRules(
-    rulesConfig: any,
-    metadata: any,
-    metaMetadata: any,
-    workflow: any,
-    oid: string,
-    ruleSetName: string,
-    recordType: string,
-    stepName: string
-  ) {
-    let res: any;
-
-    const imports: any = {};
-    _set(imports, 'branding', this.branding);
-    _set(imports, 'rootContext', this.rootContext);
-    _set(imports, 'baseUrl', this.baseUrl);
-    _set(imports, 'portal', this.portal);
-    _set(imports, 'translationService', this.translationService);
-    _set(imports, 'metadata', metadata);
-    _set(imports, 'metaMetadata', metaMetadata);
-    _set(imports, 'workflow', workflow);
-    _set(imports, 'oid', oid);
-
-    const ruleSetConfig = this.getRuleSetConfig(rulesConfig, ruleSetName);
+  private renderRules(ruleSetConfig: DashboardSettingsRuleSet | undefined, imports: any, keyBase: (i: number) => string[]): string | undefined {
     if (_isUndefined(ruleSetConfig) || _get(ruleSetConfig, 'applyRuleSet', true) === false) {
-      return res;
+      return undefined;
     }
-    let rules = _get(ruleSetConfig, 'rules');
-    if (!_isUndefined(rules) && !_isEmpty(rules)) {
-      let renderedRules: any[] = [];
-      for (let i = 0; i < rules.length; i++) {
-        const rule = rules[i];
-        const keyBase = [this.getTemplateContextKey(recordType), stepName, 'rowRules', ruleSetName, i.toString()];
-
-        if (rule.evaluateRulesTemplate) {
-          const evaluateKey = [...keyBase, 'evaluate'];
-          let shouldRender = this.handlebarsTemplateService.compileAndRunTemplate(
-            rule.evaluateRulesTemplate,
-            imports,
-            evaluateKey
-          );
-          if (shouldRender == 'true') {
-            if (rule.renderItemTemplate) {
-              const renderKey = [...keyBase, 'render'];
-              let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(
-                rule.renderItemTemplate,
-                imports,
-                renderKey
-              );
-              renderedRules.push(renderRes);
-            }
-          }
-        } else {
-          if (rule.renderItemTemplate) {
-            const renderKey = [...keyBase, 'render'];
-            let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(
-              rule.renderItemTemplate,
-              imports,
-              renderKey
-            );
-            renderedRules.push(renderRes);
-          }
+    const rules = ruleSetConfig.rules ?? [];
+    const renderedRules: any[] = [];
+    for (let i = 0; i < rules.length; i++) {
+      const rule = rules[i];
+      if (rule.evaluateRulesTemplate) {
+        const shouldRender = this.handlebarsTemplateService.compileAndRunTemplate(rule.evaluateRulesTemplate, imports, [...keyBase(i), 'evaluate']);
+        if (shouldRender != 'true') {
+          continue;
         }
       }
-      const separator = _get(ruleSetConfig, 'separator', '');
-      if (!_isEmpty(renderedRules)) {
-        res = _join(renderedRules, separator);
+      if (rule.renderItemTemplate) {
+        renderedRules.push(this.handlebarsTemplateService.compileAndRunTemplate(rule.renderItemTemplate, imports, [...keyBase(i), 'render']));
       }
     }
-
-    return res;
+    return _isEmpty(renderedRules) ? undefined : _join(renderedRules, _get(ruleSetConfig, 'separator', ''));
   }
 
-  public evaluateGroupRowRules(
-    groupRulesConfig: any,
-    groupedItems: any,
-    ruleSetName: string,
-    recordType: string,
-    stepName: string
-  ) {
-    let res: any;
+  public evaluateRowLevelRules(rulesConfig: any, metadata: any, metaMetadata: any, workflow: any, oid: string, ruleSetName: string, recordType: string, stepName: string) {
+    const imports: any = {
+      branding: this.branding,
+      rootContext: this.rootContext,
+      baseUrl: this.baseUrl,
+      portal: this.portal,
+      translationService: this.translationService,
+      metadata,
+      metaMetadata,
+      workflow,
+      oid
+    };
+    return this.renderRules(this.getRuleSetConfig(rulesConfig, ruleSetName), imports, (i) => this.templateKey(stepName, 'rowRules', ruleSetName, i.toString()));
+  }
 
-    const imports: any = {};
-    _set(imports, 'branding', this.branding);
-    _set(imports, 'rootContext', this.rootContext);
-    _set(imports, 'baseUrl', this.baseUrl);
-    _set(imports, 'portal', this.portal);
-    _set(imports, 'translationService', this.translationService);
-    _set(imports, 'groupedItems', groupedItems);
-
-    const ruleSetConfig = this.getRuleSetConfig(groupRulesConfig, ruleSetName);
-    if (_isUndefined(ruleSetConfig) || _get(ruleSetConfig, 'applyRuleSet', true) === false) {
-      return res;
-    }
-    let rules = _get(ruleSetConfig, 'rules');
-    if (!_isUndefined(rules) && !_isEmpty(rules)) {
-      let renderedRules: any[] = [];
-      for (let i = 0; i < rules.length; i++) {
-        const rule = rules[i];
-        const keyBase = [this.getTemplateContextKey(recordType), stepName, 'groupRowRules', ruleSetName, i.toString()];
-
-        if (rule.evaluateRulesTemplate) {
-          const evaluateKey = [...keyBase, 'evaluate'];
-          let shouldRender = this.handlebarsTemplateService.compileAndRunTemplate(
-            rule.evaluateRulesTemplate,
-            imports,
-            evaluateKey
-          );
-          if (shouldRender == 'true') {
-            if (rule.renderItemTemplate) {
-              const renderKey = [...keyBase, 'render'];
-              let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(
-                rule.renderItemTemplate,
-                imports,
-                renderKey
-              );
-              renderedRules.push(renderRes);
-            }
-          }
-        } else {
-          if (rule.renderItemTemplate) {
-            const renderKey = [...keyBase, 'render'];
-            let renderRes = this.handlebarsTemplateService.compileAndRunTemplate(
-              rule.renderItemTemplate,
-              imports,
-              renderKey
-            );
-            renderedRules.push(renderRes);
-          }
-        }
-      }
-      const separator = _get(ruleSetConfig, 'separator', '');
-      if (!_isEmpty(renderedRules)) {
-        res = _join(renderedRules, separator);
-      }
-    }
-
-    return res;
+  public evaluateGroupRowRules(groupRulesConfig: any, groupedItems: any, ruleSetName: string, recordType: string, stepName: string) {
+    const imports: any = {
+      branding: this.branding,
+      rootContext: this.rootContext,
+      baseUrl: this.baseUrl,
+      portal: this.portal,
+      translationService: this.translationService,
+      groupedItems
+    };
+    return this.renderRules(this.getRuleSetConfig(groupRulesConfig, ruleSetName), imports, (i) => this.templateKey(stepName, 'groupRowRules', ruleSetName, i.toString()));
   }
 
   private initSortMap(step: any) {
-    let stepRowConfig: any[] = this.tableConfig[this.getStepKey(step)];
-
-    this.sortMap[this.getStepKey(step)] = {};
-
-    let stepRowConfigLength = stepRowConfig.length - 1;
-
-    let defaultSortObject = {};
-
-    let i = 0;
-
-    for (let columnConfig of stepRowConfig) {
-      i = i + 1;
-
+    const stepKey = this.getStepKey(step);
+    const stepRowConfig: DashboardSettingsRowConfig[] = this.tableConfig[stepKey] ?? [];
+    this.sortMap[stepKey] = {};
+    for (const columnConfig of stepRowConfig) {
       if (columnConfig.initialSort == 'asc' || columnConfig.initialSort == 'desc') {
-        this.sortMap[this.getStepKey(step)][columnConfig.variable] = {
+        this.sortMap[stepKey][columnConfig.variable] = {
           sort: columnConfig.initialSort,
           secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
-          defaultSort: columnConfig.defaultSort == true ? true : false,
-        };
-      }
-
-      if (columnConfig.defaultSort == true) {
-        defaultSortObject = {
-          sort: columnConfig.initialSort,
-          secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
-          step: this.getStepKey(step),
-          title: '',
-          variable: columnConfig.variable,
-        };
-      } else if (i == stepRowConfigLength && _isEmpty(defaultSortObject)) {
-        defaultSortObject = {
-          sort: columnConfig.initialSort,
-          secondarySort: columnConfig.secondarySort != undefined ? columnConfig.secondarySort : '',
-          step: this.getStepKey(step),
-          title: '',
-          variable: columnConfig.variable,
+          defaultSort: columnConfig.defaultSort == true
         };
       }
     }
+    this.enableSort = !this.isViewPage;
+  }
 
-    if (!_isEmpty(this.dashboardView)) {
-      this.enableSort = false;
+  private async reloadStep(stepKey: string, page: number) {
+    if (this.dashboardTypeSelected == 'workspace') {
+      await this.initStep('', stepKey, '', this.packageType, page);
     } else {
-      this.enableSort = true;
+      const state = this.stepState[stepKey];
+      const recordType = state?.target.kind === 'workflow' ? state.target.recordType : this.recordType;
+      await this.initStep(stepKey, stepKey, recordType, '', page);
     }
-
-    return defaultSortObject;
   }
 
   public async sortChanged(data: any) {
     if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      let sortString = `${data.variable}:`;
-      let secondarySortString = undefined;
-      if (data.sort == 'desc') {
-        sortString = sortString + '-1';
-        if (data.secondarySort != undefined && data.secondarySort != '') {
-          secondarySortString = `${data.secondarySort}:` + '-1';
-        }
-      } else {
-        sortString = sortString + '1';
-        if (data.secondarySort != undefined && data.secondarySort != '') {
-          secondarySortString = `${data.secondarySort}:` + '1';
-        }
-      }
-      let stagedRecords: any;
-      if (this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords(
-          '',
-          '',
-          1,
-          this.dashboardTypeSelected,
-          sortString,
-          this.filterFieldPath,
-          this.getFilterSearchString(data.step),
-          '',
-          secondarySortString
-        );
-      } else {
-        stagedRecords = await this.recordService.getRecords(
-          this.recordType,
-          data.step,
-          1,
-          '',
-          sortString,
-          this.filterFieldPath,
-          this.getFilterSearchString(data.step),
-          '',
-          secondarySortString
-        );
-      }
-
-      let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, data.step, stagedRecords, recordType);
-
-      this.records[data.step] = planTable;
-
       this.updateSortMap(data);
+      await this.reloadStep(data.step, 1);
     }
   }
 
   private updateSortMap(sortData: any) {
-    let stepRowConfig: any[] = this.tableConfig[sortData.step];
-    for (let columnConfig of stepRowConfig) {
+    const stepRowConfig = this.tableConfig[sortData.step] ?? [];
+    for (const columnConfig of stepRowConfig) {
       this.sortMap[sortData.step][columnConfig.variable] = {
-        sort: columnConfig.noSort,
-        secondarySort: columnConfig.secondarySort != '' ? columnConfig.secondarySort : '',
+        sort: (columnConfig as any).noSort,
+        secondarySort: columnConfig.secondarySort ?? ''
       };
     }
-
     this.sortMap[sortData.step][sortData.variable] = {
       sort: sortData.sort,
       secondarySort: sortData.secondarySort,
+      defaultSort: true
     };
   }
 
@@ -1104,246 +616,160 @@ export class DashboardComponent extends BaseComponent {
     if (this.isProcessingPageChange) {
       return;
     }
-
     this.isProcessingPageChange = true;
-
-    let sortMapAtStep = this.sortMap[step];
-
-    if (this.dashboardTypeSelected == 'standard') {
-      let stagedRecords = await this.recordService.getRecords(
-        this.recordType,
-        step,
-        event.page,
-        '',
-        this.getSortStringFromSortMap(sortMapAtStep, step, true),
-        this.filterFieldPath,
-        this.getFilterSearchString(step),
-        '',
-        this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true)
-      );
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, this.recordType);
-      this.records[step] = planTable;
-      this.isProcessingPageChange = false;
-    } else if (this.dashboardTypeSelected == 'workspace') {
-      let stagedRecords = await this.recordService.getRecords(
-        '',
-        '',
-        event.page,
-        this.packageType,
-        this.getSortStringFromSortMap(sortMapAtStep, step, true),
-        this.filterFieldPath,
-        this.getFilterSearchString(step),
-        '',
-        this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true)
-      );
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, '');
-      this.records[step] = planTable;
-      this.isProcessingPageChange = false;
-    } else if (!_isEmpty(this.dashboardView)) {
-      const workflowSteps = _isArray(this.workflowSteps) ? this.workflowSteps : [];
-      if (workflowSteps.length === 0) {
-        this.isProcessingPageChange = false;
-        return;
+    try {
+      if (this.isViewPage) {
+        const currentStep = _find(this.workflowSteps, (workflowStep) => this.getStepKey(workflowStep) == step) || this.workflowSteps[0];
+        if (!currentStep) {
+          return;
+        }
+        const stepKey = this.getStepKey(currentStep);
+        const dashboardViewStep = _get(currentStep, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
+        const stepName = dashboardViewStep.fetchMode == 'workflowStage' ? (dashboardViewStep.sourceWorkflowStage || stepKey) : '';
+        await this.initStep(stepName, stepKey, dashboardViewStep.sourceRecordType || this.recordType, '', event.page);
+      } else {
+        await this.reloadStep(step, event.page);
       }
-
-      const currentStep =
-        _find(workflowSteps, workflowStep => this.getStepKey(workflowStep) == step) || workflowSteps[0];
-      const evaluateStepName = this.getStepKey(currentStep) || step;
-      const recordType = _get(currentStep, 'dashboardViewStep.sourceRecordType', this.recordType);
-      const dashboardViewStep = _get(currentStep, 'dashboardViewStep', {}) as DashboardViewStepDefinitionResponse;
-      const stepName =
-        dashboardViewStep.fetchMode == 'workflowStage' ? dashboardViewStep.sourceWorkflowStage || evaluateStepName : '';
-      this.restoreDashboardViewStepConfig(evaluateStepName);
-      await this.initStep(stepName, evaluateStepName, recordType, '', event.page, {});
+    } finally {
       this.isProcessingPageChange = false;
     }
   }
 
   public getSortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = this.getStepKey(workflowStep);
-    let sort = 'desc';
-    if (step != '') {
-      let sortMapAtStep = sortMap[step];
-      if (_has(sortMapAtStep, rowConfig.variable)) {
-        sort = sortMapAtStep[rowConfig.variable].sort;
-        return sort;
-      }
-    }
-    return sort;
+    const sortMapAtStep = sortMap[this.getStepKey(workflowStep)];
+    return _has(sortMapAtStep, rowConfig.variable) ? sortMapAtStep[rowConfig.variable].sort : 'desc';
   }
 
   public getSecondarySortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    let step = this.getStepKey(workflowStep);
-    let secondarySort = 'desc';
-    if (step != '') {
-      let sortMapAtStep = sortMap[step];
-      if (_has(sortMapAtStep, rowConfig.variable)) {
-        secondarySort = sortMapAtStep[rowConfig.variable].secondarySort;
-        return secondarySort;
-      }
-    }
-    return secondarySort;
+    const sortMapAtStep = sortMap[this.getStepKey(workflowStep)];
+    return _has(sortMapAtStep, rowConfig.variable) ? sortMapAtStep[rowConfig.variable].secondarySort : 'desc';
   }
 
   private getActiveSortFieldFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
-    let fields = _get(this.sortFields, step);
-
-    if (_isUndefined(fields) || _isEmpty(fields) || _isEmpty(sortMapAtStep)) {
+    const fields = (this.tableConfig[step] ?? []).map((column) => column.variable);
+    if (_isEmpty(fields) || _isEmpty(sortMapAtStep)) {
       return '';
     }
-
     let activeSortField = '';
-    for (let i = 0; i < fields.length; i++) {
-      let sortField = fields[i];
-
+    for (const sortField of fields) {
       if (!_has(sortMapAtStep, sortField) || _isEmpty(sortMapAtStep[sortField])) {
         continue;
       }
-
-      let sort = _get(sortMapAtStep, [sortField, 'sort']);
+      const sort = _get(sortMapAtStep, [sortField, 'sort']);
       if (sort !== 'asc' && sort !== 'desc') {
         continue;
       }
-
       if (forceDefault && _get(sortMapAtStep, [sortField, 'defaultSort']) == true) {
         return sortField;
       }
-
       if (_isEmpty(activeSortField)) {
         activeSortField = sortField;
       }
     }
-
     return activeSortField;
   }
 
+  /** Column sort first; otherwise the step's overall sort; otherwise last modified. */
   private getSortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
-    let sortString = 'metaMetadata.lastSaveDate:-1';
-    let sortField = this.getActiveSortFieldFromSortMap(sortMapAtStep, step, forceDefault);
-
-    if (!_isEmpty(sortField)) {
-      sortString = `${sortField}:`;
-      if (_get(sortMapAtStep, [sortField, 'sort']) == 'desc') {
-        sortString = sortString + '-1';
-      } else {
-        sortString = sortString + '1';
-      }
+    const sortField = this.getActiveSortFieldFromSortMap(sortMapAtStep, step, forceDefault);
+    if (_isEmpty(sortField)) {
+      const sortBy = this.getFormatRules(step).sortBy;
+      return !_isEmpty(sortBy) ? String(sortBy) : 'metaMetadata.lastSaveDate:-1';
     }
-
-    return sortString;
+    return `${sortField}:${_get(sortMapAtStep, [sortField, 'sort']) == 'desc' ? '-1' : '1'}`;
   }
 
   private getSecondarySortStringFromSortMap(sortMapAtStep: any, step: string, forceDefault: boolean = false) {
-    let sortField = this.getActiveSortFieldFromSortMap(sortMapAtStep, step, forceDefault);
-
+    const sortField = this.getActiveSortFieldFromSortMap(sortMapAtStep, step, forceDefault);
     if (_isEmpty(sortField)) {
       return '';
     }
-
-    let secondarySort = _get(sortMapAtStep, [sortField, 'secondarySort']);
-    let sort = _get(sortMapAtStep, [sortField, 'sort']);
-
+    const secondarySort = _get(sortMapAtStep, [sortField, 'secondarySort']);
     if (secondarySort != null && secondarySort !== '') {
-      let sortString = `${secondarySort}:`;
-      if (sort == 'desc') {
-        sortString = sortString + '-1';
-      } else {
-        sortString = sortString + '1';
-      }
-      return sortString;
+      return `${secondarySort}:${_get(sortMapAtStep, [sortField, 'sort']) == 'desc' ? '-1' : '1'}`;
     }
-
     return '';
   }
 
-  private getFirstFilter(type: string): FilterField {
-    try {
-      let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
-      for (let queryFilter of queryFilters) {
-        if (queryFilter.filterType == type) {
-          for (let filterField of queryFilter.filterFields) {
-            return filterField;
-          }
-        }
-      }
-      return this.defaultFilterField;
-    } catch (error) {
-      return this.defaultFilterField;
-    }
+  /** Search controls for a step, keyed by this page's record type. */
+  private getQueryFilters(step: string): QueryFilter[] {
+    const queryFilters = this.getFormatRules(step).queryFilters ?? {};
+    const filters = (queryFilters as any)[this.recordType];
+    return _isArray(filters) ? filters : [];
   }
 
-  private getFilters(type: string) {
-    let filterFields: FilterField[] = [];
-    let queryFilters: QueryFilter[] = this.formatRules.queryFilters?.[this.recordType] ?? [];
-    if (_isArray(queryFilters)) {
-      for (let queryFilter of queryFilters) {
-        if (queryFilter.filterType == type) {
-          for (let filterField of queryFilter.filterFields) {
-            filterFields.push(filterField);
-          }
-        }
+  private getFirstTextFilter(step: string): FilterField {
+    for (const queryFilter of this.getQueryFilters(step)) {
+      if (queryFilter.filterType == 'text' && !_isEmpty(queryFilter.filterFields)) {
+        return queryFilter.filterFields[0];
+      }
+    }
+    return this.defaultFilterField;
+  }
+
+  public getTextFilters(step: string): FilterField[] {
+    const filterFields: FilterField[] = [];
+    for (const queryFilter of this.getQueryFilters(step)) {
+      if (queryFilter.filterType == 'text') {
+        filterFields.push(...(queryFilter.filterFields ?? []));
       }
     }
     return filterFields;
   }
 
-  private getFirstTextFilter(): FilterField {
-    return this.getFirstFilter('text');
+  public getFilterFieldName(step: string): string {
+    return this.stepState[step]?.filterField?.name ?? this.defaultFilterField.name;
   }
 
-  public getTextFilters() {
-    return this.getFilters('text');
+  private getFilterFieldPath(step: string): string {
+    return this.stepState[step]?.filterField?.path ?? this.defaultFilterField.path;
+  }
+
+  /** Whether this step shows the search box on this page. */
+  public isSearchEnabled(step: string): boolean {
+    return (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace')
+      && !this.isViewPage
+      && this.stepState[step]?.settings?.searchable === true;
+  }
+
+  /** Whether this step shows its stage heading on this page. */
+  public isStageTitleShown(step: string): boolean {
+    return (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'consolidated')
+      && this.stepState[step]?.settings?.showStageTitle !== false;
   }
 
   public getFilterSearchDisplayed(step: any): boolean {
-    let filterDisplayed = _get(this.isFilterSearchDisplayed, step, '');
-    if (filterDisplayed == 'filterDisplayed') {
-      return true;
-    } else {
-      return false;
-    }
+    return _get(this.isFilterSearchDisplayed, step, '') == 'filterDisplayed';
   }
 
   public getIsSearching(step: any): boolean {
-    let searching = _get(this.isSearching, step, '');
-    if (searching == 'searching') {
-      return true;
-    } else {
-      return false;
-    }
+    return _get(this.isSearching, step, '') == 'searching';
   }
 
   public getFilterSearchString(step: any): string {
-    let filterString = _get(this.filterSearchString, step, '');
-
-    // Find filter template by iterating and generating key
-    let queryFilters: QueryFilter[] = _get(this.formatRules, `queryFilters.${this.recordType}`);
-    if (_isArray(queryFilters)) {
-      for (let i = 0; i < queryFilters.length; i++) {
-        let queryFilter = queryFilters[i];
-        if (_isArray(queryFilter.filterFields)) {
-          for (let j = 0; j < queryFilter.filterFields.length; j++) {
-            let filterField = queryFilter.filterFields[j];
-            if (filterField.path == this.filterFieldPath) {
-              if ((filterField as any).template) {
-                const keyBase = [
-                  this.getTemplateContextKey(this.recordType),
-                  this.dashboardTypeSelected,
-                  'filters',
-                  i.toString(),
-                  'fields',
-                  j.toString(),
-                  'template',
-                ];
-                const imports: any = { value: filterString };
-                return this.handlebarsTemplateService.compileAndRunTemplate(
-                  (filterField as any).template,
-                  imports,
-                  keyBase
-                );
-              }
-            }
-          }
+    const filterString = _get(this.filterSearchString, step, '');
+    if (_isEmpty(filterString)) {
+      return '';
+    }
+    const queryFilters = this.getQueryFilters(step);
+    const filterFieldPath = this.getFilterFieldPath(step);
+    for (let i = 0; i < queryFilters.length; i++) {
+      const filterFields = queryFilters[i].filterFields ?? [];
+      for (let j = 0; j < filterFields.length; j++) {
+        const filterField = filterFields[j];
+        if (
+          filterField.path == filterFieldPath &&
+          filterField.legacyTemplateLookupFailed === true &&
+          !filterField.template
+        ) {
+          // v5.0.1 workspace lookup missed a configured non-empty template
+          // and passed its empty result to search. Migration keeps that apart
+          // from a genuinely empty template, which uses the entered text.
+          return '';
+        }
+        if (filterField.path == filterFieldPath && filterField.template) {
+          const key = this.templateKey(step, 'filters', this.recordType, i.toString(), 'fields', j.toString(), 'template');
+          return this.handlebarsTemplateService.compileAndRunTemplate(filterField.template, { value: filterString }, key);
         }
       }
     }
@@ -1351,93 +777,42 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public async filterChanged(step: string) {
-    if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      this.isSearching[step] = 'searching';
-      this.isFilterSearchDisplayed[step] = 'filterDisplayed';
-      let sortMapAtStep = this.sortMap[step];
-      this.records[step].currentPage = 1;
-      let stagedRecords: any;
-      if (this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords(
-          '',
-          '',
-          1,
-          this.packageType,
-          this.getSortStringFromSortMap(sortMapAtStep, step, true),
-          this.filterFieldPath,
-          this.getFilterSearchString(step),
-          '',
-          this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true)
-        );
-      } else {
-        stagedRecords = await this.recordService.getRecords(
-          this.recordType,
-          step,
-          1,
-          '',
-          this.getSortStringFromSortMap(sortMapAtStep, step, true),
-          this.filterFieldPath,
-          this.getFilterSearchString(step),
-          '',
-          this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true)
-        );
-      }
-
-      let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, recordType);
-
-      this.records[step] = planTable;
+    if (!this.isSearchEnabled(step)) {
+      return;
+    }
+    this.submittedSearch[step] = this.getFilterSearchString(step);
+    this.isSearching[step] = 'searching';
+    this.isFilterSearchDisplayed[step] = 'filterDisplayed';
+    try {
+      await this.reloadStep(step, 1);
+    } finally {
       this.isSearching[step] = '';
     }
   }
 
   public async resetFilterAndSearch(step: string, e: any) {
-    if (this.dashboardTypeSelected == 'standard' || this.dashboardTypeSelected == 'workspace') {
-      this.setFilterField(this.getFirstTextFilter(), e);
-      this.isSearching[step] = 'searching';
-      let sortMapAtStep = this.sortMap[step];
-      this.filterSearchString[step] = '';
-      this.records[step].currentPage = 1;
-      let stagedRecords: any;
-      if (this.dashboardTypeSelected == 'workspace') {
-        stagedRecords = await this.recordService.getRecords(
-          '',
-          '',
-          1,
-          this.packageType,
-          this.getSortStringFromSortMap(sortMapAtStep, step, true),
-          this.filterFieldPath,
-          this.getFilterSearchString(step),
-          '',
-          this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true)
-        );
-      } else {
-        stagedRecords = await this.recordService.getRecords(
-          this.recordType,
-          step,
-          1,
-          '',
-          this.getSortStringFromSortMap(sortMapAtStep, step, true),
-          this.filterFieldPath,
-          this.getFilterSearchString(step),
-          '',
-          this.getSecondarySortStringFromSortMap(sortMapAtStep, step, true)
-        );
-      }
-
-      let recordType = this.dashboardTypeSelected == 'workspace' ? '' : this.recordType;
-      let planTable: PlanTable = this.evaluatePlanTableColumns({}, {}, {}, step, stagedRecords, recordType);
-
-      this.records[step] = planTable;
+    if (!this.isSearchEnabled(step)) {
+      return;
+    }
+    this.setFilterField(step, this.getFirstTextFilter(step), e);
+    this.isSearching[step] = 'searching';
+    this.filterSearchString[step] = '';
+    // v5.0.1 reset submitted an empty search that replaced filterBy. Keep the
+    // same list after migration, including on later page and sort changes.
+    this.submittedSearch[step] = '';
+    try {
+      await this.reloadStep(step, 1);
+    } finally {
       this.isSearching[step] = '';
     }
   }
 
-  public setFilterField(filterField: FilterField, e: any) {
+  public setFilterField(step: string, filterField: FilterField, e: any) {
     if (e) {
       e.preventDefault();
     }
-    this.filterFieldName = filterField.name;
-    this.filterFieldPath = filterField.path;
+    if (this.stepState[step]) {
+      this.stepState[step].filterField = filterField;
+    }
   }
 }

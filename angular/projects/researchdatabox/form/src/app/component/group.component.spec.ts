@@ -4,6 +4,13 @@ import { SimpleInputComponent } from './simple-input.component';
 import { GroupFieldComponent } from "./group.component";
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { TestBed } from "@angular/core/testing";
+import { FormComponentEventBus, FormComponentEventType } from "../form-state";
+import { TabContentComponent } from './tab.component';
+import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
+import { TypeaheadInputComponent } from './typeahead-input.component';
+import type { TypeaheadMatch } from 'ngx-bootstrap/typeahead';
+import { TabComponent } from './tab.component';
+import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
 
 
 describe('GroupFieldComponent', () => {
@@ -12,7 +19,15 @@ describe('GroupFieldComponent', () => {
       declarations: {
         "SimpleInputComponent": SimpleInputComponent,
         "GroupFieldComponent": GroupFieldComponent,
-      }
+        "TabContentComponent": TabContentComponent,
+        "TabComponent": TabComponent,
+        "TypeaheadInputComponent": TypeaheadInputComponent,
+        "RepeatableComponent": RepeatableComponent,
+        "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
+      },
+      imports: {
+        "TypeaheadModule": TypeaheadModule,
+      },
     });
   });
   it('should create component', () => {
@@ -278,5 +293,407 @@ describe('GroupFieldComponent', () => {
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const groupContainer = fixture.nativeElement.querySelector('.rb-form-group');
     expect(groupContainer).toBeTruthy();
+  });
+
+  it('reproduces non-repeatable group child changes across a reusable component boundary', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'group-child-change-repro',
+      componentDefinitions: [
+        {
+          name: 'contributor',
+          model: { class: 'GroupModel', config: { value: { name: 'Original', email: 'original@example.org' } } },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'reusable_fields',
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          model: { class: 'SimpleInputModel', config: {} },
+                          component: { class: 'SimpleInputComponent' },
+                        },
+                        {
+                          name: 'email',
+                          model: { class: 'SimpleInputModel', config: {} },
+                          component: { class: 'SimpleInputComponent' },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const allValueEvents: Array<{ fieldId: string; sourceId?: string; value?: unknown }> = [];
+    const groupEvents: typeof allValueEvents = [];
+    const subscription = eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+      allValueEvents.push(event);
+      if (event.fieldId.endsWith('/contributor')) {
+        groupEvents.push(event);
+      }
+    });
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    expect(formComponent.form?.value).toEqual({
+      contributor: { name: 'Original', email: 'original@example.org' },
+    });
+    expect(formComponent.form?.pristine).toBeTrue();
+    // Form startup publishes one canonical initial-value event; control
+    // attachment and hydration must not publish additional user-change events.
+    expect(groupEvents).toHaveSize(1);
+    expect(groupEvents[0].sourceId).toBe('form.definition.ready');
+    expect(allValueEvents.every(event => event.sourceId === FormComponentEventType.FORM_DEFINITION_READY)).toBeTrue();
+    const groupControl = formComponent.form?.get('contributor');
+    expect(groupControl).toBeTruthy();
+    let childChanges = 0;
+    let groupChanges = 0;
+    let rootChanges = 0;
+    const childSub = groupControl!.get('name')!.valueChanges.subscribe(() => childChanges++);
+    const groupSub = groupControl!.valueChanges.subscribe(() => groupChanges++);
+    const rootSub = formComponent.form!.valueChanges.subscribe(() => rootChanges++);
+    const eventCountBeforeEdit = allValueEvents.length;
+    const initialInputs = fixture.nativeElement.querySelectorAll('input[type="text"]');
+    expect(initialInputs[0].value).toBe('Original');
+    expect(initialInputs[1].value).toBe('original@example.org');
+
+    const nameInput = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+    nameInput.value = 'Updated';
+    nameInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(formComponent.form?.value).toEqual({
+      contributor: { name: 'Updated', email: 'original@example.org' },
+    });
+    expect(formComponent.getDebugFormValue()).toEqual({
+      contributor: { name: 'Updated', email: 'original@example.org' },
+    });
+    expect(formComponent.form?.dirty).toBeTrue();
+    const broadcastGroupEvents = groupEvents.filter(event => event.sourceId === '*');
+    expect(broadcastGroupEvents).toHaveSize(1);
+    expect(broadcastGroupEvents[0].value).toEqual({ name: 'Updated', email: 'original@example.org' });
+    expect([childChanges, groupChanges, rootChanges]).toEqual([1, 1, 1]);
+    const editEvents = allValueEvents.slice(eventCountBeforeEdit);
+    expect(editEvents.filter(event => event.sourceId === '*').map(event => event.fieldId)).toEqual([
+      jasmine.stringMatching(/\/name$/), jasmine.stringMatching(/\/contributor$/),
+    ]);
+    expect(editEvents.filter(event => event.sourceId !== '*')).toHaveSize(2);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect([childChanges, groupChanges, rootChanges, allValueEvents.length]).toEqual([1, 1, 1, eventCountBeforeEdit + 4]);
+
+    const emailInput = fixture.nativeElement.querySelectorAll('input[type="text"]')[1] as HTMLInputElement;
+    emailInput.value = '';
+    emailInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(formComponent.getDebugFormValue()).toEqual({
+      contributor: { name: 'Updated', email: '' },
+    });
+
+    childSub.unsubscribe();
+    groupSub.unsubscribe();
+    rootSub.unsubscribe();
+    subscription.unsubscribe();
+  });
+
+  it('serializes typeahead sibling autofill inside a non-repeatable group', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'group-typeahead-selection',
+      componentDefinitions: [
+        {
+          name: 'contributor',
+          model: { class: 'GroupModel', config: { value: { name: '', email: '' } } },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'reusable_fields',
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          model: { class: 'TypeaheadInputModel', config: {} },
+                          component: {
+                            class: 'TypeaheadInputComponent',
+                            config: {
+                              sourceType: 'static',
+                              staticOptions: [{ label: 'Ada Lovelace', value: 'Ada Lovelace', raw: { email: 'ada@example.org' } }],
+                            },
+                          },
+                        },
+                        {
+                          name: 'email',
+                          model: { class: 'SimpleInputModel', config: {} },
+                          component: {
+                            class: 'SimpleInputComponent',
+                            config: { onItemSelect: { rawPath: 'email' } },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const typeahead = fixture.debugElement.query(
+      node => node.componentInstance instanceof TypeaheadInputComponent
+    ).componentInstance as TypeaheadInputComponent;
+    const groupControl = formComponent.form!.get('contributor')!;
+    let groupChanges = 0;
+    let rootChanges = 0;
+    let emailChanges = 0;
+    const groupSub = groupControl.valueChanges.subscribe(() => groupChanges++);
+    const rootSub = formComponent.form!.valueChanges.subscribe(() => rootChanges++);
+    const emailSub = groupControl.get('email')!.valueChanges.subscribe(() => emailChanges++);
+    const allValueEvents: Array<{ fieldId: string; sourceId?: string; value?: unknown }> = [];
+    const groupEvents: typeof allValueEvents = [];
+    const eventSub = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
+      .subscribe(event => {
+        allValueEvents.push(event);
+        if (event.fieldId.endsWith('/contributor')) groupEvents.push(event);
+      });
+
+    typeahead.onSelect({
+      item: { label: 'Ada Lovelace', value: 'Ada Lovelace', raw: { email: 'ada@example.org' } },
+    } as TypeaheadMatch);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(formComponent.getDebugFormValue()).toEqual({
+      contributor: { name: 'Ada Lovelace', email: 'ada@example.org' },
+    });
+    expect(fixture.nativeElement.querySelectorAll('input[type="text"]')[0].value).toBe('Ada Lovelace');
+    expect(fixture.nativeElement.querySelectorAll('input[type="text"]')[1].value).toBe('ada@example.org');
+    expect(formComponent.form?.dirty).toBeTrue();
+    const settledCounts = [emailChanges, groupChanges, rootChanges, allValueEvents.length];
+    expect(groupControl.value).toEqual({ name: 'Ada Lovelace', email: 'ada@example.org' });
+    expect(groupEvents.map(event => event.sourceId)).toEqual(['*', jasmine.stringMatching(/\/contributor$/)]);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect([emailChanges, groupChanges, rootChanges, allValueEvents.length]).toEqual(settledCounts);
+    // Sibling autofill uses a silent control write. Its explicit notification
+    // does not restart Angular propagation through the containing group.
+    expect(groupChanges).toBe(1);
+    expect(rootChanges).toBe(1);
+    expect(emailChanges).toBe(0);
+    groupSub.unsubscribe();
+    rootSub.unsubscribe();
+    emailSub.unsubscribe();
+    eventSub.unsubscribe();
+  });
+
+  it('settles reciprocal field expressions inside a reusable group', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'group-reciprocal-expressions',
+      componentDefinitions: [{
+        name: 'contributor',
+        model: { class: 'GroupModel', config: { value: { name: '', email: '' } } },
+        component: { class: 'GroupComponent', config: { componentDefinitions: [{
+          name: 'reusable_fields',
+          component: { class: 'TabContentComponent', config: { componentDefinitions: [
+            {
+              name: 'name',
+              model: { class: 'SimpleInputModel', config: {} },
+              component: { class: 'SimpleInputComponent' },
+              expressions: [{ name: 'copy-email-to-name', config: {
+                conditionKind: 'jsonpointer',
+                condition: '/contributor/reusable_fields/email::field.value.changed',
+                target: 'model.value',
+                template: '',
+                runOnFormReady: false,
+              } }],
+            },
+            {
+              name: 'email',
+              model: { class: 'SimpleInputModel', config: {} },
+              component: { class: 'SimpleInputComponent' },
+              expressions: [{ name: 'copy-name-to-email', config: {
+                conditionKind: 'jsonpointer',
+                condition: '/contributor/reusable_fields/name::field.value.changed',
+                target: 'model.value',
+                template: '',
+                runOnFormReady: false,
+              } }],
+            },
+          ] } },
+        }] } },
+      }],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const group = formComponent.form!.get('contributor')!;
+    const events: string[] = [];
+    const busSub = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
+      .subscribe(event => { if (event.sourceId === '*') events.push(event.fieldId); });
+    let groupChanges = 0;
+    const groupSub = group.valueChanges.subscribe(() => groupChanges++);
+
+    const nameInput = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+    nameInput.value = 'Ada';
+    nameInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(group.value).toEqual({ name: 'Ada', email: 'Ada' });
+    expect(groupChanges).toBe(1);
+    expect(events).toHaveSize(2);
+    const settledEvents = events.length;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(events.length).toBe(settledEvents);
+    expect(groupChanges).toBe(1);
+    busSub.unsubscribe();
+    groupSub.unsubscribe();
+  });
+
+  it('hydrates repeatable descendants with a different saved row count silently', async () => {
+    const savedMembers = ['Ada', 'Grace', 'Katherine'];
+    const formConfig: FormConfigFrame = {
+      name: 'group-nested-repeatable-hydration',
+      componentDefinitions: [{
+        name: 'contributor',
+        model: { class: 'GroupModel', config: { value: { members: savedMembers } } },
+        component: { class: 'GroupComponent', config: { componentDefinitions: [{
+          name: 'reusable_fields',
+          component: { class: 'TabContentComponent', config: { componentDefinitions: [{
+            name: 'members',
+            model: { class: 'RepeatableModel', config: { value: ['Initial row'] } },
+            component: { class: 'RepeatableComponent', config: {
+              elementTemplate: {
+                name: '',
+                model: { class: 'SimpleInputModel', config: {} },
+                component: { class: 'SimpleInputComponent' },
+              },
+            } },
+          }] } },
+        }] } },
+      }],
+    };
+    const events: Array<{ sourceId?: string }> = [];
+    const subscription = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
+      .subscribe(event => events.push(event));
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    expect(formComponent.form?.value).toEqual({ contributor: { members: savedMembers } });
+    expect(formComponent.getDebugFormValue()).toEqual({ contributor: { members: savedMembers } });
+    expect(Array.from(fixture.nativeElement.querySelectorAll('input[type="text"]') as NodeListOf<HTMLInputElement>)
+      .map(input => input.value)).toEqual(savedMembers);
+    expect(formComponent.form?.pristine).toBeTrue();
+    expect(events.every(event => event.sourceId === FormComponentEventType.FORM_DEFINITION_READY)).toBeTrue();
+    subscription.unsubscribe();
+  });
+
+  it('keeps a reusable tab group as the canonical form value when another tab has a scalar carrier', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'group-reusable-tab-carrier',
+      componentDefinitions: [
+        {
+          name: 'mainTab',
+          component: {
+            class: 'TabComponent',
+            config: {
+              tabs: [
+                {
+                  name: 'people',
+                  layout: { class: 'TabContentLayout', config: { buttonLabel: 'People' } },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      selected: true,
+                      componentDefinitions: [
+                        {
+                          name: 'contributor',
+                          model: { class: 'GroupModel', config: { value: { name: 'Original', email: 'original@example.org' } } },
+                          component: {
+                            class: 'GroupComponent',
+                            config: {
+                              componentDefinitions: [
+                                {
+                                  name: 'reusable_fields',
+                                  component: {
+                                    class: 'TabContentComponent',
+                                    config: {
+                                      componentDefinitions: [
+                                        {
+                                          name: 'name',
+                                          model: { class: 'SimpleInputModel', config: {} },
+                                          component: { class: 'SimpleInputComponent' },
+                                        },
+                                        {
+                                          name: 'email',
+                                          model: { class: 'SimpleInputModel', config: {} },
+                                          component: { class: 'SimpleInputComponent' },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  name: 'compliance',
+                  layout: { class: 'TabContentLayout', config: { buttonLabel: 'Compliance' } },
+                  component: {
+                    class: 'TabContentComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'contributor',
+                          model: { class: 'SimpleInputModel', config: { value: '' } },
+                          component: { class: 'SimpleInputComponent' },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    expect(formComponent.form?.value.contributor).toEqual({ name: 'Original', email: 'original@example.org' });
+    expect(formComponent.form?.pristine).toBeTrue();
+
+    const nameInput = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+    nameInput.value = 'Updated';
+    nameInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(formComponent.getDebugFormValue()['contributor']).toEqual({
+      name: 'Updated',
+      email: 'original@example.org',
+    });
+    expect(formComponent.form?.dirty).toBeTrue();
   });
 });

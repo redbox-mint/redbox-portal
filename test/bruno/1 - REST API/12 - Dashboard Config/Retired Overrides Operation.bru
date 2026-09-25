@@ -1,0 +1,26 @@
+meta {
+  name: Retired Overrides Operation
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{host}}/default/rdmp/api/dashboard-config/overrides
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 410", function () {
+    expect(res.getStatus()).to.equal(410);
+  });
+
+  test("Identifies the retirement", function () {
+    expect(res.getBody().errors[0].code).to.equal("legacy-operation-retired");
+  });
+}
