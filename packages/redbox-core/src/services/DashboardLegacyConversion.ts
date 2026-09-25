@@ -147,6 +147,11 @@ function legacyMergeTables(...configs: unknown[]): AnyRecord {
   }
   const merge = (target: AnyRecord, source: AnyRecord) => {
     for (const [key, value] of Object.entries(source)) {
+      // Legacy configuration is data, so never let special property names reach
+      // an ordinary object during the recursive merge.
+      if (key === '__proto__' || key === 'constructor') {
+        continue;
+      }
       if (Array.isArray(value)) {
         target[key] = clone(value);
       } else if (isPlainObject(value)) {
