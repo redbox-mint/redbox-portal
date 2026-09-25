@@ -56,11 +56,15 @@ export class GroupFieldModel extends FormFieldModel<GroupFieldModelValueType> {
 
   public addItem(name: string, targetModel?: FormFieldModel<unknown>) {
     const control = targetModel?.getFormControl();
+    this.addControl(name, control);
+  }
+
+  public addControl(name: string, control?: AbstractControl<unknown>, emitEvent = true) {
     if (this.formControl && name && control) {
       if (this.formControl.disabled && control.enabled) {
         control.disable();
       }
-      this.formControl.addControl(name, control);
+      this.formControl.addControl(name, control, { emitEvent });
     } else {
       throw new Error(`${this.logName}: formControl or name or targetModel are not valid. Cannot add item.`);
     }
@@ -175,6 +179,29 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
           }
         }
         this.model.addItem(key, compInstance.model);
+        await syncComponentDisplayFromModel(compInstance);
+      } else if (
+        this.model?.formControl &&
+        includeInFormControlMap &&
+        compInstance &&
+        elemFieldEntry?.formControlMap
+      ) {
+        // Model-less containers (for example reusable form boundaries) expose
+        // their descendant controls through formControlMap. Keep those controls
+        // inside this group so child edits participate in group values, dirty
+        // state, change events, and serialization just like direct children.
+        for (const [childName, control] of Object.entries(elemFieldEntry.formControlMap)) {
+          const childValue = elemVals?.[childName];
+          if (control && !_isUndefined(childValue)) {
+            // Parent group values are already present during component setup.
+            // Apply them silently before registering the control so hydration
+            // updates the display without looking like a user edit.
+            control.setValue(childValue, { emitEvent: false });
+          }
+          if (control && this.model.formControl.get(childName) === null) {
+            this.model.addControl(childName, control, false);
+          }
+        }
         await syncComponentDisplayFromModel(compInstance);
       } else {
         this.loggerService.debug(`${this.logName}: component for '${key}' does not have a model or formControl, skipping addItem.`);
