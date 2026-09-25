@@ -14,6 +14,7 @@ import { BehaviourFieldResolverContext, resolveFieldByPointer } from './behaviou
  */
 export interface BehaviourActionExecutionContext {
   behaviourIndex: number;
+  behaviourChain: readonly number[];
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
@@ -92,6 +93,7 @@ async function executeEmitEventAction(
       fieldId: action.config.fieldId,
       sourceId: action.config.sourceId,
       value,
+      behaviourChain: ctx.behaviourChain,
     })
   );
 }
