@@ -10,6 +10,7 @@ import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { TypeaheadInputComponent } from './typeahead-input.component';
 import type { TypeaheadMatch } from 'ngx-bootstrap/typeahead';
 import { TabComponent } from './tab.component';
+import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
 
 
 describe('GroupFieldComponent', () => {
@@ -21,6 +22,8 @@ describe('GroupFieldComponent', () => {
         "TabContentComponent": TabContentComponent,
         "TabComponent": TabComponent,
         "TypeaheadInputComponent": TypeaheadInputComponent,
+        "RepeatableComponent": RepeatableComponent,
+        "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
       },
       imports: {
         "TypeaheadModule": TypeaheadModule.forRoot(),
@@ -560,6 +563,45 @@ describe('GroupFieldComponent', () => {
     expect(groupChanges).toBe(1);
     busSub.unsubscribe();
     groupSub.unsubscribe();
+  });
+
+  it('hydrates repeatable descendants with a different saved row count silently', async () => {
+    const savedMembers = ['Ada', 'Grace', 'Katherine'];
+    const formConfig: FormConfigFrame = {
+      name: 'group-nested-repeatable-hydration',
+      componentDefinitions: [{
+        name: 'contributor',
+        model: { class: 'GroupModel', config: { value: { members: savedMembers } } },
+        component: { class: 'GroupComponent', config: { componentDefinitions: [{
+          name: 'reusable_fields',
+          component: { class: 'TabContentComponent', config: { componentDefinitions: [{
+            name: 'members',
+            model: { class: 'RepeatableModel', config: { value: ['Initial row'] } },
+            component: { class: 'RepeatableComponent', config: {
+              elementTemplate: {
+                name: '',
+                model: { class: 'SimpleInputModel', config: {} },
+                component: { class: 'SimpleInputComponent' },
+              },
+            } },
+          }] } },
+        }] } },
+      }],
+    };
+    const events: Array<{ sourceId?: string }> = [];
+    const subscription = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
+      .subscribe(event => events.push(event));
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    expect(formComponent.form?.value).toEqual({ contributor: { members: savedMembers } });
+    expect(formComponent.getDebugFormValue()).toEqual({ contributor: { members: savedMembers } });
+    expect(Array.from(fixture.nativeElement.querySelectorAll('input[type="text"]') as NodeListOf<HTMLInputElement>)
+      .map(input => input.value)).toEqual(savedMembers);
+    expect(formComponent.form?.pristine).toBeTrue();
+    expect(events.every(event => event.sourceId === FormComponentEventType.FORM_DEFINITION_READY)).toBeTrue();
+    subscription.unsubscribe();
   });
 
   it('keeps a reusable tab group as the canonical form value when another tab has a scalar carrier', async () => {

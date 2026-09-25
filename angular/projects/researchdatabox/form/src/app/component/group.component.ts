@@ -28,6 +28,7 @@ import {
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
 import { RepeatableComponent } from './repeatable.component';
 import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
+import { setControlValue } from '../form-state/custom-set-value.control';
 
 
 export type GroupFormControlValueType = { [key: string]: AbstractControl<GroupFieldModelValueType> };
@@ -196,7 +197,9 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
             // Parent group values are already present during component setup.
             // Apply them silently before registering the control so hydration
             // updates the display without looking like a user edit.
-            control.setValue(childValue, { emitEvent: false });
+            // Repeatable controls need their registered setter to rebuild rows
+            // before applying a saved value with a different row count.
+            await setControlValue(control, childValue, { emitEvent: false });
           }
           if (control && this.model.formControl.get(childName) === null) {
             this.model.addControl(childName, control, false);
