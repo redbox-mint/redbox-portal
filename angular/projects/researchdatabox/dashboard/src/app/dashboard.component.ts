@@ -67,6 +67,7 @@ export class DashboardComponent extends BaseComponent {
   enableSort: boolean = true;
   defaultFilterField: FilterField = { name: 'Title', path: 'metadata.title' };
   filterSearchString: any = {};
+  private submittedSearch: Record<string, string> = {};
   isFilterSearchDisplayed: any = {};
   isSearching: any = {};
   isProcessingPageChange: boolean = false;
@@ -307,15 +308,14 @@ export class DashboardComponent extends BaseComponent {
     return { filterFields: _get(filterBy, 'filterField'), filterString, filterMode: _get(filterBy, 'filterMode') };
   }
 
-  /** Search text when the user has searched, otherwise the step's own filter. */
+  /** Submitted search text, otherwise the step's own filter. */
   private getActiveFilter(stepKey: string): { filterFields: any; filterString: any; filterMode: any } {
-    // An entered search whose legacy template resolved to an empty string must
-    // still replace the initial record filter, as v5.0.1 did. The presence
-    // check also distinguishes an untouched input from an explicit reset.
-    if (Object.prototype.hasOwnProperty.call(this.filterSearchString, stepKey)) {
+    // A submitted legacy workspace search may resolve to an empty string and
+    // must still replace the initial record filter, as v5.0.1 did.
+    if (Object.prototype.hasOwnProperty.call(this.submittedSearch, stepKey)) {
       return {
         filterFields: this.getFilterFieldPath(stepKey),
-        filterString: this.getFilterSearchString(stepKey),
+        filterString: this.submittedSearch[stepKey],
         filterMode: ''
       };
     }
@@ -770,6 +770,7 @@ export class DashboardComponent extends BaseComponent {
     if (!this.isSearchEnabled(step)) {
       return;
     }
+    this.submittedSearch[step] = this.getFilterSearchString(step);
     this.isSearching[step] = 'searching';
     this.isFilterSearchDisplayed[step] = 'filterDisplayed';
     try {
@@ -786,6 +787,7 @@ export class DashboardComponent extends BaseComponent {
     this.setFilterField(step, this.getFirstTextFilter(step), e);
     this.isSearching[step] = 'searching';
     this.filterSearchString[step] = '';
+    this.submittedSearch[step] = '';
     try {
       await this.reloadStep(step, 1);
     } finally {

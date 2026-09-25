@@ -460,6 +460,17 @@ describe('DashboardConfigService', function () {
   });
 
   describe('legacy migration', function () {
+    it('preflights only the requested brand', async function () {
+      (global as any).BrandingConfig.find = sinon.stub().throws(new Error('preflight must not list other brands'));
+
+      const reports = await service.preflightLegacyMigration(brand);
+
+      expect(reports).to.have.length(1);
+      expect(reports[0].brand).to.deep.equal({ id: 'brand1', name: 'default' });
+      expect((global as any).BrandingConfig.find.called).to.equal(false);
+      expect((global as any).RecordType.find.firstCall.args[0]).to.deep.equal({ branding: 'brand1' });
+    });
+
     it('captures the most recently updated legacy AppConfig override row', async function () {
       (global as any).AppConfig.find = sinon.stub().resolves([
         {
@@ -604,6 +615,27 @@ describe('DashboardConfigService', function () {
       expect(store.docs).to.have.length(1);
       expect(store.docs[0].configData.workflows.rdmp.draft.tableConfig.rowConfig[0].title).to.equal('Operator choice');
       expect(store.docs[0].provenance.migration.replacementResolvedFindingIds).to.deep.equal([finding.id]);
+    });
+
+    it('refuses invalid replacement settings before publishing', async function () {
+      useWorkspaceConflictFixture();
+      const { conversion, finding } = await workspaceConflict();
+      const invalidReplacement = stageSettings('Broken');
+      invalidReplacement.tableConfig.rowConfig[0].template = '{{#if}}';
+      writeResolutionFile({
+        captureFingerprints: { default: conversion.inputFingerprint },
+        replacements: [{ brand: 'default', target: finding.target, settings: invalidReplacement }],
+      });
+
+      try {
+        await service.migrateLegacyConfiguration();
+        expect.fail('invalid replacement must not be published');
+      } catch (error: any) {
+        expect(error.message).to.contain('Dashboard migration replacement for default /');
+        expect(error.message).to.contain('tableConfig.rowConfig[0].template');
+      }
+      expect(store.docs).to.have.length(0);
+      expect((global as any).AppConfig.create.calledOnce).to.equal(true);
     });
 
     it('scopes identical finding IDs to their brand instead of leaking an acceptance', async function () {

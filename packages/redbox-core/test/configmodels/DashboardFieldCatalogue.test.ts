@@ -50,6 +50,23 @@ describe('DashboardFieldCatalogue', function () {
     expect(openPrefixes).to.not.include('metadata');
   });
 
+  it('stops expanding recursive $defs references while retaining independent siblings', function () {
+    const recursive = {
+      $defs: {
+        person: {
+          type: 'object', additionalProperties: false,
+          properties: { name: { type: 'string' }, supervisor: { $ref: '#/$defs/person' } },
+        },
+      },
+      type: 'object', additionalProperties: false,
+      properties: { owner: { $ref: '#/$defs/person' }, reviewer: { $ref: '#/$defs/person' } },
+    };
+
+    const { fields } = flattenRecordJsonSchema(recursive);
+
+    expect(fields.map(field => field.path)).to.deep.equal(['metadata.owner.name', 'metadata.reviewer.name']);
+  });
+
   it('recognises known, parent, system and open paths only', function () {
     const c = catalogue();
     expect(isKnownFieldPath(c, 'metadata.title')).to.equal(true);

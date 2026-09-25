@@ -83,18 +83,19 @@ export function flattenRecordJsonSchema(document: unknown, root = 'metadata'): {
   const openPrefixes = new Set<string>();
   const defs = isObject(document) && isObject(document['$defs']) ? (document['$defs'] as Record<string, unknown>) : {};
 
-  const resolve = (node: JsonSchemaNode, seen: Set<string>): JsonSchemaNode | null => {
+  const resolve = (node: JsonSchemaNode, seen: Set<string>): { node: JsonSchemaNode; seen: Set<string> } | null => {
     const ref = node['$ref'];
     if (typeof ref !== 'string') {
-      return node;
+      return { node, seen };
     }
     const match = /^#\/\$defs\/(.+)$/.exec(ref);
     const key = match ? decodeURIComponent(match[1].replace(/~1/g, '/').replace(/~0/g, '~')) : null;
     if (!key || seen.has(key) || !isObject(defs[key])) {
       return null;
     }
-    seen.add(key);
-    return { ...(defs[key] as JsonSchemaNode), ...Object.fromEntries(Object.entries(node).filter(([k]) => k !== '$ref')) };
+    const nextSeen = new Set(seen);
+    nextSeen.add(key);
+    return { node: { ...(defs[key] as JsonSchemaNode), ...Object.fromEntries(Object.entries(node).filter(([k]) => k !== '$ref')) }, seen: nextSeen };
   };
 
   const addLeaf = (path: string, type: DashboardFieldType, repeated: boolean, node: JsonSchemaNode) => {
@@ -112,26 +113,27 @@ export function flattenRecordJsonSchema(document: unknown, root = 'metadata'): {
   };
 
   const walk = (input: unknown, path: string, repeated: boolean, depth: number, seen: Set<string>) => {
-    if (!isObject(input) || depth > MAX_DEPTH) {
+    if (!isObject(input) || depth > MAX_DEPTH || fields.size >= MAX_FIELDS) {
       return;
     }
-    const node = resolve(input, new Set(seen));
-    if (!node) {
+    const resolved = resolve(input, seen);
+    if (!resolved) {
       return;
     }
+    const { node, seen: childSeen } = resolved;
     for (const combinator of ['allOf', 'anyOf', 'oneOf']) {
       if (Array.isArray(node[combinator])) {
-        (node[combinator] as unknown[]).forEach((branch) => walk(branch, path, repeated, depth + 1, seen));
+        (node[combinator] as unknown[]).forEach((branch) => walk(branch, path, repeated, depth + 1, childSeen));
       }
     }
     for (const conditional of ['then', 'else']) {
-      walk(node[conditional], path, repeated, depth + 1, seen);
+      walk(node[conditional], path, repeated, depth + 1, childSeen);
     }
     const types = schemaTypes(node);
     const properties = isObject(node['properties']) ? (node['properties'] as Record<string, unknown>) : null;
     if (properties || types.includes('object')) {
       for (const [name, child] of Object.entries(properties ?? {})) {
-        walk(child, path ? `${path}.${name}` : name, repeated, depth + 1, seen);
+        walk(child, path ? `${path}.${name}` : name, repeated, depth + 1, childSeen);
       }
       if (node['additionalProperties'] !== false && node['unevaluatedProperties'] !== false) {
         openPrefixes.add(path);
@@ -140,7 +142,7 @@ export function flattenRecordJsonSchema(document: unknown, root = 'metadata'): {
     }
     if (types.includes('array') || node['items'] !== undefined) {
       if (isObject(node['items']) && (isObject((node['items'] as JsonSchemaNode)['properties']) || schemaTypes(node['items'] as JsonSchemaNode).includes('object') || typeof (node['items'] as JsonSchemaNode)['$ref'] === 'string')) {
-        walk(node['items'], path, true, depth + 1, seen);
+        walk(node['items'], path, true, depth + 1, childSeen);
       } else {
         const itemTypes = isObject(node['items']) ? schemaTypes(node['items'] as JsonSchemaNode) : [];
         addLeaf(path, (itemTypes.find((t) => t !== 'null') as DashboardFieldType) ?? 'array', true, isObject(node['items']) ? (node['items'] as JsonSchemaNode) : node);

@@ -9,6 +9,11 @@
     "description": "Dashboard heading shown for the one-step dashboard variant",
     "contentFormat": "plain"
   },
+  "dashboard-filter-by": {
+    "category": "dashboard",
+    "description": "Search filter field selector label; field is the selected field name",
+    "contentFormat": "plain"
+  },
   "dashboard-settings-unavailable": {
     "category": "dashboard",
     "description": "Shown when a dashboard's saved settings cannot be loaded (for example before the dashboard migration has completed)",

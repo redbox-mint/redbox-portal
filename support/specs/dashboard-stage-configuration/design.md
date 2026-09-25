@@ -1,6 +1,6 @@
 # Independent dashboard stage configuration
 
-Status: agreed product design and implementation handoff. No application changes have been made for this design.
+Status: agreed product design; implemented in the dashboard stage configuration change. Customer upgrade rehearsal remains outstanding.
 
 Prepared: 2026-09-25.
 

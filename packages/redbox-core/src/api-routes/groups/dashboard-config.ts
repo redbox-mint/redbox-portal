@@ -167,7 +167,7 @@ export const getViewDashboardFieldsRoute = apiRoute('get', '/:branding/:portal/a
 export const dashboardConfigMigrationPreflightRoute = apiRoute('get', '/:branding/:portal/api/dashboard-config/migration/preflight', controller, 'migrationPreflight', {}, {
   tags,
   summary: 'Legacy dashboard migration preflight',
-  description: 'Read-only report of how v5.0.1 dashboard profiles, overrides and tables convert to independent settings, per brand. Includes the input fingerprint and findings that need resolution.',
+  description: 'Read-only report for the brand in the route, showing how its v5.0.1 dashboard profiles, overrides and tables convert to independent settings. Includes the input fingerprint and findings that need resolution.',
   responses: { 200: dataResponse('{ reports }') },
 });
 

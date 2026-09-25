@@ -176,7 +176,7 @@ For each brand it saves an immutable recovery snapshot (AppConfig key `dashboard
 Recommended procedure for each production deployment:
 
 1. Restore a recent database copy with the exact hooks and assets into staging, and record representative dashboards (headings, cells, actions, filters, search, grouping) for representative roles, including workspace and custom views.
-2. Deploy this version to staging with `REDBOX_SKIP_MIGRATIONS=true`, sign in as an administrator and call `GET /default/rdmp/api/dashboard-config/migration/preflight`. Each report contains the input fingerprint, proposed settings, per-target outcome (`preserved`, `needs-resolution`, `inactive`) and findings, plus a readable `summary`.
+2. Deploy this version to staging with `REDBOX_SKIP_MIGRATIONS=true`, sign in as an administrator and call `GET /default/rdmp/api/dashboard-config/migration/preflight` for each brand, changing `default` in the URL as needed. The report for that brand contains the input fingerprint, proposed settings, per-target outcome (`preserved`, `needs-resolution`, `inactive`) and findings, plus a readable `summary`.
 3. Review every `resolution` finding. Accept it, or supply replacement settings, in a resolutions file:
 
    ```json

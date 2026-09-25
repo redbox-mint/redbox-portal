@@ -130,7 +130,7 @@ export namespace Controllers {
 
     /** Read-only legacy migration preflight: JSON report plus readable summary. */
     public async migrationPreflight(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, async () => ({ reports: await DashboardConfigService.preflightLegacyMigration() }));
+      return this.run(req, res, async (brand) => ({ reports: await DashboardConfigService.preflightLegacyMigration(brand) }));
     }
 
     /** Retired profile/default/override operations. Authentication has already run. */

@@ -138,6 +138,25 @@ describe('DashboardComponent', () => {
       expect(component.isStageTitleShown('review')).toBeFalse();
     });
 
+    it('does not submit text merely typed into the search box during page or sort changes', async () => {
+      const component = create();
+      await init(component);
+
+      component.filterSearchString['draft'] = 'first search';
+      await component.pageChanged({ page: 2 } as any, 'draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.owner', 'mine', 'equal']);
+
+      await component.filterChanged('draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', 'first search', '']);
+
+      component.filterSearchString['draft'] = 'still typing';
+      await component.sortChanged({ step: 'draft', variable: 'metadata.title', sort: 'asc', secondarySort: '' });
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', 'first search', '']);
+
+      await component.resetFilterAndSearch('draft', { preventDefault() {} });
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
+    });
+
     it('reloads settings and templates together once when the templates no longer match', async () => {
       templates.loadDashboardTargetTemplates.and.returnValues(Promise.resolve(false), Promise.resolve(true), Promise.resolve(true), Promise.resolve(true));
       const component = create();
@@ -232,6 +251,8 @@ describe('DashboardComponent', () => {
     expect(component.isStageTitleShown('existing-locations-draft')).toBeFalse();
     component.filterSearchString['existing-locations-draft'] = 'a search term';
     expect(component.getFilterSearchString('existing-locations-draft')).toBe('');
+    await component.pageChanged({ page: 2 } as any, 'existing-locations-draft');
+    expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metaMetadata.status', 'published', 'equal']);
     await component.filterChanged('existing-locations-draft');
     expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
   });

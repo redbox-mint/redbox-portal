@@ -943,15 +943,12 @@ export namespace Services {
     }
 
     /** Read-only preflight report for operators; never writes. */
-    public async preflightLegacyMigration(): Promise<LegacyPreflightReport[]> {
-      const reports: LegacyPreflightReport[] = [];
-      for (const brand of await this.listPersistedBrands()) {
-        const doc = await this.loadDocument(brand.id);
-        const { input } = await this.captureLegacyInput(brand);
-        const conversion = convertLegacyDashboardConfiguration(input);
-        reports.push({ brand, alreadyMigrated: !!doc?.provenance?.migration, conversion, summary: summariseLegacyConversion(conversion, brand.name) });
-      }
-      return reports;
+    public async preflightLegacyMigration(brand: { id: string | number; name: string }): Promise<LegacyPreflightReport[]> {
+      const scopedBrand = { id: String(brand.id), name: brand.name };
+      const doc = await this.loadDocument(scopedBrand.id);
+      const { input } = await this.captureLegacyInput(scopedBrand);
+      const conversion = convertLegacyDashboardConfiguration(input);
+      return [{ brand: scopedBrand, alreadyMigrated: !!doc?.provenance?.migration, conversion, summary: summariseLegacyConversion(conversion, scopedBrand.name) }];
     }
 
     private loadResolutions(): DashboardMigrationResolutions | null {
@@ -1096,6 +1093,11 @@ export namespace Services {
         // Operator-reviewed replacement settings for unavoidable differences.
         for (const replacement of replacements) {
           const target = parseDashboardTarget(replacement.target)!;
+          const errors = validateDashboardSettings(replacement.settings, { target, queryFilterKeys: [] })
+            .filter(finding => finding.severity === 'error');
+          if (errors.length) {
+            throw new Error(`Dashboard migration replacement for ${brand.name} / ${targetLabel(target)} is invalid: ${errors.map(error => `${error.path}: ${error.message}`).join('; ')}`);
+          }
           setTargetSettings(data, target, normaliseDashboardSettings(replacement.settings));
         }
         await this.createDocument(brand.id, data, {

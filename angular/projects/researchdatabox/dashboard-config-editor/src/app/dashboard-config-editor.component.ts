@@ -41,6 +41,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   draft: DashboardSettings | null = null;
   baseRevision = 0;
   private savedJson = '';
+  private loadGeneration = 0;
   /** Record fields for the selected target, from its record JSON schema. */
   fieldCatalogue: DashboardFieldCatalogue | null = null;
 
@@ -201,31 +202,45 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     if (!this.selected) {
       return;
     }
+    const info = this.selected;
+    const generation = ++this.loadGeneration;
     this.loading = true;
+    this.draft = null;
+    this.savedJson = '';
+    this.baseRevision = 0;
     this.error = '';
     this.message = '';
     this.clearFindings();
     this.staleConflict = false;
-    this.loadFieldCatalogue(this.selected);
+    this.loadFieldCatalogue(info, generation);
     try {
-      const result = await this.api.getSettings(this.selected.target);
+      const result = await this.api.getSettings(info.target);
+      if (this.selected?.key !== info.key || this.loadGeneration !== generation) {
+        return;
+      }
       this.draft = cloneSettings(result.settings);
       this.savedJson = JSON.stringify(this.draft);
       this.baseRevision = result.revision;
     } catch (e) {
+      if (this.selected?.key !== info.key || this.loadGeneration !== generation) {
+        return;
+      }
       this.draft = null;
       this.error = this.describeError(e, 'Failed to load dashboard settings.');
       this.logger.error('Failed to load dashboard settings', e);
+    } finally {
+      if (this.selected?.key === info.key && this.loadGeneration === generation) {
+        this.loading = false;
+      }
     }
-    this.loading = false;
   }
 
   /** Field suggestions are an aid; failures never block editing. */
-  private async loadFieldCatalogue(info: DashboardTargetInfo): Promise<void> {
+  private async loadFieldCatalogue(info: DashboardTargetInfo, generation: number): Promise<void> {
     this.fieldCatalogue = null;
     try {
       const catalogue = await this.api.getFields(info.target);
-      if (this.selected?.key === info.key) {
+      if (this.selected?.key === info.key && this.loadGeneration === generation) {
         this.fieldCatalogue = catalogue;
       }
     } catch (e) {
@@ -274,15 +289,27 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   async save(): Promise<void> {
-    if (!this.selected || !this.draft) {
+    if (this.loading || !this.selected || !this.draft) {
       return;
     }
+    const info = this.selected;
+    const generation = this.loadGeneration;
+    const candidate = cloneSettings(this.draft);
+    const candidateJson = JSON.stringify(candidate);
+    const expectedRevision = this.baseRevision;
     this.saving = true;
     this.message = '';
     this.error = '';
     try {
       const reviewedWarnings = this.warnings.length > 0 && this.allWarningsAcknowledged ? this.warningFingerprint : '';
-      const validation = await this.api.validate(this.selected.target, this.baseRevision, this.draft);
+      const validation = await this.api.validate(info.target, expectedRevision, candidate);
+      if (this.selected?.key !== info.key || this.loadGeneration !== generation) {
+        return;
+      }
+      if (JSON.stringify(this.draft) !== candidateJson) {
+        this.error = 'The draft changed while validation was running. Save it again.';
+        return;
+      }
       this.errors = validation.errors;
       if (validation.errors.length) {
         this.warnings = validation.warnings;
@@ -296,19 +323,26 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
         this.error = 'Review and acknowledge each warning, then save again.';
         return;
       }
-      const saved = await this.api.save(this.selected.target, {
-        expectedRevision: this.baseRevision,
-        settings: this.draft,
+      const saved = await this.api.save(info.target, {
+        expectedRevision,
+        settings: candidate,
         validationFingerprint: validation.validationFingerprint,
         acknowledgedWarningIds: validation.warnings.map((w) => w.id)
       });
-      this.draft = cloneSettings(saved.settings);
-      this.savedJson = JSON.stringify(this.draft);
+      if (this.selected?.key !== info.key || this.loadGeneration !== generation) {
+        return;
+      }
+      this.savedJson = JSON.stringify(saved.settings);
+      if (JSON.stringify(this.draft) === candidateJson) {
+        this.draft = cloneSettings(saved.settings);
+      }
       this.baseRevision = saved.revision;
       this.clearFindings();
-      this.message = `Saved ${this.targetLabel(this.selected)}.`;
+      this.message = `Saved ${this.targetLabel(info)}.`;
     } catch (e) {
-      this.handleWriteError(e, 'Failed to save dashboard settings.');
+      if (this.selected?.key === info.key && this.loadGeneration === generation) {
+        this.handleWriteError(e, 'Failed to save dashboard settings.');
+      }
     } finally {
       this.saving = false;
     }
@@ -462,17 +496,26 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
 
   async applyCopyTo(): Promise<void> {
     const preview = this.copyTo.preview;
-    if (!preview || !this.canApplyCopyTo) {
+    if (!preview || !this.canApplyCopyTo || !this.selected) {
       return;
     }
+    const selected = this.selected;
     this.copyTo.loading = true;
     this.copyTo.error = '';
     try {
       const result = await this.api.applyCopy(preview, Array.from(this.copyTo.acknowledged));
       this.copyTo.open = false;
-      // Copy is atomic and the selected source cannot be a destination, so its
-      // settings remain the same at the returned document revision.
-      this.baseRevision = result.revision;
+      if (this.selected?.key === selected.key) {
+        if (preview.expectedRevision === this.baseRevision) {
+          // The source is not a destination, so its settings remain current.
+          this.baseRevision = result.revision;
+        } else {
+          // The source may have changed before preview; retain the draft and
+          // its old revision so a later save cannot overwrite that change.
+          this.staleConflict = true;
+          this.error = 'Dashboard settings changed since this draft loaded. Reload saved settings before saving.';
+        }
+      }
       this.message = `Copied settings to ${result.updated} dashboard${result.updated === 1 ? '' : 's'}.`;
     } catch (e) {
       this.copyTo.error = this.describeError(e, 'Could not apply the copy. Nothing was changed.');

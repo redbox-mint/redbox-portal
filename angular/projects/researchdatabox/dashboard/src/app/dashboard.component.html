@@ -20,10 +20,10 @@
             @if (isSearchEnabled(getStepKey(workflowStep)) && ((records[getStepKey(workflowStep)]?.totalItems > 0) || (records[getStepKey(workflowStep)]?.totalItems <= 0 && getFilterSearchDisplayed(getStepKey(workflowStep))))) {
               <div class="col-md-8">
                 <div class="d-flex flex-row mt-4">
-                  <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ getFilterFieldName(getStepKey(workflowStep)) }}</button>
+                  <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >{{ 'dashboard-filter-by' | i18next: {field: getFilterFieldName(getStepKey(workflowStep))} }}</button>
                   <ul class="dropdown-menu">
                     @for (filter of getTextFilters(getStepKey(workflowStep)); track filter) {
-                      <li><a class="dropdown-item" href="#" (click)="setFilterField(getStepKey(workflowStep), filter, $event)">Filter by {{ filter.name }}</a></li>
+                      <li><a class="dropdown-item" href="#" (click)="setFilterField(getStepKey(workflowStep), filter, $event)">{{ 'dashboard-filter-by' | i18next: {field: filter.name} }}</a></li>
                     }
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'record-search-reset' | i18next }}</a></li>

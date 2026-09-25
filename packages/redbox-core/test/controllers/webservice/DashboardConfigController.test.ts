@@ -36,7 +36,8 @@ describe('Webservice DashboardConfigController', () => {
       saveTargetSettings: sinon.stub().resolves({ revision: 4 }),
       validateTargetSettings: sinon.stub().resolves({ errors: [], warnings: [] }),
       previewCopy: sinon.stub().resolves({ changes: [] }),
-      applyCopy: sinon.stub().resolves({ updated: 2 })
+      applyCopy: sinon.stub().resolves({ updated: 2 }),
+      preflightLegacyMigration: sinon.stub().resolves([{ brand: { id: 'brand-1', name: 'default' } }])
     };
     controller = new Controllers.DashboardConfig();
   });
@@ -87,6 +88,14 @@ describe('Webservice DashboardConfigController', () => {
     expect(response.status).to.equal(409);
     expect(response.displayErrors[0].code).to.equal('warnings-require-review');
     expect(response.meta).to.deep.equal({ warnings: [{ id: 'w1' }], validationFingerprint: 'v' });
+  });
+
+  it('passes the route brand to migration preflight', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.migrationPreflight(request(), {} as Sails.Res);
+    const svc = (global as any).DashboardConfigService;
+    expect(svc.preflightLegacyMigration.firstCall.args[0]).to.deep.equal({ id: 'brand-1', name: 'default' });
+    expect(sendResp.firstCall.args[2].data.reports).to.deep.equal([{ brand: { id: 'brand-1', name: 'default' } }]);
   });
 
   it('returns 410 for retired profile, default and override operations', async () => {
