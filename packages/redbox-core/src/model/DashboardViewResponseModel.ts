@@ -1,11 +1,15 @@
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 
+/**
+ * Structural view step metadata. Table settings are served separately from the
+ * independent dashboard configuration; the hook's `dashboardTable` is only a
+ * one-time seed and is not exposed here.
+ */
 export class DashboardViewStepResponseModel {
     name: string;
     sourceRecordType: string;
     sourceWorkflowStage?: string;
     fetchMode: DashboardViewStepDefinition['fetchMode'];
-    dashboardTable: DashboardViewStepDefinition['dashboardTable'];
     baseRecordType?: string;
 
     constructor(step: DashboardViewStepDefinition) {
@@ -13,7 +17,6 @@ export class DashboardViewStepResponseModel {
         this.sourceRecordType = step.sourceRecordType;
         this.sourceWorkflowStage = step.sourceWorkflowStage;
         this.fetchMode = step.fetchMode;
-        this.dashboardTable = step.dashboardTable;
         this.baseRecordType = step.baseRecordType;
     }
 }

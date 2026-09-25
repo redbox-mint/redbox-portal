@@ -15,6 +15,7 @@ describe('delayed logical setValue action', () => {
     const target = entries[1];
     const ctx: BehaviourActionExecutionContext = {
       behaviourIndex: 0, actionIndex: 0, listName: 'actions',
+      behaviourChain: [],
       eventBus: { publish: jasmine.createSpy('publish') } as unknown as FormComponentEventBus,
       logger: { warn: jasmine.createSpy('warn') } as unknown as LoggerService,
       getLogicalFieldEntry: () => target,

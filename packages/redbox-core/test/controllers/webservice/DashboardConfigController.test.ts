@@ -1,6 +1,7 @@
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/DashboardConfigController';
+import { Controllers as AdminControllers } from '../../../src/controllers/DashboardConfigController';
+import { Services } from '../../../src/services/DashboardConfigService';
 
 let expect: Chai.ExpectStatic;
 
@@ -9,102 +10,35 @@ describe('Webservice DashboardConfigController', () => {
   let originalSails: any;
   let originalBrandingService: any;
   let originalDashboardConfigService: any;
-  let originalDashboardTypesService: any;
 
   before(async () => {
     const chai = await import('chai');
     expect = chai.expect;
   });
 
+  function request(params: Record<string, string> = {}, body?: unknown): Sails.Req {
+    const all: Record<string, string> = { branding: 'default', portal: 'rdmp', ...params };
+    return { param: (name: string) => all[name], body, session: { branding: 'default' } } as unknown as Sails.Req;
+  }
+
   beforeEach(() => {
     originalSails = (global as any).sails;
     originalBrandingService = (global as any).BrandingService;
     originalDashboardConfigService = (global as any).DashboardConfigService;
-    originalDashboardTypesService = (global as any).DashboardTypesService;
-
-    (global as any).sails = {
-      log: {
-        error: sinon.stub(),
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        trace: sinon.stub()
-      }
-    };
+    (global as any).sails = { log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub(), info: sinon.stub(), warn: sinon.stub(), trace: sinon.stub() } };
     (global as any).BrandingService = {
-      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrand: sinon.stub().callsFake((name: string) => (name === 'default' ? { id: 'brand-1', name: 'default' } : undefined)),
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
     (global as any).DashboardConfigService = {
-      getDashboardConfigInfo: sinon.stub().resolves({
-        recordTypes: [{ name: 'rdmp', steps: ['draft'] }],
-        views: [{ name: 'consolidated', steps: ['consolidated'] }],
-        dashboardTypes: []
-      }),
-      getDashboardOverrides: sinon.stub().resolves({ recordTypes: {}, views: {} }),
-      saveDashboardOverrides: sinon.stub().resolves({ recordTypes: {}, views: {} }),
-      getMergedDashboardTableConfig: sinon.stub().resolves({
-        dashboardType: 'standard',
-        inheritedTypeConfig: { rowConfig: [] },
-        workflowConfig: null,
-        overrideConfig: null,
-        mergedConfig: { rowConfig: [] },
-        formatRules: {}
-      }),
-      getMergedDashboardViewTableConfig: sinon.stub().resolves({
-        dashboardType: 'standard',
-        inheritedTypeConfig: { rowConfig: [] },
-        workflowConfig: null,
-        overrideConfig: null,
-        mergedConfig: { rowConfig: [] },
-        formatRules: {}
-      }),
-      saveWorkflowStateDashboardConfig: sinon.stub().resolves({ recordTypes: {}, views: {} }),
-      saveDashboardViewStepConfig: sinon.stub().resolves({ recordTypes: {}, views: {} }),
-      getMergedDashboardTypeFormatRules: sinon.stub().resolves({ filterBy: {}, queryFilters: {} })
+      getTargetCatalogue: sinon.stub().resolves({ targets: [{ key: 'k' }], removed: [], fingerprint: 'fp' }),
+      getTargetSettings: sinon.stub().resolves({ revision: 3 }),
+      saveTargetSettings: sinon.stub().resolves({ revision: 4 }),
+      validateTargetSettings: sinon.stub().resolves({ errors: [], warnings: [] }),
+      previewCopy: sinon.stub().resolves({ changes: [] }),
+      applyCopy: sinon.stub().resolves({ updated: 2 }),
+      preflightLegacyMigration: sinon.stub().resolves([{ brand: { id: 'brand-1', name: 'default' } }])
     };
-    (global as any).DashboardTypesService = {
-      getAllDashboardTypeDefinitions: sinon.stub().resolves([
-        {
-          name: 'standard',
-          formatRules: { filterBy: {} },
-          tableConfig: { rowConfig: [] },
-          searchable: true,
-          system: true
-        }
-      ]),
-      createDashboardType: sinon.stub().returns(of({
-        name: 'standard',
-        formatRules: { filterBy: {} },
-        tableConfig: { rowConfig: [] },
-        searchable: true,
-        system: true
-      })),
-      getDashboardTypeDefinition: sinon.stub().resolves({
-        name: 'standard',
-        formatRules: { filterBy: {} },
-        tableConfig: { rowConfig: [] },
-        searchable: true,
-        system: true
-      }),
-      updateDashboardType: sinon.stub().returns(of({
-        name: 'standard',
-        formatRules: { filterBy: {} },
-        tableConfig: { rowConfig: [] },
-        searchable: true,
-        system: true
-      })),
-      deleteDashboardType: sinon.stub().returns(of({ deleted: true })),
-      get: sinon.stub().returns(of({
-        name: 'standard',
-        formatRules: { filterBy: {} },
-        tableConfig: { rowConfig: [] },
-        searchable: true,
-        system: true
-      }))
-    };
-
     controller = new Controllers.DashboardConfig();
   });
 
@@ -113,227 +47,70 @@ describe('Webservice DashboardConfigController', () => {
     (global as any).sails = originalSails;
     (global as any).BrandingService = originalBrandingService;
     (global as any).DashboardConfigService = originalDashboardConfigService;
-    (global as any).DashboardTypesService = originalDashboardTypesService;
   });
 
-  function createResponse() {
-    return {
-      status: sinon.stub().returnsThis(),
-      set: sinon.stub().returnsThis(),
-      json: sinon.stub().returnsThis(),
-    };
-  }
-
-  for (const action of [
-    'getDashboardType',
-    'updateDashboardType',
-    'deleteDashboardType',
-    'getMergedTypeFormatRules',
-  ] as const) {
-    for (const dashboardType of [undefined, '   ']) {
-      it(`${action} returns a serializable 400 for ${dashboardType === undefined ? 'missing' : 'blank'} dashboardType`, async () => {
-        const req = {
-          session: { branding: 'default' },
-          param: sinon.stub().withArgs('dashboardType').returns(dashboardType),
-          query: {},
-          headers: {},
-        } as unknown as Sails.Req;
-        const res = createResponse();
-
-        await controller[action](req, res as unknown as Sails.Res);
-
-        sinon.assert.calledOnceWithExactly(res.status, 400);
-        expect(res.json.firstCall.args[0].message).to.equal('dashboardType is required');
-        expect(res.set.firstCall.args[0]['Cache-control']).to.equal('no-cache, private');
-      });
-    }
-  }
-
-  for (const testCase of [
-    {
-      action: 'getMergedConfig',
-      present: 'recordType',
-      missing: 'workflowStage',
-      message: 'recordType and workflowStage are required',
-    },
-    {
-      action: 'getMergedConfig',
-      present: 'workflowStage',
-      missing: 'recordType',
-      message: 'recordType and workflowStage are required',
-    },
-    {
-      action: 'getMergedViewConfig',
-      present: 'viewName',
-      missing: 'stepName',
-      message: 'viewName and stepName are required',
-    },
-    {
-      action: 'getMergedViewConfig',
-      present: 'stepName',
-      missing: 'viewName',
-      message: 'viewName and stepName are required',
-    },
-  ] as const) {
-    it(`${testCase.action} returns a serializable 400 when ${testCase.missing} is missing`, async () => {
-      const param = sinon.stub();
-      param.withArgs(testCase.present).returns('configured-value');
-      const req = {
-        session: { branding: 'default' },
-        param,
-        query: {},
-        headers: {},
-      } as unknown as Sails.Req;
-      const res = createResponse();
-
-      await controller[testCase.action](req, res as unknown as Sails.Res);
-
-      sinon.assert.calledOnceWithExactly(res.status, 400);
-      expect(res.json.firstCall.args[0].message).to.equal(testCase.message);
-      expect(res.set.firstCall.args[0]['Cache-control']).to.equal('no-cache, private');
-      sinon.assert.notCalled(DashboardConfigService.getMergedDashboardTableConfig as sinon.SinonStub);
-      sinon.assert.notCalled(DashboardConfigService.getMergedDashboardViewTableConfig as sinon.SinonStub);
-    });
-  }
-
-  for (const testCase of [
-    {
-      error: new Error('Dashboard configuration is invalid'),
-      status: 400,
-      message: 'Dashboard configuration is invalid',
-    },
-    {
-      error: new Error('Dashboard configuration was not found'),
-      status: 404,
-      message: 'Dashboard configuration was not found',
-    },
-    { error: new Error('Private database connection failure'), status: 500, message: 'server-error' },
-    { error: 'Private non-Error failure', status: 500, message: 'server-error' },
-  ]) {
-    it(`serializes a ${testCase.status} response for service rejection: ${String(testCase.error)}`, async () => {
-      (DashboardConfigService.getDashboardConfigInfo as sinon.SinonStub).returns(Promise.reject(testCase.error));
-      const req = { session: { branding: 'default' }, query: {}, headers: {} } as unknown as Sails.Req;
-      const res = createResponse();
-
-      await controller.getConfigInfo(req, res as unknown as Sails.Res);
-
-      sinon.assert.calledOnceWithExactly(res.status, testCase.status);
-      expect(res.json.firstCall.args[0].message).to.equal(testCase.message);
-      expect(JSON.stringify(res.json.firstCall.args[0])).not.to.include('Private');
-      expect(res.set.firstCall.args[0]['Cache-control']).to.equal('no-cache, private');
-    });
-  }
-
-  it('returns an actual 404 response for a deleted dashboard type', async () => {
-    (global as any).DashboardTypesService.getDashboardTypeDefinition.resolves(null);
-    const req = { session: { branding: 'default' }, param: sinon.stub().withArgs('dashboardType').returns('deleted-owned-type'), query: {}, headers: {} } as unknown as Sails.Req;
-    const res = { status: sinon.stub().returnsThis(), set: sinon.stub().returnsThis(), json: sinon.stub().returnsThis() };
-
-    await controller.getDashboardType(req, res as unknown as Sails.Res);
-
-    expect(res.status.calledWith(404)).to.be.true;
-    expect(res.status.calledWith(500)).to.be.false;
-    expect(JSON.stringify(res.json.firstCall.args[0])).to.include('not found');
+  it('lists targets for the route brand without profiles', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.listTargets(request(), {} as Sails.Res);
+    expect((global as any).DashboardConfigService.getTargetCatalogue.firstCall.args[0]).to.deep.equal({ id: 'brand-1', name: 'default' });
+    expect(sendResp.firstCall.args[2].data).to.deep.equal({ targets: [{ key: 'k' }], catalogueFingerprint: 'fp' });
   });
 
-  it('returns dashboard config info', async () => {
-    const req = { session: { branding: 'default' } } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getConfigInfo(req, res);
-
-    expect((global as any).DashboardConfigService.getDashboardConfigInfo.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data?.recordTypes).to.deep.equal([{ name: 'rdmp', steps: ['draft'] }]);
+  it('does not fall back to the default brand for an unknown brand', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.listTargets(request({ branding: 'other' }), {} as Sails.Res);
+    expect(sendResp.firstCall.args[2].status).to.equal(404);
+    expect((global as any).DashboardConfigService.getTargetCatalogue.called).to.equal(false);
   });
 
-  it('creates dashboard types', async () => {
-    const req = {
-      session: { branding: 'default' },
-      body: { name: 'my-type', formatRules: { filterBy: {} }, tableConfig: { rowConfig: [] } }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.createDashboardType(req, res);
-
-    expect((global as any).DashboardTypesService.createDashboardType.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(201);
+  it('delegates workflow and view reads and saves with typed targets', async () => {
+    sinon.stub(controller as any, 'sendResp');
+    await controller.getWorkflowTarget(request({ recordType: 'rdmp', stage: 'draft' }), {} as Sails.Res);
+    await controller.saveViewTarget(request({ view: 'consolidated', step: 'main' }, { expectedRevision: 3, settings: {} }), {} as Sails.Res);
+    const svc = (global as any).DashboardConfigService;
+    expect(svc.getTargetSettings.firstCall.args[1]).to.deep.equal({ kind: 'workflow', recordType: 'rdmp', stage: 'draft' });
+    expect(svc.saveTargetSettings.firstCall.args[1]).to.deep.equal({ kind: 'view', view: 'consolidated', step: 'main' });
+    expect(svc.saveTargetSettings.firstCall.args[2]).to.deep.equal({ expectedRevision: 3, settings: {} });
   });
 
-  it('maps duplicate dashboard type errors to conflict responses', async () => {
-    (global as any).DashboardTypesService.createDashboardType = sinon.stub().throws(new Error("Dashboard type 'my-type' already exists for brand 'default'"));
-    const req = {
-      session: { branding: 'default' },
-      body: { name: 'my-type', formatRules: { filterBy: {} }, tableConfig: { rowConfig: [] } }
-    } as unknown as Sails.Req;
-    const res = createResponse();
-
-    await controller.createDashboardType(req, res as unknown as Sails.Res);
-
-    sinon.assert.calledOnceWithExactly(res.status, 409);
-    expect(res.json.firstCall.args[0].message).to.equal("Dashboard type 'my-type' already exists for brand 'default'");
+  it('rejects a non-object body', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.applyCopy(request({}, 'nope'), {} as Sails.Res);
+    expect(sendResp.firstCall.args[2].status).to.equal(400);
+    expect((global as any).DashboardConfigService.applyCopy.called).to.equal(false);
   });
 
-  it('maps system dashboard type delete errors to forbidden responses', async () => {
-    (global as any).DashboardTypesService.deleteDashboardType = sinon.stub().throws(new Error("System dashboard type 'standard' cannot be deleted"));
-    const param = sinon.stub();
-    param.withArgs('dashboardType').returns('standard');
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = createResponse();
-
-    await controller.deleteDashboardType(req, res as unknown as Sails.Res);
-
-    sinon.assert.calledOnceWithExactly(res.status, 403);
-    expect(res.json.firstCall.args[0].message).to.equal("System dashboard type 'standard' cannot be deleted");
+  it('translates typed errors to status codes with structured details', async () => {
+    (global as any).DashboardConfigService.saveTargetSettings = sinon.stub().rejects(new Services.DashboardConfigError('warnings-require-review', 'Review warnings', { warnings: [{ id: 'w1' }], validationFingerprint: 'v' }));
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.saveWorkflowTarget(request({ recordType: 'rdmp', stage: 'draft' }, { expectedRevision: 1, settings: {} }), {} as Sails.Res);
+    const response = sendResp.firstCall.args[2];
+    expect(response.status).to.equal(409);
+    expect(response.displayErrors[0].code).to.equal('warnings-require-review');
+    expect(response.meta).to.deep.equal({ warnings: [{ id: 'w1' }], validationFingerprint: 'v' });
   });
 
-  it('returns a merged workflow config', async () => {
-    const param = sinon.stub();
-    param.withArgs('recordType').returns('rdmp');
-    param.withArgs('workflowStage').returns('draft');
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getMergedConfig(req, res);
-
-    expect((global as any).DashboardConfigService.getMergedDashboardTableConfig.calledWithMatch({ id: 'brand-1' }, 'rdmp', 'draft')).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data?.dashboardType).to.equal('standard');
+  it('passes the route brand to migration preflight', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.migrationPreflight(request(), {} as Sails.Res);
+    const svc = (global as any).DashboardConfigService;
+    expect(svc.preflightLegacyMigration.firstCall.args[0]).to.deep.equal({ id: 'brand-1', name: 'default' });
+    expect(sendResp.firstCall.args[2].data.reports).to.deep.equal([{ brand: { id: 'brand-1', name: 'default' } }]);
   });
 
-  it('saves workflow state dashboard config', async () => {
-    const param = sinon.stub();
-    param.withArgs('recordType').returns('rdmp');
-    param.withArgs('workflowStage').returns('draft');
-    const req = {
-      session: { branding: 'default' },
-      param,
-      body: { dashboardType: 'standard', tableConfig: { rowConfig: [] } }
-    } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.saveWorkflowStateDashboardConfig(req, res);
-
-    expect((global as any).DashboardConfigService.saveWorkflowStateDashboardConfig.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
+  it('returns 410 for retired profile, default and override operations', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.retiredOperation(request(), {} as Sails.Res);
+    const response = sendResp.firstCall.args[2];
+    expect(response.status).to.equal(410);
+    expect(response.displayErrors[0].code).to.equal('legacy-operation-retired');
+    expect(response.displayErrors[0].detail).to.contain('/api/dashboard-config/targets');
   });
 
-  it('returns merged type format rules', async () => {
-    const param = sinon.stub();
-    param.withArgs('dashboardType').returns('standard');
-    const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-    await controller.getMergedTypeFormatRules(req, res);
-
-    expect((global as any).DashboardConfigService.getMergedDashboardTypeFormatRules.calledOnce).to.be.true;
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.data?.filterBy).to.deep.equal({});
+  it('exposes the same operations on the CSRF-protected admin controller', () => {
+    const admin = new AdminControllers.DashboardConfig();
+    const exported = (admin as any)._exportedMethods as string[];
+    expect(exported).to.include.members(['editor', 'listTargets', 'saveWorkflowTarget', 'saveViewTarget', 'validateSettings', 'previewCopy', 'applyCopy']);
+    expect(exported).to.not.include('retiredOperation');
   });
 });

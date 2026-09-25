@@ -6,6 +6,7 @@ export * from './BrandingConfig';
 export * from './BrandingConfigHistory';
 export * from './CacheEntry';
 export * from './Counter';
+export * from './DashboardConfiguration';
 export * from './DashboardType';
 export * from './FigshareVocabularyCategory';
 export * from './FigshareVocabularyCrosswalk';
@@ -44,6 +45,7 @@ import { BrandingConfigWLDef } from './BrandingConfig';
 import { BrandingConfigHistoryWLDef } from './BrandingConfigHistory';
 import { CacheEntryWLDef } from './CacheEntry';
 import { CounterWLDef } from './Counter';
+import { DashboardConfigurationWLDef } from './DashboardConfiguration';
 import { DashboardTypeWLDef } from './DashboardType';
 import { FigshareVocabularyCategoryWLDef } from './FigshareVocabularyCategory';
 import { FigshareVocabularyCrosswalkWLDef } from './FigshareVocabularyCrosswalk';
@@ -85,6 +87,7 @@ export const WaterlineModels = {
   BrandingConfigHistory: BrandingConfigHistoryWLDef,
   CacheEntry: CacheEntryWLDef,
   Counter: CounterWLDef,
+  DashboardConfiguration: DashboardConfigurationWLDef,
   DashboardType: DashboardTypeWLDef,
   FigshareVocabularyCategory: FigshareVocabularyCategoryWLDef,
   FigshareVocabularyCrosswalk: FigshareVocabularyCrosswalkWLDef,

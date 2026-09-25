@@ -99,6 +99,27 @@ describe('AppConfigService', function () {
     });
   });
 
+  describe('retired dashboard keys', function () {
+    it('refuses generic writes to legacy dashboard configuration keys', async function () {
+      for (const configKey of ['dashboardTableConfig', 'dashboardConfigLegacySnapshot']) {
+        for (const write of [
+          () => service.createOrUpdateConfig({ id: 'brand1', name: 'default' } as any, configKey, { recordTypes: {} }),
+          () => service.createConfig('default', configKey, { recordTypes: {} })
+        ]) {
+          try {
+            await write();
+            expect.fail('write should be refused');
+          } catch (error: any) {
+            expect(error.status).to.equal(410);
+            expect(error.code).to.equal('legacy-operation-retired');
+          }
+        }
+      }
+      expect((global as any).AppConfig.create.called).to.equal(false);
+      expect((global as any).AppConfig.updateOne.called).to.equal(false);
+    });
+  });
+
   describe('secret fields', function () {
     it('should mask secret fields when reading config', async function () {
       class SecretModel {

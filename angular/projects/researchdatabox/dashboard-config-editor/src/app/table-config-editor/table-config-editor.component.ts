@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { DashboardRowConfig, DashboardTableConfig } from '../dashboard-config-api.service';
+import { DashboardFieldCatalogue, DashboardRowConfig, DashboardTableConfig } from '../dashboard-config-api.service';
 
 type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
 
@@ -15,48 +15,50 @@ type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
             <span class="dc-tab-count" *ngIf="(config.rowConfig?.length || 0) as count">{{ count }}</span>
           </a>
         </li>
+        <li role="presentation" [class.active]="activeTab === 'rowRules'">
+          <a role="tab" (click)="activeTab = 'rowRules'">
+            <i class="fa fa-bolt"></i>
+            Row actions
+            <span class="dc-tab-count" *ngIf="(config.rowRulesConfig?.length || 0) as count">{{ count }}</span>
+          </a>
+        </li>
         <li role="presentation" [class.active]="activeTab === 'formatRules'">
           <a role="tab" (click)="activeTab = 'formatRules'">
             <i class="fa fa-sliders"></i>
-            Format Rules
-          </a>
-        </li>
-        <li role="presentation" [class.active]="activeTab === 'rowRules'">
-          <a role="tab" (click)="activeTab = 'rowRules'">
-            <i class="fa fa-filter"></i>
-            Row Rules
-            <span class="dc-tab-count" *ngIf="(config.rowRulesConfig?.length || 0) as count">{{ count }}</span>
+            Filters, sorting and search
           </a>
         </li>
         <li role="presentation" [class.active]="activeTab === 'groupConfig'">
           <a role="tab" (click)="activeTab = 'groupConfig'">
             <i class="fa fa-object-group"></i>
-            Group Config
+            Grouping
           </a>
         </li>
       </ul>
       <div class="tab-content dc-tab-content">
         <div *ngIf="activeTab === 'columns'" class="dc-tab-pane">
-          <column-editor [columns]="config.rowConfig || []" (columnsChange)="updateRowConfig($event)"></column-editor>
-        </div>
-        <div *ngIf="activeTab === 'formatRules'" class="dc-tab-pane">
-          <format-rules-editor [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></format-rules-editor>
+          <column-editor [columns]="config.rowConfig || []" [catalogue]="catalogue" (columnsChange)="updateRowConfig($event)"></column-editor>
         </div>
         <div *ngIf="activeTab === 'rowRules'" class="dc-tab-pane">
+          <p class="dc-tab-help">Named rule sets used by column templates through <code>evaluateRowLevelRules</code>, for example action links.</p>
           <rule-set-editor [ruleSets]="config.rowRulesConfig || []" (ruleSetsChange)="updateRowRules($event)"></rule-set-editor>
         </div>
+        <div *ngIf="activeTab === 'formatRules'" class="dc-tab-pane">
+          <dashboard-filters-editor [targetKind]="targetKind" [queryFilterKeys]="queryFilterKeys" [columns]="config.rowConfig || []" [catalogue]="catalogue" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-filters-editor>
+        </div>
         <div *ngIf="activeTab === 'groupConfig'" class="dc-tab-pane">
+          <dashboard-grouping-editor [targetKind]="targetKind" [recordTypes]="recordTypes" [fields]="catalogue?.fields || []" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-grouping-editor>
           <section class="dc-group-section">
             <h5 class="dc-group-section-title">
               <i class="fa fa-columns"></i>
-              Group Row Config
+              Group row columns
             </h5>
-            <column-editor [columns]="config.groupRowConfig || []" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
+            <column-editor [columns]="config.groupRowConfig || []" [catalogue]="catalogue" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
           </section>
           <section class="dc-group-section">
             <h5 class="dc-group-section-title">
               <i class="fa fa-filter"></i>
-              Group Row Rules
+              Group row rules
             </h5>
             <rule-set-editor [ruleSets]="config.groupRowRulesConfig || []" (ruleSetsChange)="updateGroupRowRules($event)"></rule-set-editor>
           </section>
@@ -126,6 +128,16 @@ type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
     .dc-tab-pane {
       padding: 16px;
     }
+    .dc-tab-help {
+      color: var(--dc-text-subtle, #6b7280);
+      font-size: 12px;
+      margin: 0 0 12px;
+    }
+    .dc-group-section {
+      border-top: 1px solid var(--dc-border, #e5e7eb);
+      margin-top: 20px;
+      padding-top: 20px;
+    }
     .dc-group-section + .dc-group-section {
       border-top: 1px solid var(--dc-border, #e5e7eb);
       margin-top: 20px;
@@ -150,6 +162,10 @@ type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
 })
 export class TableConfigEditorComponent {
   @Input() config: DashboardTableConfig = {};
+  @Input() targetKind: 'workflow' | 'view' = 'workflow';
+  @Input() queryFilterKeys: string[] = [];
+  @Input() recordTypes: string[] = [];
+  @Input() catalogue: DashboardFieldCatalogue | null = null;
   @Output() configChange = new EventEmitter<DashboardTableConfig>();
 
   activeTab: Tab = 'columns';

@@ -1,6 +1,9 @@
 {
   "dashboard-heading": "My {{stage}} {{recordTypeName}}",
   "dashboard-heading-one-step": "My {{recordTypeName}}",
+  "dashboard-filter-by": "Filter by {{field}}",
+  "dashboard-settings-unavailable": "Dashboard settings are not available yet. Please contact your administrator.",
+  "dashboard-no-columns": "No columns are configured for this dashboard.",
   "create-plan": "Create a plan",
   "create-rdmp": "Create RDMP",
   "dataRecord-name-plural": "Data Records",

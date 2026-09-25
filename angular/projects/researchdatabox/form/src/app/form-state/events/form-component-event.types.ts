@@ -20,6 +20,8 @@ export interface FormComponentEventBase {
   readonly type: string;
   readonly timestamp: number;
   readonly sourceId?: string;
+  /** Behaviours that have already handled this explicitly emitted event chain. */
+  readonly behaviourChain?: readonly number[];
   /** Identifies the form instance that owns the event. */
   readonly formScopeId?: string;
   readonly fieldId?: string;
