@@ -83,7 +83,12 @@ export async function applyExpressionTarget(
   } else if (target === FormExpressionsTargetModelDisabled) {
     // The model.disabled property must be handled specially.
     const disabled = toBoolean(targetValue);
+    const control = host.model?.formControl;
+    const wasDisabled = control?.disabled;
     host.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
+    if (control && control.disabled !== wasDisabled) {
+      ctx.broadcastFormStatus?.();
+    }
 
   } else if (target.startsWith(FormExpressionsTargetLayoutPrefix)) {
     const name = target.substring(FormExpressionsTargetLayoutPrefix.length);
@@ -104,7 +109,12 @@ export async function applyExpressionTarget(
     const disabled = toBoolean(targetValue);
     host.component?.setProperty?.(name, disabled);
     host.layout?.setProperty?.(name, disabled);
+    const control = host.model?.formControl;
+    const wasDisabled = control?.disabled;
     host.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
+    if (control && control.disabled !== wasDisabled) {
+      ctx.broadcastFormStatus?.();
+    }
 
   } else if (target === FormExpressionsTargetValidationGroups) {
     if (isTypeFormValidationGroupsChangeRequestInfo(targetValue)) {

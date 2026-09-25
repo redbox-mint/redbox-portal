@@ -52,10 +52,13 @@ describe('applyExpressionTarget', () => {
     expect(broadcastFormStatus).not.toHaveBeenCalled();
   });
 
-  it('sets model.disabled via the model with silent options', async () => {
+  it('sets model.disabled silently and broadcasts only when the state changes', async () => {
+    host.model.setDisabled.and.callFake(() => host.model.formControl.disable({ emitEvent: false, onlySelf: true }));
+    await applyExpressionTarget('model.disabled', true, host, ctx);
     await applyExpressionTarget('model.disabled', true, host, ctx);
 
     expect(host.model.setDisabled).toHaveBeenCalledWith(true, { emitEvent: false, onlySelf: true });
+    expect(broadcastFormStatus).toHaveBeenCalledTimes(1);
   });
 
   it('sets layout.* properties on the layout component', async () => {
@@ -79,12 +82,14 @@ describe('applyExpressionTarget', () => {
     expect(host.layout.setProperty).toHaveBeenCalledWith('visible', false);
   });
 
-  it('field.disabled sets component, layout, and model disabled', async () => {
+  it('field.disabled sets component, layout, and model disabled and broadcasts status', async () => {
+    host.model.setDisabled.and.callFake(() => host.model.formControl.disable({ emitEvent: false, onlySelf: true }));
     await applyExpressionTarget('field.disabled', true, host, ctx);
 
     expect(host.component.setProperty).toHaveBeenCalledWith('disabled', true);
     expect(host.layout.setProperty).toHaveBeenCalledWith('disabled', true);
     expect(host.model.setDisabled).toHaveBeenCalledWith(true, { emitEvent: false, onlySelf: true });
+    expect(broadcastFormStatus).toHaveBeenCalledTimes(1);
   });
 
   it('publishes a validation-groups change request for valid values', async () => {

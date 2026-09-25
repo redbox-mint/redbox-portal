@@ -122,7 +122,9 @@ export interface FormBehaviourEmitEventActionConfig {
  * Each entry mirrors `FormBehaviourSetValueActionConfig` exactly, including
  * `fieldPathKind` resolution modes and per-entry `valueTemplate`. Entries that
  * fail to resolve are warn-and-skipped individually; the remaining entries
- * still run.
+ * still run. Entries apply in order, but their templates share the `formData`
+ * snapshot taken before this action. Use separate actions when a later
+ * template must read a value written by an earlier entry.
  */
 export interface FormBehaviourSetValuesActionConfig {
   values: FormBehaviourSetValueActionConfig[];
