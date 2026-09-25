@@ -694,10 +694,23 @@ export function validateDashboardSettings(input: unknown, context: DashboardVali
         error('invalid-shape', 'tableConfig.formatRules.filterBy', 'filterBy must be an object.');
       } else if (formatRules.filterBy.filterBase !== undefined && formatRules.filterBy.filterBase !== 'user' && formatRules.filterBy.filterBase !== 'record') {
         error('invalid-enum', 'tableConfig.formatRules.filterBy.filterBase', 'filterBase must be "user" or "record".');
+      } else if (Object.keys(formatRules.filterBy).length > 0) {
+        const filter = formatRules.filterBy;
+        if (typeof filter.filterField !== 'string' || !filter.filterField.trim()) {
+          error('incomplete-filter', 'tableConfig.formatRules.filterBy.filterField', 'The record filter needs the record field to compare.');
+        }
+        if (typeof filter.filterBaseFieldOrValue !== 'string' || !filter.filterBaseFieldOrValue.trim()) {
+          error('incomplete-filter', 'tableConfig.formatRules.filterBy.filterBaseFieldOrValue', filter.filterBase === 'user' ? 'The record filter needs the signed-in person\'s property to compare with.' : 'The record filter needs a value to compare with.');
+        }
+        if (filter.filterMode !== undefined && filter.filterMode !== 'equal' && filter.filterMode !== 'regex') {
+          warning('filter-mode', 'tableConfig.formatRules.filterBy.filterMode', `Match mode "${String(filter.filterMode)}" is not supported by record storage, so the filter will not narrow the list. Use "equal" (exact) or "regex" (contains).`);
+        }
       }
     }
     if (formatRules.sortBy !== undefined && typeof formatRules.sortBy !== 'string') {
       error('invalid-shape', 'tableConfig.formatRules.sortBy', 'sortBy must be text.');
+    } else if (typeof formatRules.sortBy === 'string' && formatRules.sortBy.trim() && !/^[^:\s]+:(1|-1)$/.test(formatRules.sortBy.trim())) {
+      error('invalid-sort', 'tableConfig.formatRules.sortBy', 'The overall sort must be a field and a direction, for example "metaMetadata.lastSaveDate:-1".');
     }
     if (formatRules.groupBy !== undefined && (typeof formatRules.groupBy !== 'string' || !GROUP_BY_VALUES.includes(formatRules.groupBy))) {
       error('invalid-enum', 'tableConfig.formatRules.groupBy', `groupBy must be one of: ${GROUP_BY_VALUES.map((v) => `"${v}"`).join(', ')}.`);
@@ -707,10 +720,26 @@ export function validateDashboardSettings(input: unknown, context: DashboardVali
         error('invalid-shape', 'tableConfig.formatRules.sortGroupBy', 'sortGroupBy must be an array.');
       } else {
         formatRules.sortGroupBy.forEach((level, index) => {
+          const path = `tableConfig.formatRules.sortGroupBy[${index}]`;
           if (!isPlainObject(level) || typeof level.rowLevel !== 'number') {
-            error('invalid-shape', `tableConfig.formatRules.sortGroupBy[${index}]`, 'Each group level needs a numeric rowLevel.');
+            error('invalid-shape', path, 'Each group level needs a numeric rowLevel.');
+            return;
+          }
+          if (formatRules.groupBy && (typeof level.compareFieldValue !== 'string' || !level.compareFieldValue.trim())) {
+            error('incomplete-group-level', `${path}.compareFieldValue`, `Group level ${index + 1} needs the record type (or value) it groups.`);
+          }
+          if (formatRules.groupBy === 'groupedByRelationships') {
+            if (typeof level.compareField !== 'string' || !level.compareField.trim()) {
+              error('incomplete-group-level', `${path}.compareField`, `Group level ${index + 1} needs the field that holds its record type.`);
+            }
+            if (index > 0 && (typeof level.relatedTo !== 'string' || !level.relatedTo.trim())) {
+              error('incomplete-group-level', `${path}.relatedTo`, `Group level ${index + 1} needs the field that links it to its parent level.`);
+            }
           }
         });
+        if (formatRules.groupBy && formatRules.sortGroupBy.length === 0) {
+          warning('no-group-levels', 'tableConfig.formatRules.sortGroupBy', 'Grouping is selected but no group levels are defined, so records are not grouped.');
+        }
       }
     }
     if (formatRules.queryFilters !== undefined) {

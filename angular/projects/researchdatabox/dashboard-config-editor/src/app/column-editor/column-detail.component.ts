@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { DashboardRowConfig } from '../dashboard-config-api.service';
+import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config-api.service';
 
 @Component({
   selector: 'column-detail',
@@ -15,8 +15,9 @@ import { DashboardRowConfig } from '../dashboard-config-api.service';
           <input type="text" class="form-control" [(ngModel)]="column.title" placeholder="Display title" />
         </div>
         <div class="form-group">
-          <label class="dc-form-label">Variable</label>
-          <input type="text" class="form-control dc-mono" [(ngModel)]="column.variable" placeholder="e.g. metadata.title" />
+          <label class="dc-form-label" [attr.for]="'dc-column-variable'">Record field</label>
+          <dashboard-field-picker inputId="dc-column-variable" [catalogue]="catalogue" [(value)]="column.variable" placeholder="e.g. metadata.title"></dashboard-field-picker>
+          <small class="dc-form-help">Used for sorting and to identify the cell. Leave empty for columns such as actions.</small>
         </div>
         <div class="form-group dc-column-detail-full">
           <label class="dc-form-label">Template</label>
@@ -99,6 +100,7 @@ import { DashboardRowConfig } from '../dashboard-config-api.service';
   standalone: false
 })
 export class ColumnDetailComponent {
+  @Input() catalogue: DashboardFieldCatalogue | null = null;
   @Input() column: DashboardRowConfig | null = null;
   readonly templatePlaceholder = 'Handlebars template, e.g. {{title}}';
 }

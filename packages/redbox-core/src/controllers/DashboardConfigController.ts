@@ -15,7 +15,9 @@ export namespace Controllers {
       'saveViewTarget',
       'validateSettings',
       'previewCopy',
-      'applyCopy'
+      'applyCopy',
+      'getWorkflowFields',
+      'getViewFields'
     ];
 
     public async editor(req: Sails.Req, res: Sails.Res) {

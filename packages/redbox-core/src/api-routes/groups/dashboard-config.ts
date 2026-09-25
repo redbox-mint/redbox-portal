@@ -150,6 +150,20 @@ export const applyDashboardConfigCopyRoute = apiRoute('post', '/:branding/:porta
   responses: { 200: dataResponse('{ updated, revision, destinations }') },
 });
 
+export const getWorkflowDashboardFieldsRoute = apiRoute('get', '/:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields', controller, 'getWorkflowFields', { params: workflowParams }, {
+  tags,
+  summary: 'Record fields available to a workflow stage dashboard',
+  description: 'Field paths from the stage\'s record JSON schema, as seen by the caller, plus ReDBox-maintained fields. `status` is complete, partial or unavailable; an unavailable schema never blocks editing.',
+  responses: { 200: dataResponse('{ status, reason?, recordType, workflowStage, fields, openPrefixes }') },
+});
+
+export const getViewDashboardFieldsRoute = apiRoute('get', '/:branding/:portal/api/dashboard-config/views/:view/:step/fields', controller, 'getViewFields', { params: viewParams }, {
+  tags,
+  summary: 'Record fields available to a dashboard view step',
+  description: 'As for workflow stages, using the view step\'s source record type and stage.',
+  responses: { 200: dataResponse('{ status, reason?, recordType, workflowStage, fields, openPrefixes }') },
+});
+
 export const dashboardConfigMigrationPreflightRoute = apiRoute('get', '/:branding/:portal/api/dashboard-config/migration/preflight', controller, 'migrationPreflight', {}, {
   tags,
   summary: 'Legacy dashboard migration preflight',
@@ -187,6 +201,8 @@ export const dashboardConfigApiRoutes = [
   validateDashboardConfigRoute,
   previewDashboardConfigCopyRoute,
   applyDashboardConfigCopyRoute,
+  getWorkflowDashboardFieldsRoute,
+  getViewDashboardFieldsRoute,
   dashboardConfigMigrationPreflightRoute,
   ...retiredDashboardConfigRoutes,
 ];

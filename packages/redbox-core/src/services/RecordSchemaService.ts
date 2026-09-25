@@ -789,6 +789,26 @@ export interface ResolveCreateRecordSchemaRequest {
   readonly internalAuthorizationCapability?: unknown;
 }
 
+export interface DescribeRecordStageSchemaRequest {
+  /** Internal persisted brand identifier. */
+  readonly brand: string;
+  /** Canonical public branding route segment. Defaults to `brand`. */
+  readonly branding?: string;
+  readonly portal: string;
+  readonly recordType: string;
+  readonly targetStep?: string;
+  /** Trusted current caller; field visibility follows their access. */
+  readonly caller: FormRecordAccessContext;
+}
+
+export type DescribeRecordStageSchemaResult =
+  | {
+      readonly kind: 'resolved' | 'partial';
+      readonly completeness: 'complete' | 'partial';
+      readonly document: PublishedRecordJsonSchemaDocument;
+    }
+  | { readonly kind: 'unavailable'; readonly code: string };
+
 export interface RecordSchemaCreateResolutionMetadata {
   readonly schemaKind: 'create';
   readonly contractFormat: RecordContractFormat;
@@ -2325,6 +2345,7 @@ export namespace Services {
       'resolveCreate',
       'resolveUpdate',
       'resolveImmutable',
+      'describeStage',
       'validateResolvedArtifact',
       'persistSaveUsageReference',
       'materializeIntegrationPins',
@@ -2484,6 +2505,55 @@ export namespace Services {
         return pipeline;
       }
       return resolvedPipelineResult(pipeline, 'create', context);
+    }
+
+    /**
+     * Read-only description of the metadata a record of `recordType` has at
+     * `targetStep`, as seen by `caller`. Used as an authoring aid (for example
+     * dashboard field pickers). Unlike {@link resolveCreate} it does not persist
+     * an artifact or grant, and it does not require public schema resolution
+     * to be enabled; it only needs a valid schema configuration.
+     */
+    public async describeStage(request: DescribeRecordStageSchemaRequest): Promise<DescribeRecordStageSchemaResult> {
+      const config = this.resolveRuntimeConfig();
+      if (!config) {
+        return { kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID };
+      }
+      let internalContext: RecordContractCreateContext;
+      try {
+        const resolvedContext = await this.dependencies.resolveContractContext({
+          kind: 'create',
+          brand: request.brand,
+          portal: request.portal,
+          recordType: request.recordType,
+          targetStep: request.targetStep,
+          actor: callerActor(request.caller),
+        });
+        if (!isCreateContractContext(resolvedContext)) {
+          return { kind: 'unavailable', code: 'not-resolvable' };
+        }
+        internalContext = resolvedContext;
+      } catch (error) {
+        if (error instanceof RecordContractContextResolutionError) {
+          return { kind: 'unavailable', code: error.failureKind };
+        }
+        this.logUnexpected('resolve-create-context', error);
+        return { kind: 'unavailable', code: 'unavailable' };
+      }
+      try {
+        if (!(await this.dependencies.authorizeCreate(internalContext, request.caller))) {
+          return { kind: 'unavailable', code: 'forbidden' };
+        }
+      } catch (error) {
+        this.logUnexpected('resolve-create-authorization', error);
+        return { kind: 'unavailable', code: 'unavailable' };
+      }
+      const context = createContextWithPublicBrand(internalContext, publicBranding(request));
+      const compilation = await this.compileContext(config, context);
+      if (compilation.kind !== 'resolved' && compilation.kind !== 'partial') {
+        return { kind: 'unavailable', code: 'code' in compilation ? String(compilation.code) : compilation.kind };
+      }
+      return { kind: compilation.kind, completeness: compilation.completeness, document: compilation.document };
     }
 
     /** Resolve, authorize, compile, persist, and grant one caller-effective update-delta schema. */

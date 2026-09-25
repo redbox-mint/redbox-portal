@@ -3,16 +3,21 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ConfigService, RB_HTTP_INTERCEPTOR_AUTH_CSRF, UtilityService } from '@researchdatabox/portal-ng-common';
-import { DashboardConfigApiService, WorkflowStateDashboardConfig } from './dashboard-config-api.service';
+import { DashboardConfigApiError, DashboardConfigApiService, DashboardSettings } from './dashboard-config-api.service';
 
-describe('DashboardConfigApiService save routes', () => {
+describe('DashboardConfigApiService', () => {
   let service: DashboardConfigApiService;
   let http: HttpTestingController;
-  const apiUrl = 'https://portal.example/redbox/default/rdmp/api/dashboard-config';
-  const config: WorkflowStateDashboardConfig = {
-    dashboardType: 'standard',
+  const baseUrl = 'https://portal.example/redbox/default/rdmp/admin/dashboard-config';
+  const settings: DashboardSettings = {
+    searchable: true,
+    showStageTitle: true,
     tableConfig: {
-      rowConfig: [{ title: 'Updated title', variable: 'metadata.title', template: '{{metadata.title}}' }]
+      rowConfig: [{ title: 'Title', variable: 'metadata.title', template: '{{metadata.title}}' }],
+      rowRulesConfig: [],
+      groupRowConfig: [],
+      groupRowRulesConfig: [],
+      formatRules: {}
     }
   };
 
@@ -40,39 +45,33 @@ describe('DashboardConfigApiService save routes', () => {
 
   afterEach(() => http.verify());
 
-  it('saves workflow overrides through the registered merged configuration route', async () => {
-    const result = service.saveWorkflowStateDashboardConfig('rdmp', 'draft', config);
-    const request = http.expectOne(`${apiUrl}/merged/rdmp/draft`);
+  it('saves stage settings through the CSRF-protected session route with the base revision', async () => {
+    const result = service.save({ kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, { expectedRevision: 3, settings });
+    const request = http.expectOne(`${baseUrl}/workflows/rdmp/draft`);
     expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual(config);
+    expect(request.request.body).toEqual({ expectedRevision: 3, settings });
+    expect(request.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
     expect(request.request.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF)).toBe('test-csrf-token');
-    const overrides = { recordTypes: { rdmp: { steps: { draft: config } } } };
-    request.flush({ data: overrides });
-    await expectAsync(result).toBeResolvedTo(overrides);
+    request.flush({ data: { revision: 4 } });
+    await expectAsync(result).toBeResolvedTo({ revision: 4 } as any);
   });
 
-  it('saves view overrides through the registered merged view route', async () => {
-    const result = service.saveDashboardViewStepConfig('consolidated', 'consolidated', config);
-    const request = http.expectOne(`${apiUrl}/merged-view/consolidated/consolidated`);
-    expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual(config);
-    expect(request.request.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF)).toBe('test-csrf-token');
-    const overrides = { views: { consolidated: { steps: { consolidated: config } } } };
-    request.flush(overrides);
-    await expectAsync(result).toBeResolvedTo(overrides);
+  it('encodes owner and step names as individual path segments', async () => {
+    const result = service.getSettings({ kind: 'view', view: 'project view', step: 'review/final' });
+    http.expectOne(`${baseUrl}/views/project%20view/review%2Ffinal`).flush({ data: {} });
+    await expectAsync(result).toBeResolvedTo({} as any);
+    const fields = service.getFields({ kind: 'workflow', recordType: 'research plan', stage: 'draft' });
+    http.expectOne(`${baseUrl}/workflows/research%20plan/draft/fields`).flush({ data: { status: 'unavailable' } });
+    await expectAsync(fields).toBeResolvedTo({ status: 'unavailable' } as any);
   });
 
-  it('encodes record type and workflow stage as individual path segments', async () => {
-    const result = service.saveWorkflowStateDashboardConfig('research plan', 'draft/review', config);
-    const request = http.expectOne(`${apiUrl}/merged/research%20plan/draft%2Freview`);
-    request.flush({ data: {} });
-    await expectAsync(result).toBeResolvedTo({});
-  });
-
-  it('encodes view and step names as individual path segments', async () => {
-    const result = service.saveDashboardViewStepConfig('project view', 'review/final', config);
-    const request = http.expectOne(`${apiUrl}/merged-view/project%20view/review%2Ffinal`);
-    request.flush({ data: {} });
-    await expectAsync(result).toBeResolvedTo({});
+  it('surfaces typed errors with their structured details', async () => {
+    const result = service.save({ kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, { expectedRevision: 1, settings });
+    http.expectOne(`${baseUrl}/workflows/rdmp/draft`).flush(
+      { errors: [{ code: 'stale-revision', detail: 'Changed by someone else', meta: { currentRevision: 2 } }], meta: {} },
+      { status: 409, statusText: 'Conflict' }
+    );
+    await expectAsync(result).toBeRejectedWith(jasmine.objectContaining({ code: 'stale-revision', status: 409, details: { currentRevision: 2 } }));
+    await result.catch((e) => expect(e).toEqual(jasmine.any(DashboardConfigApiError)));
   });
 });

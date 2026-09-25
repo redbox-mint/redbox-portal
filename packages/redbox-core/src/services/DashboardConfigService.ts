@@ -31,6 +31,16 @@ import {
   validateDashboardSettings
 } from '../configmodels/DashboardSettings';
 import {
+  DASHBOARD_SYSTEM_FIELDS,
+  DashboardFieldCatalogue,
+  collectSettingsFieldPaths,
+  flattenRecordJsonSchema,
+  isKnownFieldPath,
+  labelForFieldPath
+} from '../configmodels/DashboardFieldCatalogue';
+import type { FormRecordAccessContext } from './FormsService';
+import type { DescribeRecordStageSchemaRequest, DescribeRecordStageSchemaResult } from './RecordSchemaService';
+import {
   LegacyCaptureInput,
   LegacyConversionResult,
   LegacyDashboardTypeInput,
@@ -54,6 +64,8 @@ export const RESERVED_DASHBOARD_APP_CONFIG_KEYS = [DASHBOARD_LEGACY_OVERRIDE_KEY
 const COLLECTION_NAME = 'dashboardconfiguration';
 /** Headroom below MongoDB's 16MB document limit. */
 const MAX_DOCUMENT_BYTES = 15 * 1024 * 1024;
+/** Field catalogues are an authoring aid; a short cache avoids recompiling schemas for every validation. */
+const FIELD_CATALOGUE_TTL_MS = 60 * 1000;
 
 export namespace Services {
   export type DashboardConfigErrorCode =
@@ -175,6 +187,12 @@ export namespace Services {
     summary: string;
   }
 
+  /** The administrator on whose behalf field catalogues are resolved. */
+  export interface DashboardCallerOptions {
+    caller?: FormRecordAccessContext;
+    portal?: string;
+  }
+
   interface LoadedDocument {
     id: string;
     branding: string;
@@ -206,10 +224,12 @@ export namespace Services {
       'captureLegacyInput',
       'preflightLegacyMigration',
       'migrateLegacyConfiguration',
-      'isReservedAppConfigKey'
+      'isReservedAppConfigKey',
+      'getFieldCatalogue'
     ];
 
     private ready = false;
+    private fieldCatalogueCache = new Map<string, { expires: number; value: Promise<DashboardFieldCatalogue> }>();
     private notReadyReason = 'Dashboard configuration has not been initialised yet.';
 
     public async bootstrap(): Promise<void> {
@@ -436,7 +456,7 @@ export namespace Services {
       return { settings: normaliseDashboardSettings(value), shapeErrors };
     }
 
-    private validateCandidate(info: DashboardTargetInfo, settings: DashboardSettings): DashboardFinding[] {
+    private validateCandidate(info: DashboardTargetInfo, settings: DashboardSettings, catalogue?: DashboardFieldCatalogue): DashboardFinding[] {
       const findings = validateDashboardSettings(settings, { target: info.target, queryFilterKeys: info.queryFilterKeys });
       const warn = (code: string, path: string, message: string) => {
         findings.push({ id: fingerprint([info.key, code, path]).slice(0, 16), severity: 'warning', code, target: info.target, path, message });
@@ -446,6 +466,13 @@ export namespace Services {
       }
       if (info.target.kind === 'view' && settings.searchable) {
         warn('search-not-supported', 'searchable', 'Custom dashboard views do not show a search box; this setting has no effect here.');
+      }
+      if (catalogue && catalogue.status !== 'unavailable') {
+        for (const { settingsPath, fieldPath } of collectSettingsFieldPaths(settings)) {
+          if (!isKnownFieldPath(catalogue, fieldPath)) {
+            warn('unknown-field', settingsPath, `"${fieldPath}" is not a field of ${catalogue.recordType}${catalogue.workflowStage ? ` at stage ${catalogue.workflowStage}` : ''} according to its record schema. Records may still contain it, but check the spelling.`);
+          }
+        }
       }
       return findings;
     }
@@ -462,7 +489,7 @@ export namespace Services {
       return revision;
     }
 
-    public async validateTargetSettings(brand: BrandingModel, targetInput: unknown, expectedRevisionInput: unknown, settingsInput: unknown): Promise<DashboardValidationResult> {
+    public async validateTargetSettings(brand: BrandingModel, targetInput: unknown, expectedRevisionInput: unknown, settingsInput: unknown, options: DashboardCallerOptions = {}): Promise<DashboardValidationResult> {
       const expectedRevision = this.requireRevision(expectedRevisionInput);
       const doc = await this.requireDocument(brand);
       const catalogue = await this.getTargetCatalogue(brand, doc.configData);
@@ -471,14 +498,15 @@ export namespace Services {
         throw new DashboardConfigError('stale-revision', 'Dashboard settings were changed by someone else. Reload before continuing.', { currentRevision: doc.revision, expectedRevision });
       }
       const { settings, shapeErrors } = this.prepareIncomingSettings(target, settingsInput);
-      const findings = shapeErrors.length ? shapeErrors : this.validateCandidate(info, settings);
+      const fieldCatalogue = shapeErrors.length ? undefined : await this.fieldCatalogueFor(brand, info, options);
+      const findings = shapeErrors.length ? shapeErrors : this.validateCandidate(info, settings, fieldCatalogue);
       const errors = findings.filter((f) => f.severity === 'error');
       const warnings = findings.filter((f) => f.severity === 'warning');
       return { target, expectedRevision, errors, warnings, validationFingerprint: this.validationFingerprint(brand, 'save', target, expectedRevision, settings, catalogue.fingerprint, findings) };
     }
 
-    public async saveTargetSettings(brand: BrandingModel, targetInput: unknown, request: DashboardSaveRequest): Promise<DashboardTargetSettingsResult> {
-      const validation = await this.validateTargetSettings(brand, targetInput, request?.expectedRevision, request?.settings);
+    public async saveTargetSettings(brand: BrandingModel, targetInput: unknown, request: DashboardSaveRequest, options: DashboardCallerOptions = {}): Promise<DashboardTargetSettingsResult> {
+      const validation = await this.validateTargetSettings(brand, targetInput, request?.expectedRevision, request?.settings, options);
       if (validation.errors.length) {
         throw new DashboardConfigError('invalid-settings', 'The dashboard settings are not valid. Nothing was saved.', { errors: validation.errors, warnings: validation.warnings });
       }
@@ -510,12 +538,12 @@ export namespace Services {
     // Bulk copy
     // -----------------------------------------------------------------------
 
-    public async previewCopy(brand: BrandingModel, request: DashboardCopyRequest): Promise<DashboardCopyPreview> {
+    public async previewCopy(brand: BrandingModel, request: DashboardCopyRequest, options: DashboardCallerOptions = {}): Promise<DashboardCopyPreview> {
       const doc = await this.requireDocument(brand);
-      return this.computeCopyPreview(brand, doc, request);
+      return this.computeCopyPreview(brand, doc, request, options);
     }
 
-    private async computeCopyPreview(brand: BrandingModel, doc: LoadedDocument, request: DashboardCopyRequest): Promise<DashboardCopyPreview> {
+    private async computeCopyPreview(brand: BrandingModel, doc: LoadedDocument, request: DashboardCopyRequest, options: DashboardCallerOptions = {}): Promise<DashboardCopyPreview> {
       const groups = normaliseCopySelection(request?.groups);
       if (!groups) {
         throw new DashboardConfigError('invalid-request', 'groups must list one or more of: columnsAndActions, filtersAndSearch, grouping, all.');
@@ -556,7 +584,7 @@ export namespace Services {
         const after = applyCopyGroups(sourceSettings, before, groups);
         candidates[destination.info.key] = after;
         const findings = [
-          ...this.validateCandidate(destination.info, after),
+          ...this.validateCandidate(destination.info, after, await this.fieldCatalogueFor(brand, destination.info, options)),
           ...findSourceSpecificReferences(source.target, destination.target, after, groups, source.info.recordType, destination.info.recordType)
         ];
         errors.push(...findings.filter((f) => f.severity === 'error'));
@@ -578,13 +606,13 @@ export namespace Services {
       return { expectedRevision: doc.revision, previewFingerprint, source: source.target, destinations: destinations.map((d) => d.target), groups: selection, changes, errors, warnings };
     }
 
-    public async applyCopy(brand: BrandingModel, request: DashboardCopyApplyRequest): Promise<{ updated: number; revision: number; destinations: DashboardTarget[] }> {
+    public async applyCopy(brand: BrandingModel, request: DashboardCopyApplyRequest, options: DashboardCallerOptions = {}): Promise<{ updated: number; revision: number; destinations: DashboardTarget[] }> {
       const expectedRevision = this.requireRevision(request?.expectedRevision);
       const doc = await this.requireDocument(brand);
       if (doc.revision !== expectedRevision) {
         throw new DashboardConfigError('stale-preview', 'Dashboard settings changed after the preview was made. Nothing was copied; create a new preview.', { currentRevision: doc.revision });
       }
-      const preview = await this.computeCopyPreview(brand, doc, request);
+      const preview = await this.computeCopyPreview(brand, doc, request, options);
       if (preview.previewFingerprint !== request.previewFingerprint) {
         throw new DashboardConfigError('stale-preview', 'The copy no longer matches the reviewed preview. Nothing was copied; create a new preview.');
       }
@@ -607,6 +635,82 @@ export namespace Services {
         throw new DashboardConfigError('stale-preview', 'Dashboard settings changed while copying. Nothing was copied; create a new preview.');
       }
       return { updated: preview.destinations.length, revision: doc.revision + 1, destinations: preview.destinations };
+    }
+
+    // -----------------------------------------------------------------------
+    // Record field catalogue (authoring aid)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Record fields available to a target, from the record JSON schema of its
+     * workflow stage (views: the source record type at the step's source stage,
+     * or the starting stage). Unavailable schemas never block editing.
+     */
+    public async getFieldCatalogue(brand: BrandingModel, targetInput: unknown, options: DashboardCallerOptions = {}): Promise<DashboardFieldCatalogue> {
+      const catalogue = await this.getTargetCatalogue(brand);
+      const { info } = this.requireAvailableTarget(catalogue, targetInput);
+      const result = await this.fieldCatalogueFor(brand, info, options);
+      return result ?? this.unavailableCatalogue(info, 'no-caller');
+    }
+
+    private unavailableCatalogue(info: DashboardTargetInfo, reason: string, workflowStage?: string): DashboardFieldCatalogue {
+      return { status: 'unavailable', reason, recordType: info.recordType, workflowStage, fields: DASHBOARD_SYSTEM_FIELDS.map((f) => ({ ...f })), openPrefixes: [] };
+    }
+
+    private async fieldCatalogueFor(brand: BrandingModel, info: DashboardTargetInfo, options: DashboardCallerOptions): Promise<DashboardFieldCatalogue | undefined> {
+      if (!options.caller) {
+        return undefined;
+      }
+      let workflowStage: string | undefined;
+      if (info.target.kind === 'workflow') {
+        workflowStage = info.target.stage;
+      } else {
+        const viewTarget = info.target;
+        const step = ((sails.config.dashboardview ?? {}) as Record<string, DashboardViewDefinition>)[viewTarget.view]?.steps?.find((s) => s.name === viewTarget.step);
+        workflowStage = step?.fetchMode === 'workflowStage' ? step.sourceWorkflowStage : undefined;
+      }
+      const roles = ((options.caller.user?.roles ?? []) as Array<{ name?: string }>).map((r) => r?.name ?? '').sort().join(',');
+      const key = JSON.stringify([String(brand.id), info.recordType, workflowStage ?? '', roles]);
+      const now = Date.now();
+      const cached = this.fieldCatalogueCache.get(key);
+      if (cached && cached.expires > now) {
+        return cached.value;
+      }
+      const value = this.describeFields(brand, info, workflowStage, options).catch((error) => {
+        this.fieldCatalogueCache.delete(key);
+        sails.log.warn('DashboardConfigService: could not describe record fields', error);
+        return this.unavailableCatalogue(info, 'unavailable', workflowStage);
+      });
+      this.fieldCatalogueCache.set(key, { expires: now + FIELD_CATALOGUE_TTL_MS, value });
+      return value;
+    }
+
+    private async describeFields(brand: BrandingModel, info: DashboardTargetInfo, workflowStage: string | undefined, options: DashboardCallerOptions): Promise<DashboardFieldCatalogue> {
+      const schemaService = (sails.services as Record<string, unknown> | undefined)?.recordschemaservice as
+        | { describeStage?: (request: DescribeRecordStageSchemaRequest) => Promise<DescribeRecordStageSchemaResult> }
+        | undefined;
+      if (!schemaService?.describeStage || !options.caller) {
+        return this.unavailableCatalogue(info, 'record-schema-unavailable', workflowStage);
+      }
+      const result = await schemaService.describeStage({
+        brand: String(brand.id),
+        branding: brand.name,
+        portal: options.portal || sails.config.auth?.defaultPortal || 'rdmp',
+        recordType: info.recordType,
+        targetStep: workflowStage,
+        caller: options.caller
+      });
+      if (result.kind === 'unavailable') {
+        return this.unavailableCatalogue(info, result.code, workflowStage);
+      }
+      const flattened = flattenRecordJsonSchema(result.document);
+      return {
+        status: result.completeness === 'complete' ? 'complete' : 'partial',
+        recordType: info.recordType,
+        workflowStage,
+        fields: [...flattened.fields.map((f) => ({ ...f, label: f.label || labelForFieldPath(f.path) })), ...DASHBOARD_SYSTEM_FIELDS.map((f) => ({ ...f }))],
+        openPrefixes: flattened.openPrefixes
+      };
     }
 
     // -----------------------------------------------------------------------

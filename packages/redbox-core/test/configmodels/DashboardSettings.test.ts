@@ -169,6 +169,21 @@ describe('DashboardSettings', function () {
       expect(findings.find((f) => f.code === 'query-filter-key')?.severity).to.equal('warning');
     });
 
+    it('requires complete filters, well-formed sorts and complete group levels', function () {
+      const s = settings({ filter: { filterBase: 'user', filterField: '' } });
+      s.tableConfig.formatRules.sortBy = 'metadata.title';
+      s.tableConfig.formatRules.groupBy = 'groupedByRelationships';
+      s.tableConfig.formatRules.sortGroupBy = [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: 'metaMetadata.type' }, { rowLevel: 1, compareFieldValue: 'dataRecord', compareField: 'metaMetadata.type' }];
+      const errors = validateDashboardSettings(s, ctx).filter((f) => f.severity === 'error').map((f) => f.path);
+      expect(errors).to.include.members([
+        'tableConfig.formatRules.filterBy.filterField',
+        'tableConfig.formatRules.filterBy.filterBaseFieldOrValue',
+        'tableConfig.formatRules.sortBy',
+        'tableConfig.formatRules.sortGroupBy[1].relatedTo'
+      ]);
+      expect(errors).to.not.include('tableConfig.formatRules.sortGroupBy[0].relatedTo');
+    });
+
     it('produces stable finding ids for the same target and path', function () {
       const s = settings();
       s.tableConfig.formatRules.sortBy = 'metadata.unknown:-1';

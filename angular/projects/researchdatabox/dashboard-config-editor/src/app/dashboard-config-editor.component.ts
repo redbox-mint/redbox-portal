@@ -5,6 +5,7 @@ import {
   DashboardConfigApiService,
   DashboardCopyPreview,
   DashboardCopySelection,
+  DashboardFieldCatalogue,
   DashboardFinding,
   DashboardGroupChange,
   DashboardSettings,
@@ -40,6 +41,8 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   draft: DashboardSettings | null = null;
   baseRevision = 0;
   private savedJson = '';
+  /** Record fields for the selected target, from its record JSON schema. */
+  fieldCatalogue: DashboardFieldCatalogue | null = null;
 
   loading = false;
   saving = false;
@@ -126,6 +129,11 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     return Array.from(groups.values());
   }
 
+  /** Record types available as grouping levels. */
+  get recordTypes(): string[] {
+    return Array.from(new Set(this.targets.filter((t) => t.target.kind === 'workflow').map((t) => t.recordType))).sort();
+  }
+
   get workflowGroups(): NavGroup[] {
     return this.navGroups.filter((g) => g.kind === 'workflow');
   }
@@ -198,6 +206,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     this.message = '';
     this.clearFindings();
     this.staleConflict = false;
+    this.loadFieldCatalogue(this.selected);
     try {
       const result = await this.api.getSettings(this.selected.target);
       this.draft = cloneSettings(result.settings);
@@ -209,6 +218,19 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
       this.logger.error('Failed to load dashboard settings', e);
     }
     this.loading = false;
+  }
+
+  /** Field suggestions are an aid; failures never block editing. */
+  private async loadFieldCatalogue(info: DashboardTargetInfo): Promise<void> {
+    this.fieldCatalogue = null;
+    try {
+      const catalogue = await this.api.getFields(info.target);
+      if (this.selected?.key === info.key) {
+        this.fieldCatalogue = catalogue;
+      }
+    } catch (e) {
+      this.logger.warn('Could not load record fields for the dashboard', e);
+    }
   }
 
   async reloadDiscardingDraft(): Promise<void> {

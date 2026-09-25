@@ -167,7 +167,7 @@
                 <small class="dc-card-subtitle">Columns, filtering, sorting, row actions and grouping. Empty values stay empty.</small>
               </div>
               <div class="dc-card-body">
-                <table-config-editor [config]="draft.tableConfig" [targetKind]="selected.target.kind" [queryFilterKeys]="selected.queryFilterKeys" (configChange)="onTableConfigChange($event)"></table-config-editor>
+                <table-config-editor [config]="draft.tableConfig" [targetKind]="selected.target.kind" [queryFilterKeys]="selected.queryFilterKeys" [recordTypes]="recordTypes" [catalogue]="fieldCatalogue" (configChange)="onTableConfigChange($event)"></table-config-editor>
               </div>
             </div>
           </div>

@@ -22,6 +22,8 @@ export namespace Controllers {
       'validateSettings',
       'previewCopy',
       'applyCopy',
+      'getWorkflowFields',
+      'getViewFields',
       'migrationPreflight',
       'retiredOperation'
     ];
@@ -50,6 +52,12 @@ export namespace Controllers {
         throw new DashboardConfigServices.DashboardConfigError('target-not-found', `Brand "${brandName}" was not found.`);
       }
       return brand;
+    }
+
+    /** The signed-in administrator; record field catalogues follow their access. */
+    private callerOptions(req: Sails.Req, brand: BrandingModel): DashboardConfigServices.DashboardCallerOptions {
+      const user = req.user as unknown as Record<string, unknown> | undefined;
+      return user ? { caller: { user, brand } as unknown as DashboardConfigServices.DashboardCallerOptions['caller'], portal: this.param(req, 'portal') } : {};
     }
 
     private param(req: Sails.Req, name: string): string {
@@ -85,7 +93,7 @@ export namespace Controllers {
     }
 
     public async saveWorkflowTarget(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, (brand) => DashboardConfigService.saveTargetSettings(brand, { kind: 'workflow', recordType: this.param(req, 'recordType'), stage: this.param(req, 'stage') }, this.body(req) as unknown as DashboardConfigServices.DashboardSaveRequest));
+      return this.run(req, res, (brand) => DashboardConfigService.saveTargetSettings(brand, { kind: 'workflow', recordType: this.param(req, 'recordType'), stage: this.param(req, 'stage') }, this.body(req) as unknown as DashboardConfigServices.DashboardSaveRequest, this.callerOptions(req, brand)));
     }
 
     public async getViewTarget(req: Sails.Req, res: Sails.Res) {
@@ -93,22 +101,31 @@ export namespace Controllers {
     }
 
     public async saveViewTarget(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, (brand) => DashboardConfigService.saveTargetSettings(brand, { kind: 'view', view: this.param(req, 'view'), step: this.param(req, 'step') }, this.body(req) as unknown as DashboardConfigServices.DashboardSaveRequest));
+      return this.run(req, res, (brand) => DashboardConfigService.saveTargetSettings(brand, { kind: 'view', view: this.param(req, 'view'), step: this.param(req, 'step') }, this.body(req) as unknown as DashboardConfigServices.DashboardSaveRequest, this.callerOptions(req, brand)));
     }
 
     public async validateSettings(req: Sails.Req, res: Sails.Res) {
       return this.run(req, res, (brand) => {
         const body = this.body(req);
-        return DashboardConfigService.validateTargetSettings(brand, body.target, body.expectedRevision, body.settings);
+        return DashboardConfigService.validateTargetSettings(brand, body.target, body.expectedRevision, body.settings, this.callerOptions(req, brand));
       });
     }
 
     public async previewCopy(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, (brand) => DashboardConfigService.previewCopy(brand, this.body(req) as unknown as DashboardConfigServices.DashboardCopyRequest));
+      return this.run(req, res, (brand) => DashboardConfigService.previewCopy(brand, this.body(req) as unknown as DashboardConfigServices.DashboardCopyRequest, this.callerOptions(req, brand)));
     }
 
     public async applyCopy(req: Sails.Req, res: Sails.Res) {
-      return this.run(req, res, (brand) => DashboardConfigService.applyCopy(brand, this.body(req) as unknown as DashboardConfigServices.DashboardCopyApplyRequest));
+      return this.run(req, res, (brand) => DashboardConfigService.applyCopy(brand, this.body(req) as unknown as DashboardConfigServices.DashboardCopyApplyRequest, this.callerOptions(req, brand)));
+    }
+
+    /** Record fields available to a stage, from its record JSON schema. */
+    public async getWorkflowFields(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.getFieldCatalogue(brand, { kind: 'workflow', recordType: this.param(req, 'recordType'), stage: this.param(req, 'stage') }, this.callerOptions(req, brand)));
+    }
+
+    public async getViewFields(req: Sails.Req, res: Sails.Res) {
+      return this.run(req, res, (brand) => DashboardConfigService.getFieldCatalogue(brand, { kind: 'view', view: this.param(req, 'view'), step: this.param(req, 'step') }, this.callerOptions(req, brand)));
     }
 
     /** Read-only legacy migration preflight: JSON report plus readable summary. */

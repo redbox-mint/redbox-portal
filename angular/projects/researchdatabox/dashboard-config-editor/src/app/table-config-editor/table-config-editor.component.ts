@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { DashboardRowConfig, DashboardTableConfig } from '../dashboard-config-api.service';
+import { DashboardFieldCatalogue, DashboardRowConfig, DashboardTableConfig } from '../dashboard-config-api.service';
 
 type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
 
@@ -37,23 +37,23 @@ type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
       </ul>
       <div class="tab-content dc-tab-content">
         <div *ngIf="activeTab === 'columns'" class="dc-tab-pane">
-          <column-editor [columns]="config.rowConfig || []" (columnsChange)="updateRowConfig($event)"></column-editor>
+          <column-editor [columns]="config.rowConfig || []" [catalogue]="catalogue" (columnsChange)="updateRowConfig($event)"></column-editor>
         </div>
         <div *ngIf="activeTab === 'rowRules'" class="dc-tab-pane">
           <p class="dc-tab-help">Named rule sets used by column templates through <code>evaluateRowLevelRules</code>, for example action links.</p>
           <rule-set-editor [ruleSets]="config.rowRulesConfig || []" (ruleSetsChange)="updateRowRules($event)"></rule-set-editor>
         </div>
         <div *ngIf="activeTab === 'formatRules'" class="dc-tab-pane">
-          <format-rules-editor section="filters" [targetKind]="targetKind" [queryFilterKeys]="queryFilterKeys" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></format-rules-editor>
+          <dashboard-filters-editor [targetKind]="targetKind" [queryFilterKeys]="queryFilterKeys" [columns]="config.rowConfig || []" [catalogue]="catalogue" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-filters-editor>
         </div>
         <div *ngIf="activeTab === 'groupConfig'" class="dc-tab-pane">
-          <format-rules-editor section="grouping" [targetKind]="targetKind" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></format-rules-editor>
+          <dashboard-grouping-editor [targetKind]="targetKind" [recordTypes]="recordTypes" [fields]="catalogue?.fields || []" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-grouping-editor>
           <section class="dc-group-section">
             <h5 class="dc-group-section-title">
               <i class="fa fa-columns"></i>
               Group row columns
             </h5>
-            <column-editor [columns]="config.groupRowConfig || []" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
+            <column-editor [columns]="config.groupRowConfig || []" [catalogue]="catalogue" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
           </section>
           <section class="dc-group-section">
             <h5 class="dc-group-section-title">
@@ -164,6 +164,8 @@ export class TableConfigEditorComponent {
   @Input() config: DashboardTableConfig = {};
   @Input() targetKind: 'workflow' | 'view' = 'workflow';
   @Input() queryFilterKeys: string[] = [];
+  @Input() recordTypes: string[] = [];
+  @Input() catalogue: DashboardFieldCatalogue | null = null;
   @Output() configChange = new EventEmitter<DashboardTableConfig>();
 
   activeTab: Tab = 'columns';

@@ -95,6 +95,17 @@ Column sorting is used first. If no column declares a sort, `sortBy` (for exampl
 
 The editor lists workflow stages by record type and custom views by view. For the selected target it shows every setting, with **Save**, **Copy from…** and **Copy to…**. Unsaved changes are flagged and you are asked before they are discarded.
 
+Filters, sorting, search and grouping are set up with guided controls rather than JSON:
+
+- **Which records are listed**: all records, records linked to the signed-in person (choose the record field, *exactly match* or *contain*, and the person's email, username, name or another property), or records with a fixed value. A summary sentence confirms the rule.
+- **Default order**: a field and a direction, used only when no column declares an initial sort.
+- **Search fields**: a list of label and record field pairs for the "Filter by" menu, with an optional advanced template that transforms the typed text.
+- **Grouping** (custom views): no grouping, by record type, or by related records, with ordered levels. For related records each level after the first names the field that links it to the level above.
+
+#### Record field suggestions
+
+Wherever a record field path is entered (columns, filters, sorting, search fields, grouping links) the editor suggests fields from the record JSON schema of the selected stage, resolved by `RecordSchemaService` for the signed-in administrator. View steps use their source record type and stage. The editor states whether the schema is complete or partial. Paths the schema does not describe are flagged, and saves and copies report them as warnings to acknowledge. They are not errors: records can contain fields that no form describes, and fields under components the schema cannot describe are not checked. If the schema cannot be resolved, editing continues without suggestions.
+
 Settings are copied in groups. A selected group *replaces* the destination's values completely, including clearing values the source does not have; unselected groups are left alone.
 
 | Group                         | Replaces                                                                                   |
@@ -117,7 +128,9 @@ Saves and copies validate the *resulting* settings. These block the change:
 - a template that names a rule set that does not exist (`evaluateRowLevelRules ... "missing"`);
 - structural profile fields (`recordTypeFilterBy`, `filterWorkflowStepsBy`, `hideWorkflowStepTitleForRecordType`) inside stage settings.
 
-These are warnings you can acknowledge: rule set names that cannot be checked before the dashboard runs, search filters keyed to a record type the page does not use, an overall sort on a field that is not a column, and grouping or search settings that have no effect for that kind of target.
+The resulting record filter must be complete (a field and a value), the overall sort must be `field:1` or `field:-1`, and relationship group levels need their record type and linking field.
+
+These are warnings you can acknowledge: record field paths that the stage's record schema does not describe, rule set names that cannot be checked before the dashboard runs, search filters keyed to a record type the page does not use, an overall sort on a field that is not a column, and grouping or search settings that have no effect for that kind of target.
 
 #### Concurrency
 
@@ -141,6 +154,8 @@ All paths are relative to `/:branding/:portal/api/dashboard-config` and require 
 | POST   | `/validate`                  | Read-only: `{ target, expectedRevision, settings }` → errors, warnings, `validationFingerprint`. |
 | POST   | `/copy/preview`              | Read-only: `{ source, destinations, groups }` → changes, findings, `expectedRevision`, `previewFingerprint`. |
 | POST   | `/copy/apply`                | The same request plus `expectedRevision`, `previewFingerprint` and `acknowledgedWarningIds`. |
+| GET    | `/workflows/:recordType/:stage/fields` | Record fields for the stage from its record JSON schema: `{ status, reason?, recordType, workflowStage, fields, openPrefixes }`. |
+| GET    | `/views/:view/:step/fields`  | As above for a view step (source record type and stage).                 |
 | GET    | `/migration/preflight`       | Read-only legacy migration report (see below).                          |
 
 Targets are `{ "kind": "workflow", "recordType": "rdmp", "stage": "draft" }` or `{ "kind": "view", "view": "consolidated", "step": "consolidated" }`. Errors use typed codes: `400 invalid-request|invalid-settings`, `404 target-not-found`, `409 stale-revision|stale-preview|warnings-require-review|settings-changed`, `410 legacy-operation-retired`, `503 configuration-unavailable`. With `X-ReDBox-Api-Version: 2.0`, findings are returned in the error `meta`.

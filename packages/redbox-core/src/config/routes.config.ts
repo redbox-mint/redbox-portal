@@ -123,6 +123,8 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/admin/dashboard-config/validate': { controller: 'DashboardConfigController', action: 'validateSettings' },
   'post /:branding/:portal/admin/dashboard-config/copy/preview': { controller: 'DashboardConfigController', action: 'previewCopy' },
   'post /:branding/:portal/admin/dashboard-config/copy/apply': { controller: 'DashboardConfigController', action: 'applyCopy' },
+  'get /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields': { controller: 'DashboardConfigController', action: 'getWorkflowFields' },
+  'get /:branding/:portal/admin/dashboard-config/views/:view/:step/fields': { controller: 'DashboardConfigController', action: 'getViewFields' },
   '/:branding/:portal/admin/roles': {
     controller: 'AdminController',
     action: 'rolesIndex',

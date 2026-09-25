@@ -133,6 +133,43 @@ export interface DashboardCopyPreview {
   warnings: DashboardFinding[];
 }
 
+/** A record field available to a dashboard, from the stage's record JSON schema. */
+export interface DashboardFieldInfo {
+  path: string;
+  label: string;
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'any';
+  repeated: boolean;
+  enum?: Array<string | number | boolean>;
+  description?: string;
+  source: 'schema' | 'system';
+}
+
+export interface DashboardFieldCatalogue {
+  status: 'complete' | 'partial' | 'unavailable';
+  reason?: string;
+  recordType: string;
+  workflowStage?: string;
+  fields: DashboardFieldInfo[];
+  openPrefixes: string[];
+}
+
+const SYSTEM_ROOTS = ['metaMetadata', 'workflow', 'authorization', 'redboxOid', 'oid'];
+
+/** Mirror of isKnownFieldPath in @researchdatabox/redbox-core DashboardFieldCatalogue. */
+export function isKnownFieldPath(catalogue: DashboardFieldCatalogue | null | undefined, path: string): boolean {
+  const trimmed = (path ?? '').trim();
+  if (!catalogue || catalogue.status === 'unavailable' || !trimmed) {
+    return true;
+  }
+  if (SYSTEM_ROOTS.some((root) => trimmed === root || trimmed.startsWith(`${root}.`))) {
+    return true;
+  }
+  if (catalogue.fields.some((f) => f.path === trimmed || f.path.startsWith(`${trimmed}.`))) {
+    return true;
+  }
+  return catalogue.openPrefixes.some((prefix) => trimmed === prefix || trimmed.startsWith(`${prefix}.`));
+}
+
 /** Error carrying the server's typed code and structured details (findings, revision). */
 export class DashboardConfigApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly code: string, public readonly details: Record<string, any>) {
@@ -200,6 +237,10 @@ export class DashboardConfigApiService extends HttpClientService {
 
   async getSettings(target: DashboardTarget): Promise<DashboardTargetSettings> {
     return this.request(firstValueFrom(this.http.get<ApiResponse<DashboardTargetSettings>>(this.url(this.targetPath(target)), this.options())));
+  }
+
+  async getFields(target: DashboardTarget): Promise<DashboardFieldCatalogue> {
+    return this.request(firstValueFrom(this.http.get<ApiResponse<DashboardFieldCatalogue>>(this.url(`${this.targetPath(target)}/fields`), this.options())));
   }
 
   async validate(target: DashboardTarget, expectedRevision: number, settings: DashboardSettings): Promise<DashboardValidationResult> {

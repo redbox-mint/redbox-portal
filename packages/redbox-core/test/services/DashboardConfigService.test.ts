@@ -223,7 +223,7 @@ describe('DashboardConfigService', function () {
     beforeEach(async function () {
       await seed({
         rdmp: {
-          draft: stageSettings('Source', { filterBy: { filterBase: 'user', filterField: 'owner' } }),
+          draft: stageSettings('Source', { filterBy: { filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'owner' } }),
           review: stageSettings('Review', { groupBy: '' }),
           secret: stageSettings('Hidden')
         },
@@ -248,7 +248,7 @@ describe('DashboardConfigService', function () {
     it('creates independent copies: later source edits do not propagate', async function () {
       const preview = await service.previewCopy(brand, { source: draft, destinations: [review], groups: ['all'] });
       await service.applyCopy(brand, { ...preview, groups: ['all'] });
-      await service.saveTargetSettings(brand, draft, { expectedRevision: 2, settings: stageSettings('Edited later', { filterBy: { filterBase: 'user', filterField: 'owner' } }) });
+      await service.saveTargetSettings(brand, draft, { expectedRevision: 2, settings: stageSettings('Edited later', { filterBy: { filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'owner' } }) });
       expect(store.docs[0].configData.workflows.rdmp.review.tableConfig.rowConfig[0].title).to.equal('Source');
     });
 
@@ -323,6 +323,47 @@ describe('DashboardConfigService', function () {
       expect(preview.errors.map((e) => e.code)).to.include('unclassified-field');
       const grouped = await service.previewCopy(brand, { source: draft, destinations: [review], groups: ['columnsAndActions'] });
       expect(grouped.errors).to.deep.equal([]);
+    });
+  });
+
+  describe('record field catalogue', function () {
+    const caller = { user: { username: 'admin', roles: [{ id: 'r', name: 'Admin' }] }, brand } as any;
+
+    beforeEach(async function () {
+      await seed({ rdmp: { draft: stageSettings('Draft') } });
+      mockSails.services = {
+        recordschemaservice: {
+          describeStage: sinon.stub().resolves({
+            kind: 'resolved',
+            completeness: 'complete',
+            document: { type: 'object', additionalProperties: false, properties: { title: { type: 'string' }, owner: { type: 'object', additionalProperties: false, properties: { email: { type: 'string' } } } } }
+          })
+        }
+      };
+    });
+
+    it('describes the stage fields from its record schema, plus ReDBox fields', async function () {
+      const result = await service.getFieldCatalogue(brand, draft, { caller, portal: 'rdmp' });
+      expect(result.status).to.equal('complete');
+      expect(result.fields.map((f) => f.path)).to.include.members(['metadata.title', 'metadata.owner.email', 'metaMetadata.lastSaveDate']);
+      const request = mockSails.services.recordschemaservice.describeStage.firstCall.args[0];
+      expect(request).to.deep.include({ recordType: 'rdmp', targetStep: 'draft', portal: 'rdmp' });
+    });
+
+    it('warns about field paths the schema does not describe', async function () {
+      const settings = stageSettings('Draft', { filterBy: { filterBase: 'user', filterBaseFieldOrValue: 'user.email', filterField: 'metadata.ownr.email', filterMode: 'equal' } });
+      const result = await service.validateTargetSettings(brand, draft, 1, settings, { caller });
+      expect(result.errors).to.deep.equal([]);
+      expect(result.warnings.map((w) => w.path)).to.deep.equal(['tableConfig.formatRules.filterBy.filterField']);
+    });
+
+    it('never blocks editing when the schema is unavailable', async function () {
+      mockSails.services.recordschemaservice.describeStage = sinon.stub().resolves({ kind: 'unavailable', code: 'forbidden' });
+      const result = await service.getFieldCatalogue(brand, draft, { caller });
+      expect(result.status).to.equal('unavailable');
+      expect(result.reason).to.equal('forbidden');
+      const validation = await service.validateTargetSettings(brand, draft, 1, stageSettings('Draft', { filterBy: { filterBase: 'record', filterBaseFieldOrValue: 'x', filterField: 'metadata.anything' } }), { caller });
+      expect(validation.warnings).to.deep.equal([]);
     });
   });
 
