@@ -42,6 +42,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   baseRevision = 0;
   private savedJson = '';
   private loadGeneration = 0;
+  private copyFromGeneration = 0;
   /** Record fields for the selected target, from its record JSON schema. */
   fieldCatalogue: DashboardFieldCatalogue | null = null;
 
@@ -394,9 +395,12 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   openCopyFrom(): void {
     this.closeDialogs();
     this.copyFrom = { ...this.copyFrom, open: true, sourceKey: '', selection: emptySelection(), candidate: null, changes: [], errors: [], warnings: [], error: '' };
+    this.resetCopyFromPreview();
   }
 
   resetCopyFromPreview(): void {
+    this.copyFromGeneration++;
+    this.copyFrom.loading = false;
     this.copyFrom.candidate = null;
     this.copyFrom.changes = [];
     this.copyFrom.errors = [];
@@ -412,22 +416,36 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
       this.copyFrom.error = 'Choose a saved source and at least one group of settings.';
       return;
     }
-    this.copyFrom.loading = true;
     this.resetCopyFromPreview();
+    const generation = this.copyFromGeneration;
+    const destination = this.selected;
+    const draft = this.draft;
+    const revision = this.baseRevision;
+    this.copyFrom.loading = true;
     try {
       const saved = await this.api.getSettings(source.target);
+      if (this.copyFromGeneration !== generation || !this.copyFrom.open || this.selected !== destination || this.draft !== draft) {
+        return;
+      }
       const groups = selectionToGroups(selection);
-      const candidate = applyCopyGroups(saved.settings, this.draft, groups);
-      this.copyFrom.candidate = candidate;
-      this.copyFrom.changes = describeGroupChanges(this.draft, candidate, groups);
+      const candidate = applyCopyGroups(saved.settings, draft, groups);
       // Validate against the destination's base revision; the source revision never advances it.
-      const validation = await this.api.validate(this.selected.target, this.baseRevision, candidate);
+      const validation = await this.api.validate(destination.target, revision, candidate);
+      if (this.copyFromGeneration !== generation || !this.copyFrom.open || this.selected !== destination || this.draft !== draft) {
+        return;
+      }
+      this.copyFrom.candidate = candidate;
+      this.copyFrom.changes = describeGroupChanges(draft, candidate, groups);
       this.copyFrom.errors = validation.errors;
       this.copyFrom.warnings = validation.warnings;
     } catch (e) {
-      this.copyFrom.error = this.describeError(e, 'Could not load the source settings.');
+      if (this.copyFromGeneration === generation) {
+        this.copyFrom.error = this.describeError(e, 'Could not load the source settings.');
+      }
     } finally {
-      this.copyFrom.loading = false;
+      if (this.copyFromGeneration === generation) {
+        this.copyFrom.loading = false;
+      }
     }
   }
 
@@ -533,6 +551,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   }
 
   closeDialogs(): void {
+    this.copyFromGeneration++;
     this.copyFrom.open = false;
     this.copyTo.open = false;
   }

@@ -167,7 +167,7 @@ export class DashboardComponent extends BaseComponent {
    * changed in between, reload settings and templates together once rather
    * than rendering a mix of versions.
    */
-  private async loadStepStates(kind: 'workflow' | 'view', owner: string, stepKeys: string[]): Promise<void> {
+  private async loadStepStates(kind: 'workflow' | 'view', owner: string, stepKeys: string[]): Promise<boolean> {
     for (let attempt = 0; attempt < 2; attempt++) {
       let snapshot: DashboardRuntimeSettings;
       try {
@@ -175,7 +175,7 @@ export class DashboardComponent extends BaseComponent {
       } catch (error) {
         this.loggerService.error(`Dashboard settings are unavailable for ${kind} ${owner}`, error);
         this.settingsUnavailable = true;
-        return;
+        return false;
       }
       const states: { [step: string]: StepState } = {};
       for (const stepKey of stepKeys) {
@@ -193,24 +193,28 @@ export class DashboardComponent extends BaseComponent {
           filterField: this.defaultFilterField
         };
       }
-      let consistent = true;
+      let consistent = Object.keys(states).length === stepKeys.length;
       for (const state of Object.values(states)) {
         const loaded = await this.handlebarsTemplateService.loadDashboardTargetTemplates(this.branding, this.portal, state.target, state.fingerprint);
         consistent = consistent && loaded;
       }
-      this.stepState = { ...this.stepState, ...states };
-      for (const [stepKey, state] of Object.entries(states)) {
-        this.tableConfig[stepKey] = state.settings.tableConfig.rowConfig;
-        state.filterField = this.getFirstTextFilter(stepKey);
-      }
       if (consistent) {
-        return;
+        this.stepState = { ...this.stepState, ...states };
+        for (const [stepKey, state] of Object.entries(states)) {
+          this.tableConfig[stepKey] = state.settings.tableConfig.rowConfig;
+          state.filterField = this.getFirstTextFilter(stepKey);
+        }
+        return true;
       }
       this.loggerService.warn(`Dashboard settings changed while loading ${kind} ${owner}; reloading settings and templates.`);
     }
+    this.loggerService.error(`Dashboard settings or templates are unavailable for ${kind} ${owner} after reloading.`);
+    this.settingsUnavailable = true;
+    return false;
   }
 
   public async initView(recordType: string) {
+    this.settingsUnavailable = false;
     this.workflowSteps = [];
     this.records = {};
     this.tableConfig = {};
@@ -223,7 +227,9 @@ export class DashboardComponent extends BaseComponent {
     const settingsRecordType = !_isEmpty(context.recordTypeFilterBy) ? String(context.recordTypeFilterBy) : recordType;
 
     const steps = await this.initWorkflowSteps(settingsRecordType, context);
-    await this.loadStepStates('workflow', settingsRecordType, steps.map((step: any) => this.getStepKey(step)));
+    if (!await this.loadStepStates('workflow', settingsRecordType, steps.map((step: any) => this.getStepKey(step)))) {
+      return;
+    }
 
     for (const step of steps) {
       const stepKey = this.getStepKey(step);
@@ -242,6 +248,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public async initDashboardView(dashboardView: string) {
+    this.settingsUnavailable = false;
     this.workflowSteps = [];
     this.records = {};
     this.tableConfig = {};
@@ -255,7 +262,9 @@ export class DashboardComponent extends BaseComponent {
     this.typeLabel = `${this.translationService.t(`${this.recordType}-name-plural`)}` || 'Records';
 
     const steps = (dashboardViewConfig.steps || []).map((step) => this.normalizeDashboardViewStep(step));
-    await this.loadStepStates('view', dashboardView, steps.map((step) => this.getStepKey(step)));
+    if (!await this.loadStepStates('view', dashboardView, steps.map((step) => this.getStepKey(step)))) {
+      return;
+    }
 
     for (const step of steps) {
       const stepKey = this.getStepKey(step);
@@ -292,7 +301,7 @@ export class DashboardComponent extends BaseComponent {
     return this.stepState[stepKey]?.settings?.tableConfig?.formatRules ?? {};
   }
 
-  /** The step's own editable filter, used whenever no search text is active. */
+  /** The step's own editable filter, used before search or reset is submitted. */
   private getStepFilter(stepKey: string): { filterFields: any; filterString: any; filterMode: any } {
     const filterBy: any = this.getFormatRules(stepKey).filterBy;
     if (_isEmpty(filterBy)) {
@@ -310,8 +319,8 @@ export class DashboardComponent extends BaseComponent {
 
   /** Submitted search text, otherwise the step's own filter. */
   private getActiveFilter(stepKey: string): { filterFields: any; filterString: any; filterMode: any } {
-    // A submitted legacy workspace search may resolve to an empty string and
-    // must still replace the initial record filter, as v5.0.1 did.
+    // An empty submitted search, including Reset or a legacy workspace
+    // template miss, replaced the initial record filter in v5.0.1.
     if (Object.prototype.hasOwnProperty.call(this.submittedSearch, stepKey)) {
       return {
         filterFields: this.getFilterFieldPath(stepKey),
@@ -787,6 +796,8 @@ export class DashboardComponent extends BaseComponent {
     this.setFilterField(step, this.getFirstTextFilter(step), e);
     this.isSearching[step] = 'searching';
     this.filterSearchString[step] = '';
+    // v5.0.1 reset submitted an empty search that replaced filterBy. Keep the
+    // same list after migration, including on later page and sort changes.
     this.submittedSearch[step] = '';
     try {
       await this.reloadStep(step, 1);

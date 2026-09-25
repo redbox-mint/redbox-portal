@@ -22,6 +22,17 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+function settingsWithColumn(title: string): DashboardTargetSettings['settings'] {
+  return {
+    searchable: true,
+    showStageTitle: true,
+    tableConfig: {
+      rowConfig: [{ title, variable: 'metadata.title', template: '{{metadata.title}}' }],
+      rowRulesConfig: [], groupRowConfig: [], groupRowRulesConfig: [], formatRules: {},
+    },
+  };
+}
+
 describe('DashboardConfigEditorComponent', () => {
   let component: DashboardConfigEditorComponent;
   let fixture: ComponentFixture<DashboardConfigEditorComponent>;
@@ -113,6 +124,79 @@ describe('DashboardConfigEditorComponent', () => {
     expect(component.selected).toBe(secondTarget);
     expect(component.draft?.searchable).toBeFalse();
     expect(component.baseRevision).toBe(6);
+  });
+
+  it('ignores a copy-from source response after the administrator selects another source', async () => {
+    const destination: DashboardTargetInfo = {
+      target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft',
+      ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [],
+    };
+    const firstSource: DashboardTargetInfo = {
+      ...destination, target: { kind: 'workflow', recordType: 'rdmp', stage: 'review' }, key: 'review', stepLabel: 'Review',
+    };
+    const secondSource: DashboardTargetInfo = {
+      ...destination, target: { kind: 'workflow', recordType: 'rdmp', stage: 'complete' }, key: 'complete', stepLabel: 'Complete',
+    };
+    const first = deferred<DashboardTargetSettings>();
+    api.getSettings.and.returnValue(first.promise);
+    component.targets = [destination, firstSource, secondSource];
+    component.selected = destination;
+    component.draft = settingsWithColumn('Draft');
+    component.baseRevision = 5;
+    component.copyFrom.open = true;
+    component.copyFrom.sourceKey = firstSource.key;
+    component.copyFrom.selection.columnsAndActions = true;
+
+    const preview = component.previewCopyFrom();
+    component.copyFrom.sourceKey = secondSource.key;
+    component.resetCopyFromPreview();
+    first.resolve({ target: firstSource.target, settings: settingsWithColumn('Review'), revision: 5, schemaVersion: 1, hidden: false });
+    await preview;
+
+    expect(component.copyFrom.candidate).toBeNull();
+    expect(component.copyFrom.loading).toBeFalse();
+    expect(api.validate).not.toHaveBeenCalled();
+
+    api.getSettings.and.resolveTo({ target: secondSource.target, settings: settingsWithColumn('Complete'), revision: 5, schemaVersion: 1, hidden: false });
+    api.validate.and.resolveTo({ target: destination.target, expectedRevision: 5, errors: [], warnings: [], validationFingerprint: 'validated' });
+    await component.previewCopyFrom();
+    expect(component.copyFrom.candidate?.tableConfig.rowConfig[0].title).toBe('Complete');
+    component.applyCopyFrom();
+    expect(component.draft?.tableConfig.rowConfig[0].title).toBe('Complete');
+    expect(component.message).toContain('Complete');
+  });
+
+  it('ignores copy-from validation after the source changes', async () => {
+    const destination: DashboardTargetInfo = {
+      target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft',
+      ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [],
+    };
+    const source: DashboardTargetInfo = {
+      ...destination, target: { kind: 'workflow', recordType: 'rdmp', stage: 'review' }, key: 'review', stepLabel: 'Review',
+    };
+    const validation = deferred<DashboardValidationResult>();
+    api.getSettings.and.resolveTo({ target: source.target, settings: settingsWithColumn('Review'), revision: 5, schemaVersion: 1, hidden: false });
+    api.validate.and.returnValue(validation.promise);
+    component.targets = [destination, source];
+    component.selected = destination;
+    component.draft = settingsWithColumn('Draft');
+    component.baseRevision = 5;
+    component.copyFrom.open = true;
+    component.copyFrom.sourceKey = source.key;
+    component.copyFrom.selection.columnsAndActions = true;
+
+    const preview = component.previewCopyFrom();
+    await Promise.resolve();
+    expect(api.validate).toHaveBeenCalled();
+    expect(component.copyFrom.candidate).toBeNull();
+    component.copyFrom.sourceKey = '';
+    component.resetCopyFromPreview();
+    validation.resolve({ target: destination.target, expectedRevision: 5, errors: [], warnings: [], validationFingerprint: 'validated' });
+    await preview;
+
+    expect(component.copyFrom.candidate).toBeNull();
+    expect(component.copyFrom.loading).toBeFalse();
+    expect(component.copyFrom.errors).toEqual([]);
   });
 
   it('keeps the loaded source draft at the revision returned by an atomic copy', async () => {

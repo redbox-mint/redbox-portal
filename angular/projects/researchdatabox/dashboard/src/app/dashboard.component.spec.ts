@@ -155,6 +155,8 @@ describe('DashboardComponent', () => {
 
       await component.resetFilterAndSearch('draft', { preventDefault() {} });
       expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
+      await component.pageChanged({ page: 2 } as any, 'draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
     });
 
     it('reloads settings and templates together once when the templates no longer match', async () => {
@@ -162,6 +164,29 @@ describe('DashboardComponent', () => {
       const component = create();
       await init(component);
       expect(recordService.getDashboardSettings).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows settings unavailable when templates still fail after reloading', async () => {
+      templates.loadDashboardTargetTemplates.and.resolveTo(false);
+      const component = create();
+      await init(component);
+
+      expect(recordService.getDashboardSettings).toHaveBeenCalledTimes(2);
+      expect(component.settingsUnavailable).toBeTrue();
+      expect(component.workflowSteps).toEqual([]);
+      expect(component.stepState).toEqual({});
+      expect(component.tableConfig).toEqual({});
+      expect(recordService.getRecords).not.toHaveBeenCalled();
+    });
+
+    it('does not silently omit a stage missing from the settings snapshot', async () => {
+      recordService.getDashboardSettings.and.resolveTo({ revision: 7, targets: { draft: { settings: settings('Draft'), fingerprint: 'fp-draft' } } });
+      const component = create();
+      await init(component);
+
+      expect(component.settingsUnavailable).toBeTrue();
+      expect(component.workflowSteps).toEqual([]);
+      expect(recordService.getRecords).not.toHaveBeenCalled();
     });
 
     it('uses the column sort first, then the stage overall sort', async () => {
@@ -281,5 +306,19 @@ describe('DashboardComponent', () => {
     expect(component.records['main'].items[1]['g']).toContain('default|view|consolidated|main|v|groupRowConfig|0|g');
     expect(component.enableSort).toBeFalse();
     expect(component.isSearchEnabled('main')).toBeFalse();
+  });
+
+  it('does not render custom view rows when their templates cannot be loaded', async () => {
+    attributes = { dashboardView: 'consolidated', dashboardType: 'consolidated' };
+    recordService.getDashboardView.and.resolveTo({ name: 'consolidated', titleLabelKey: 'c', dashboardType: 'consolidated', sourceRecordType: 'rdmp', steps: [{ name: 'main', sourceRecordType: 'rdmp', fetchMode: 'allForRecordType' }] });
+    recordService.getDashboardSettings.and.resolveTo({ revision: 1, targets: { main: { settings: settings('Title'), fingerprint: 'v' } } });
+    templates.loadDashboardTargetTemplates.and.resolveTo(false);
+
+    const component = create();
+    await init(component);
+
+    expect(component.settingsUnavailable).toBeTrue();
+    expect(component.workflowSteps).toEqual([]);
+    expect(recordService.getRecords).not.toHaveBeenCalled();
   });
 });
