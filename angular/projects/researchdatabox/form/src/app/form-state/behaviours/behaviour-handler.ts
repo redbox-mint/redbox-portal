@@ -34,6 +34,8 @@ export interface BehaviourHandlerContext {
 }
 
 export class BehaviourHandler {
+  private static nextHandlerId = 0;
+  private readonly handlerId = BehaviourHandler.nextHandlerId++;
   private readonly subscriptions: Subscription[] = [];
   private readonly logicalFieldEntries = new Map<string, FormFieldCompMapEntry>();
   private readonly permanentlySkippedActions = new Set<string>();
@@ -109,6 +111,11 @@ export class BehaviourHandler {
    * 4. on failure, run `onError` actions and halt the normal pipeline
    */
   private async execute(event: FormComponentEvent): Promise<void> {
+    // Explicit emitEvent actions can form A -> B -> A cycles. Keep each
+    // behaviour to one execution per causal chain while allowing cascades.
+    if (event.behaviourChain?.includes(this.handlerId)) {
+      return;
+    }
     const isFormReadyEvent = event.type === FormComponentEventType.FORM_DEFINITION_READY;
     // Once a runOnFormReady behaviour has completed its initial load pipeline,
     // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries.
@@ -195,6 +202,7 @@ export class BehaviourHandler {
       }
       await executeBehaviourAction(action, this.buildPipelineContext(value, event), {
         behaviourIndex: this.behaviourIndex,
+        behaviourChain: [...(event.behaviourChain ?? []), this.handlerId],
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,

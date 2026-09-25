@@ -51,6 +51,60 @@ describe('FormBehaviourManager', () => {
     manager.destroy();
   });
 
+  it('terminates a reciprocal setValue and emitEvent behaviour chain', fakeAsync(() => {
+    const aControl = new FormControl('');
+    const bControl = new FormControl('');
+    const entry = (control: FormControl<string | null>, pointer: string) => ({
+      metadata: { formFieldEntry: {
+        model: { formControl: control },
+        lineagePaths: { angularComponentsJsonPointer: pointer },
+      } },
+    });
+    const behaviour = (name: string, source: string, target: string) => ({
+      name,
+      condition: `/main/${source}::field.value.changed`,
+      conditionKind: 'jsonpointer',
+      runOnFormReady: false,
+      actions: [
+        { type: 'setValue', config: { fieldPath: `/main/${target}`, fieldPathKind: 'componentJsonPointer' } },
+        { type: 'emitEvent', config: { fieldId: `/main/${target}`, sourceId: '*', } },
+      ],
+    });
+    const formComponent = {
+      form: { value: { a: '', b: '' } },
+      formDefMap: { formConfig: { behaviours: [
+        behaviour('a-to-b', 'a', 'b'), behaviour('b-to-a', 'b', 'a'),
+      ] } },
+      getRecordCompiledItems: jasmine.createSpy('getRecordCompiledItems').and.resolveTo({
+        evaluate: jasmine.createSpy('evaluate').and.resolveTo('unused'),
+      }),
+      getQuerySource: () => ({
+        queryOrigSource: [], querySource: [],
+        jsonPointerSource: { main: { a: entry(aControl, '/main/a'), b: entry(bControl, '/main/b') } },
+      }),
+      requestParams: () => ({}),
+      broadcastFormStatus: jasmine.createSpy('broadcastFormStatus'),
+    } as any;
+    let publishCount = 0;
+    eventBus.publish.and.callFake(event => {
+      publishCount++;
+      if (publishCount > 4) throw new Error('Behaviour event cycle did not settle');
+      fieldEvents$.next({ ...event, timestamp: Date.now() } as FormComponentEvent);
+    });
+    manager.bind(formComponent);
+    fieldEvents$.next({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      fieldId: '/main/a', sourceId: '*', value: 'Ada', timestamp: Date.now(),
+    } as FormComponentEvent);
+    tick();
+
+    expect(aControl.value).toBe('Ada');
+    expect(bControl.value).toBe('Ada');
+    expect(publishCount).toBe(2);
+    tick(10);
+    expect(publishCount).toBe(2);
+  }));
+
   it('binds behaviours and silently updates target field values', fakeAsync(() => {
     const targetControl = new FormControl('');
     const formComponent = {
