@@ -23,12 +23,11 @@ async function assertManagementDenied(browser: Browser, persona: Persona, diagno
     expect(denied.status()).toBe(403);
     if (area === 'users') {
       const api = new PortalApi(ordinary.context.request, ordinary.csrfToken);
-      // Valid CSRF must not grant access to the newly registered Admin APIs.
-      expect((await api.get('api/dashboard-config/dashboard-types')).status()).toBe(403);
-      expect((await api.get('api/dashboard-config/dashboard-types/standard')).status()).toBe(403);
-      expect((await api.mutate('post', 'api/dashboard-config/dashboard-types', { name: userId })).status()).toBe(403);
-      expect((await api.mutate('put', 'api/dashboard-config/dashboard-types/standard', { name: 'standard' })).status()).toBe(403);
-      expect((await api.mutate('delete', 'api/dashboard-config/dashboard-types/standard')).status()).toBe(403);
+      // Valid CSRF must not grant access to the dashboard settings editor APIs.
+      expect((await api.get('admin/dashboard-config/targets')).status()).toBe(403);
+      expect((await api.get('admin/dashboard-config/workflows/e2e-initialisation-modes/draft')).status()).toBe(403);
+      expect((await api.mutate('post', 'admin/dashboard-config/validate', {})).status()).toBe(403);
+      expect((await api.mutate('put', 'admin/dashboard-config/workflows/e2e-initialisation-modes/draft', {})).status()).toBe(403);
       expect((await api.mutate('delete', 'api/appconfig/systemMessage')).status()).toBe(403);
     }
   } finally { await ordinary.context.close(); }
