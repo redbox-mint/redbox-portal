@@ -1,4 +1,4 @@
-import { Component, ElementRef, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ReportConfigDto, ReportConfigFilterDto, ReportConfigPreviewDto } from '@researchdatabox/sails-ng-common';
 import { ReportConfigService } from './report-config.service';
@@ -7,6 +7,7 @@ import { ReportConfigService } from './report-config.service';
   selector: 'report-config',
   templateUrl: './report-config.component.html',
   styleUrls: ['./report-config.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ReportConfigComponent extends BaseComponent {

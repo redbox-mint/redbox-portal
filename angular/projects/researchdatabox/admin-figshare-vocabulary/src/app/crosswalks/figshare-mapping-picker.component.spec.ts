@@ -1,4 +1,11 @@
 import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
+import { A11yModule } from '@angular/cdk/a11y';
+import { Subject } from 'rxjs';
+import { I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { FigshareMappingPickerComponent } from './figshare-mapping-picker.component';
 import {
@@ -107,6 +114,44 @@ describe('FigshareMappingPickerComponent', () => {
     expect(component.categories).toHaveSize(2);
     expect(component.localEntries).toHaveSize(2);
     expect(component.canConfirm).toBeFalse();
+  });
+
+  it('renders delayed results and debounced search errors without a manual change detection pass', async () => {
+    let resolve!: (value: {records: FigshareSourceCategory[]; total: number}) => void;
+    api.listSourceCategories.and.returnValue(new Promise(done => { resolve = done; }));
+    await TestBed.configureTestingModule({
+      declarations: [FigshareMappingPickerComponent],
+      imports: [CommonModule, ReactiveFormsModule, A11yModule, I18NextPipe],
+      providers: [
+        provideZonelessChangeDetection(),
+        {provide: FigshareVocabularyApiService, useValue: api},
+        {provide: LoggerService, useValue: jasmine.createSpyObj('LoggerService', ['error'])},
+        {provide: TranslationService, useValue: {
+          isInitializing: () => false,
+          translationChanges$: new Subject<void>(),
+          t: (key: string, fallback?: unknown) => typeof fallback === 'string' ? fallback : key
+        }}
+      ]
+    }).compileComponents();
+    const initialisation = spyOn(FigshareMappingPickerComponent.prototype, 'ngOnInit').and.callThrough();
+    const fixture = TestBed.createComponent(FigshareMappingPickerComponent);
+    fixture.componentRef.setInput('crosswalkId', 'crosswalk-1');
+    fixture.componentRef.setInput('sourceId', 'source-1');
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('[role="status"]')).not.toBeNull();
+
+    resolve({records: categories, total: categories.length});
+    await initialisation.calls.first().returnValue;
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).toContain('Agricultural biotechnology not elsewhere classified');
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull();
+
+    api.listSourceCategories.and.rejectWith(new Error('Unavailable'));
+    fixture.componentInstance.targetSearchControl.setValue('water');
+    await new Promise(done => setTimeout(done, 300));
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('could not be loaded');
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull();
   });
 
   it('skips the local term search and loads current targets when opened from a row', async () => {

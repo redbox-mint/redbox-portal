@@ -12,7 +12,7 @@
       <select
         class="form-select"
         [id]="name + '-workspace-select'"
-        [value]="workspaceApp?.name"
+        [value]="$safeNavigationMigration(workspaceApp?.name)"
         [disabled]="isDisabled || isReadonly || launchPending"
         (change)="selectWorkspace($any($event.target).value)"
       >

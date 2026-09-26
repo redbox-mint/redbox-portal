@@ -1,3 +1,4 @@
+import { manualWorkflows } from '../form-config/pw-remaining-manual';
 import type { WorkflowConfig } from '@researchdatabox/redbox-core';
 
 /**
@@ -5,6 +6,178 @@ import type { WorkflowConfig } from '@researchdatabox/redbox-core';
  * Moved out of @researchdatabox/redbox-core; supplied via redbox-hook-dev.
  */
 export const workflow: WorkflowConfig = {
+  ...manualWorkflows,
+
+    'pw-12-conflict-resolution': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-12-conflict-resolution-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-11-transport-validation': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-11-transport-validation-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-10-save-completions': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-10-save-completions-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-09-rapid-save-retry': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-09-rapid-save-retry-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-08-save-busy': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-08-save-busy-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-07-date-control': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-07-date-control-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-07-date-writeback': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-07-date-writeback-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-06-accordion': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-06-accordion-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-05-validation-focus': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-05-validation-focus-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-05-nested-focus': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-05-nested-focus-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-04-early-lookup': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-04-early-lookup-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-03-source': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-03-source-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-03-logical-row': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-03-logical-row-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-02-calculations': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-02-calculations-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-02-validation': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-02-validation-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-02-nested': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-02-nested-1.0-draft'
+            },
+            starting: true
+        }
+    },
+    'pw-01-expression-chaining': {
+        draft: {
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+                form: 'pw-01-expression-chaining-1.0-draft'
+            },
+            starting: true
+        }
+    },
     "rdmp": {
         "draft": {
             config: {

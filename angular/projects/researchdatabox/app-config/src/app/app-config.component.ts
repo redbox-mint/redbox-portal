@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, ElementRef, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 
@@ -25,7 +25,7 @@ import { BaseComponent, UtilityService, LoggerService, TranslationService, AppCo
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
 import { JSONSchema7 } from 'json-schema';
-import { AppConfig } from 'projects/researchdatabox/portal-ng-common/src/public-api';
+import { AppConfig } from '@researchdatabox/portal-ng-common';
 /**
  * Application Config  Component
  *
@@ -33,6 +33,7 @@ import { AppConfig } from 'projects/researchdatabox/portal-ng-common/src/public-
 @Component({
     selector: 'app-config',
     templateUrl: './app-config.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class AppConfigComponent extends BaseComponent {
@@ -178,20 +179,22 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
-  onSubmit(model: any) {
+  async onSubmit(model: any): Promise<void> {
     this.formSaving = true;
     this.formSaveUnsuccessful = false;
     this.formSaveSuccessful = false;
-    this.appConfigService.saveAppConfig(this.configKey, model).then((result: AppConfig) => {
+    try {
+      await this.appConfigService.saveAppConfig(this.configKey, model);
       this.formSaveSuccessful = true;
       setTimeout(() => {
         this.formSaveSuccessful = false;
+        this.requestRender();
       }, 3000);
-      this.formSaving = false;
-    }).catch((error: any) => {
+    } catch (error: unknown) {
       this.formSaveSuccessful = false;
       this.formSaveUnsuccessful = true;
+    } finally {
       this.formSaving = false;
-    });
+    }
   }
 }

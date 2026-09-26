@@ -87,6 +87,7 @@ export async function applyExpressionTarget(
     const control = host.model?.formControl;
     const wasDisabled = control?.disabled;
     host.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
+    host.displayComponent?.requestRender?.();
     if (control && control.disabled !== wasDisabled) {
       ctx.broadcastFormStatus?.();
     }
@@ -113,6 +114,7 @@ export async function applyExpressionTarget(
     const control = host.model?.formControl;
     const wasDisabled = control?.disabled;
     host.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
+    host.displayComponent?.requestRender?.();
     if (control && control.disabled !== wasDisabled) {
       ctx.broadcastFormStatus?.();
     }

@@ -9,7 +9,7 @@ export function integrationComponentForm(names: ScenarioNames, id: string): Form
       { name: 'term', layout: { class: 'DefaultLayout', config: { label: 'Vocabulary term' } }, component: { class: 'TypeaheadInputComponent', config: { sourceType: 'static', minChars: 2, debounceMs: 150, requireSelection: true, valueMode: 'optionObject', staticOptions: [
         { label: 'Coastal ecology', value: 'term-coast' }, { label: 'Forest ecology', value: 'term-forest' },
       ] } }, model: { class: 'TypeaheadInputModel' } },
-      { name: 'subjects', component: { class: 'CheckboxTreeComponent', config: { leafOnly: true, treeData: [
+      { name: 'subjects', component: { class: 'CheckboxTreeComponent', config: { inlineVocab: true, leafOnly: true, treeData: [
         { id: 'science', value: 'science', label: 'Science', children: [
           { id: 'ecology', value: 'ecology', label: 'Ecology', children: [
             { id: 'coast', value: 'coast', notation: '101', label: 'Coastal systems' },

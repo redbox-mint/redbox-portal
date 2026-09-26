@@ -1,16 +1,23 @@
-import { Component, DestroyRef, Input, inject, signal } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
+import { Component, DestroyRef, Input, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  FormFieldBaseComponent,
+  FormFieldCompMapEntry,
+  FormFieldModel,
+  HandlebarsTemplateService,
+} from '@researchdatabox/portal-ng-common';
 import {
   CheckboxTreeComponentName,
   CheckboxTreeFieldComponentConfig,
   CheckboxTreeModelName,
   CheckboxTreeModelValueType,
   CheckboxTreeNode,
-  CheckboxTreeSelectedItem, DynamicScriptResponse, handlebarsTemplate
-} from "@researchdatabox/sails-ng-common";
-import { FormComponent } from "../form.component";
-import { VocabTreeService, VocabTreeApiNode } from "../service/vocab-tree.service";
+  CheckboxTreeSelectedItem,
+  DynamicScriptResponse,
+  handlebarsTemplate,
+} from '@researchdatabox/sails-ng-common';
+import { FormComponent } from '../form.component';
+import { VocabTreeService, VocabTreeApiNode } from '../service/vocab-tree.service';
 
 type CheckboxTreeRenderNode = CheckboxTreeNode & { children?: CheckboxTreeRenderNode[]; displayLabel: string };
 
@@ -19,11 +26,16 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
 }
 
 @Component({
-  selector: "redbox-checkbox-tree",
+  selector: 'redbox-checkbox-tree',
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <div class="redbox-checkbox-tree" role="tree" [attr.aria-label]="label || name || 'Checkbox tree'" (keydown)="onTreeKeydown($event)">
+      <div
+        class="redbox-checkbox-tree"
+        role="tree"
+        [attr.aria-label]="label || name || 'Checkbox tree'"
+        (keydown)="onTreeKeydown($event)"
+      >
         @if (rootLoading) {
           <div class="rb-tree-status rb-tree-status-muted">Loading vocabulary tree...</div>
         }
@@ -37,7 +49,9 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
 
     <ng-template #treeNodes let-nodes let-level="level">
       @for (node of nodes; track node.id) {
-        <div class="rb-tree-node" role="treeitem"
+        <div
+          class="rb-tree-node"
+          role="treeitem"
           [attr.aria-level]="level"
           [attr.aria-expanded]="canExpand(node, level) ? isExpanded(node) : null"
           [attr.aria-checked]="getAriaChecked(node)"
@@ -45,18 +59,25 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
           [class.rb-tree-focused]="focusedNodeId === node.id"
           [style.padding-left.rem]="(level - 1) * 1.15"
           (focus)="focusedNodeId = node.id"
-          (click)="focusedNodeId = node.id">
+          (click)="focusedNodeId = node.id"
+        >
           <div class="rb-tree-row">
             @if (canExpand(node, level)) {
-              <button type="button" class="rb-expander" [attr.aria-label]="isExpanded(node) ? 'Collapse' : 'Expand'" (click)="toggleExpand(node, level)">
-                <span class="rb-expander-glyph">{{ isExpanded(node) ? '\u25BC' : '\u25B6' }}</span>
+              <button
+                type="button"
+                class="rb-expander"
+                [attr.aria-label]="isExpanded(node) ? 'Collapse' : 'Expand'"
+                (click)="toggleExpand(node, level)"
+              >
+                <span class="rb-expander-glyph">{{ isExpanded(node) ? '▼' : '▶' }}</span>
               </button>
             } @else {
               <span class="rb-expander-placeholder" aria-hidden="true"></span>
             }
 
             @if (isSelectable(node)) {
-              <input type="checkbox"
+              <input
+                type="checkbox"
                 class="rb-tree-checkbox"
                 [checked]="isSelected(node)"
                 [indeterminate]="isIndeterminate(node)"
@@ -67,10 +88,13 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
                 (change)="onNodeChecked(node, $any($event.target).checked)"
               />
             }
-            <label class="rb-tree-label"
+            <label
+              class="rb-tree-label"
               [class.rb-tree-label-root]="level === 1"
               [attr.for]="isSelectable(node) && !canExpand(node, level) ? getCheckboxId(node) : null"
-              (click)="onLabelClick($event, node, level)">{{ node.displayLabel }}</label>
+              (click)="onLabelClick($event, node, level)"
+              >{{ node.displayLabel }}</label
+            >
           </div>
           @if (loadErrors.has(node.id)) {
             <div class="rb-tree-status rb-tree-status-error rb-tree-status-nested">{{ loadErrors.get(node.id) }}</div>
@@ -79,139 +103,146 @@ export class CheckboxTreeModel extends FormFieldModel<CheckboxTreeModelValueType
             <div class="rb-tree-status rb-tree-status-muted rb-tree-status-nested">Loading...</div>
           }
           @if (isExpanded(node) && (node.children?.length ?? 0) > 0) {
-            <ng-container *ngTemplateOutlet="treeNodes; context: { $implicit: node.children, level: level + 1 }"></ng-container>
+            <ng-container
+              *ngTemplateOutlet="treeNodes; context: { $implicit: node.children, level: level + 1 }"
+            ></ng-container>
           }
         </div>
       }
     </ng-template>
   `,
-  styles: [`
-    .redbox-checkbox-tree {
-      --rb-tree-border: #c9d3df;
-      --rb-tree-bg: #f7f9fc;
-      --rb-tree-bg-soft: #eef2f7;
-      --rb-tree-text: #1d1f24;
-      --rb-tree-muted: #5f6774;
-      --rb-tree-accent: #0f3a66;
-      --rb-focus-color: #0f3a66;
-      border-radius: 0.6rem;
-      padding: 0.55rem 0.5rem;
-      font-size: inherit;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 249, 252, 0.97) 80%),
-        linear-gradient(90deg, var(--rb-tree-bg-soft) 0%, var(--rb-tree-bg) 100%);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    }
+  styles: [
+    `
+      .redbox-checkbox-tree {
+        --rb-tree-border: #c9d3df;
+        --rb-tree-bg: #f7f9fc;
+        --rb-tree-bg-soft: #eef2f7;
+        --rb-tree-text: #1d1f24;
+        --rb-tree-muted: #5f6774;
+        --rb-tree-accent: #0f3a66;
+        --rb-focus-color: #0f3a66;
+        border-radius: 0.6rem;
+        padding: 0.55rem 0.5rem;
+        font-size: inherit;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 249, 252, 0.97) 80%),
+          linear-gradient(90deg, var(--rb-tree-bg-soft) 0%, var(--rb-tree-bg) 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
 
-    .rb-tree-node {
-      border-radius: 0.45rem;
-      margin: 0.1rem 0;
-    }
+      .rb-tree-node {
+        border-radius: 0.45rem;
+        margin: 0.1rem 0;
+      }
 
-    .rb-tree-node[tabindex="0"]:focus-visible {
-      outline: 2px solid var(--rb-focus-color);
-      outline-offset: 2px;
-      border-radius: 0.45rem;
-    }
+      .rb-tree-node[tabindex='0']:focus-visible {
+        outline: 2px solid var(--rb-focus-color);
+        outline-offset: 2px;
+        border-radius: 0.45rem;
+      }
 
-    .rb-tree-node[tabindex="0"]:focus:not(:focus-visible) {
-      outline: none;
-    }
+      .rb-tree-node[tabindex='0']:focus:not(:focus-visible) {
+        outline: none;
+      }
 
-    .rb-tree-row {
-      min-height: 2rem;
-      border-radius: 0.45rem;
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.05rem 0.35rem 0.05rem 0.05rem;
-      color: var(--rb-tree-text);
-      transition: background-color 120ms ease, color 120ms ease;
-    }
+      .rb-tree-row {
+        min-height: 2rem;
+        border-radius: 0.45rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.05rem 0.35rem 0.05rem 0.05rem;
+        color: var(--rb-tree-text);
+        transition:
+          background-color 120ms ease,
+          color 120ms ease;
+      }
 
-    .rb-tree-focused {
-      background-color: rgba(15, 58, 102, 0.08);
-    }
+      .rb-tree-focused {
+        background-color: rgba(15, 58, 102, 0.08);
+      }
 
-    .rb-expander,
-    .rb-expander-placeholder {
-      width: 1.05rem;
-      height: 1.05rem;
-      flex: 0 0 1.05rem;
-    }
+      .rb-expander,
+      .rb-expander-placeholder {
+        width: 1.05rem;
+        height: 1.05rem;
+        flex: 0 0 1.05rem;
+      }
 
-    .rb-expander {
-      border: none;
-      background: transparent;
-      color: #0b0c0f;
-      padding: 0;
-      border-radius: 0.2rem;
-      line-height: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
+      .rb-expander {
+        border: none;
+        background: transparent;
+        color: #0b0c0f;
+        padding: 0;
+        border-radius: 0.2rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
 
-    .rb-expander:hover {
-      background-color: rgba(15, 58, 102, 0.12);
-      color: var(--rb-tree-accent);
-    }
+      .rb-expander:hover {
+        background-color: rgba(15, 58, 102, 0.12);
+        color: var(--rb-tree-accent);
+      }
 
-    .rb-expander:focus-visible {
-      outline: 2px solid rgba(15, 58, 102, 0.45);
-      outline-offset: 1px;
-    }
+      .rb-expander:focus-visible {
+        outline: 2px solid rgba(15, 58, 102, 0.45);
+        outline-offset: 1px;
+      }
 
-    .rb-expander-glyph {
-      font-family: "Courier New", monospace;
-      font-size: 1rem;
-      font-weight: 700;
-      transform: translateY(-1px);
-    }
+      .rb-expander-glyph {
+        font-family: 'Courier New', monospace;
+        font-size: 1rem;
+        font-weight: 700;
+        transform: translateY(-1px);
+      }
 
-    .rb-tree-checkbox {
-      width: 1rem;
-      height: 1rem;
-      margin: 0;
-      accent-color: #12497f;
-      cursor: pointer;
-    }
+      .rb-tree-checkbox {
+        width: 1rem;
+        height: 1rem;
+        margin: 0;
+        accent-color: #12497f;
+        cursor: pointer;
+      }
 
-    .rb-tree-label {
-      margin: 0;
-      line-height: 1.25;
-      font-size: inherit;
-      font-weight: 500;
-      letter-spacing: 0.005em;
-      color: #272b31;
-      cursor: pointer;
-    }
+      .rb-tree-label {
+        margin: 0;
+        line-height: 1.25;
+        font-size: inherit;
+        font-weight: 500;
+        letter-spacing: 0.005em;
+        color: #272b31;
+        cursor: pointer;
+      }
 
-    .rb-tree-label-root {
-      font-weight: 700;
-      letter-spacing: 0.01em;
-    }
+      .rb-tree-label-root {
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
 
-    .rb-tree-status {
-      font-size: 0.8rem;
-      line-height: 1.3;
-      margin-top: 0.35rem;
-    }
+      .rb-tree-status {
+        font-size: 0.8rem;
+        line-height: 1.3;
+        margin-top: 0.35rem;
+      }
 
-    .rb-tree-status-muted {
-      color: var(--rb-tree-muted);
-    }
+      .rb-tree-status-muted {
+        color: var(--rb-tree-muted);
+      }
 
-    .rb-tree-status-error {
-      color: #ad2a2a;
-    }
+      .rb-tree-status-error {
+        color: #ad2a2a;
+      }
 
-    .rb-tree-status-nested {
-      margin-left: 1.8rem;
-    }
-  `],
-  standalone: false
+      .rb-tree-status-nested {
+        margin-left: 1.8rem;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeModelValueType> {
   protected override logName = CheckboxTreeComponentName;
@@ -243,9 +274,9 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
 
   private leafOnly = true;
   private inlineVocab = false;
-  private vocabRef = "";
+  private vocabRef = '';
   private maxDepth?: number;
-  private labelTemplate = "";
+  private labelTemplate = '';
   private labelTemplatePath: (string | number)[] = [];
   private compiledItems?: DynamicScriptResponse;
 
@@ -258,13 +289,19 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
 
   protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
     super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    const cfg = (this.componentDefinition?.config as CheckboxTreeFieldComponentConfig) ?? new CheckboxTreeFieldComponentConfig();
+    const cfg =
+      (this.componentDefinition?.config as CheckboxTreeFieldComponentConfig) ?? new CheckboxTreeFieldComponentConfig();
     this.leafOnly = cfg.leafOnly ?? true;
     this.inlineVocab = cfg.inlineVocab ?? false;
-    this.vocabRef = String(cfg.vocabRef ?? "").trim();
-    this.maxDepth = typeof cfg.maxDepth === "number" ? cfg.maxDepth : undefined;
-    this.labelTemplate = String(cfg.labelTemplate ?? "").trim();
-    this.labelTemplatePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), "component", "config", "labelTemplate"];
+    this.vocabRef = String(cfg.vocabRef ?? '').trim();
+    this.maxDepth = typeof cfg.maxDepth === 'number' ? cfg.maxDepth : undefined;
+    this.labelTemplate = String(cfg.labelTemplate ?? '').trim();
+    this.labelTemplatePath = [
+      ...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []),
+      'component',
+      'config',
+      'labelTemplate',
+    ];
     this.compiledItems = undefined;
     this.rootNodes = this.normalizeNodes(cfg.treeData ?? []);
     this.syncSelectionFromModel();
@@ -291,7 +328,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     if (this.selectedNotationIndex.size === 0) {
       return false;
     }
-    return this.getNodeSelectionKeys(node).some((key) => this.selectedNotationIndex.has(key));
+    return this.getNodeSelectionKeys(node).some(key => this.selectedNotationIndex.has(key));
   }
 
   public isSelectable(node: CheckboxTreeRenderNode): boolean {
@@ -308,21 +345,21 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     return this.hasSelectedDescendant(node);
   }
 
-  public getAriaChecked(node: CheckboxTreeRenderNode): "true" | "false" | "mixed" {
+  public getAriaChecked(node: CheckboxTreeRenderNode): 'true' | 'false' | 'mixed' {
     if (this.isSelected(node)) {
-      return "true";
+      return 'true';
     }
     if (this.isIndeterminate(node)) {
-      return "mixed";
+      return 'mixed';
     }
-    return "false";
+    return 'false';
   }
 
   public canExpand(node: CheckboxTreeRenderNode, level: number): boolean {
     if (!(node.hasChildren || (node.children?.length ?? 0) > 0)) {
       return false;
     }
-    if (typeof this.maxDepth === "number" && this.maxDepth > 0 && level >= this.maxDepth) {
+    if (typeof this.maxDepth === 'number' && this.maxDepth > 0 && level >= this.maxDepth) {
       return false;
     }
     return true;
@@ -333,7 +370,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   public getCheckboxId(node: CheckboxTreeRenderNode): string {
-    return `${this.name ?? "checkbox-tree"}-${node.id}`;
+    return `${this.name ?? 'checkbox-tree'}-${node.id}`;
   }
 
   public getTabIndex(node: CheckboxTreeRenderNode): number {
@@ -379,8 +416,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       this.selectedByNotation.set(notation, {
         notation,
         label: node.displayLabel,
-        name: notation && node.displayLabel ? `${notation} - ${node.displayLabel}` : (node.displayLabel || notation),
-        genealogy: this.getGenealogy(node)
+        name: notation && node.displayLabel ? `${notation} - ${node.displayLabel}` : node.displayLabel || notation,
+        genealogy: this.getGenealogy(node),
       });
       this.rebuildSelectedNotationIndex();
       this.selectedItem.set(this.selectedByNotation.get(notation) ?? null);
@@ -402,19 +439,22 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       return;
     }
     const focusedId = this.focusedNodeId ?? visible[0].id;
-    const currentIndex = Math.max(0, visible.findIndex((node) => node.id === focusedId));
+    const currentIndex = Math.max(
+      0,
+      visible.findIndex(node => node.id === focusedId)
+    );
     const currentNode = visible[currentIndex];
 
     switch (event.key) {
-      case "ArrowDown":
+      case 'ArrowDown':
         event.preventDefault();
         this.focusedNodeId = visible[Math.min(currentIndex + 1, visible.length - 1)].id;
         break;
-      case "ArrowUp":
+      case 'ArrowUp':
         event.preventDefault();
         this.focusedNodeId = visible[Math.max(currentIndex - 1, 0)].id;
         break;
-      case "ArrowRight":
+      case 'ArrowRight':
         event.preventDefault();
         const currentLevel = this.getNodeLevel(currentNode.id);
         if (this.canExpand(currentNode, currentLevel)) {
@@ -425,7 +465,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
           }
         }
         break;
-      case "ArrowLeft":
+      case 'ArrowLeft':
         event.preventDefault();
         if (this.isExpanded(currentNode)) {
           this.expandedNodeIds.delete(currentNode.id);
@@ -436,8 +476,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
           }
         }
         break;
-      case " ":
-      case "Enter":
+      case ' ':
+      case 'Enter':
         event.preventDefault();
         if (this.isSelectable(currentNode) && !this.isNodeDisabled(currentNode)) {
           this.onNodeChecked(currentNode, !this.isSelected(currentNode));
@@ -480,6 +520,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       } finally {
         this.loadingNodeIds.delete(parent.id);
         this.inFlightChildLoads.delete(parent.id);
+        this.requestRender();
       }
     })();
     this.inFlightChildLoads.set(parent.id, pending);
@@ -503,7 +544,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   private normalizeNodes(nodes: CheckboxTreeNode[], seen = new Set<string>()): CheckboxTreeRenderNode[] {
     const normalized: CheckboxTreeRenderNode[] = [];
     for (const node of nodes ?? []) {
-      const id = String(node.id ?? "").trim();
+      const id = String(node.id ?? '').trim();
       if (!id || seen.has(id)) {
         continue;
       }
@@ -520,20 +561,20 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   private toRenderNode(node: VocabTreeApiNode | CheckboxTreeNode): CheckboxTreeRenderNode | null {
-    const id = String(node.id ?? "").trim();
+    const id = String(node.id ?? '').trim();
     if (!id) {
       return null;
     }
     const renderNode: CheckboxTreeRenderNode = {
       id,
-      label: String(node.label ?? ""),
-      displayLabel: "",
-      value: String(node.value ?? ""),
-      notation: String(node.notation ?? node.value ?? ""),
-      parent: String(node.parent ?? "").trim() || null,
+      label: String(node.label ?? ''),
+      displayLabel: '',
+      value: String(node.value ?? ''),
+      notation: String(node.notation ?? node.value ?? ''),
+      parent: String(node.parent ?? '').trim() || null,
       hasChildren: Boolean(node.hasChildren),
       disabled: node.disabled === true,
-      children: []
+      children: [],
     };
     renderNode.displayLabel = this.renderDisplayLabel(renderNode);
     return renderNode;
@@ -572,14 +613,17 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
         label: node.label,
         value: node.value,
         notation,
-        identifier: notation
+        identifier: notation,
       };
-      const extra = { libraries: {handlebars: handlebarsTemplate} };
+      const extra = { libraries: { handlebars: handlebarsTemplate } };
       const rendered = this.compiledItems.evaluate(this.labelTemplatePath, context, extra);
-      const output = String(rendered ?? "").trim();
+      const output = String(rendered ?? '').trim();
       return output || node.label;
     } catch (error) {
-      this.loggerService.warn(`${this.logName}: Failed to evaluate checkbox tree label template for node '${node.id}'.`, error);
+      this.loggerService.warn(
+        `${this.logName}: Failed to evaluate checkbox tree label template for node '${node.id}'.`,
+        error
+      );
       return node.label;
     }
   }
@@ -626,19 +670,19 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   private getNotation(node: CheckboxTreeRenderNode): string {
-    const notation = String(node.notation ?? "").trim();
-    const value = String(node.value ?? "").trim();
+    const notation = String(node.notation ?? '').trim();
+    const value = String(node.value ?? '').trim();
     if (!notation) {
       return value;
     }
-    if (value && (notation.includes("://") || notation.endsWith(`/${value}`) || notation.endsWith(`#${value}`))) {
+    if (value && (notation.includes('://') || notation.endsWith(`/${value}`) || notation.endsWith(`#${value}`))) {
       return value;
     }
     return notation;
   }
 
   private nodeMatchesNotation(node: CheckboxTreeRenderNode, notation: string): boolean {
-    const candidate = String(notation ?? "").trim();
+    const candidate = String(notation ?? '').trim();
     if (!candidate) {
       return false;
     }
@@ -648,11 +692,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
 
   private getNodeSelectionKeys(node: CheckboxTreeRenderNode): string[] {
     const keys = new Set<string>();
-    const values = [
-      String(node.notation ?? "").trim(),
-      String(node.value ?? "").trim(),
-      this.getNotation(node),
-    ];
+    const values = [String(node.notation ?? '').trim(), String(node.value ?? '').trim(), this.getNotation(node)];
 
     for (const value of values) {
       this.addSelectionKey(keys, value);
@@ -662,14 +702,14 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
   }
 
   private addSelectionKey(target: Set<string>, value: string): void {
-    const candidate = String(value ?? "").trim();
+    const candidate = String(value ?? '').trim();
     if (!candidate) {
       return;
     }
 
     target.add(candidate);
-    const slashIndex = candidate.lastIndexOf("/");
-    const hashIndex = candidate.lastIndexOf("#");
+    const slashIndex = candidate.lastIndexOf('/');
+    const hashIndex = candidate.lastIndexOf('#');
     const suffixIndex = Math.max(slashIndex, hashIndex);
     if (suffixIndex >= 0 && suffixIndex < candidate.length - 1) {
       target.add(candidate.slice(suffixIndex + 1));
@@ -714,8 +754,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       expandAncestors(this.rootNodes);
     } else {
       const notations = Array.from(this.selectedByNotation.keys());
-      const canHydrateFromLoadedChildren = Array.from(this.selectedByNotation.values()).every((selected) =>
-        Array.isArray(selected.genealogy) && selected.genealogy.length > 0
+      const canHydrateFromLoadedChildren = Array.from(this.selectedByNotation.values()).every(
+        selected => Array.isArray(selected.genealogy) && selected.genealogy.length > 0
       );
       if (canHydrateFromLoadedChildren) {
         await this.expandToSelectedNodesLegacy();
@@ -747,7 +787,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     // but the chains for different selections are independent and can run in parallel.
     // The vocab service dedupes concurrent identical (vocabRef, parentId) requests, so
     // selections that share ancestors only trigger one network call per shared parent.
-    const expansions = Array.from(this.selectedByNotation.values()).map(async (selected) => {
+    const expansions = Array.from(this.selectedByNotation.values()).map(async selected => {
       const genealogy = selected.genealogy ?? [];
       let currentNodes = this.rootNodes;
 
@@ -777,7 +817,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       return;
     }
 
-    const rootIndex = this.rootNodes.findIndex((root) => root.id === rootNode.id);
+    const rootIndex = this.rootNodes.findIndex(root => root.id === rootNode.id);
     if (rootIndex === -1) {
       this.rootNodes.push(rootNode);
     } else {
@@ -785,7 +825,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     }
 
     for (let index = 0; index < chain.length - 1; index += 1) {
-      const nodeId = String(chain[index]?.id ?? "").trim();
+      const nodeId = String(chain[index]?.id ?? '').trim();
       if (nodeId) {
         this.expandedNodeIds.add(nodeId);
       }
@@ -840,14 +880,17 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     return currentNode;
   }
 
-  private mergeChildNodes(existingChildren: CheckboxTreeRenderNode[], incomingChildren: CheckboxTreeRenderNode[]): CheckboxTreeRenderNode[] {
+  private mergeChildNodes(
+    existingChildren: CheckboxTreeRenderNode[],
+    incomingChildren: CheckboxTreeRenderNode[]
+  ): CheckboxTreeRenderNode[] {
     const merged = [...existingChildren];
     for (const incoming of incomingChildren) {
-      const incomingId = String(incoming.id ?? "").trim();
+      const incomingId = String(incoming.id ?? '').trim();
       if (!incomingId) {
         continue;
       }
-      const existing = merged.find((child) => child.id === incomingId);
+      const existing = merged.find(child => child.id === incomingId);
       if (existing) {
         this.mergeRenderNodes(existing, incoming);
       } else {
@@ -878,7 +921,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     let cursor = this.parentById.get(node.id) ?? null;
     while (cursor) {
       const ancestor = this.nodeById.get(cursor);
-      const notation = ancestor ? this.getNotation(ancestor) : "";
+      const notation = ancestor ? this.getNotation(ancestor) : '';
       if (notation) {
         genealogy.unshift(notation);
       }
@@ -891,19 +934,21 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
     this.selectedByNotation.clear();
     const values = Array.isArray(this.formControl?.value) ? this.formControl.value : [];
     for (const selected of values) {
-      const notation = String((selected as CheckboxTreeSelectedItem)?.notation ?? "").trim();
+      const notation = String((selected as CheckboxTreeSelectedItem)?.notation ?? '').trim();
       if (!notation) {
         continue;
       }
-      const label = String((selected as CheckboxTreeSelectedItem)?.label ?? "");
-      const name = String((selected as CheckboxTreeSelectedItem)?.name ?? (label ? `${notation} - ${label}` : notation));
+      const label = String((selected as CheckboxTreeSelectedItem)?.label ?? '');
+      const name = String(
+        (selected as CheckboxTreeSelectedItem)?.name ?? (label ? `${notation} - ${label}` : notation)
+      );
       const genealogy = Array.isArray((selected as CheckboxTreeSelectedItem)?.genealogy)
         ? (selected as CheckboxTreeSelectedItem).genealogy?.map((item: string) => String(item))
         : undefined;
       this.selectedByNotation.set(notation, { notation, label, name, genealogy });
     }
     this.rebuildSelectedNotationIndex();
-    this.selectedItem.set(values.length > 0 ? values[values.length - 1] as CheckboxTreeSelectedItem : null);
+    this.selectedItem.set(values.length > 0 ? (values[values.length - 1] as CheckboxTreeSelectedItem) : null);
   }
 
   private syncModelFromSelection(): void {
@@ -943,11 +988,12 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       } while (this.displaySyncQueued);
     } finally {
       this.displaySyncInFlight = undefined;
+      this.requestRender();
     }
   }
 
   private describeLoadError(error: unknown): string {
-    return (error as Error)?.message || "Unable to load vocabulary tree.";
+    return (error as Error)?.message || 'Unable to load vocabulary tree.';
   }
 
   private isNotFoundError(error: unknown): boolean {

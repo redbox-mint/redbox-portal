@@ -17,7 +17,7 @@ import { ExportComponent } from './export.component';
     FormsModule,
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
-    BsDatepickerModule.forRoot()
+    BsDatepickerModule
   ],
   providers: [
     {

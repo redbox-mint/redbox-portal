@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { DateTime } from 'luxon';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
@@ -21,6 +21,7 @@ type StatusOption = {
   selector: 'harvest-runs',
   templateUrl: './harvest-runs.component.html',
   styleUrls: ['./harvest-runs.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class HarvestRunsComponent extends BaseComponent {

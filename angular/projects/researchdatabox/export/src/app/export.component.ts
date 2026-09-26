@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/portal-ng-common';
@@ -27,6 +27,7 @@ import { DateTime } from 'luxon';
 @Component({
     selector: 'export',
     templateUrl: './export.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class ExportComponent extends BaseComponent {

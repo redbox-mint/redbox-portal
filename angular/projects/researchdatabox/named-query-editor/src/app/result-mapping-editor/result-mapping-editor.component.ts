@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 
 interface MappingEntry {
   id: number;
@@ -9,6 +9,7 @@ interface MappingEntry {
 @Component({
   selector: 'result-mapping-editor',
   templateUrl: './result-mapping-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ResultMappingEditorComponent implements OnChanges {

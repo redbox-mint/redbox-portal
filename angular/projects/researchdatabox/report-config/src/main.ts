@@ -1,5 +1,5 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 import { ReportConfigModule } from './app/report-config.module';
 
-platformBrowserDynamic().bootstrapModule(ReportConfigModule)
+platformBrowser().bootstrapModule(ReportConfigModule)
   .catch(err => console.error(err));

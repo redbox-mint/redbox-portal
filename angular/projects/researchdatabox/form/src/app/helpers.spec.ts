@@ -1,6 +1,6 @@
 // import {ComponentHarness, ContentContainerComponentHarness} from "@angular/cdk/testing";
-import { TestBed } from "@angular/core/testing";
-import { FormComponent } from "./form.component";
+import { TestBed } from '@angular/core/testing';
+import { FormComponent } from './form.component';
 import {
   ConfigService,
   getStubConfigService,
@@ -10,12 +10,12 @@ import {
   providePortalI18nTesting,
   RedboxPortalCoreModule,
   TranslationService,
-  UtilityService
+  UtilityService,
 } from '@researchdatabox/portal-ng-common';
-import { ReactiveFormsModule } from "@angular/forms";
-import { APP_BASE_HREF, CommonModule } from "@angular/common";
-import { BrowserModule, Title } from "@angular/platform-browser";
-import { FormService } from "./form.service";
+import { ReactiveFormsModule } from '@angular/forms';
+import { APP_BASE_HREF, CommonModule } from '@angular/common';
+import { BrowserModule, Title } from '@angular/platform-browser';
+import { FormService } from './form.service';
 import {
   buildKeyString,
   DynamicScriptResponse,
@@ -24,37 +24,36 @@ import {
   DynamicScriptResponseEvaluateKey,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
-} from "@researchdatabox/sails-ng-common";
-import { DefaultLayoutComponent } from "./component/default-layout.component";
-import { InlineLayoutComponent } from "./component/inline-layout.component";
-import { FormBaseWrapperComponent } from "./component/base-wrapper.component";
-import { FormBaseWrapperDirective } from "./component/base-wrapper.directive";
-import { FieldErrorSummaryComponent } from "./component/field-error-summary.component";
-import { provideHttpClient } from "@angular/common/http";
-import { provideHttpClientTesting } from "@angular/common/http/testing";
+} from '@researchdatabox/sails-ng-common';
+import { DefaultLayoutComponent } from './component/default-layout.component';
+import { InlineLayoutComponent } from './component/inline-layout.component';
+import { FormBaseWrapperComponent } from './component/base-wrapper.component';
+import { FormBaseWrapperDirective } from './component/base-wrapper.directive';
+import { FieldErrorSummaryComponent } from './component/field-error-summary.component';
+import { provideHttpClient, withXhr } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideFormFeature } from './form-state/providers';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
-import { TiptapEditorDirective } from "ngx-tiptap";
-import { A11yModule } from "@angular/cdk/a11y";
-import { FormDebugPanelComponent } from "./form-debug/form-debug-panel.component";
-import { FormDebugModelTabComponent } from "./form-debug/form-debug-model-tab.component";
-import { FormDebugConfigTabComponent } from "./form-debug/form-debug-config-tab.component";
-import { FormDebugEventsTabComponent } from "./form-debug/form-debug-events-tab.component";
-import { ConfirmationDialogComponent } from "./component/confirmation-dialog.component";
-import { ConfirmationDialogService } from "./confirmation-dialog.service";
+import { TiptapEditorDirective } from 'ngx-tiptap';
+import { A11yModule } from '@angular/cdk/a11y';
+import { FormDebugPanelComponent } from './form-debug/form-debug-panel.component';
+import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.component';
+import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
+import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
+import { ConfirmationDialogComponent } from './component/confirmation-dialog.component';
+import { ConfirmationDialogService } from './confirmation-dialog.service';
 import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
-import { RecordAuditLauncherComponent } from "./record-audit/record-audit-launcher.component";
+import { RecordAuditLauncherComponent } from './record-audit/record-audit-launcher.component';
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
-import { ApplicationRef, ComponentRef } from "@angular/core";
+import { ApplicationRef, ComponentRef } from '@angular/core';
 import isSpy = jasmine.isSpy;
 
 // provide to test the same way as provided to browser
 (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
-
 
 export interface FormComponentProps {
   oid: string;
@@ -118,7 +117,7 @@ export async function createFormAndWaitForReady(
   formConfig: FormConfigFrame,
   formComponentProps?: FormComponentProps,
   formDebugUrlOptions?: FormDebugUrlOptions,
-  dynamicAssetOptions?: DynamicAssetOptions,
+  dynamicAssetOptions?: DynamicAssetOptions
 ) {
   logFormTestHelper('createFormAndWaitForReady - starting');
   if (formDebugUrlOptions) {
@@ -136,13 +135,17 @@ export async function createFormAndWaitForReady(
 
   // set the attributes on the nativeElement
   // this is necessary to properly initialise the form component
-  formComponentProps = Object.assign({}, {
-    oid: `oid-generated-${Date.now()}`,
-    recordType: 'rdmp',
-    editMode: false,
-    formName: 'default-1.0-draft',
-    downloadAndCreateOnInit: false,
-  }, formComponentProps);
+  formComponentProps = Object.assign(
+    {},
+    {
+      oid: `oid-generated-${Date.now()}`,
+      recordType: 'rdmp',
+      editMode: false,
+      formName: 'default-1.0-draft',
+      downloadAndCreateOnInit: false,
+    },
+    formComponentProps
+  );
 
   // Set the form component to not download the form config on init.
   // Each test will provide a form config.
@@ -176,9 +179,14 @@ export async function createFormAndWaitForReady(
     setFormDebugUrl(formDebugUrlOptions);
     formComponent.debugState.refreshFromUrl();
     const rawDebugValue = formDebugUrlOptions.formDebugParam;
-    const expectedDebugEnabled = typeof rawDebugValue === 'boolean'
-      ? rawDebugValue
-      : ['1', 'true', 'yes'].includes(String(rawDebugValue ?? '').trim().toLowerCase());
+    const expectedDebugEnabled =
+      typeof rawDebugValue === 'boolean'
+        ? rawDebugValue
+        : ['1', 'true', 'yes'].includes(
+            String(rawDebugValue ?? '')
+              .trim()
+              .toLowerCase()
+          );
     // Karma runs all form specs in one browser context. A live fixture from an
     // earlier spec can restore the shared history URL while this fixture is
     // being created, so keep an explicit helper option isolated at the state
@@ -191,14 +199,14 @@ export async function createFormAndWaitForReady(
 
   logFormTestHelper('createFormAndWaitForReady - finished', {
     debugInfo: formComponent.getDebugInfo(),
-    validationErrors: formComponent.getValidationErrors()
+    validationErrors: formComponent.getValidationErrors(),
   });
 
   return {
     fixture: fixture,
     formComponent: formComponent,
-    componentDefinitions: formConfig?.componentDefinitions ? formConfig?.componentDefinitions[0] : undefined
-  }
+    componentDefinitions: formConfig?.componentDefinitions ? formConfig?.componentDefinitions[0] : undefined,
+  };
 }
 
 export interface CreateTestbedModuleArgs {
@@ -222,7 +230,7 @@ async function createTestBedModuleConfig(defaults: Record<string, any>, custom: 
   logFormTestHelper('createTestBedModuleConfig', {
     defaults: Object.keys(defaults),
     custom: Object.keys(custom),
-    result: includedKeys
+    result: includedKeys,
   });
   return result;
 }
@@ -231,66 +239,75 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
   const configService = getStubConfigService();
   const translationService = getStubTranslationService();
   await TestBed.configureTestingModule({
-    declarations: await createTestBedModuleConfig({
-      "DefaultLayoutComponent": DefaultLayoutComponent,
-      "InlineLayoutComponent": InlineLayoutComponent,
-      "FormBaseWrapperComponent": FormBaseWrapperComponent,
-      "FormBaseWrapperDirective": FormBaseWrapperDirective,
-      "FieldErrorSummaryComponent": FieldErrorSummaryComponent,
-      "FormComponent": FormComponent,
-      "FormDebugPanelComponent": FormDebugPanelComponent,
-      "FormDebugModelTabComponent": FormDebugModelTabComponent,
-      "FormDebugConfigTabComponent": FormDebugConfigTabComponent,
-      "FormDebugEventsTabComponent": FormDebugEventsTabComponent,
-      "ConfirmationDialogComponent": ConfirmationDialogComponent,
-      FormConflictPresenterComponent: FormConflictPresenterComponent,
-      "RecordAuditLauncherComponent": RecordAuditLauncherComponent,
-    }, testConfig.declarations ?? {}),
-    imports: await createTestBedModuleConfig({
-      "CommonModule": CommonModule,
-      "BrowserModule": BrowserModule,
-      "ReactiveFormsModule": ReactiveFormsModule,
-      "RedboxPortalCoreModule": RedboxPortalCoreModule,
-      "I18NextPipe": I18NextPipe,
-      "TiptapEditorDirective": TiptapEditorDirective,
-      "A11yModule": A11yModule,
-      "RecordAuditModule": RecordAuditModule,
-    }, testConfig.imports ?? {}),
-    providers: await createTestBedModuleConfig({
-      "APP_BASE_HREF": { provide: APP_BASE_HREF, useValue: 'http://localhost' },
-      "LoggerService": LoggerService,
-      "UtilityService": UtilityService,
-      "TranslationService": { provide: TranslationService, useValue: translationService },
-      "ConfigService": { provide: ConfigService, useValue: configService },
-      "Title": Title,
-      "FormService": FormService,
-      "providePortalI18nTesting": providePortalI18nTesting(),
-      "FormComponent": FormComponent,
-      "provideHttpClient": provideHttpClient(),
-      "provideHttpClientTesting": provideHttpClientTesting(),
-      "provideStore": provideStore(),  // Root store provider required for NgRx
-      "provideEffects": provideEffects(),  // Root effects provider required for NgRx
-      "provideFormFeature": provideFormFeature(),  // Add form state providers
-      "FormStateFacade": FormStateFacade,  // Provide the facade service
-      "FormComponentEventBus": FormComponentEventBus,  // Provide the event bus service
-      "FormComponentFocusRequestCoordinator": FormComponentFocusRequestCoordinator,
-      "ConfirmationDialogService": ConfirmationDialogService,
-    }, testConfig.providers ?? {}),
+    declarations: await createTestBedModuleConfig(
+      {
+        DefaultLayoutComponent: DefaultLayoutComponent,
+        InlineLayoutComponent: InlineLayoutComponent,
+        FormBaseWrapperComponent: FormBaseWrapperComponent,
+        FormBaseWrapperDirective: FormBaseWrapperDirective,
+        FieldErrorSummaryComponent: FieldErrorSummaryComponent,
+        FormComponent: FormComponent,
+        FormDebugPanelComponent: FormDebugPanelComponent,
+        FormDebugModelTabComponent: FormDebugModelTabComponent,
+        FormDebugConfigTabComponent: FormDebugConfigTabComponent,
+        FormDebugEventsTabComponent: FormDebugEventsTabComponent,
+        ConfirmationDialogComponent: ConfirmationDialogComponent,
+        FormConflictPresenterComponent: FormConflictPresenterComponent,
+        RecordAuditLauncherComponent: RecordAuditLauncherComponent,
+      },
+      testConfig.declarations ?? {}
+    ),
+    imports: await createTestBedModuleConfig(
+      {
+        CommonModule: CommonModule,
+        BrowserModule: BrowserModule,
+        ReactiveFormsModule: ReactiveFormsModule,
+        RedboxPortalCoreModule: RedboxPortalCoreModule,
+        I18NextPipe: I18NextPipe,
+        TiptapEditorDirective: TiptapEditorDirective,
+        A11yModule: A11yModule,
+        RecordAuditModule: RecordAuditModule,
+      },
+      testConfig.imports ?? {}
+    ),
+    providers: await createTestBedModuleConfig(
+      {
+        APP_BASE_HREF: { provide: APP_BASE_HREF, useValue: 'http://localhost' },
+        LoggerService: LoggerService,
+        UtilityService: UtilityService,
+        TranslationService: { provide: TranslationService, useValue: translationService },
+        ConfigService: { provide: ConfigService, useValue: configService },
+        Title: Title,
+        FormService: FormService,
+        providePortalI18nTesting: providePortalI18nTesting(),
+        FormComponent: FormComponent,
+        provideHttpClient: provideHttpClient(withXhr()),
+        provideHttpClientTesting: provideHttpClientTesting(),
+        provideStore: provideStore(), // Root store provider required for NgRx
+        provideEffects: provideEffects(), // Root effects provider required for NgRx
+        provideFormFeature: provideFormFeature(), // Add form state providers
+        FormStateFacade: FormStateFacade, // Provide the facade service
+        FormComponentEventBus: FormComponentEventBus, // Provide the event bus service
+        FormComponentFocusRequestCoordinator: FormComponentFocusRequestCoordinator,
+        ConfirmationDialogService: ConfirmationDialogService,
+      },
+      testConfig.providers ?? {}
+    ),
   }).compileComponents();
   return {
     configService: configService,
     translationService: translationService,
-  }
+  };
 }
 
 export type DynamicAssetEntry = {
-  urlKeyStart: string,
-  callable: (keyString: string, key: (string | number)[], context: any, extra?: any) => void,
+  urlKeyStart: string;
+  callable: (keyString: string, key: (string | number)[], context: any, extra?: any) => void;
 };
 export type DynamicAssetOptions = {
-  includeDefaultValidatorDefinitions?: boolean,
-  entries: DynamicAssetEntry[],
-}
+  includeDefaultValidatorDefinitions?: boolean;
+  entries: DynamicAssetEntry[];
+};
 
 /**
  * Mock the dynamic asset requests.
@@ -299,22 +316,28 @@ export type DynamicAssetOptions = {
 export function setUpDynamicAssets(opts?: DynamicAssetOptions) {
   const utilityService = TestBed.inject(UtilityService);
   const utilityServiceGetDynamicImport = isSpy(utilityService['getDynamicImport'])
-    ? utilityService.getDynamicImport as any
-    : spyOn(utilityService, "getDynamicImport");
+    ? (utilityService.getDynamicImport as any)
+    : spyOn(utilityService, 'getDynamicImport');
   utilityServiceGetDynamicImport.and.callFake(
-    async (brandingAndPortalUrl: string, urlPath: string[], params?: {
-      [key: string]: any
-    }): Promise<DynamicScriptResponse> => {
-      const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join("/")}`;
+    async (
+      brandingAndPortalUrl: string,
+      urlPath: string[],
+      params?: {
+        [key: string]: any;
+      }
+    ): Promise<DynamicScriptResponse> => {
+      const urlKey = `${brandingAndPortalUrl}/${(urlPath ?? []).join('/')}`;
 
       const entries = opts?.entries?.length
         ? opts.entries
-        : [{
-          urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-",
-          callable: (_keyStr: string) => {
-            throw new Error(`Unknown key: ${_keyStr}`);
-          }
-        }];
+        : [
+            {
+              urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-',
+              callable: (_keyStr: string) => {
+                throw new Error(`Unknown key: ${_keyStr}`);
+              },
+            },
+          ];
 
       for (const entry of entries) {
         if (!entry.urlKeyStart || !urlKey.startsWith(entry.urlKeyStart)) {
@@ -322,16 +345,21 @@ export function setUpDynamicAssets(opts?: DynamicAssetOptions) {
         }
 
         return {
-          evaluate: function (key: DynamicScriptResponseEvaluateKey, context: DynamicScriptResponseEvaluateContext, extra?: DynamicScriptResponseEvaluateExtra): unknown {
+          evaluate: function (
+            key: DynamicScriptResponseEvaluateKey,
+            context: DynamicScriptResponseEvaluateContext,
+            extra?: DynamicScriptResponseEvaluateExtra
+          ): unknown {
             const keyStr = buildKeyString(key as string[]);
             if (entry.callable) {
               return entry.callable(keyStr, key, context, extra);
             }
             throw new Error(`Unknown evaluate key '${keyStr}' for url key '${urlKey}'.`);
-          }
+          },
         };
       }
 
       throw new Error(`Url key '${urlKey}' did not match any available keys ${entries.map(i => i.urlKeyStart)}`);
-    });
+    }
+  );
 }

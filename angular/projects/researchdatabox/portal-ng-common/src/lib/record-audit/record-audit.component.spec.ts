@@ -342,7 +342,7 @@ describe('RecordAuditComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('2');
     expect(fixture.nativeElement.textContent).toContain('Page 1 of 2');
 
-    component.toggleIntegrationTrace('trace-1');
+    fixture.nativeElement.querySelector('.rb-trace-toggle').click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Trace Events');
@@ -352,10 +352,11 @@ describe('RecordAuditComponent', () => {
   it('shows technical details for an expanded integration event', async () => {
     await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
     await component.activateTab('integration');
-    component.toggleIntegrationTrace('trace-1');
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.rb-trace-toggle').click();
     fixture.detectChanges();
 
-    component.toggleIntegrationTechnical('event-2');
+    fixture.nativeElement.querySelectorAll('.rb-technical-toggle')[1].click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Technical Data');

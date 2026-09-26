@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, Injector, Input, QueryList, ViewChildren, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Injector, Input, QueryList, ViewChildren, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -208,6 +208,7 @@ export class RecordSelectorModel extends FormFieldModel<RecordSelectorModelValue
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelectorModelValueType> {
@@ -237,6 +238,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
   private latestSearchRequestId = 0;
   private searchSubscriptionInitialised = false;
   private readonly destroyRef = inject(DestroyRef);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly recordService = inject(RecordService);
   private readonly formService = inject(FormService);
 
@@ -263,7 +265,11 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
       this.searchControl.valueChanges
         .pipe(debounceTime(RecordSelectorComponent.searchDebounceMs), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
         .subscribe(value => {
-          void this.onSearchTermChanged(String(value ?? ''));
+          void this.onSearchTermChanged(String(value ?? '')).finally(() => {
+            if (!this.destroyRef.destroyed) {
+              this.changeDetectorRef.markForCheck();
+            }
+          });
         });
     }
   }
@@ -360,12 +366,14 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
 
   public selectRecord(record: SelectableRecord): void {
     this.model?.setValue({ oid: record.oid, title: record.title });
+    this.formControl.markAsDirty();
     this.formControl.markAsTouched();
     this.isChangingSelection = false;
   }
 
   public clearSelection(): void {
     this.model?.setValue(null);
+    this.formControl.markAsDirty();
     this.formControl.markAsTouched();
     this.isChangingSelection = true;
   }
@@ -415,6 +423,7 @@ export class RecordSelectorComponent extends FormFieldBaseComponent<RecordSelect
     this.loading = true;
     this.errorMessageKey = '';
     this.statusMessageKey = 'record-selector-status-loading';
+    this.changeDetectorRef.markForCheck();
     try {
       const response = await this.recordService.getRecords(
         this.recordType,

@@ -1,4 +1,14 @@
-import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
+import {
+  Component,
+  ViewChild,
+  ViewContainerRef,
+  ComponentRef,
+  inject,
+  Injector,
+  HostBinding,
+  ChangeDetectionStrategy,
+  signal,
+} from '@angular/core';
 import { AbstractControl, FormArray, FormGroup } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
@@ -46,7 +56,8 @@ import { DefaultLayoutComponent } from './default-layout.component';
       </div>
     </div>
   `,
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   protected override logName = TabLayoutName;
@@ -156,12 +167,15 @@ export class TabComponentLayout extends DefaultLayoutComponent<undefined> {
   template: `
     <ng-container #tabsContainer />
 `,
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class TabComponent extends FormFieldBaseComponent<undefined> {
   protected override logName = TabComponentName;
   tabs: TabContentFormComponentDefinitionFrame[] = [];
-  selectedTabId: string | null = null;
+  private readonly selectedTab = signal<string | null>(null);
+  get selectedTabId(): string | null { return this.selectedTab(); }
+  set selectedTabId(value: string | null) { this.selectedTab.set(value); }
   wrapperRefs: ComponentRef<FormBaseWrapperComponent<unknown>>[] = [];
   componentInstances: any[] = [];
   componentFormMapEntries: FormFieldCompMapEntry[] = [];
@@ -351,6 +365,7 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
 @Component({
   selector: 'redbox-form-tab-content',
   template: `<ng-container #componentContainer></ng-container>`,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class TabContentComponent extends FormFieldBaseComponent<undefined> {

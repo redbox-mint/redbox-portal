@@ -74,7 +74,9 @@ async function fetchAssets(page: Page, assetUrls: string[]): Promise<AssetCheckR
     const batchResults = await Promise.all(
       batch.map(async (url): Promise<AssetCheckResult> => {
         try {
-          const response = await page.request.get(url);
+          // Static GETs may reuse a socket closed by the server's keep-alive timeout.
+          // Retry one ECONNRESET; HTTP failures and browser diagnostics still fail the test.
+          const response = await page.request.get(url, { maxRetries: 1 });
           return {
             url,
             ok: response.ok(),

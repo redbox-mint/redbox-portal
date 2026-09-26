@@ -105,19 +105,22 @@
         }
       </div>
     </div>
-    <div class="row">
+  }
+  <!-- Keep pagination mounted while a page loads so its value accessor does
+       not reset the selected page and emit another pageChanged event. -->
+  @if (totalItems > 0) {
+    <div class="row" [hidden]="isSearching">
       <div class="col-md-10 col-md-offset-2">
-        @if (totalItems > 0) {
-          <pagination
-            [directionLinks]="false"
-            [boundaryLinks]="true"
-            [totalItems]="totalItems"
-            [(ngModel)]="params.currentPage"
-            (pageChanged)="pageChanged($event)"
-            class="pagination-sm"
-            [maxSize]="10"
-          ></pagination>
-        }
+        <pagination
+          [disabled]="isSearching"
+          [directionLinks]="false"
+          [boundaryLinks]="true"
+          [totalItems]="totalItems"
+          [(ngModel)]="params.currentPage"
+          (pageChanged)="pageChanged($event)"
+          class="pagination-sm"
+          [maxSize]="10"
+        ></pagination>
       </div>
     </div>
   }

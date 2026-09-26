@@ -1,4 +1,4 @@
-import { Component, inject, Injector, Input, OnDestroy, runInInjectionContext } from '@angular/core';
+import { Component, inject, Injector, Input, OnDestroy, runInInjectionContext, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, take } from 'rxjs';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import {
@@ -74,6 +74,7 @@ class RecordMetadataRetrieverExpressionConsumer extends FormComponentEventBaseCo
 @Component({
   selector: 'redbox-record-metadata-retriever',
   template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<never> implements OnDestroy {

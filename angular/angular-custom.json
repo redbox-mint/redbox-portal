@@ -52,7 +52,7 @@
               "base": "../assets/angular/local-auth"
             },
             "index": "projects/researchdatabox/local-auth/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/local-auth/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -141,7 +141,7 @@
               "base": "../assets/angular/export"
             },
             "index": "projects/researchdatabox/export/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/export/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/export/src/favicon.ico", "projects/researchdatabox/export/src/assets"],
@@ -227,7 +227,7 @@
               "base": "../assets/angular/dashboard"
             },
             "index": "projects/researchdatabox/dashboard/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/dashboard/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -309,7 +309,7 @@
               "base": "../assets/angular/report"
             },
             "index": "projects/researchdatabox/report/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/report/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/report/src/favicon.ico", "projects/researchdatabox/report/src/assets"],
@@ -395,7 +395,7 @@
               "base": "../assets/angular/manage-users"
             },
             "index": "projects/researchdatabox/manage-users/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/manage-users/tsconfig.app.json",
             "assets": [
               "projects/researchdatabox/manage-users/src/favicon.ico",
@@ -482,7 +482,7 @@
               "base": "../assets/angular/record-audit"
             },
             "index": "projects/researchdatabox/record-audit/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/record-audit/tsconfig.app.json",
             "assets": [
               "projects/researchdatabox/record-audit/src/favicon.ico",
@@ -569,7 +569,7 @@
               "base": "../assets/angular/manage-roles"
             },
             "index": "projects/researchdatabox/manage-roles/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/manage-roles/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -658,7 +658,7 @@
               "base": "../assets/angular/form"
             },
             "index": "projects/researchdatabox/form/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/form/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/researchdatabox/form/src/favicon.ico", "projects/researchdatabox/form/src/assets"],
@@ -741,7 +741,7 @@
               "base": "../assets/angular/app-config"
             },
             "index": "projects/researchdatabox/app-config/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/app-config/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -846,7 +846,7 @@
               "base": "../assets/angular/deleted-records"
             },
             "index": "projects/researchdatabox/deleted-records/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/deleted-records/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -931,7 +931,7 @@
               "base": "../assets/angular/harvest-runs"
             },
             "index": "projects/researchdatabox/harvest-runs/src/index.html",
-            "polyfills": ["zone.js"],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/harvest-runs/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [

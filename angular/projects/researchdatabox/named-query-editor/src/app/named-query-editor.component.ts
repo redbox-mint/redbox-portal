@@ -1,4 +1,4 @@
-import { Component, Inject, OnDestroy } from '@angular/core';
+import { Component, Inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { NamedQueryApiService, NamedQueryDefinition } from './named-query-api.service';
 import { NamedQueryListQueryState } from './nq-list/nq-list.component';
@@ -7,6 +7,7 @@ import { NamedQueryListQueryState } from './nq-list/nq-list.component';
   selector: 'named-query-editor',
   templateUrl: './named-query-editor.component.html',
   styleUrls: ['./named-query-editor.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class NamedQueryEditorComponent extends BaseComponent implements OnDestroy {

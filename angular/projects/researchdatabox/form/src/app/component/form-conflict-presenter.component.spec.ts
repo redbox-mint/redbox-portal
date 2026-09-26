@@ -79,7 +79,7 @@ describe('FormConflictPresenterComponent', () => {
     expect(mountedBanner.hidden).toBeTrue();
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
 
-    fixture.componentInstance.conflict = conflict;
+    fixture.componentRef.setInput('conflict', conflict);
     fixture.detectChanges();
     const banner = fixture.nativeElement.querySelector('.rb-form-conflict') as HTMLElement;
     expect(banner.hidden).toBeFalse();
@@ -99,9 +99,9 @@ describe('FormConflictPresenterComponent', () => {
   it('presents mine/latest for a whole repeatable and requires every choice before submit', () => {
     const fixture = TestBed.createComponent(FormConflictPresenterComponent);
     const component = fixture.componentInstance;
-    component.conflict = conflict;
-    component.review = review;
-    component.mergeAllowed = true;
+    fixture.componentRef.setInput('conflict', conflict);
+    fixture.componentRef.setInput('review', review);
+    fixture.componentRef.setInput('mergeAllowed', true);
     component.ngOnChanges();
     const resolutionSpy = spyOn(component.resolutionRequested, 'emit');
     fixture.detectChanges();
@@ -116,7 +116,7 @@ describe('FormConflictPresenterComponent', () => {
 
     const submit = fixture.nativeElement.querySelector('.rb-form-conflict-review__submit button') as HTMLButtonElement;
     expect(submit.disabled).toBeTrue();
-    component.choose('s-contributors', 'mine');
+    fixture.nativeElement.querySelector('input[type="radio"]').click();
     fixture.detectChanges();
     expect(submit.disabled).toBeFalse();
     submit.click();
@@ -125,9 +125,9 @@ describe('FormConflictPresenterComponent', () => {
 
   it('keeps repeatable detail lists outside radio labels and links them as unique descriptions', () => {
     const firstFixture = TestBed.createComponent(FormConflictPresenterComponent);
-    firstFixture.componentInstance.conflict = conflict;
-    firstFixture.componentInstance.review = review;
-    firstFixture.componentInstance.mergeAllowed = true;
+    firstFixture.componentRef.setInput('conflict', conflict);
+    firstFixture.componentRef.setInput('review', review);
+    firstFixture.componentRef.setInput('mergeAllowed', true);
     firstFixture.componentInstance.ngOnChanges();
     firstFixture.detectChanges();
 
@@ -153,8 +153,8 @@ describe('FormConflictPresenterComponent', () => {
     }
 
     const secondFixture = TestBed.createComponent(FormConflictPresenterComponent);
-    secondFixture.componentInstance.conflict = conflict;
-    secondFixture.componentInstance.review = review;
+    secondFixture.componentRef.setInput('conflict', conflict);
+    secondFixture.componentRef.setInput('review', review);
     secondFixture.detectChanges();
     const secondRadio = secondFixture.nativeElement.querySelector(
       '.rb-form-conflict-review input[type="radio"]'
@@ -166,8 +166,8 @@ describe('FormConflictPresenterComponent', () => {
     const fixture = TestBed.createComponent(FormConflictPresenterComponent);
     const component = fixture.componentInstance;
     const confirmation = TestBed.inject(ConfirmationDialogService);
-    component.conflict = conflict;
-    component.mergeAllowed = true;
+    fixture.componentRef.setInput('conflict', conflict);
+    fixture.componentRef.setInput('mergeAllowed', true);
     const discardSpy = spyOn(component.discardRequested, 'emit');
     fixture.detectChanges();
 
@@ -187,8 +187,8 @@ describe('FormConflictPresenterComponent', () => {
     const fixture = TestBed.createComponent(FormConflictPresenterComponent);
     const component = fixture.componentInstance;
 
-    component.conflict = { ...conflict, cause: 'precondition-required' };
-    component.review = review;
+    fixture.componentRef.setInput('conflict', { ...conflict, cause: 'precondition-required' });
+    fixture.componentRef.setInput('review', review);
     component.ngOnChanges();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('This tab needs the current form');
@@ -206,15 +206,15 @@ describe('FormConflictPresenterComponent', () => {
       { cause: 'permission-lost' as const, status: 'permission-lost' as const, title: 'permission is no longer' },
       { cause: 'record-stale' as const, status: 'retrying' as const, title: 'Merging your changes' },
     ]) {
-      component.conflict = { ...conflict, cause: variant.cause, status: variant.status, latest: null };
-      component.review = null;
+      fixture.componentRef.setInput('conflict', { ...conflict, cause: variant.cause, status: variant.status, latest: null });
+      fixture.componentRef.setInput('review', null);
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain(variant.title);
       expect(fixture.nativeElement.textContent).not.toContain('Latest');
     }
 
-    component.conflict = null;
-    component.resolution = 'already-current';
+    fixture.componentRef.setInput('conflict', null);
+    fixture.componentRef.setInput('resolution', 'already-current');
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('already current');
   });
@@ -223,8 +223,8 @@ describe('FormConflictPresenterComponent', () => {
     const fixture = TestBed.createComponent(FormConflictPresenterComponent);
     const component = fixture.componentInstance;
     const confirmation = TestBed.inject(ConfirmationDialogService);
-    component.conflict = { ...conflict, cause: 'precondition-required' };
-    component.review = review;
+    fixture.componentRef.setInput('conflict', { ...conflict, cause: 'precondition-required' });
+    fixture.componentRef.setInput('review', review);
     const reloadSpy = spyOn(component.reloadRequested, 'emit');
     fixture.detectChanges();
 
@@ -240,9 +240,9 @@ describe('FormConflictPresenterComponent', () => {
   it('offers a current-form reload when a stale response is reviewable but not safe to merge', () => {
     const fixture = TestBed.createComponent(FormConflictPresenterComponent);
     const component = fixture.componentInstance;
-    component.conflict = conflict;
-    component.review = review;
-    component.mergeAllowed = false;
+    fixture.componentRef.setInput('conflict', conflict);
+    fixture.componentRef.setInput('review', review);
+    fixture.componentRef.setInput('mergeAllowed', false);
     fixture.detectChanges();
 
     expect(component.canReview).toBeTrue();

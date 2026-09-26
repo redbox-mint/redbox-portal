@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config-api.service';
 
 @Component({
@@ -222,7 +222,8 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
       padding: 14px 16px;
     }
   `],
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class ColumnEditorComponent {
   @Input() columns: DashboardRowConfig[] = [];

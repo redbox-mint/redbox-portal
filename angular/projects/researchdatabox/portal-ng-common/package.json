@@ -9,8 +9,8 @@
     "package.json"
   ],
   "peerDependencies": {
-    "@angular/common": "20.3.18",
-    "@angular/core": "20.3.18",
+    "@angular/common": "22.2.0",
+    "@angular/core": "22.2.0",
     "i18next-browser-languagedetector": "8.2.1",
     "i18next-http-backend": "3.0.6",
     "numeral": "2.0.6",

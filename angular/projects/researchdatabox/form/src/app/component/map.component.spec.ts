@@ -1,4 +1,5 @@
 import {TestBed} from "@angular/core/testing";
+import {provideZonelessChangeDetection} from "@angular/core";
 import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import {TranslationService} from "@researchdatabox/portal-ng-common";
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
@@ -73,9 +74,7 @@ describe("MapComponent", () => {
   }
 
   function FakeXYZCtor(this: any, opts: any) {
-    this.url = opts.url;
-    this.urls = opts.urls;
-    this.attributions = opts.attributions;
+    Object.assign(this, opts);
     fakeXYZInstances.push(this);
   }
 
@@ -98,6 +97,17 @@ describe("MapComponent", () => {
 
   function getButtonLabel(button: HTMLButtonElement): string {
     return button.getAttribute("aria-label") ?? "";
+  }
+
+  function mapFormConfig(config: Record<string, unknown>): FormConfigFrame {
+    return {
+      name: "testing",
+      componentDefinitions: [{
+        name: "map_coverage",
+        component: {class: "MapComponent", config},
+        model: {class: "MapModel", config: {defaultValue: {type: "FeatureCollection", features: []}}}
+      }]
+    };
   }
 
   beforeEach(async () => {
@@ -659,6 +669,50 @@ describe("MapComponent", () => {
     expect(modelValue.features.map((feature: any) => feature.geometry.coordinates)).toEqual([[153.02, -27.47], [146.82, -19.25]]);
   });
 
+  it("imports mixed multi-line, multi-polygon and geometry collection features", async () => {
+    const {fixture, formComponent} = await createFormAndWaitForReady(
+      mapFormConfig({enableImport: true}), {editMode: true} as any
+    );
+    const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+    textarea.value = JSON.stringify({
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature", properties: {name: "Paths"},
+          geometry: {type: "MultiLineString", coordinates: [
+            [[150, -27], [151, -28]], [[152, -29], [153, -30]]
+          ]}
+        },
+        {
+          type: "Feature", properties: {name: "Areas"},
+          geometry: {type: "MultiPolygon", coordinates: [
+            [[[150, -27], [151, -27], [150, -27]]],
+            [[[152, -29], [153, -29], [152, -29]]]
+          ]}
+        },
+        {
+          type: "Feature", properties: {name: "Collection"},
+          geometry: {type: "GeometryCollection", geometries: [
+            {type: "Point", coordinates: [154, -31]},
+            {type: "LineString", coordinates: [[154, -31], [155, -32]]}
+          ]}
+        }
+      ]
+    });
+    textarea.dispatchEvent(new Event("input"));
+    (fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement).click();
+    await fixture.whenStable();
+
+    const features = (formComponent.form?.controls["map_coverage"].value as any).features;
+    expect(features.map((feature: any) => feature.geometry.type)).toEqual([
+      "LineString", "LineString", "Polygon", "Polygon", "Point", "LineString"
+    ]);
+    expect(features.map((feature: any) => feature.properties.name)).toEqual([
+      "Paths", "Paths", "Areas", "Areas", "Collection", "Collection"
+    ]);
+    expect(features.every((feature: any) => uuidV4Pattern.test(feature.id))).toBeTrue();
+  });
+
   it("throws a controlled error when map feature ids cannot be generated", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",
@@ -768,6 +822,37 @@ describe("MapComponent", () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement.textContent ?? "").includes("Entered text is not valid KML or GeoJSON")).toBeTrue();
+  });
+
+  it("rejects empty GeoJSON and malformed or unsupported KML without changing the map", async () => {
+    const {fixture, formComponent} = await createFormAndWaitForReady(
+      mapFormConfig({enableImport: true}), {editMode: true} as any
+    );
+    const component = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    const importText = async (value: string) => {
+      const textarea = fixture.nativeElement.querySelector("textarea") as HTMLTextAreaElement;
+      textarea.value = value;
+      textarea.dispatchEvent(new Event("input"));
+      const importButton = fixture.nativeElement.querySelector(".rb-map-import-btn") as HTMLButtonElement;
+      importButton.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    await importText(JSON.stringify({type: "FeatureCollection", features: []}));
+    expect(fixture.nativeElement.textContent).toContain("Entered text does not contain any supported map features");
+
+    await importText("<kml>");
+    expect(fixture.nativeElement.textContent).toContain("Entered text is not valid KML or GeoJSON");
+
+    spyOn((component as any).mapDeps, "parseKmlToGeoJson").and.returnValue({type: "FeatureCollection", features: []});
+    await importText("<kml/>");
+    expect(fixture.nativeElement.textContent).toContain("Entered text does not contain any supported map features");
+    expect(formComponent.form?.controls["map_coverage"].value).toBeNull();
+
+    await importText(JSON.stringify({type: "Feature", geometry: {type: "Point", coordinates: [138.6, -34.9]}, properties: {}}));
+    expect(fixture.nativeElement.textContent).not.toContain("Entered text does not contain any supported map features");
+    expect(formComponent.form?.controls["map_coverage"].value.features).toHaveSize(1);
   });
 
   it("hides import controls in view mode", async () => {
@@ -1237,6 +1322,8 @@ describe("MapComponent", () => {
   });
 
   it("adds select/delete tooling and deletes selected draw features", async () => {
+    TestBed.configureTestingModule({providers: [provideZonelessChangeDetection()]});
+    const drawReady = new Promise<void>(resolve => fakeDraw.start.and.callFake(() => resolve()));
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -1277,6 +1364,7 @@ describe("MapComponent", () => {
 
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
     const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    await drawReady;
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -1296,13 +1384,20 @@ describe("MapComponent", () => {
     expect(selectedFeatureId).toMatch(uuidV4Pattern);
     expect(remainingFeatureId).toMatch(uuidV4Pattern);
     drawListeners["select"]?.forEach((listener) => listener(selectedFeatureId));
-    fixture.detectChanges();
+    await fixture.whenStable();
     const deleteButton = fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement;
     expect(deleteButton).not.toBeNull();
     expect(deleteButton.disabled).toBeFalse();
+    drawListeners["deselect"]?.forEach((listener) => listener(selectedFeatureId));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".rb-map-delete-btn")).toBeNull();
+    drawListeners["select"]?.forEach((listener) => listener(selectedFeatureId));
+    await fixture.whenStable();
+    fixture.detectChanges();
     const setValueSpy = spyOn(mapComponent.formControl, "setValue").and.callThrough();
 
-    deleteButton.click();
+    (fixture.nativeElement.querySelector(".rb-map-delete-btn") as HTMLButtonElement).click();
     fixture.detectChanges();
 
     expect(fakeDraw.removeFeatures).toHaveBeenCalledOnceWith([selectedFeatureId]);
@@ -1312,6 +1407,23 @@ describe("MapComponent", () => {
     expect(mapComponent.selectedFeatureIds.size).toBe(0);
     const modelValue = (formComponent as any).form.value?.map_coverage;
     expect((modelValue?.features ?? []).map((feature: any) => feature.id)).toEqual([remainingFeatureId]);
+  });
+
+  it("updates the form when TerraDraw emits an array snapshot", async () => {
+    const {fixture, formComponent} = await createFormAndWaitForReady(mapFormConfig({enabledModes: ["point"]}), {editMode: true} as any);
+    await fixture.whenStable();
+    const feature = {
+      id: "123e4567-e89b-42d3-a456-426614174000",
+      type: "Feature",
+      geometry: {type: "Point", coordinates: [138.6, -34.9]},
+      properties: {mode: "point"}
+    };
+    fakeDraw.getSnapshot.and.returnValue([feature]);
+
+    drawListeners["change"]?.forEach((listener) => listener({}));
+
+    expect(formComponent.form?.controls["map_coverage"].value.features).toEqual([feature]);
+    expect(formComponent.form?.controls["map_coverage"].dirty).toBeTrue();
   });
 
   it("clears all map features after confirmation", async () => {
@@ -1542,6 +1654,12 @@ describe("MapComponent", () => {
     mapComponent.setDrawMode("circle");
     expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(false);
     expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
+
+    mapComponent.setDrawMode("circle");
+    expect(fakeDraw.setMode).toHaveBeenCalledWith("static");
+    expect(mapComponent.activeMode).toBeUndefined();
+    expect(fakeMapInteractions[0].setActive).toHaveBeenCalledWith(true);
+    expect(fakeMapInteractions[1].setActive).toHaveBeenCalledWith(false);
   });
 
   it("does not add select/delete tooling when select mode is disabled", async () => {
@@ -1653,6 +1771,25 @@ describe("MapComponent", () => {
 
     expect(fakeRenderSync).toHaveBeenCalled();
     expect(fakeMapTarget?.querySelector("canvas")).not.toBeNull();
+    expect(fakeAdapterCtor).toHaveBeenCalled();
+    expect(fakeDraw.start).toHaveBeenCalled();
+  });
+
+  it("initialises draw tooling when renderSync fails and the canvas appears later", async () => {
+    fakeMapCreatesCanvas = false;
+    fakeRenderSync.and.throwError("render failed");
+    spyOn(console, "warn");
+
+    const {fixture} = await createFormAndWaitForReady(mapFormConfig({enableImport: true}), {editMode: true} as any);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fakeAdapterCtor).not.toHaveBeenCalled();
+    expect(fakeMapTarget).toBeDefined();
+    appendOpenLayersCanvas(fakeMapTarget);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    fixture.detectChanges();
+
     expect(fakeAdapterCtor).toHaveBeenCalled();
     expect(fakeDraw.start).toHaveBeenCalled();
   });
@@ -1857,5 +1994,24 @@ describe("MapComponent", () => {
       "https://b.tile.example.com/{z}/{x}/{y}.png",
       "https://c.tile.example.com/{z}/{x}/{y}.png"
     ]);
+  });
+
+  it("passes tile source options and a single subdomain to OpenLayers", async () => {
+    await createFormAndWaitForReady(mapFormConfig({
+      tileLayers: [{
+        name: "Institutional tiles",
+        url: "https://{s}.tiles.example.test/{z}/{x}/{y}.png",
+        options: {
+          subdomains: ["maps"], attribution: "Institutional map", minZoom: 2, maxZoom: 16,
+          crossOrigin: "anonymous", wrapX: false, tileSize: 512
+        }
+      }]
+    }), {editMode: false} as any);
+
+    expect(fakeXYZInstances[0]).toEqual(jasmine.objectContaining({
+      url: "https://maps.tiles.example.test/{z}/{x}/{y}.png",
+      attributions: ["Institutional map"], minZoom: 2, maxZoom: 16,
+      crossOrigin: "anonymous", wrapX: false, tileSize: 512
+    }));
   });
 });

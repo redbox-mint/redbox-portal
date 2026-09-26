@@ -8,6 +8,8 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import {FormComponentEventBus, FormComponentEventType, FormStateFacade} from '../form-state';
 import {Location} from "@angular/common";
+import {Store} from '@ngrx/store';
+import {submitFormStarted} from '../form-state/state/form.actions';
 
 
 let formConfig: FormConfigFrame;
@@ -87,8 +89,7 @@ describe('CancelButtonComponent', () => {
 
   it('should disable cancel when form is saving', async () => {
     const { fixture } = await createFormAndWaitForReady(formConfig, { editMode: true } as any);
-    const facade = TestBed.inject(FormStateFacade);
-    spyOn(facade, 'isSaving').and.returnValue(true as any);
+    TestBed.inject(Store).dispatch(submitFormStarted());
     fixture.detectChanges();
 
     const button = fixture.nativeElement.querySelector('button.btn.btn-warning') as HTMLButtonElement;

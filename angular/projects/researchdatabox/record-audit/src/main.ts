@@ -1,5 +1,5 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 import { RecordAuditModule } from './app/record-audit.module';
 
-platformBrowserDynamic().bootstrapModule(RecordAuditModule)
+platformBrowser().bootstrapModule(RecordAuditModule)
   .catch(err => console.error(err));

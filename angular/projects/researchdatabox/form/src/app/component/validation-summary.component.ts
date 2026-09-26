@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, inject, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, Input, ChangeDetectionStrategy } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
@@ -105,6 +105,7 @@ import {FormService} from "../form.service";
       padding-left: 1.25rem;
     }
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<string> {

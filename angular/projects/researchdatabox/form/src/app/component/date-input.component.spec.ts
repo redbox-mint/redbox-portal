@@ -1,4 +1,3 @@
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { setControlValue } from '../form-state/custom-set-value.control';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { DateInputComponent, parseFreeTextDate } from './date-input.component';
@@ -62,7 +61,7 @@ describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
       declarations: [DateInputComponent],
-      imports: [BsDatepickerModule.forRoot(), NoopAnimationsModule],
+      imports: [BsDatepickerModule],
     });
   });
 

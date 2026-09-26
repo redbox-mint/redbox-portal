@@ -31,6 +31,7 @@ import {
   ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import {
   catchError,
@@ -44,7 +45,7 @@ import {
   Subject,
   Subscription,
   take,
-  timeout
+  timeout,
 } from 'rxjs';
 import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -54,7 +55,7 @@ import {
   FormGroup,
   PristineChangeEvent,
   StatusChangeEvent,
-  ValueChangeEvent
+  ValueChangeEvent,
 } from '@angular/forms';
 import {
   get as _get,
@@ -63,7 +64,7 @@ import {
   isNull as _isNull,
   isString as _isString,
   set as _set,
-  trim as _trim
+  trim as _trim,
 } from 'lodash-es';
 import {
   BaseComponent,
@@ -95,9 +96,7 @@ import {
 import { FormBaseWrapperComponent } from './component/base-wrapper.component';
 import { FormComponentsMap, FormService } from './form.service';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
-import {
-  FormComponentFocusRequestCoordinator
-} from './form-state/events/form-component-focus-request-coordinator.service';
+import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
 import {
   createFormDefinitionChangedEvent,
   createFormDefinitionReadyEvent,
@@ -114,7 +113,9 @@ import {
   FormComponentEventType,
   FormStatusDirtyRequestEvent,
   FormValidationGroupsChangeInitial,
-  FormValidationGroupsChangeRequestEvent, SaveOperationEventConfig, SaveRedirectEventConfig,
+  FormValidationGroupsChangeRequestEvent,
+  SaveOperationEventConfig,
+  SaveRedirectEventConfig,
 } from './form-state/events/form-component-event.types';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { Store } from '@ngrx/store';
@@ -186,13 +187,11 @@ interface FormValueGenerationSnapshot {
     FormDebugStateService,
   ],
   encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class FormComponent extends BaseComponent implements OnDestroy {
-  private static readonly adoptableConflictStatuses: ReadonlySet<FormConflictStatus> = new Set([
-    'stale',
-    'reviewing',
-  ]);
+  private static readonly adoptableConflictStatuses: ReadonlySet<FormConflictStatus> = new Set(['stale', 'reviewing']);
   private logName = 'FormComponent';
   /**
    * App name for logging and diagnostics
@@ -384,7 +383,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private behaviourManager = inject(FormBehaviourManager);
 
   private readonly document = inject(DOCUMENT);
-  private window: Window & typeof globalThis | null;
+  private window: (Window & typeof globalThis) | null;
   private allowConflictNavigationOnce = false;
   private conflictExportCompleted = false;
   private formValueGeneration = 0;
@@ -460,7 +459,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     } catch (error) {
       this.loggerService.error(`${this.logName}: Error loading form`, error);
       // Dispatch load failure action instead of direct mutation
-      const missingRecord = error instanceof HttpErrorResponse && error.status === 404 &&
+      const missingRecord =
+        error instanceof HttpErrorResponse &&
+        error.status === 404 &&
         /\/record\/(form|metadata)\//.test(error.url ?? '');
       const errorMsg = missingRecord ? 'missing-record' : 'form-load-error';
       this.store.dispatch(FormActions.loadInitialDataFailure({ error: errorMsg }));
@@ -492,6 +493,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       this.formDefMap = await this.formService.createFormComponentsMap(formConfig, parentLineagePaths);
     }
     this.componentDefArr = this.formDefMap.components;
+    // Host styling depends on the downloaded definition before nested fields finish initialising.
+    this.requestRender();
     if (this.shouldRefreshDebugSnapshots()) {
       this.refreshTranslatedConfigDebugInfo(true);
       if (this.shouldRefreshComponentDebugInfo()) {
@@ -616,14 +619,19 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         const redirectLocation = evt?.redirectLocation;
         const redirectDelaySeconds = evt?.redirectDelaySeconds;
         await this.saveForm({
-          force, operation, targetStep, enabledValidationGroups,
-          closeOnSave, redirectLocation, redirectDelaySeconds,
+          force,
+          operation,
+          targetStep,
+          enabledValidationGroups,
+          closeOnSave,
+          redirectLocation,
+          redirectDelaySeconds,
         });
       });
     this.subMaps['saveSuccessRedirectSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
       .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
-      .subscribe((evt) => {
+      .subscribe(evt => {
         if (evt.closeOnSave) {
           this.eventBus.publish(
             createFormRedirectRequestedEvent({
@@ -639,7 +647,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['deleteExecuteSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_EXECUTE)
       .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
-      .subscribe(async (evt) => {
+      .subscribe(async evt => {
         await this.deleteRecord({
           closeOnDelete: evt.closeOnDelete,
           redirectLocation: evt.redirectLocation,
@@ -649,7 +657,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.subMaps['deleteSuccessRedirectSub'] = this.eventBus
       .select$(FormComponentEventType.FORM_DELETE_SUCCESS)
       .pipe(filter(evt => !evt.formScopeId || evt.formScopeId === this.eventScopeId))
-      .subscribe((evt) => {
+      .subscribe(evt => {
         if (evt.closeOnDelete) {
           this.eventBus.publish(
             createFormRedirectRequestedEvent({
@@ -703,10 +711,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     });
 
     this.subMaps['setValidationGroupsSub']?.unsubscribe();
-    this.subMaps['setValidationGroupsSub'] = this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST)
+    this.subMaps['setValidationGroupsSub'] = this.eventBus
+      .select$(FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST)
       .subscribe((event: FormValidationGroupsChangeRequestEvent) => {
         const originalEnabledValidationGroups = [...this.enabledValidationGroups];
-        const initial: FormValidationGroupsChangeInitial = event.initial ?? "current";
+        const initial: FormValidationGroupsChangeInitial = event.initial ?? 'current';
         const groups = event.groups ?? {};
 
         const enabledNames = this.formService.calculateValidationGroups(
@@ -724,7 +733,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         );
         this.broadcastFormStatus();
 
-        this.loggerService.debug(`${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`);
+        this.loggerService.debug(
+          `${this.logName}: Form enabledValidationGroups changed from ${JSON.stringify(originalEnabledValidationGroups)} to ${JSON.stringify(this.enabledValidationGroups)} from event field ${event.fieldId}`
+        );
       });
 
     this.subMaps['redirectRequestedSub'] = this.eventBus
@@ -927,7 +938,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    */
   public assignFormValidatorErrorsToComponent(
     summaryErrors: FormValidatorSummaryErrors[],
-    formErrors: FormValidatorComponentErrors[],
+    formErrors: FormValidatorComponentErrors[]
   ): void {
     if (formErrors.length < 1) {
       return;
@@ -943,8 +954,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
 
       // Find any existing errors for the matching lineage paths.
-      const summaryError = summaryErrors.find(s =>
-        isMatchingLineagePaths(s.lineagePaths, targetFieldLineagePaths));
+      const summaryError = summaryErrors.find(s => isMatchingLineagePaths(s.lineagePaths, targetFieldLineagePaths));
 
       if (summaryError !== undefined) {
         // Add the error to any existing summary error for the component.
@@ -963,7 +973,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             errors: [componentError],
           });
         } else {
-          this.loggerService.warn(`${this.logName}: Could not assign validation error to component ${JSON.stringify({ componentError, targetFieldLineagePaths })}`);
+          this.loggerService.warn(
+            `${this.logName}: Could not assign validation error to component ${JSON.stringify({ componentError, targetFieldLineagePaths })}`
+          );
         }
       }
     }
@@ -972,9 +984,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (unownedFormError.length > 0) {
       summaryErrors.unshift({
         id: null,
-        message: "@validator-error-form-level",
+        message: '@validator-error-form-level',
         errors: unownedFormError,
-        lineagePaths: this.formService.buildLineagePaths()
+        lineagePaths: this.formService.buildLineagePaths(),
       });
     }
   }
@@ -1090,8 +1102,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private shouldRefreshComponentDebugInfo(): boolean {
-    return this.debugState.isDebugEnabled() &&
-      (!this.debugState.panelCollapsed() || this.debugState.isDebugPopoutWindow());
+    return (
+      this.debugState.isDebugEnabled() && (!this.debugState.panelCollapsed() || this.debugState.isDebugPopoutWindow())
+    );
   }
 
   private refreshTranslatedConfigDebugInfo(resetInitial: boolean) {
@@ -1272,7 +1285,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         this.loggerService.info(
           `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
         );
-          this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
+        this.loggerService.debug(`${this.logName}: Form value:`, this.form.value);
 
         try {
           let response: RecordActionResult;
@@ -1454,7 +1467,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
                 concurrency
               );
               if (this.recordBaselineState() !== requestBaseline) {
-                this.loggerService.warn(`${this.logName}: ignored a conflict retry response after the form scope changed.`);
+                this.loggerService.warn(
+                  `${this.logName}: ignored a conflict retry response after the form scope changed.`
+                );
                 this.saveResponse.set(undefined);
                 return;
               }
@@ -1475,11 +1490,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               ? this.resolveRedirectLocation(options?.redirectLocation ?? '', oid)
               : '';
             let modelSnapshot: Record<string, unknown> | undefined;
-            if (
-              !options?.closeOnSave &&
-              !redirectLocation &&
-              this.form
-            ) {
+            if (!options?.closeOnSave && !redirectLocation && this.form) {
               modelSnapshot = this.getPersistedFormValue();
               if (
                 response.metadata !== null &&
@@ -1548,11 +1559,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
-            const failureMessage = response.outcome === 'unknown'
-              ? unknownMessageKey
-              : (String(_get(response, 'message') ?? '').startsWith('@')
+            const failureMessage =
+              response.outcome === 'unknown'
+                ? unknownMessageKey
+                : String(_get(response, 'message') ?? '').startsWith('@')
                   ? String(_get(response, 'message'))
-                  : '@record-save-failed');
+                  : '@record-save-failed';
             // Emit failure event
             this.eventBus.publish(
               createFormSaveFailureEvent({
@@ -1576,13 +1588,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.saveResponse.set(failure);
           this.applyServerSaveProblems(failure);
           // emit failure event
-          this.eventBus.publish(createFormSaveFailureEvent({
-            error: errorMsg,
-            response: failure,
-            operation: saveOperation,
-            formScopeId: this.eventScopeId,
-            requestId: failure.requestId,
-          }));
+          this.eventBus.publish(
+            createFormSaveFailureEvent({
+              error: errorMsg,
+              response: failure,
+              operation: saveOperation,
+              formScopeId: this.eventScopeId,
+              requestId: failure.requestId,
+            })
+          );
         }
       } else {
         this.saveResponse.set(undefined); // Reset save response
@@ -1661,8 +1675,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return (
       response.concurrencyOutcome === 'stale' &&
       response.problems.some(
-        problem =>
-          problem.kind === 'conflict' && problem.issues.some(issue => issue.code === 'record-revision-stale')
+        problem => problem.kind === 'conflict' && problem.issues.some(issue => issue.code === 'record-revision-stale')
       )
     );
   }
@@ -2257,10 +2270,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       if (!stillOwnsOperation()) {
         return false;
       }
-      if (
-        candidateSnapshot.generation !== this.formValueGeneration ||
-        this.serverSyncRequiresReview(syncResult)
-      ) {
+      if (candidateSnapshot.generation !== this.formValueGeneration || this.serverSyncRequiresReview(syncResult)) {
         this.parkConflictForReview(conflict);
         return false;
       }
@@ -2371,9 +2381,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         sourceId: this.eventScopeId,
         formScopeId: this.eventScopeId,
       } as const;
-      this.eventBus.publish(lineagePath.length > 0
-        ? createLineageFieldFocusRequestEvent({ ...focusOptions, lineagePath })
-        : createFieldFocusRequestEvent(focusOptions));
+      this.eventBus.publish(
+        lineagePath.length > 0
+          ? createLineageFieldFocusRequestEvent({ ...focusOptions, lineagePath })
+          : createFieldFocusRequestEvent(focusOptions)
+      );
     }
   }
 
@@ -2400,9 +2412,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     };
 
     if (issue.targetField) {
-      const targetMatch = unique(candidates.filter(candidate =>
-        candidate.lineagePaths && isMatchingLineagePaths(candidate.lineagePaths, issue.targetField!)
-      ));
+      const targetMatch = unique(
+        candidates.filter(
+          candidate => candidate.lineagePaths && isMatchingLineagePaths(candidate.lineagePaths, issue.targetField!)
+        )
+      );
       if (targetMatch) {
         return targetMatch;
       }
@@ -2414,7 +2428,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       if (angularMatch) {
         return angularMatch;
       }
-      const dataMatch = unique(candidates.filter(candidate => candidate.dataPath.join('.') === pointerSegments.join('.')));
+      const dataMatch = unique(
+        candidates.filter(candidate => candidate.dataPath.join('.') === pointerSegments.join('.'))
+      );
       if (dataMatch) {
         return dataMatch;
       }
@@ -2430,9 +2446,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
 
     if (issue.lineagePaths) {
-      const lineageMatch = unique(candidates.filter(candidate =>
-        candidate.lineagePaths && isMatchingLineagePaths(candidate.lineagePaths, issue.lineagePaths!)
-      ));
+      const lineageMatch = unique(
+        candidates.filter(
+          candidate => candidate.lineagePaths && isMatchingLineagePaths(candidate.lineagePaths, issue.lineagePaths!)
+        )
+      );
       if (lineageMatch) {
         return lineageMatch;
       }
@@ -2456,7 +2474,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     const finalSegment = (pointerSegments.at(-1) ?? this.serverIssueSegments(explicitField).at(-1)) || '';
     return finalSegment
-      ? unique(candidates.filter(candidate => candidate.dataPath.at(-1) === finalSegment || candidate.field === finalSegment))
+      ? unique(
+          candidates.filter(candidate => candidate.dataPath.at(-1) === finalSegment || candidate.field === finalSegment)
+        )
       : null;
   }
 
@@ -2501,7 +2521,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .split(/[/.]/)
       .filter(Boolean)
       .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'))
-      .map(segment => /^\d+$/.test(segment) ? Number(segment) : segment);
+      .map(segment => (/^\d+$/.test(segment) ? Number(segment) : segment));
   }
 
   private clearServerSaveProblems(): void {
@@ -2517,7 +2537,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       control.setErrors(Object.keys(retainedErrors).length > 0 ? retainedErrors : null, { emitEvent: false });
     }
     if (recursive) {
-      const children = (control as AbstractControl & { controls?: Record<string, AbstractControl> | AbstractControl[] }).controls;
+      const children = (control as AbstractControl & { controls?: Record<string, AbstractControl> | AbstractControl[] })
+        .controls;
       for (const child of Array.isArray(children) ? children : Object.values(children ?? {})) {
         this.clearServerErrorsFromControl(child, true);
       }
@@ -2525,7 +2546,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private resetTemporaryValidationGroups(): void {
-    if (!this.form || this.validationGroupNamesEqual(this.enabledValidationGroups, this.preTemporarySaveValidationGroups)) {
+    if (
+      !this.form ||
+      this.validationGroupNamesEqual(this.enabledValidationGroups, this.preTemporarySaveValidationGroups)
+    ) {
       this.resetTemporaryValidationGroupsOnNextChange = false;
       return;
     }
@@ -2552,10 +2576,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public async deleteRecord(options?: DeleteEventConfig) {
     const oid = this.trimmedParams.oid();
     if (_isEmpty(oid)) {
-      this.eventBus.publish(createFormDeleteFailureEvent({
-        error: '@dmpt-form-delete-missing-oid',
-        formScopeId: this.eventScopeId,
-      }));
+      this.eventBus.publish(
+        createFormDeleteFailureEvent({
+          error: '@dmpt-form-delete-missing-oid',
+          formScopeId: this.eventScopeId,
+        })
+      );
       return;
     }
 
@@ -2598,10 +2624,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       }
     } catch (error: unknown) {
       this.loggerService.error(`${this.logName}: Error occurred while deleting form record:`, error);
-      this.eventBus.publish(createFormDeleteFailureEvent({
-        error: '@dmpt-form-delete-failed',
-        formScopeId: this.eventScopeId,
-      }));
+      this.eventBus.publish(
+        createFormDeleteFailureEvent({
+          error: '@dmpt-form-delete-failed',
+          formScopeId: this.eventScopeId,
+        })
+      );
     }
   }
 
@@ -2612,11 +2640,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * @param options.redirectLocation The relative url to redirect to on a successful save if closeOnSave is true.
    * @param options.redirectDelaySeconds Wait this many seconds before the redirect. Default is 3 seconds delay.
    */
-  public doRedirect(options?: {
-    historyDelta?: number,
-    redirectLocation?: string,
-    redirectDelaySeconds?: number,
-  }) {
+  public doRedirect(options?: { historyDelta?: number; redirectLocation?: string; redirectDelaySeconds?: number }) {
     const historyDelta = options?.historyDelta;
     const redirectLocation = options?.redirectLocation;
     const redirectDelayMs = Math.max(0, options?.redirectDelaySeconds ?? 3) * 1000;
@@ -2624,10 +2648,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // Check for falsy means that history delta cannot be used to do a page reload `.historyGo(0)`.
     // This is intended - if a page reload is needed, do it some other way.
     if (!!historyDelta && !!redirectLocation) {
-      throw new Error(`Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`);
+      throw new Error(
+        `Can't redirect using both history delta '${historyDelta}' and location '${redirectLocation}'. Pick one.`
+      );
     }
     if (!historyDelta && !redirectLocation) {
-      throw new Error(`Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`);
+      throw new Error(
+        `Can't redirect without one of history delta '${historyDelta}' or location '${redirectLocation}'. Pick one.`
+      );
     }
 
     const that = this;
@@ -2827,7 +2855,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public resolveRedirectLocation(template: string, oid: string): string {
-    const contextVariables = (this.formConfigMeta["contextVariables"] ?? {}) as Record<string, unknown>;
+    const contextVariables = (this.formConfigMeta['contextVariables'] ?? {}) as Record<string, unknown>;
     return template
       .replaceAll('@oid', oid)
       .replaceAll('@branding', String(contextVariables['@branding'] ?? '@branding'))

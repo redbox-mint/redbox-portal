@@ -1,5 +1,5 @@
 import { isUndefined as _isUndefined, isNull as _isNull, set as _set } from 'lodash-es';
-import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject } from '@angular/core';
+import { Component, ViewContainerRef, ViewChild, TemplateRef, ComponentRef, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import {
   FieldLayoutDefinitionFrame,
@@ -71,6 +71,7 @@ import { FormService } from "../form.service";
     </ng-template>
   }
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
   // Note: No need for host property here if using @HostBinding
 })

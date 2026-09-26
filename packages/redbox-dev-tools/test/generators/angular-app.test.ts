@@ -74,10 +74,13 @@ export const auth: any = {
     expect(fs.existsSync(path.join(projectPath, 'src', 'main.ts'))).to.be.true;
     expect(fs.existsSync(path.join(projectPath, 'src', 'app', 'test-app.module.ts'))).to.be.true;
     expect(fs.existsSync(path.join(projectPath, 'src', 'app', 'test-app.component.ts'))).to.be.true;
+    expect(fs.readFileSync(path.join(projectPath, 'src', 'app', 'test-app.component.ts'), 'utf-8')).to.contain('changeDetection: ChangeDetectionStrategy.OnPush');
+    expect(fs.readFileSync(path.join(projectPath, 'src', 'main.ts'), 'utf-8')).to.contain('platformBrowser().bootstrapModule');
 
     // Check angular.json
     const angularJson = JSON.parse(fs.readFileSync(path.join(angularRoot, 'angular.json'), 'utf-8'));
     expect(angularJson.projects['@researchdatabox/test-app']).to.exist;
+    expect(angularJson.projects['@researchdatabox/test-app'].architect.build.options.polyfills).to.deep.equal([]);
     expect(angularJson.projects['@researchdatabox/test-app'].architect.build.options.outputPath.base).to.equal(
       '../assets/angular/test-app'
     );
@@ -88,6 +91,8 @@ export const auth: any = {
     const viewContent = fs.readFileSync(viewPath, 'utf-8');
     expect(viewContent).to.contain("let appName = 'test-app';");
     expect(viewContent).to.contain('<test-app');
+    expect(viewContent).not.to.contain('/browser/polyfills');
+    expect(viewContent).to.contain('/browser/main');
 
     // Check routes
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'routes.config.ts'), 'utf-8');

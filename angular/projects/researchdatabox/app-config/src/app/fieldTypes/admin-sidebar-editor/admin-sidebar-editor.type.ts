@@ -8,7 +8,7 @@
  * - Footer links
  * - Live preview
  */
-import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener, ChangeDetectionStrategy } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './admin-sidebar-item.interface';
@@ -17,6 +17,7 @@ import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './adm
   selector: 'formly-admin-sidebar-editor-type',
   templateUrl: './admin-sidebar-editor.type.html',
   styleUrls: ['./admin-sidebar-editor.type.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {

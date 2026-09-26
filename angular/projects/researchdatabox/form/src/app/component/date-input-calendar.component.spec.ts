@@ -1,4 +1,3 @@
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { Validators } from '@angular/forms';
 import { BsDatepickerConfig, BsDatepickerModule } from 'ngx-bootstrap/datepicker';
@@ -10,7 +9,7 @@ describe('DateInputComponent calendar dates', () => {
   beforeEach(async () => {
     await createTestbedModule({
       declarations: [DateInputComponent],
-      imports: [BsDatepickerModule.forRoot(), NoopAnimationsModule],
+      imports: [BsDatepickerModule],
     });
   });
 

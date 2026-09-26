@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { NamedQueryDefinition } from '../named-query-api.service';
 
 export type NamedQueryListQueryState = {
@@ -9,6 +9,7 @@ export type NamedQueryListQueryState = {
   selector: 'nq-list',
   templateUrl: './nq-list.component.html',
   styleUrls: ['./nq-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class NqListComponent implements OnChanges, OnDestroy {

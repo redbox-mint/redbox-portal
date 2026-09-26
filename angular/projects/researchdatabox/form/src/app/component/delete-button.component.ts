@@ -1,4 +1,4 @@
-import {Component, computed} from '@angular/core';
+import {Component, computed, ChangeDetectionStrategy} from '@angular/core';
 import {DeleteButtonComponentName, DeleteButtonFieldComponentDefinitionOutline} from '@researchdatabox/sails-ng-common';
 import {createFormDeleteRequestedEvent} from '../form-state';
 import {ButtonBaseComponent} from "./button-base.component";
@@ -20,6 +20,7 @@ import {ButtonBaseComponent} from "./button-base.component";
       <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DeleteButtonComponent extends ButtonBaseComponent {

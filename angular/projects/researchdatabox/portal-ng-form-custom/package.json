@@ -9,9 +9,9 @@
     "package.json"
   ],
   "peerDependencies": {
-    "@angular/common": "20.3.18",
-    "@angular/core": "20.3.18",
-    "@angular/forms": "20.3.18"
+    "@angular/common": "22.2.0",
+    "@angular/core": "22.2.0",
+    "@angular/forms": "22.2.0"
   },
   "dependencies": {
     "tslib": "2.8.1"

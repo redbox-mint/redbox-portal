@@ -43,6 +43,7 @@ async function assertUsefulStartup(
   await revealCollapsedLogin(page, id);
   for (const selector of selectors)
     await expect(page.locator(`${selector}:visible`).first(), `${id} missing useful content ${selector}`).toBeVisible();
+  await assertZonelessAngular(page);
 }
 
 async function assertDelayedStartup(
@@ -62,9 +63,15 @@ async function assertDelayedStartup(
     await gate.release();
     await navigation;
     for (const selector of selectors) await expect(page.locator(`${selector}:visible`).first()).toBeVisible();
+    await assertZonelessAngular(page);
   } finally {
     await gate.dispose();
   }
+}
+
+async function assertZonelessAngular(page: import('@playwright/test').Page): Promise<void> {
+  await expect(page.locator('[ng-version]').first()).toHaveAttribute('ng-version', /^22\./);
+  expect(await page.evaluate(() => 'Zone' in globalThis), 'Application bundles must not load Zone.js').toBe(false);
 }
 
 async function revealCollapsedLogin(page: import('@playwright/test').Page, id: string): Promise<void> {

@@ -17,8 +17,8 @@ import { ReportComponent } from './report.component';
     FormsModule,
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
-    BsDatepickerModule.forRoot(),
-    PaginationModule.forRoot()
+    BsDatepickerModule,
+    PaginationModule
   ],
   providers: [
     {

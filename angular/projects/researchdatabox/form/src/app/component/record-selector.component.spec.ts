@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { RecordSelectorComponent } from './record-selector.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
@@ -61,6 +62,7 @@ describe('RecordSelectorComponent', () => {
   });
 
   it('loads records and stores the selected record payload', async () => {
+    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
     const formConfig: FormConfigFrame = {
       name: 'testing',
       componentDefinitions: [
@@ -88,14 +90,18 @@ describe('RecordSelectorComponent', () => {
     const input = compiled.querySelector('input') as HTMLInputElement;
     input.value = 'beta';
     input.dispatchEvent(new Event('input'));
+    // Zoneless stability does not wait for the RxJS debounce timer.
+    await new Promise(resolve => setTimeout(resolve, 300));
     await fixture.whenStable();
     const buttons = compiled.querySelectorAll('.rb-record-selector-option') as NodeListOf<HTMLButtonElement>;
     expect(buttons.length).toBe(1);
+    expect(formComponent.form?.pristine).toBeTrue();
 
     buttons[0].click();
     await fixture.whenStable();
 
     expect((formComponent as any).form.value.related_record).toEqual({ oid: 'rec-2', title: 'Beta record' });
+    expect(formComponent.form?.dirty).toBeTrue();
   });
 
   it('collapses to the selected record with a change button after selection', async () => {

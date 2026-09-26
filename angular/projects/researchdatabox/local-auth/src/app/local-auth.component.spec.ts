@@ -3,7 +3,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { FormBuilder } from '@angular/forms';
 import { LocalAuthComponent } from './local-auth.component';
 import { UtilityService, LoggerService, UserService, TranslationService, ConfigService } from '@researchdatabox/portal-ng-common';
-import { getStubConfigService, getStubTranslationService, getStubUserService } from 'projects/researchdatabox/portal-ng-common/src/lib/helper.spec';
+import { getStubConfigService, getStubTranslationService, getStubUserService } from '../../../portal-ng-common/src/lib/helper.spec';
 
 let configService:any;
 let userService: any;

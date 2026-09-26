@@ -1,5 +1,5 @@
-import { TestBed } from "@angular/core/testing";
-import { FormService } from "./form.service";
+import { TestBed } from '@angular/core/testing';
+import { FormService } from './form.service';
 import {
   ConfigService,
   FormFieldCompMapEntry,
@@ -8,12 +8,12 @@ import {
   LoggerService,
   providePortalI18nTesting,
   TranslationService,
-  UtilityService
-} from "@researchdatabox/portal-ng-common";
-import { APP_BASE_HREF } from "@angular/common";
-import { Title } from "@angular/platform-browser";
-import { HttpContext, provideHttpClient } from "@angular/common/http";
-import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
+  UtilityService,
+} from '@researchdatabox/portal-ng-common';
+import { APP_BASE_HREF } from '@angular/common';
+import { Title } from '@angular/platform-browser';
+import { HttpContext, provideHttpClient, withXhr } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import {
   FormConfigFrame,
   FormFieldValidationGroup,
@@ -25,17 +25,16 @@ import {
   type JSONataEvaluate,
   LineagePaths,
   calculateValidationGroups as calculateSharedValidationGroups,
-} from "@researchdatabox/sails-ng-common";
+} from '@researchdatabox/sails-ng-common';
 import {
   jsonataParityFixtures,
   validationGroupCalculationFixtures,
 } from '@researchdatabox/sails-ng-common/dist/src/testing';
-import { FormValidationGroupsChangeInitial } from "./form-state";
-import { VocabTreeService } from "./service/vocab-tree.service";
-import { setUpDynamicAssets } from "./helpers.spec";
-import { FormControl } from "@angular/forms";
+import { FormValidationGroupsChangeInitial } from './form-state';
+import { VocabTreeService } from './service/vocab-tree.service';
+import { setUpDynamicAssets } from './helpers.spec';
+import { FormControl } from '@angular/forms';
 import { parseFormLoadConcurrency } from './form-concurrency-state';
-
 
 describe('The FormService', () => {
   const configService = getStubConfigService();
@@ -63,29 +62,29 @@ describe('The FormService', () => {
       providers: [
         {
           provide: APP_BASE_HREF,
-          useValue: 'http://localhost'
+          useValue: 'http://localhost',
         },
         LoggerService,
         UtilityService,
         {
           provide: TranslationService,
-          useValue: translationService
+          useValue: translationService,
         },
         {
           provide: ConfigService,
-          useValue: configService
+          useValue: configService,
         },
         Title,
         FormService,
         VocabTreeService,
         providePortalI18nTesting(),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
-      ]
+      ],
     });
     service = TestBed.inject(FormService);
     httpTesting = TestBed.inject(HttpTestingController);
-    (service as any).brandingAndPortalUrl = "http://localhost/default/rdmp";
+    (service as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
     (service as any).httpContext = new HttpContext();
   });
 
@@ -117,7 +116,7 @@ describe('The FormService', () => {
       angularComponents: [],
       dataModel: [],
       formConfig: [],
-      layout: []
+      layout: [],
     });
 
     const entries = await service.resolveFormComponentClasses(componentDefinitions, lineagePaths);
@@ -132,11 +131,12 @@ describe('The FormService', () => {
       name: string,
       pointer: string,
       children: FormFieldCompMapEntry[] = []
-    ): FormFieldCompMapEntry => ({
-      compConfigJson: { name },
-      lineagePaths: { angularComponentsJsonPointer: pointer } as any,
-      component: { formFieldCompMapEntries: children } as any
-    } as unknown as FormFieldCompMapEntry);
+    ): FormFieldCompMapEntry =>
+      ({
+        compConfigJson: { name },
+        lineagePaths: { angularComponentsJsonPointer: pointer } as any,
+        component: { formFieldCompMapEntries: children } as any,
+      }) as unknown as FormFieldCompMapEntry;
 
     it('transformIntoJSONataProperty should include nested children metadata', () => {
       const childEntry = createEntry('child', '/components/0/child');
@@ -177,8 +177,8 @@ describe('The FormService', () => {
 
       const source = service.getJSONataQuerySource([parentEntry], {
         requestParams: {
-          workspace: 'active'
-        }
+          workspace: 'active',
+        },
       });
 
       expect(source.querySource.length).toBe(2);
@@ -186,115 +186,125 @@ describe('The FormService', () => {
       expect((source.jsonPointerSource as any)['0'].metadata.formFieldEntry).toBe(parentEntry);
       expect((source.jsonPointerSource as any)['0'].child.metadata.formFieldEntry).toBe(childEntry);
       expect(source.runtimeContext?.requestParams).toEqual({
-        workspace: 'active'
+        workspace: 'active',
       });
     });
 
     it('should evaluate jsonata-expression validator as part of suggested validation errors', async () => {
-      const expression = "$ = 45";
+      const expression = '$ = 45';
       const mapEntry: FormFieldCompMapEntry = {
         // @ts-ignore
         model: {
-          formControl: new FormControl("hello world 2!"),
-          validators: [{
-            class: 'jsonata-expression',
-            config: {
-              description: "the description",
-              expression: expression,
+          formControl: new FormControl('hello world 2!'),
+          validators: [
+            {
+              class: 'jsonata-expression',
+              config: {
+                description: 'the description',
+                expression: expression,
+              },
             },
-          },],
+          ],
         },
         compConfigJson: {
-          name: "text_7",
+          name: 'text_7',
           component: {
-            class: "SimpleInputComponent"
-          }
+            class: 'SimpleInputComponent',
+          },
         },
         lineagePaths: {
-          formConfig: ["componentDefinitions", "0"],
-          dataModel: ["text_7"],
-          angularComponents: ["text_7"],
-          angularComponentsJsonPointer: "/text_7",
-          layout: ["text_7-layout"],
-          layoutJsonPointer: "/text_7-layout",
+          formConfig: ['componentDefinitions', '0'],
+          dataModel: ['text_7'],
+          angularComponents: ['text_7'],
+          angularComponentsJsonPointer: '/text_7',
+          layout: ['text_7-layout'],
+          layoutJsonPointer: '/text_7-layout',
         },
       };
-      const enabledValidationGroups: string[] = ["all"];
+      const enabledValidationGroups: string[] = ['all'];
       const validationGroups: FormValidationGroups = {};
       const expected: FormValidatorSummaryErrors[] = [
         {
           errors: [
             {
-              message: "@validator-error-jsonata-expression",
-              class: "jsonata-expression",
+              message: '@validator-error-jsonata-expression',
+              class: 'jsonata-expression',
               params: {
-                actual: "hello world 2!",
-                description: "the description",
+                actual: 'hello world 2!',
+                description: 'the description',
                 expression: expression,
               },
             },
           ],
-          id: "form-item-id-text-7",
+          id: 'form-item-id-text-7',
           message: null,
           lineagePaths: {
-            formConfig: ["componentDefinitions", "0"],
-            dataModel: ["text_7"],
-            angularComponents: ["text_7"],
-            angularComponentsJsonPointer: "/text_7",
-            layout: ["text_7-layout"],
-            layoutJsonPointer: "/text_7-layout",
+            formConfig: ['componentDefinitions', '0'],
+            dataModel: ['text_7'],
+            angularComponents: ['text_7'],
+            angularComponentsJsonPointer: '/text_7',
+            layout: ['text_7-layout'],
+            layoutJsonPointer: '/text_7-layout',
           },
-        }
+        },
       ];
-      const actual = await service.getSuggestedValidatorSummaryErrors(mapEntry, enabledValidationGroups, validationGroups);
+      const actual = await service.getSuggestedValidatorSummaryErrors(
+        mapEntry,
+        enabledValidationGroups,
+        validationGroups
+      );
       expect(actual).toEqual(expected);
     });
 
     it('should attach jsonata-expression as a hard async validator failure', async () => {
-      const control = new FormControl("hello world 2!");
-      const validators: FormValidatorConfig[] = [{
-        class: 'jsonata-expression',
-        config: {
-          description: "the description",
-          expression: "$ = 45",
+      const control = new FormControl('hello world 2!');
+      const validators: FormValidatorConfig[] = [
+        {
+          class: 'jsonata-expression',
+          config: {
+            description: 'the description',
+            expression: '$ = 45',
+          },
         },
-      }];
+      ];
       const mapEntry = {
         lineagePaths: {
-          formConfig: ["componentDefinitions", "0"],
+          formConfig: ['componentDefinitions', '0'],
         },
       } as unknown as FormFieldCompMapEntry;
 
-      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      service.setValidators(control, validators, ['all'], {}, { doUpdate: true }, mapEntry);
       await waitForAsyncValidation();
 
       expect(control.invalid).toBeTrue();
       expect(control.errors?.['jsonata-expression']).toEqual({
-        message: "@validator-error-jsonata-expression",
+        message: '@validator-error-jsonata-expression',
         params: {
-          actual: "hello world 2!",
-          description: "the description",
-          expression: "$ = 45",
+          actual: 'hello world 2!',
+          description: 'the description',
+          expression: '$ = 45',
         },
       });
     });
 
     it('should attach jsonata-expression as a hard async validator pass', async () => {
       const control = new FormControl(45);
-      const validators: FormValidatorConfig[] = [{
-        class: 'jsonata-expression',
-        config: {
-          description: "the description",
-          expression: "$ = 45",
+      const validators: FormValidatorConfig[] = [
+        {
+          class: 'jsonata-expression',
+          config: {
+            description: 'the description',
+            expression: '$ = 45',
+          },
         },
-      }];
+      ];
       const mapEntry = {
         lineagePaths: {
-          formConfig: ["componentDefinitions", "0"],
+          formConfig: ['componentDefinitions', '0'],
         },
       } as unknown as FormFieldCompMapEntry;
 
-      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      service.setValidators(control, validators, ['all'], {}, { doUpdate: true }, mapEntry);
       await waitForAsyncValidation();
 
       expect(control.valid).toBeTrue();
@@ -302,28 +312,36 @@ describe('The FormService', () => {
     });
 
     it('should keep both errors when the same validator class is used twice on one control', async () => {
-      const control = new FormControl("hello world 2!");
+      const control = new FormControl('hello world 2!');
       const validators: FormValidatorConfig[] = [
-        { class: 'pattern', message: "@must-start-with-prefix", config: { pattern: "^prefix.*$", description: "must start with prefix" } },
-        { class: 'pattern', message: "@must-end-with-suffix", config: { pattern: ".*suffix$", description: "must end with suffix" } },
+        {
+          class: 'pattern',
+          message: '@must-start-with-prefix',
+          config: { pattern: '^prefix.*$', description: 'must start with prefix' },
+        },
+        {
+          class: 'pattern',
+          message: '@must-end-with-suffix',
+          config: { pattern: '.*suffix$', description: 'must end with suffix' },
+        },
       ];
       const mapEntry = {
         lineagePaths: {
-          formConfig: ["componentDefinitions", "0"],
+          formConfig: ['componentDefinitions', '0'],
         },
       } as unknown as FormFieldCompMapEntry;
 
-      service.setValidators(control, validators, ["all"], {}, { doUpdate: true }, mapEntry);
+      service.setValidators(control, validators, ['all'], {}, { doUpdate: true }, mapEntry);
       await waitForAsyncValidation();
 
       expect(control.invalid).toBeTrue();
       // Both validators kept their own entry in the merged errors object (no collision).
-      expect(Object.keys(control.errors ?? {}).sort()).toEqual(["pattern#0", "pattern#1"]);
+      expect(Object.keys(control.errors ?? {}).sort()).toEqual(['pattern#0', 'pattern#1']);
 
       // The real class is recovered for display, so both appear as 'pattern'.
       const componentErrors = service.getFormValidatorComponentErrors(control);
-      expect(componentErrors.map(e => e.class)).toEqual(["pattern", "pattern"]);
-      expect(componentErrors.map(e => e.message).sort()).toEqual(["@must-end-with-suffix", "@must-start-with-prefix"]);
+      expect(componentErrors.map(e => e.class)).toEqual(['pattern', 'pattern']);
+      expect(componentErrors.map(e => e.message).sort()).toEqual(['@must-end-with-suffix', '@must-start-with-prefix']);
     });
   });
 
@@ -334,7 +352,9 @@ describe('The FormService', () => {
 
     it('should use the provided recordType when building the dynamic asset path', async () => {
       const utilityService = TestBed.inject(UtilityService);
-      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({ evaluate: () => '' } as any);
+      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({
+        evaluate: () => '',
+      } as any);
 
       await service.getDynamicImportFormCompiledItems('rdmp', 'oid-123', 'view');
 
@@ -347,7 +367,9 @@ describe('The FormService', () => {
 
     it('should fall back to auto recordType for existing records when the recordType is blank', async () => {
       const utilityService = TestBed.inject(UtilityService);
-      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({ evaluate: () => '' } as any);
+      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({
+        evaluate: () => '',
+      } as any);
 
       await service.getDynamicImportFormCompiledItems('', 'oid-123', 'view');
 
@@ -360,7 +382,9 @@ describe('The FormService', () => {
 
     it('should preserve edit mode query params with the auto recordType fallback', async () => {
       const utilityService = TestBed.inject(UtilityService);
-      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({ evaluate: () => '' } as any);
+      const getDynamicImportSpy = spyOn(utilityService, 'getDynamicImport').and.resolveTo({
+        evaluate: () => '',
+      } as any);
 
       await service.getDynamicImportFormCompiledItems('', 'oid-123', 'edit' as FormModesConfig);
 
@@ -372,17 +396,19 @@ describe('The FormService', () => {
     });
 
     it('should use the provided form mode when building compiled validator imports', async () => {
-      const getDynamicImportFormCompiledItemsSpy = spyOn(service, 'getDynamicImportFormCompiledItems').and.resolveTo({ evaluate: () => '' } as any);
+      const getDynamicImportFormCompiledItemsSpy = spyOn(service, 'getDynamicImportFormCompiledItems').and.resolveTo({
+        evaluate: () => '',
+      } as any);
       const formConfig: FormConfigFrame = {
         name: 'testing',
         type: 'rdmp',
-        componentDefinitions: []
+        componentDefinitions: [],
       };
       const parentLineagePaths = service.buildLineagePaths({
         angularComponents: [],
         dataModel: [],
         formConfig: [],
-        layout: []
+        layout: [],
       });
 
       await service.createFormComponentsMap(formConfig, parentLineagePaths, undefined, 'view');
@@ -395,74 +421,79 @@ describe('The FormService', () => {
     const cases: {
       title: string;
       args: {
-        currentValidationGroups: string[],
-        validationGroups: FormValidationGroups,
-        initial?: FormValidationGroupsChangeInitial,
-        groups?: FormFieldValidationGroup
+        currentValidationGroups: string[];
+        validationGroups: FormValidationGroups;
+        initial?: FormValidationGroupsChangeInitial;
+        groups?: FormFieldValidationGroup;
       };
       expected: string[];
     }[] = [
-        {
-          title: "be empty with empty parameters",
-          args: { currentValidationGroups: [], validationGroups: {} },
-          expected: [],
-        },
-        {
-          title: "add included group to current groups",
-          args: {
-            currentValidationGroups: ["none"],
-            validationGroups: {
-              "none": { description: "", initialMembership: "none" },
-              "tester": { description: "" }
-            },
-            initial: "current",
-            groups: { include: ["tester"] },
+      {
+        title: 'be empty with empty parameters',
+        args: { currentValidationGroups: [], validationGroups: {} },
+        expected: [],
+      },
+      {
+        title: 'add included group to current groups',
+        args: {
+          currentValidationGroups: ['none'],
+          validationGroups: {
+            none: { description: '', initialMembership: 'none' },
+            tester: { description: '' },
           },
-          expected: ["none", "tester"],
+          initial: 'current',
+          groups: { include: ['tester'] },
         },
-        {
-          title: "remove excluded group from current groups",
-          args: {
-            currentValidationGroups: ["none"],
-            validationGroups: {
-              "none": { description: "", initialMembership: "none" },
-              "tester": { description: "" }
-            },
-            initial: "current",
-            groups: { exclude: ["none"] },
+        expected: ['none', 'tester'],
+      },
+      {
+        title: 'remove excluded group from current groups',
+        args: {
+          currentValidationGroups: ['none'],
+          validationGroups: {
+            none: { description: '', initialMembership: 'none' },
+            tester: { description: '' },
           },
-          expected: [],
+          initial: 'current',
+          groups: { exclude: ['none'] },
         },
-        {
-          title: "remove excluded group from all groups",
-          args: {
-            currentValidationGroups: [],
-            validationGroups: {
-              "none": { description: "", initialMembership: "none" },
-              "tester": { description: "" }
-            },
-            initial: "all",
-            groups: { exclude: ["tester"] },
+        expected: [],
+      },
+      {
+        title: 'remove excluded group from all groups',
+        args: {
+          currentValidationGroups: [],
+          validationGroups: {
+            none: { description: '', initialMembership: 'none' },
+            tester: { description: '' },
           },
-          expected: ["none"],
+          initial: 'all',
+          groups: { exclude: ['tester'] },
         },
-        {
-          title: "set included group with initial none",
-          args: {
-            currentValidationGroups: ["none"],
-            validationGroups: {
-              "none": { description: "", initialMembership: "none" },
-              "tester": { description: "" }
-            },
-            initial: "none",
-            groups: { include: ["tester"] },
+        expected: ['none'],
+      },
+      {
+        title: 'set included group with initial none',
+        args: {
+          currentValidationGroups: ['none'],
+          validationGroups: {
+            none: { description: '', initialMembership: 'none' },
+            tester: { description: '' },
           },
-          expected: ["tester"],
+          initial: 'none',
+          groups: { include: ['tester'] },
         },
-      ];
+        expected: ['tester'],
+      },
+    ];
     cases.forEach(({ title, args, expected }) => {
       it(`should ${title}`, async function () {
-        const results = service.calculateValidationGroups(args.currentValidationGroups, args.validationGroups, args.initial, args.groups);
+        const results = service.calculateValidationGroups(
+          args.currentValidationGroups,
+          args.validationGroups,
+          args.initial,
+          args.groups
+        );
         expect(results).toEqual(expected);
       });
     });
@@ -474,7 +505,7 @@ describe('The FormService', () => {
           fixture.validationGroups,
           fixture.initial,
           fixture.groups,
-          fixture.operationEnabledValidationGroups,
+          fixture.operationEnabledValidationGroups
         );
 
         expect(sharedResult.enabledValidationGroups).toEqual(fixture.expectedGroups);
@@ -483,12 +514,14 @@ describe('The FormService', () => {
         );
 
         if (fixture.operationEnabledValidationGroups === undefined) {
-          expect(service.calculateValidationGroups(
-            fixture.currentValidationGroups,
-            fixture.validationGroups,
-            fixture.initial,
-            fixture.groups,
-          )).toEqual(fixture.expectedGroups);
+          expect(
+            service.calculateValidationGroups(
+              fixture.currentValidationGroups,
+              fixture.validationGroups,
+              fixture.initial,
+              fixture.groups
+            )
+          ).toEqual(fixture.expectedGroups);
         }
       });
     }
@@ -497,10 +530,12 @@ describe('The FormService', () => {
   describe('JSONata browser/server parity', () => {
     for (const fixture of jsonataParityFixtures) {
       it(`should match shared fixture: ${fixture.name}`, async () => {
-        const [validator] = service.prepareValidatorConfigs([{
-          class: 'jsonata-expression',
-          config: { expression: fixture.expression },
-        }]);
+        const [validator] = service.prepareValidatorConfigs([
+          {
+            class: 'jsonata-expression',
+            config: { expression: fixture.expression },
+          },
+        ]);
         const evaluator = validator.config?.['evaluator'] as JSONataEvaluate | undefined;
 
         expect(evaluator).toEqual(jasmine.any(Function));
@@ -509,12 +544,12 @@ describe('The FormService', () => {
     }
   });
 
-  it("should download form components and form config meta", async function () {
+  it('should download form components and form config meta', async function () {
     const basicFormConfig: FormConfigFrame = {
       name: 'testing',
       debugValue: true,
       defaultComponentConfig: {
-        defaultComponentCssClasses: 'form-control'
+        defaultComponentCssClasses: 'form-control',
       },
       editCssClasses: 'redbox-form form',
       componentDefinitions: [
@@ -523,31 +558,36 @@ describe('The FormService', () => {
           model: {
             class: 'SimpleInputModel',
             config: {
-              value: 'initial value'
-            }
+              value: 'initial value',
+            },
           },
           component: {
             class: 'SimpleInputComponent',
             config: {
               type: 'text',
-              label: 'Test Field'
-            }
-          }
-        }
-      ]
+              label: 'Test Field',
+            },
+          },
+        },
+      ],
     };
     const meta: Record<string, unknown> = {
       workflow: { stage: 'draft', stageLabel: 'Draft' },
-      contextVariables: { 'one': 1 },
+      contextVariables: { one: 1 },
       revision: 4,
       entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
       formFingerprint: 'sha256:form_1',
     };
     setUpDynamicAssets();
-    const oid = "oid", recordType = "auto", editMode = false, formName = "", modulePaths: string[] = [];
+    const oid = 'oid',
+      recordType = 'auto',
+      editMode = false,
+      formName = '',
+      modulePaths: string[] = [];
     const result = service.downloadFormComponents(oid, recordType, editMode, formName, modulePaths);
-    const req = httpTesting.expectOne((request) =>
-      request.url.startsWith(`http://localhost/default/rdmp/record/form/${recordType}/${oid}`));
+    const req = httpTesting.expectOne(request =>
+      request.url.startsWith(`http://localhost/default/rdmp/record/form/${recordType}/${oid}`)
+    );
     expect(req.request.method).toBe('GET');
     expect(req.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
     const headerTag = meta['entityTag'] as string;
@@ -559,72 +599,75 @@ describe('The FormService', () => {
     expect(formMap.formFingerprint).toBe('sha256:form_1');
   });
 
-  it("should seed vocab-tree prehydrate payload before creating form components", async function () {
+  it('should seed vocab-tree prehydrate payload before creating form components', async function () {
     const basicFormConfig: FormConfigFrame = {
       name: 'testing',
       debugValue: true,
-      componentDefinitions: []
+      componentDefinitions: [],
     };
     const vocabTreeService = TestBed.inject(VocabTreeService);
     const seedVocabSpy = spyOn(vocabTreeService, 'seedFromPayload');
     const createSpy = spyOn(service, 'createFormComponentsMap').and.resolveTo({ formConfigMeta: {} } as any);
 
     const promise = service.downloadFormComponents('oid', 'auto', false, '', []);
-    const req = httpTesting.expectOne((request) =>
-      request.url.startsWith('http://localhost/default/rdmp/record/form/auto/oid'));
+    const req = httpTesting.expectOne(request =>
+      request.url.startsWith('http://localhost/default/rdmp/record/form/auto/oid')
+    );
     req.flush({
       data: basicFormConfig,
       meta: {},
-      prehydrate: { vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } }
+      prehydrate: { vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } },
     });
     await promise;
 
     expect(seedVocabSpy).toHaveBeenCalled();
     expect(createSpy).toHaveBeenCalled();
-    expect(seedVocabSpy).toHaveBeenCalledWith({ vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } } });
+    expect(seedVocabSpy).toHaveBeenCalledWith({
+      vocabTrees: { access: { childrenByParentId: {}, selectedNotations: [] } },
+    });
   });
 
-  it("should find nested component", async function () {
+  it('should find nested component', async function () {
     const entryTwo: FormFieldCompMapEntry = {
       // @ts-ignore
-      compConfigJson: {name: "two"},
+      compConfigJson: { name: 'two' },
       // @ts-ignore
-      lineagePaths: {dataModel: ["one", "two"]},
+      lineagePaths: { dataModel: ['one', 'two'] },
       // @ts-ignore
-      component: {formFieldCompMapEntries: []},
+      component: { formFieldCompMapEntries: [] },
     };
     const entryOne: FormFieldCompMapEntry = {
       // @ts-ignore
-      compConfigJson: {name: "one"},
+      compConfigJson: { name: 'one' },
       // @ts-ignore
-      lineagePaths: {dataModel: ["one"]},
+      lineagePaths: { dataModel: ['one'] },
       // @ts-ignore
-      component: {formFieldCompMapEntries: [entryTwo]},
+      component: { formFieldCompMapEntries: [entryTwo] },
     };
     const entries: FormFieldCompMapEntry[] = [entryOne];
-    const actual = service.getFormFieldCompMapEntry({dataModel: ["one", "two"]}, entries);
+    const actual = service.getFormFieldCompMapEntry({ dataModel: ['one', 'two'] }, entries);
     expect(actual).toEqual(entryTwo);
   });
 
-  it("should not find nested component with incorrect query", async function () {
+  it('should not find nested component with incorrect query', async function () {
     const entryTwo: FormFieldCompMapEntry = {
       // @ts-ignore
-      compConfigJson: {name: "two"},
+      compConfigJson: { name: 'two' },
       // @ts-ignore
-      lineagePaths: {dataModel: ["one", "two"]},
+      lineagePaths: { dataModel: ['one', 'two'] },
       // @ts-ignore
-      component: {formFieldCompMapEntries: []},
+      component: { formFieldCompMapEntries: [] },
     };
     const entryOne: FormFieldCompMapEntry = {
       // @ts-ignore
-      compConfigJson: {name: "one"},
+      compConfigJson: { name: 'one' },
       // @ts-ignore
-      lineagePaths: {dataModel: ["one"]},
+      lineagePaths: { dataModel: ['one'] },
       // @ts-ignore
-      component: {formFieldCompMapEntries: [entryTwo]},
+      component: { formFieldCompMapEntries: [entryTwo] },
     };
     const entries: FormFieldCompMapEntry[] = [entryOne];
-    const actual = service.getFormFieldCompMapEntry({dataModel: ["two"]}, entries);
+    const actual = service.getFormFieldCompMapEntry({ dataModel: ['two'] }, entries);
     expect(actual).toEqual(undefined);
   });
 });

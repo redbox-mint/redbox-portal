@@ -6,7 +6,7 @@ import {
   Injector,
   ViewChild,
   ViewContainerRef,
-  inject,
+  inject, signal, ChangeDetectionStrategy,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
@@ -73,6 +73,7 @@ import { FormComponent } from '../form.component';
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class AccordionComponent extends FormFieldBaseComponent<undefined> {
@@ -269,6 +270,7 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {
@@ -280,7 +282,9 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {
   public override componentDefinition?: AccordionPanelFieldComponentDefinitionFrame;
   panel?: AccordionPanelFormComponentDefinitionFrame;
   panelIndex = 0;
-  isOpen = true;
+  private readonly openState = signal(true);
+  get isOpen(): boolean { return this.openState(); }
+  set isOpen(value: boolean) { this.openState.set(value); }
   ariaLiveMessage = '';
 
   @ViewChild('panelToggleButton', { read: ElementRef, static: false })

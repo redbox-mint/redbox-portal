@@ -58,7 +58,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     HttpClientModule,
     FormsModule,
     I18NextPipe,
-    PaginationModule.forRoot()
+    PaginationModule
   ],
   exports: [
     I18NextPipe,

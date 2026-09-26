@@ -16,8 +16,10 @@ test('A03 filters owned dashboard records, sorts both ways, paginates and opens 
   const links = app.locator('tbody a').filter({ hasText: prefix });
   await expect(links).toHaveCount(10);
   const titleSort = app.locator('sort').filter({ hasText: /Title/ }).getByRole('button');
+  const initialDirection = await titleSort.getAttribute('aria-sort');
   await titleSort.click();
-  const direction = await titleSort.getAttribute('aria-sort');
+  const direction = initialDirection === 'ascending' ? 'descending' : 'ascending';
+  await expect(titleSort).toHaveAttribute('aria-sort', direction);
   const firstTitle = direction === 'ascending' ? owned[0].metadata.title : owned[11].metadata.title;
   await expect(links.first()).toHaveText(firstTitle as string);
   await titleSort.click();

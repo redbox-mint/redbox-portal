@@ -11,7 +11,7 @@ import { SearchService } from './search.service';
 
 @NgModule({
   declarations: [RecordSearchComponent, RecordSearchRefinerComponent],
-  imports: [BrowserModule, FormsModule, RedboxPortalCoreModule, PaginationModule.forRoot()],
+  imports: [BrowserModule, FormsModule, RedboxPortalCoreModule, PaginationModule],
   providers: [
     SearchService,
     {

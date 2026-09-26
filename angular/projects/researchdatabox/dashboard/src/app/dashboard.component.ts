@@ -1,4 +1,4 @@
-import { Component, Inject, ElementRef } from '@angular/core';
+import { Component, Inject, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import {
   BaseComponent,
@@ -41,7 +41,8 @@ interface StepState {
 @Component({
   selector: 'dashboard',
   templateUrl: './dashboard.component.html',
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class DashboardComponent extends BaseComponent {
   config: any = {};

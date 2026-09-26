@@ -1,4 +1,4 @@
-import { Component, HostListener, Inject, OnDestroy } from '@angular/core';
+import { Component, HostListener, Inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   DashboardConfigApiError,
@@ -31,7 +31,8 @@ function emptySelection(): SelectionState {
   selector: 'dashboard-config-editor',
   templateUrl: './dashboard-config-editor.component.html',
   styleUrls: ['./dashboard-config-editor.component.scss'],
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {
   readonly copyGroups = COPY_GROUPS;

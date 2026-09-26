@@ -1,4 +1,4 @@
-import {Component, Input, Output, EventEmitter, Inject} from '@angular/core';
+import {Component, Input, Output, EventEmitter, Inject, ChangeDetectionStrategy, signal} from '@angular/core';
 import {BaseComponent} from "./base.component";
 import {LoggerService} from "./logger.service";
 
@@ -33,10 +33,13 @@ import {LoggerService} from "./logger.service";
         width: 0.75rem;
       }
     `],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class HeaderSortComponent extends BaseComponent {
-  @Input() sort: string = '';
+  private readonly sortState = signal('');
+  @Input() get sort(): string { return this.sortState(); }
+  set sort(value: string) { this.sortState.set(value); }
   @Input() title: string = '';
   @Input() step: string = '';
   @Input() variable: string = '';

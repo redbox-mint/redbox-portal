@@ -1,4 +1,4 @@
-import { Component, HostListener, Injector, Input, inject } from "@angular/core";
+import { Component, HostListener, Injector, Input, inject, signal, ChangeDetectionStrategy } from "@angular/core";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
   DynamicScriptResponse, handlebarsTemplate,
@@ -27,6 +27,7 @@ export class PDFListModel extends FormFieldModel<PDFListModelValueType> {
     selector: "redbox-pdf-list",
     templateUrl: "./pdf-list.component.html",
     styleUrls: ["./pdf-list.component.scss"],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueType> {
@@ -47,8 +48,12 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
     public fileNameTemplate = "";
     public pdfAttachments: PDFListAttachmentView[] = [];
     public latestPdf: PDFListAttachmentView | null = null;
-    public showHistoryModal = false;
-    public showHistoryMenu = false;
+    private readonly historyModalVisible = signal(false);
+    public get showHistoryModal(): boolean { return this.historyModalVisible(); }
+    public set showHistoryModal(value: boolean) { this.historyModalVisible.set(value); }
+    private readonly historyMenuVisible = signal(false);
+    public get showHistoryMenu(): boolean { return this.historyMenuVisible(); }
+    public set showHistoryMenu(value: boolean) { this.historyMenuVisible.set(value); }
 
     private readonly injector = inject(Injector);
     private readonly formService = inject(FormService);
@@ -217,6 +222,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
 
     private applyAttachments(attachments: PDFListAttachmentView[]): void {
         this.pdfAttachments = attachments;
+        this.requestRender();
         this.latestPdf = attachments[0] ?? null;
         this.formControl.setValue(attachments, { emitEvent: true });
         this.formControl.markAsPristine();

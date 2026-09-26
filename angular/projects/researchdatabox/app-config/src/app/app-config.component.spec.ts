@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { APP_BASE_HREF, CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AppConfigComponent } from './app-config.component';
 import { UtilityService, LoggerService, UserService, TranslationService, ConfigService, AppConfigService } from '@researchdatabox/portal-ng-common';
-import { getStubConfigService, getStubTranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/helper.spec';
+import { getStubConfigService, getStubTranslationService } from '../../../portal-ng-common/src/lib/helper.spec';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { ArrayTypeComponent } from './fieldTypes/array.type';
@@ -93,6 +94,7 @@ describe('AppConfigComponent', () => {
         FormlyBootstrapModule
       ],
       providers: [
+        provideZonelessChangeDetection(),
         {
           provide: AppConfigService,
           useValue: appConfigService
@@ -133,8 +135,10 @@ describe('AppConfigComponent', () => {
     await fixture.whenStable();
     app.configKey = 'test';
     app.model = { "enabled": true, "title": "Test Title", "message": "Test Message" };
-    app.onSubmit(app.model);
-
+    await app.onSubmit(app.model);
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.alert-success')?.textContent).toContain('Configuration saved successfully');
+    expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
   });
   it('Check form submission failure', async () => {
     const fixture = TestBed.createComponent(AppConfigComponent);
@@ -146,7 +150,10 @@ describe('AppConfigComponent', () => {
     await fixture.whenStable();
     app.configKey = 'fail';
     app.model = { "enabled": true, "title": "Test Title", "message": "Test Message" };
-    app.onSubmit(app.model);
+    await app.onSubmit(app.model);
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.alert-danger')?.textContent).toContain('Configuration failed to save');
+    expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
   });
 
   it('Test form rendering', async () => {

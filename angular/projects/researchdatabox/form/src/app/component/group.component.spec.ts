@@ -26,7 +26,7 @@ describe('GroupFieldComponent', () => {
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
       },
       imports: {
-        "TypeaheadModule": TypeaheadModule.forRoot(),
+        "TypeaheadModule": TypeaheadModule,
       },
     });
   });

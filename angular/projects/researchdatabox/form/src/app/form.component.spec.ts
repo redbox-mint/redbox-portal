@@ -1,4 +1,5 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
+import {provideZonelessChangeDetection} from '@angular/core';
 import { Location } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
@@ -244,6 +245,7 @@ describe('FormComponent', () => {
   }
 
   it('should render basic form config', async () => {
+    TestBed.configureTestingModule({providers: [provideZonelessChangeDetection()]});
     const formConfig: FormConfigFrame = {
       name: 'testing',
       debugValue: true,
@@ -266,12 +268,14 @@ describe('FormComponent', () => {
         }
       ]
     };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
 
     // Now run your expectations
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect(inputElement).toBeTruthy();
+    expect(compiled.classList.contains('redbox-form')).toBeTrue();
+    expect(compiled.classList.contains('form')).toBeTrue();
   });
 
   it('retains an immutable loaded baseline and sends its exact tag, revision, and fingerprint', async () => {

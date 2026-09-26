@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 
 interface CategoryMappingRow {
@@ -9,6 +9,7 @@ interface CategoryMappingRow {
 @Component({
   selector: 'formly-figshare-category-mapping-editor-type',
   templateUrl: './figshare-category-mapping-editor.type.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareCategoryMappingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {

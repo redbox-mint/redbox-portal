@@ -1,4 +1,4 @@
-import { Component, Inject, ViewChild } from '@angular/core';
+import { Component, Inject, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { LoggerService, TranslationService, UserService, BaseComponent } from '@researchdatabox/portal-ng-common';
 import { Role, User } from '@researchdatabox/portal-ng-common';
@@ -8,6 +8,7 @@ import * as _ from 'lodash';
     selector: 'manage-roles',
     templateUrl: './manage-roles.component.html',
     styleUrls: ['./manage-roles.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class ManageRolesComponent extends BaseComponent {

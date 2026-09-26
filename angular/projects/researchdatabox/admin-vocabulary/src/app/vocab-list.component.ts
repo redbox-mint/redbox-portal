@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { VocabularySummary } from './vocabulary-api.service';
 
 type SourceFilter = 'all' | 'local' | 'rva';
@@ -13,6 +13,7 @@ type VocabularyListQueryState = {
   selector: 'vocab-list',
   templateUrl: './vocab-list.component.html',
   styleUrls: ['./vocab-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class VocabListComponent implements OnChanges, OnDestroy {

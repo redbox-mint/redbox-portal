@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
 import {
   emptyRecordSaveCompletion,
@@ -77,6 +77,7 @@ type SaveStatusMessageConfigProperty =
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {

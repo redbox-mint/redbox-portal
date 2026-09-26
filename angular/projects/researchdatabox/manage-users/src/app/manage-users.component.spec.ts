@@ -139,7 +139,7 @@ describe('ManageUsersComponent', () => {
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
-        ModalModule.forRoot()
+        ModalModule
       ],
       providers: [
         FormBuilder,
@@ -275,6 +275,51 @@ describe('ManageUsersComponent', () => {
     expect(app.filteredUsers[0].name).toBe('Local Admin');
   });
 
+  it('shows a generated API key, then removes it after revocation', async () => {
+    const {fixture, app} = await createComponent();
+    app.editUser('admin');
+    fixture.detectChanges();
+    const generate = spyOn(userService, 'genKey').and.resolveTo({status: true, message: 'generated-token'});
+    const revoke = spyOn(userService, 'revokeKey').and.resolveTo({status: true, message: 'revoked'});
+
+    await app.genKey('ABC123');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(generate).toHaveBeenCalledOnceWith('ABC123');
+    expect(app.showToken).toBeTrue();
+    expect(app.currentUser?.token).toBe('generated-token');
+    expect(app.updateDetailsMsg).toBe('Token generated.');
+    expect(document.body.querySelector('.mu-token-display')?.textContent).toContain('generated-token');
+
+    await app.revokeKey('ABC123');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(revoke).toHaveBeenCalledOnceWith('ABC123');
+    expect(app.currentUser?.token).toBe('');
+    expect(app.updateDetailsMsg).toBe('Token revoked.');
+    expect(document.body.querySelector('.mu-token-display')).toBeNull();
+  });
+
+  it('keeps the current token and reports an API key failure', async () => {
+    const {fixture, app} = await createComponent();
+    app.editUser('admin');
+    app.currentUser!.token = 'existing-token';
+    spyOn(userService, 'genKey').and.resolveTo({status: false, message: 'Generation denied'});
+    spyOn(userService, 'revokeKey').and.resolveTo({status: false, message: 'Revocation denied'});
+
+    await app.genKey('ABC123');
+    await fixture.whenStable();
+    expect(app.currentUser?.token).toBe('existing-token');
+    expect(app.updateDetailsMsg).toBe('Generation denied');
+    expect(app.updateDetailsMsgType).toBe('danger');
+
+    await app.revokeKey('ABC123');
+    await fixture.whenStable();
+    expect(app.currentUser?.token).toBe('existing-token');
+    expect(app.updateDetailsMsg).toBe('Revocation denied');
+    expect(app.updateDetailsMsgType).toBe('danger');
+  });
+
   it('should open the audit modal, fetch records, and render them', async () => {
     const app = createBareComponent();
 
@@ -289,25 +334,26 @@ describe('ManageUsersComponent', () => {
 
   it('should render loading, empty, truncated, and error audit states', async () => {
     const { fixture, app } = await createComponent();
-
-    app.auditModalUser = usersData[0] as any;
-    app.isAuditModalShown = true;
-    app.isAuditLoading = true;
+    let resolveAudit!: (response: any) => void;
+    userService.getUserAudit.and.returnValue(new Promise(resolve => { resolveAudit = resolve; }));
+    const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find(item => item.textContent?.includes('manage-users-audit-action'))!;
+    button.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-loading');
 
-    app.isAuditLoading = false;
-    app.auditRecords = [];
-    app.auditError = '';
-    app.auditSummary = { returnedCount: 0, truncated: false };
+    resolveAudit({records: [], summary: {returnedCount: 0, truncated: false}});
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-empty');
 
-    app.auditSummary = { returnedCount: 100, truncated: true };
+    userService.getUserAudit.and.resolveTo({records: [], summary: {returnedCount: 100, truncated: true}});
+    await app.viewAudit(usersData[0] as any);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-truncated');
 
-    app.auditError = 'failed';
+    userService.getUserAudit.and.rejectWith(new Error('failed'));
+    await app.viewAudit(usersData[0] as any);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('failed');
   });
@@ -321,7 +367,8 @@ describe('ManageUsersComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-raw-toggle');
 
-    app.toggleAuditRow('audit-1');
+    Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find(item => item.textContent?.includes('manage-users-audit-raw-toggle'))!.click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-raw-label');

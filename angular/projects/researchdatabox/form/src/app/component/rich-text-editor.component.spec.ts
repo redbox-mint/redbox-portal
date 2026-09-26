@@ -132,6 +132,55 @@ describe("RichTextEditorComponent", () => {
     expect(richTextComponent.editor?.getHTML()).toContain("<strong>");
   });
 
+  it("adds and removes a link through the toolbar without losing the selected text", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [{
+        name: "editableField",
+        component: {class: "RichTextEditorComponent"},
+        model: {class: "RichTextEditorModel", config: {value: "<p>Project homepage</p>"}}
+      }]
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    const prompt = spyOn(globalThis, "prompt").and.returnValues("https://example.test/project", null, "");
+
+    component.editor?.commands.selectAll();
+    component.onToolbarAction("link");
+    await fixture.whenStable();
+    expect(component.editor?.getHTML()).toContain('href="https://example.test/project"');
+    expect(formComponent.form?.controls["editableField"].value).toContain('href="https://example.test/project"');
+
+    component.editor?.commands.selectAll();
+    component.onToolbarAction("link");
+    expect(component.editor?.getHTML()).toContain('href="https://example.test/project"');
+
+    component.editor?.commands.selectAll();
+    component.onToolbarAction("link");
+    await fixture.whenStable();
+    expect(component.editor?.getHTML()).not.toContain("<a ");
+    expect(prompt).toHaveBeenCalledTimes(3);
+  });
+
+  it("persists editable Markdown and shows the Markdown source label", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [{
+        name: "markdownField",
+        component: {class: "RichTextEditorComponent", config: {outputFormat: "markdown", showSourceToggle: true}},
+        model: {class: "RichTextEditorModel", config: {value: "**Before**"}}
+      }]
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, editModeProps);
+    const component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+
+    expect(component.getSourceToggleLabelKey()).toBe("@rich-text-editor-source-toggle-markdown");
+    component.editor?.commands.setContent("<p><strong>After</strong></p>");
+    await fixture.whenStable();
+    expect(formComponent.form?.controls["markdownField"].value).toContain("**After**");
+    expect(component.getSourceLabel()).toBe("Markdown");
+  });
+
   it("does not render source toggle by default", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",

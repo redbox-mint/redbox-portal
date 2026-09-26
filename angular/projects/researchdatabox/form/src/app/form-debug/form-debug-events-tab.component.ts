@@ -1,10 +1,11 @@
-import { AfterViewInit, Component, ElementRef, ViewChild, effect } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild, effect, ChangeDetectionStrategy } from '@angular/core';
 import { FormDebugStateService } from './form-debug-state.service';
 
 @Component({
   selector: 'redbox-form-debug-events-tab',
   templateUrl: './form-debug-events-tab.component.html',
   styleUrls: ['./form-debug-events-tab.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FormDebugEventsTabComponent implements AfterViewInit {

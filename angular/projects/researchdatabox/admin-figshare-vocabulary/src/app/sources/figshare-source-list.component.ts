@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FigshareSourceSummary } from '../services/figshare-vocabulary-api.service';
 import { formatFigshareTimestamp } from '../figshare-format';
 
 @Component({
   selector: 'figshare-source-list',
   templateUrl: './figshare-source-list.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareSourceListComponent {

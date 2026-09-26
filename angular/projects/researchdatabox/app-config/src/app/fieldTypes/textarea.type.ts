@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType } from '@ngx-formly/core';
 
 @Component({
@@ -7,6 +7,7 @@ import { FieldType } from '@ngx-formly/core';
   <textarea [id]="id" [class.is-invalid]="showError" 
               [formlyAttributes]="field" class="form-control"></textarea>
   `,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: false
 })
 export class TextAreaComponent extends FieldType {}

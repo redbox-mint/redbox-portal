@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { DashboardFieldCatalogue, DashboardRowConfig, DashboardTableConfig } from '../dashboard-config-api.service';
 
 type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
@@ -158,7 +158,8 @@ type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
       color: var(--dc-text-subtle, #6b7280);
     }
   `],
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class TableConfigEditorComponent {
   @Input() config: DashboardTableConfig = {};

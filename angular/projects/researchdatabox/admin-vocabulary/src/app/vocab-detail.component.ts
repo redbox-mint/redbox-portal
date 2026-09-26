@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ChangeDetectionStrategy, signal } from '@angular/core';
 import { VocabularyDetail, VocabularyEntry } from './vocabulary-api.service';
 
 interface PreviewTreeNode {
@@ -11,6 +11,7 @@ interface PreviewTreeNode {
   selector: 'vocab-detail',
   templateUrl: './vocab-detail.component.html',
   styleUrls: ['./vocab-detail.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class VocabDetailComponent implements OnChanges {
@@ -21,7 +22,9 @@ export class VocabDetailComponent implements OnChanges {
   private removeEntryModalTrigger: HTMLElement | null = null;
   isTreePreviewVisible = false;
   previewTree: PreviewTreeNode[] = [];
-  isRemoveEntryModalOpen = false;
+  private readonly isRemoveEntryModalOpenState = signal(false);
+  get isRemoveEntryModalOpen(): boolean { return this.isRemoveEntryModalOpenState(); }
+  set isRemoveEntryModalOpen(value: boolean) { this.isRemoveEntryModalOpenState.set(value); }
 
   @Input() draft: VocabularyDetail = {
     name: '',

@@ -1,8 +1,4 @@
-import {
-  FormFieldBaseComponent,
-  FormFieldCompMapEntry,
-  FormFieldModel
-} from "@researchdatabox/portal-ng-common";
+import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   QuestionTreeModelValueType,
   QuestionTreeComponentName,
@@ -16,19 +12,16 @@ import {
   QuestionTreeOutcomeInfo,
   QuestionTreeOutcome,
   isQuestionTreeQuestionActivated,
-} from "@researchdatabox/sails-ng-common";
-import { Component, DestroyRef, inject, ViewChild, ViewContainerRef } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { AbstractControl, FormGroup } from "@angular/forms";
-import { FormComponentsMap, FormService } from "../form.service";
-import { FormComponent } from "../form.component";
-import { isEmpty as _isEmpty, isUndefined as _isUndefined, isEqual as _isEqual } from "lodash-es";
-import { FormBaseWrapperComponent } from "./base-wrapper.component";
-import {
-  FormComponentEventBus,
-  FormComponentEventType
-} from "../form-state";
-import {debounceTime, filter } from "rxjs";
+} from '@researchdatabox/sails-ng-common';
+import { Component, DestroyRef, inject, ViewChild, ViewContainerRef, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AbstractControl, FormGroup } from '@angular/forms';
+import { FormComponentsMap, FormService } from '../form.service';
+import { FormComponent } from '../form.component';
+import { isEmpty as _isEmpty, isUndefined as _isUndefined, isEqual as _isEqual } from 'lodash-es';
+import { FormBaseWrapperComponent } from './base-wrapper.component';
+import { FormComponentEventBus, FormComponentEventType } from '../form-state';
+import { debounceTime, filter } from 'rxjs';
 
 export type QuestionTreeFormControlValueType = { [key: string]: AbstractControl<unknown> };
 export type QuestionTreeFormControlType = FormGroup<QuestionTreeFormControlValueType>;
@@ -59,19 +52,20 @@ export class QuestionTreeModel extends FormFieldModel<QuestionTreeModelValueType
     }
   }
 
-  public static getEmptyModel():  QuestionTreeModelValueType {
-    return {[QuestionTreeOutcomeInfoKey]: null}
+  public static getEmptyModel(): QuestionTreeModelValueType {
+    return { [QuestionTreeOutcomeInfoKey]: null };
   }
 }
 
 @Component({
   selector: 'redbox-questiontreefield',
   template: `
-    <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
-    <ng-container #componentContainer/>
-    <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
+    <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
+    <ng-container #componentContainer />
+    <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
   `,
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeModelValueType> {
   protected override logName = QuestionTreeComponentName;
@@ -91,9 +85,7 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
   }
 
   public override get formFieldBaseComponents(): FormFieldBaseComponent<unknown>[] {
-    return this.formFieldCompMapEntries
-      .map(c => c.component)
-      .filter(c => c !== undefined && c !== null);
+    return this.formFieldCompMapEntries.map(c => c.component).filter(c => c !== undefined && c !== null);
   }
 
   public override get formFieldCompMapEntries(): FormFieldCompMapEntry[] {
@@ -105,16 +97,26 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
 
     // Build a form config to store the info needed to build the components.
     const formConfig = this.getFormComponent.formDefMap?.formConfig;
-    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? "";
+    const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? '';
 
     const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
-    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(componentFormConfig, QuestionTreeComponentName)) {
+    if (
+      !isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(
+        componentFormConfig,
+        QuestionTreeComponentName
+      )
+    ) {
       throw new Error(`Expected a question tree component, but got ${JSON.stringify(componentFormConfig)}`);
     }
 
     const componentConfigFormConfig = componentFormConfig.config;
-    if (!isTypeWithComponentDefinitions(componentConfigFormConfig) || componentConfigFormConfig.componentDefinitions?.length < 1) {
-      throw new Error(`Expected a question tree component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`);
+    if (
+      !isTypeWithComponentDefinitions(componentConfigFormConfig) ||
+      componentConfigFormConfig.componentDefinitions?.length < 1
+    ) {
+      throw new Error(
+        `Expected a question tree component config with at least one componentDefinition, but got ${JSON.stringify(componentConfigFormConfig)}`
+      );
     }
 
     const componentDefinitions = componentConfigFormConfig.componentDefinitions;
@@ -131,14 +133,12 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     };
 
     // Construct the components.
-    const parentLineagePaths = this.formService.buildLineagePaths(
-      this.formFieldCompMapEntry?.lineagePaths,
-      {
-        angularComponents: [],
-        layout: [],
-        dataModel: [],
-        formConfig: ['component', 'config', 'componentDefinitions'],
-      });
+    const parentLineagePaths = this.formService.buildLineagePaths(this.formFieldCompMapEntry?.lineagePaths, {
+      angularComponents: [],
+      layout: [],
+      dataModel: [],
+      formConfig: ['component', 'config', 'componentDefinitions'],
+    });
     this.formComponentsMap = await this.formService.createFormComponentsMap(elementFormConfig, parentLineagePaths);
 
     if (_isEmpty(this.formComponentsMap)) {
@@ -165,11 +165,13 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
         if (compInstance?.model && !_isUndefined(elemVal)) {
           // Don't emit the value from setting the model value on form load.
           // The visible state and model value are set from the form config.
-          compInstance.model.setValue(elemVal, {onlySelf: true, emitEvent: false});
+          compInstance.model.setValue(elemVal, { onlySelf: true, emitEvent: false });
         }
         this.model.addItem(key, compInstance.model);
       } else {
-        this.loggerService.warn(`${this.logName}: model or formControl for '${key}' is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`);
+        this.loggerService.warn(
+          `${this.logName}: model or formControl for '${key}' is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`
+        );
       }
 
       // Set the reference to the wrapper component.
@@ -185,25 +187,27 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     this.eventBus
       .select$(FormComponentEventType.FIELD_VALUE_CHANGED)
       .pipe(
-        filter(event =>
-          (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
-            event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
-          && event.sourceId !== '*'
+        filter(
+          event =>
+            (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
+              event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/')) &&
+            event.sourceId !== '*'
         ),
         debounceTime(50),
-        takeUntilDestroyed(this.destroyRef),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => this.moveTowardsConsistentModelDataAndComponents());
     this.eventBus
       .select$(FormComponentEventType.FIELD_UI_ATTRIBUTE_CHANGED)
       .pipe(
-        filter(event =>
-          (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
-            event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/'))
-          && event.sourceId !== '*'
+        filter(
+          event =>
+            (event.fieldId === this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer ||
+              event.fieldId.startsWith(this.formFieldCompMapEntry?.lineagePaths?.angularComponentsJsonPointer + '/')) &&
+            event.sourceId !== '*'
         ),
         debounceTime(50),
-        takeUntilDestroyed(this.destroyRef),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => this.moveTowardsConsistentModelDataAndComponents());
   }
@@ -243,15 +247,18 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
       // If the component was visible and is now hidden, set the value to null.
       if ((isLayoutChanged || isComponentChanged) && !shouldBeActivated) {
         // Emit the event so this question tree component can process nested components again.
-        formFieldCompMapEntry?.model?.setValue( null);
+        formFieldCompMapEntry?.model?.setValue(null);
       }
 
       // Change only one component at a time.
       if (isLayoutChanged || isComponentChanged) {
-
         // for debugging
         this.loggerService.debug(`${this.logName}: Updated component ${questionId}`, {
-          shouldBeActivated, isLayoutVisible, isLayoutChanged, isComponentVisible, isComponentChanged,
+          shouldBeActivated,
+          isLayoutVisible,
+          isLayoutChanged,
+          isComponentVisible,
+          isComponentChanged,
           value: formFieldCompMapEntry?.model?.getValue(),
         });
 
@@ -265,18 +272,24 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
     const newOutcome = this.getOutcomeInfo();
     const isOutcomeChanged = !_isEqual(currentOutcome, newOutcome);
     if (isOutcomeChanged) {
-      this.model?.setValue({...updatedModelData, [QuestionTreeOutcomeInfoKey]: newOutcome});
+      this.model?.setValue({ ...updatedModelData, [QuestionTreeOutcomeInfoKey]: newOutcome });
 
       // for debugging:
       this.loggerService.debug(`${this.logName}: Updated question tree model data`, {
-        questions, modelData: this.model?.getValue()
+        questions,
+        modelData: this.model?.getValue(),
       });
     }
   }
 
   private getFieldComponentFrame(): QuestionTreeFieldComponentDefinitionFrame {
     const componentFormConfig = this.formFieldCompMapEntry?.compConfigJson?.component;
-    if (!isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(componentFormConfig, QuestionTreeComponentName)) {
+    if (
+      !isTypeFieldDefinitionName<QuestionTreeFieldComponentDefinitionFrame>(
+        componentFormConfig,
+        QuestionTreeComponentName
+      )
+    ) {
       throw new Error(`Expected a question tree component, but got ${JSON.stringify(componentFormConfig)}`);
     }
     return componentFormConfig;
@@ -301,19 +314,18 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
    * @param config The question tree component config that contains the available outcome and meta settings.
    * @param data The question tree data model.
    */
-  public calculateOutcomeInfo(config: QuestionTreeFieldComponentConfigFrame, data: QuestionTreeModelValueType): QuestionTreeOutcomeInfo | null {
-    const availableOutcomes = Object.fromEntries((config.availableOutcomes ?? []).map(
-      o => [o.value, o])
-    );
+  public calculateOutcomeInfo(
+    config: QuestionTreeFieldComponentConfigFrame,
+    data: QuestionTreeModelValueType
+  ): QuestionTreeOutcomeInfo | null {
+    const availableOutcomes = Object.fromEntries((config.availableOutcomes ?? []).map(o => [o.value, o]));
     const availableMeta = config.availableMeta ?? {};
 
-    const availableOutcomeIndexes = Object.fromEntries(config.availableOutcomes.map(
-      ((a, index) => [a.value, index])
-    ));
+    const availableOutcomeIndexes = Object.fromEntries(config.availableOutcomes.map((a, index) => [a.value, index]));
     const questions = config.questions;
 
     const collectedOutcomes = new Set<string>();
-    const collectedMeta: ({ outcome: QuestionTreeOutcome, [key: string]: QuestionTreeOutcome })[] = [];
+    const collectedMeta: { outcome: QuestionTreeOutcome; [key: string]: QuestionTreeOutcome }[] = [];
 
     const outcomeKeys: string[] = [QuestionTreeOutcomeInfoKey];
 
@@ -339,12 +351,12 @@ export class QuestionTreeComponent extends FormFieldBaseComponent<QuestionTreeMo
           collectedOutcomes.add(answer.outcome);
           collectedMeta.push({
             outcome: availableOutcomes[answer.outcome],
-            ...(Object.fromEntries(Object.entries(answer.meta ?? {}).map(
-              ([metaKey, metaValue]) => [
+            ...Object.fromEntries(
+              Object.entries(answer.meta ?? {}).map(([metaKey, metaValue]) => [
                 metaKey,
-                { value: metaValue, label: availableMeta?.[metaKey]?.[metaValue] ?? null }
-              ]
-            ))),
+                { value: metaValue, label: availableMeta?.[metaKey]?.[metaValue] ?? null },
+              ])
+            ),
           });
         }
       }

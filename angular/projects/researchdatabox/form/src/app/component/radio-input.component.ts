@@ -1,11 +1,11 @@
-import { Component, Input } from '@angular/core';
-import {FormFieldModel, ModifyOptions} from "@researchdatabox/portal-ng-common";
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { FormFieldModel, ModifyOptions } from '@researchdatabox/portal-ng-common';
 import {
   RadioInputComponentName,
   RadioInputFieldComponentDefinitionFrame,
   RadioInputModelName,
   RadioInputModelValueType,
-  RadioOption
+  RadioOption,
 } from '@researchdatabox/sails-ng-common';
 import { OptionInputBaseComponent } from './option-input-base.component';
 
@@ -17,7 +17,7 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
   selector: 'redbox-radio',
   template: `
     @if (isVisible) {
-      <ng-container *ngTemplateOutlet="getTemplateRef('before')"/>
+      <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       @for (opt of options; track $index) {
         <div class="form-check">
           <input
@@ -34,18 +34,18 @@ export class RadioInputModel extends FormFieldModel<RadioInputModelValueType> {
             (change)="onOptionChange(opt)"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
-            [title]="tooltip | i18next">
-          <label
-            class="form-check-label"
-            [attr.for]="getOptionId(opt)">
+            [title]="tooltip | i18next"
+          />
+          <label class="form-check-label" [attr.for]="getOptionId(opt)">
             {{ opt.label | i18next }}
           </label>
         </div>
       }
-      <ng-container *ngTemplateOutlet="getTemplateRef('after')"/>
+      <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class RadioInputComponent extends OptionInputBaseComponent<
   RadioInputModelValueType,
@@ -82,6 +82,6 @@ export class RadioInputComponent extends OptionInputBaseComponent<
 
   override setDisabled(disabled: boolean, opts?: ModifyOptions) {
     super.setDisabled(disabled);
-    this.model?.setDisabled(disabled, {emitEvent: false, onlySelf: true});
+    this.model?.setDisabled(disabled, { emitEvent: false, onlySelf: true });
   }
 }

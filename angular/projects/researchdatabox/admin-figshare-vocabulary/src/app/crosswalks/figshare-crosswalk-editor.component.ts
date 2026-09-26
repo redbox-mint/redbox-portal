@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import {
   FigshareCrosswalkMapping,
   FigshareCrosswalkSummary
@@ -24,6 +24,7 @@ export interface MappingChangeRequest {
 @Component({
   selector: 'figshare-crosswalk-editor',
   templateUrl: './figshare-crosswalk-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareCrosswalkEditorComponent {

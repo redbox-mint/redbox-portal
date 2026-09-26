@@ -1,4 +1,4 @@
-import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
+import { LOCALE_ID, inject as inject_1, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
 import {
@@ -73,12 +73,13 @@ describe('DeletedRecordsComponent', () => {
       ],
       imports: [
         FormsModule,
-        BsDatepickerModule.forRoot(),
-        PaginationModule.forRoot(),
-        ModalModule.forRoot(),
+        BsDatepickerModule,
+        PaginationModule,
+        ModalModule,
         RedboxPortalCoreModule
       ],
       providers: [
+        provideZonelessChangeDetection(),
         {
           provide: APP_BASE_HREF,
           useValue: 'base'
@@ -196,6 +197,21 @@ describe('DeletedRecordsComponent', () => {
     ]);
   });
 
+  it('clears the previous column sort indicator when another header is clicked', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    fixture.autoDetectChanges(true);
+    await fixture.componentInstance.waitForInit();
+    await fixture.whenStable();
+    const headers: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('header-sort button');
+    headers[0].click();
+    await fixture.whenStable();
+    expect(headers[0].getAttribute('aria-sort')).toBe('ascending');
+    headers[1].click();
+    await fixture.whenStable();
+    expect(headers[1].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].hasAttribute('aria-sort')).toBeFalse();
+  });
+
   it('should restore a deleted record', async function () {
     // create app
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
@@ -223,6 +239,9 @@ describe('DeletedRecordsComponent', () => {
     await app.recordTableAction(undefined, {oid: 'rdmp-record-1', revision: 4}, 'restore');
     expect(selectedRevision).toBe(4);
     expect(app.deletedRecordsResult.total).toEqual(1);
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('record-table').textContent).not.toContain('rdmp record 1');
+    expect(fixture.nativeElement.querySelector('record-table').textContent).toContain('dataRecord record 2');
   });
   it('should destroy a deleted record', async function () {
     // create app

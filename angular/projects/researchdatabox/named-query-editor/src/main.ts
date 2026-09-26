@@ -1,6 +1,6 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { platformBrowser } from '@angular/platform-browser';
 
 import { NamedQueryEditorModule } from './app/named-query-editor.module';
 
-platformBrowserDynamic().bootstrapModule(NamedQueryEditorModule)
+platformBrowser().bootstrapModule(NamedQueryEditorModule)
   .catch(err => console.error(err));

@@ -1,6 +1,6 @@
 import { FormControl, ValidatorFn } from '@angular/forms';
 import type { CustomSetValueControl } from '../form-state/custom-set-value.control';
-import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -353,6 +353,7 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class DateInputComponent extends FormFieldBaseComponent<DateInputModelValueType> {
@@ -363,7 +364,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private showWeekNumbers: boolean = false;
   private robustParsing: boolean = true;
   private containerClass: string = 'theme-dark-blue';
-  private bsFullConfig: any = {};
+  public bsConfig: Partial<BsDatepickerConfig> = {};
   public enableTimePickerDefault: boolean = false;
   private lastValidValue: Date | null = null;
   private ignoreNextBlur: boolean = false;
@@ -396,12 +397,23 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     this.showWeekNumbers = cfg.showWeekNumbers ?? defaultConfig.showWeekNumbers ?? this.showWeekNumbers;
     this.robustParsing = cfg.robustParsing ?? defaultConfig.robustParsing ?? this.robustParsing;
     this.containerClass = cfg.containerClass ?? defaultConfig.containerClass ?? this.containerClass;
-    this.bsFullConfig = cfg.bsFullConfig ?? {};
     if (!_isUndefined(this.model)) {
       this.model.dateFormat = cfg.dateFormat ?? defaultConfig.dateFormat ?? this.dateFormatDefault;
       this.model.enableTimePicker =
         cfg.enableTimePicker ?? defaultConfig.enableTimePicker ?? this.enableTimePickerDefault;
     }
+    // A fresh config on every render makes the datepicker rewrite the input
+    // while the user is typing, before our blur handler can parse that text.
+    const defaultPickerConfig = {
+      dateInputFormat: this.dateFormat,
+      showWeekNumbers: this.showWeekNumbers,
+      containerClass: this.containerClass,
+    };
+    this.bsConfig = this.model?.dateOnly
+      ? { ...defaultPickerConfig, ...cfg.bsFullConfig, useUtc: false }
+      : !_isEmpty(cfg.bsFullConfig)
+        ? cfg.bsFullConfig!
+        : defaultPickerConfig;
   }
 
   onDateChange(dateValue: DateInputModelValueType) {
@@ -501,7 +513,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     const rawText = inputEl?.value || '';
     if (this.model?.dateOnly) {
       this.formControl.markAsTouched();
-      const dateInputFormat = this.bsConfig.dateInputFormat;
+      const dateInputFormat = this.bsConfig.dateInputFormat ?? this.dateFormat;
       const parsed = this.robustParsing
         ? parseFreeTextDate(rawText, dateInputFormat)
         : DateTime.fromFormat(rawText, mapMomentToLuxonFormat(dateInputFormat), { zone: 'utc' }).toJSDate();
@@ -581,30 +593,8 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     const value = this.inputControl.value;
     this.dateInputEl.nativeElement.value =
       value instanceof Date
-        ? DateTime.fromJSDate(value).toFormat(mapMomentToLuxonFormat(this.bsConfig.dateInputFormat))
+        ? DateTime.fromJSDate(value).toFormat(mapMomentToLuxonFormat(this.bsConfig.dateInputFormat ?? this.dateFormat))
         : '';
-  }
-
-  public get bsConfig(): BsDatepickerConfig {
-    if (this.model?.dateOnly) {
-      return {
-        dateInputFormat: this.dateFormat,
-        showWeekNumbers: this.showWeekNumbers,
-        containerClass: this.containerClass,
-        ...this.bsFullConfig,
-        useUtc: false,
-      } as BsDatepickerConfig;
-    }
-    if (_isEmpty(this.bsFullConfig)) {
-      //Commonly used properties only
-      return {
-        dateInputFormat: this.dateFormat,
-        showWeekNumbers: this.showWeekNumbers,
-        containerClass: this.containerClass,
-      } as BsDatepickerConfig;
-    } else {
-      return this.bsFullConfig as BsDatepickerConfig;
-    }
   }
 
   public toggleDatepicker(): void {

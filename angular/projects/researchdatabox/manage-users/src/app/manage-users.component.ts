@@ -1,4 +1,4 @@
-import { Component, Inject, ViewChild } from '@angular/core';
+import { Component, Inject, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import {
@@ -12,7 +12,7 @@ import {
   BaseComponent,
   LoggerService,
   TranslationService,
-  UserService
+  UserService,
 } from '@researchdatabox/portal-ng-common';
 import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 import * as _ from 'lodash';
@@ -75,10 +75,10 @@ type LinkingUserService = UserService & {
 @Component({
   selector: 'manage-users',
   templateUrl: './manage-users.component.html',
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class ManageUsersComponent extends BaseComponent {
-
   title = '@researchdatabox/manage-users';
 
   allUsers: ManageUser[] = [];
@@ -86,14 +86,14 @@ export class ManageUsersComponent extends BaseComponent {
   allRoles: Role[] = [];
 
   searchFilter: {
-    name: string,
-    prevName: string,
-    users: UserFilterOption[]
+    name: string;
+    prevName: string;
+    users: UserFilterOption[];
   } = {
-      name: '',
-      prevName: '',
-      users: [{ value: null, label: 'Any', checked: true }]
-    };
+    name: '',
+    prevName: '',
+    users: [{ value: null, label: 'Any', checked: true }],
+  };
 
   hiddenUsers: string[] = [''];
   currentUser: ManageUser | null = null;
@@ -145,7 +145,7 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
-    const roles = await this.userService.getBrandRoles() as unknown as Role[];
+    const roles = (await this.userService.getBrandRoles()) as unknown as Role[];
     for (const role of roles) {
       this.allRoles.push(role);
     }
@@ -156,22 +156,24 @@ export class ManageUsersComponent extends BaseComponent {
     this.submitted = false;
 
     if (newUser) {
-
-      const newRolesControlArray = new FormArray(this.allRoles.map((role) => {
-        return new FormGroup({
-          key: new FormControl(role.id),
-          value: new FormControl(role.name),
-          checked: new FormControl(false),
-        });
-      }));
-
-      const pwGroup_new = this._fb.group(
-        {
-          password: [''],
-          confirmPassword: ['']
-        }
+      const newRolesControlArray = new FormArray(
+        this.allRoles.map(role => {
+          return new FormGroup({
+            key: new FormControl(role.id),
+            value: new FormControl(role.name),
+            checked: new FormControl(false),
+          });
+        })
       );
-      pwGroup_new.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')]);
+
+      const pwGroup_new = this._fb.group({
+        password: [''],
+        confirmPassword: [''],
+      });
+      pwGroup_new.setValidators([
+        matchingValuesValidator('password', 'confirmPassword'),
+        passwordStrengthValidator('confirmPassword'),
+      ]);
 
       this.newUserForm = this._fb.group({
         username: ['', Validators.required],
@@ -179,36 +181,44 @@ export class ManageUsersComponent extends BaseComponent {
         email: ['', optionalEmailValidator],
         passwords: pwGroup_new,
         allRoles: newRolesControlArray,
-        roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
+        roles: [this.mapRoles(newRolesControlArray.value), Validators.required],
       });
 
-      newRolesControlArray.valueChanges.subscribe((v) => {
+      newRolesControlArray.valueChanges.subscribe(v => {
         this.newUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
-
     } else {
-
       if (this.currentUser == null) {
         return;
       }
 
       const currentUser = this.currentUser;
-      const updateRolesControlArray = new FormArray(this.allRoles.map((role) => {
-        return new FormGroup({
-          key: new FormControl(role.id),
-          value: new FormControl(role.name),
-          checked: new FormControl(_.includes(_.flatMap(currentUser.roles, existingRole => { return existingRole['name']; }), role.name)),
-        });
-      }));
-
-      const pwGroup_update = this._fb.group(
-        {
-          password: [''],
-          confirmPassword: ['']
-        }
+      const updateRolesControlArray = new FormArray(
+        this.allRoles.map(role => {
+          return new FormGroup({
+            key: new FormControl(role.id),
+            value: new FormControl(role.name),
+            checked: new FormControl(
+              _.includes(
+                _.flatMap(currentUser.roles, existingRole => {
+                  return existingRole['name'];
+                }),
+                role.name
+              )
+            ),
+          });
+        })
       );
 
-      pwGroup_update.setValidators([matchingValuesValidator('password', 'confirmPassword'), passwordStrengthValidator('confirmPassword')]);
+      const pwGroup_update = this._fb.group({
+        password: [''],
+        confirmPassword: [''],
+      });
+
+      pwGroup_update.setValidators([
+        matchingValuesValidator('password', 'confirmPassword'),
+        passwordStrengthValidator('confirmPassword'),
+      ]);
 
       this.updateUserForm = this._fb.group({
         userid: this.currentUser.id,
@@ -217,25 +227,24 @@ export class ManageUsersComponent extends BaseComponent {
         email: [this.currentUser.email, optionalEmailValidator],
         passwords: pwGroup_update,
         allRoles: updateRolesControlArray,
-        roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
+        roles: [this.mapRoles(updateRolesControlArray.value), Validators.required],
       });
 
-      updateRolesControlArray.valueChanges.subscribe((v) => {
+      updateRolesControlArray.valueChanges.subscribe(v => {
         this.updateUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
-
     }
   }
 
   mapRoles(roles: RoleSelection[]): Role[] | null {
     const selectedRoles = roles
-      .filter((role) => role.checked && role.key != null && role.value != null)
-      .map((roleSelection) => {
+      .filter(role => role.checked && role.key != null && role.value != null)
+      .map(roleSelection => {
         const ret: Role = {
           id: '',
           name: '',
           users: [],
-          hasRole: true
+          hasRole: true,
         };
         ret.id = roleSelection.key as string;
         ret.name = roleSelection.value as string;
@@ -245,26 +254,32 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async refreshUsers() {
-    const users = await this.userService.getUsers({ includeDisabled: this.showDisabledUsers }) as unknown as ManageUser[];
+    const users = (await this.userService.getUsers({
+      includeDisabled: this.showDisabledUsers,
+    })) as unknown as ManageUser[];
     this.allUsers = [];
     for (const user of users) {
       this.allUsers.push(user);
     }
     this.searchFilter.users = [];
     this.filteredUsers = [];
-    _.forEach(users, (user) => {
+    _.forEach(users, user => {
       this.searchFilter.users.push({ value: user.name, label: user.name, checked: false });
       if (!_.includes(this.hiddenUsers, user.username)) {
         this.filteredUsers.push(user);
       }
     });
-    _.map(this.filteredUsers, (user) => { user.roleStr = _.join(_.map(user.roles, 'name'), ', '); });
+    _.map(this.filteredUsers, user => {
+      user.roleStr = _.join(_.map(user.roles, 'name'), ', ');
+    });
   }
 
   editUser(username: string) {
     this.showToken = false;
     this.setUpdateMessage();
-    const user = _.find(this.allUsers, (existingUser) => { return existingUser.username == username; });
+    const user = _.find(this.allUsers, existingUser => {
+      return existingUser.username == username;
+    });
     if (!_.isUndefined(user)) {
       this.currentUser = user;
     }
@@ -295,7 +310,6 @@ export class ManageUsersComponent extends BaseComponent {
 
   showNewUserModal(): void {
     this.isNewUserModalShown = true;
-
   }
 
   hideNewUserModal(): void {
@@ -350,41 +364,33 @@ export class ManageUsersComponent extends BaseComponent {
     this.auditSummary = { returnedCount: 0, truncated: false };
   }
 
-  genKey(userid: string) {
+  async genKey(userid: string): Promise<void> {
     this.setUpdateMessage('Generating...', 'primary');
-    const that = this;
-    this.userService.genKey(userid).then((response) => {
-      const saveRes = response as unknown as SaveResponse;
-      if (saveRes.status) {
-        that.showToken = true;
-        if (that.currentUser != null) {
-          that.currentUser.token = saveRes.message;
-        }
-        that.refreshUsers().then(() => {
-          that.setUpdateMessage('Token generated.', 'primary');
-        });
-      } else {
-        that.setUpdateMessage(saveRes.message, 'danger');
+    const saveRes = (await this.userService.genKey(userid)) as unknown as SaveResponse;
+    if (saveRes.status) {
+      this.showToken = true;
+      if (this.currentUser != null) {
+        this.currentUser.token = saveRes.message;
       }
-    });
+      await this.refreshUsers();
+      this.setUpdateMessage('Token generated.', 'primary');
+    } else {
+      this.setUpdateMessage(saveRes.message, 'danger');
+    }
   }
 
-  revokeKey(userid: string) {
+  async revokeKey(userid: string): Promise<void> {
     this.setUpdateMessage('Revoking...', 'primary');
-    const that = this;
-    this.userService.revokeKey(userid).then((response) => {
-      const saveRes = response as unknown as SaveResponse;
-      if (saveRes.status) {
-        if (that.currentUser != null) {
-          that.currentUser.token = '';
-        }
-        that.refreshUsers().then(() => {
-          that.setUpdateMessage('Token revoked.', 'primary');
-        });
-      } else {
-        that.setUpdateMessage(saveRes.message, 'danger');
+    const saveRes = (await this.userService.revokeKey(userid)) as unknown as SaveResponse;
+    if (saveRes.status) {
+      if (this.currentUser != null) {
+        this.currentUser.token = '';
       }
-    });
+      await this.refreshUsers();
+      this.setUpdateMessage('Token revoked.', 'primary');
+    } else {
+      this.setUpdateMessage(saveRes.message, 'danger');
+    }
   }
 
   async updateUserSubmit(user: UserForm, isValid: boolean) {
@@ -393,14 +399,18 @@ export class ManageUsersComponent extends BaseComponent {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
     }
-    const details: UserDetailsPayload =
-      { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
-    _.forEach(user.roles, (role) => {
+    const details: UserDetailsPayload = {
+      name: user.name,
+      email: user.email,
+      password: user.passwords.password,
+      roles: [],
+    };
+    _.forEach(user.roles, role => {
       details.roles.push(role.name);
     });
     this.setUpdateMessage('Saving...', 'primary');
 
-    const saveRes = await this.userService.updateUserDetails(user.userid, details) as unknown as SaveResponse;
+    const saveRes = (await this.userService.updateUserDetails(user.userid, details)) as unknown as SaveResponse;
     if (saveRes.status) {
       this.hideDetailsModal();
       await this.refreshUsers();
@@ -416,15 +426,19 @@ export class ManageUsersComponent extends BaseComponent {
       this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
     }
-    const details: UserDetailsPayload =
-      { name: user.name, email: user.email, password: user.passwords.password, roles: [] };
+    const details: UserDetailsPayload = {
+      name: user.name,
+      email: user.email,
+      password: user.passwords.password,
+      roles: [],
+    };
 
-    _.forEach(user.roles, (role) => {
+    _.forEach(user.roles, role => {
       details.roles.push(role.name);
     });
 
     this.setNewUserMessage('Saving...', 'primary');
-    const saveRes = await this.userService.addLocalUser(user.username, details) as unknown as SaveResponse;
+    const saveRes = (await this.userService.addLocalUser(user.username, details)) as unknown as SaveResponse;
     if (saveRes.status) {
       this.hideNewUserModal();
       await this.refreshUsers();
@@ -451,7 +465,9 @@ export class ManageUsersComponent extends BaseComponent {
 
   getAuditTitle(): string {
     const label = this.auditModalUser?.name || this.auditModalUser?.username || '';
-    return this.translationService.t('manage-users-audit-modal-title', '', { user: label }) || `Audit history for ${label}`;
+    return (
+      this.translationService.t('manage-users-audit-modal-title', '', { user: label }) || `Audit history for ${label}`
+    );
   }
 
   getAuditActor(record: UserAuditRecord): string {
@@ -462,7 +478,7 @@ export class ManageUsersComponent extends BaseComponent {
     if (!_.isEmpty(record.actor.email)) {
       actorParts.push(String(record.actor.email));
     }
-    return actorParts.filter((part) => !_.isEmpty(part)).join(' | ');
+    return actorParts.filter(part => !_.isEmpty(part)).join(' | ');
   }
 
   getAuditActionLabel(record: UserAuditRecord): string {
@@ -545,7 +561,7 @@ export class ManageUsersComponent extends BaseComponent {
       username: user.username,
       name: user.name,
       email: user.email,
-      type: user.type
+      type: user.type,
     };
     this.auditRecords = [];
     this.auditExpandedRows = {};
@@ -561,7 +577,10 @@ export class ManageUsersComponent extends BaseComponent {
       this.auditSummary = response.summary || { returnedCount: this.auditRecords.length, truncated: false };
     } catch (error: unknown) {
       this.loggerService.error('Failed to load user audit:', error);
-      this.auditError = (error as Error)?.message || (this.translationService.t('manage-users-audit-error') || 'Failed to load audit history.');
+      this.auditError =
+        (error as Error)?.message ||
+        this.translationService.t('manage-users-audit-error') ||
+        'Failed to load audit history.';
       this.auditRecords = [];
       this.auditSummary = { returnedCount: 0, truncated: false };
     } finally {
@@ -580,10 +599,16 @@ export class ManageUsersComponent extends BaseComponent {
 
     const impactDetails: string[] = [];
     if (rolesMerged > 0) {
-      impactDetails.push(this.translationService.t('manage-users-link-success-roles-merged', '', { count: rolesMerged }) || `${rolesMerged} ${rolesMerged === 1 ? 'role' : 'roles'} merged`);
+      impactDetails.push(
+        this.translationService.t('manage-users-link-success-roles-merged', '', { count: rolesMerged }) ||
+          `${rolesMerged} ${rolesMerged === 1 ? 'role' : 'roles'} merged`
+      );
     }
     if (recordsRewritten > 0) {
-      impactDetails.push(this.translationService.t('manage-users-link-success-records-rewritten', '', { count: recordsRewritten }) || `${recordsRewritten} ${recordsRewritten === 1 ? 'record' : 'records'} rewritten`);
+      impactDetails.push(
+        this.translationService.t('manage-users-link-success-records-rewritten', '', { count: recordsRewritten }) ||
+          `${recordsRewritten} ${recordsRewritten === 1 ? 'record' : 'records'} rewritten`
+      );
     }
 
     return `${baseMessage} — ${impactDetails.join(', ')}`;
@@ -598,7 +623,10 @@ export class ManageUsersComponent extends BaseComponent {
     try {
       const response = await this.userService.disableUser(user.id);
       if (response.status) {
-        this.setUpdateMessage(this.translationService.t('manage-users-disable-success') || 'User disabled successfully.', 'success');
+        this.setUpdateMessage(
+          this.translationService.t('manage-users-disable-success') || 'User disabled successfully.',
+          'success'
+        );
         await this.refreshUsers();
       } else {
         this.setUpdateMessage(response.message || 'Failed to disable user.', 'danger');
@@ -612,7 +640,10 @@ export class ManageUsersComponent extends BaseComponent {
     try {
       const response = await this.userService.enableUser(user.id);
       if (response.status) {
-        this.setUpdateMessage(this.translationService.t('manage-users-enable-success') || 'User enabled successfully.', 'success');
+        this.setUpdateMessage(
+          this.translationService.t('manage-users-enable-success') || 'User enabled successfully.',
+          'success'
+        );
         await this.refreshUsers();
       } else {
         this.setUpdateMessage(response.message || 'Failed to enable user.', 'danger');
@@ -631,7 +662,9 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   isDisabledViaPrimary(user: ManageUser): boolean {
-    return user.effectiveLoginDisabled === true && user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername);
+    return (
+      user.effectiveLoginDisabled === true && user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername)
+    );
   }
 
   onFilterChange() {
@@ -639,8 +672,9 @@ export class ManageUsersComponent extends BaseComponent {
       this.searchFilter.prevName = this.searchFilter.name;
       const nameFilter = _.isEmpty(this.searchFilter.name) ? '' : _.trim(this.searchFilter.name);
 
-      this.filteredUsers = _.filter(this.allUsers, (user) => {
-        const hasNameMatch = nameFilter == '' ? true : (_.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0);
+      this.filteredUsers = _.filter(this.allUsers, user => {
+        const hasNameMatch =
+          nameFilter == '' ? true : _.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0;
         return hasNameMatch;
       });
     }
@@ -648,7 +682,7 @@ export class ManageUsersComponent extends BaseComponent {
 
   resetFilter() {
     this.searchFilter.name = '';
-    _.map(this.searchFilter.users, (user) => user.checked = user.value == null);
+    _.map(this.searchFilter.users, user => (user.checked = user.value == null));
     this.onFilterChange();
   }
 
@@ -661,7 +695,9 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   getUpdateUserPasswordErrors() {
-    const errors = (this.updateUserForm as FormGroup).controls['passwords'].errors as { passwordStrengthDetails?: { errors: string[] } } | null;
+    const errors = (this.updateUserForm as FormGroup).controls['passwords'].errors as {
+      passwordStrengthDetails?: { errors: string[] };
+    } | null;
     const errorMessages: string[] = [];
     if (errors?.passwordStrengthDetails) {
       for (const errorMsg of errors.passwordStrengthDetails.errors) {
@@ -673,7 +709,9 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   getNewUserPasswordErrors() {
-    const errors = (this.newUserForm as FormGroup).controls['passwords'].errors as { passwordStrengthDetails?: { errors: string[] } } | null;
+    const errors = (this.newUserForm as FormGroup).controls['passwords'].errors as {
+      passwordStrengthDetails?: { errors: string[] };
+    } | null;
     const errorMessages: string[] = [];
     if (errors?.passwordStrengthDetails) {
       for (const errorMsg of errors.passwordStrengthDetails.errors) {
@@ -704,10 +742,20 @@ export class ManageUsersComponent extends BaseComponent {
     return user.accountLinkState === 'linked-alias';
   }
 
-  getAccountStatusBadge(user: AccountStatusUser & { effectiveLoginDisabled?: boolean; loginDisabled?: boolean; disabledByPrimaryUsername?: string }): string {
+  getAccountStatusBadge(
+    user: AccountStatusUser & {
+      effectiveLoginDisabled?: boolean;
+      loginDisabled?: boolean;
+      disabledByPrimaryUsername?: string;
+    }
+  ): string {
     if (user.effectiveLoginDisabled === true) {
       if (user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername)) {
-        return this.translationService.t('manage-users-account-status-disabled-via-primary', '', { primaryUsername: user.disabledByPrimaryUsername }) || `Disabled via ${user.disabledByPrimaryUsername}`;
+        return (
+          this.translationService.t('manage-users-account-status-disabled-via-primary', '', {
+            primaryUsername: user.disabledByPrimaryUsername,
+          }) || `Disabled via ${user.disabledByPrimaryUsername}`
+        );
       }
       return this.translationService.t('manage-users-account-status-disabled') || 'Disabled';
     }
@@ -736,18 +784,23 @@ export class ManageUsersComponent extends BaseComponent {
   getAccountStatusContext(user: AccountStatusUser): string | null {
     if (user.accountLinkState === 'linked-alias') {
       return user.effectivePrimaryUsername
-        ? this.translationService.t('manage-users-account-status-primary-user', '', { primaryUsername: user.effectivePrimaryUsername }) || `Primary: ${user.effectivePrimaryUsername}`
+        ? this.translationService.t('manage-users-account-status-primary-user', '', {
+            primaryUsername: user.effectivePrimaryUsername,
+          }) || `Primary: ${user.effectivePrimaryUsername}`
         : null;
     }
     if ((user.linkedAccountCount || 0) > 0) {
       const linkedAccountCount = user.linkedAccountCount;
-      return this.translationService.t('manage-users-account-status-linked-accounts', '', { count: linkedAccountCount }) || `${linkedAccountCount} linked account${linkedAccountCount === 1 ? '' : 's'}`;
+      return (
+        this.translationService.t('manage-users-account-status-linked-accounts', '', { count: linkedAccountCount }) ||
+        `${linkedAccountCount} linked account${linkedAccountCount === 1 ? '' : 's'}`
+      );
     }
     return null;
   }
 
   async manageLinks(username: string) {
-    const user = _.find(this.allUsers, (existingUser) => existingUser.username === username) || null;
+    const user = _.find(this.allUsers, existingUser => existingUser.username === username) || null;
     if (user == null) {
       return;
     }
@@ -765,7 +818,7 @@ export class ManageUsersComponent extends BaseComponent {
       return;
     }
     try {
-      const response = await this.userService.getUserLinks(this.linkPrimaryUser.id) as UserLinkResponse;
+      const response = (await this.userService.getUserLinks(this.linkPrimaryUser.id)) as UserLinkResponse;
       this.linkedAccounts = response.linkedAccounts || [];
     } catch (error: unknown) {
       this.loggerService.error('Failed to load linked accounts:', error);
@@ -793,13 +846,19 @@ export class ManageUsersComponent extends BaseComponent {
       this.linkCandidates = await this.userService.searchLinkCandidates(this.linkPrimaryUser.id, query);
       this.selectedLinkCandidate = null;
       if (_.isEmpty(this.linkCandidates)) {
-        this.setLinkMessage(this.translationService.t('manage-users-link-no-results') || 'No matching accounts found.', 'warning');
+        this.setLinkMessage(
+          this.translationService.t('manage-users-link-no-results') || 'No matching accounts found.',
+          'warning'
+        );
       } else {
         this.setLinkMessage();
       }
     } catch (error: unknown) {
       this.loggerService.error('Failed to search link candidates:', error);
-      this.setLinkMessage(this.translationService.t('manage-users-link-search-failed') || 'Failed to search accounts.', 'danger');
+      this.setLinkMessage(
+        this.translationService.t('manage-users-link-search-failed') || 'Failed to search accounts.',
+        'danger'
+      );
       this.linkCandidates = [];
       this.selectedLinkCandidate = null;
     } finally {
@@ -809,7 +868,10 @@ export class ManageUsersComponent extends BaseComponent {
 
   async submitLink() {
     if (this.linkPrimaryUser == null || this.selectedLinkCandidate == null) {
-      this.setLinkMessage(this.translationService.t('manage-users-link-select-candidate') || 'Select an account to link.', 'danger');
+      this.setLinkMessage(
+        this.translationService.t('manage-users-link-select-candidate') || 'Select an account to link.',
+        'danger'
+      );
       return;
     }
     this.isLinkSaving = true;
@@ -817,17 +879,22 @@ export class ManageUsersComponent extends BaseComponent {
     try {
       const response = await this.userService.linkAccounts(this.linkPrimaryUser.id, this.selectedLinkCandidate.id);
       await this.refreshUsers();
-      this.linkPrimaryUser = _.find(this.allUsers, (existingUser) => existingUser.id === response.primary.id) || this.linkPrimaryUser;
+      this.linkPrimaryUser =
+        _.find(this.allUsers, existingUser => existingUser.id === response.primary.id) || this.linkPrimaryUser;
       this.linkedAccounts = response.linkedAccounts || [];
       this.linkCandidates = [];
       this.linkSearchQuery = '';
       this.selectedLinkCandidate = null;
       this.setLinkMessage(this.buildLinkSuccessMessage(response), 'success');
     } catch (error: unknown) {
-      this.setLinkMessage((error as Error)?.message || (this.translationService.t('manage-users-link-failed') || 'Failed to link accounts.'), 'danger');
+      this.setLinkMessage(
+        (error as Error)?.message ||
+          this.translationService.t('manage-users-link-failed') ||
+          'Failed to link accounts.',
+        'danger'
+      );
     } finally {
       this.isLinkSaving = false;
     }
   }
-
 }

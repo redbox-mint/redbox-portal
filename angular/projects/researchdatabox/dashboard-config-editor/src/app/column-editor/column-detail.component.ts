@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config-api.service';
 
 @Component({
@@ -97,7 +97,8 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
       }
     }
   `],
-  standalone: false
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class ColumnDetailComponent {
   @Input() catalogue: DashboardFieldCatalogue | null = null;

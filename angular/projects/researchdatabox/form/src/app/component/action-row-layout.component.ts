@@ -3,7 +3,7 @@ import {
   ComponentRef,
   ViewChild,
   ViewContainerRef,
-  isDevMode,
+  isDevMode, ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
@@ -28,6 +28,7 @@ import { GroupFieldComponent } from './group.component';
       <ng-container #componentContainer></ng-container>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
 export class ActionRowLayoutComponent<ValueType> extends FormFieldBaseComponent<ValueType> {

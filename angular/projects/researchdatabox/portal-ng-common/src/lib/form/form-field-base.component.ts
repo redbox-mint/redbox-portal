@@ -3,8 +3,10 @@ import { FormControl } from '@angular/forms';
 import {
   Directive, HostBinding, ViewChild, signal, inject, TemplateRef,
   ViewContainerRef, ComponentRef, AfterViewInit, effect,
-  EffectRef, Injector, ApplicationRef
+  EffectRef, Injector, ApplicationRef, DestroyRef, ChangeDetectorRef
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
 import { LoggerService } from '../logger.service';
 import {  isEmpty as _isEmpty, get as _get, set as _set } from 'lodash-es';
 import { UtilityService } from "../utility.service";
@@ -38,7 +40,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   public model?: FormFieldModel<ValueType>;
   public componentDefinition?: FormFieldComponentOrLayoutDefinition;
   public formFieldCompMapEntry?: FormFieldCompMapEntry;
-  public hostBindingCssClasses?: string;
+  private readonly hostBindingCssClassesValue = signal<string | undefined>(undefined);
+
+  public get hostBindingCssClasses(): string | undefined {
+    return this.hostBindingCssClassesValue();
+  }
+
+  public set hostBindingCssClasses(value: string | undefined) {
+    this.hostBindingCssClassesValue.set(value);
+  }
   // The status of the component
   public status = signal<FormFieldComponentStatus>(FormFieldComponentStatus.INIT);
 
@@ -50,6 +60,9 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   protected utilityService = inject(UtilityService);
   protected loggerService: LoggerService = inject(LoggerService);
   private readonly viewReadyInjector: Injector = inject(Injector);
+  private readonly fieldDestroyRef = inject(DestroyRef);
+  private readonly fieldChangeDetectorRef = inject(ChangeDetectorRef, {optional: true});
+  private controlRenderSubscription?: Subscription;
 
   /**
    * For obtaining a reference to the FormComponent instance.
@@ -83,7 +96,15 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     try {
       // Create a method that children can override to set their own properties
       this.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
+      // Layout templates may have been checked before their configuration arrived.
+      this.requestRender();
       await this.initData();
+      this.controlRenderSubscription?.unsubscribe();
+      // Reactive forms do not notify OnPush views. Include touched/pristine and
+      // validity changes as well as values, and stop observing destroyed fields.
+      this.controlRenderSubscription = this.model?.formControl?.events
+        .pipe(takeUntilDestroyed(this.fieldDestroyRef))
+        .subscribe(() => this.requestRender());
       await this.initLayout();
       await this.initEventHandlers();
       // Create a method that children can override to prepare their state.
@@ -91,7 +112,19 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
     } catch (error) {
       this.loggerService.error(`${this.logName}: initialise component failed for '${this.name}': ${error?.toString()}`, error);
       this.status.set(FormFieldComponentStatus.ERROR);
+    } finally {
+      this.requestRender();
     }
+  }
+
+  /** Notify the dynamically created field and its layout after async or external changes. */
+  public requestRender(): void {
+    if (this.fieldDestroyRef.destroyed) {
+      return;
+    }
+    this.fieldChangeDetectorRef?.markForCheck();
+    this.formFieldCompMapEntry?.component?.fieldChangeDetectorRef?.markForCheck();
+    this.formFieldCompMapEntry?.layout?.fieldChangeDetectorRef?.markForCheck();
   }
 
   protected setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry) {
@@ -153,6 +186,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
         const currentValue = _get(this.componentDefinition?.config, name);
         if (currentValue !== value) {
           _set(this.componentDefinition.config, name, value);
+          this.requestRender();
         }
       }
     }
@@ -198,6 +232,7 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
       this.componentDefinition.config.disabled = disabled;
     }
     this.model?.setDisabled(disabled, opts);
+    this.requestRender();
   }
 
   get label(): string {

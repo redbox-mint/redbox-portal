@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import {
   FigshareLocalVocabulary,
   FigshareScope,
@@ -23,6 +23,7 @@ export interface FigshareImportRequest {
 @Component({
   selector: 'figshare-import-wizard',
   templateUrl: './figshare-import-wizard.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
 export class FigshareImportWizardComponent {

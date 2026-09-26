@@ -1,4 +1,5 @@
 import { TestBed } from "@angular/core/testing";
+import { provideZonelessChangeDetection } from "@angular/core";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
@@ -109,6 +110,7 @@ describe("FileUploadComponent", () => {
     });
 
     it("appends attachment on upload success", async () => {
+        TestBed.configureTestingModule({providers: [provideZonelessChangeDetection()]});
         const formConfig: FormConfigFrame = {
             name: "testing",
             componentDefinitions: [
@@ -132,6 +134,7 @@ describe("FileUploadComponent", () => {
 
         const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
 
+        expect(fakeUppy.handlers["upload-success"]?.length).toBe(1);
         fakeUppy.emit("upload-success", {
             name: "test.csv",
             type: "text/csv",
@@ -151,6 +154,7 @@ describe("FileUploadComponent", () => {
         expect(values.length).toBe(1);
         expect(values[0].fileId).toBe("file-123");
         expect(values[0].pending).toBeTrue();
+        expect(fixture.nativeElement.querySelector('redbox-file-upload').textContent).toContain('test.csv');
     });
 
     it("adds CSRF token into tus headers", async () => {

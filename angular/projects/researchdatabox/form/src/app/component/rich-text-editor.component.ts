@@ -1,20 +1,25 @@
-import { Component, CSP_NONCE, inject, Input, OnDestroy } from "@angular/core";
-import { Editor, type AnyExtension } from "@tiptap/core";
-import { Table } from "@tiptap/extension-table";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import TableRow from "@tiptap/extension-table-row";
-import { Markdown } from "@tiptap/markdown";
-import StarterKit from "@tiptap/starter-kit";
-import { Subscription } from "rxjs";
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, ModifyOptions } from "@researchdatabox/portal-ng-common";
+import { Component, CSP_NONCE, inject, Input, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Editor, type AnyExtension } from '@tiptap/core';
+import { Table } from '@tiptap/extension-table';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TableRow from '@tiptap/extension-table-row';
+import { Markdown } from '@tiptap/markdown';
+import StarterKit from '@tiptap/starter-kit';
+import { Subscription } from 'rxjs';
+import {
+  FormFieldBaseComponent,
+  FormFieldCompMapEntry,
+  FormFieldModel,
+  ModifyOptions,
+} from '@researchdatabox/portal-ng-common';
 import {
   escapeHtmlText,
   RichTextEditorComponentName,
   RichTextEditorFieldComponentConfig,
   RichTextEditorModelName,
   type RichTextEditorOutputFormatType,
-} from "@researchdatabox/sails-ng-common";
+} from '@researchdatabox/sails-ng-common';
 
 export class RichTextEditorModel extends FormFieldModel<string> {
   protected override logName = RichTextEditorModelName;
@@ -40,12 +45,16 @@ type RichTextEditorChain = {
 };
 
 @Component({
-  selector: "redbox-rich-text-editor",
+  selector: 'redbox-rich-text-editor',
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
       @if (isReadonly) {
-        <div class="redbox-rich-text-view form-control" [style.minHeight]="minHeight" [innerHTML]="renderedViewHtml"></div>
+        <div
+          class="redbox-rich-text-view form-control"
+          [style.minHeight]="minHeight"
+          [innerHTML]="renderedViewHtml"
+        ></div>
       } @else {
         <div class="redbox-rich-text-editor" [style.--redbox-rich-text-min-height]="minHeight">
           @if (showSourceToggle) {
@@ -55,7 +64,8 @@ type RichTextEditorChain = {
                 class="btn btn-outline-secondary btn-sm"
                 data-source-toggle-button="true"
                 [disabled]="isDisabled"
-                (click)="toggleSourceMode()">
+                (click)="toggleSourceMode()"
+              >
                 {{ getSourceToggleLabelKey() | i18next }}
               </button>
             </div>
@@ -67,7 +77,8 @@ type RichTextEditorChain = {
                   type="button"
                   class="btn btn-outline-secondary btn-sm"
                   [disabled]="isDisabled || !editor"
-                  (click)="onToolbarAction(action)">
+                  (click)="onToolbarAction(action)"
+                >
                   {{ getToolbarLabelKey(action) | i18next }}
                 </button>
               }
@@ -75,10 +86,38 @@ type RichTextEditorChain = {
           }
           @if (editor && editor.isActive('table')) {
             <div class="redbox-rich-text-toolbar redbox-rich-text-toolbar-table">
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableRow()">{{ "@rich-text-editor-toolbar-table-add-row" | i18next }}</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="addTableColumn()">{{ "@rich-text-editor-toolbar-table-add-column" | i18next }}</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableRow()">{{ "@rich-text-editor-toolbar-table-remove-row" | i18next }}</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="isDisabled" (click)="removeTableColumn()">{{ "@rich-text-editor-toolbar-table-remove-column" | i18next }}</button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                [disabled]="isDisabled"
+                (click)="addTableRow()"
+              >
+                {{ '@rich-text-editor-toolbar-table-add-row' | i18next }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                [disabled]="isDisabled"
+                (click)="addTableColumn()"
+              >
+                {{ '@rich-text-editor-toolbar-table-add-column' | i18next }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                [disabled]="isDisabled"
+                (click)="removeTableRow()"
+              >
+                {{ '@rich-text-editor-toolbar-table-remove-row' | i18next }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                [disabled]="isDisabled"
+                (click)="removeTableColumn()"
+              >
+                {{ '@rich-text-editor-toolbar-table-remove-column' | i18next }}
+              </button>
             </div>
           }
           @if (isSourceMode) {
@@ -88,7 +127,8 @@ type RichTextEditorChain = {
               [value]="sourceValue"
               [attr.aria-label]="'Raw ' + getSourceLabel() + ' editor'"
               [disabled]="isDisabled"
-              (input)="onSourceValueChange(($any($event.target)).value)"></textarea>
+              (input)="onSourceValueChange($any($event.target).value)"
+            ></textarea>
           } @else if (editor) {
             <div class="redbox-rich-text-editor-surface" tiptapEditor [editor]="editor"></div>
           }
@@ -97,77 +137,80 @@ type RichTextEditorChain = {
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
-  styles: [`
-    .redbox-rich-text-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.25rem;
-      margin-bottom: 0.5rem;
-    }
+  styles: [
+    `
+      .redbox-rich-text-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-bottom: 0.5rem;
+      }
 
-    .redbox-rich-text-toolbar-table {
-      margin-top: -0.25rem;
-    }
+      .redbox-rich-text-toolbar-table {
+        margin-top: -0.25rem;
+      }
 
-    :host ::ng-deep .redbox-rich-text-editor .ProseMirror {
-      min-height: var(--redbox-rich-text-min-height, 200px);
-      max-height: 60vh;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      border: 1px solid #ced4da;
-      border-radius: 0.25rem;
-      padding: 0.75rem;
-      background: #fff;
-      outline: none;
-    }
+      :host ::ng-deep .redbox-rich-text-editor .ProseMirror {
+        min-height: var(--redbox-rich-text-min-height, 200px);
+        max-height: 60vh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        background: #fff;
+        outline: none;
+      }
 
-    :host ::ng-deep .redbox-rich-text-editor .ProseMirror table,
-    :host ::ng-deep .redbox-rich-text-view table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      border: 1px solid #adb5bd;
-    }
+      :host ::ng-deep .redbox-rich-text-editor .ProseMirror table,
+      :host ::ng-deep .redbox-rich-text-view table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        border: 1px solid #adb5bd;
+      }
 
-    :host ::ng-deep .redbox-rich-text-editor .ProseMirror th,
-    :host ::ng-deep .redbox-rich-text-editor .ProseMirror td,
-    :host ::ng-deep .redbox-rich-text-view th,
-    :host ::ng-deep .redbox-rich-text-view td {
-      border: 1px solid #adb5bd;
-      padding: 0.4rem 0.5rem;
-      vertical-align: top;
-    }
+      :host ::ng-deep .redbox-rich-text-editor .ProseMirror th,
+      :host ::ng-deep .redbox-rich-text-editor .ProseMirror td,
+      :host ::ng-deep .redbox-rich-text-view th,
+      :host ::ng-deep .redbox-rich-text-view td {
+        border: 1px solid #adb5bd;
+        padding: 0.4rem 0.5rem;
+        vertical-align: top;
+      }
 
-    :host ::ng-deep .redbox-rich-text-editor .ProseMirror th,
-    :host ::ng-deep .redbox-rich-text-view th {
-      background: #f8f9fa;
-      font-weight: 600;
-    }
+      :host ::ng-deep .redbox-rich-text-editor .ProseMirror th,
+      :host ::ng-deep .redbox-rich-text-view th {
+        background: #f8f9fa;
+        font-weight: 600;
+      }
 
-    :host ::ng-deep .redbox-rich-text-editor .ProseMirror .selectedCell {
-      background: #e7f1ff;
-    }
+      :host ::ng-deep .redbox-rich-text-editor .ProseMirror .selectedCell {
+        background: #e7f1ff;
+      }
 
-    .redbox-rich-text-source {
-      font-family: monospace;
-      resize: vertical;
-    }
-  `],
-  standalone: false
+      .redbox-rich-text-source {
+        font-family: monospace;
+        resize: vertical;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class RichTextEditorComponent extends FormFieldBaseComponent<string> implements OnDestroy {
   protected override logName = RichTextEditorComponentName;
 
   public editor: Editor | null = null;
-  public renderedViewHtml = "";
+  public renderedViewHtml = '';
 
-  public outputFormat: RichTextEditorOutputFormatType = "html";
+  public outputFormat: RichTextEditorOutputFormatType = 'html';
   public showSourceToggle = false;
   public toolbar: string[] = [];
-  public minHeight = "200px";
-  public placeholder = "";
+  public minHeight = '200px';
+  public placeholder = '';
   public isSourceMode = false;
-  public sourceValue = "";
+  public sourceValue = '';
 
   private valueSyncSub?: Subscription;
   private markdownViewEditor: Editor | null = null;
@@ -187,7 +230,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     this.minHeight = componentConfig?.minHeight ?? defaults.minHeight;
     this.placeholder = componentConfig?.placeholder ?? defaults.placeholder;
 
-    const initialValue = this.formControl.value ?? "";
+    const initialValue = this.formControl.value ?? '';
     this.sourceValue = initialValue;
     this.renderedViewHtml = this.toViewHtml(initialValue);
     this.createEditor(initialValue);
@@ -195,8 +238,8 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
 
   protected override async initEventHandlers() {
     this.valueSyncSub?.unsubscribe();
-    this.valueSyncSub = this.formControl.valueChanges.subscribe((value) => {
-      const nextValue = value ?? "";
+    this.valueSyncSub = this.formControl.valueChanges.subscribe(value => {
+      const nextValue = value ?? '';
       this.applyViewValue(nextValue);
       if (this.skipNextSync) {
         // This change originated from the editor itself, so pushing it back would loop.
@@ -219,7 +262,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     if (!control) {
       return;
     }
-    const nextValue = control.value ?? "";
+    const nextValue = control.value ?? '';
     this.applyViewValue(nextValue);
     this.applyEditorValue(nextValue);
   }
@@ -227,6 +270,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   private applyViewValue(value: string): void {
     this.sourceValue = value;
     this.renderedViewHtml = this.toViewHtml(value);
+    this.requestRender();
   }
 
   private applyEditorValue(value: string): void {
@@ -254,54 +298,56 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     }
     const chain = this.editor.chain().focus() as RichTextEditorChain;
     switch (action) {
-      case "bold":
+      case 'bold':
         chain.toggleBold().run();
         break;
-      case "italic":
+      case 'italic':
         chain.toggleItalic().run();
         break;
-      case "heading":
+      case 'heading':
         chain.toggleHeading({ level: 2 }).run();
         break;
-      case "link":
+      case 'link':
         this.toggleLink();
         break;
-      case "bulletList":
+      case 'bulletList':
         chain.toggleBulletList().run();
         break;
-      case "orderedList":
+      case 'orderedList':
         chain.toggleOrderedList().run();
         break;
-      case "blockquote":
+      case 'blockquote':
         chain.toggleBlockquote().run();
         break;
-      case "table":
+      case 'table':
         chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
         break;
-      case "undo":
+      case 'undo':
         chain.undo().run();
         break;
-      case "redo":
+      case 'redo':
         chain.redo().run();
         break;
       default:
-        this.loggerService.warn(`${this.logName}: Unknown toolbar action '${action}' on '${this.formFieldConfigName()}'.`);
+        this.loggerService.warn(
+          `${this.logName}: Unknown toolbar action '${action}' on '${this.formFieldConfigName()}'.`
+        );
         break;
     }
   }
 
   public getToolbarLabelKey(action: string): string {
     const labelKeys: Record<string, string> = {
-      heading: "@rich-text-editor-toolbar-heading",
-      bold: "@rich-text-editor-toolbar-bold",
-      italic: "@rich-text-editor-toolbar-italic",
-      link: "@rich-text-editor-toolbar-link",
-      bulletList: "@rich-text-editor-toolbar-bullet-list",
-      orderedList: "@rich-text-editor-toolbar-ordered-list",
-      blockquote: "@rich-text-editor-toolbar-blockquote",
-      table: "@rich-text-editor-toolbar-table",
-      undo: "@rich-text-editor-toolbar-undo",
-      redo: "@rich-text-editor-toolbar-redo",
+      heading: '@rich-text-editor-toolbar-heading',
+      bold: '@rich-text-editor-toolbar-bold',
+      italic: '@rich-text-editor-toolbar-italic',
+      link: '@rich-text-editor-toolbar-link',
+      bulletList: '@rich-text-editor-toolbar-bullet-list',
+      orderedList: '@rich-text-editor-toolbar-ordered-list',
+      blockquote: '@rich-text-editor-toolbar-blockquote',
+      table: '@rich-text-editor-toolbar-table',
+      undo: '@rich-text-editor-toolbar-undo',
+      redo: '@rich-text-editor-toolbar-redo',
     };
     return labelKeys[action] ?? action;
   }
@@ -312,7 +358,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
 
   public onSourceValueChange(value: string): void {
     this.sourceValue = value;
-    if (value === (this.formControl.value ?? "")) {
+    if (value === (this.formControl.value ?? '')) {
       return;
     }
     this.formControl.setValue(value);
@@ -322,16 +368,16 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
 
   public getSourceToggleLabelKey(): string {
     if (this.isSourceMode) {
-      return "@rich-text-editor-source-toggle-rich-text";
+      return '@rich-text-editor-source-toggle-rich-text';
     }
-    if (this.outputFormat === "markdown") {
-      return "@rich-text-editor-source-toggle-markdown";
+    if (this.outputFormat === 'markdown') {
+      return '@rich-text-editor-source-toggle-markdown';
     }
-    return "@rich-text-editor-source-toggle-html";
+    return '@rich-text-editor-source-toggle-html';
   }
 
   public getSourceLabel(): string {
-    return this.outputFormat === "markdown" ? "Markdown" : "HTML";
+    return this.outputFormat === 'markdown' ? 'Markdown' : 'HTML';
   }
 
   public addTableRow(): void {
@@ -365,14 +411,14 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       this.editor = new Editor({
         extensions: this.buildExtensions(),
         injectNonce: this.resolveCspNonce(),
-        contentType: this.outputFormat === "markdown" ? "markdown" : "html",
+        contentType: this.outputFormat === 'markdown' ? 'markdown' : 'html',
         content: initialValue,
         editable: !this.isReadonly && !this.isDisabled,
         editorProps: {
           attributes: {
-            "aria-label": this.placeholder || "Rich text editor",
-            class: "redbox-rich-text-prosemirror",
-          }
+            'aria-label': this.placeholder || 'Rich text editor',
+            class: 'redbox-rich-text-prosemirror',
+          },
         },
         onUpdate: ({ editor }) => {
           const value = this.getEditorValue(editor);
@@ -381,14 +427,14 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
             this.skipNextSync = false;
             return;
           }
-          if (value === (this.formControl.value ?? "")) {
+          if (value === (this.formControl.value ?? '')) {
             return;
           }
           this.skipNextSync = true;
           this.formControl.setValue(value);
           this.formControl.markAsDirty();
           this.formControl.markAsTouched();
-        }
+        },
       });
     } catch (error) {
       this.loggerService.error(`${this.logName}: Failed to create editor instance.`, error);
@@ -404,20 +450,19 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       TableHeader,
       TableCell,
     ];
-    if (this.outputFormat === "markdown") {
+    if (this.outputFormat === 'markdown') {
       extensions.push(Markdown);
     }
     return extensions;
   }
 
   private getEditorValue(editor: Editor): string {
-    if (this.outputFormat === "markdown") {
+    if (this.outputFormat === 'markdown') {
       try {
-        if (typeof (editor as Editor & { getMarkdown?: () => string }).getMarkdown === "function") {
+        if (typeof (editor as Editor & { getMarkdown?: () => string }).getMarkdown === 'function') {
           return this.normalizeEditorValue((editor as Editor & { getMarkdown: () => string }).getMarkdown());
         }
-      } catch {
-      }
+      } catch {}
     }
     return this.normalizeEditorValue(editor.getHTML());
   }
@@ -427,7 +472,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       return;
     }
     this.editor.commands.setContent(value, {
-      contentType: this.outputFormat === "markdown" ? "markdown" : "html",
+      contentType: this.outputFormat === 'markdown' ? 'markdown' : 'html',
     });
   }
 
@@ -435,12 +480,12 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     if (!this.editor) {
       return;
     }
-    const activeHref = this.editor.getAttributes("link")?.["href"] as string | undefined;
-    const enteredHref = globalThis?.prompt?.("Enter URL", activeHref || "https://");
+    const activeHref = this.editor.getAttributes('link')?.['href'] as string | undefined;
+    const enteredHref = globalThis?.prompt?.('Enter URL', activeHref || 'https://');
     if (enteredHref === null) {
       return;
     }
-    if (enteredHref === "") {
+    if (enteredHref === '') {
       this.editor.chain().focus().unsetLink().run();
       return;
     }
@@ -449,14 +494,14 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
 
   private toViewHtml(value: string): string {
     if (!value) {
-      return "";
+      return '';
     }
-    if (this.outputFormat !== "markdown") {
+    if (this.outputFormat !== 'markdown') {
       return value;
     }
     try {
       const mdEditor = this.getOrCreateMarkdownViewEditor();
-      mdEditor.commands.setContent(value, { contentType: "markdown" });
+      mdEditor.commands.setContent(value, { contentType: 'markdown' });
       return mdEditor.getHTML();
     } catch (error) {
       this.loggerService.error(`${this.logName}: Failed to parse markdown for view mode.`, error);
@@ -469,8 +514,8 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       this.markdownViewEditor = new Editor({
         extensions: this.buildExtensions(),
         injectNonce: this.resolveCspNonce(),
-        contentType: "markdown",
-        content: "",
+        contentType: 'markdown',
+        content: '',
         editable: false,
       });
     }
@@ -478,8 +523,8 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   }
 
   private normalizeEditorValue(value: string): string {
-    if (value === "<p></p>") {
-      return "";
+    if (value === '<p></p>') {
+      return '';
     }
     return value;
   }
