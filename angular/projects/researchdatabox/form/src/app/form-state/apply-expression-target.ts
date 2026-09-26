@@ -13,6 +13,7 @@ import { FormComponentEventBus } from './events/form-component-event-bus.service
 import { createFormValidationGroupsChangeRequestEvent } from './events/form-component-event.types';
 import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from './custom-set-value.control';
 import { CustomDisplaySyncComponentLike, syncComponentDisplayFromModel } from './custom-display-sync.control';
+import { isEqual } from 'lodash-es';
 
 /**
  * The pieces of a form field that expression targets can mutate.
@@ -68,7 +69,7 @@ export async function applyExpressionTarget(
 ): Promise<void> {
   if (target === FormExpressionsTargetModelValue) {
     // The model.value property must be handled specially.
-    if (host.model?.formControl && host.model.formControl.value !== targetValue) {
+    if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
       await setControlValue(host.model.formControl, targetValue, { emitEvent: false });
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
       // setControlValue with emitEvent:false suppresses Angular's

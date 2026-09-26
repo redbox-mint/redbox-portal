@@ -526,6 +526,20 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
     const nextValues = Array.isArray(values) ? values : [];
+    const control = this.model?.formControl;
+
+    // Keep the rendered rows when only their values change. Rebuilding them
+    // during an expression update destroys the control that raised the event,
+    // and overlapping evaluations can then try to remove that control again.
+    if (control instanceof FormArray && this.compDefMapEntries.length === nextValues.length &&
+      control.length === nextValues.length && nextValues.every((value, index) =>
+        this.hasSameValueShape(control.at(index).getRawValue(), value))) {
+      control.setValue(nextValues, options);
+      if (this.shouldEmitComponentEvents(options)) {
+        this.requestFormDirty('repeatable.value.replaced');
+      }
+      return;
+    }
 
     while (this.compDefMapEntries.length > 0) {
       const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
@@ -540,6 +554,21 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     for (const value of nextValues) {
       await this.appendNewElement(value, false, options);
     }
+  }
+
+  private hasSameValueShape(current: unknown, next: unknown): boolean {
+    if (Array.isArray(current) || Array.isArray(next)) {
+      return Array.isArray(current) && Array.isArray(next) && current.length === next.length &&
+        current.every((value, index) => this.hasSameValueShape(value, next[index]));
+    }
+    if (current !== null && next !== null && typeof current === 'object' && typeof next === 'object') {
+      const currentFields = Object.keys(current);
+      const nextFields = Object.keys(next);
+      return currentFields.length === nextFields.length && currentFields.every(field =>
+        Object.prototype.hasOwnProperty.call(next, field) &&
+        this.hasSameValueShape((current as Record<string, unknown>)[field], (next as Record<string, unknown>)[field]));
+    }
+    return (current === null && next === null) || (typeof current !== 'object' && typeof next !== 'object');
   }
 
   protected rebuildLineagePaths(options?: RepeatableSetValueOptions) {

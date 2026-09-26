@@ -190,7 +190,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'dashboard-config-editor',
-    requiredSelectors: ['dashboard-config-editor input[aria-label="Filter dashboard targets"]', 'dashboard-config-editor button[aria-label="Create a new dashboard type"]'],
+    requiredSelectors: ['dashboard-config-editor input[aria-label="Filter dashboards"]', 'dashboard-config-editor .dc-nav-item'],
     fallbackSelectors: ['dashboard-config-editor img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/dashboard-config-editor/browser/main',

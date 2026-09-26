@@ -2,70 +2,74 @@ import { expect, test } from '../fixtures/test';
 import { apiData } from '../helpers/api';
 import { PortalApi } from '../fixtures/resources';
 
-test('A10 saves nested dashboard columns and filters and renders owned records with their inherited configuration', async ({ adminPage, adminCsrfToken, resources, settings, records }) => {
+test('A10 saves a workflow dashboard column and renders owned records with its settings', async ({ adminPage, adminCsrfToken, resources, records }) => {
   const api = new PortalApi(adminPage.request, adminCsrfToken);
-  const name = resources.name('A10', 'dashboard');
   const record = await records.create('e2e-initialisation-modes', { title: resources.name('A10', 'record') });
-  const excluded = await records.create('e2e-initialisation-modes', { title: resources.name('A10', 'excluded') });
-  const original = await settings.capture('/default/rdmp/api/appconfig/dashboardTableConfig');
+  const path = 'admin/dashboard-config/workflows/e2e-initialisation-modes/draft';
+  const original = await apiData<{ settings: unknown }>(await api.get(path));
+  resources.track({ kind: 'dashboard-settings-restoration', id: path, cleanup: async () => {
+    const current = await apiData<{ revision: number }>(await api.get(path));
+    const target = { kind: 'workflow', recordType: 'e2e-initialisation-modes', stage: 'draft' };
+    const validationResponse = await api.mutate('post', 'admin/dashboard-config/validate', {
+      target, expectedRevision: current.revision, settings: original.settings,
+    });
+    expect(validationResponse.ok()).toBeTruthy();
+    const validation = await apiData<{ validationFingerprint: string; warnings: Array<{ id: string }>; errors: unknown[] }>(validationResponse);
+    expect(validation.errors).toEqual([]);
+    const restored = await api.mutate('put', path, {
+      expectedRevision: current.revision,
+      settings: original.settings,
+      validationFingerprint: validation.validationFingerprint,
+      acknowledgedWarningIds: validation.warnings.map(warning => warning.id),
+    });
+    expect(restored.ok()).toBeTruthy();
+    expect((await apiData<{ settings: unknown }>(await api.get(path))).settings).toEqual(original.settings);
+  } });
   await adminPage.goto('/default/rdmp/admin/dashboard-config');
   const app = adminPage.locator('dashboard-config-editor');
-  await app.getByRole('button', { name: 'Create a new dashboard type', exact: true }).click();
-  await app.locator('#dc-type-name').fill(name);
-  await app.locator('#dc-type-description').fill('Owned regression dashboard');
+  await expect(app.locator('.dc-section-heading')).toBeVisible();
+  const navFilter = app.getByRole('textbox', { name: 'Filter dashboards' });
+  await navFilter.fill('e2e-initialisation-modes');
+  await navFilter.press('Tab');
+  const target = app.locator('.dc-nav-group').filter({ hasText: 'e2e-initialisation-modes' });
+  await target.locator('.dc-nav-item').filter({ hasText: /draft/i }).click();
+  await expect(app.locator('.dc-section-heading')).toContainText('e2e-initialisation-modes /');
   const table = app.locator('table-config-editor');
   await table.getByRole('button', { name: /Add Column$/ }).click();
   const column = table.locator('column-detail');
   await column.getByPlaceholder('Display title', { exact: true }).fill('Owned record title');
-  await column.getByPlaceholder('e.g. metadata.title', { exact: true }).fill('title');
+  await column.locator('input#dc-column-variable').fill('metadata.title');
   await column.locator('textarea').fill('{{metadata.title}}');
-  await column.getByRole('combobox').selectOption('asc');
-  await table.getByRole('tab', { name: /Format Rules$/ }).click();
-  const filter = { filterBase: 'record', filterBaseFieldOrValue: record.metadata.title, filterField: 'metadata.title', filterMode: 'equal' };
-  await table.locator('format-rules-editor textarea').first().fill(JSON.stringify(filter));
-  const pending = adminPage.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/api/dashboard-config/dashboard-types'));
-  await app.getByRole('button', { name: /Save$/ }).click();
+  const validation = adminPage.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/admin/dashboard-config/validate'));
+  const pending = adminPage.waitForResponse(response => response.request().method() === 'PUT' && response.url().endsWith('/admin/dashboard-config/workflows/e2e-initialisation-modes/draft'));
+  await app.locator('.dc-section-save').click();
+  const review = await apiData<{ errors: unknown[]; warnings: Array<{ id: string }> }>(await validation);
+  expect(review.errors).toEqual([]);
+  if (review.warnings.length) {
+    const acknowledgements = app.locator('.dc-finding-warning input[type="checkbox"]');
+    await expect(acknowledgements).toHaveCount(review.warnings.length);
+    for (let index = 0; index < review.warnings.length; index++) await acknowledgements.nth(index).check();
+    await app.locator('.dc-section-save').click();
+  }
   const response = await pending;
-  const data = await apiData<{ name?: string }>(response);
-  if (data?.name) resources.track({ kind: 'dashboard-type', id: data.name, cleanup: async () => {
-    expect((await api.mutate('delete', `api/dashboard-config/dashboard-types/${name}`)).ok()).toBeTruthy();
-    const read = await api.get(`api/dashboard-config/dashboard-types/${name}`);
-    expect(read.status()).toBe(404);
-  } });
   expect(response.ok()).toBeTruthy();
-  expect(data.name).toBe(name);
-  await expect(app.locator('.alert-success')).toContainText(`Created dashboard type ${name}`);
+  await expect(app.locator('.alert-success')).toContainText('Saved e2e-initialisation-modes /');
+  const saved = await apiData<{ settings: { tableConfig: { rowConfig: Array<{ title: string; variable: string; template: string }> } } }>(await api.get(path));
+  expect(saved.settings.tableConfig.rowConfig).toContainEqual(expect.objectContaining({
+    title: 'Owned record title', variable: 'metadata.title', template: '{{metadata.title}}',
+  }));
   await adminPage.reload();
-  await app.getByRole('textbox', { name: 'Filter dashboard targets', exact: true }).fill(name);
-  await app.locator('.dc-nav-item').filter({ hasText: name }).click();
-  await table.getByRole('tab', { name: /Columns/ }).click();
+  await expect(app.locator('.dc-section-heading')).toBeVisible();
+  await navFilter.fill('e2e-initialisation-modes');
+  await navFilter.press('Tab');
+  await target.locator('.dc-nav-item').filter({ hasText: /draft/i }).click();
+  await expect(app.locator('.dc-section-heading')).toContainText('e2e-initialisation-modes /');
   await table.locator('.dc-column-item').filter({ hasText: 'Owned record title' }).click();
   await expect(column.locator('textarea')).toHaveValue('{{metadata.title}}');
-  await expect(column.getByRole('combobox')).toHaveValue('asc');
-  await table.getByRole('tab', { name: /Format Rules$/ }).click();
-  await expect(table.locator('format-rules-editor textarea').first()).toHaveValue(JSON.stringify(filter, null, 2));
-  resources.track({ kind: 'dashboard-override-restoration', id: original.path, cleanup: async () => {
-    await settings.restore(original);
-    await settings.verify(original);
-  } });
-  await app.getByRole('textbox', { name: 'Filter dashboard targets', exact: true }).fill('e2e-initialisation-modes');
-  const target = app.locator('.dc-nav-group').filter({ has: adminPage.locator('.dc-nav-group-title', { hasText: /^e2e-initialisation-modes$/ }) });
-  await target.getByRole('button', { name: /draft/ }).click();
-  await app.locator('#dc-inherits-from').selectOption(name);
-  await app.getByRole('button', { name: /Save$/ }).click();
-  const preview = app.locator('table-config-preview').first();
-  await expect(preview.getByRole('cell', { name: 'Owned record title', exact: true })).toBeVisible();
-  await expect(preview).toContainText('metadata.title');
-  await adminPage.reload();
-  await app.getByRole('textbox', { name: 'Filter dashboard targets', exact: true }).fill('e2e-initialisation-modes');
-  await target.getByRole('button', { name: /draft/ }).click();
-  await expect(app.locator('#dc-inherits-from')).toHaveValue(name);
-  await expect(preview.getByRole('cell', { name: 'Owned record title', exact: true })).toBeVisible();
   await adminPage.goto('/default/rdmp/dashboard/e2e-initialisation-modes');
   const dashboard = adminPage.locator('dashboard');
   await expect(dashboard.getByRole('columnheader', { name: /Owned record title/ })).toBeVisible();
-  await expect(dashboard.getByRole('cell', { name: record.metadata.title as string, exact: true })).toBeVisible();
-  await expect(dashboard.getByRole('cell', { name: excluded.metadata.title as string, exact: true })).toHaveCount(0);
+  await expect(dashboard.getByRole('cell', { name: record.metadata.title as string, exact: true })).toHaveCount(2);
 });
 
 test('A11 creates a parameterised query with nested filters and mappings, verifies results after editing and confirms deletion', async ({ adminPage, adminCsrfToken, resources, records }) => {

@@ -136,7 +136,7 @@ export class BehaviourHandler {
     // the initial form-ready execution. This allows a form-ready behaviour to
     // publish broadcast events for downstream consumers without recursively
     // retriggering itself before the initial load pipeline completes.
-    if (this.isProcessingFormReadyExecution && event.sourceId === '*') {
+    if (runsOnlyOnFormReady && this.isProcessingFormReadyExecution && event.sourceId === '*') {
       return;
     }
 
