@@ -364,41 +364,33 @@ export class ManageUsersComponent extends BaseComponent {
     this.auditSummary = { returnedCount: 0, truncated: false };
   }
 
-  genKey(userid: string) {
+  async genKey(userid: string): Promise<void> {
     this.setUpdateMessage('Generating...', 'primary');
-    const that = this;
-    this.userService.genKey(userid).then(response => {
-      const saveRes = response as unknown as SaveResponse;
-      if (saveRes.status) {
-        that.showToken = true;
-        if (that.currentUser != null) {
-          that.currentUser.token = saveRes.message;
-        }
-        that.refreshUsers().then(() => {
-          that.setUpdateMessage('Token generated.', 'primary');
-        });
-      } else {
-        that.setUpdateMessage(saveRes.message, 'danger');
+    const saveRes = (await this.userService.genKey(userid)) as unknown as SaveResponse;
+    if (saveRes.status) {
+      this.showToken = true;
+      if (this.currentUser != null) {
+        this.currentUser.token = saveRes.message;
       }
-    });
+      await this.refreshUsers();
+      this.setUpdateMessage('Token generated.', 'primary');
+    } else {
+      this.setUpdateMessage(saveRes.message, 'danger');
+    }
   }
 
-  revokeKey(userid: string) {
+  async revokeKey(userid: string): Promise<void> {
     this.setUpdateMessage('Revoking...', 'primary');
-    const that = this;
-    this.userService.revokeKey(userid).then(response => {
-      const saveRes = response as unknown as SaveResponse;
-      if (saveRes.status) {
-        if (that.currentUser != null) {
-          that.currentUser.token = '';
-        }
-        that.refreshUsers().then(() => {
-          that.setUpdateMessage('Token revoked.', 'primary');
-        });
-      } else {
-        that.setUpdateMessage(saveRes.message, 'danger');
+    const saveRes = (await this.userService.revokeKey(userid)) as unknown as SaveResponse;
+    if (saveRes.status) {
+      if (this.currentUser != null) {
+        this.currentUser.token = '';
       }
-    });
+      await this.refreshUsers();
+      this.setUpdateMessage('Token revoked.', 'primary');
+    } else {
+      this.setUpdateMessage(saveRes.message, 'danger');
+    }
   }
 
   async updateUserSubmit(user: UserForm, isValid: boolean) {

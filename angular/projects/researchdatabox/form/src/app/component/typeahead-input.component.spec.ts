@@ -274,6 +274,37 @@ describe("TypeaheadInputComponent", () => {
         expect(input.value).toBe("Improving nursing workforce retention in rural Central Queensland");
     });
 
+    it("restores stored option fields when their source paths have changed", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [{
+                name: "project_lookup",
+                component: {
+                    class: "TypeaheadInputComponent",
+                    config: {
+                        sourceType: "namedQuery",
+                        queryId: "projects",
+                        labelField: "title",
+                        valueField: "identifier",
+                        valueMode: "optionObject",
+                        optionObjectFields: {title: "metadata.displayTitle", identifier: "metadata.recordId"}
+                    }
+                },
+                model: {
+                    class: "TypeaheadInputModel",
+                    config: {value: {title: "Legacy project", identifier: "R-42"}}
+                }
+            }]
+        };
+
+        const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        expect((fixture.nativeElement.querySelector("input") as HTMLInputElement).value).toBe("Legacy project");
+        expect((component as any).getOptionObjectValue(formComponent.form?.controls["project_lookup"].value)).toBe("R-42");
+        expect(formComponent.form?.controls["project_lookup"].value).toEqual({title: "Legacy project", identifier: "R-42"});
+    });
+
     it("updates displayed text when the underlying model value changes after init", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",

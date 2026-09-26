@@ -275,6 +275,51 @@ describe('ManageUsersComponent', () => {
     expect(app.filteredUsers[0].name).toBe('Local Admin');
   });
 
+  it('shows a generated API key, then removes it after revocation', async () => {
+    const {fixture, app} = await createComponent();
+    app.editUser('admin');
+    fixture.detectChanges();
+    const generate = spyOn(userService, 'genKey').and.resolveTo({status: true, message: 'generated-token'});
+    const revoke = spyOn(userService, 'revokeKey').and.resolveTo({status: true, message: 'revoked'});
+
+    await app.genKey('ABC123');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(generate).toHaveBeenCalledOnceWith('ABC123');
+    expect(app.showToken).toBeTrue();
+    expect(app.currentUser?.token).toBe('generated-token');
+    expect(app.updateDetailsMsg).toBe('Token generated.');
+    expect(document.body.querySelector('.mu-token-display')?.textContent).toContain('generated-token');
+
+    await app.revokeKey('ABC123');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(revoke).toHaveBeenCalledOnceWith('ABC123');
+    expect(app.currentUser?.token).toBe('');
+    expect(app.updateDetailsMsg).toBe('Token revoked.');
+    expect(document.body.querySelector('.mu-token-display')).toBeNull();
+  });
+
+  it('keeps the current token and reports an API key failure', async () => {
+    const {fixture, app} = await createComponent();
+    app.editUser('admin');
+    app.currentUser!.token = 'existing-token';
+    spyOn(userService, 'genKey').and.resolveTo({status: false, message: 'Generation denied'});
+    spyOn(userService, 'revokeKey').and.resolveTo({status: false, message: 'Revocation denied'});
+
+    await app.genKey('ABC123');
+    await fixture.whenStable();
+    expect(app.currentUser?.token).toBe('existing-token');
+    expect(app.updateDetailsMsg).toBe('Generation denied');
+    expect(app.updateDetailsMsgType).toBe('danger');
+
+    await app.revokeKey('ABC123');
+    await fixture.whenStable();
+    expect(app.currentUser?.token).toBe('existing-token');
+    expect(app.updateDetailsMsg).toBe('Revocation denied');
+    expect(app.updateDetailsMsgType).toBe('danger');
+  });
+
   it('should open the audit modal, fetch records, and render them', async () => {
     const app = createBareComponent();
 
