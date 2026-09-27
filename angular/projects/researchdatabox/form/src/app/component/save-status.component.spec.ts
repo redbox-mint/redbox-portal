@@ -72,6 +72,25 @@ describe('SaveStatusComponent', () => {
     expect(fixture.componentInstance).toBeDefined();
   });
 
+  it('clears the error banner when conflict recovery clears the failure', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    store.dispatch(FormActions.submitFormFailure({ error: 'This record has changed' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-danger')).toBeTruthy();
+    store.dispatch(FormActions.submitFormSuccess({ savedData: {}, lastSavedAt: new Date().toISOString() }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-danger')).toBeFalsy();
+  });
+
   it('should show saving status while save is in progress', fakeAsync(() => {
     let fixture: any;
     let formComponent: any;

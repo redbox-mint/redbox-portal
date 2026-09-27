@@ -1547,9 +1547,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
-            const failureMessage = response.outcome === 'unknown'
-              ? unknownMessageKey
-              : (String(_get(response, 'message') ?? '').startsWith('@')
+            // Retained conflict review state must not mask a different retry failure.
+            const failureMessage = this.formConflictState() && this.isRecordRevisionStaleConflict(response)
+              ? '@form-conflict-stale-title'
+              : response.outcome === 'unknown'
+                ? unknownMessageKey
+                : (String(_get(response, 'message') ?? '').startsWith('@')
                   ? String(_get(response, 'message'))
                   : '@record-save-failed');
             // Emit failure event
@@ -2329,6 +2332,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const formLevelErrors: Record<string, unknown> = {};
     let issueIndex = 0;
     for (const problem of problems) {
+      // The conflict presenter owns recovery; a concurrency failure does not
+      // make otherwise valid form values into validation errors.
+      if (problem.kind === 'conflict' && this.formConflictState()) continue;
       for (const issue of Array.isArray(problem?.issues) ? problem.issues : []) {
         const resolved = this.resolveServerIssue(issue);
         if (!resolved) {
@@ -2498,6 +2504,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .filter(Boolean)
       .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'))
       .map(segment => /^\d+$/.test(segment) ? Number(segment) : segment);
+  }
+
+  public canRetryFormLevelServerErrors(): boolean {
+    const errors = Object.keys(this.form?.errors ?? {});
+    return errors.length > 0 && errors.every(key => key.startsWith('server#')) &&
+      Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled);
   }
 
   private clearServerSaveProblems(): void {
