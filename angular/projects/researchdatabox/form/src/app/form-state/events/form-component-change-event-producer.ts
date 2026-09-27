@@ -2,6 +2,7 @@ import { AbstractControl } from '@angular/forms';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { createFieldValueChangedEvent, FormComponentEventType } from './form-component-event.types';
 import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
+import { publishControlValueNotification } from '../control-value-notifications';
 
 /**
  * Wires `FormFieldBaseComponent` instances to the `FormComponentEventBus`.
@@ -45,9 +46,12 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		this.scopedBus = this.eventBus.scoped(fieldId);
 		this.previousValue = control.value;
 
-		const sub = control.valueChanges.subscribe((value: unknown) => {
-			this.publishValueChanged(value);
+		let active = true;
+		const publish = () => { if (active) this.publishValueChanged(control.value); };
+		const sub = control.valueChanges.subscribe(() => {
+			publishControlValueNotification(control, publish);
 		});
+		sub.add(() => { active = false; });
 		this.subscriptions.set(FormComponentEventType.FIELD_VALUE_CHANGED, sub);
 		this.subscriptions.set(FormComponentEventType.FORM_DEFINITION_READY, 
 			this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY).subscribe(() => {

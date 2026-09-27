@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { FormControl } from '@angular/forms';
+import { FormControl, FormGroup } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from './form-component-change-event-producer';
@@ -9,6 +9,8 @@ import {
   FormComponentEventType
 } from './form-component-event.types';
 import { EMPTY } from 'rxjs';
+import { applyExpressionTarget } from '../apply-expression-target';
+import { deferControlValueNotifications } from '../control-value-notifications';
 
 describe('FormComponentChangeEventProducer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -86,6 +88,27 @@ describe('FormComponentChangeEventProducer', () => {
     expect(secondCall.value).toBe('second-change');
   });
 
+  it('publishes expression changes only after ancestor values are current', async () => {
+    const { control, component, definition } = createOptions('title', 'original');
+    const parent = new FormGroup({ title: control });
+    const root = new FormGroup({ nested: parent });
+    const observed: unknown[] = [];
+    eventBus.publish.and.callFake(() => { observed.push(root.value); });
+    producer.bind({ component, definition });
+
+    await applyExpressionTarget('model.value', 'updated', { model: definition.model }, {
+      eventBus,
+      logger: TestBed.inject(LoggerService),
+    });
+
+    expect(observed).toEqual([{ nested: { title: 'updated' } }]);
+    expect(scopedBus.publish).toHaveBeenCalledTimes(1);
+    control.setValue('original');
+    expect(eventBus.publish.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      value: 'original', previousValue: 'updated',
+    }));
+  });
+
   it('should detach subscriptions when destroyed', () => {
     const { control, component, definition } = createOptions('field-b', 'initial');
 
@@ -100,6 +123,24 @@ describe('FormComponentChangeEventProducer', () => {
 
     expect(eventBus.publish).not.toHaveBeenCalled();
     expect(scopedBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('discards deferred notifications from a previous binding', async () => {
+    const oldField = createOptions('old-field');
+    const newField = createOptions('new-field');
+    producer.bind(oldField);
+
+    await deferControlValueNotifications(oldField.control, async () => {
+      oldField.control.setValue('old update');
+      producer.bind(newField);
+    });
+
+    expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(scopedBus.publish).not.toHaveBeenCalled();
+    newField.control.setValue('new update');
+    expect(eventBus.publish.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      fieldId: 'new-field', value: 'new update', previousValue: 'initial',
+    }));
   });
 
   it('should skip binding when the field id cannot be resolved', () => {
