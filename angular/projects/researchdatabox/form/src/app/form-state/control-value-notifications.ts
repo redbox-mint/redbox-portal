@@ -1,6 +1,6 @@
 import type { AbstractControl } from '@angular/forms';
 
-type DeferredNotifications = { writers: number; publishers: Set<() => void> };
+type DeferredNotifications = { writers: number; publishers: Array<() => void> };
 const deferred = new WeakMap<AbstractControl, DeferredNotifications>();
 
 /** Delay ReDBox field events until an expression write has refreshed its ancestors.
@@ -10,7 +10,7 @@ export async function deferControlValueNotifications(
   control: AbstractControl,
   write: () => Promise<void>
 ): Promise<void> {
-  const pending = deferred.get(control) ?? { writers: 0, publishers: new Set<() => void>() };
+  const pending = deferred.get(control) ?? { writers: 0, publishers: [] };
   deferred.set(control, pending);
   pending.writers++;
   try {
@@ -23,11 +23,11 @@ export async function deferControlValueNotifications(
   }
 }
 
-/** A producer supplies one stable callback that reads the control's final value. */
+/** Each callback retains the value from its own change, including intervening user edits. */
 export function publishControlValueNotification(control: AbstractControl, publish: () => void): void {
   const pending = deferred.get(control);
   if (pending) {
-    pending.publishers.add(publish);
+    pending.publishers.push(publish);
   } else {
     publish();
   }

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormArray, FormControl, FormGroup } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from './form-component-change-event-producer';
@@ -11,6 +11,7 @@ import {
 import { EMPTY } from 'rxjs';
 import { applyExpressionTarget } from '../apply-expression-target';
 import { deferControlValueNotifications } from '../control-value-notifications';
+import { ControlSetValueOptions } from '../custom-set-value.control';
 
 describe('FormComponentChangeEventProducer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -107,6 +108,39 @@ describe('FormComponentChangeEventProducer', () => {
     expect(eventBus.publish.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
       value: 'original', previousValue: 'updated',
     }));
+  });
+
+  it('preserves user edits and previous values during an asynchronous repeatable write', async () => {
+    const options = createOptions('people');
+    const control = new FormArray([new FormControl('original')]);
+    options.definition.model!.formControl = control;
+    let resume!: () => void;
+    const pause = new Promise<void>(resolve => { resume = resolve; });
+    Object.assign(control, {
+      async setCustomValue(_value: unknown, setOptions?: ControlSetValueOptions): Promise<void> {
+        control.setValue(['expression'], setOptions);
+        await pause;
+        control.push(new FormControl('second'), setOptions);
+      },
+    });
+    producer.bind(options);
+
+    const write = applyExpressionTarget('model.value', ['expression', 'second'], {
+      model: options.definition.model,
+    }, { eventBus, logger: TestBed.inject(LoggerService) });
+    control.at(0).setValue('user edit');
+    resume();
+    await write;
+
+    expect(eventBus.publish.calls.allArgs().map(([event]) => {
+      const change = event as FormComponentEventResult<FieldValueChangedEvent>;
+      return { value: change.value, previousValue: change.previousValue };
+    })).toEqual([
+      { value: ['expression'], previousValue: ['original'] },
+      { value: ['user edit'], previousValue: ['expression'] },
+      { value: ['user edit', 'second'], previousValue: ['user edit'] },
+    ]);
+    expect(scopedBus.publish).toHaveBeenCalledTimes(3);
   });
 
   it('should detach subscriptions when destroyed', () => {

@@ -2,13 +2,12 @@ import { FormControl } from '@angular/forms';
 import { deferControlValueNotifications, publishControlValueNotification } from './control-value-notifications';
 
 describe('control value notifications', () => {
-  it('coalesces asynchronous writes and leaves unrelated controls immediate', async () => {
+  it('preserves asynchronous writes in order and leaves unrelated controls immediate', async () => {
     const control = new FormControl('original');
     const other = new FormControl('other');
     const values: unknown[] = [];
-    const publish = () => { values.push(control.value); };
     const otherPublished = jasmine.createSpy('other published');
-    control.valueChanges.subscribe(() => publishControlValueNotification(control, publish));
+    control.valueChanges.subscribe(value => publishControlValueNotification(control, () => { values.push(value); }));
 
     await deferControlValueNotifications(control, async () => {
       control.setValue('intermediate');
@@ -19,9 +18,9 @@ describe('control value notifications', () => {
       expect(values).toEqual([]);
     });
 
-    expect(values).toEqual(['final']);
+    expect(values).toEqual(['intermediate', 'final']);
     control.setValue('later');
-    expect(values).toEqual(['final', 'later']);
+    expect(values).toEqual(['intermediate', 'final', 'later']);
   });
 
   it('waits for all overlapping writes to the same control', async () => {
@@ -43,7 +42,7 @@ describe('control value notifications', () => {
     expect(publish).not.toHaveBeenCalled();
     completeSecond();
     await second;
-    expect(publish).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledTimes(2);
   });
 
   it('releases notifications after a failed write and does not retain the deferral', async () => {
