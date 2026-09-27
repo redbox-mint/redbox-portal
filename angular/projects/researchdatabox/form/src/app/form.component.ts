@@ -2500,6 +2500,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .map(segment => /^\d+$/.test(segment) ? Number(segment) : segment);
   }
 
+  public canRetryFormLevelServerErrors(): boolean {
+    const errors = Object.keys(this.form?.errors ?? {});
+    return errors.length > 0 && errors.every(key => key.startsWith('server#')) &&
+      Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled);
+  }
+
   private clearServerSaveProblems(): void {
     if (this.form) {
       this.clearServerErrorsFromControl(this.form, true);

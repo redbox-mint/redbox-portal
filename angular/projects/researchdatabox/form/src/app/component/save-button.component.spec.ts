@@ -58,6 +58,25 @@ describe('SaveButtonComponent', () => {
   });
 
 
+  for (const scenario of ['server action', 'local form', 'server field']) {
+    it(`permits a different save after an action rejection, but keeps ${scenario} validation scoped`, async () => {
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+      const form = formComponent.form!;
+      form.markAsDirty();
+      if (scenario === 'server field') {
+        form.get('text_1_event')!.setErrors({ 'server#0': { message: 'Invalid field' } });
+      } else {
+        form.setErrors(scenario === 'server action'
+          ? { 'server#0': { message: 'Only the CI can activate' } }
+          : { required: true });
+      }
+      formComponent.broadcastFormStatus(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('button').disabled).toBe(scenario !== 'server action');
+    });
+  }
+
   it('should create SaveButtonComponent', async () => {
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const component = fixture.nativeElement.querySelector('redbox-form-save-button');
