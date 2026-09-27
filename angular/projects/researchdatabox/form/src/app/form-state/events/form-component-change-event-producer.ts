@@ -2,7 +2,7 @@ import { AbstractControl } from '@angular/forms';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { createFieldValueChangedEvent, FormComponentEventType } from './form-component-event.types';
 import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
-import { publishControlValueNotification } from '../control-value-notifications';
+import { publishControlValueNotification, ValueNotificationCause } from '../control-value-notifications';
 
 /**
  * Wires `FormFieldBaseComponent` instances to the `FormComponentEventBus`.
@@ -47,8 +47,8 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		this.previousValue = control.value;
 
 		const sub = control.valueChanges.subscribe(value => {
-			publishControlValueNotification(control, () => {
-				this.publishValueChanged(value);
+			publishControlValueNotification(control, cause => {
+				this.publishValueChanged(value, cause);
 			});
 		});
 		this.subscriptions.set(FormComponentEventType.FIELD_VALUE_CHANGED, sub);
@@ -85,9 +85,10 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 	 * Publishes value changed events to both the general and scoped event buses.
 	 * 
 	 * @param value 
+	 * @param cause handlers whose writes caused this change
 	 * @returns 
 	 */
-	private publishValueChanged(value: unknown): void {
+	private publishValueChanged(value: unknown, cause: ValueNotificationCause = {}): void {
 		if (!this.fieldId) {
 			return;
 		}
@@ -110,7 +111,8 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
       fieldId: this.fieldId,
       value: valueClone,
       previousValue: previousValueClone,
-      sourceId: "*"
+      sourceId: "*",
+      ...cause
     });
 
 		this.eventBus.publish(baseEvent);
@@ -119,7 +121,8 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
       fieldId: this.fieldId,
       value: valueClone,
       previousValue: previousValueClone,
-      sourceId: this.fieldId
+      sourceId: this.fieldId,
+      ...cause
     });
 
     this.scopedBus?.publish(scopedEvent);

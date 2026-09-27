@@ -5,6 +5,7 @@ import { LoggerService, RecordService } from '@researchdatabox/portal-ng-common'
 import { FormBehaviourManager } from './form-behaviour-manager.service';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
 import { FormComponentEvent, FormComponentEventType } from '../events/form-component-event.types';
+import { FormComponentValueChangeEventProducer } from '../events/form-component-change-event-producer';
 
 /**
  * Integration-style unit coverage for binding, happy-path action execution, and
@@ -496,6 +497,47 @@ describe('FormBehaviourManager', () => {
       expect(ui.control.pristine).toBeTrue();
       // One warn for the unresolvable pointer and one for the non-object entry.
       expect(logger.warn).toHaveBeenCalledTimes(2);
+    }));
+
+    it('runTemplate applyResults value writes notify dependants without re-triggering the behaviour', fakeAsync(() => {
+      const target = createFieldEntry('/main/target', 'start');
+      let evaluations = 0;
+      const compiledEvaluate = jasmine.createSpy('evaluate').and.callFake(async () => ({
+        fieldPath: '/main/target',
+        value: `write-${++evaluations}`,
+      }));
+      const formComponent = createFormComponent(
+        [
+          {
+            name: 'self-writer',
+            condition: '/main/target::field.value.changed',
+            conditionKind: 'jsonpointer',
+            runOnFormReady: false,
+            actions: [{ type: 'runTemplate', config: { hasTemplate: true, applyResults: true } }],
+          },
+        ],
+        { target },
+        compiledEvaluate
+      );
+      const published: FormComponentEvent[] = [];
+      eventBus.publish.and.callFake(event => {
+        published.push(event as unknown as FormComponentEvent);
+        if (published.length > 5) throw new Error('Behaviour write cycle did not settle');
+        fieldEvents$.next({ ...event, timestamp: Date.now() } as FormComponentEvent);
+      });
+      (eventBus as any).scoped = () => undefined;
+      const producer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventProducer(eventBus));
+      producer.bind({ definition: target.entry, component: { ...target.entry.component, formFieldConfigName: () => 'target' } });
+
+      manager.bind(formComponent);
+      fieldEvents$.next({ ...sourceChangedEvent('user'), fieldId: '/main/target' });
+      tick();
+      producer.destroy();
+
+      expect(target.control.value).toBe('write-1');
+      expect(published.length).toBe(1);
+      expect(published[0]).toEqual(jasmine.objectContaining({ fieldId: '/main/target', value: 'write-1' }));
+      expect(published[0].behaviourChain?.length).toBe(1);
     }));
 
     it('skips runTemplate actions with reserved resultKeys at bind time but still runs siblings', fakeAsync(() => {

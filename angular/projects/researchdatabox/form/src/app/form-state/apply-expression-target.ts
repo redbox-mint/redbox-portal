@@ -14,7 +14,7 @@ import { FormComponentEventBus } from './events/form-component-event-bus.service
 import { createFormValidationGroupsChangeRequestEvent } from './events/form-component-event.types';
 import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from './custom-set-value.control';
 import { CustomDisplaySyncComponentLike, syncComponentDisplayFromModel } from './custom-display-sync.control';
-import { withExpressionValueNotifications } from './control-value-notifications';
+import { ValueNotificationCause, withExpressionValueNotifications } from './control-value-notifications';
 
 /**
  * The pieces of a form field that expression targets can mutate.
@@ -43,6 +43,11 @@ export interface ApplyExpressionTargetContext {
   broadcastFormStatus?: () => void;
   /** fieldId attached to published validation-groups change-request events. */
   eventFieldId?: string;
+  /**
+   * Handlers attached to value notifications from a `model.value` write. A
+   * handler skips events it caused, so write cycles stop after one pass.
+   */
+  cause?: ValueNotificationCause;
 }
 
 /**
@@ -75,7 +80,7 @@ export async function applyExpressionTarget(
       await withExpressionValueNotifications(control, async () => {
         // Validate once, retaining Angular's asynchronous validation events.
         await setControlValue(control, targetValue, { emitEvent: true, onlySelf: true });
-      });
+      }, ctx.cause);
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
       // Propagate populated values to dependent fields, then refresh form status
       // after asynchronous custom-control/display updates have completed.

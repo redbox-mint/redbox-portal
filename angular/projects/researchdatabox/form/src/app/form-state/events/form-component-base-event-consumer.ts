@@ -53,6 +53,10 @@ export interface FormComponentEventJSONataQueryMatchOptions extends FormComponen
  * evaluation context, and target mutation.
  */
 export abstract class FormComponentEventBaseConsumer extends FormComponentEventBaseProducerConsumer {
+  private static nextConsumerId = 0;
+  /** Distinguishes this binding's expressions in event expression chains. */
+  private readonly consumerId = FormComponentEventBaseConsumer.nextConsumerId++;
+
   /** Cache for the compiled items module */
   protected compiledItemsCache?: DynamicScriptResponse;
 
@@ -340,7 +344,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     this.setupQuerySourceUpdateListener();
 
     const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
-      const hasConditionMatches = await this.getMatchedExpressions(event, this.expressions!);
+      // An expression never reacts to a change caused by its own write, directly or via other handlers.
+      const expressions = this.expressions!.filter(
+        expr => !event.expressionChain?.includes(this.getExpressionChainId(expr))
+      );
+      const hasConditionMatches = await this.getMatchedExpressions(event, expressions);
       if (hasConditionMatches) {
         for (const expr of hasConditionMatches) {
           await this.consumeEvent(event, expr);
@@ -503,8 +511,16 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         logger: this.loggerService,
         broadcastFormStatus: () => this.formComp?.broadcastFormStatus(),
         eventFieldId: event.fieldId,
+        cause: {
+          ...(event.behaviourChain ? { behaviourChain: event.behaviourChain } : {}),
+          expressionChain: [...(event.expressionChain ?? []), this.getExpressionChainId(expression)],
+        },
       }
     );
+  }
+
+  protected getExpressionChainId(expression: FormExpressionsConfigFrame): string {
+    return `${this.consumerId}:${this.expressions?.indexOf(expression) ?? -1}`;
   }
 
   /**

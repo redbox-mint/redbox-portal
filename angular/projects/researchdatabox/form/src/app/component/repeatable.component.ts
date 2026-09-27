@@ -525,20 +525,26 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
     const nextValues = Array.isArray(values) ? values : [];
+    // Replace rows silently, then emit once so dependants never see partial arrays.
+    // Programmatic replacement is not a user deletion, so it does not dirty the form.
+    const rowOptions: RepeatableSetValueOptions = { ...options, emitEvent: false };
 
-    while (this.compDefMapEntries.length > 0) {
-      const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
-      // Programmatic replacement notifies dependants without recording a user deletion.
-      this.removeElementFn(lastEntry, options, false)();
-    }
+    try {
+      while (this.compDefMapEntries.length > 0) {
+        const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
+        this.removeElementFn(lastEntry, rowOptions)();
+      }
 
-    if (nextValues.length === 0 && !this.allowZeroRows) {
-      await this.appendNewElement(undefined, false, options);
-      return;
-    }
-
-    for (const value of nextValues) {
-      await this.appendNewElement(value, false, options);
+      if (nextValues.length === 0 && !this.allowZeroRows) {
+        await this.appendNewElement(undefined, false, rowOptions);
+      } else {
+        for (const value of nextValues) {
+          await this.appendNewElement(value, false, rowOptions);
+        }
+      }
+    } finally {
+      this.rebuildLineagePaths(options);
+      this.model?.formControl?.updateValueAndValidity(options);
     }
   }
 
@@ -680,7 +686,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return wrapperRef;
   }
 
-  public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions, markFormDirty = true) {
+  public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions) {
     const that = this;
     return function () {
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
@@ -697,7 +703,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         try {
           elemEntry.wrapperRef?.destroy();
           that.model?.removeElement(elemEntry.defEntry?.model, options);
-          if (markFormDirty && that.shouldEmitComponentEvents(options)) {
+          if (that.shouldEmitComponentEvents(options)) {
             that.requestFormDirty('repeatable.element.removed');
           }
           that.updateCanRemoveFlags();
@@ -711,7 +717,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       that.compDefMapEntries.splice(defIdx, 1);
       elemEntry.wrapperRef?.destroy();
       that.model?.removeElement(elemEntry.defEntry?.model, options);
-      if (markFormDirty && that.shouldEmitComponentEvents(options)) {
+      if (that.shouldEmitComponentEvents(options)) {
         that.requestFormDirty('repeatable.element.removed');
       }
       that.updateCanRemoveFlags();

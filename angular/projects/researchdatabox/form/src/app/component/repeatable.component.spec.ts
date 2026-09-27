@@ -336,7 +336,7 @@ describe('RepeatableComponent', () => {
       const values: unknown[] = [];
       const dirtySub = eventBus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe(dirtyRequests);
       const valueSub = eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
-        values.push(event.value);
+        if (event.sourceId === '*') values.push(event.value);
       });
       if (scenario.dirty) formComponent.form?.markAsDirty();
       expect(formComponent.form?.dirty).toBe(scenario.dirty);
@@ -348,7 +348,7 @@ describe('RepeatableComponent', () => {
       await fixture.whenStable();
 
       expect(repeatable.model?.getValue()).toEqual(scenario.expected);
-      expect(values).toContain(scenario.expected);
+      expect(values).toEqual([scenario.expected]);
       expect(dirtyRequests).not.toHaveBeenCalled();
       expect(formComponent.form?.dirty).toBe(scenario.dirty);
       dirtySub.unsubscribe();
