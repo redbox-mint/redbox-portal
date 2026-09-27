@@ -4990,6 +4990,9 @@ export namespace Services {
           recordSchemaIfMatch: suppliedContext?.ifMatch,
         })
       );
+      // Rejected updates still identify the requested record so browser
+      // concurrency recovery can associate the result with its form.
+      tracker.result.oid = oid;
       const hookOperation = this.registerSaveHookOperation(
         tracker,
         this.createHookExecutionOperation(

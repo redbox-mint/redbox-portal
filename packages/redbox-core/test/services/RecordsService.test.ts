@@ -2730,6 +2730,7 @@ describe('RecordsService', function () {
         expectedRevision: 3,
         formFingerprint: issuedFingerprint!,
       });
+      expect(stale.oid).to.equal('record-123');
       expect(stale.problems[0].issues[0].code).to.equal('record-revision-stale');
       expect(stale.concurrency).to.include({ expectedRevision: 3, currentRevision: 4 });
       expect(stale.concurrency?.formFingerprint).to.equal(issuedFingerprint);
