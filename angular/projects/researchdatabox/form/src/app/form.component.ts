@@ -1547,11 +1547,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
-            const failureMessage = this.formConflictState()
+            // Retained conflict review state must not mask a different retry failure.
+            const failureMessage = this.formConflictState() && this.isRecordRevisionStaleConflict(response)
               ? '@form-conflict-stale-title'
               : response.outcome === 'unknown'
-              ? unknownMessageKey
-              : (String(_get(response, 'message') ?? '').startsWith('@')
+                ? unknownMessageKey
+                : (String(_get(response, 'message') ?? '').startsWith('@')
                   ? String(_get(response, 'message'))
                   : '@record-save-failed');
             // Emit failure event
