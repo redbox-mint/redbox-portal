@@ -528,7 +528,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
     while (this.compDefMapEntries.length > 0) {
       const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
-      this.removeElementFn(lastEntry, options)();
+      // Programmatic replacement notifies dependants without recording a user deletion.
+      this.removeElementFn(lastEntry, options, false)();
     }
 
     if (nextValues.length === 0 && !this.allowZeroRows) {
@@ -679,7 +680,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return wrapperRef;
   }
 
-  public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions) {
+  public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions, markFormDirty = true) {
     const that = this;
     return function () {
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
@@ -696,7 +697,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         try {
           elemEntry.wrapperRef?.destroy();
           that.model?.removeElement(elemEntry.defEntry?.model, options);
-          if (that.shouldEmitComponentEvents(options)) {
+          if (markFormDirty && that.shouldEmitComponentEvents(options)) {
             that.requestFormDirty('repeatable.element.removed');
           }
           that.updateCanRemoveFlags();
@@ -710,7 +711,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       that.compDefMapEntries.splice(defIdx, 1);
       elemEntry.wrapperRef?.destroy();
       that.model?.removeElement(elemEntry.defEntry?.model, options);
-      if (that.shouldEmitComponentEvents(options)) {
+      if (markFormDirty && that.shouldEmitComponentEvents(options)) {
         that.requestFormDirty('repeatable.element.removed');
       }
       that.updateCanRemoveFlags();

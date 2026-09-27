@@ -6,6 +6,8 @@ import {GroupFieldComponent} from './group.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
+import {LoggerService} from '@researchdatabox/portal-ng-common';
+import {applyExpressionTarget} from '../form-state/apply-expression-target';
 
 
 describe('RepeatableComponent', () => {
@@ -301,6 +303,58 @@ describe('RepeatableComponent', () => {
     expect(formComponent.form?.pristine).toBeFalse();
     subscription.unsubscribe();
   });
+
+  for (const scenario of [
+    { name: 'replaces existing rows', value: ['replacement'], expected: ['replacement'], allowZeroRows: false, dirty: false },
+    { name: 'clears all rows', value: [], expected: [], allowZeroRows: true, dirty: false },
+    { name: 'retains a default row when cleared', value: [], expected: [''], allowZeroRows: false, dirty: false },
+    { name: 'preserves existing user edits', value: ['replacement'], expected: ['replacement'], allowZeroRows: false, dirty: true },
+  ]) {
+    it(`expression prefill ${scenario.name} without changing dirty state`, async () => {
+      const formConfig: FormConfigFrame = {
+        name: 'testing_repeatable_expression_prefill',
+        componentDefinitions: [{
+          name: 'repeatable_prefill',
+          model: { class: 'RepeatableModel', config: { value: ['one', 'two'] } },
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              allowZeroRows: scenario.allowZeroRows,
+              elementTemplate: {
+                name: '',
+                model: { class: 'SimpleInputModel', config: { value: '' } },
+                component: { class: 'SimpleInputComponent' },
+              },
+            },
+          },
+        }],
+      };
+      const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+      const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+      const eventBus = TestBed.inject(FormComponentEventBus);
+      const dirtyRequests = jasmine.createSpy('dirty request');
+      const values: unknown[] = [];
+      const dirtySub = eventBus.select$(FormComponentEventType.FORM_STATUS_DIRTY_REQUEST).subscribe(dirtyRequests);
+      const valueSub = eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+        values.push(event.value);
+      });
+      if (scenario.dirty) formComponent.form?.markAsDirty();
+      expect(formComponent.form?.dirty).toBe(scenario.dirty);
+
+      await applyExpressionTarget('model.value', scenario.value, { model: repeatable.model, component: repeatable }, {
+        eventBus,
+        logger: TestBed.inject(LoggerService),
+      });
+      await fixture.whenStable();
+
+      expect(repeatable.model?.getValue()).toEqual(scenario.expected);
+      expect(values).toContain(scenario.expected);
+      expect(dirtyRequests).not.toHaveBeenCalled();
+      expect(formComponent.form?.dirty).toBe(scenario.dirty);
+      dirtySub.unsubscribe();
+      valueSub.unsubscribe();
+    });
+  }
 
   it('should replace repeatable elements silently when emitEvent is false', async () => {
     const formConfig: FormConfigFrame = {
