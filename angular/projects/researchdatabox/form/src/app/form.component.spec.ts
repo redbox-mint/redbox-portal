@@ -1729,10 +1729,12 @@ describe('FormComponent', () => {
   it('keeps conflict recovery separate from form validation errors', async () => {
     const { formComponent } = await createConcurrencyTestForm();
     const response = staleSaveResponse();
+    response.problems[0].issues.push({ field: 'title', code: 'record-revision-stale', message: 'The record changed.' });
     (formComponent as any).captureConflictResponse(response);
     (formComponent as any).applyServerSaveProblems(response);
     expect(formComponent.conflictState()).not.toBeNull();
     expect(formComponent.form?.errors).toBeNull();
+    expect(formComponent.form!.get('title')!.errors).toBeNull();
   });
 
   it('replaces prior server errors with uniquely keyed translated save issues', function () {
