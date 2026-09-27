@@ -70,9 +70,12 @@ export async function applyExpressionTarget(
   if (target === FormExpressionsTargetModelValue) {
     // The model.value property must be handled specially.
     if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
-      await setControlValue(host.model.formControl, targetValue, { emitEvent: false });
-      // Notify this field's dependants without restarting parent-group propagation.
-      host.model.formControl.updateValueAndValidity({ emitEvent: true, onlySelf: true });
+      // Let the value write validate and notify once. Revalidating this control
+      // afterwards would cancel/restart asynchronous validators.
+      await setControlValue(host.model.formControl, targetValue, { emitEvent: true, onlySelf: true });
+      // Keep ancestor values and validity current without publishing another
+      // parent-group value change and restarting dependent expressions.
+      host.model.formControl.parent?.updateValueAndValidity({ emitEvent: false });
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
       // Propagate populated values to dependent fields, then refresh form status
       // after asynchronous custom-control/display updates have completed.
