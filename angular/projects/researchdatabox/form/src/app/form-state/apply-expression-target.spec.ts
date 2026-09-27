@@ -39,7 +39,24 @@ describe('applyExpressionTarget', () => {
     } as any;
   });
 
-  it('sets model.value silently and re-broadcasts form status', async () => {
+  it('notifies dependent fields when an expression populates a value', async () => {
+    const changed = jasmine.createSpy('dependent field');
+    host.model.formControl.valueChanges.subscribe(changed);
+    await applyExpressionTarget('model.value', 'other', host, ctx);
+    expect(changed).toHaveBeenCalledOnceWith('other');
+    expect(host.model.formControl.pristine).toBeTrue();
+  });
+
+  it('does not re-emit structurally equal populated values', async () => {
+    host.model.formControl.setValue({ name: 'Researcher' });
+    const changed = jasmine.createSpy('dependent field');
+    host.model.formControl.valueChanges.subscribe(changed);
+    await applyExpressionTarget('model.value', { name: 'Researcher' }, host, ctx);
+    expect(changed).not.toHaveBeenCalled();
+    expect(broadcastFormStatus).not.toHaveBeenCalled();
+  });
+
+  it('sets model.value and re-broadcasts form status', async () => {
     await applyExpressionTarget('model.value', 'updated', host, ctx);
 
     expect(host.model.formControl.value).toBe('updated');

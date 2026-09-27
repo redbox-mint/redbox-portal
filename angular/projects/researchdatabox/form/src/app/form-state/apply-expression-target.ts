@@ -1,3 +1,4 @@
+import { isEqual } from 'lodash-es';
 import { FormFieldBaseComponent, FormFieldModel, LoggerService } from '@researchdatabox/portal-ng-common';
 import {
   FormExpressionsTargetComponentPrefix,
@@ -47,7 +48,7 @@ export interface ApplyExpressionTargetContext {
  * Apply an expression target mutation to a field host.
  *
  * Supported targets:
- * - `model.value` → the model's form control value (silent write + display sync)
+ * - `model.value` → the model's form control value (value change notification + display sync)
  * - `model.disabled` → the model's disabled state
  * - `layout.[prop]` / `component.[prop]` → arbitrary layout/component property
  * - `field.visible` → convenience: `component.visible` + `layout.visible`
@@ -68,15 +69,13 @@ export async function applyExpressionTarget(
 ): Promise<void> {
   if (target === FormExpressionsTargetModelValue) {
     // The model.value property must be handled specially.
-    if (host.model?.formControl && host.model.formControl.value !== targetValue) {
+    if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
       await setControlValue(host.model.formControl, targetValue, { emitEvent: false });
+      // Notify this field's dependants without restarting parent-group propagation.
+      host.model.formControl.updateValueAndValidity({ emitEvent: true, onlySelf: true });
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
-      // setControlValue with emitEvent:false suppresses Angular's
-      // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,
-      // listeners like SaveButtonComponent never see that an expression-driven
-      // update flipped the form to valid (e.g. a downstream "required" target
-      // becoming populated), and the Save button stays disabled. Re-emit the
-      // current form status so signal-effect consumers can re-evaluate.
+      // Propagate populated values to dependent fields, then refresh form status
+      // after asynchronous custom-control/display updates have completed.
       ctx.broadcastFormStatus?.();
     }
 
