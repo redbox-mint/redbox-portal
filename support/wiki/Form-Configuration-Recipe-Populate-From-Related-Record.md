@@ -235,6 +235,21 @@ Field whose name contains a namespace/colon, feeding a repeatable — use JSONat
 See [Configuring Form Expressions](Configuring-Form-Expressions.md) for the full
 expression reference (condition kinds, targets, template context variables).
 
+### Follow-up questions react to prefilled values
+
+Each changed `model.value` publishes the populated field's own
+`field.value.changed` event. For example, copying a retention choice of "Other"
+immediately triggers an explanation field's visibility expression when it listens
+to that retention field. No extra `emitEvent` is needed after the population
+expression. Repeatable targets publish their completed replacement list.
+
+The expression writes preserve the form's existing edit state. The behaviour
+actions used to seed or normalise the selector are separate: `setValue` remains
+silent and marks its target dirty, so the explicit selector event in section 4
+is still required. See
+[Automatic Value Changes and Dependent Fields](Configuring-Form-Expressions.md#automatic-value-changes-and-dependent-fields)
+for equality checks, feedback-loop protection and the action contracts.
+
 ### Reducing repetition with a helper
 
 When a form pre-fills *many* fields the expressions become boilerplate. The Data
