@@ -43,7 +43,11 @@ export class SaveButtonComponent extends ButtonBaseComponent {
       // - form has NOT been modified (i.e., not dirty) and this is not a workflow transition button
       // - async validation is pending
       // - a save is currently in progress
-      return (!dataStatus.valid) || (!dataStatus.dirty && !hasTargetStep) || isValidationPending || isSaving;
+      // Form-level server failures can depend on the requested action (for
+      // example activation versus saving a draft). Submission clears these
+      // errors and validates again; local and field-level errors still block.
+      const invalid = !dataStatus.valid && !this.getFormComponent.canRetryFormLevelServerErrors();
+      return invalid || (!dataStatus.dirty && !hasTargetStep) || isValidationPending || isSaving;
     }
     // When validation status is not yet available (e.g. initial load before the first
     // FORM_VALIDATION_BROADCAST), default to disabled for standard save, but enabled for
