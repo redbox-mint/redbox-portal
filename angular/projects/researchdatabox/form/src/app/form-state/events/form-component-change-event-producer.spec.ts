@@ -10,7 +10,7 @@ import {
 } from './form-component-event.types';
 import { EMPTY } from 'rxjs';
 import { applyExpressionTarget } from '../apply-expression-target';
-import { deferControlValueNotifications } from '../control-value-notifications';
+import { withExpressionValueNotifications } from '../control-value-notifications';
 import { ControlSetValueOptions } from '../custom-set-value.control';
 
 describe('FormComponentChangeEventProducer', () => {
@@ -93,6 +93,8 @@ describe('FormComponentChangeEventProducer', () => {
     const { control, component, definition } = createOptions('title', 'original');
     const parent = new FormGroup({ title: control });
     const root = new FormGroup({ nested: parent });
+    const validateParent = jasmine.createSpy('parent validator').and.returnValue(null);
+    parent.setValidators(validateParent);
     const observed: unknown[] = [];
     eventBus.publish.and.callFake(() => { observed.push(root.value); });
     producer.bind({ component, definition });
@@ -104,6 +106,7 @@ describe('FormComponentChangeEventProducer', () => {
 
     expect(observed).toEqual([{ nested: { title: 'updated' } }]);
     expect(scopedBus.publish).toHaveBeenCalledTimes(1);
+    expect(validateParent).toHaveBeenCalledTimes(1);
     control.setValue('original');
     expect(eventBus.publish.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
       value: 'original', previousValue: 'updated',
@@ -113,6 +116,9 @@ describe('FormComponentChangeEventProducer', () => {
   it('preserves user edits and previous values during an asynchronous repeatable write', async () => {
     const options = createOptions('people');
     const control = new FormArray([new FormControl('original')]);
+    const form = new FormGroup({ people: control });
+    const observedForms: unknown[] = [];
+    eventBus.publish.and.callFake(() => { observedForms.push(form.value); });
     options.definition.model!.formControl = control;
     let resume!: () => void;
     const pause = new Promise<void>(resolve => { resume = resolve; });
@@ -129,6 +135,7 @@ describe('FormComponentChangeEventProducer', () => {
       model: options.definition.model,
     }, { eventBus, logger: TestBed.inject(LoggerService) });
     control.at(0).setValue('user edit');
+    expect(eventBus.publish).toHaveBeenCalledTimes(2);
     resume();
     await write;
 
@@ -141,6 +148,11 @@ describe('FormComponentChangeEventProducer', () => {
       { value: ['user edit', 'second'], previousValue: ['user edit'] },
     ]);
     expect(scopedBus.publish).toHaveBeenCalledTimes(3);
+    expect(observedForms).toEqual([
+      { people: ['expression'] },
+      { people: ['user edit'] },
+      { people: ['user edit', 'second'] },
+    ]);
   });
 
   it('should detach subscriptions when destroyed', () => {
@@ -159,14 +171,14 @@ describe('FormComponentChangeEventProducer', () => {
     expect(scopedBus.publish).not.toHaveBeenCalled();
   });
 
-  it('discards deferred notifications from a previous binding', async () => {
+  it('detaches the previous binding during an asynchronous expression write', async () => {
     const oldField = createOptions('old-field');
     const newField = createOptions('new-field');
     producer.bind(oldField);
 
-    await deferControlValueNotifications(oldField.control, async () => {
-      oldField.control.setValue('old update');
+    await withExpressionValueNotifications(oldField.control, async () => {
       producer.bind(newField);
+      oldField.control.setValue('old update');
     });
 
     expect(eventBus.publish).not.toHaveBeenCalled();

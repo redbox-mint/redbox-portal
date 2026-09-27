@@ -14,7 +14,7 @@ import { FormComponentEventBus } from './events/form-component-event-bus.service
 import { createFormValidationGroupsChangeRequestEvent } from './events/form-component-event.types';
 import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from './custom-set-value.control';
 import { CustomDisplaySyncComponentLike, syncComponentDisplayFromModel } from './custom-display-sync.control';
-import { deferControlValueNotifications } from './control-value-notifications';
+import { withExpressionValueNotifications } from './control-value-notifications';
 
 /**
  * The pieces of a form field that expression targets can mutate.
@@ -72,12 +72,9 @@ export async function applyExpressionTarget(
     // The model.value property must be handled specially.
     if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
       const control = host.model.formControl;
-      await deferControlValueNotifications(control, async () => {
+      await withExpressionValueNotifications(control, async () => {
         // Validate once, retaining Angular's asynchronous validation events.
         await setControlValue(control, targetValue, { emitEvent: true, onlySelf: true });
-        // Behaviours must see the new aggregate form value when the queued
-        // field notification is released, without another parent value event.
-        control.parent?.updateValueAndValidity({ emitEvent: false });
       });
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
       // Propagate populated values to dependent fields, then refresh form status

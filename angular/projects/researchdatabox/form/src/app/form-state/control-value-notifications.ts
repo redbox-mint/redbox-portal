@@ -1,34 +1,43 @@
 import type { AbstractControl } from '@angular/forms';
 
-type DeferredNotifications = { writers: number; publishers: Array<() => void> };
-const deferred = new WeakMap<AbstractControl, DeferredNotifications>();
+type ExpressionWrite = { writers: number; refreshed: boolean; value?: unknown };
+const expressionWrites = new WeakMap<AbstractControl, ExpressionWrite>();
 
-/** Delay ReDBox field events until an expression write has refreshed its ancestors.
- * Angular's own value/status events and asynchronous validation remain active.
- */
-export async function deferControlValueNotifications(
+/** Keep aggregate form values current while expression writes notify dependants. */
+export async function withExpressionValueNotifications(
   control: AbstractControl,
   write: () => Promise<void>
 ): Promise<void> {
-  const pending = deferred.get(control) ?? { writers: 0, publishers: [] };
-  deferred.set(control, pending);
+  const pending = expressionWrites.get(control) ?? { writers: 0, refreshed: false };
+  expressionWrites.set(control, pending);
   pending.writers++;
   try {
     await write();
   } finally {
-    if (--pending.writers === 0) {
-      deferred.delete(control);
-      for (const publish of pending.publishers) publish();
+    if (--pending.writers === 0) expressionWrites.delete(control);
+    // Controls without a bound event producer still need an ancestor refresh.
+    if (!pending.refreshed || pending.value !== control.value) {
+      control.parent?.updateValueAndValidity({ emitEvent: false });
+      pending.refreshed = true;
+      pending.value = control.value;
     }
   }
 }
 
-/** Each callback retains the value from its own change, including intervening user edits. */
+/** Publish every change against its current form state, including edits during async writes. */
 export function publishControlValueNotification(control: AbstractControl, publish: () => void): void {
-  const pending = deferred.get(control);
-  if (pending) {
-    pending.publishers.push(publish);
-  } else {
-    publish();
+  let writingControl: AbstractControl | null = control;
+  while (writingControl && !expressionWrites.has(writingControl)) {
+    writingControl = writingControl.parent;
   }
+  if (writingControl) {
+    // Angular emits child valueChanges before refreshing its ancestors. Refresh
+    // them silently before a behaviour reads form.value, without revalidating
+    // the changed control or postponing notifications across an async write.
+    control.parent?.updateValueAndValidity({ emitEvent: false });
+    const pending = expressionWrites.get(writingControl)!;
+    pending.refreshed = true;
+    pending.value = writingControl.value;
+  }
+  publish();
 }

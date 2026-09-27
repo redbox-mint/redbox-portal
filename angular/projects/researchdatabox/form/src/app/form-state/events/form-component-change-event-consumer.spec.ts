@@ -903,7 +903,7 @@ describe('FormComponentValueChangeEventConsumer', () => {
     eventStream$.next(event);
     tick();
 
-    expect(customSetter).toHaveBeenCalledWith([{ name: 'new row' }], { emitEvent: false });
+    expect(customSetter).toHaveBeenCalledWith([{ name: 'new row' }], { emitEvent: true, onlySelf: true });
     expect(setValueSpy).not.toHaveBeenCalled();
   }));
 });

@@ -46,14 +46,11 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		this.scopedBus = this.eventBus.scoped(fieldId);
 		this.previousValue = control.value;
 
-		let active = true;
 		const sub = control.valueChanges.subscribe(value => {
-			const snapshot = structuredClone(value);
 			publishControlValueNotification(control, () => {
-				if (active) this.publishValueChanged(snapshot);
+				this.publishValueChanged(value);
 			});
 		});
-		sub.add(() => { active = false; });
 		this.subscriptions.set(FormComponentEventType.FIELD_VALUE_CHANGED, sub);
 		this.subscriptions.set(FormComponentEventType.FORM_DEFINITION_READY, 
 			this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY).subscribe(() => {
