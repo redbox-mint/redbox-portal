@@ -338,6 +338,11 @@ describe('RepeatableComponent', () => {
       const valueSub = eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
         if (event.sourceId === '*') values.push(event.value);
       });
+      const validatedValues: unknown[] = [];
+      repeatable.model?.formControl?.addValidators(control => {
+        validatedValues.push(structuredClone(control.value));
+        return null;
+      });
       if (scenario.dirty) formComponent.form?.markAsDirty();
       expect(formComponent.form?.dirty).toBe(scenario.dirty);
 
@@ -349,6 +354,8 @@ describe('RepeatableComponent', () => {
 
       expect(repeatable.model?.getValue()).toEqual(scenario.expected);
       expect(values).toEqual([scenario.expected]);
+      // Only the final row change validates the completed array.
+      expect(validatedValues.filter(value => JSON.stringify(value) === JSON.stringify(scenario.expected)).length).toBe(1);
       expect(dirtyRequests).not.toHaveBeenCalled();
       expect(formComponent.form?.dirty).toBe(scenario.dirty);
       dirtySub.unsubscribe();

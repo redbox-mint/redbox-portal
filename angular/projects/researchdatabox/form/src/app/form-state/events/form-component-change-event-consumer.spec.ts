@@ -979,6 +979,29 @@ describe('FormComponentValueChangeEventConsumer', () => {
       expect(a.control.value).toBe('y++');
     }));
 
+    it('reacts to independent edits made while its asynchronous write is pending', fakeAsync(() => {
+      const fromSelf = (event: FieldValueChangedEvent) => event.sourceId === '*' && event.fieldId === 'title';
+      const title = bindField('title', '', fromSelf, event => String(event.value).toUpperCase());
+      const control = title.control as FormControl & CustomSetValueControl<unknown>;
+      const pendingWrites: (() => void)[] = [];
+      control.setCustomValue = async (value, options) => {
+        control.setValue(value as string, options);
+        await new Promise<void>(resolve => pendingWrites.push(resolve));
+      };
+
+      control.setValue('first');
+      tick();
+      expect(control.value).toBe('FIRST');
+
+      // The write is still awaiting; this user edit must not inherit its causal chain.
+      control.setValue('second');
+      tick();
+      expect(control.value).toBe('SECOND');
+      pendingWrites.forEach(resume => resume());
+      tick();
+      expect(control.value).toBe('SECOND');
+    }));
+
     it('carries the triggering behaviour chain into expression-driven notifications', fakeAsync(() => {
       const target = bindField('target', '', event => event.fieldId === 'source', event => event.value);
       const published: FieldValueChangedEvent[] = [];
