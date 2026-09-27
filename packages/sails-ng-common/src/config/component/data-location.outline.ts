@@ -40,6 +40,7 @@ export interface DataLocationOption {
 }
 
 export interface DataLocationBaseValue {
+    attachmentId?: string;
     location: string;
     notes?: string;
     isc?: string;
