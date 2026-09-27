@@ -408,6 +408,58 @@ describe('RepeatableComponent', () => {
     expect(resolveFieldByPointer('/rows/1/title', { formComponent })?.control.value).toBe('second');
   });
 
+  it('attributes a replacement row disabled by a model.disabled expression to the write', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_disabled_prefill_attribution',
+      componentDefinitions: [{
+        name: 'rows',
+        model: { class: 'RepeatableModel', config: { value: [{ title: 'old' }] } },
+        component: {
+          class: 'RepeatableComponent',
+          config: {
+            elementTemplate: {
+              name: '',
+              model: { class: 'GroupModel', config: { value: {} } },
+              component: {
+                class: 'GroupComponent',
+                config: {
+                  componentDefinitions: [{
+                    name: 'title',
+                    model: { class: 'SimpleInputModel', config: { value: '' } },
+                    component: { class: 'SimpleInputComponent' },
+                  }],
+                },
+              },
+            },
+          },
+        },
+      }],
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const ctx = { eventBus, logger: TestBed.inject(LoggerService) };
+    await applyExpressionTarget('model.disabled', true, { model: repeatable.model, component: repeatable }, ctx);
+    expect(repeatable.model?.formControl?.disabled).toBeTrue();
+    const rowEvents: { expressionChain?: readonly string[] }[] = [];
+    const sub = eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+      if (event.sourceId === '*' && event.fieldId === '/rows/0') rowEvents.push(event);
+    });
+
+    await applyExpressionTarget('model.value', [{ title: 'new' }], { model: repeatable.model, component: repeatable }, {
+      ...ctx,
+      cause: { expressionChain: ['prefill'] },
+    });
+    await fixture.whenStable();
+    sub.unsubscribe();
+
+    expect(repeatable.model?.getValue()).toEqual([{ title: 'new' }]);
+    // The row still inherits the disabled state, with notifications attributed to the write.
+    expect(repeatable.model?.formControl?.at(0).disabled).toBeTrue();
+    expect(rowEvents.length).toBeGreaterThan(0);
+    expect(rowEvents.every(event => event.expressionChain?.includes('prefill'))).toBeTrue();
+  });
+
   it('should replace repeatable elements silently when emitEvent is false', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_silent_replace',

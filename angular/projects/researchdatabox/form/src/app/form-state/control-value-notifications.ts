@@ -27,6 +27,8 @@ const ATTRIBUTED_METHODS = [
 ] as const;
 
 type ControlMethods = Record<string, ((...args: unknown[]) => unknown) | undefined>;
+/** Causes of pending writes, keyed by each write's options object. */
+const writeCauses = new WeakMap<object, ValueNotificationCause>();
 type AttributedControl = { writes: Map<object, ValueNotificationCause>; restore: () => void };
 const attributedControls = new WeakMap<AbstractControl, AttributedControl>();
 
@@ -55,10 +57,12 @@ export async function withExpressionValueNotifications(
   expressionWrites.set(control, pending);
   pending.writers++;
   const release = attributeOptions(control, options, cause);
+  writeCauses.set(options, cause);
   try {
     // Synchronous setters notify before write() returns its promise.
     await attributeTo(cause, () => write(options));
   } finally {
+    writeCauses.delete(options);
     release();
     if (--pending.writers === 0) expressionWrites.delete(control);
     // Controls without a bound event producer still need an ancestor refresh.
@@ -89,6 +93,16 @@ export function publishControlValueNotification(
     pending.value = writingControl.value;
   }
   publish(activeCause ?? {});
+}
+
+/**
+ * Run a change to another control, such as a row being added to the target, as
+ * part of the pending write that `options` identifies. Without a pending write
+ * the change runs unattributed.
+ */
+export function withWriteOptions<T>(options: object | undefined, change: () => T): T {
+  const cause = options ? writeCauses.get(options) : undefined;
+  return cause ? attributeTo(cause, change) : change();
 }
 
 /** Attribute the control's changes made with `options` until the returned release runs. */

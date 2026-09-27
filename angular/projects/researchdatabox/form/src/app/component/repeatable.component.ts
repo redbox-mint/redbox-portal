@@ -35,6 +35,7 @@ import {
   FormComponentEventBus,
 } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
+import { withWriteOptions } from '../form-state/control-value-notifications';
 import { FormComponent } from '../form.component';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
@@ -889,7 +890,8 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     const control = targetModel?.getFormControl();
     if (this.formControl && control) {
       if (this.formControl.disabled && control.enabled) {
-        control.disable();
+        // Not silent: row components such as typeahead sync their display from statusChanges.
+        withWriteOptions(options, () => control.disable());
       }
       this.formControl.push(control, options);
     } else {
