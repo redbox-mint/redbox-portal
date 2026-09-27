@@ -8,6 +8,7 @@ import {fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
 import {LoggerService} from '@researchdatabox/portal-ng-common';
 import {applyExpressionTarget} from '../form-state/apply-expression-target';
+import {resolveFieldByPointer} from '../form-state/behaviours/behaviour-field-resolver';
 
 
 describe('RepeatableComponent', () => {
@@ -362,6 +363,50 @@ describe('RepeatableComponent', () => {
       valueSub.unsubscribe();
     });
   }
+
+  it('expression prefill publishes the final row\'s nested fields to the query source', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_repeatable_expression_prefill_nested',
+      componentDefinitions: [{
+        name: 'rows',
+        model: { class: 'RepeatableModel', config: { value: [] } },
+        component: {
+          class: 'RepeatableComponent',
+          config: {
+            allowZeroRows: true,
+            elementTemplate: {
+              name: '',
+              model: { class: 'GroupModel', config: {} },
+              component: {
+                class: 'GroupComponent',
+                config: {
+                  componentDefinitions: [{
+                    name: 'title',
+                    model: { class: 'SimpleInputModel', config: {} },
+                    component: { class: 'SimpleInputComponent' },
+                  }],
+                },
+              },
+            },
+          },
+        },
+      }],
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = fixture.componentInstance.componentDefArr[0].component as RepeatableComponent;
+
+    await applyExpressionTarget('model.value', [{ title: 'first' }, { title: 'second' }], {
+      model: repeatable.model,
+      component: repeatable,
+    }, {
+      eventBus: TestBed.inject(FormComponentEventBus),
+      logger: TestBed.inject(LoggerService),
+    });
+    await fixture.whenStable();
+
+    expect(resolveFieldByPointer('/rows/0/title', { formComponent })?.control.value).toBe('first');
+    expect(resolveFieldByPointer('/rows/1/title', { formComponent })?.control.value).toBe('second');
+  });
 
   it('should replace repeatable elements silently when emitEvent is false', async () => {
     const formConfig: FormConfigFrame = {

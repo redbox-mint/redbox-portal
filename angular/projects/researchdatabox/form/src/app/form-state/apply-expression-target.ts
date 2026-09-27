@@ -80,7 +80,7 @@ export async function applyExpressionTarget(
       await withExpressionValueNotifications(control, async () => {
         // Validate once, retaining Angular's asynchronous validation events.
         await setControlValue(control, targetValue, { emitEvent: true, onlySelf: true });
-      }, ctx.cause);
+      }, ctx.cause, { value: targetValue });
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
       // Propagate populated values to dependent fields, then refresh form status
       // after asynchronous custom-control/display updates have completed.

@@ -979,6 +979,22 @@ describe('FormComponentValueChangeEventConsumer', () => {
       expect(a.control.value).toBe('y++');
     }));
 
+    it('does not re-trigger from a change an asynchronous setter makes after awaiting', fakeAsync(() => {
+      const text2 = bindField('text_2', 'start', event => event.sourceId === '*', () => `${text2.control.value}__suffix`);
+      const control = text2.control as FormControl & CustomSetValueControl<unknown>;
+      const setter = jasmine.createSpy('setCustomValue').and.callFake(async (value: unknown, options?: object) => {
+        await Promise.resolve();
+        control.setValue(value as string, options);
+      });
+      control.setCustomValue = setter;
+
+      bus.publish(createFieldValueChangedEvent({ fieldId: 'text_1', sourceId: '*', value: 'changed' }));
+      tick();
+
+      expect(control.value).toBe('start__suffix');
+      expect(setter).toHaveBeenCalledTimes(1);
+    }));
+
     it('reacts to independent edits made while its asynchronous write is pending', fakeAsync(() => {
       const fromSelf = (event: FieldValueChangedEvent) => event.sourceId === '*' && event.fieldId === 'title';
       const title = bindField('title', '', fromSelf, event => String(event.value).toUpperCase());

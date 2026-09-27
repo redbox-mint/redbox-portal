@@ -618,6 +618,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       });
       this.compDefMapEntries[index].defEntry.lineagePaths = lineagePath;
     }
+    this.publishDefinitionChange(options);
+  }
+
+  protected publishDefinitionChange(options?: RepeatableSetValueOptions) {
     if (!this.shouldEmitComponentEvents(options)) {
       return;
     }
@@ -718,12 +722,15 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // Pushing early so rebuilding the lineage paths will be accurate
     this.compDefMapEntries.push(elemEntry);
     this.updateCanRemoveFlags();
-    this.rebuildLineagePaths(options);
+    // The element needs its lineage paths to initialise, but the definition change is published
+    // afterwards so the query source includes the element's nested components.
+    this.rebuildLineagePaths({ ...options, emitEvent: false });
     // Create a new component for the repeatable element
     const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
+    this.publishDefinitionChange(options);
     const layoutInstance = elemFieldEntry.layout as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
     if (!layoutInstance) {
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
