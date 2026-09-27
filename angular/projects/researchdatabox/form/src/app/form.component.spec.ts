@@ -1726,6 +1726,15 @@ describe('FormComponent', () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  it('keeps conflict recovery separate from form validation errors', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    const response = staleSaveResponse();
+    (formComponent as any).captureConflictResponse(response);
+    (formComponent as any).applyServerSaveProblems(response);
+    expect(formComponent.conflictState()).not.toBeNull();
+    expect(formComponent.form?.errors).toBeNull();
+  });
+
   it('replaces prior server errors with uniquely keyed translated save issues', function () {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance;

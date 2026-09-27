@@ -1547,7 +1547,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
-            const failureMessage = response.outcome === 'unknown'
+            const failureMessage = this.formConflictState()
+              ? '@form-conflict-stale-title'
+              : response.outcome === 'unknown'
               ? unknownMessageKey
               : (String(_get(response, 'message') ?? '').startsWith('@')
                   ? String(_get(response, 'message'))
@@ -2329,6 +2331,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const formLevelErrors: Record<string, unknown> = {};
     let issueIndex = 0;
     for (const problem of problems) {
+      // The conflict presenter owns recovery; a concurrency failure does not
+      // make otherwise valid form values into validation errors.
+      if (problem.kind === 'conflict' && this.formConflictState()) continue;
       for (const issue of Array.isArray(problem?.issues) ? problem.issues : []) {
         const resolved = this.resolveServerIssue(issue);
         if (!resolved) {
