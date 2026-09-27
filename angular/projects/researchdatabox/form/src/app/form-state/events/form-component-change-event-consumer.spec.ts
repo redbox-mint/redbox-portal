@@ -1,5 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { FormControl, Validators } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventConsumer } from './form-component-change-event-consumer';
@@ -1016,6 +1016,103 @@ describe('FormComponentValueChangeEventConsumer', () => {
       pendingWrites.forEach(resume => resume());
       tick();
       expect(control.value).toBe('SECOND');
+    }));
+
+    it('processes an independent edit that matches a pending expression target', fakeAsync(() => {
+      const fromSelf = (event: FieldValueChangedEvent) => event.sourceId === '*' && event.fieldId === 'title';
+      const title = bindField('title', '', fromSelf, event => `${event.value}_suffix`);
+      const control = title.control as FormControl & CustomSetValueControl<unknown>;
+      let finish!: () => void;
+      const pause = new Promise<void>(resolve => { finish = resolve; });
+      control.setCustomValue = async (value, options) => {
+        await pause;
+        control.setValue(value as string, options);
+      };
+      const published: FieldValueChangedEvent[] = [];
+      const sub = bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+        if (event.sourceId === '*') published.push(event);
+      });
+
+      control.setValue('user');
+      tick();
+      expect(title.evaluate).toHaveBeenCalledTimes(1);
+      // A user edit to the pending write's target, before the setter has resumed.
+      control.setValue('user_suffix');
+      tick();
+      expect(title.evaluate).toHaveBeenCalledTimes(2);
+      expect(published.find(event => event.value === 'user_suffix')?.expressionChain).toBeUndefined();
+      finish();
+      tick();
+      sub.unsubscribe();
+
+      expect(control.value).toBe('user_suffix_suffix');
+      expect(title.evaluate).toHaveBeenCalledTimes(2);
+    }));
+
+    it('does not re-trigger from an asynchronous setter that normalises its input', fakeAsync(() => {
+      const fromSelf = (event: FieldValueChangedEvent) => event.sourceId === '*' && event.fieldId === 'title';
+      const title = bindField('title', '', fromSelf, event => `${event.value}_suffix`);
+      const control = title.control as FormControl & CustomSetValueControl<unknown>;
+      let writes = 0;
+      control.setCustomValue = async (value, options) => {
+        await Promise.resolve();
+        writes++;
+        control.setValue(String(value).toUpperCase(), options);
+      };
+
+      control.setValue('user');
+      tick();
+
+      expect(writes).toBe(1);
+      expect(control.value).toBe('USER_SUFFIX');
+    }));
+
+    it('attributes child notifications from an asynchronous group setter to the write', fakeAsync(() => {
+      const a = createSetup({ initialFormControlValue: '' });
+      const b = createSetup({ initialFormControlValue: '' });
+      (a.definition as { name?: string }).name = 'a';
+      (b.definition as { name?: string }).name = 'b';
+      const group = new FormGroup({ a: a.control, b: b.control }) as FormGroup & CustomSetValueControl<unknown>;
+      let writes = 0;
+      group.setCustomValue = async (value, options) => {
+        await Promise.resolve();
+        writes++;
+        group.setValue(value as { a: string; b: string }, options);
+      };
+      const host = createSetup({ expressions: [expression('group')] });
+      (host.definition as { name?: string }).name = 'group';
+      Object.assign(host.model, { formControl: group });
+      const producers = [a, b, host].map(field => {
+        const producer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventProducer(bus));
+        producer.bind({ component: field.component, definition: field.definition });
+        return producer;
+      });
+      const groupConsumer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventConsumer(bus));
+      // Matches every broadcast, including the children's own notifications.
+      spyOn<any>(groupConsumer, 'getMatchedExpressions').and.callFake(
+        async (event: FieldValueChangedEvent, candidates: FormExpressionsConfigFrame[]) =>
+          candidates.length > 0 && event.sourceId === '*' ? candidates : null
+      );
+      spyOn<any>(groupConsumer, 'evaluateExpressionJSONata').and.callFake(async () => {
+        if (writes > 10) throw new Error('Expression cycle did not settle');
+        return { a: `${group.value.a}!`, b: `${group.value.b}!` };
+      });
+      groupConsumer.bind({ component: host.component, definition: host.definition });
+      bindings.push(...producers, groupConsumer);
+      const published: FieldValueChangedEvent[] = [];
+      const sub = bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+        if (event.sourceId === '*') published.push(event);
+      });
+
+      bus.publish(createFieldValueChangedEvent({ fieldId: 'source', sourceId: '*', value: 'changed' }));
+      tick();
+      sub.unsubscribe();
+
+      expect(writes).toBe(1);
+      expect(group.value).toEqual({ a: '!', b: '!' });
+      const childEvents = published.filter(event => event.fieldId === 'a' || event.fieldId === 'b');
+      expect(childEvents.length).toBe(2);
+      expect(childEvents.every(event => event.expressionChain?.length === 1)).toBeTrue();
     }));
 
     it('carries the triggering behaviour chain into expression-driven notifications', fakeAsync(() => {

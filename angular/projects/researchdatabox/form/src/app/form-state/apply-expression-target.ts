@@ -77,10 +77,10 @@ export async function applyExpressionTarget(
     // The model.value property must be handled specially.
     if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
       const control = host.model.formControl;
-      await withExpressionValueNotifications(control, async () => {
+      await withExpressionValueNotifications(control, async options => {
         // Validate once, retaining Angular's asynchronous validation events.
-        await setControlValue(control, targetValue, { emitEvent: true, onlySelf: true });
-      }, ctx.cause, { value: targetValue });
+        await setControlValue(control, targetValue, options);
+      }, ctx.cause);
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
       // Propagate populated values to dependent fields, then refresh form status
       // after asynchronous custom-control/display updates have completed.

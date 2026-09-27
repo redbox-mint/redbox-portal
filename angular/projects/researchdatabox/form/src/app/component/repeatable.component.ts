@@ -35,12 +35,11 @@ import {
   FormComponentEventBus,
 } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
-import { captureWriteAttribution } from '../form-state/control-value-notifications';
 import { FormComponent } from '../form.component';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
 type RepeatableSetValueOptions = ModifyOptions;
-/** Applies a row's form-model change, letting replacement attribute the final change to its write. */
+/** Applies a row's form-model change, letting replacement observe its final change. */
 type ModelChange = (change: () => void) => void;
 
 class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements CustomSetValueControl<Array<unknown>> {
@@ -562,8 +561,6 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
-    // Capture before the first await so the final change is attributed to a calling expression write.
-    const attributeWrite = captureWriteAttribution();
     const nextValues = Array.isArray(values) ? values : [];
     const appendValues = nextValues.length === 0 && !this.allowZeroRows ? [undefined] : nextValues;
     const removeCount = this.compDefMapEntries.length;
@@ -571,15 +568,15 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       return;
     }
     // Intermediate rows change silently. Only the final change uses the caller's
-    // options, so dependants see one complete array that is validated once.
+    // options, so dependants see one complete array that is validated once, and
+    // an expression write can attribute the change to itself by those options.
     // Programmatic replacement is not a user deletion, so it does not dirty the form.
     const rowOptions: RepeatableSetValueOptions = { ...options, emitEvent: false };
     let finalChangeApplied = false;
-    const applyFinalChange: ModelChange = change =>
-      attributeWrite(() => {
-        finalChangeApplied = true;
-        change();
-      });
+    const applyFinalChange: ModelChange = change => {
+      finalChangeApplied = true;
+      change();
+    };
 
     try {
       for (let removed = 1; removed <= removeCount; removed++) {
@@ -599,10 +596,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     } finally {
       if (!finalChangeApplied) {
         // The final row change failed or was skipped; still publish the resulting state.
-        attributeWrite(() => {
-          this.rebuildLineagePaths(options);
-          this.model?.formControl?.updateValueAndValidity(options);
-        });
+        this.rebuildLineagePaths(options);
+        this.model?.formControl?.updateValueAndValidity(options);
       }
     }
   }
