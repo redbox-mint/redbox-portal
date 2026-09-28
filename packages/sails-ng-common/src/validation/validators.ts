@@ -207,7 +207,12 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
     class: "aggregateMaxLength",
     message: "@validator-error-aggregate-max-length",
     create: (config) => {
-      const maxLength = formValidatorGetDefinitionNumber(config, "maxLength");
+      const configuredMaxLength = formValidatorGetDefinitionItem(config, "maxLength");
+      // Parse the whole numeric value without coercing blanks or non-numeric types.
+      const maxLength = typeof configuredMaxLength === "number"
+        || (typeof configuredMaxLength === "string" && configuredMaxLength.trim() !== "")
+        ? Number(configuredMaxLength)
+        : NaN;
       const valuePath = formValidatorGetDefinitionString(config, "valuePath", "");
       const separator = formValidatorGetDefinitionString(config, "separator", ", ");
       const trim = formValidatorGetDefinitionBoolean(config, "trim", true);

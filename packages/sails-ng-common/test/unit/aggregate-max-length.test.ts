@@ -79,8 +79,26 @@ describe("aggregateMaxLength", () => {
     expect(value[0].name).to.equal(" ab ");
   });
 
-  for (const maxLength of [undefined, null, "invalid", -1, 1.5, Infinity]) {
-    it(`rejects an invalid maximum: ${maxLength}`, () => {
+  for (const maxLength of [0, "0", 250, "250", " 250 ", "250.0", "2.5e2"]) {
+    it(`accepts a complete non-negative integer maximum: ${JSON.stringify(maxLength)}`, () => {
+      const validator = create({ maxLength });
+      const length = Number(maxLength);
+      expect(validator(new SimpleServerFormValidatorControl(["a".repeat(length)]))).to.equal(null);
+      expect(validator(new SimpleServerFormValidatorControl(["a".repeat(length + 1)]))).to.deep.equal({
+        aggregateMaxLength: {
+          message: "@validator-error-aggregate-max-length",
+          params: { requiredLength: length, actualLength: length + 1 },
+        },
+      });
+    });
+  }
+
+  for (const maxLength of [
+    undefined, null, "invalid", -1, 1.5, Infinity, NaN,
+    "250chars", "250.0chars", "250e", "250 1", "-1", "1.5", "Infinity",
+    "", " ", true, false, [], [250], {},
+  ]) {
+    it(`rejects an invalid maximum (${typeof maxLength}): ${String(maxLength)}`, () => {
       expect(() => create({ maxLength })).to.throw();
     });
   }
