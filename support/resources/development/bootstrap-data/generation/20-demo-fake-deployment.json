@@ -15,22 +15,22 @@
       "answers": {
         "rdmpTitle": {
           "value": "Coastal Communities Wellbeing Study — Data Management Plan",
-          "evidenceIds": ["E10"],
+          "evidenceIds": ["E14"],
           "rationale": "Uses the authorised activity title to make the plan easy to identify."
         },
         "projectSummary": {
           "value": "This fictional project explores how coastal change may affect community wellbeing and access to local services. It uses synthetic interviews and an anonymous survey demonstration to illustrate responsible planning for human-participant research.",
-          "evidenceIds": ["E9"],
+          "evidenceIds": ["E12"],
           "rationale": "Summarises the approved plain-language activity description."
         },
         "dataDescription": {
           "value": "The project will produce de-identified survey responses, synthetic interview transcripts, and aggregate statistics. The demonstration contains no real participant information.",
-          "evidenceIds": ["E8"],
+          "evidenceIds": ["E10"],
           "rationale": "Describes the stated collection methods without adding participant facts."
         },
         "dataTypes": {
           "value": ["De-identified survey responses", "Synthetic interview transcripts", "Aggregate statistics"],
-          "evidenceIds": ["E7"],
+          "evidenceIds": ["E8"],
           "rationale": "Copies the allowlisted data types from the activity."
         },
         "storageApproach": {

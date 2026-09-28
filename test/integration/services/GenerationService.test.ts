@@ -197,6 +197,17 @@ describe('AI-assisted form generation', function () {
     expect(completed.status, completed.errorCode || completed.errorSummary).to.equal('completed');
     const view = await GenerationRunService.getForActor(actor, launch.runId);
     expect(view.result.items).to.have.length(9);
+    for (const [fieldId, sourcePointer] of Object.entries({
+      rdmpTitle: '/title',
+      projectSummary: '/plainLanguageSummary',
+      dataDescription: '/methods',
+      dataTypes: '/expectedDataTypes',
+    })) {
+      const item = view.result.items.find((candidate: any) => candidate.fieldId === fieldId);
+      expect(item.evidence.map((evidence: any) => evidence.label), fieldId).to.deep.equal([
+        `activity ${sourcePointer}`,
+      ]);
+    }
     const flagged = view.result.items.filter((item: any) => item.reviewRequired);
     expect(flagged).to.have.length(1);
     expect(flagged[0]).to.include({ fieldId: 'sharingAccess', reviewReasonCode: 'SHARING_CONSENT_REQUIRES_REVIEW' });

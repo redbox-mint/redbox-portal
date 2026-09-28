@@ -152,10 +152,14 @@ async function createConcurrencyTestForm() {
 }
 
 describe('FormComponent', () => {
+  let originalUrl: string;
+
   const setWindowSearch = (search?: string) => {
     const url = new URL(window.location.href);
     url.search = search ?? '';
-    window.history.replaceState({}, '', url.toString());
+    if (url.toString() !== window.location.href) {
+      window.history.replaceState({}, '', url.toString());
+    }
   };
 
   const setFormDebugUrl = (value?: string) => {
@@ -164,7 +168,7 @@ describe('FormComponent', () => {
     if (value) {
       url.searchParams.set('formDebug', value);
     }
-    window.history.replaceState({}, '', url.toString());
+    setWindowSearch(url.search);
   };
 
   const ensureDebugPanelOpen = async (fixture: { nativeElement: HTMLElement; detectChanges: () => void; whenStable: () => Promise<any> }) => {
@@ -176,9 +180,14 @@ describe('FormComponent', () => {
     }
   };
 
+  beforeAll(() => {
+    originalUrl = window.location.href;
+  });
+
   beforeEach(async () => {
-    setWindowSearch('');
-    setFormDebugUrl('1');
+    // Avoid redundant History API calls: Chrome can throttle URL updates in a
+    // fast suite, leaving later tests with a previous test's debug setting.
+    setWindowSearch('?formDebug=1');
     const { translationService } = await createTestbedModule(
       {
         declarations: {
@@ -209,8 +218,8 @@ describe('FormComponent', () => {
     });
   });
 
-  afterEach(() => {
-    setWindowSearch('');
+  afterAll(() => {
+    window.history.replaceState({}, '', originalUrl);
   });
 
   it('should create the app', () => {
@@ -2640,12 +2649,11 @@ describe('FormComponent', () => {
       ]
     };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(
+    const { fixture } = await createFormAndWaitForReady(
       formConfig,
       undefined,
       { formDebugParam: 'off' }
     );
-    formComponent.debugState.isDebugEnabled.set(false);
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelectorAll('redbox-form-debug-panel').length).toBe(0);
