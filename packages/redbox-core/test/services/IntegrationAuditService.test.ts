@@ -669,6 +669,121 @@ describe('IntegrationAuditService', function () {
     expect(statusResult[0].keyResult?.doi).to.equal('10.1234/mint-test');
   });
 
+  describe('DOI outcome after a metadata-only update', function () {
+    function metadataOnlyUpdateRows(state: string) {
+      return [
+        {
+          redboxOid: 'oid-1',
+          integrationName: 'doi',
+          integrationAction: 'updateDoi',
+          status: 'success',
+          traceId: 'trace-doi-refresh',
+          spanId: 'span-1',
+          startedAt: '2026-03-01T00:00:00.000Z',
+          completedAt: '2026-03-01T00:00:02.000Z',
+          requestSummary: { action: 'update', profile: 'dataPublication' },
+        },
+        {
+          redboxOid: 'oid-1',
+          integrationName: 'doi',
+          integrationAction: 'updateDoiRequest',
+          status: 'success',
+          traceId: 'trace-doi-refresh',
+          spanId: 'span-2',
+          parentSpanId: 'span-1',
+          startedAt: '2026-03-01T00:00:01.000Z',
+          completedAt: '2026-03-01T00:00:02.000Z',
+          requestSummary: { action: 'update', method: 'patch', path: '/dois/10.1234%2Fdraft' },
+          responseSummary: { data: { id: '10.1234/draft', attributes: { state } } },
+        },
+      ];
+    }
+
+    it('reports a draft DOI on an embargoed record as draft-assigned', async function () {
+      mockStorageService.countIntegrationAudit.resolves(2);
+      mockStorageService.getIntegrationAudit.resolves(metadataOnlyUpdateRows('draft'));
+
+      const result = await service.getStatusSummaryWithOutcomes(
+        { oid: 'oid-1', integrationName: 'doi' } as any,
+        { workflowStage: 'embargoed', citationDoi: '10.1234/draft' } as any
+      );
+
+      expect(result[0].keyResult?.doiState).to.equal('draft');
+      expect(result[0].outcome?.state).to.equal('draft-assigned');
+    });
+
+    it('reports a findable DOI as published before the record reaches a published stage', async function () {
+      mockStorageService.countIntegrationAudit.resolves(2);
+      mockStorageService.getIntegrationAudit.resolves(metadataOnlyUpdateRows('findable'));
+
+      const result = await service.getStatusSummaryWithOutcomes(
+        { oid: 'oid-1', integrationName: 'doi' } as any,
+        { workflowStage: 'draft', citationDoi: '10.1234/draft' } as any
+      );
+
+      expect(result[0].outcome?.state).to.equal('published');
+    });
+
+    it('does not report a registered DOI as published on a published record', async function () {
+      mockStorageService.countIntegrationAudit.resolves(2);
+      mockStorageService.getIntegrationAudit.resolves(metadataOnlyUpdateRows('registered'));
+
+      const result = await service.getStatusSummaryWithOutcomes(
+        { oid: 'oid-1', integrationName: 'doi' } as any,
+        { workflowStage: 'published', citationDoi: '10.1234/draft' } as any
+      );
+
+      expect(result[0].keyResult?.event).to.equal(undefined);
+      expect(result[0].outcome).to.deep.include({
+        state: 'registered',
+        severity: 'pending',
+        labelKey: '@integration-status-outcome-doi-registered',
+        helpKey: '@integration-status-outcome-doi-registered-help',
+      });
+    });
+  });
+
+  for (const event of ['register', 'hide']) {
+    it(`reports a DOI state change with the ${event} event as registered on a published record`, async function () {
+      mockStorageService.countIntegrationAudit.resolves(2);
+      mockStorageService.getIntegrationAudit.resolves([
+        {
+          redboxOid: 'oid-1',
+          integrationName: 'doi',
+          integrationAction: 'changeDoiState',
+          status: 'success',
+          traceId: 'trace-doi-state',
+          spanId: 'span-1',
+          startedAt: '2026-03-01T00:00:00.000Z',
+          completedAt: '2026-03-01T00:00:02.000Z',
+          requestSummary: { doi: '10.1234/hidden', event },
+          responseSummary: { changed: true, doi: '10.1234/hidden', event },
+        },
+        {
+          redboxOid: 'oid-1',
+          integrationName: 'doi',
+          integrationAction: 'changeDoiStateRequest',
+          status: 'success',
+          traceId: 'trace-doi-state',
+          spanId: 'span-2',
+          parentSpanId: 'span-1',
+          startedAt: '2026-03-01T00:00:01.000Z',
+          completedAt: '2026-03-01T00:00:02.000Z',
+          requestSummary: { doi: '10.1234/hidden', event, method: 'put', path: '/dois/10.1234%2Fhidden' },
+          responseSummary: { changed: true, doi: '10.1234/hidden', event },
+        },
+      ]);
+
+      const result = await service.getStatusSummaryWithOutcomes(
+        { oid: 'oid-1', integrationName: 'doi' } as any,
+        { workflowStage: 'published', citationDoi: '10.1234/hidden' } as any
+      );
+
+      expect(result[0].keyResult?.event).to.equal(event);
+      expect(result[0].outcome?.state).to.equal('registered');
+    });
+  }
+
   it('extractKeyResult reads articleId from responseSummary (figshare shape)', async function () {
     mockStorageService.countIntegrationAudit.resolves(1);
     mockStorageService.getIntegrationAudit.resolves([

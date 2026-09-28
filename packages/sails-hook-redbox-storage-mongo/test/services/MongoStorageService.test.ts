@@ -535,6 +535,165 @@ describe('MongoStorageService', function () {
     expect(runStub.calledOnce).to.be.true;
   });
 
+  for (const method of ['getRecords', 'getDeletedRecords']) {
+    for (const { sort, secondarySort, expected, expectedDeleted } of [
+      {
+        sort: undefined, expected: [['lastSaveDate', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: '', expected: [['lastSaveDate', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: 'metadata.title', expected: [['metadata.title', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.metadata.title', -1], ['_id', 1]],
+      },
+      {
+        sort: 'lastSaveDate:1', expected: [['lastSaveDate', 1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', 1], ['_id', 1]],
+      },
+      {
+        sort: '{"metadata.title":1,"lastSaveDate":-1}',
+        expected: [['metadata.title', 1], ['lastSaveDate', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.metadata.title', 1], ['deletedRecordMetadata.lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: '[["metadata.title",1],["lastSaveDate",-1]]',
+        expected: [['metadata.title', 1], ['lastSaveDate', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.metadata.title', 1], ['deletedRecordMetadata.lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: 'lastSaveDate:1', secondarySort: 'redboxOid:-1',
+        expected: [['lastSaveDate', 1], ['redboxOid', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', 1], ['redboxOid', -1], ['_id', 1]],
+      },
+      { sort: '{"_id":-1}', expected: [['_id', -1]] },
+      {
+        sort: 'lastSaveDate:1', secondarySort: '_id:-1',
+        expected: [['lastSaveDate', 1], ['_id', -1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', 1], ['_id', -1]],
+      },
+      { sort: '{}', expected: [['_id', 1]] },
+      { sort: '[]', expected: [['_id', 1]] },
+      {
+        sort: '{"metadata.title":"ASC","lastSaveDate":"descending"}',
+        expected: [['metadata.title', 1], ['lastSaveDate', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.metadata.title', 1], ['deletedRecordMetadata.lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: '[["lastSaveDate","-1"],["redboxOid","1"]]',
+        expected: [['lastSaveDate', -1], ['redboxOid', 1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', -1], ['redboxOid', 1], ['_id', 1]],
+      },
+      {
+        sort: 'lastSaveDate:ascending', secondarySort: 'redboxOid:desc',
+        expected: [['lastSaveDate', 1], ['redboxOid', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', 1], ['redboxOid', -1], ['_id', 1]],
+      },
+      {
+        sort: '{"score":{"$meta":"textScore"}}',
+        expected: [['score', { $meta: 'textScore' }], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.score', { $meta: 'textScore' }], ['_id', 1]],
+      },
+    ]) {
+      it(`${method} keeps requested sort precedence and breaks ties for ${sort}, ${secondarySort}`, async function () {
+        const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
+        const runStub = sandbox.stub(service, queryMethod).resolves({ items: [], totalItems: 0 });
+
+        await service[method](
+          'draft', ['rdmp'], 20, 20, 'user', [], { id: 'brand-1' },
+          undefined, undefined, sort, undefined, undefined, undefined, secondarySort
+        );
+
+        const options = runStub.firstCall.args[2];
+        expect(options).to.include({ skip: 20, limit: 20 });
+        expect(Object.entries(options.sort)).to.deep.equal(method === 'getDeletedRecords' ? expectedDeleted ?? expected : expected);
+      });
+    }
+
+    for (const sort of ['null', 'true', 'false', '1', '"lastSaveDate"', '[null]', '[1]', '[{}]', '["lastSaveDate"]',
+      '[[null,1]]', '[["lastSaveDate"]]', '[["lastSaveDate",1,2]]', '[["",1]]']) {
+      it(`${method} rejects invalid JSON sort ${sort} as a client validation error`, async function () {
+        const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
+        const runStub = sandbox.stub(service, queryMethod);
+        let failure: unknown;
+        try {
+          await service[method]('draft', ['rdmp'], 0, 20, 'user', [], { id: 'brand-1' }, undefined, undefined, sort);
+        } catch (error) {
+          failure = error;
+        }
+        expect(failure).to.have.property('name', 'RBValidationError');
+        expect(failure).to.have.nested.property('displayErrors[0].status', '400');
+        expect(runStub.notCalled).to.be.true;
+      });
+    }
+
+    const invalidDirections = [null, true, false, {}, [], [1], 'up', '', 0, 2, { $meta: 1 }];
+    const invalidSorts = invalidDirections.flatMap(direction => [
+      { sort: JSON.stringify({ lastSaveDate: direction }), secondarySort: undefined },
+      { sort: JSON.stringify([['lastSaveDate', direction]]), secondarySort: undefined },
+    ]);
+    invalidSorts.push(...['lastSaveDate:up', 'lastSaveDate:0', 'lastSaveDate:', 'lastSaveDate:NaN',
+      ':asc', 'field:desc:extra', 'field:asc:extra'].flatMap(sort => [
+      { sort, secondarySort: undefined },
+      { sort: 'lastSaveDate:-1', secondarySort: sort },
+    ]));
+    invalidSorts.push({ sort: 'lastSaveDate:-1', secondarySort: 'field' });
+    for (const { sort, secondarySort } of invalidSorts) {
+      it(`${method} rejects invalid sort syntax or directions in ${sort}, ${secondarySort}`, async function () {
+        const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
+        const runStub = sandbox.stub(service, queryMethod);
+        let failure: unknown;
+        try {
+          await service[method]('draft', ['rdmp'], 0, 20, 'user', [], { id: 'brand-1' },
+            undefined, undefined, sort, undefined, undefined, undefined, secondarySort);
+        } catch (error) {
+          failure = error;
+        }
+        expect(failure).to.have.property('name', 'RBValidationError');
+        expect(failure).to.have.nested.property('displayErrors[0].status', '400');
+        expect(runStub.notCalled).to.be.true;
+      });
+    }
+  }
+
+  for (const [field, storedField] of [
+    ['title', 'deletedRecordMetadata.metadata.title'],
+    ['dateCreatedDisplay', 'deletedRecordMetadata.dateCreated'],
+    ['dateModifiedDisplay', 'deletedRecordMetadata.lastSaveDate'],
+    ['dateDeletedDisplay', 'dateDeleted'],
+  ]) {
+    for (const direction of [1, -1]) {
+      it(`sorts the deleted-record ${field} column in direction ${direction}`, async function () {
+        const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+        await service.getDeletedRecords(undefined, undefined, 0, 20, 'user', [], { id: 'brand-1' },
+          undefined, undefined, `${field}:${direction}`);
+        expect(Object.entries(runStub.firstCall.args[2].sort)).to.deep.equal([[storedField, direction], ['_id', 1]]);
+      });
+    }
+  }
+
+  it('maps deleted-record aliases in JSON and secondary sorts', async function () {
+    const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+    await service.getDeletedRecords(undefined, undefined, 0, 20, 'user', [], { id: 'brand-1' },
+      undefined, undefined, '{"title":1}', undefined, undefined, undefined, 'dateDeletedDisplay:-1');
+    expect(Object.entries(runStub.firstCall.args[2].sort)).to.deep.equal([
+      ['deletedRecordMetadata.metadata.title', 1], ['dateDeleted', -1], ['_id', 1],
+    ]);
+  });
+
+  it('keeps deleted-record fields and already qualified record fields at their requested paths', async function () {
+    const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+    await service.getDeletedRecords('draft', ['rdmp'], 0, 20, 'user', [], { id: 'brand-1' }, undefined, undefined,
+      '{"dateDeleted":-1,"redboxOid":1,"deletedRecordMetadata.dateCreated":1,"_id":-1}',
+      undefined, undefined, undefined, 'metadata.title:1');
+    expect(Object.entries(runStub.firstCall.args[2].sort)).to.deep.equal([
+      ['dateDeleted', -1], ['redboxOid', 1], ['deletedRecordMetadata.dateCreated', 1], ['_id', -1],
+      ['deletedRecordMetadata.metadata.title', 1],
+    ]);
+  });
+
   it('builds deleted-record queries for equal filters and sort fallbacks', async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
 
@@ -559,7 +718,7 @@ describe('MongoStorageService', function () {
     const options = runStub.firstCall.args[2];
     expect(query['deletedRecordMetadata.workflow.stage']).to.equal('draft');
     expect(query.$and.some((entry: any) => entry['metadata.title'] === 'Exact title')).to.equal(true);
-    expect(options.sort.lastSaveDate).to.equal(1);
+    expect(options.sort['deletedRecordMetadata.lastSaveDate']).to.equal(1);
     expect(options.sort.redboxOid).to.equal(-1);
   });
 
@@ -684,6 +843,9 @@ describe('MongoStorageService', function () {
     // Two streamed passes over Mongo (column collection + CSV), each paging once for data and once
     // for the empty terminating batch.
     expect(service.recordCol.find.callCount).to.equal(4);
+    for (const call of service.recordCol.find.getCalls()) {
+      expect(Object.entries(call.args[1].sort)).to.deep.equal([['lastSaveDate', -1], ['_id', 1]]);
+    }
   });
 
   it('sanitizes formula-prefixed values after nested records are flattened', async function () {
@@ -806,6 +968,9 @@ describe('MongoStorageService', function () {
     expect(output).to.include('"redboxOid":"1"');
     expect(output).to.include('"redboxOid":"2"');
     expect(findStub.callCount).to.equal(3);
+    for (const call of findStub.getCalls()) {
+      expect(Object.entries(call.args[1].sort)).to.deep.equal([['lastSaveDate', -1], ['_id', 1]]);
+    }
   });
 
   it('filters role names by brand', function () {
