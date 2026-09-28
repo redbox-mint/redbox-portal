@@ -6034,6 +6034,11 @@
     "description":  "Error message for a failed max-length validator",
     "contentFormat":  "plain"
   },
+  "@validator-error-aggregate-max-length": {
+    "category":  "validator",
+    "description":  "Error message showing the maximum and actual character lengths of joined repeatable values",
+    "contentFormat":  "plain"
+  },
   "@validator-error-required": {
     "category":  "validator",
     "description":  "Error message for a failed required validator",
