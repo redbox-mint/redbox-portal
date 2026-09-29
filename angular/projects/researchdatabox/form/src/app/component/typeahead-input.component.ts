@@ -291,11 +291,12 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     super.setDisabled(disabled, opts);
 
     try {
-      // Also disable and enable the display formControl.
+      // Mirroring model state is not user input. Enabling an empty display control
+      // otherwise emits a value change and marks the model dirty during hydration.
       if (!disabled && this.displayControl?.disabled) {
-        this.displayControl?.enable(opts);
+        this.displayControl?.enable({ ...opts, emitEvent: false });
       } else if (disabled && this.displayControl?.enabled) {
-        this.displayControl?.disable(opts);
+        this.displayControl?.disable({ ...opts, emitEvent: false });
       }
     } catch (error) {
       this.loggerService.error(

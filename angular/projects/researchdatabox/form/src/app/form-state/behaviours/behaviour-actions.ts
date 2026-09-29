@@ -32,6 +32,8 @@ import { BehaviourFieldResolverContext, ResolvedField, resolveFieldByPointer } f
 export interface BehaviourActionExecutionContext {
   behaviourIndex: number;
   behaviourChain: readonly number[];
+  /** Expressions that caused the triggering event, carried into this behaviour's writes. */
+  expressionChain?: readonly string[];
   actionIndex: number;
   listName: 'actions' | 'onError';
   eventBus: FormComponentEventBus;
@@ -161,6 +163,7 @@ async function executeEmitEventAction(
       sourceId: action.config.sourceId,
       value,
       behaviourChain: ctx.behaviourChain,
+      ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     })
   );
 }
@@ -212,6 +215,10 @@ async function executeRunTemplateAction(
  * evaluation. A single object result is wrapped into a one-entry list; each
  * invalid or unresolvable instruction is warn-and-skipped so the rest still
  * apply.
+ *
+ * Unlike `setValue`, `model.value` instructions notify dependent fields like
+ * expression writes do. The notification carries this behaviour's chain, so it
+ * cannot re-trigger the behaviour.
  */
 async function applyRunTemplateInstructions(
   result: unknown,
@@ -375,6 +382,10 @@ function buildTargetContext(
     logger: ctx.logger,
     broadcastFormStatus: ctx.broadcastFormStatus,
     eventFieldId: (pipelineContext.event as { fieldId?: string } | undefined)?.fieldId,
+    cause: {
+      behaviourChain: ctx.behaviourChain,
+      ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
+    },
   };
 }
 

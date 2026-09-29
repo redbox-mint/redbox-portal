@@ -81,6 +81,8 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
       }
     };
     const { control, definition, component } = createSetup([expr]);
+    const changed = jasmine.createSpy('value changed');
+    control.valueChanges.subscribe(changed);
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(
       Promise.resolve([expr])
@@ -94,6 +96,8 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
 
     // Default value is the full meta object
     expect(control.value).toEqual(meta);
+    expect(changed).toHaveBeenCalledOnceWith(meta);
+    expect(control.pristine).toBeTrue();
   }));
 
   it('should use a custom control value setter when one is registered', fakeAsync(() => {
@@ -131,7 +135,7 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     eventStream$.next(createUIEvent({ meta }));
     tick();
 
-    expect(customSetter).toHaveBeenCalledWith(meta, { emitEvent: false });
+    expect(customSetter).toHaveBeenCalledOnceWith(meta, { emitEvent: true, onlySelf: true });
     expect(setValueSpy).not.toHaveBeenCalled();
   }));
 

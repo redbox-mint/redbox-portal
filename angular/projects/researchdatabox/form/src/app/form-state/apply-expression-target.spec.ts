@@ -1,4 +1,4 @@
-import { FormControl } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from './apply-expression-target';
 import { FormComponentEventType } from './events/form-component-event.types';
@@ -39,7 +39,76 @@ describe('applyExpressionTarget', () => {
     } as any;
   });
 
-  it('sets model.value silently and re-broadcasts form status', async () => {
+  it('notifies dependent fields when an expression populates a value', async () => {
+    const changed = jasmine.createSpy('dependent field');
+    host.model.formControl.valueChanges.subscribe(changed);
+    await applyExpressionTarget('model.value', 'other', host, ctx);
+    expect(changed).toHaveBeenCalledOnceWith('other');
+    expect(host.model.formControl.pristine).toBeTrue();
+  });
+
+  it('does not re-emit structurally equal populated values', async () => {
+    host.model.formControl.setValue({ name: 'Researcher' });
+    const changed = jasmine.createSpy('dependent field');
+    host.model.formControl.valueChanges.subscribe(changed);
+    await applyExpressionTarget('model.value', { name: 'Researcher' }, host, ctx);
+    expect(changed).not.toHaveBeenCalled();
+    expect(broadcastFormStatus).not.toHaveBeenCalled();
+  });
+
+  it('validates an expression-populated control only once', async () => {
+    const validate = jasmine.createSpy('validator').and.returnValue(null);
+    host.model.formControl.setValidators(validate);
+
+    await applyExpressionTarget('model.value', 'updated', host, ctx);
+
+    expect(validate).toHaveBeenCalledTimes(1);
+    expect(host.model.formControl.valid).toBeTrue();
+  });
+
+  it('does not restart asynchronous validation to notify dependants', async () => {
+    let completeValidation!: (errors: null) => void;
+    const validate = jasmine.createSpy('async validator').and.callFake(() =>
+      new Promise<null>(resolve => { completeValidation = resolve; })
+    );
+    const parent = new FormGroup({ field: host.model.formControl });
+    const statuses: string[] = [];
+    parent.statusChanges.subscribe(status => statuses.push(status));
+    host.model.formControl.setAsyncValidators(validate);
+
+    await applyExpressionTarget('model.value', 'updated', host, ctx);
+
+    expect(validate).toHaveBeenCalledTimes(1);
+    expect(host.model.formControl.pending).toBeTrue();
+    expect(parent.pending).toBeTrue();
+    completeValidation(null);
+    await Promise.resolve();
+    expect(host.model.formControl.valid).toBeTrue();
+    expect(parent.valid).toBeTrue();
+    expect(statuses).toEqual(['VALID']);
+    expect(validate).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates ancestor values and validity without emitting ancestor value changes', async () => {
+    host.model.formControl.setValidators(Validators.required);
+    const parent = new FormGroup({ field: host.model.formControl });
+    const root = new FormGroup({ nested: parent });
+    const parentChanged = jasmine.createSpy('parent changed');
+    const rootChanged = jasmine.createSpy('root changed');
+    parent.valueChanges.subscribe(parentChanged);
+    root.valueChanges.subscribe(rootChanged);
+
+    await applyExpressionTarget('model.value', '', host, ctx);
+
+    expect(root.value).toEqual({ nested: { field: '' } });
+    expect(parent.invalid).toBeTrue();
+    expect(root.invalid).toBeTrue();
+    expect(root.pristine).toBeTrue();
+    expect(parentChanged).not.toHaveBeenCalled();
+    expect(rootChanged).not.toHaveBeenCalled();
+  });
+
+  it('sets model.value and re-broadcasts form status', async () => {
     await applyExpressionTarget('model.value', 'updated', host, ctx);
 
     expect(host.model.formControl.value).toBe('updated');

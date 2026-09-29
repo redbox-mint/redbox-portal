@@ -219,6 +219,7 @@ export class BehaviourHandler {
       await executeBehaviourAction(action, pipelineContext, {
         behaviourIndex: this.behaviourIndex,
         behaviourChain: [...(event.behaviourChain ?? []), this.handlerId],
+        expressionChain: event.expressionChain,
         actionIndex,
         listName,
         eventBus: this.ctx.eventBus,

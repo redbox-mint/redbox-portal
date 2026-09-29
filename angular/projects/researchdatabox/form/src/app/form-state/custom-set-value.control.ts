@@ -5,6 +5,12 @@ import {guessType} from "@researchdatabox/sails-ng-common";
 
 export type ControlSetValueOptions = ModifyOptions;
 
+/**
+ * A control whose value is replaced by custom logic. An asynchronous setter must
+ * pass the `options` object it receives to the control's own methods (such as
+ * `setValue` or `push`) for changes made after awaiting. Expression writes use
+ * that object to attribute the change to themselves for cycle detection.
+ */
 export interface CustomSetValueControl<ValueType = unknown> {
   setCustomValue(value: ValueType, options?: ControlSetValueOptions): Promise<void> | void;
 }
