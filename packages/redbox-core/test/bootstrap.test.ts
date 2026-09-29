@@ -503,6 +503,8 @@ describe('record schema bootstrap lifecycle', function () {
           },
         },
         vocabularyservice: { bootstrapData: immediate },
+        generationpersistenceservice: { bootstrap: immediate },
+        generationbootstrapservice: { bootstrap: immediate },
         i18nentriesservice: { bootstrap: immediate },
         translationservice: { bootstrap: immediate },
         appconfigservice: { bootstrap: immediate },
