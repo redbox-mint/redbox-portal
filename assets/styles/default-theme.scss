@@ -114,71 +114,85 @@ z-index: 999;
 }
 .logo h1 a:hover {text-decoration: none;opacity: .7}
 
-
-.mainmenu-area ul.navbar-nav li {
-    background-color: var(--rb-main-menu-inactive-item-background-color, #{$main-menu-inactive-item-background-color});
-}
+/* Main menu inactive top-level item */
 
 .mainmenu-area ul.navbar-nav li a {
-    font-size: 16px;
-    font-weight: 700;
-    padding: 20px;
-    color: var(--rb-main-menu-inactive-item-color, #{$main-menu-inactive-item-color});
+  font-size: 16px;
+  font-weight: 700;
+  padding: 20px;
+  color: var(--rb-main-menu-inactive-item-color, #{$main-menu-inactive-item-color});
 }
 
 .mainmenu-area ul.navbar-nav li a:hover {
-    font-size: 16px;
-    font-weight: 700;
-    padding: 20px;
-    color: var(--rb-main-menu-inactive-item-color-hover, #{$main-menu-inactive-item-color-hover});
+  color: var(--rb-main-menu-inactive-item-color-hover, #{$main-menu-inactive-item-color-hover});
 }
 
- .mainmenu-area ul.navbar-nav li.nav-active-item {
-      background-color: var(--rb-main-menu-active-item-background-color, #{$main-menu-active-item-background-color});
-      color: var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
-  }
-
-.mainmenu-area ul.navbar-nav li.nav-active-item:hover {
-      background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
-  }
-
-.mainmenu-area ul.dropdown-menu li {
-    color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
-    background-color: var(--rb-main-menu-inactive-dropdown-item-background-color, #{$main-menu-inactive-dropdown-item-background-color});
+.mainmenu-area ul.navbar-nav li {
+  background-color: var(--rb-main-menu-inactive-item-background-color, #{$main-menu-inactive-item-background-color});
 }
 
+.mainmenu-area ul.navbar-nav li:hover {
+  background-color: var(--rb-main-menu-inactive-item-background-color-hover, #{$main-menu-inactive-item-background-color-hover});
+}
 
-.mainmenu-area .nav > li > a:focus {color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color})}
+/* Main menu inactive dropdown item */
+
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li a.dropdown-item {
+  color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
+}
+
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li a.dropdown-item:hover {
+  color: var(--rb-main-menu-inactive-dropdown-item-color-hover, #{$main-menu-inactive-dropdown-item-color-hover});
+}
+
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li {
+  background-color: var(--rb-main-menu-inactive-dropdown-item-background-color, #{$main-menu-inactive-dropdown-item-background-color});
+}
+
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li:hover {
+  background-color: var(--rb-main-menu-inactive-dropdown-item-background-color-hover, #{$main-menu-inactive-dropdown-item-background-color-hover});
+}
+
+/* Main menu active top-level item */
 
 .mainmenu-area ul.navbar-nav li.nav-active-item a {
-    color:  var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
+  color: var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
 }
 
 .mainmenu-area ul.navbar-nav li.nav-active-item a:hover {
-    color:  var(--rb-main-menu-active-item-color-hover, #{$main-menu-active-item-color-hover});
+  color: var(--rb-main-menu-active-item-color-hover, #{$main-menu-active-item-color-hover});
 }
 
-.mainmenu-area ul.navbar-nav li.nav-active-item a.dropdown-item {
-    color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
+.mainmenu-area ul.navbar-nav li.nav-active-item {
+  background-color: var(--rb-main-menu-active-item-background-color, #{$main-menu-active-item-background-color});
 }
 
-.mainmenu-area ul.dropdown-menu li a.dropdown-item.active,
-.mainmenu-area ul.dropdown-menu li a.dropdown-item:active {
-    color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
-    background-color: var(--rb-main-menu-active-dropdown-item-background-color, #{$main-menu-active-dropdown-item-background-color});
+.mainmenu-area ul.navbar-nav li.nav-active-item:hover {
+  background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
 }
 
-.mainmenu-area ul.navbar-nav li.nav-active-item a.dropdown-item:hover {
-    color: var(--rb-main-menu-active-dropdown-item-color-hover, #{$main-menu-active-dropdown-item-color-hover});
-    background-color: var(--rb-main-menu-active-dropdown-item-background-color-hover, #{$main-menu-active-dropdown-item-background-color-hover});
+/* Main menu active dropdown item */
+
+.mainmenu-area ul.navbar-nav li.nav-active-item ul.dropdown-menu li a.dropdown-item.active,
+.mainmenu-area ul.navbar-nav li.nav-active-item ul.dropdown-menu li a.dropdown-item:active {
+  color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
 }
 
-.mainmenu-area ul.dropdown-menu li a.dropdown-item {
-    color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
+.mainmenu-area ul.navbar-nav li.nav-active-item ul.dropdown-menu li a.dropdown-item.active:hover {
+  color: var(--rb-main-menu-active-dropdown-item-color-hover, #{$main-menu-active-dropdown-item-color-hover});
 }
 
-.mainmenu-area ul.dropdown-menu li a.dropdown-item:hover {
-    color: var(--rb-main-menu-inactive-dropdown-item-color-hover, #{$main-menu-inactive-dropdown-item-color-hover});
+.mainmenu-area ul.navbar-nav li.nav-active-item ul.dropdown-menu li.active,
+.mainmenu-area ul.navbar-nav li.nav-active-item ul.dropdown-menu li:active {
+  background-color: var(--rb-main-menu-active-dropdown-item-background-color, #{$main-menu-active-dropdown-item-background-color});
+}
+
+.mainmenu-area ul.navbar-nav li.nav-active-item ul.dropdown-menu li.active:hover {
+  background-color: var(--rb-main-menu-active-dropdown-item-background-color-hover, #{$main-menu-active-dropdown-item-background-color-hover});
+}
+
+.mainmenu-area .nav > li > a:focus {
+  color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color})
 }
 
 .maincontent-area {padding-bottom: 170px}
@@ -7249,7 +7263,7 @@ img[src$="images/loading.svg"],
   padding: 15px;
   font-weight: bold;
   border-bottom: 1px solid #dee2e6;
-  
+
   i {
     margin-right: 8px;
   }
@@ -7268,16 +7282,16 @@ img[src$="images/loading.svg"],
   font-weight: 600;
   text-decoration: none;
   background-color: #fff;
-  
+
   &:hover {
     background-color: #f8f9fa;
     text-decoration: none;
   }
-  
+
   &[aria-expanded="false"] i.fa-chevron-down {
     transform: rotate(-90deg);
   }
-  
+
   i.fa-chevron-down {
     font-size: 12px;
     transition: transform 0.2s ease;
@@ -7291,18 +7305,18 @@ img[src$="images/loading.svg"],
 
 .admin-sidebar-link {
   padding: 8px 15px 8px 25px;
-  
+
     a {
     color: #495057;
     text-decoration: none;
     display: block;
-    
+
     &:hover {
       color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
       text-decoration: underline;
     }
   }
-  
+
   &:last-child {
     padding-bottom: 12px;
   }
@@ -7311,11 +7325,11 @@ img[src$="images/loading.svg"],
 .admin-sidebar-footer {
   padding: 10px 15px;
   border-bottom: 1px solid #dee2e6;
-  
+
     a {
     color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
     text-decoration: none;
-    
+
     &:hover {
       text-decoration: underline;
     }
@@ -7327,10 +7341,10 @@ img[src$="images/loading.svg"],
     background: #fff;
     border-left: 1px solid #dee2e6;
     min-height: 70vh;
-  
+
     h1 {
         margin-bottom: 20px;
-    
+
         i {
             margin-right: 10px;
         }
