@@ -7,6 +7,8 @@ import { Controllers as AsynchControllers } from '../../src/controllers/AsynchCo
 import { RecordSaveResponse } from '../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { routes, RouteTargetObject } from '../../src/config/routes.config';
+import { Services as FormConsistencyServices } from '../../src/services/FormRecordConsistencyService';
+import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../fixtures/metadata-projection.fixtures';
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -422,6 +424,89 @@ describe('RecordController getWorkflowSteps', () => {
       meta: { oid: 'oid-1', revision: 3, entityTag: formatRecordEntityTag('oid-1', 3) },
       v1: record.metadata,
       headers: { ETag: formatRecordEntityTag('oid-1', 3) },
+    });
+  });
+
+  describe("Data Record metadata projection", () => {
+    function prepareProjection() {
+      const service = new FormConsistencyServices.FormRecordConsistency();
+      sinon.stub(global, "FormRecordConsistencyService").value(service);
+      (FormsService.getFormByName as sinon.SinonStub).returns(
+        of({ configuration: dataRecordProjectionForm }),
+      );
+      (FormsService.buildClientFormConfig as sinon.SinonStub).resolves(
+        dataRecordProjectionForm,
+      );
+      (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+        redboxOid: "representative-data-record",
+        metaMetadata: {
+          type: "dataRecord",
+          form: dataRecordProjectionForm.name,
+          brandId: "brand-1",
+        },
+        metadata: {
+          ...dataRecordProjectedMetadata,
+          serverOnly: { credentials: "hidden" },
+        },
+      });
+      const req = {
+        param: sinon.stub().withArgs("oid").returns("representative-data-record"),
+        query: {},
+        user: { username: "researcher", roles: [{ name: "Researcher" }] },
+        session: { branding: "default" },
+      } as unknown as Sails.Req;
+      const response = {
+        status: sinon.stub().returnsThis(),
+        json: sinon.stub(),
+        set: sinon.stub().returnsThis(),
+      };
+      return { service, req, response };
+    }
+
+    it("returns 200 with Data Locations and Data Manager using the real projection and response path", async () => {
+      const { req, response } = prepareProjection();
+
+      await controller.getMeta(req, response as unknown as Sails.Res);
+
+      expect(response.status.calledOnceWithExactly(200)).to.be.true;
+      expect(response.json.calledOnceWithExactly(dataRecordProjectedMetadata)).to
+        .be.true;
+      expect(
+        (
+          FormsService.buildClientFormConfig as sinon.SinonStub
+        ).firstCall.args.slice(1, 3),
+      ).to.deep.equal(["edit", ["Researcher"]]);
+    });
+
+    it("returns 403 without projecting metadata when record view access is denied", async () => {
+      const { service, req, response } = prepareProjection();
+      const project = sinon.spy(service, "projectMetadataClientFormConfig");
+      (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
+
+      await controller.getMeta(req, response as unknown as Sails.Res);
+
+      expect(response.status.calledOnceWithExactly(403)).to.be.true;
+      expect(project.notCalled).to.be.true;
+      expect((FormsService.buildClientFormConfig as sinon.SinonStub).notCalled).to
+        .be.true;
+    });
+
+    it("returns 500 without raw metadata when projection fails", async () => {
+      const { service, req, response } = prepareProjection();
+      sinon
+        .stub(service, "projectMetadataClientFormConfig")
+        .rejects(new Error("Invalid form schema"));
+
+      await controller.getMeta(req, response as unknown as Sails.Res);
+
+      expect(response.status.calledOnceWithExactly(500)).to.be.true;
+      expect(response.json.firstCall.args[0]).to.have.property(
+        "message",
+        "Failed to filter metadata for this record.",
+      );
+      expect(JSON.stringify(response.json.firstCall.args[0])).not.to.contain(
+        "serverOnly",
+      );
     });
   });
 
