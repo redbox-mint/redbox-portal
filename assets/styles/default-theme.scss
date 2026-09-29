@@ -157,20 +157,24 @@ z-index: 999;
 
 /* Main menu active top-level item */
 
-.mainmenu-area ul.navbar-nav > li.active > a {
+.mainmenu-area ul.navbar-nav > li.active > a,
+.mainmenu-area ul.navbar-nav > li.nav-active-item > a {
   color: var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
 }
 
-.mainmenu-area ul.navbar-nav > li.active > a:hover {
+.mainmenu-area ul.navbar-nav > li.active > a:hover,
+.mainmenu-area ul.navbar-nav > li.nav-active-item > a:hover {
   color: var(--rb-main-menu-active-item-color-hover, #{$main-menu-active-item-color-hover});
   background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
 }
 
-.mainmenu-area ul.navbar-nav > li.active {
+.mainmenu-area ul.navbar-nav > li.active,
+.mainmenu-area ul.navbar-nav > li.nav-active-item {
   background-color: var(--rb-main-menu-active-item-background-color, #{$main-menu-active-item-background-color});
 }
 
-.mainmenu-area ul.navbar-nav > li.active:hover {
+.mainmenu-area ul.navbar-nav > li.active:hover,
+.mainmenu-area ul.navbar-nav > li.nav-active-item:hover {
   background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
 }
 
