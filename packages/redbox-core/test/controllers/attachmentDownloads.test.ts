@@ -2,24 +2,38 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { Agent, createServer, get, IncomingMessage } from 'node:http';
 import { PassThrough, Readable } from 'node:stream';
+import * as lodash from 'lodash';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers as PortalControllers } from '../../src/controllers/RecordController';
 import { Controllers as ApiControllers } from '../../src/controllers/webservice/RecordController';
 
 describe('Attachment download stream cleanup', () => {
-  const originalBrandingService = Reflect.get(globalThis, 'BrandingService');
+  let originalGlobals: Record<string, PropertyDescriptor | undefined>;
   const attachment = { fileId: 'file-1', name: 'notes.txt', mimeType: 'text/plain' };
   const record = { metaMetadata: { attachmentFields: ['files'] }, metadata: { files: [attachment] } };
 
   beforeEach(() => {
+    originalGlobals = Object.fromEntries(
+      ['sails', 'BrandingService', '_'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
+    );
     Object.assign(globalThis, {
+      sails: {
+        log: { verbose: sinon.stub(), debug: sinon.stub(), info: sinon.stub(), error: sinon.stub() },
+      },
       BrandingService: { getBrandAndPortalPath: () => '/default/rdmp' },
+      _: lodash,
     });
   });
 
   afterEach(() => {
-    Object.assign(globalThis, { BrandingService: originalBrandingService });
+    for (const [key, descriptor] of Object.entries(originalGlobals)) {
+      if (descriptor) {
+        Object.defineProperty(globalThis, key, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, key);
+      }
+    }
     sinon.restore();
   });
 
