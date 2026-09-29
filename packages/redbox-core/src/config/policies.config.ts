@@ -107,6 +107,9 @@ export const policies: PoliciesConfig = {
     // and ignored for non-companion attachment routes.
     doAttachment: doAttachmentPolicies,
   },
+  GenerationController: {
+    '*': noCachePlusDefaultPolicies,
+  },
   'webservice/RecordController': {
     '*': noCachePlusDefaultPolicies,
   },

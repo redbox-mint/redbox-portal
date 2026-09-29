@@ -240,6 +240,10 @@ import * as Responses from './responses';
 export { Responses };
 
 // Config types and default values
+export * from './model/generation/types';
+export * from './model/generation/errors';
+export { canonicalHash, canonicalJson as canonicalGenerationJson } from './model/generation/canonical';
+export * from './model/generation/json-pointer';
 export * from './config';
 export * from './action-execution';
 export { Config, SailsConfig } from './config';

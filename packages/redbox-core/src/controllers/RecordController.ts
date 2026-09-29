@@ -1206,6 +1206,7 @@ export namespace Controllers {
               validationOperations,
               formFingerprint,
               ...(representation?.metadata ?? {}),
+              ...runtimeMeta,
             },
             prehydrate,
             headers: representation?.headers,
@@ -1219,6 +1220,14 @@ export namespace Controllers {
           });
         }
       } catch (error) {
+        if (error instanceof GenerationError) {
+          return this.sendResp(req, res, {
+            status: error.status,
+            data: { error: error.toSafeJSON() },
+            displayErrors: [{ code: error.code, detail: `generation-error-${error.code.toLowerCase().replaceAll('_', '-')}` }],
+            v1: { error: error.toSafeJSON() },
+          });
+        }
         const msg = (error as { message?: string }).message;
         const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition', detail: msg };
         return this.sendResp(req, res, {
