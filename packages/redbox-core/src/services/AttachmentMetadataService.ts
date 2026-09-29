@@ -247,9 +247,14 @@ export namespace Services {
       attachmentId: string,
       generation: string,
       mutationState: AttachmentMutationState,
-      lastSafeErrorCode?: string,
-      mutationFileId?: string,
+      codeOrMutationFileId?: string,
+      legacyMutationFileId?: string,
     ): Promise<boolean> {
+      const mutationFileId = legacyMutationFileId ??
+        (mutationState === 'pending' || mutationState === 'applied' ? codeOrMutationFileId : undefined);
+      const lastSafeErrorCode = legacyMutationFileId === undefined && mutationFileId !== undefined
+        ? undefined
+        : codeOrMutationFileId;
       const criteria = {
         oid: String(oid ?? '').trim(),
         attachmentId: String(attachmentId ?? '').trim(),

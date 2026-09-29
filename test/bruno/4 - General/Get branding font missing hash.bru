@@ -1,0 +1,17 @@
+meta {
+  name: Get branding font missing hash
+  type: http
+  seq: 31
+}
+
+get {
+  url: {{host}}/fonts/branding/default/0000000000000000000000000000000000000000000000000000000000000000.woff2
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status code is 404 without substitution", function () {
+      expect(res.getStatus()).to.equal(404);
+  });
+}

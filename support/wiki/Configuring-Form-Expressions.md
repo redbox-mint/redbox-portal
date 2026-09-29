@@ -192,7 +192,7 @@ The `target` property specifies where to store the expression result.
 
 | Target | Description |
 |--------|-------------|
-| `model.value` | Sets the field's form control value |
+| `model.value` | Sets the field's form control value and notifies dependent rules when the value changes |
 | `layout.visible` | Controls field visibility (boolean) |
 | `layout.*` | Sets any property on the layout configuration |
 | `component.*` | Sets any property on the component configuration |
@@ -212,6 +212,77 @@ target: "layout.cssClasses"
 // Set a component configuration property
 target: "component.disabled"
 ```
+
+## Automatic Value Changes and Dependent Fields
+
+When an expression changes `model.value`, the populated field publishes
+`field.value.changed`. Other expressions and behaviours listening to that field
+can then react, just as they can to a value entered by the user. This supports
+chains such as copying a value from a related record, showing a follow-up question,
+and updating another calculated field.
+
+For example, a retention section can work as follows:
+
+1. The user selects a related record and its metadata is fetched.
+2. An expression copies the retention choice into the current form as "Other".
+3. The explanation field's visibility expression hears the retention field's
+   change and immediately shows the follow-up question. The user does not need
+   to change the prefilled choice manually.
+
+The same dependency works when an expression clears a value: a rule that hides
+the explanation when the choice is empty can run immediately. See the
+[related-record prefill recipe](Form-Configuration-Recipe-Populate-From-Related-Record.md)
+for the fetching and population configuration.
+
+### What to expect
+
+| Behaviour | Effect on the form |
+|-----------|--------------------|
+| Dependent rules read current form data | Before a field's change event is published during an expression write, its containing groups and overall form value are refreshed. Rules reading `formData` see the updated value. |
+| Equal values are skipped | Returning the same value does not publish another change. Objects and arrays are compared by their contents, so creating an equivalent object or list does not trigger another update. |
+| Validation stays active | Changed controls validate without an extra validation pass just to notify listeners. Asynchronous validation can still finish later and update form status. |
+| Expression writes preserve edit state | An untouched form stays pristine (not marked as edited) after expression-driven population. A form that already has user edits stays dirty. A value-change event alone is not proof of user input. |
+| Repeatable replacement publishes the completed list | Dependent value rules see the completed replacement array, with the new rows' nested fields available to component queries. They do not receive the intermediate arrays while rows are removed and added. Clearing still follows `allowZeroRows`; when false, a default row remains. |
+
+Expression-driven repeatable replacement and clearing preserve edit state too;
+user row deletion still marks the form dirty. Enabling or disabling a typeahead
+display control also preserves edit state, while actual input changes still count
+as edits.
+
+Changes from a custom field that takes time to update are published as they
+happen. Separate user edits during that time remain eligible to trigger rules.
+Populating several different fields is not a single form-wide transaction.
+
+### Feedback-loop protection
+
+The framework tracks which expressions and behaviours caused a value change.
+An expression skips events caused by its own writes, including changes passed
+through other expressions or behaviours. This prevents a chain such as
+"A updates B, B updates A" from repeating indefinitely. A later independent
+user edit starts a fresh chain and can run those rules again.
+
+Configure rules with a clear source and target; this protection does not repeatedly
+evaluate circular calculations until they converge.
+
+### Compatibility with behaviour actions
+
+Existing expression configuration needs no new options. Listeners now receive
+changed expression-populated values as well as user edits; earlier versions
+wrote expression results silently.
+
+Behaviour actions have distinct notification and edit-state contracts:
+
+| Value assignment | Notifies dependent fields? | Edit state |
+|------------------|----------------------------|------------|
+| Expression targeting `model.value` | Yes, when the value changes | Preserved |
+| `setUIProperty` / `setUIProperties` targeting `model.value` | Yes, when the value changes | Preserved |
+| `runTemplate` with `applyResults` assignments targeting `model.value` | Yes, when the value changes | Marks the assigned control dirty |
+| `setValue` / `setValues` | No; use an explicit `emitEvent` action when needed | Marks the assigned control dirty |
+
+For notification ordering and asynchronous custom setters, see
+[Form Event Bus Architecture](Form-Event-Bus-Architecture.md#expression-driven-value-notifications).
+These notification changes were introduced in
+[PR #4789](https://github.com/redbox-mint/redbox-portal/pull/4789).
 
 ## Complete Examples
 
@@ -316,7 +387,7 @@ React to changes in repeatable element count:
 
 1. **Use descriptive names**: Give expressions meaningful names that describe their purpose
 2. **Prefer JSONPointer for simple cases**: JSONPointer conditions are faster to evaluate than JSONata
-3. **Use `runOnFormReady: false` for event-only expressions**: If an expression should only run in response to user actions, disable the initial execution
+3. **Use `runOnFormReady: false` for event-only expressions**: Disable initial execution when an expression should react only to subsequent matching events. Those events can come from user edits or automatic value changes.
 4. **Test expressions thoroughly**: Complex JSONata expressions should be tested independently before adding to form configuration
 5. **Consider performance**: JSONata Query conditions with deep recursive searches can be expensive on large forms
 6. **Document complex expressions**: Use the `description` property to explain what complex expressions do

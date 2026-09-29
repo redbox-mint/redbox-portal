@@ -1,4 +1,6 @@
 import { Observable, of } from 'rxjs';
+import supertest from 'supertest';
+import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../../../packages/redbox-core/test/fixtures/metadata-projection.fixtures';
 import {
   FormRecordConsistencyService as FormRecordConsistencyModule,
   FormsService as FormsModule,
@@ -49,6 +51,60 @@ describe('The FormRecordConsistencyService', function () {
     ...formConfigStandard,
     ...formModelStandard,
   };
+
+  it("returns permitted Data Locations and Data Manager from the browser metadata endpoint", async function () {
+    const agent = supertest.agent(sails.hooks.http.app);
+    await agent
+      .post("/user/login_local")
+      .set("X-Source", "jsclient")
+      .send({
+        username: "admin",
+        password: "rbadmin",
+        branding: "default",
+        portal: "rdmp",
+      })
+      .expect(200);
+
+    const brand = BrandingService.getDefault();
+    const oid = `data-location-projection-${Date.now()}`;
+    const getFormByName = FormsService.getFormByName;
+    try {
+      await Record.create({
+        redboxOid: oid,
+        metadata: {
+          ...dataRecordProjectedMetadata,
+          serverOnly: { internalNote: "never exposed" },
+        },
+        metaMetadata: {
+          type: "dataRecord",
+          form: dataRecordProjectionForm.name,
+          brandId: brand.id,
+        },
+        authorization: {
+          edit: ["admin"],
+          view: ["admin"],
+          editRoles: [],
+          viewRoles: [],
+        },
+      });
+      FormsService.getFormByName = function (formName, ...args) {
+        return formName === dataRecordProjectionForm.name
+          ? of({ configuration: dataRecordProjectionForm })
+          : getFormByName.call(this, formName, ...args);
+      };
+
+      const response = await agent
+        .get(`/default/rdmp/record/metadata/${oid}`)
+        .set("X-Source", "jsclient")
+        .expect(200);
+
+      expect(response.body).to.deep.equal(dataRecordProjectedMetadata);
+    } finally {
+      FormsService.getFormByName = getFormByName;
+      await Record.destroy({ redboxOid: oid });
+    }
+  });
+
   it('should detect changes using compareRecords', function () {
     const original = {
       name: 'my object',

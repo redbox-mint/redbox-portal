@@ -702,10 +702,105 @@ export const brandingHistoryRecordSchema = withOpenApi(
       hash: z.string(),
       css: z.string().optional(),
       variables: jsonObjectSchema.optional(),
+      typeface: jsonObjectSchema.optional(),
+      actorId: z.string().optional(),
+      actorDisplayName: z.string().optional(),
+      restoredFromVersion: z.number().int().optional(),
       dateCreated: dateTimeSchema.optional(),
     })
     .passthrough(),
   { description: 'Branding history entry' }
+);
+
+export const brandingTypefaceFaceSchema = withOpenApi(
+  z
+    .object({
+      slot: z.string(),
+      sha256: z.string(),
+      originalFilename: z.string(),
+      sizeBytes: z.number().int(),
+      uploadedAt: z.string(),
+      inspection: jsonObjectSchema,
+      warnings: z.array(z.string()),
+    })
+    .passthrough(),
+  { description: 'Brand typeface face metadata (no font bytes or storage keys)' }
+);
+
+export const brandingTypefaceStateSchema = withOpenApi(
+  z
+    .object({
+      mode: z.string(),
+      faces: z.object({}).passthrough(),
+    })
+    .passthrough(),
+  { description: 'Brand typeface state (default typography or custom faces)' }
+);
+
+export const brandingVersionEntrySchema = withOpenApi(
+  z
+    .object({
+      id: z.string(),
+      version: z.number().int(),
+      hash: z.string(),
+      dateCreated: z.string().optional(),
+      actorId: z.string().optional(),
+      actorDisplayName: z.string().optional(),
+      restoredFromVersion: z.number().int().optional(),
+      variables: jsonObjectSchema.optional(),
+      typeface: brandingTypefaceStateSchema.optional(),
+    })
+    .passthrough(),
+  { description: 'Retained branding version' }
+);
+
+export const brandingAdminStateSchema = withOpenApi(
+  z
+    .object({
+      branding: z.object({ id: z.string(), name: z.string() }).passthrough(),
+      active: z
+        .object({
+          version: z.number().int(),
+          hash: z.string(),
+          variables: jsonObjectSchema.optional(),
+          typeface: brandingTypefaceStateSchema.optional(),
+        })
+        .passthrough(),
+      draft: z
+        .object({
+          revision: z.number().int(),
+          variables: jsonObjectSchema.optional(),
+          typeface: brandingTypefaceStateSchema.optional(),
+          dirty: z.object({ colours: z.boolean(), typeface: z.boolean() }).passthrough(),
+        })
+        .passthrough(),
+      versions: z.array(brandingVersionEntrySchema),
+      limits: z
+        .object({
+          faceMaxBytes: z.number().int(),
+          familyMaxBytes: z.number().int(),
+          historyMaxVersions: z.number().int(),
+        })
+        .passthrough(),
+      healthWarnings: z.array(jsonObjectSchema),
+    })
+    .passthrough(),
+  { description: 'Canonical branding Admin state' }
+);
+
+export const brandingPublishStateResponseSchema = withOpenApi(
+  z
+    .object({
+      branding: z.object({ id: z.string(), name: z.string() }).passthrough(),
+      active: jsonObjectSchema,
+      draft: jsonObjectSchema,
+      versions: z.array(brandingVersionEntrySchema),
+      limits: jsonObjectSchema,
+      healthWarnings: z.array(jsonObjectSchema),
+      idempotent: z.boolean().optional(),
+    })
+    .passthrough(),
+  { description: 'Branding publish/restore response (complete Admin state)' }
 );
 
 export const userRecordSchema = withOpenApi(

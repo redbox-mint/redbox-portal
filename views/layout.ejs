@@ -10,10 +10,16 @@
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
   </title>
 
+  <% /* Brand Typeface: preload Regular once for an active custom typeface, else current Google fonts. */ %>
+  <% var __brandTypefaceFont = BrandingService.getActiveTypefaceFontInfo(BrandingService.getBrandNameFromReq(req)); %>
+  <% if (__brandTypefaceFont) { %>
+  <link rel="preload" href="<%= __brandTypefaceFont.regularUrl %>" as="font" type="font/woff2" crossorigin>
+  <% } else { %>
   <!-- Google Fonts -->
   <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>
   <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>
   <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>
+  <% } %>
 
   <!-- Bootstrap -->
   <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/4_1_3-bootstrap.min.css">
@@ -22,7 +28,10 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/styles/style.min.css">
-  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css">
+  <% /* Theme CSS is versioned by the publication hash so a republish applies immediately instead of waiting out the browser cache. */ %>
+  <% var __themeBrand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)); %>
+  <% var __themeCssVer = (__themeBrand && __themeBrand.hash) ? ('?v=' + __themeBrand.hash) : ''; %>
+  <link rel="stylesheet" href="<%= sails.config.appUrl %><%= BrandingService.getRootContext() %>/<%= typeof theme == 'undefined' ? req.param('theme') : theme %>/<%= typeof portal == 'undefined' ? req.param('portal') : portal %>/styles/theme.css<%= __themeCssVer %>">
 
   <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>"></angular-bootstrap>
 </head>

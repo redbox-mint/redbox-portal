@@ -71,17 +71,17 @@ export function recordSchemaDescribedByLink(immutableUrl: string): string {
 }
 
 function trimOuterSlashes(value: string): string {
-  let startIndex = 0;
-  let endIndex = value.length;
+  let start = 0;
+  let end = value.length;
 
-  while (startIndex < endIndex && value[startIndex] === '/') {
-    startIndex += 1;
+  while (start < end && value[start] === '/') {
+    start += 1;
   }
-  while (endIndex > startIndex && value[endIndex - 1] === '/') {
-    endIndex -= 1;
+  while (end > start && value[end - 1] === '/') {
+    end -= 1;
   }
 
-  return value.slice(startIndex, endIndex);
+  return value.slice(start, end);
 }
 
 function recordSchemaScopeUrl(branding: string, portal: string, rootContext: string): string {

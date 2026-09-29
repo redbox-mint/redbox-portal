@@ -17,6 +17,7 @@ import type {
   GridFSFile,
   IndexDescriptionInfo,
   IndexDirection,
+  SortDirection,
 } from 'mongodb';
 import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
@@ -28,6 +29,7 @@ import {
   StorageService,
   StorageServiceResponse,
   StorageMutationResponse,
+  RBValidationError,
   DatastreamServiceResponse,
   Datastream,
   Attachment,
@@ -42,8 +44,8 @@ import {
   RoleModel,
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,
-  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
   INITIAL_RECORD_REVISION,
+  RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   isCanonicalSaveRequestId,
   isDeletedRecordLifecycleOperation,
   isDeletedRecordLifecycleOperationForState,
@@ -62,13 +64,9 @@ import type {
   RecordSchemaArtifactQuery,
   RecordSchemaArtifactSummary,
   RecordSchemaAuthorizationGrantQuery,
-  RecordSchemaDeleteRequest,
-  RecordSchemaDeleteResult,
-  RecordSchemaGrantQuery,
   RecordSchemaReferenceInput,
   RecordSchemaReferenceModel,
   RecordSchemaReferenceQuery,
-  RecordSchemaRetentionReason,
 } from '@researchdatabox/redbox-core';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
@@ -264,8 +262,6 @@ function isMongoNamespaceNotFoundError(error: unknown): boolean {
   return ('code' in error && error.code === 26) || ('codeName' in error && error.codeName === 'NamespaceNotFound');
 }
 
-const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
-
 type RelatedRecordsContext = {
   rootOid: string;
   processedRelationships: string[];
@@ -338,10 +334,8 @@ export namespace Services {
       'listRecordSchemaArtifacts',
       'touchRecordSchemaArtifact',
       'putRecordSchemaReference',
-      'listRecordSchemaGrants',
       'findRecordSchemaGrantForAuthorization',
       'listRecordSchemaReferences',
-      'deleteRecordSchemaArtifactIfUnreferenced',
       'exists',
     ];
 
@@ -445,7 +439,7 @@ export namespace Services {
         typeof this.getNativeRecordCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.find === 'function';
-      return supported ? { recordConcurrency: { ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } } : {};
+      return supported ? { recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } : {};
     }
 
     private createMutationResponse(oid: string, options?: RecordStorageMutationOptions): StorageMutationResponse {
@@ -1047,13 +1041,6 @@ export namespace Services {
       return this.recordSchemaReferenceCol;
     }
 
-    private unlockedArtifactCriteria(digest: string): Document {
-      return {
-        digest,
-        _retentionDeleteLock: { $exists: false },
-      };
-    }
-
     private recordSchemaReferenceDocument(reference: RecordSchemaReferenceInput, now: Date): Document {
       const document: Document = {
         referenceKey: reference.referenceKey,
@@ -1238,7 +1225,7 @@ export namespace Services {
       try {
         const validated = validateRecordSchemaReferenceInput(reference);
         const now = new Date();
-        const artifactCriteria = this.unlockedArtifactCriteria(validated.digest);
+        const artifactCriteria = { digest: validated.digest };
         const artifact = await this.artifactCollection().findOne(artifactCriteria, {
           projection: { _id: 1 },
         });
@@ -1259,7 +1246,7 @@ export namespace Services {
         // A writer that raced with deletion removes its own temporary row and
         // fails, so no successful reference can become orphaned.
         const artifactAfterWrite = await this.artifactCollection().findOne(
-          this.unlockedArtifactCriteria(validated.digest),
+          { digest: validated.digest },
           { projection: { _id: 1 } }
         );
         if (!artifactAfterWrite) {
@@ -1302,29 +1289,6 @@ export namespace Services {
         );
       }
       return value;
-    }
-
-    public async listRecordSchemaGrants(query: string | RecordSchemaGrantQuery): Promise<RecordSchemaReferenceModel[]> {
-      try {
-        const criteria: Document = { kind: 'grant' };
-        let limit = RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX;
-        if (typeof query === 'string') {
-          criteria.digest = validateRecordSchemaDigest(query);
-        } else {
-          criteria.digest = validateRecordSchemaDigest(query.digest);
-          criteria.brand = this.recordSchemaQueryString(query.brand, 'brand');
-          criteria.portal = this.recordSchemaQueryString(query.portal, 'portal');
-          limit = this.recordSchemaQueryLimit(query.limit);
-        }
-        const documents = await this.referenceCollection()
-          .find(criteria)
-          .sort({ createdAt: 1, referenceKey: 1 })
-          .limit(limit)
-          .toArray();
-        return documents.map(referenceModelFromDocument);
-      } catch (error) {
-        return this.throwRecordSchemaReadFailure('listRecordSchemaGrants', error);
-      }
     }
 
     public async findRecordSchemaGrantForAuthorization(
@@ -1431,20 +1395,6 @@ export namespace Services {
           );
         }
         const limit = this.recordSchemaQueryLimit(query.limit);
-        const offset = query.offset ?? 0;
-        if (!Number.isSafeInteger(offset) || offset < 0) {
-          throw new RecordSchemaPersistenceError(
-            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
-            'Record schema reference query offset must be a non-negative safe integer.'
-          );
-        }
-        if (query.afterReferenceKey !== undefined && query.offset !== undefined) {
-          throw new RecordSchemaPersistenceError(
-            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
-            'Record schema reference query cannot combine cursor and offset pagination.'
-          );
-        }
-
         const criteria: Document = {};
         if (query.digest !== undefined) {
           criteria.digest = validateRecordSchemaDigest(query.digest);
@@ -1506,7 +1456,6 @@ export namespace Services {
         const documents = await this.referenceCollection()
           .find(criteria)
           .sort({ referenceKey: 1 })
-          .skip(offset)
           .limit(limit)
           .toArray();
         return documents.map(referenceModelFromDocument);
@@ -1524,152 +1473,6 @@ export namespace Services {
         );
       }
       return date;
-    }
-
-    private async liveRecordSchemaReferenceReasons(digest: string, now: Date): Promise<RecordSchemaRetentionReason[]> {
-      const collection = this.referenceCollection();
-      const [grant, save, pin] = await Promise.all([
-        collection.findOne({ digest, kind: 'grant' }, { projection: { _id: 1 } }),
-        collection.findOne({ digest, kind: 'save' }, { projection: { _id: 1 } }),
-        collection.findOne(
-          {
-            digest,
-            kind: 'pin',
-            $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }],
-          },
-          { projection: { _id: 1 } }
-        ),
-      ]);
-      const reasons: RecordSchemaRetentionReason[] = [];
-      if (grant) {
-        reasons.push('grant-reference');
-      }
-      if (save) {
-        reasons.push('save-reference');
-      }
-      if (pin) {
-        reasons.push('active-pin');
-      }
-      return reasons;
-    }
-
-    private async clearRecordSchemaRetentionLock(digest: string, token: string): Promise<void> {
-      await this.artifactCollection().updateOne(
-        { digest, '_retentionDeleteLock.token': token },
-        { $unset: { _retentionDeleteLock: '' } }
-      );
-    }
-
-    public async deleteRecordSchemaArtifactIfUnreferenced(
-      request: RecordSchemaDeleteRequest
-    ): Promise<StorageServiceResponse<RecordSchemaDeleteResult>> {
-      let acquiredLock: { digest: string; token: string } | undefined;
-      try {
-        const digest = validateRecordSchemaDigest(request?.digest);
-        if (!(request?.now instanceof Date) || Number.isNaN(request.now.getTime())) {
-          throw new RecordSchemaPersistenceError(
-            RECORD_SCHEMA_STORAGE_CODES.INVALID_ARTIFACT,
-            'Record schema retention time must be a valid Date.'
-          );
-        }
-        if (!Number.isSafeInteger(request.minimumAgeDays) || request.minimumAgeDays < 0) {
-          throw new RecordSchemaPersistenceError(
-            RECORD_SCHEMA_STORAGE_CODES.INVALID_ARTIFACT,
-            'Record schema retention minimum age must be a non-negative safe integer.'
-          );
-        }
-
-        const artifactCollection = this.artifactCollection();
-        const artifact = await artifactCollection.findOne({ digest });
-        if (!artifact) {
-          return this.recordSchemaSuccess({ kind: 'not-found', digest });
-        }
-        const cutoff = new Date(request.now.getTime() - request.minimumAgeDays * MILLISECONDS_PER_DAY);
-        const createdAt = this.storedRecordSchemaDate(artifact.createdAt, 'artifact createdAt');
-        if (createdAt.getTime() > cutoff.getTime()) {
-          return this.recordSchemaSuccess({
-            kind: 'retained',
-            digest,
-            reasons: ['minimum-age'],
-          });
-        }
-
-        const initialReasons = await this.liveRecordSchemaReferenceReasons(digest, request.now);
-        if (initialReasons.length > 0) {
-          return this.recordSchemaSuccess({ kind: 'retained', digest, reasons: initialReasons });
-        }
-
-        const token = randomUUID();
-        const lockedArtifact = await artifactCollection.findOneAndUpdate(
-          {
-            digest,
-            createdAt: { $lte: cutoff },
-            _retentionDeleteLock: { $exists: false },
-          },
-          {
-            $set: {
-              _retentionDeleteLock: {
-                token,
-                acquiredAt: request.now,
-              },
-            },
-          },
-          { returnDocument: 'after' }
-        );
-        if (!lockedArtifact) {
-          const stillExists = await artifactCollection.findOne({ digest }, { projection: { _id: 1 } });
-          if (!stillExists) {
-            return this.recordSchemaSuccess({ kind: 'not-found', digest });
-          }
-          return this.recordSchemaFailure(
-            RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
-            'Record schema artifact retention state changed concurrently.',
-            'deleteRecordSchemaArtifactIfUnreferenced'
-          );
-        }
-        acquiredLock = { digest, token };
-
-        // This final bounded recheck is performed after the delete lock is
-        // visible to reference writers. It catches a writer that completed
-        // immediately before the lock and prevents its reference being lost.
-        const finalReasons = await this.liveRecordSchemaReferenceReasons(digest, request.now);
-        if (finalReasons.length > 0) {
-          await this.clearRecordSchemaRetentionLock(digest, token);
-          acquiredLock = undefined;
-          return this.recordSchemaSuccess({ kind: 'retained', digest, reasons: finalReasons });
-        }
-
-        // Remove only stale rows while the artifact is locked, then remove the
-        // artifact. If reference cleanup fails, the artifact remains and the
-        // lock is released by the catch path.
-        await this.referenceCollection().deleteMany({ digest });
-        const deletion = await artifactCollection.deleteOne({
-          digest,
-          createdAt: { $lte: cutoff },
-          '_retentionDeleteLock.token': token,
-        });
-        if (deletion.deletedCount !== 1) {
-          await this.clearRecordSchemaRetentionLock(digest, token);
-          acquiredLock = undefined;
-          return this.recordSchemaFailure(
-            RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
-            'Record schema artifact retention state changed concurrently.',
-            'deleteRecordSchemaArtifactIfUnreferenced'
-          );
-        }
-        acquiredLock = undefined;
-        return this.recordSchemaSuccess({ kind: 'deleted', digest });
-      } catch (error) {
-        if (acquiredLock) {
-          try {
-            await this.clearRecordSchemaRetentionLock(acquiredLock.digest, acquiredLock.token);
-          } catch (unlockError) {
-            const unlockErrorType = unlockError instanceof Error ? unlockError.name : typeof unlockError;
-            sails.log.error(`${this.logHeader} record schema retention unlock failed (${unlockErrorType})`);
-          }
-        }
-        return this.recordSchemaFailureFromError('deleteRecordSchemaArtifactIfUnreferenced', error);
-      }
     }
 
     public async create(
@@ -2705,6 +2508,76 @@ export namespace Services {
       return record;
     }
 
+    private getSortDirection(direction: unknown): SortDirection {
+      if (typeof direction === 'number' || typeof direction === 'string') {
+        switch (String(direction).toLowerCase()) {
+          case '1':
+          case 'asc':
+          case 'ascending':
+            return 1;
+          case '-1':
+          case 'desc':
+          case 'descending':
+            return -1;
+        }
+      } else if (direction !== null && typeof direction === 'object' && !Array.isArray(direction) &&
+        '$meta' in direction && typeof direction.$meta === 'string') {
+        return { $meta: direction.$meta };
+      }
+      throw new RBValidationError({
+        message: 'Invalid record sort direction',
+        displayErrors: [{ status: '400', detail: 'Sort direction must be 1, -1, asc, desc, ascending, descending, or a $meta expression.' }],
+      });
+    }
+
+    private getRecordSort(sort?: string, secondarySort?: string): Record<string, SortDirection> {
+      const expression = _.isEmpty(sort) ? '{"lastSaveDate": -1}' : sort;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(expression);
+      } catch (_error) {
+        const parts = expression.split(':');
+        if (parts.length > 2 || parts.some(part => part.length === 0)) {
+          throw new RBValidationError({
+            message: 'Invalid record sort expression',
+            displayErrors: [{ status: '400', detail: 'Sort must be field or field:direction with no empty segments.' }],
+          });
+        }
+        const [field, direction = '-1'] = parts;
+        parsed = { [field]: direction };
+      }
+      if (parsed === null || typeof parsed !== 'object' ||
+        (Array.isArray(parsed) && !parsed.every(entry =>
+          Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[0].length > 0
+        ))) {
+        throw new RBValidationError({
+          message: 'Invalid record sort expression',
+          displayErrors: [{ status: '400', detail: 'Sort must be an object or an array of [field, direction] pairs.' }],
+        });
+      }
+      const fields: Record<string, SortDirection> = Object.fromEntries(
+        (Array.isArray(parsed) ? parsed : Object.entries(parsed))
+          .map(([field, direction]) => [field, this.getSortDirection(direction)])
+      );
+      if (!_.isEmpty(secondarySort)) {
+        const parts = secondarySort.split(':');
+        if (parts.length !== 2 || parts.some(part => part.length === 0)) {
+          throw new RBValidationError({
+            message: 'Invalid secondary record sort expression',
+            displayErrors: [{ status: '400', detail: 'Secondary sort must be field:direction with no empty segments.' }],
+          });
+        }
+        const [field, direction] = parts;
+        fields[field] = this.getSortDirection(direction);
+      }
+      // MongoDB does not keep equal sort values in a consistent order across
+      // skip/limit queries. A unique final key prevents duplicates and omissions.
+      if (!Object.hasOwn(fields, '_id')) {
+        fields._id = 1;
+      }
+      return fields;
+    }
+
     public async getDeletedRecords(
       workflowState: string,
       recordType = undefined,
@@ -2724,32 +2597,22 @@ export namespace Services {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
+      const sortAliases = new Map([
+        ['title', 'deletedRecordMetadata.metadata.title'],
+        ['dateCreatedDisplay', 'deletedRecordMetadata.dateCreated'],
+        ['dateModifiedDisplay', 'deletedRecordMetadata.lastSaveDate'],
+        ['dateDeletedDisplay', 'dateDeleted'],
+      ]);
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
+        sort: Object.fromEntries(Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
+          sortAliases.get(field) ?? (directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
+            ? field : `deletedRecordMetadata.${field}`),
+          direction,
+        ])),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
-
-      if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
-          secondarySort.substring(secondarySort.indexOf(':') + 1)
-        );
-      }
 
       const roleNames = this.getRoleNames(roles, brand);
       const andArray = [];
@@ -2831,29 +2694,8 @@ export namespace Services {
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
+        sort: this.getRecordSort(sort, secondarySort),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
-
-      if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
-          secondarySort.substring(secondarySort.indexOf(':') + 1)
-        );
-      }
 
       const roleNames = this.getRoleNames(roles, brand);
       const andArray = [];
@@ -2982,9 +2824,7 @@ export namespace Services {
       andArray.push(permissions);
       const options = {
         limit: _.toNumber(sails.config.record.export.maxRecords),
-        sort: {
-          lastSaveDate: -1,
-        },
+        sort: this.getRecordSort(),
       };
       if (!_.isEmpty(modAfter)) {
         andArray.push({

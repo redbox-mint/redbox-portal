@@ -1,27 +1,22 @@
 import type { RecordContractPointer } from './types';
-
-const INVALID_ESCAPE = /~(?:[^01]|$)/;
+import { escapeComponent, formatJsonPointer, parseJsonPointer, validateJsonPointer } from '@jsonjoy.com/json-pointer';
 
 /** Escape one reference token according to RFC 6901 section 4. */
 export function escapeRecordContractPointerToken(value: string | number): string {
-  return String(value).replaceAll('~', '~0').replaceAll('/', '~1');
+  return escapeComponent(String(value));
 }
 
 /** Return whether a value is a syntactically valid RFC 6901 JSON Pointer. */
 export function isRecordContractPointer(value: unknown): value is RecordContractPointer {
-  if (typeof value !== 'string') {
+  if (typeof value !== 'string' || /~(?![01])/u.test(value)) {
     return false;
   }
-  if (value === '') {
+  try {
+    validateJsonPointer(value);
     return true;
-  }
-  if (!value.startsWith('/')) {
+  } catch {
     return false;
   }
-  return value
-    .slice(1)
-    .split('/')
-    .every(token => !INVALID_ESCAPE.test(token));
 }
 
 /** Validate and brand a pointer at the public construction boundary. */
@@ -34,21 +29,12 @@ export function recordContractPointer(value: string): RecordContractPointer {
 
 /** Build a pointer from unescaped property/index tokens. */
 export function recordContractPointerFromTokens(tokens: readonly (string | number)[]): RecordContractPointer {
-  if (tokens.length === 0) {
-    return recordContractPointer('');
-  }
-  return recordContractPointer(`/${tokens.map(escapeRecordContractPointerToken).join('/')}`);
+  return recordContractPointer(formatJsonPointer(tokens.map(String)));
 }
 
 /** Decode a validated pointer into unescaped reference tokens. */
 export function recordContractPointerTokens(pointer: RecordContractPointer): string[] {
-  if (pointer === '') {
-    return [];
-  }
-  return pointer
-    .slice(1)
-    .split('/')
-    .map(token => token.replaceAll('~1', '/').replaceAll('~0', '~'));
+  return parseJsonPointer(pointer).map(String);
 }
 
 /** Append unescaped tokens to an existing pointer. */
@@ -56,11 +42,9 @@ export function joinRecordContractPointer(
   base: RecordContractPointer,
   ...tokens: readonly (string | number)[]
 ): RecordContractPointer {
-  if (tokens.length === 0) {
-    return base;
-  }
-  const suffix = tokens.map(escapeRecordContractPointerToken).join('/');
-  return recordContractPointer(`${base}/${suffix}`);
+  return tokens.length === 0
+    ? base
+    : recordContractPointer(formatJsonPointer([...parseJsonPointer(base), ...tokens.map(String)]));
 }
 
 /** Append an already-encoded relative pointer to an existing pointer. */

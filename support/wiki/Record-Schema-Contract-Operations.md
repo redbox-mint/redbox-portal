@@ -21,7 +21,6 @@ The complete core default is:
 recordSchema: {
   enabled: false,
   unknownProperties: 'allow',
-  contractFormat: 'redbox-record-contract/1',
   cacheMaxEntries: 128,
   limits: {
     maxDepth: 64,
@@ -46,7 +45,6 @@ values.
 |---|---:|---|
 | `recordSchema.enabled` | `false` | Activates startup checks, schema resolution, structural write validation, artifact/grant persistence, save references, and retention operations |
 | `recordSchema.unknownProperties` | `allow` | Global object-boundary policy: `allow` preserves undeclared properties; `declared` reports them as `record-schema.additional-property` |
-| `recordSchema.contractFormat` | `redbox-record-contract/1` | Compiler and annotation format; v1 is the only supported value |
 | `recordSchema.cacheMaxEntries` | `128` | Maximum process-local compiled-validator cache entries |
 | `recordSchema.limits.maxDepth` | `64` | Maximum contract/contributor nesting depth |
 | `recordSchema.limits.maxProperties` | `10000` | Maximum properties accumulated by one contract |
@@ -85,9 +83,8 @@ to implement every method in this capability set:
 | `listRecordSchemaArtifacts` | Return bounded digest/creation-time summaries in stable digest order for retention pages |
 | `touchRecordSchemaArtifact` | Update access metadata without changing artifact identity |
 | `putRecordSchemaReference` | Idempotently persist a validated `grant`, `save`, or `pin` reference and reject reference-key collisions |
-| `listRecordSchemaGrants` | Return bounded grants used to authorize immutable retrieval |
+| `findRecordSchemaGrantForAuthorization` | Return the next indexed grant authorized for immutable retrieval |
 | `listRecordSchemaReferences` | Return bounded reference evidence for usage and retention |
-| `deleteRecordSchemaArtifactIfUnreferenced` | Atomically recheck age and live references before deleting an eligible artifact |
 
 The bundled Mongo storage hook implements this set with the
 `recordschemaartifact` and `recordschemareference` models. Artifacts have a
@@ -97,10 +94,8 @@ content-addressed and immutable; a second write is successful only when its
 content identity matches. Reference writes must not create a reference to an
 unknown artifact.
 
-The delete method is part of the capability so any future maintenance caller
-cannot use an unsafe read-then-delete adapter. The first delivery does not
-schedule deletion or expose a destructive maintenance operation; its service
-surface produces a report/dry run only.
+The first delivery does not schedule deletion or expose a destructive
+maintenance operation; its service surface produces a report/dry run only.
 
 ## Rollout and auditing shadow output
 
@@ -112,7 +107,6 @@ recordSchema: {
   // Include the other core defaults when your config layer replaces objects.
   enabled: true,
   unknownProperties: 'allow',
-  contractFormat: 'redbox-record-contract/1',
   cacheMaxEntries: 128,
   limits: {
     maxDepth: 64,
@@ -137,6 +131,9 @@ pointers, and allowlisted expected-type details. When schema resolution
 succeeds, the non-persisted `schemaOutcome` reports the digest, immutable URL,
 `complete` or `partial` completeness, and effective enforcement mode. Do not
 copy `schemaOutcome` into record metadata.
+Schema-only warnings are complete saves: the browser shows a schema-specific
+warning and permits Save & Close. If required post-save work also fails, the
+save remains incomplete and the follow-up warning remains visible.
 
 Shadow is not an authorization or concurrency bypass. An unknown or
 unauthorized validation operation, denied record access, missing authoritative
@@ -272,8 +269,7 @@ retention reasons.
 ## Retention report and dry run
 
 `RecordSchemaService.reportRetention()` is an internal, non-destructive service
-operation. It has no public route and never calls
-`deleteRecordSchemaArtifactIfUnreferenced`.
+operation with no public route.
 
 Use a stable operator-supplied `now` so repeated runs are comparable. Scan
 storage-owned pages:

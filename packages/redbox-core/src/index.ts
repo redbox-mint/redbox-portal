@@ -48,6 +48,7 @@ export type {
 export {
   RECORD_HTTP_HEADERS,
   parsePublicRecordConcurrencyRequest,
+  recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
   recordRepresentationRevision,
   recordSaveResultHeaderOption,
@@ -61,7 +62,6 @@ export type {
 } from './RecordHttpConcurrency';
 export { normalizeAttachmentStagingFileId } from './AttachmentStagingIdentity';
 export {
-  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
   INITIAL_RECORD_REVISION,
   RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   RecordConcurrencyCapabilityError,
@@ -73,7 +73,6 @@ export {
 } from './RecordStorageConcurrency';
 export type {
   RecordMutationPrecondition,
-  RecordStorageConcurrencyCapabilities,
   RecordStorageMutationOptions,
   StorageCapabilityProvider,
   StorageMutationNonApplicationReason,
@@ -157,7 +156,6 @@ export type {
 } from './services/IntegrationAuditService';
 export * from './model/storage/HarvestRunModel';
 export { ILogger } from './Logger';
-export * from './model/generation';
 
 export * from './model';
 export * from './record-contract';
@@ -189,6 +187,8 @@ export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
 
 export * from './configmodels/ConfigModels';
+export * from './configmodels/DashboardSettings';
+export * from './services/DashboardLegacyConversion';
 export * from './configmodels/MenuConfig';
 export * from './configmodels/HomePanelConfig';
 export * from './configmodels/AdminSidebarConfig';

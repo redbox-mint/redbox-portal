@@ -27,6 +27,10 @@ import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
 import {buildKeyString, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
 
+export type DashboardTemplateTarget =
+    | { kind: 'workflow'; recordType: string; stage: string }
+    | { kind: 'view'; view: string; step: string };
+
 /**
  * Service for managing pre-compiled Handlebars templates from the server.
  * Fetches compiled templates from the dashboard endpoint and executes them client-side.
@@ -59,65 +63,42 @@ export class HandlebarsTemplateService extends HttpClientService {
     }
 
     /**
-     * Load pre-compiled templates from the server for a specific record type and workflow stage.
-     * Templates are loaded as ES modules using dynamic import.
-     *
-     * @param branding The branding name
-     * @param portal The portal name
-     * @param recordType The record type name
-     * @param workflowStage The workflow stage name
-     * @param dashboardType Optional dashboard type to load specific configuration
+     * Template key prefix for one dashboard target at an exact settings
+     * version. Must match DashboardTypesService.buildDashboardTemplateKeyPrefix.
      */
-    public async loadDashboardTemplates(branding: string, portal: string, recordType: string, workflowStage: string, dashboardType: string = 'standard'): Promise<void> {
-        const dashboardHintPath = `${branding}/${portal}/${recordType}/${workflowStage}/${dashboardType}`;
-
-        try {
-            const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
-            // path array for getDynamicImport
-            const urlPath = ['dynamicAsset', 'recordDashboardTemplates', recordType, workflowStage];
-            const urlParams = {'dashboardType': dashboardType};
-
-            this.loggerService.debug(`Loading dashboard templates module for ${dashboardHintPath}`);
-
-            // Load module
-            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath, urlParams);
-
-            if (module && typeof module.evaluate === 'function') {
-                // Register the module using keys derived from the configuration context
-                this.registerDashboardModule(module, recordType, workflowStage, dashboardType);
-                this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered module for ${recordType}__${workflowStage}`);
-                this.loggerService.debug(`Loaded templates for ${dashboardHintPath}`);
-            } else {
-                this.loggerService.error(`Invalid module loaded for ${dashboardHintPath}`);
-            }
-
-        } catch (error) {
-            this.loggerService.error(`HandlebarsTemplateService: Failed to load dashboard templates for ${dashboardHintPath}:`, error);
-        }
+    public buildDashboardTemplateKeyPrefix(branding: string, target: DashboardTemplateTarget, settingsFingerprint: string): string[] {
+        return target.kind === 'workflow'
+            ? [branding, 'workflow', target.recordType, target.stage, settingsFingerprint.slice(0, 16)]
+            : [branding, 'view', target.view, target.step, settingsFingerprint.slice(0, 16)];
     }
 
-    public async loadDashboardViewTemplates(branding: string, portal: string, dashboardView: string, stepName: string, dashboardType: string = 'standard'): Promise<void> {
-        const dashboardHintPath = `${branding}/${portal}/dashboard-view/${dashboardView}/${stepName}/${dashboardType}`;
-
-        try {
-            const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
-            const urlPath = ['dynamicAsset', 'dashboardViewTemplates', dashboardView, stepName];
-
-            this.loggerService.debug(`Loading dashboard view templates module for ${dashboardHintPath}`);
-
-            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath, { dashboardType });
-
-            if (module && typeof module.evaluate === 'function') {
-                this.registerDashboardModule(module, dashboardView, stepName, dashboardType);
-                this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered module for ${dashboardView}__${stepName}`);
-                this.loggerService.debug(`Loaded templates for ${dashboardHintPath}`);
-            } else {
-                this.loggerService.error(`Invalid module loaded for ${dashboardHintPath}`);
-            }
-
-        } catch (error) {
-            this.loggerService.error(`HandlebarsTemplateService: Failed to load dashboard view templates for ${dashboardHintPath}:`, error);
+    /**
+     * Load the compiled templates for one workflow stage or dashboard-view step,
+     * pinned to the settings fingerprint the page loaded. Returns false when the
+     * server reports that the settings changed (or the module failed to load), so
+     * the caller can reload settings and templates together.
+     */
+    public async loadDashboardTargetTemplates(branding: string, portal: string, target: DashboardTemplateTarget, settingsFingerprint: string): Promise<boolean> {
+        const registryKey = buildKeyString(this.buildDashboardTemplateKeyPrefix(branding, target, settingsFingerprint));
+        if (this.moduleRegistry.has(registryKey)) {
+            return true;
         }
+        const brandingAndPortalUrl = `${this.baseUrl}${this.rootContext}/${branding}/${portal}`;
+        const urlPath = target.kind === 'workflow'
+            ? ['dynamicAsset', 'recordDashboardTemplates', encodeURIComponent(target.recordType), encodeURIComponent(target.stage)]
+            : ['dynamicAsset', 'dashboardViewTemplates', encodeURIComponent(target.view), encodeURIComponent(target.step)];
+        try {
+            const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath, { settingsFingerprint });
+            if (module && typeof module.evaluate === 'function') {
+                this.moduleRegistry.set(registryKey, module);
+                this.loggerService.debug(`HandlebarsTemplateService: Loaded dashboard templates ${registryKey}`);
+                return true;
+            }
+            this.loggerService.error(`Invalid dashboard template module for ${registryKey}`);
+        } catch (error) {
+            this.loggerService.warn(`HandlebarsTemplateService: Could not load dashboard templates for ${registryKey}:`, error);
+        }
+        return false;
     }
 
     /**
@@ -153,12 +134,6 @@ export class HandlebarsTemplateService extends HttpClientService {
         } catch (error) {
             this.loggerService.error(`HandlebarsTemplateService: Failed to load report templates for ${reportHintPath}:`, error);
         }
-    }
-
-    private registerDashboardModule(module: any, recordType: string, workflowStage: string, dashboardType: string) {
-        // Register under specific context keys
-        this.moduleRegistry.set(`${recordType}__${workflowStage}`, module);
-        this.moduleRegistry.set(`${recordType}__${dashboardType}`, module);
     }
 
     private registerReportModule(module: any, reportName: string) {

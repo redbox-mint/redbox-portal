@@ -1,0 +1,25 @@
+meta {
+  name: Typeface versions list
+  type: http
+  seq: 40
+}
+
+get {
+  url: {{host}}/default/rdmp/api/branding/versions
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200 with newest-first versions", function(){
+    expect(res.getStatus()).to.equal(200);
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body).to.be.an('array');
+    expect(body.length).to.be.above(0);
+    bru.setVar('rb_version_id', body[0].id);
+  });
+}

@@ -25,10 +25,8 @@ describe('record-schema storage capability inspection', function () {
       'listRecordSchemaArtifacts',
       'touchRecordSchemaArtifact',
       'putRecordSchemaReference',
-      'listRecordSchemaGrants',
       'findRecordSchemaGrantForAuthorization',
       'listRecordSchemaReferences',
-      'deleteRecordSchemaArtifactIfUnreferenced',
     ]);
   });
 

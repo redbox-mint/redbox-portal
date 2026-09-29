@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Breaking:** Dashboard profiles, record-type defaults and overrides were replaced by independent settings for every workflow stage and custom-view step, with a new editor (save, copy from, bulk copy to with preview, revision-checked writes) and API. Retired `/api/dashboard-config` operations return `410`. A one-time migration converts v5.0.1 configuration and stops on material differences; see [Configuring Dashboard Tables](support/wiki/Configuring-Dashboard-Tables.md#upgrading-from-v501).
 - Added concurrent-record modification protection across browser, API v1/v2,
   datastream, internal-writer, and delete/restore/purge paths. Record types can
   use compatible `last-write-wins`, migration `observe`, or enforcing `strict`
@@ -49,8 +50,7 @@
   persisted-warning indexing/audit handling. Added API v2 save contracts and
   form-level field-aware validation/focus behavior. `AttachmentMetadata` now
   supports `attachmentId`, `operation`, `mutationState`, `generation`,
-  `isJournal`, `mutationFileId`, `attemptCount`, `lastAttemptAt`, and
-  `lastSafeErrorCode` for reconciliation. Save outcome messages use
+  `isJournal` and `mutationFileId` for reconciliation. Save outcome messages use
   translatable language keys throughout the browser flow. Confirmed physical
   attachment delete tombstones are reaped after reconciliation.
 - Audited English translation metadata and added a repeatable duplicate-key, placeholder, and plural-form check.

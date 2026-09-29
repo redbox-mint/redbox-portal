@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { DashboardRowConfig } from '../dashboard-config-api.service';
+import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config-api.service';
 
 @Component({
   selector: 'column-editor',
@@ -64,7 +64,7 @@ import { DashboardRowConfig } from '../dashboard-config-api.service';
       </ng-template>
 
       <div class="dc-column-detail-wrap" *ngIf="selectedColumn">
-        <column-detail [column]="selectedColumn"></column-detail>
+        <column-detail [column]="selectedColumn" [catalogue]="catalogue"></column-detail>
       </div>
     </div>
   `,
@@ -226,6 +226,7 @@ import { DashboardRowConfig } from '../dashboard-config-api.service';
 })
 export class ColumnEditorComponent {
   @Input() columns: DashboardRowConfig[] = [];
+  @Input() catalogue: DashboardFieldCatalogue | null = null;
   @Output() columnsChange = new EventEmitter<DashboardRowConfig[]>();
   selectedColumn: DashboardRowConfig | null = null;
 

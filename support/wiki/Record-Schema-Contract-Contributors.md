@@ -1,8 +1,7 @@
 # Record Schema Contract Contributors
 
 Record-contract contributors let an installable ReDBox hook describe the
-persisted shape of its custom form components or of a metadata extension that
-owns a dedicated namespace. Contributors extend the dialect-neutral internal
+persisted shape of its custom form components. Contributors extend the dialect-neutral internal
 record contract; ReDBox alone renders that contract as JSON Schema draft
 2020-12.
 
@@ -24,10 +23,10 @@ Every contributor has these common fields:
 
 | Field | Contract |
 |---|---|
-| `kind` | Exactly `component` or `extension` |
+| `kind` | Exactly `component` |
 | `key` | Globally unique stable identity matching `[a-z0-9][a-z0-9._:/-]*` |
 | `version` | Non-blank stable version matching `[A-Za-z0-9][A-Za-z0-9._-]*`; change it when emitted contract semantics change |
-| `nullability` | One of `non-null`, `nullable`, `configuration`, or `legacy-permissive` |
+| `nullability` | One of `non-null`, `nullable`, or `configuration` |
 | `compile` | Deterministic dialect-neutral compiler returning the appropriate contribution type |
 
 The loader discovers contributors on every process start, including when
@@ -56,26 +55,6 @@ Return `{ kind: 'node', node, diagnostics? }` for a persisting component. A
 layout/display component returns `{ kind: 'non-persisting' }`; it may provide
 `children` for the compiler to traverse at the current form level. A
 persisting component must have a metadata field name.
-
-### Namespaced-extension registration
-
-A `RecordContractExtensionContributor` owns one `namespace` and one absolute
-`root`. The namespace must match
-`[A-Za-z][A-Za-z0-9+.-]*:[A-Za-z0-9][A-Za-z0-9._~-]*`. Construct the non-empty
-RFC 6901 root with `recordContractPointer()`, for example
-`recordContractPointer('/example:preservation')`.
-
-Extension namespaces and roots must be unique. Extension roots may not overlap
-one another, replace a form-owned field, or descend through a non-object form
-node. ReDBox creates missing intermediate object nodes using the resolved
-unknown-property policy, then inserts the returned node only at the registered
-root. The contributor cannot select another location at compile time.
-
-The extension compile context contains the registered `namespace` and `root`,
-the immutable `publicContext`, and optional JSON-only `metadata` selected by
-namespace. Contributors must handle `metadata === undefined`. The current
-`RecordSchemaService` compile path does not supply extension metadata, so a
-deployed extension contract must not depend on it being present.
 
 ## Dialect-neutral output
 
@@ -149,11 +128,9 @@ the form-owned field itself.
 ## Ownership and nullability
 
 The form compiler owns form field roots. A component contributor may claim
-only the relative pointers declared by `ownedPointers`, while an extension
-contributor may add only its registered absolute root. ReDBox records ownership
-for collision detection and fails the whole compilation if two components or
-an extension and form field attempt to own the same path. There is no
-last-registered-wins behavior.
+only the relative pointers declared by `ownedPointers`. ReDBox records ownership
+for collision detection and fails the whole compilation if two components
+attempt to own the same path. There is no last-registered-wins behavior.
 
 Choose nullability deliberately:
 
@@ -162,13 +139,10 @@ Choose nullability deliberately:
 | `non-null` | The component node must have `nullable: false` |
 | `nullable` | The component node must have `nullable: true` |
 | `configuration` | `compile()` derives the node's boolean nullability only from stable component/form configuration |
-| `legacy-permissive` | A legacy shape remains deliberately permissive while it is audited; return an appropriate permissive node and safe diagnostic |
 
 The compiler enforces the literal `non-null` and `nullable` declarations for
-component contributions. Every component and extension node is independently
-validated to require a boolean `nullable`; extension authors must keep the
-declared policy and node consistent even though extension insertion currently
-uses the node value. Nullability is structural acceptance of JSON `null`; it is
+component contributions. Every component node is independently validated to
+require a boolean `nullable`. Nullability is structural acceptance of JSON `null`; it is
 not requiredness and does not replace form/business validators.
 
 An `any` node whose `reason` identifies a permissive case, or a nested node of

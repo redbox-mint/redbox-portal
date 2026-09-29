@@ -11,7 +11,6 @@ import {
   isRecordSchemaEnabled,
   MAX_RECORD_SCHEMA_INTEGRATION_PINS,
   normalizeRecordSchemaConfig,
-  RECORD_CONTRACT_FORMAT_V1,
   RECORD_SCHEMA_PROBLEM_CODES,
   RecordTypeModel,
   WaterlineModels,
@@ -68,7 +67,6 @@ describe('record-schema configuration', function () {
     expect(recordSchema).to.deep.equal({
       enabled: false,
       unknownProperties: 'allow',
-      contractFormat: RECORD_CONTRACT_FORMAT_V1,
       cacheMaxEntries: DEFAULT_RECORD_SCHEMA_CACHE_MAX_ENTRIES,
       limits: {
         maxDepth: DEFAULT_RECORD_SCHEMA_MAX_DEPTH,
@@ -84,7 +82,6 @@ describe('record-schema configuration', function () {
     expect(recordSchema).to.deep.include({
       enabled: false,
       unknownProperties: 'allow',
-      contractFormat: 'redbox-record-contract/1',
       cacheMaxEntries: 128,
     });
     expect(recordSchema.limits).to.deep.equal({
@@ -158,11 +155,6 @@ describe('record-schema configuration', function () {
 
   it('rejects unsupported and malformed global values without coercion', function () {
     expectInvalidAt(withConfigValue('unknownProperties', 'strip'), 'unknownProperties', 'unsupported-value');
-    expectInvalidAt(
-      withConfigValue('contractFormat', 'redbox-record-contract/2'),
-      'contractFormat',
-      'unsupported-value'
-    );
     expectInvalidAt(withConfigValue('integrationPins', {}), 'integrationPins', 'type');
     expectInvalidAt(withConfigValue('integrationPins', [{}]), 'integrationPins.0', 'type');
     expect(validateRecordSchemaConfig(null)).to.deep.equal({
@@ -196,7 +188,6 @@ describe('record-schema configuration', function () {
     for (const path of [
       'enabled',
       'unknownProperties',
-      'contractFormat',
       'cacheMaxEntries',
       'limits.maxDepth',
       'limits.maxProperties',

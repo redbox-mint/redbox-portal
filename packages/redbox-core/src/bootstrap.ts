@@ -102,16 +102,11 @@ export async function coreBootstrap(): Promise<void> {
   }
 
   sails.log.verbose('Forms service, bootstrapped.');
-  await sails.services.recordsservice.auditRecordValidationRollout(recordsTypes);
-  sails.log.verbose('Record validation rollout configuration audited.');
+  sails.log.verbose('Record validation rollout configuration loaded.');
   await sails.services.vocabularyservice.bootstrapData();
   sails.log.verbose('Vocabulary bootstrap data, loaded.');
   await sails.services.recordsservice.bootstrapData();
   sails.log.verbose('Records bootstrap data, loaded.');
-
-  await sails.services.generationpersistenceservice.bootstrap();
-  await sails.services.generationbootstrapservice.bootstrap(defaultBranding);
-  sails.log.verbose('Generation services, bootstrapped.');
 
   // Schedule cronjobs
   if (sails.config.crontab.enabled) {

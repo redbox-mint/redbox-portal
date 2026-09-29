@@ -1,0 +1,34 @@
+meta {
+  name: Typeface preview create
+  type: http
+  seq: 35
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "expectedDraftRevision": {{rb_revision}}
+  }
+}
+
+tests {
+  test("Status code is 200", function(){
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Preview token issued", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body.token).to.exist;
+    expect(body.url).to.contain(body.token);
+  });
+}

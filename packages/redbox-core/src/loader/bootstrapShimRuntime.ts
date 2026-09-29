@@ -62,6 +62,18 @@ async function exportPostBootstrapSnapshot(): Promise<void> {
   }
 }
 
+/**
+ * Narrow initialisation that must see every target added by core and hook
+ * bootstraps, and must finish before the server reports ready.
+ */
+async function runPostBootstrapInitialisation(): Promise<void> {
+  const dashboardConfigService = (sails.services as Record<string, { initialiseAfterBootstrap?: () => Promise<void> } | undefined>)?.dashboardconfigservice;
+  if (dashboardConfigService?.initialiseAfterBootstrap) {
+    await dashboardConfigService.initialiseAfterBootstrap();
+    sails.log.verbose('Dashboard configuration initialisation complete.');
+  }
+}
+
 export function createGeneratedBootstrap(
   preLiftSetup: () => void | Promise<void>,
   coreBootstrap: () => Promise<void>,
@@ -84,6 +96,8 @@ export function createGeneratedBootstrap(
         await hookBootstrap.bootstrap();
         sails.log.verbose(`Hook bootstrap complete: ${hookBootstrap.name}`);
       }
+
+      await runPostBootstrapInitialisation();
 
       await exportPostBootstrapSnapshot();
     })()

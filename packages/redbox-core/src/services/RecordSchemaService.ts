@@ -29,9 +29,6 @@ import type { RecordSchemaProblem, ResolveRecordSchemaResult } from '../model/re
 import {
   compileRecordJsonSchemaArtifact,
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
-  getDiscoveredRecordContractContributorComponentTypes,
-  getDiscoveredRecordContractContributorRegistrationIssues,
-  getDiscoveredRecordContractContributorRegistry,
   identifyRecordJsonSchema,
   normalizeRedboxCanonicalJsonV1,
   normalizeRecordJsonSchemaDocument,
@@ -42,12 +39,13 @@ import {
   RecordJsonSchemaDocumentLimitError,
   RecordJsonSchemaIdentityError,
   RecordJsonSchemaRendererError,
-  RecordSchemaValidatorCache,
+  RECORD_CONTRACT_FORMAT_V1,
   RECORD_CONTRACT_REGISTRATION_CODES,
   renderRecordJsonSchema,
   serializeRedboxCanonicalJsonV1,
   type ContractJsonObject,
   type ContractJsonValue,
+  type CompiledRecordJsonSchemaArtifact,
   type PublishedRecordJsonSchemaDocument,
   type RecordContractCompileFailureKind,
   type RecordContractContext,
@@ -80,10 +78,7 @@ import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
 import type { ConfiguredRecordContractFormCandidate, FormRecordAccessContext } from './FormsService';
 import type { ILogger } from '../Logger';
-import {
-  isInternalRecordSchemaCreateAuthorizationCapability,
-  isInternalRecordSchemaUpdateAuthorizationCapability,
-} from './internal-record-schema-authorization';
+import { isInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
 
 declare const RedboxJavaStorageService: unknown;
 
@@ -175,7 +170,6 @@ const CATEGORY_ORDER: Readonly<Record<RecordSchemaLifecycleFinding['category'], 
 const DUPLICATE_REGISTRATION_CODES: ReadonlySet<RecordContractRegistrationCode> = new Set([
   RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_KEY,
   RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_COMPONENT,
-  RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_NAMESPACE,
 ]);
 
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
@@ -515,9 +509,9 @@ async function authorizeUpdateWithRecordsService(
 const DEFAULT_DEPENDENCIES: RecordSchemaServiceDependencies = {
   getConfig: configuredRecordSchema,
   getStorageProvider: configuredStorageProvider,
-  getContributorRegistry: getDiscoveredRecordContractContributorRegistry,
-  getContributorRegistrationIssues: getDiscoveredRecordContractContributorRegistrationIssues,
-  getContributorComponentTypes: getDiscoveredRecordContractContributorComponentTypes,
+  getContributorRegistry: () => undefined,
+  getContributorRegistrationIssues: () => [],
+  getContributorComponentTypes: () => [],
   getConfiguredFormCandidates: () => FormsService.listConfiguredRecordContractForms(),
   resolveContractContext: request => RecordValidationService.resolveContractContext(request),
   buildContractFormConfig: (context, recordAccessContext) =>
@@ -794,6 +788,26 @@ export interface ResolveCreateRecordSchemaRequest {
   /** Process-local capability issued after the normal record-create boundary authorizes this write. */
   readonly internalAuthorizationCapability?: unknown;
 }
+
+export interface DescribeRecordStageSchemaRequest {
+  /** Internal persisted brand identifier. */
+  readonly brand: string;
+  /** Canonical public branding route segment. Defaults to `brand`. */
+  readonly branding?: string;
+  readonly portal: string;
+  readonly recordType: string;
+  readonly targetStep?: string;
+  /** Trusted current caller; field visibility follows their access. */
+  readonly caller: FormRecordAccessContext;
+}
+
+export type DescribeRecordStageSchemaResult =
+  | {
+      readonly kind: 'resolved' | 'partial';
+      readonly completeness: 'complete' | 'partial';
+      readonly document: PublishedRecordJsonSchemaDocument;
+    }
+  | { readonly kind: 'unavailable'; readonly code: string };
 
 export interface RecordSchemaCreateResolutionMetadata {
   readonly schemaKind: 'create';
@@ -1200,6 +1214,41 @@ type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
   | RecordSchemaPipelineSuccess<Grant>
   | RecordSchemaResolutionFailure;
 
+function resolvedPipelineResult(
+  pipeline: RecordSchemaPipelineSuccess<RecordSchemaCreateGrantReferenceInput>,
+  schemaKind: 'create',
+  context: RecordContractCreateContext
+): Extract<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>;
+function resolvedPipelineResult(
+  pipeline: RecordSchemaPipelineSuccess<RecordSchemaUpdateGrantReferenceInput>,
+  schemaKind: 'update',
+  context: RecordContractUpdateContext
+): Extract<ResolveUpdateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>;
+function resolvedPipelineResult(
+  pipeline: RecordSchemaPipelineSuccess<RecordSchemaGrantReferenceInput>,
+  schemaKind: 'create' | 'update',
+  context: RecordContractCreateContext | RecordContractUpdateContext
+):
+  | Extract<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+  | Extract<ResolveUpdateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }> {
+  return Object.freeze({
+    kind: pipeline.kind,
+    document: pipeline.document,
+    digest: pipeline.digest,
+    grant: pipeline.grant,
+    metadata: Object.freeze({
+      schemaKind,
+      contractFormat: pipeline.contractFormat,
+      completeness: pipeline.completeness,
+      byteLength: pipeline.byteLength,
+      etag: pipeline.etag,
+      context: context.publicContext,
+    }),
+  }) as
+    | Extract<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+    | Extract<ResolveUpdateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>;
+}
+
 interface RecordSchemaCompiledContextBase {
   readonly document: PublishedRecordJsonSchemaDocument;
   readonly digest: string;
@@ -1416,63 +1465,6 @@ function boundedArraySnapshot(value: unknown, maximum: number): BoundedArraySnap
     return { kind: 'overflow' };
   } catch {
     return { kind: 'invalid' };
-  }
-}
-
-type RecordSchemaConfigSnapshot =
-  | { readonly kind: 'snapshot'; readonly value: unknown }
-  | { readonly kind: 'pin-limit' }
-  | { readonly kind: 'unreadable' };
-
-function snapshotProperties(source: Record<string, unknown>, properties: readonly string[]): Record<string, unknown> {
-  return Object.fromEntries(properties.map(property => [property, ownDataProperty(source, property)]));
-}
-
-/** Copy only configured contract fields so later getters/iterators cannot mutate validated state. */
-function snapshotRecordSchemaConfig(value: unknown): RecordSchemaConfigSnapshot {
-  try {
-    if (!isObjectRecord(value)) return { kind: 'snapshot', value };
-    const enabled = Reflect.get(value, 'enabled');
-    const snapshot = snapshotProperties(value, ['unknownProperties', 'contractFormat', 'cacheMaxEntries']);
-    snapshot.enabled = enabled;
-    const limits = ownDataProperty(value, 'limits');
-    snapshot.limits = isObjectRecord(limits)
-      ? snapshotProperties(limits, [
-          'maxDepth',
-          'maxProperties',
-          'maxDocumentBytes',
-          'maxDiagnostics',
-          'contributorTimeoutMs',
-        ])
-      : limits;
-    const retention = ownDataProperty(value, 'retention');
-    snapshot.retention = isObjectRecord(retention) ? snapshotProperties(retention, ['minimumAgeDays']) : retention;
-
-    const integrationPins = ownDataProperty(value, 'integrationPins');
-    if (integrationPins !== INVALID_DATA_PROPERTY && integrationPins !== undefined) {
-      const bounded = boundedArraySnapshot(integrationPins, MAX_RECORD_SCHEMA_INTEGRATION_PINS);
-      if (bounded.kind === 'overflow') return { kind: 'pin-limit' };
-      if (bounded.kind === 'invalid') return { kind: 'unreadable' };
-      snapshot.integrationPins = bounded.values.map(pin => {
-        if (!isObjectRecord(pin)) return pin;
-        const pinSnapshot = snapshotProperties(pin, [
-          'digest',
-          'brand',
-          'portal',
-          'schemaKind',
-          'recordType',
-          'operation',
-          'owner',
-          'purpose',
-        ]);
-        const expiresAt = ownDataProperty(pin, 'expiresAt');
-        if (expiresAt !== INVALID_DATA_PROPERTY) pinSnapshot.expiresAt = expiresAt;
-        return pinSnapshot;
-      });
-    }
-    return { kind: 'snapshot', value: snapshot };
-  } catch {
-    return { kind: 'unreadable' };
   }
 }
 
@@ -2353,6 +2345,7 @@ export namespace Services {
       'resolveCreate',
       'resolveUpdate',
       'resolveImmutable',
+      'describeStage',
       'validateResolvedArtifact',
       'persistSaveUsageReference',
       'materializeIntegrationPins',
@@ -2361,7 +2354,7 @@ export namespace Services {
     ];
     protected override logHeader = 'RecordSchemaService::';
     private readonly dependencies: RecordSchemaServiceDependencies;
-    private validatorCache: RecordSchemaValidatorCache | undefined;
+    private readonly validatorCache = new Map<string, CompiledRecordJsonSchemaArtifact>();
     private validatorCacheMaximum: number | undefined;
 
     public constructor(overrides: Partial<RecordSchemaServiceDependencies> = {}) {
@@ -2398,12 +2391,30 @@ export namespace Services {
       }
     }
 
-    private cacheFor(maximum: number): RecordSchemaValidatorCache {
-      if (!this.validatorCache || this.validatorCacheMaximum !== maximum) {
-        this.validatorCache = new RecordSchemaValidatorCache(maximum);
+    private cachedValidator(digest: string, maximum: number): CompiledRecordJsonSchemaArtifact | undefined {
+      if (this.validatorCacheMaximum !== maximum) {
+        this.validatorCache.clear();
         this.validatorCacheMaximum = maximum;
       }
-      return this.validatorCache;
+      const cached = this.validatorCache.get(digest);
+      if (cached) {
+        this.validatorCache.delete(digest);
+        this.validatorCache.set(digest, cached);
+      }
+      return cached;
+    }
+
+    private cacheValidator(artifact: CompiledRecordJsonSchemaArtifact, maximum: number): void {
+      if (this.validatorCacheMaximum !== maximum) {
+        this.validatorCache.clear();
+        this.validatorCacheMaximum = maximum;
+      }
+      this.validatorCache.delete(artifact.digest);
+      this.validatorCache.set(artifact.digest, artifact);
+      if (this.validatorCache.size > maximum) {
+        const oldest = this.validatorCache.keys().next();
+        if (!oldest.done) this.validatorCache.delete(oldest.value);
+      }
     }
 
     private observeResolver<T extends { readonly kind: string }>(schemaKind: RecordSchemaTelemetryKind, result: T): T {
@@ -2472,7 +2483,7 @@ export namespace Services {
         return this.contextFailure('unavailable');
       }
 
-      let authorized = isInternalRecordSchemaCreateAuthorizationCapability(request.internalAuthorizationCapability);
+      let authorized = isInternalRecordSchemaAuthorizationCapability(request.internalAuthorizationCapability);
       if (!authorized) {
         try {
           authorized = await this.dependencies.authorizeCreate(internalContext, request.caller);
@@ -2493,37 +2504,56 @@ export namespace Services {
       if (pipeline.kind !== 'resolved' && pipeline.kind !== 'partial') {
         return pipeline;
       }
-      const resolutionBase = {
-        document: pipeline.document,
-        digest: pipeline.digest,
-        grant: pipeline.grant,
-      } as const;
-      if (pipeline.kind === 'partial') {
-        return Object.freeze({
-          kind: 'partial',
-          ...resolutionBase,
-          metadata: Object.freeze({
-            schemaKind: 'create',
-            contractFormat: pipeline.contractFormat,
-            completeness: 'partial',
-            byteLength: pipeline.byteLength,
-            etag: pipeline.etag,
-            context: context.publicContext,
-          }),
-        });
+      return resolvedPipelineResult(pipeline, 'create', context);
+    }
+
+    /**
+     * Read-only description of the metadata a record of `recordType` has at
+     * `targetStep`, as seen by `caller`. Used as an authoring aid (for example
+     * dashboard field pickers). Unlike {@link resolveCreate} it does not persist
+     * an artifact or grant, and it does not require public schema resolution
+     * to be enabled; it only needs a valid schema configuration.
+     */
+    public async describeStage(request: DescribeRecordStageSchemaRequest): Promise<DescribeRecordStageSchemaResult> {
+      const config = this.resolveRuntimeConfig();
+      if (!config) {
+        return { kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID };
       }
-      return Object.freeze({
-        kind: 'resolved',
-        ...resolutionBase,
-        metadata: Object.freeze({
-          schemaKind: 'create',
-          contractFormat: pipeline.contractFormat,
-          completeness: 'complete',
-          byteLength: pipeline.byteLength,
-          etag: pipeline.etag,
-          context: context.publicContext,
-        }),
-      });
+      let internalContext: RecordContractCreateContext;
+      try {
+        const resolvedContext = await this.dependencies.resolveContractContext({
+          kind: 'create',
+          brand: request.brand,
+          portal: request.portal,
+          recordType: request.recordType,
+          targetStep: request.targetStep,
+          actor: callerActor(request.caller),
+        });
+        if (!isCreateContractContext(resolvedContext)) {
+          return { kind: 'unavailable', code: 'not-resolvable' };
+        }
+        internalContext = resolvedContext;
+      } catch (error) {
+        if (error instanceof RecordContractContextResolutionError) {
+          return { kind: 'unavailable', code: error.failureKind };
+        }
+        this.logUnexpected('resolve-create-context', error);
+        return { kind: 'unavailable', code: 'unavailable' };
+      }
+      try {
+        if (!(await this.dependencies.authorizeCreate(internalContext, request.caller))) {
+          return { kind: 'unavailable', code: 'forbidden' };
+        }
+      } catch (error) {
+        this.logUnexpected('resolve-create-authorization', error);
+        return { kind: 'unavailable', code: 'unavailable' };
+      }
+      const context = createContextWithPublicBrand(internalContext, publicBranding(request));
+      const compilation = await this.compileContext(config, context);
+      if (compilation.kind !== 'resolved' && compilation.kind !== 'partial') {
+        return { kind: 'unavailable', code: 'code' in compilation ? String(compilation.code) : compilation.kind };
+      }
+      return { kind: compilation.kind, completeness: compilation.completeness, document: compilation.document };
     }
 
     /** Resolve, authorize, compile, persist, and grant one caller-effective update-delta schema. */
@@ -2583,7 +2613,7 @@ export namespace Services {
         return this.contextFailure('unavailable');
       }
 
-      let authorized = isInternalRecordSchemaUpdateAuthorizationCapability(request.internalAuthorizationCapability);
+      let authorized = isInternalRecordSchemaAuthorizationCapability(request.internalAuthorizationCapability);
       if (!authorized) {
         try {
           authorized = await this.dependencies.authorizeUpdate(internalContext, request.caller);
@@ -2634,37 +2664,7 @@ export namespace Services {
       if (pipeline.kind !== 'resolved' && pipeline.kind !== 'partial') {
         return pipeline;
       }
-      const resolutionBase = {
-        document: pipeline.document,
-        digest: pipeline.digest,
-        grant: pipeline.grant,
-      } as const;
-      if (pipeline.kind === 'partial') {
-        return Object.freeze({
-          kind: 'partial',
-          ...resolutionBase,
-          metadata: Object.freeze({
-            schemaKind: 'update',
-            contractFormat: pipeline.contractFormat,
-            completeness: 'partial',
-            byteLength: pipeline.byteLength,
-            etag: pipeline.etag,
-            context: context.publicContext,
-          }),
-        });
-      }
-      return Object.freeze({
-        kind: 'resolved',
-        ...resolutionBase,
-        metadata: Object.freeze({
-          schemaKind: 'update',
-          contractFormat: pipeline.contractFormat,
-          completeness: 'complete',
-          byteLength: pipeline.byteLength,
-          etag: pipeline.etag,
-          context: context.publicContext,
-        }),
-      });
+      return resolvedPipelineResult(pipeline, 'update', context);
     }
 
     /** Retrieve one immutable artifact only after current equivalent authorization succeeds. */
@@ -2846,8 +2846,7 @@ export namespace Services {
         return Object.freeze({ kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
       }
 
-      const cache = this.cacheFor(config.cacheMaxEntries);
-      let cached = cache.get(parsed.digest);
+      let cached = this.cachedValidator(parsed.digest, config.cacheMaxEntries);
       recordCounter(recordSchemaCacheResults, {
         schema_kind: parsed.schemaKind,
         result: cached ? 'hit' : 'miss',
@@ -2859,8 +2858,8 @@ export namespace Services {
             maxDocumentBytes: config.limits.maxDocumentBytes,
             maxValidationErrors: config.limits.maxDiagnostics,
           });
-          cache.set(artifact);
-          cached = cache.get(parsed.digest);
+          this.cacheValidator(artifact, config.cacheMaxEntries);
+          cached = artifact;
           recordDuration(this.clock() - startedAt, {
             schema_kind: parsed.schemaKind,
             phase: 'validation',
@@ -3048,22 +3047,6 @@ export namespace Services {
           code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
         });
       }
-      const configSnapshot = snapshotRecordSchemaConfig(rawConfig);
-      if (configSnapshot.kind === 'pin-limit') {
-        return Object.freeze({
-          kind: 'limit-exceeded',
-          code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
-          maximum: MAX_RECORD_SCHEMA_INTEGRATION_PINS,
-        });
-      }
-      if (configSnapshot.kind === 'unreadable') {
-        return Object.freeze({
-          kind: 'unavailable',
-          stage: 'configuration',
-          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
-        });
-      }
-      rawConfig = configSnapshot.value;
       let validation: ReturnType<typeof validateRecordSchemaConfig>;
       try {
         validation = validateRecordSchemaConfig(rawConfig);
@@ -3349,7 +3332,6 @@ export namespace Services {
             digest,
             includeExpiredPins: true,
             limit: RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT,
-            offset: 0,
           });
         } catch (error) {
           this.logUnexpected('retention-reference-read', error);
@@ -3376,13 +3358,23 @@ export namespace Services {
         }
         const referenceCount = boundedReferences.values.length;
         if (referenceCount === RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT) {
+          const lastReference = boundedReferences.values[boundedReferences.values.length - 1];
+          const afterReferenceKey = isObjectRecord(lastReference)
+            ? boundedNormalizedText(lastReference, 'referenceKey')
+            : undefined;
+          if (!afterReferenceKey || !RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(afterReferenceKey)) {
+            return Object.freeze({
+              kind: 'invalid-state',
+              code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+            });
+          }
           let overflow: unknown;
           try {
             overflow = await storage.listRecordSchemaReferences({
               digest,
               includeExpiredPins: true,
               limit: 1,
-              offset: RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT,
+              afterReferenceKey,
             });
           } catch (error) {
             this.logUnexpected('retention-reference-overflow-read', error);
@@ -3674,7 +3666,7 @@ export namespace Services {
       }
 
       try {
-        this.cacheFor(config.cacheMaxEntries).set(artifact);
+        this.cacheValidator(artifact, config.cacheMaxEntries);
       } catch (error) {
         this.logUnexpected('cache-populate', error);
       }
@@ -3703,7 +3695,7 @@ export namespace Services {
       const artifactInput: RecordSchemaArtifactInput = Object.freeze({
         digest: artifact.digest,
         document: persistedDocumentValue,
-        contractFormat: config.contractFormat,
+        contractFormat: RECORD_CONTRACT_FORMAT_V1,
         completeness: compileResult.contract.completeness,
         byteLength: artifact.byteLength,
       });
@@ -3712,7 +3704,7 @@ export namespace Services {
         document: artifact.document,
         digest: artifact.digest,
         artifactInput,
-        contractFormat: config.contractFormat,
+        contractFormat: RECORD_CONTRACT_FORMAT_V1,
         byteLength: artifact.byteLength,
         etag: artifact.etag,
       } as const;
@@ -3915,12 +3907,6 @@ export namespace Services {
             findings.push(configuredFormFinding(parsed.name, 'compiler', compiled.code));
             continue;
           }
-          if (Object.keys(compiled.contract.root.properties).length === 0) {
-            outcome = 'compiler-failed';
-            findings.push(configuredFormFinding(parsed.name, 'compiler', RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT));
-            continue;
-          }
-
           let rendered: ReturnType<typeof renderRecordJsonSchema>;
           try {
             rendered = renderRecordJsonSchema(compiled.contract);
@@ -4010,9 +3996,7 @@ export namespace Services {
 
     private resolveRuntimeConfig(): RecordSchemaConfig | undefined {
       try {
-        const snapshot = snapshotRecordSchemaConfig(this.dependencies.getConfig());
-        if (snapshot.kind !== 'snapshot') return undefined;
-        const validation = validateRecordSchemaConfig(snapshot.value);
+        const validation = validateRecordSchemaConfig(this.dependencies.getConfig());
         return validation.valid ? validation.config : undefined;
       } catch (error) {
         this.logUnexpected('runtime-configuration', error);
@@ -4046,17 +4030,13 @@ export namespace Services {
         configReadFailed = true;
       }
 
-      const snapshot = configReadFailed ? undefined : snapshotRecordSchemaConfig(config);
-      const findings: RecordSchemaLifecycleFinding[] =
-        !snapshot || snapshot.kind === 'unreadable'
-          ? [unreadableConfigurationFinding()]
-          : snapshot.kind === 'pin-limit'
-            ? [pinFinding('recordSchema.integrationPins', 'maximum-items')]
-            : configuredFindings(snapshot.value);
+      const findings: RecordSchemaLifecycleFinding[] = configReadFailed
+        ? [unreadableConfigurationFinding()]
+        : configuredFindings(config);
       let validatedConfig: RecordSchemaConfig | undefined;
-      if (snapshot?.kind === 'snapshot') {
+      if (!configReadFailed) {
         try {
-          const validation = validateRecordSchemaConfig(snapshot.value);
+          const validation = validateRecordSchemaConfig(config);
           if (validation.valid) validatedConfig = validation.config;
         } catch (error) {
           this.logUnexpected('startup-configuration', error);

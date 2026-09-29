@@ -5,12 +5,13 @@
   "keywords": [],
   "dependencies": {
     "@fortawesome/fontawesome-free": "6.7.2",
+    "@nodable/entities": "3.0.0",
     "@researchdatabox/raido-openapi-generated-node": "file:packages/raido",
     "@researchdatabox/redbox-core": "./packages/redbox-core",
     "@researchdatabox/sails-hook-redbox-storage-mongo": "file:packages/sails-hook-redbox-storage-mongo",
     "@researchdatabox/sails-ng-common": "./packages/sails-ng-common",
     "@tsconfig/node24": "24.0.4",
-    "@uppy/companion": "6.2.2",
+    "@uppy/companion": "7.0.2",
     "bootstrap": "5.3.8",
     "compression": "1.8.1",
     "connect-mongo": "6.0.0",
@@ -36,8 +37,7 @@
     "sails-mongo": "2.1.2",
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
-    "typescript-require": "0.3.0",
-    "zone.js": "0.16.2"
+    "typescript-require": "0.3.0"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -88,14 +88,15 @@
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng": "npm run compile:ng-apps",
     "compile:core": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
-    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:sails",
-    "compile:all": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:sails && npm run compile:ng && npm run webpack",
+    "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails",
+    "compile:all": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails && npm run compile:ng && npm run webpack",
     "compile:core:prod": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:clean && npm run compile && cd ../../",
     "compile:raido": "cd ./packages/raido && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:rva": "cd ./packages/rva-registry && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:storage-mongo": "cd ./packages/sails-hook-redbox-storage-mongo && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:dev-hook": "cd ./packages/redbox-hook-dev && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
+    "compile:pdfgen-hook": "cd ./packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps && npm run compile && cd ../../",
     "compile:dev-tools": "cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
@@ -116,7 +117,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
-    "axios": "1.19.0",
+    "axios": "1.20.0",
     "@aws-sdk/xml-builder": "3.972.16",
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
@@ -213,7 +214,7 @@
     "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.1",
+    "@playwright/test": "1.63.0",
     "@types/chai": "5.2.3",
     "@types/jquery": "4.0.1",
     "@types/lodash-es": "4.17.12",
@@ -228,11 +229,11 @@
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
     "oxlint": "1.63.0",
-    "oxlint-tsgolint": "7.0.2001",
+    "oxlint-tsgolint": "7.0.2002",
     "pino-test": "2.0.0",
     "prettier": "3.8.3",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
-    "redoc": "2.5.3",
+    "redoc": "2.5.4",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",
     "serialize-javascript": "7.0.5",

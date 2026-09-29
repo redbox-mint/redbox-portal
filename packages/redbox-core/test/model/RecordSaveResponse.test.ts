@@ -55,6 +55,32 @@ describe('RecordSaveResponse', function () {
       expect(result.oid).to.equal('oid-1');
     });
 
+    it('keeps pre-save and post-save advisories on a complete save', function () {
+      const saveTracker = tracker();
+      saveTracker.recordWarning({ kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'suggestion' }] });
+      saveTracker.confirmPrimaryPersistence('oid-1');
+      saveTracker.recordWarning({ kind: 'validation', source: 'advisory', phase: 'post-save', issues: [{ message: 'another suggestion' }] });
+      const result = saveTracker.toResponse();
+      expect(result.outcome).to.equal('saved');
+      expect(result.isComplete()).to.be.true;
+      expect(result.problems.map(problem => problem.source)).to.deep.equal(['advisory', 'advisory']);
+    });
+
+    it('keeps schema warnings visible while allowing a complete save', function () {
+      const saveTracker = tracker();
+      saveTracker.recordWarning({ kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'type mismatch' }] });
+      saveTracker.recordWarning({ kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'suggestion' }] });
+      saveTracker.confirmPrimaryPersistence('oid-1');
+      const result = saveTracker.toResponse();
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.isComplete()).to.be.true;
+      expect(result.problems[0].issues[0].message).to.equal('type mismatch');
+      expect(result.problems[1].source).to.equal('advisory');
+
+      saveTracker.recordPostPersistenceProblem(recordSaveProblem('processing', 'post-save', 'hook failed'));
+      expect(saveTracker.toResponse().isComplete()).to.be.false;
+    });
+
     it('downgrades a complete save to a warning when a later phase fails', function () {
       const saveTracker = tracker();
       saveTracker.confirmPrimaryPersistence('oid-1');

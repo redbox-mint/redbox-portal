@@ -53,8 +53,8 @@ export const routes: RoutesConfig = {
     locals: { view: 'record/search', pageTitleKey: 'record-search-heading' },
   },
   '/:branding/:portal/record/view-orig/:oid': {
-    controller: 'RenderViewController',
-    action: 'render',
+    controller: 'RecordController',
+    action: 'view',
     locals: { view: 'record/view-orig' },
   },
 
@@ -86,6 +86,15 @@ export const routes: RoutesConfig = {
     action: 'renderFavicon',
   },
 
+  // Public Brand Typeface delivery (portal-independent, sessionless, immutable).
+  // skipAssets must be false: Sails skips asset-extension URLs by default and
+  // .woff2 would otherwise never reach the action (cf. the preview .css routes).
+  'get /fonts/branding/:branding/:sha256.woff2': {
+    controller: 'BrandingController',
+    action: 'renderFont',
+    skipAssets: false,
+  },
+
   // Admin routes
   '/:branding/:portal/admin': {
     controller: 'RenderViewController',
@@ -105,6 +114,17 @@ export const routes: RoutesConfig = {
     controller: 'DashboardConfigController',
     action: 'editor',
   },
+  // Session routes for the dashboard configuration editor (CSRF protected).
+  'get /:branding/:portal/admin/dashboard-config/targets': { controller: 'DashboardConfigController', action: 'listTargets' },
+  'get /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage': { controller: 'DashboardConfigController', action: 'getWorkflowTarget' },
+  'put /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage': { controller: 'DashboardConfigController', action: 'saveWorkflowTarget' },
+  'get /:branding/:portal/admin/dashboard-config/views/:view/:step': { controller: 'DashboardConfigController', action: 'getViewTarget' },
+  'put /:branding/:portal/admin/dashboard-config/views/:view/:step': { controller: 'DashboardConfigController', action: 'saveViewTarget' },
+  'post /:branding/:portal/admin/dashboard-config/validate': { controller: 'DashboardConfigController', action: 'validateSettings' },
+  'post /:branding/:portal/admin/dashboard-config/copy/preview': { controller: 'DashboardConfigController', action: 'previewCopy' },
+  'post /:branding/:portal/admin/dashboard-config/copy/apply': { controller: 'DashboardConfigController', action: 'applyCopy' },
+  'get /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields': { controller: 'DashboardConfigController', action: 'getWorkflowFields' },
+  'get /:branding/:portal/admin/dashboard-config/views/:view/:step/fields': { controller: 'DashboardConfigController', action: 'getViewFields' },
   '/:branding/:portal/admin/roles': {
     controller: 'AdminController',
     action: 'rolesIndex',
@@ -203,8 +223,34 @@ export const routes: RoutesConfig = {
   // App Branding routes
   'get /:branding/:portal/app/branding/config': { controller: 'BrandingAppController', action: 'config' },
   'post /:branding/:portal/app/branding/draft': { controller: 'BrandingAppController', action: 'draft' },
+  'put /:branding/:portal/app/branding/draft/typeface/faces/:slot': {
+    controller: 'BrandingAppController',
+    action: 'uploadFace',
+  },
+  'delete /:branding/:portal/app/branding/draft/typeface/faces/:slot': {
+    controller: 'BrandingAppController',
+    action: 'deleteFace',
+  },
+  'post /:branding/:portal/app/branding/draft/typeface/use-default': {
+    controller: 'BrandingAppController',
+    action: 'useDefault',
+  },
+  'post /:branding/:portal/app/branding/draft/typeface/revert': {
+    controller: 'BrandingAppController',
+    action: 'revert',
+  },
   'post /:branding/:portal/app/branding/preview': { controller: 'BrandingAppController', action: 'preview' },
+  'get /:branding/:portal/app/branding/versions': { controller: 'BrandingAppController', action: 'versions' },
+  'post /:branding/:portal/app/branding/versions/:versionId/preview': {
+    controller: 'BrandingAppController',
+    action: 'versionPreview',
+  },
   'post /:branding/:portal/app/branding/publish': { controller: 'BrandingAppController', action: 'publish' },
+  'post /:branding/:portal/app/branding/restore/:versionId': { controller: 'BrandingAppController', action: 'restore' },
+  'post /:branding/:portal/app/branding/rollback/:versionId': {
+    controller: 'BrandingAppController',
+    action: 'rollback',
+  },
   'post /:branding/:portal/app/branding/logo': { controller: 'BrandingAppController', action: 'logo' },
   'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 
@@ -228,18 +274,13 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/record/metadata/:oid': 'RecordController.getMeta',
   'get /:branding/:portal/record/form/:name': 'RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',
-  'post /:branding/:portal/generation/launch': 'GenerationController.launch',
-  'get /:branding/:portal/generation/runs/:id': 'GenerationController.getRun',
-  'post /:branding/:portal/generation/runs/:id/execute': 'GenerationController.execute',
-  'post /:branding/:portal/generation/runs/:id/cancel': 'GenerationController.cancel',
-  'post /:branding/:portal/generation/runs/:id/commit': 'GenerationController.commit',
-  'get /:branding/:portal/record/:oid/generation-provenance': 'GenerationController.getProvenance',
-  'post /:branding/:portal/generation/provenance/:id/review': 'GenerationController.reviewProvenance',
   'get /:branding/:portal/record/search/:type': 'RecordController.search',
   'get /:branding/:portal/record/type': 'RecordController.getAllTypes',
   'get /:branding/:portal/dashboard/type/:dashboardType': 'RecordController.getDashboardType',
   'get /:branding/:portal/dashboard/type': 'RecordController.getAllDashboardTypes',
   'get /:branding/:portal/dashboard/view/:dashboardView': 'RecordController.getDashboardView',
+  'get /:branding/:portal/dashboard/settings/workflow/:recordType': 'RecordController.getDashboardWorkflowSettings',
+  'get /:branding/:portal/dashboard/settings/view/:dashboardView': 'RecordController.getDashboardViewSettings',
   'get /:branding/:portal/record/type/:recordType': 'RecordController.getType',
   'get /:branding/:portal/record/:recordType/edit': 'RecordController.edit',
   'get /:branding/:portal/record/edit/:oid': 'RecordController.edit',

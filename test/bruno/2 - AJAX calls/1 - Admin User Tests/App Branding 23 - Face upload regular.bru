@@ -1,0 +1,40 @@
+meta {
+  name: App Face upload regular
+  type: http
+  seq: 55
+}
+
+put {
+  url: {{host}}/default/rdmp/app/branding/draft/typeface/faces/regular
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json, text/plain, */*
+}
+
+body:multipart-form {
+  face: @file(test-font-regular.woff2)
+  expectedDraftRevision: {{app_revision}}
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function(){
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Regular face stored with hash", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    var sha = body.draft.typeface.faces.regular.sha256;
+    expect(sha).to.match(/^[0-9a-f]{64}$/);
+    bru.setVar('app_face_sha', sha);
+    bru.setVar('app_revision', body.draft.revision);
+  });
+}

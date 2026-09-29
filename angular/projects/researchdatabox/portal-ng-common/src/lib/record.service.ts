@@ -42,7 +42,7 @@ import {
   isString as _isString,
   isNumber as _isNumber,
 } from 'lodash-es';
-import { RecordResponseTable } from './dashboard-models';
+import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
 import {
   emptyRecordSaveCompletion,
   isRecordConcurrencyProblemCode,
@@ -50,10 +50,11 @@ import {
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
+  isRecordSaveComplete,
   isRecordSaveOutcome,
   isRecordSaveProblemKind,
   isRecordSaveRequestId,
-  RECORD_ENTITY_TAG_PATTERN,
+  recordEntityTagRevision,
   RecordAttachment,
   RecordConcurrentModificationConfig,
   RecordConcurrencyMetadata,
@@ -110,32 +111,22 @@ const recordSaveLifecyclePhases: ReadonlySet<RecordSaveLifecyclePhase> = new Set
   'transport',
 ]);
 
-const saveRequestIdByteLength = 16;
-
-function recordEntityTagRevision(value: unknown): number | undefined {
-  if (!isRecordEntityTag(value)) return undefined;
-  const match = RECORD_ENTITY_TAG_PATTERN.exec(value);
-  const revision = match ? Number(match[1]) : undefined;
-  return isRecordRevision(revision) ? revision : undefined;
-}
-
 function createSaveRequestId(): string {
-  const cryptoApi = globalThis.crypto;
-  if (typeof cryptoApi?.randomUUID === 'function') {
-    return cryptoApi.randomUUID();
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
   }
-
-  if (typeof cryptoApi?.getRandomValues !== 'function') {
-    throw new Error('Web Crypto API is unavailable; cannot create a save request ID.');
+  // crypto.randomUUID() may be unavailable when the portal is served over HTTP
+  // because it requires a secure context. getRandomValues() is still suitable
+  // for generating a cryptographically random UUID in that environment.
+  if (!globalThis.crypto?.getRandomValues) {
+    throw new Error('Unable to generate save request id: crypto.randomUUID() is unavailable');
   }
-
-  const bytes = cryptoApi.getRandomValues(new Uint8Array(saveRequestIdByteLength));
-  // RFC 4122 version 4 UUID: set the version and variant bits explicitly.
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-
-  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, character =>
+    (
+      Number(character) ^
+      (globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(character) / 4)))
+    ).toString(16)
+  );
 }
 
 export interface RecordTypeConf {
@@ -225,7 +216,6 @@ export interface DashboardViewStepDefinitionResponse {
   sourceRecordType: string;
   sourceWorkflowStage?: string;
   fetchMode: 'allForRecordType' | 'workflowStage';
-  dashboardTable: Record<string, unknown>;
   baseRecordType?: string;
 }
 
@@ -797,6 +787,19 @@ export class RecordService extends HttpClientService {
     return (_get(result, 'data') ?? result) as DashboardViewDefinitionResponse;
   }
 
+  /**
+   * Independent dashboard settings for all stages of a record type (kind
+   * `workflow`) or all steps of a dashboard view (kind `view`), from one saved
+   * revision.
+   */
+  public async getDashboardSettings(kind: 'workflow' | 'view', owner: string): Promise<DashboardRuntimeSettings> {
+    const url = `${this.brandingAndPortalUrl}/dashboard/settings/${kind}/${encodeURIComponent(owner)}`;
+    const requestOptions = this.getHttpOptions();
+    const result$ = this.http.get<Record<string, unknown>>(url, { context: requestOptions?.context, observe: 'body', responseType: 'json' });
+    const result = await firstValueFrom(result$);
+    return (_get(result, 'data') ?? result) as DashboardRuntimeSettings;
+  }
+
   public async getAllDashboardTypes() {
     let url = `${this.brandingAndPortalUrl}/dashboard/type`;
     const result$ = this.http.get(url).pipe(map(res => res));
@@ -1024,7 +1027,7 @@ export class RecordActionResult implements RecordSaveResult {
   }
 
   public isComplete(): boolean {
-    return this.outcome === 'saved';
+    return isRecordSaveComplete(this);
   }
 
   public isSuccessful(): boolean {
@@ -1101,8 +1104,20 @@ export class RecordActionResult implements RecordSaveResult {
       result.metadata = meta.outcome === 'unknown' ? null : RecordActionResult.safeProjectedMetadata(meta.metadata);
       result.concurrency = meta.outcome === 'unknown' ? undefined : concurrency;
       result.concurrencyOutcome = concurrencyOutcome;
-      if (meta.completion && typeof meta.completion === 'object') {
-        result.completion = meta.completion as RecordSaveResult['completion'];
+      if (meta.completion !== undefined) {
+        const completion = RecordActionResult.plainRecord(meta.completion);
+        const attachments = RecordActionResult.plainRecord(completion?.['attachments']);
+        const attachmentStatus = attachments?.['status'];
+        const items = attachments?.['items'];
+        result.completion = {
+          attachments: (
+            (attachmentStatus === 'not-required' || attachmentStatus === 'completed' ||
+              attachmentStatus === 'incomplete' || attachmentStatus === 'unknown') &&
+            Array.isArray(items)
+          )
+            ? { status: attachmentStatus, items: items as RecordSaveResult['completion']['attachments']['items'] }
+            : { status: 'unknown', items: [] },
+        };
       }
       return result;
     }
@@ -1266,6 +1281,14 @@ export class RecordActionResult implements RecordSaveResult {
             issues,
           }
         : null;
+    }
+
+    if (
+      problem['source'] === 'advisory' &&
+      problem['kind'] === 'validation' &&
+      (problem['phase'] === 'pre-save' || problem['phase'] === 'post-save')
+    ) {
+      return { kind: 'validation', source: 'advisory', phase: problem['phase'], issues };
     }
 
     if (

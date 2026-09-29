@@ -7,10 +7,8 @@ import {
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type {
   RecordValidationCandidate,
-  RecordValidationMetricsHooks,
   RecordValidationRequest,
   RecordValidationResult,
-  RecordValidationResolutionMetric,
   RecordValidationServiceDependencies,
 } from '../../src/services/RecordValidationService';
 
@@ -69,8 +67,6 @@ export interface RecordValidationFixtureOptions {
 export interface RecordValidationFixture {
   request: RecordValidationRequest;
   dependencies: RecordValidationServiceDependencies;
-  metrics: RecordValidationMetricsHooks;
-  metricEvents: RecordValidationResolutionMetric[];
   calls: {
     records: string[];
     recordTypes: Array<{ brand: string; recordType: string }>;
@@ -130,7 +126,6 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
     constructions: 0,
     validatorGroups: [] as string[][],
   };
-  const metricEvents: RecordValidationResolutionMetric[] = [];
   const recordType =
     options.recordType === undefined
       ? { id: 'record-type-1', name: 'dataset', recordValidation: { mode: options.mode } }
@@ -210,12 +205,6 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
       requestId: 'request-1',
     },
     dependencies,
-    metrics: {
-      resolutionCompleted: metric => {
-        metricEvents.push(metric);
-      },
-    },
-    metricEvents,
     calls,
   };
 }

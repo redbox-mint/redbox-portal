@@ -89,13 +89,6 @@ export type RecordSchemaReferenceModel = RecordSchemaReferenceInput & {
   readonly updatedAt: Date;
 };
 
-export interface RecordSchemaGrantQuery {
-  readonly digest: string;
-  readonly brand: string;
-  readonly portal: string;
-  readonly limit: number;
-}
-
 /**
  * Indexed immutable-authorization cursor lookup. Storage returns the next
  * grant after the exclusive cursor, or null at conclusive exhaustion. Create
@@ -130,7 +123,6 @@ export interface RecordSchemaReferenceQuery {
   readonly limit: number;
   /** Exclusive stable cursor for bounded scans ordered by the globally unique reference key. */
   readonly afterReferenceKey?: string;
-  readonly offset?: number;
 }
 
 export type RecordSchemaRetentionReason = 'minimum-age' | 'grant-reference' | 'save-reference' | 'active-pin';
@@ -145,18 +137,3 @@ export interface RecordSchemaRetentionReportEntry {
   readonly reasons: readonly RecordSchemaRetentionReason[];
   readonly eligibleForDeletion: boolean;
 }
-
-export interface RecordSchemaDeleteRequest {
-  readonly digest: string;
-  readonly now: Date;
-  readonly minimumAgeDays: number;
-}
-
-export type RecordSchemaDeleteResult =
-  | { readonly kind: 'deleted'; readonly digest: string }
-  | { readonly kind: 'not-found'; readonly digest: string }
-  | {
-      readonly kind: 'retained';
-      readonly digest: string;
-      readonly reasons: readonly RecordSchemaRetentionReason[];
-    };

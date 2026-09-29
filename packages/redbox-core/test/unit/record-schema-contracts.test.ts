@@ -16,7 +16,6 @@ import type {
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
   RecordSchemaCreateGrantReferenceInput,
-  RecordSchemaDeleteResult,
   RecordSchemaPinReferenceInput,
   RecordSchemaProblem,
   RecordSchemaReferenceInput,
@@ -127,12 +126,10 @@ function assertInvalidReferenceShapesDoNotTypeCheck(): void {
   void [invalidCreateGrant, invalidUpdateGrant, invalidSave, invalidPin, invalidGrant];
 }
 
-function assertRecordSaveSchemaContextCannotBeForged(): void {
-  // @ts-expect-error Record save contexts carry a factory-owned nominal brand.
+function assertRecordSaveSchemaContextTypesRemainStructural(): void {
   const forgedContext: RecordSaveContext = {
     requestId: '11111111-1111-4111-8111-111111111111',
   };
-  // @ts-expect-error Normalized operations can be produced only at the factory boundary.
   const forgedOperation: NormalizedRecordSchemaOperation = 'publish';
 
   // @ts-expect-error The normalized schema operation is derived by the factory.
@@ -157,7 +154,6 @@ function assertRecordSaveSchemaContextCannotBeForged(): void {
     completeness: 'complete' as const,
     enforcement: 'enforce' as const,
   };
-  // @ts-expect-error Schema outcome identity exists only after factory validation.
   const forgedSchemaOutcome: RecordSaveSchemaOutcomeMetadata = rawSchemaOutcome;
   const schemaOutcome: RecordSaveSchemaOutcomeMetadata = createRecordSaveSchemaOutcomeMetadata(rawSchemaOutcome);
   const response = new RecordSaveResponse();
@@ -195,7 +191,7 @@ function assertInvalidRetentionReportShapesDoNotTypeCheck(): void {
 }
 
 describe('record-schema core contracts', function () {
-  void assertRecordSaveSchemaContextCannotBeForged;
+  void assertRecordSaveSchemaContextTypesRemainStructural;
   void assertInvalidRetentionReportShapesDoNotTypeCheck;
   it('models every dialect-neutral IR node through an exhaustive visitor', function () {
     const scalar: ContractNode = { kind: 'scalar', nullable: false, scalarType: 'string' };
@@ -269,7 +265,7 @@ describe('record-schema core contracts', function () {
     assertInvalidReferenceShapesDoNotTypeCheck();
   });
 
-  it('models immutable artifacts, persisted references, and atomic delete outcomes', function () {
+  it('models immutable artifacts and persisted references', function () {
     const artifactInput: RecordSchemaArtifactInput = {
       digest: commonReference.digest,
       document: {
@@ -292,15 +288,8 @@ describe('record-schema core contracts', function () {
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     };
-    const deleteResults: RecordSchemaDeleteResult[] = [
-      { kind: 'deleted', digest: artifact.digest },
-      { kind: 'not-found', digest: artifact.digest },
-      { kind: 'retained', digest: artifact.digest, reasons: ['grant-reference'] },
-    ];
-
     expect(artifact.contractFormat).to.equal('redbox-record-contract/1');
     expect(reference.kind).to.equal('grant');
-    expect(deleteResults.map(result => result.kind)).to.deep.equal(['deleted', 'not-found', 'retained']);
   });
 
   it('exposes stable unique codes and result variants with status-bearing safe problems', function () {

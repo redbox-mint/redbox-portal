@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
 import { isRecordContractPointer, joinRecordContractPointer, recordContractPointer } from './json-pointer';
 import type { RecordContractPointer } from './types';
@@ -6,12 +7,7 @@ const MAX_PUBLIC_POINTER_LENGTH = 2_048;
 const MAX_PUBLIC_POINTER_TOKEN_LENGTH = 256;
 const MAX_KEYWORD_LENGTH = 64;
 
-interface StructuralValidationErrorSnapshot {
-  readonly instancePath?: unknown;
-  readonly schemaPath?: unknown;
-  readonly keyword?: unknown;
-  readonly params?: unknown;
-}
+type AjvValidationError = Omit<ErrorObject, 'schemaPath'> & { readonly schemaPath?: string };
 
 export type RecordSchemaExpectedJsonType = 'array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string';
 
@@ -70,50 +66,13 @@ function assertMaxDiagnostics(maxDiagnostics: number): void {
   }
 }
 
-function ownDataProperty(value: unknown, property: string): unknown {
-  if ((typeof value !== 'object' && typeof value !== 'function') || value === null) {
-    return undefined;
-  }
-  try {
-    const descriptor = Object.getOwnPropertyDescriptor(value, property);
-    return descriptor && 'value' in descriptor ? descriptor.value : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function safeErrorArrayLength(errors: unknown): number {
-  try {
-    if (!Array.isArray(errors)) {
-      return 0;
-    }
-    const length = ownDataProperty(errors, 'length');
-    return typeof length === 'number' && Number.isSafeInteger(length) && length >= 0 ? length : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function safeArrayEntry(errors: unknown, index: number): unknown {
-  return ownDataProperty(errors, String(index));
-}
-
-function snapshotStructuralValidationError(value: unknown): StructuralValidationErrorSnapshot {
-  return Object.freeze({
-    instancePath: ownDataProperty(value, 'instancePath'),
-    schemaPath: ownDataProperty(value, 'schemaPath'),
-    keyword: ownDataProperty(value, 'keyword'),
-    params: ownDataProperty(value, 'params'),
-  });
-}
-
-function safeKeyword(error: StructuralValidationErrorSnapshot): string | undefined {
-  const keyword = ownDataProperty(error, 'keyword');
+function safeKeyword(error: AjvValidationError): string | undefined {
+  const keyword = error.keyword;
   return typeof keyword === 'string' && keyword.length <= MAX_KEYWORD_LENGTH ? keyword : undefined;
 }
 
-function safeInstancePointer(error: StructuralValidationErrorSnapshot): RecordContractPointer {
-  const instancePath = ownDataProperty(error, 'instancePath');
+function safeInstancePointer(error: AjvValidationError): RecordContractPointer {
+  const instancePath = error.instancePath;
   if (
     typeof instancePath !== 'string' ||
     instancePath.length > MAX_PUBLIC_POINTER_LENGTH ||
@@ -143,13 +102,13 @@ function safePointerToken(value: unknown): string | undefined {
     : undefined;
 }
 
-function safeParameter(error: StructuralValidationErrorSnapshot, name: string): unknown {
-  return ownDataProperty(ownDataProperty(error, 'params'), name);
+function safeParameter(error: AjvValidationError, name: string): unknown {
+  return error.params[name];
 }
 
 function appendSafeParameterPointer(
   pointer: RecordContractPointer,
-  error: StructuralValidationErrorSnapshot,
+  error: AjvValidationError,
   parameterName: 'additionalProperty' | 'missingProperty' | 'unevaluatedProperty'
 ): RecordContractPointer {
   const token = safePointerToken(safeParameter(error, parameterName));
@@ -164,7 +123,7 @@ function isExpectedJsonType(value: unknown): value is RecordSchemaExpectedJsonTy
   return typeof value === 'string' && EXPECTED_JSON_TYPES.has(value);
 }
 
-function expectedType(error: StructuralValidationErrorSnapshot): RecordSchemaValidationExpectedShape | undefined {
+function expectedType(error: AjvValidationError): RecordSchemaValidationExpectedShape | undefined {
   const type = safeParameter(error, 'type');
   if (!isExpectedJsonType(type)) {
     return undefined;
@@ -172,11 +131,11 @@ function expectedType(error: StructuralValidationErrorSnapshot): RecordSchemaVal
   return Object.freeze({ type });
 }
 
-function isItemsFalseSchemaError(error: StructuralValidationErrorSnapshot, keyword: string | undefined): boolean {
+function isItemsFalseSchemaError(error: AjvValidationError, keyword: string | undefined): boolean {
   if (keyword !== 'false schema') {
     return false;
   }
-  const schemaPath = ownDataProperty(error, 'schemaPath');
+  const schemaPath = error.schemaPath;
   return (
     typeof schemaPath === 'string' &&
     schemaPath.length <= MAX_PUBLIC_POINTER_LENGTH &&
@@ -184,8 +143,7 @@ function isItemsFalseSchemaError(error: StructuralValidationErrorSnapshot, keywo
   );
 }
 
-function mappedProblem(value: unknown): RecordSchemaValidationProblem {
-  const error = snapshotStructuralValidationError(value);
+function mappedProblem(error: AjvValidationError): RecordSchemaValidationProblem {
   const keyword = safeKeyword(error);
   const instancePointer = safeInstancePointer(error);
 
@@ -235,23 +193,18 @@ function mappedProblem(value: unknown): RecordSchemaValidationProblem {
 }
 
 /**
- * Map untrusted AJV-like errors without exposing messages, schema fragments,
- * submitted values, or arbitrary parameter bags. Input order is retained and
- * truncation is applied after exactly maxDiagnostics entries.
+ * Map AJV errors without exposing messages, schema fragments, submitted values,
+ * or arbitrary parameter bags. Input order is retained.
  */
 export function mapAjvErrorsToRecordSchemaProblems(
-  errors: unknown,
+  errors: readonly AjvValidationError[] | null | undefined,
   maxDiagnostics: number
 ): RecordSchemaValidationProblemMappingResult {
   assertMaxDiagnostics(maxDiagnostics);
-  const length = safeErrorArrayLength(errors);
-  const selectedLength = Math.min(length, maxDiagnostics);
-  const problems: RecordSchemaValidationProblem[] = [];
-  for (let index = 0; index < selectedLength; index += 1) {
-    problems.push(mappedProblem(safeArrayEntry(errors, index)));
-  }
+  const source = errors ?? [];
+  const problems = source.slice(0, maxDiagnostics).map(mappedProblem);
   const frozenProblems = Object.freeze(problems);
-  if (length > maxDiagnostics) {
+  if (source.length > maxDiagnostics) {
     return Object.freeze({ problems: frozenProblems, truncated: true });
   }
   return Object.freeze({ problems: frozenProblems, truncated: false });

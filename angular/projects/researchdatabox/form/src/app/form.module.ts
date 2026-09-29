@@ -86,6 +86,10 @@ import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.
 import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
 import { RecordAuditLauncherComponent } from './record-audit/record-audit-launcher.component';
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
+import { FormRuntimeActionsComponent } from './generation/form-runtime-actions.component';
+import { GenerationSidePanelComponent } from './generation/generation-side-panel.component';
+import { GenerationProvenanceBadgeComponent } from './generation/generation-provenance-badge.component';
+import { provideGenerationFeature } from './generation/state/providers';
 
 /**
  * Bootstrap-only form application hosted by the server-rendered edit/view
@@ -93,10 +97,6 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
  * Angular Router configuration; native exits are protected by FormComponent's
  * `beforeunload` listener.
  */
-import { FormRuntimeActionsComponent } from './generation/form-runtime-actions.component';
-import { GenerationSidePanelComponent } from './generation/generation-side-panel.component';
-import { GenerationProvenanceBadgeComponent } from './generation/generation-provenance-badge.component';
-import { provideGenerationFeature } from './generation/state/providers';
 @NgModule({
   declarations: [
     FieldErrorSummaryComponent,

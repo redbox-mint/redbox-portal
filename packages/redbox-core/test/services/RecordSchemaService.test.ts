@@ -37,8 +37,6 @@ import {
   type RecordSchemaAuthorizationGrantQuery,
   type RecordSchemaGrantReferenceInput,
   type RecordSchemaReferenceModel,
-  resetDiscoveredRecordContractContributorRegistry,
-  setDiscoveredRecordContractContributorRegistry,
   StorageServiceResponse,
   UserModel,
 } from '../../src';
@@ -52,10 +50,7 @@ import {
   type RecordSchemaServiceDependencies,
   Services,
 } from '../../src/services/RecordSchemaService';
-import {
-  issueInternalRecordSchemaCreateAuthorizationCapability,
-  issueInternalRecordSchemaUpdateAuthorizationCapability,
-} from '../../src/services/internal-record-schema-authorization';
+import { issueInternalRecordSchemaAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
 import { RecordSchemaService, ServiceExports } from '../../src/services';
 import { Services as RecordsServices } from '../../src/services/RecordsService';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
@@ -530,7 +525,6 @@ function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<Reco
 describe('RecordSchemaService lifecycle checks', function () {
   afterEach(function () {
     sinon.restore();
-    resetDiscoveredRecordContractContributorRegistry();
   });
 
   it('initializes disabled configuration as a no-op for legacy storage', function () {
@@ -623,6 +617,25 @@ describe('RecordSchemaService lifecycle checks', function () {
     expect(buildContractFormConfig.notCalled).to.equal(true);
   });
 
+  it('accepts a configured form whose edit-mode contract is intentionally empty', async function () {
+    const baseForm = simpleForm();
+    const viewOnlyForm = {
+      ...baseForm,
+      componentDefinitions: baseForm.componentDefinitions.map(componentDefinition => ({
+        ...componentDefinition,
+        constraints: { allowModes: ['view'] },
+      })),
+    };
+    const service = lifecycleService({
+      getConfiguredFormCandidates: () => [
+        { name: 'generated-view-only', form: viewOnlyForm, reusableFormDefinitions: {} },
+      ],
+    });
+
+    service.init();
+    await service.bootstrap();
+  });
+
   it('fails awaited startup with a typed safe finding for an invalid configured form candidate', async function () {
     const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
     const storage = { ...completeStorageProvider(), putRecordSchemaReference };
@@ -689,7 +702,7 @@ describe('RecordSchemaService lifecycle checks', function () {
     expect(error.message).to.include('record-schema.artifact-not-found');
   });
 
-  it('uses the configured Sails storage service and discovered contributor state', function () {
+  it('uses the configured Sails storage service with explicit contributor state', function () {
     const restoreSails = ensureTestSails();
     const serviceName = 'recordSchemaLifecycleTestStorage';
     const priorServices = sails.services;
@@ -705,10 +718,14 @@ describe('RecordSchemaService lifecycle checks', function () {
     Reflect.set(sails.config, 'recordSchema', enabledConfig({ integrationPins: [validPin()] }));
     Reflect.set(sails.config, 'storage', { serviceName });
     Reflect.set(serviceRegistry, serviceName, completeStorageProvider());
-    setDiscoveredRecordContractContributorRegistry(coreRegistry());
-
     try {
-      expect(() => new Services.RecordSchema().init()).not.to.throw();
+      expect(() =>
+        new Services.RecordSchema({
+          getContributorRegistry: () => coreRegistry(),
+          getContributorRegistrationIssues: () => [],
+          getContributorComponentTypes: () => Object.keys(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY),
+        }).init()
+      ).not.to.throw();
     } finally {
       hadRecordSchema
         ? Reflect.set(sails.config, 'recordSchema', originalRecordSchema)
@@ -759,19 +776,16 @@ describe('RecordSchemaService lifecycle checks', function () {
     const provider = completeStorageProvider();
     delete provider.putRecordSchemaArtifact;
     delete provider.touchRecordSchemaArtifact;
-    delete provider.deleteRecordSchemaArtifactIfUnreferenced;
     const service = lifecycleService({ getStorageProvider: () => provider });
 
     const error = captureLifecycleError(() => service.init());
 
     expect(error.findings).to.deep.equal(
-      ['putRecordSchemaArtifact', 'touchRecordSchemaArtifact', 'deleteRecordSchemaArtifactIfUnreferenced'].map(
-        method => ({
-          category: 'storage',
-          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
-          method,
-        })
-      )
+      ['putRecordSchemaArtifact', 'touchRecordSchemaArtifact'].map(method => ({
+        category: 'storage',
+        code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        method,
+      }))
     );
   });
 
@@ -1045,7 +1059,7 @@ describe('RecordSchemaService create resolution', function () {
 
     const resolved = await trusted.service.resolveCreate({
       ...request,
-      internalAuthorizationCapability: issueInternalRecordSchemaCreateAuthorizationCapability(),
+      internalAuthorizationCapability: issueInternalRecordSchemaAuthorizationCapability(),
     });
 
     expect(resolved.kind).to.equal('resolved');
@@ -1160,8 +1174,8 @@ describe('RecordSchemaService create resolution', function () {
     }
 
     const expectedDigests = {
-      create: '86864e1a72938e4a6b7c2e834c4dde441d1050da4fa4aafe2ba1ab5c8afd4403',
-      update: 'cb6f59e636553cebad5e122de33084574afda991f37521118482989d46e00325',
+      create: '7fa5419730645f25d10c59c3421bc1a3860c03d78abc1f741f454af0982350cb',
+      update: '8101d831d72278c745971ff87dea16973cfe13b1ba1436a572cea9dcb4ccecbf',
     } as const;
     for (const kind of ['create', 'update'] as const) {
       const first = await compileWithFreshService(kind, 17);
@@ -1312,7 +1326,7 @@ describe('RecordSchemaService create resolution', function () {
     }
     expect(result.metadata.completeness).to.equal('partial');
     expect(result.document['x-redbox-completeness']).to.equal('partial');
-    expect(result.document.properties?.title).to.deep.include({ type: 'string' });
+    expect(result.document.properties?.title).to.deep.include({ type: ['null', 'string'] });
     expect(result.document.properties?.custom_value).to.deep.include({
       'x-redbox-unsupported-component': 'ExampleHookComponent',
     });
@@ -1577,7 +1591,7 @@ describe('RecordSchemaService update resolution', function () {
     const resolved = await trusted.service.resolveUpdate({
       ...request,
       caller: noUserCaller,
-      internalAuthorizationCapability: issueInternalRecordSchemaUpdateAuthorizationCapability(),
+      internalAuthorizationCapability: issueInternalRecordSchemaAuthorizationCapability(),
     });
 
     expect(resolved.kind).to.equal('resolved');
@@ -2178,51 +2192,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     expect(putRecordSchemaReference.notCalled).to.equal(true);
   });
 
-  it('snapshots config before validation so later hostile reads cannot escape typed results', async function () {
-    const liveConfig = () => {
-      const config = enabledConfig({ integrationPins: [] });
-      let reads = 0;
-      return new Proxy(config, {
-        get: (target, property, receiver) => {
-          reads += 1;
-          if (reads > 1) throw new Error('config became hostile');
-          return Reflect.get(target, property, receiver);
-        },
-      });
-    };
-    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
-    const service = new Services.RecordSchema({
-      getConfig: liveConfig,
-      getStorageProvider: () => ({
-        putRecordSchemaReference,
-        getRecordSchemaArtifact: async () => null,
-        listRecordSchemaReferences: async () => [],
-      }),
-    });
-
-    expect(
-      await service.persistSaveUsageReference({
-        digest: DIGEST,
-        brand: 'brand-1',
-        portal: 'portal-1',
-        schemaKind: 'update',
-        recordType: 'dataset',
-        oid: 'oid-1',
-        operation: 'publish',
-        saveIdentity: 'audit-123',
-      })
-    ).to.deep.include({ kind: 'recorded' });
-    expect(await service.materializeIntegrationPins()).to.deep.equal({ kind: 'materialized', pins: [] });
-    expect(
-      await service.reportRetention({
-        mode: 'targeted',
-        digests: [DIGEST],
-        now: new Date('2026-08-24T00:00:00.000Z'),
-      })
-    ).to.deep.include({ kind: 'reported', missingDigests: [DIGEST] });
-  });
-
-  it('returns total typed config outcomes for disabled, invalid, and hostile maintenance config', async function () {
+  it('returns total typed config outcomes for disabled and invalid maintenance config', async function () {
     const putRecordSchemaReference = sinon.stub();
     const reportRequest = {
       mode: 'targeted',
@@ -2235,15 +2205,6 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     });
     const invalid = new Services.RecordSchema({
       getConfig: () => enabledConfig({ cacheMaxEntries: 0 }),
-      getStorageProvider: () => ({ putRecordSchemaReference }),
-    });
-    const hostileConfig = new Proxy(enabledConfig(), {
-      get: () => {
-        throw new Error('hostile config');
-      },
-    });
-    const hostile = new Services.RecordSchema({
-      getConfig: () => hostileConfig,
       getStorageProvider: () => ({ putRecordSchemaReference }),
     });
 
@@ -2260,16 +2221,6 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       stage: 'configuration',
       code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
     });
-    expect(await hostile.materializeIntegrationPins()).to.deep.equal({
-      kind: 'unavailable',
-      stage: 'configuration',
-      code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
-    });
-    expect(await hostile.reportRetention(reportRequest)).to.deep.equal({
-      kind: 'unavailable',
-      stage: 'configuration',
-      code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
-    });
     expect(putRecordSchemaReference.notCalled).to.equal(true);
   });
 
@@ -2277,26 +2228,6 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const putRecordSchemaReference = sinon.stub();
     const integrationPins = Array.from({ length: MAX_RECORD_SCHEMA_INTEGRATION_PINS + 1 }, (_, index) =>
       validPin({ owner: `owner-${index}` })
-    );
-    const service = new Services.RecordSchema({
-      getConfig: () => enabledConfig({ integrationPins }),
-      getStorageProvider: () => ({ putRecordSchemaReference }),
-    });
-
-    expect(await service.materializeIntegrationPins()).to.deep.equal({
-      kind: 'limit-exceeded',
-      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
-      maximum: MAX_RECORD_SCHEMA_INTEGRATION_PINS,
-    });
-    expect(putRecordSchemaReference.notCalled).to.equal(true);
-  });
-
-  it('caps actual configured pin iteration when array length is deceptive', async function () {
-    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
-    const integrationPins = zeroLengthArrayYielding(
-      Array.from({ length: MAX_RECORD_SCHEMA_INTEGRATION_PINS + 1 }, (_, index) =>
-        validPin({ owner: `owner-${index}` })
-      )
     );
     const service = new Services.RecordSchema({
       getConfig: () => enabledConfig({ integrationPins }),
@@ -2506,8 +2437,8 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       digest,
     });
     expect(listRecordSchemaReferences.args.map(args => args[0])).to.deep.equal([
-      { digest, includeExpiredPins: true, limit: 1_000, offset: 0 },
-      { digest, includeExpiredPins: true, limit: 1, offset: 1_000 },
+      { digest, includeExpiredPins: true, limit: 1_000 },
+      { digest, includeExpiredPins: true, limit: 1, afterReferenceKey: 'save' },
     ]);
   });
 
@@ -2769,13 +2700,11 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
         artifacts.filter(artifact => !query.afterDigest || artifact.digest > query.afterDigest).slice(0, query.limit)
       );
     const listRecordSchemaReferences = sinon.stub().resolves([]);
-    const deleteRecordSchemaArtifactIfUnreferenced = sinon.stub();
     const service = new Services.RecordSchema({
       getConfig: () => enabledConfig({ retention: { minimumAgeDays: 30 } }),
       getStorageProvider: () => ({
         listRecordSchemaArtifacts,
         listRecordSchemaReferences,
-        deleteRecordSchemaArtifactIfUnreferenced,
       }),
     });
 
@@ -2806,7 +2735,6 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       { afterDigest: digests[1], limit: 3 },
     ]);
     expect(JSON.stringify([first, second])).not.to.include('private-schema');
-    expect(deleteRecordSchemaArtifactIfUnreferenced.notCalled).to.equal(true);
 
     expect(
       await service.reportRetention({
@@ -2918,7 +2846,6 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     const listRecordSchemaReferences = sinon
       .stub()
       .callsFake(async (query: { digest?: string }) => references.get(query.digest ?? '') ?? []);
-    const deleteRecordSchemaArtifactIfUnreferenced = sinon.stub();
     const service = new Services.RecordSchema({
       getConfig: () =>
         enabledConfig({
@@ -2927,7 +2854,6 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       getStorageProvider: () => ({
         getRecordSchemaArtifact,
         listRecordSchemaReferences,
-        deleteRecordSchemaArtifactIfUnreferenced,
       }),
     });
     const request = {
@@ -2967,14 +2893,13 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     });
     expect(JSON.stringify(first)).not.to.include('private-pin-purpose');
     expect(JSON.stringify(first)).not.to.include('private-oid');
-    expect(deleteRecordSchemaArtifactIfUnreferenced.notCalled).to.equal(true);
     expect(listRecordSchemaReferences.args.map(args => args[0])).to.deep.equal([
-      { digest: digestA, includeExpiredPins: true, limit: 1_000, offset: 0 },
-      { digest: digestB, includeExpiredPins: true, limit: 1_000, offset: 0 },
-      { digest: digestC, includeExpiredPins: true, limit: 1_000, offset: 0 },
-      { digest: digestA, includeExpiredPins: true, limit: 1_000, offset: 0 },
-      { digest: digestB, includeExpiredPins: true, limit: 1_000, offset: 0 },
-      { digest: digestC, includeExpiredPins: true, limit: 1_000, offset: 0 },
+      { digest: digestA, includeExpiredPins: true, limit: 1_000 },
+      { digest: digestB, includeExpiredPins: true, limit: 1_000 },
+      { digest: digestC, includeExpiredPins: true, limit: 1_000 },
+      { digest: digestA, includeExpiredPins: true, limit: 1_000 },
+      { digest: digestB, includeExpiredPins: true, limit: 1_000 },
+      { digest: digestC, includeExpiredPins: true, limit: 1_000 },
     ]);
   });
 });

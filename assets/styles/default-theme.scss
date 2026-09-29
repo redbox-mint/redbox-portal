@@ -42,7 +42,7 @@ h6 {
     margin: 0 0 15px;
 }
 
-body, .preview-root { font-family: $body-font-family; }
+body, .preview-root { font-family: var(--rb-brand-font-family, $body-font-family); }
 
 
 .header-area {
@@ -92,7 +92,7 @@ body, .preview-root { font-family: $body-font-family; }
 
 .mainmenu-area {
 background: none repeat scroll 0 0 var(--rb-main-menu-branding-background-color, #{$main-menu-branding-background-color});
-font-family: $main-menu-branding-font-family;
+font-family: var(--rb-brand-font-family, $main-menu-branding-font-family);
 text-transform: uppercase;
 width: 100%;
 z-index: 999;
@@ -190,7 +190,7 @@ z-index: 999;
 }
 
 .footer-wid-title {
-  font-family: $branding-footer-font-family;
+  font-family: var(--rb-brand-font-family, $branding-footer-font-family);
   font-size: 30px;
   font-weight: 100;
   color: #fff
@@ -207,7 +207,7 @@ z-index: 999;
 
 
 .maincontent-bit-title h2 {
-  font-family: $main-content-heading-font-family;
+  font-family: var(--rb-brand-font-family, $main-content-heading-font-family);
   font-size: 50px;
   font-weight: 200;
   margin: 0;

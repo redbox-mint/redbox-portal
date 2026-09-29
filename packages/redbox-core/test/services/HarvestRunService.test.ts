@@ -7,7 +7,7 @@ import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
 import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
-import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
+import { RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } from '../../src/RecordStorageConcurrency';
 import { serializeRedboxCanonicalJsonV1 } from '../../src/record-contract/canonical-json';
 import type {
   PersistRecordSchemaSaveUsageRequest,
@@ -204,7 +204,7 @@ describe('HarvestRunService', function () {
       getMeta: sinon.stub().callsFake(async (oid: string) => structuredClone(persistedRecords.get(oid))),
       createRecordAudit: sinon.stub().resolves({ success: true }),
       getCapabilities: sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       }),
     };
     const schemaResolver: {

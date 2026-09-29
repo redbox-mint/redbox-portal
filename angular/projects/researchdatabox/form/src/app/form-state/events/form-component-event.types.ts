@@ -11,7 +11,6 @@ import {
   formValidationGroupsChangeInitial as sharedFormValidationGroupsChangeInitial,
   FormValidationGroupsChangeInitial as SharedFormValidationGroupsChangeInitial,
   RecordSaveResult,
-  formValidationGroupMembership,
   FormRuntimeAction,
   GenerationRunPhase,
   GenerationRunStatus,
@@ -24,6 +23,10 @@ export interface FormComponentEventBase {
   readonly type: string;
   readonly timestamp: number;
   readonly sourceId?: string;
+  /** Behaviours that have already handled this explicitly emitted event chain. */
+  readonly behaviourChain?: readonly number[];
+  /** Expressions whose value writes caused this event; each expression skips events it caused. */
+  readonly expressionChain?: readonly string[];
   /** Identifies the form instance that owns the event. */
   readonly formScopeId?: string;
   readonly fieldId?: string;

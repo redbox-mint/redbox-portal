@@ -266,7 +266,7 @@ export class FormService extends HttpClientService {
   public async createFormComponentsMap(
     formConfig: FormConfigFrame,
     parentLineagePaths: LineagePaths,
-    meta?: FormRuntimeMeta,
+    meta?: Record<string, unknown>,
     formMode?: FormModesConfig,
     concurrency: FormLoadConcurrencyState = {}
   ): Promise<FormComponentsMap> {
@@ -882,7 +882,7 @@ export class FormService extends HttpClientService {
       url.searchParams.set('generationRunId', generationRunId);
     }
 
-    type rawRespType = { data: FormConfigFrame; meta: FormRuntimeMeta; prehydrate?: FormPrehydratePayload };
+    type rawRespType = { data: FormConfigFrame; meta: Record<string, unknown>; prehydrate?: FormPrehydratePayload };
     const baseHeaders = this.requestOptions['headers'];
     const headers = (
       baseHeaders instanceof HttpHeaders

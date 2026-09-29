@@ -79,6 +79,15 @@ describe('record-schema route response contracts', function () {
     );
   });
 
+  it('trims long outer slash runs in linear time', function () {
+    const outerSlashes = '/'.repeat(20_000);
+
+    assert.equal(
+      recordSchemaCreateResolverUrl('default', 'rdmp', 'dataset', `${outerSlashes}redbox${outerSlashes}`),
+      '/redbox/default/rdmp/api/records/schemas/create/dataset'
+    );
+  });
+
   it('uses the public root-context substitution convention in resolver route templates', function () {
     assert.equal(
       RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,

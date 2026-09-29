@@ -3,6 +3,7 @@ import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { of } from 'rxjs';
+import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../fixtures/metadata-projection.fixtures';
 
 describe('FormRecordConsistencyService', function () {
   let mockSails: any;
@@ -142,6 +143,74 @@ describe('FormRecordConsistencyService', function () {
   });
 
   describe('projectMetadataClientFormConfig', function () {
+    it("projects DataLocation values through the real schema visitor without exposing server-only metadata", async function () {
+      const metadata = {
+        ...dataRecordProjectedMetadata,
+        contributor_data_manager: {
+          ...dataRecordProjectedMetadata.contributor_data_manager,
+          serverOnly: "hidden",
+        },
+        serverOnly: { credentials: "hidden" },
+      };
+
+      const result =
+        await FormRecordConsistencyService.projectMetadataClientFormConfig(
+          metadata,
+          dataRecordProjectionForm,
+          "edit",
+        );
+
+      expect(result).to.deep.equal(dataRecordProjectedMetadata);
+      expect(metadata).to.have.property("serverOnly");
+      expect(metadata.contributor_data_manager).to.have.property(
+        "serverOnly",
+        "hidden",
+      );
+    });
+
+    it("replaces permitted DataLocation arrays on save while retaining existing server-only metadata", async function () {
+      const original = {
+        redboxOid: "representative-data-record",
+        metadata: {
+          dataLocations: [{ type: "url", location: "https://example.test/old" }],
+          contributor_data_manager: {
+            given_name: "Previous",
+            serverOnly: "retained",
+          },
+          serverOnly: { audit: "retained" },
+        },
+      };
+      const changed = {
+        redboxOid: original.redboxOid,
+        metadata: {
+          ...dataRecordProjectedMetadata,
+          contributor_data_manager: {
+            ...dataRecordProjectedMetadata.contributor_data_manager,
+            serverOnly: "overwrite",
+          },
+          serverOnly: { audit: "overwrite" },
+          unpermitted: "not stored",
+        },
+      };
+
+      const result = await FormRecordConsistencyService.mergeRecordClientFormConfig(
+        original,
+        changed,
+        dataRecordProjectionForm,
+        "edit",
+      );
+
+      expect(result.metadata).to.deep.equal({
+        ...dataRecordProjectedMetadata,
+        contributor_data_manager: {
+          ...dataRecordProjectedMetadata.contributor_data_manager,
+          serverOnly: "retained",
+        },
+        serverOnly: { audit: "retained" },
+      });
+      expect(original.metadata.dataLocations[0].type).to.equal("url");
+    });
+
     it('projects only metadata permitted by the client form', async function () {
       sinon.stub(FormRecordConsistencyService, 'mergeRecordClientFormConfig').resolves({
         redboxOid: '',
@@ -163,6 +232,227 @@ describe('FormRecordConsistencyService', function () {
         'edit',
         { shared: {} }
       )).to.be.true;
+    });
+  });
+
+  describe('mergeRecordMetadataPermitted', function () {
+    it("accepts the reported DataLocation reproduction with an unwrapped property map", function () {
+      const changed = {
+        dataLocations: [
+          { type: "file", location: "/research-data/projects/coastal" },
+        ],
+      };
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        changed,
+        { dataLocations: { elements: { type: "object" } } },
+        [],
+      );
+      expect(result).to.deep.equal(changed);
+    });
+
+    it("continues filtering structured object arrays even when data keys resemble schema keywords", function () {
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        {
+          entries: [
+            {
+              type: "file",
+              properties: "permitted data",
+              elements: "hidden",
+              secret: "hidden",
+            },
+          ],
+        },
+        {
+          entries: {
+            elements: {
+              properties: { type: { type: "string" } },
+              optionalProperties: { properties: { type: "string" } },
+            },
+          },
+        },
+        [],
+      );
+      expect(result).to.deep.equal({
+        entries: [{ type: "file", properties: "permitted data" }],
+      });
+    });
+
+    for (const value of [[], null]) {
+      it(`preserves an explicit ${JSON.stringify(value)} DataLocation value`, function () {
+        const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+          {
+            dataLocations: [{ type: "file", location: "old" }],
+            serverOnly: "retained",
+          },
+          { dataLocations: value },
+          { dataLocations: { elements: { type: "object" } } },
+          [],
+        );
+        expect(result).to.deep.equal({
+          dataLocations: value,
+          serverOnly: "retained",
+        });
+      });
+    }
+
+    it("preserves primitive array ordering and explicit null nested fields", function () {
+      const changed = {
+        tags: ["coastal", "resilience"],
+        details: { description: null, secret: "hidden" },
+      };
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        changed,
+        {
+          tags: { elements: { type: "string" } },
+          details: { properties: { description: { type: "string" } } },
+        },
+        [],
+      );
+      expect(result).to.deep.equal({
+        tags: changed.tags,
+        details: { description: null },
+      });
+    });
+
+    it('preserves every property of array elements permitted as unconstrained objects', function () {
+      const changed = {
+        dataLocations: [
+          {
+            type: 'url',
+            location: 'https://example.com/dataset',
+            notes: 'test notes',
+            selected: true,
+          },
+        ],
+      };
+      const permittedChanges = {
+        properties: {
+          dataLocations: {
+            elements: {
+              type: 'object',
+            },
+          },
+        },
+      };
+
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        changed,
+        permittedChanges,
+        []
+      );
+
+      expect(result).to.deep.equal(changed);
+    });
+
+    it('preserves array elements permitted by an empty schema', function () {
+      const changed = {
+        attachments: [
+          {
+            attachmentId: 'attachment-1',
+            name: 'dataset.pdf',
+          },
+        ],
+      };
+      const permittedChanges = {
+        properties: {
+          attachments: {
+            elements: {},
+          },
+        },
+      };
+
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        changed,
+        permittedChanges,
+        []
+      );
+
+      expect(result).to.deep.equal(changed);
+    });
+
+    it('continues to filter metadata when a form has no permitted fields', function () {
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        { serverOnly: 'hidden' },
+        {},
+        []
+      );
+
+      expect(result).to.deep.equal({});
+    });
+
+    it('preserves optional properties in nested permitted objects', function () {
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        { rdmp: { oid: 'rdmp-1', title: 'Research data management plan' } },
+        {
+          properties: {
+            rdmp: {
+              properties: {
+                oid: { type: 'string' },
+              },
+              optionalProperties: {
+                title: { type: 'string' },
+              },
+            },
+          },
+        },
+        []
+      );
+
+      expect(result).to.deep.equal({
+        rdmp: { oid: 'rdmp-1', title: 'Research data management plan' },
+      });
+    });
+
+    it('merges nested objects with only optional properties and filters unpermitted changes', function () {
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        { rdmp: { title: 'Original title', serverOnly: 'preserved' } },
+        { rdmp: { title: 'Updated title', serverOnly: 'changed', unexpected: 'hidden' } },
+        {
+          properties: {
+            rdmp: {
+              optionalProperties: {
+                title: { type: 'string' },
+              },
+            },
+          },
+        },
+        []
+      );
+
+      expect(result).to.deep.equal({
+        rdmp: { title: 'Updated title', serverOnly: 'preserved' },
+      });
+    });
+
+    it('reports malformed primitive property schemas as validation errors', function () {
+      const merge = () => FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        { title: 'Dataset' },
+        { properties: { title: 'string' } },
+        []
+      );
+
+      expect(merge).to.throw(Error, 'Invalid permittedChanges object');
+    });
+
+    it('reports malformed primitive array element schemas as validation errors', function () {
+      for (const elementSchema of [123, false, 'string']) {
+        const merge = () => FormRecordConsistencyService.mergeRecordMetadataPermitted(
+          {},
+          { dataLocations: [{ type: 'url', location: 'https://example.com/dataset' }] },
+          { properties: { dataLocations: { elements: elementSchema } } },
+          []
+        );
+
+        expect(merge).to.throw(Error, 'Invalid permittedChanges object');
+      }
     });
   });
 

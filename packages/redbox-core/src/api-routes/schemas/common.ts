@@ -257,13 +257,61 @@ export const recordDownloadQuery = objectField({
   fileName: stringField('Override download filename'),
 });
 
-export const brandingDraftBody = objectField({
-  variables: objectField({}, [], 'Branding variables', true),
-});
+export const brandingDraftBody = objectField(
+  {
+    variables: objectField({}, [], 'Branding variables', true),
+    expectedDraftRevision: integerField('Expected draft revision (optimistic concurrency)'),
+  },
+  ['expectedDraftRevision']
+);
 
-export const brandingPublishBody = objectField({
-  expectedVersion: integerField('Expected version'),
-});
+export const brandingExpectedRevisionBody = objectField(
+  {
+    expectedDraftRevision: integerField('Expected draft revision (optimistic concurrency)'),
+  },
+  ['expectedDraftRevision']
+);
+
+export const brandingPublishBody = objectField(
+  {
+    expectedVersion: integerField('Expected version'),
+    expectedDraftRevision: integerField('Expected draft revision (optimistic concurrency)'),
+  },
+  ['expectedVersion', 'expectedDraftRevision']
+);
+
+export const brandingRestoreBody = objectField(
+  {
+    expectedVersion: integerField('Expected version'),
+    expectedDraftRevision: integerField('Expected draft revision (optimistic concurrency)'),
+  },
+  ['expectedVersion', 'expectedDraftRevision']
+);
+
+export const brandingFaceUploadBody = objectField(
+  {},
+  [],
+  'Multipart typeface face upload body (face file plus expectedDraftRevision field)',
+  true
+);
+
+export const brandingVersionIdParams = objectField(
+  {
+    branding: stringField('Branding identifier'),
+    portal: stringField('Portal identifier'),
+    versionId: stringField('Retained branding version row ID'),
+  },
+  ['branding', 'portal', 'versionId']
+);
+
+export const brandingSlotParams = objectField(
+  {
+    branding: stringField('Branding identifier'),
+    portal: stringField('Portal identifier'),
+    slot: stringField('Typeface face slot (regular, bold, italic, boldItalic)'),
+  },
+  ['branding', 'portal', 'slot']
+);
 
 export const logoUploadBody = objectField({}, [], 'Multipart logo upload body', true);
 

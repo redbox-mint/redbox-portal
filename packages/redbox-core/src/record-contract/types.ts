@@ -58,7 +58,7 @@ export interface ContractArrayNode extends ContractNodeBase {
 
 export interface ContractAnyNode extends ContractNodeBase {
   readonly kind: 'any';
-  readonly reason?: 'unsupported-component' | 'unrepresentable-condition' | 'legacy-nullability';
+  readonly reason?: 'unsupported-component' | 'unrepresentable-condition';
 }
 
 export type ContractCondition =
@@ -93,7 +93,11 @@ export interface ContractConditionalNode extends ContractNodeBase {
 }
 
 export type ContractNode =
-  ContractScalarNode | ContractObjectNode | ContractArrayNode | ContractAnyNode | ContractConditionalNode;
+  | ContractScalarNode
+  | ContractObjectNode
+  | ContractArrayNode
+  | ContractAnyNode
+  | ContractConditionalNode;
 
 interface RecordContractPrivateContextBoundary {
   /** Private resolver data must never become schema annotation content. */
@@ -133,7 +137,6 @@ export interface RecordContractContributorIdentity {
   readonly key: string;
   readonly version: string;
   readonly source: 'core' | 'hook';
-  readonly namespace?: string;
 }
 
 export interface RecordContractDiagnostic {
@@ -154,7 +157,7 @@ export interface RecordContractValidationSummary {
 }
 
 export interface ContractOwner {
-  readonly kind: 'form' | 'component' | 'extension';
+  readonly kind: 'form' | 'component';
   readonly key: string;
   readonly contributor?: RecordContractContributorIdentity;
 }

@@ -4,13 +4,8 @@ import {
   RecordContractContributorRegistry,
   RecordContractContributorRegistrationError,
   RECORD_CONTRACT_REGISTRATION_CODES,
-  recordContractPointer,
 } from '../../../src';
-import type {
-  RecordContractComponentContributor,
-  RecordContractContributorRegistration,
-  RecordContractExtensionContributor,
-} from '../../../src';
+import type { RecordContractComponentContributor, RecordContractContributorRegistration } from '../../../src';
 
 function component(
   key: string,
@@ -28,29 +23,16 @@ function component(
   };
 }
 
-function extension(key: string, namespace: string, root: string): RecordContractExtensionContributor {
-  return {
-    kind: 'extension',
-    key,
-    version: '1',
-    namespace,
-    root: recordContractPointer(root),
-    nullability: 'non-null',
-    compile: () => ({ node: { kind: 'object', nullable: false, properties: {}, unknownProperties: 'allow' } }),
-  };
-}
-
 function registration(
-  contributor: RecordContractComponentContributor | RecordContractExtensionContributor,
+  contributor: RecordContractComponentContributor,
   source: 'core' | 'hook' = 'hook'
 ): RecordContractContributorRegistration {
   return { contributor, source, ...(source === 'hook' ? { packageName: '@test/hook' } : {}) };
 }
 
 describe('RecordContractContributorRegistry', function () {
-  it('sorts component and extension registrations independently of hook load order', function () {
+  it('sorts component registrations independently of hook load order', function () {
     const registrations = [
-      registration(extension('hook.z-extension', 'zeta:metadata', '/zeta:metadata')),
       registration(component('hook.z-component', 'ZComponent')),
       registration(component('hook.a-component', 'AComponent')),
     ];
@@ -62,7 +44,6 @@ describe('RecordContractContributorRegistry', function () {
       reverse.registrations().map(item => item.contributor.key)
     );
     expect(forward.component('AComponent')?.contributor.key).to.equal('hook.a-component');
-    expect(forward.extensions().map(item => item.contributor.key)).to.deep.equal(['hook.z-extension']);
   });
 
   it('snapshots and freezes contributor definitions at the runtime registry boundary', function () {
@@ -88,25 +69,19 @@ describe('RecordContractContributorRegistry', function () {
     expect(registry.component('ChangedAfterRegistration')).to.equal(undefined);
   });
 
-  it('aggregates and stably sorts invalid keys, versions, types, duplicates, namespaces, and owned paths', function () {
+  it('aggregates and stably sorts invalid keys, versions, types, duplicates, and owned paths', function () {
     const invalid = component('Blank Key', '', []);
     const invalidVersion = { ...component('hook.invalid-version', 'InvalidVersionComponent'), version: ' ' };
     const duplicateA = component('hook.duplicate-a', 'DuplicateComponent', ['', '/child']);
     const duplicateB = component('hook.duplicate-b', 'DuplicateComponent');
-    const badNamespace = extension('hook.bad-namespace', 'not namespaced', '/extensions/a');
-    const duplicateNamespace = extension('hook.duplicate-namespace', 'valid:namespace', '/extensions/a');
-    const duplicateNamespaceAgain = extension('hook.duplicate-namespace-2', 'valid:namespace', '/extensions/b');
 
     let thrown: RecordContractContributorRegistrationError | undefined;
     try {
       new RecordContractContributorRegistry([
-        registration(duplicateNamespaceAgain),
         registration(invalidVersion),
         registration(duplicateB),
         registration(invalid),
-        registration(badNamespace),
         registration(duplicateA),
-        registration(duplicateNamespace),
       ]);
     } catch (error) {
       thrown = error as RecordContractContributorRegistrationError;
@@ -120,8 +95,6 @@ describe('RecordContractContributorRegistry', function () {
       RECORD_CONTRACT_REGISTRATION_CODES.INVALID_POINTER,
       RECORD_CONTRACT_REGISTRATION_CODES.OVERLAPPING_ROOT,
       RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_COMPONENT,
-      RECORD_CONTRACT_REGISTRATION_CODES.INVALID_NAMESPACE,
-      RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_NAMESPACE,
     ]);
     expect(thrown?.issues).to.deep.equal(
       [...(thrown?.issues ?? [])].sort(
@@ -131,23 +104,5 @@ describe('RecordContractContributorRegistry', function () {
           left.detail.localeCompare(right.detail)
       )
     );
-  });
-
-  it('rejects overlapping extension roots and attempts to own form-managed roots', function () {
-    expect(
-      () =>
-        new RecordContractContributorRegistry([
-          registration(extension('hook.parent', 'parent:extension', '/extensions')),
-          registration(extension('hook.child', 'child:extension', '/extensions/child')),
-        ])
-    ).to.throw(RecordContractContributorRegistrationError);
-
-    expect(
-      () =>
-        new RecordContractContributorRegistry(
-          [registration(extension('hook.form-overwrite', 'form:extension', '/title'))],
-          { formOwnedRoots: [recordContractPointer('/title')] }
-        )
-    ).to.throw(RECORD_CONTRACT_REGISTRATION_CODES.FORM_PATH_OVERWRITE);
   });
 });

@@ -32,7 +32,6 @@ describe('record-schema shadow-rollout evidence command', function () {
       formsChecked: 10,
       schemasChecked: 20,
       unsupportedComponents: 0,
-      legacyNullability: 0,
       unknownPropertyProbesAccepted: 20,
     });
     expect(report.limitHeadroom.cacheEntries.remaining).to.be.greaterThan(0);
@@ -45,7 +44,7 @@ describe('record-schema shadow-rollout evidence command', function () {
     expect(report.schemas.every(schema => schema.shadowWarningCodes.includes('record-schema.type'))).to.equal(true);
   });
 
-  it('reports unsupported components without classifying the documented checkbox-tree shape as legacy', async function () {
+  it('reports unsupported components while compiling the documented checkbox-tree shape', async function () {
     const report = await generateRecordSchemaRolloutEvidence({
       forms: [
         {
@@ -73,7 +72,6 @@ describe('record-schema shadow-rollout evidence command', function () {
       completeSchemas: 0,
       partialSchemas: 2,
       unsupportedComponents: 1,
-      legacyNullability: 0,
       unknownPropertyProbesAccepted: 2,
     });
     expect(report.unsupportedComponents[0]).to.deep.include({
@@ -83,7 +81,6 @@ describe('record-schema shadow-rollout evidence command', function () {
       componentType: 'CustomHookComponent',
     });
     expect(report.unsupportedComponents[0].kinds).to.deep.equal(['create', 'update']);
-    expect(report.legacyNullability).to.deep.equal([]);
   });
 
   it('rejects an unbounded representative form set before compilation', async function () {

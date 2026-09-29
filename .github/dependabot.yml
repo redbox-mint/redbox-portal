@@ -41,38 +41,6 @@ updates:
       - '/packages/sails-hook-redbox-storage-mongo'
       - '/packages/sails-ng-common'
       - '/packages/redbox-hook-dev'
-      - '/packages/agenda-sqs-backend'
-    schedule:
-      interval: 'daily'
-    target-branch: 'develop'
-    # Vitest packages declare exact peer versions, so keep their updates
-    # together to preserve strict-peer-deps installability.
-    groups:
-      vitest:
-        applies-to: 'version-updates'
-        patterns:
-          - 'vitest'
-          - '@vitest/*'
-    cooldown:
-      default-days: 7
-
-  # Update support npm files
-  - package-ecosystem: 'npm'
-    directories:
-      - '/support/build/api-descriptors'
-      - '/test/bruno'
-    schedule:
-      interval: 'daily'
-    target-branch: 'develop'
-    cooldown:
-      default-days: 7
-
-  # Update angular npm files
-  # Update angular dependencies as a group,
-  #  with one PR having minor & patch changes,
-  #  and separate PR for major version changes
-  - package-ecosystem: 'npm'
-    directories:
       - '/angular'
       - '/angular/projects/researchdatabox/portal-ng-common'
       - '/angular/projects/researchdatabox/portal-ng-form-custom'
@@ -80,6 +48,12 @@ updates:
       interval: 'daily'
     target-branch: 'develop'
     groups:
+      uppy:
+        applies-to: 'version-updates'
+        patterns:
+          - '@uppy/*'
+      # Update Angular dependencies as a group, with one PR having minor and
+      # patch changes and a separate PR for major version changes.
       tiptap:
         applies-to: 'version-updates'
         patterns:
@@ -130,3 +104,28 @@ updates:
       - dependency-name: 'jasmine-core'
         update-types:
           - 'version-update:semver-major'
+
+  # Keep this package separate so its exact-version Vitest peers are always
+  # proposed together. Pattern-based grouping in the multi-directory update
+  # has repeatedly produced separate, uninstallable pull requests.
+  - package-ecosystem: 'npm'
+    directory: '/packages/agenda-sqs-backend'
+    schedule:
+      interval: 'daily'
+    target-branch: 'develop'
+    groups:
+      agenda-sqs-backend-dev:
+        dependency-type: 'development'
+    cooldown:
+      default-days: 7
+
+  # Update support npm files
+  - package-ecosystem: 'npm'
+    directories:
+      - '/support/build/api-descriptors'
+      - '/test/bruno'
+    schedule:
+      interval: 'daily'
+    target-branch: 'develop'
+    cooldown:
+      default-days: 7

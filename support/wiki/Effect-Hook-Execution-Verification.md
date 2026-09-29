@@ -64,13 +64,3 @@ ReDBox page. Container logs should include structured
 `record_hook_operation_completed` event per execution;
 raw hook arguments and execution summaries must not appear in business-record
 payloads.
-
-## Recorded handoff
-
-The verification run for this change used host Node `v24.19.0` with npm
-`11.17.0`, and the running container reported Node `v26.7.0`. The full core
-`redbox-core` suite completed with 2189 passing tests and 14 pending; the Mongo storage suite
-completed with 71 passing tests. `npm run compile:core`, the Mongo TypeScript
-compile, Oxlint, and `git diff --check` passed. The Tailscale smoke request
-returned `302` from `/` followed by `200 OK` for the rendered page containing
-`Welcome to ReDBox`.

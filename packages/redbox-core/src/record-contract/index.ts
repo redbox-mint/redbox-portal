@@ -9,5 +9,4 @@ export * from './record-contract-compiler';
 export * from './record-contract-context';
 export * from './record-json-schema-artifact';
 export * from './record-json-schema-etag';
-export * from './record-schema-validator-cache';
 export * from './types';

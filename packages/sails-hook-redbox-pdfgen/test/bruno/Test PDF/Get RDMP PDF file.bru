@@ -1,0 +1,29 @@
+meta {
+  name: Get RDMP PDF file
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/record/{{dmpOid}}/datastream?datastreamId={{recordStreamId}}&fileName=rdmp.pdf
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+// TODO: api endpoint returns 404: '{{host}}/default/rdmp/api/records/datastreams/{{dmpOid}}/{{recordStreamId}}'
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Body has attachment content", function () {
+    let obj = res.body;
+
+    expect(res.headers['content-type']).to.eql('application/pdf');
+    expect(String(res.body).startsWith('%PDF')).to.eql(true);
+  });
+}

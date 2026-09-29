@@ -107,14 +107,18 @@ export const policies: PoliciesConfig = {
     // and ignored for non-companion attachment routes.
     doAttachment: doAttachmentPolicies,
   },
-  GenerationController: {
-    '*': noCachePlusDefaultPolicies,
-  },
   'webservice/RecordController': {
     '*': noCachePlusDefaultPolicies,
   },
   'webservice/BrandingController': {
     '*': noCachePlusDefaultPolicies,
+  },
+  BrandingController: {
+    // Public immutable font delivery is portal-independent and sessionless:
+    // brand-scoped policies (brandingAndPortal, checkBrandingValid) assume
+    // /:branding/:portal/... URLs and must not run for /fonts/branding/...,
+    // and no authentication may be required.
+    renderFont: ['contentSecurityPolicy'],
   },
   ...contractApiPolicies,
   'webservice/RecordSchemaController': {

@@ -19,6 +19,7 @@ import {
 } from './types';
 import { snapshotRecordContractPublicContext } from './record-contract-context';
 import { freezeDeep } from './deep-freeze';
+import { normalizeRedboxCanonicalJsonV1 } from './canonical-json';
 
 export const JSON_SCHEMA_DRAFT_2020_12 = 'https://json-schema.org/draft/2020-12/schema' as const;
 
@@ -199,39 +200,11 @@ function sortedUniqueStrings(values: readonly string[]): string[] {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
 }
 
-function cloneJsonValue(value: unknown, ancestors = new Set<object>()): ContractJsonValue {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      throw new RecordJsonSchemaRendererError('Record-contract annotations must contain finite numbers.');
-    }
-    return value;
-  }
-  if (typeof value !== 'object') {
-    throw new RecordJsonSchemaRendererError('Record-contract annotations must contain only JSON values.');
-  }
-  if (ancestors.has(value)) {
-    throw new RecordJsonSchemaRendererError('Record-contract annotations must not contain cycles.');
-  }
-  ancestors.add(value);
+function cloneJsonValue(value: unknown): ContractJsonValue {
   try {
-    if (Array.isArray(value)) {
-      return value.map(item => cloneJsonValue(item, ancestors));
-    }
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) {
-      throw new RecordJsonSchemaRendererError('Record-contract annotations must be plain JSON objects.');
-    }
-    const objectValue = value as Readonly<Record<string, unknown>>;
-    return Object.fromEntries(
-      Object.keys(objectValue)
-        .sort((left, right) => left.localeCompare(right))
-        .map(key => [key, cloneJsonValue(objectValue[key], ancestors)])
-    );
-  } finally {
-    ancestors.delete(value);
+    return normalizeRedboxCanonicalJsonV1(value);
+  } catch {
+    throw new RecordJsonSchemaRendererError('Record-contract annotations must contain only canonical JSON values.');
   }
 }
 
@@ -524,7 +497,6 @@ function renderedContributor(contributor: RecordContractContributorIdentity): Re
     key: contributor.key,
     version: contributor.version,
     source: contributor.source,
-    ...(contributor.namespace === undefined ? {} : { namespace: contributor.namespace }),
   };
 }
 
@@ -607,41 +579,34 @@ function applyConditionals(schema: MutableSchema, scope: ConditionalScope): void
 }
 
 /** Render a dialect-neutral record contract as a self-contained JSON Schema draft 2020-12 document. */
-export class RecordJsonSchemaRenderer {
-  public render(contract: RecordContract): RecordJsonSchemaDocument {
-    const definitionKeys = new Set(Object.keys(contract.definitions));
-    const rootState: RenderState = { definitionKeys, conditionalScopes: [] };
-    const root = renderNode(contract.root, '' as RecordContractPointer, rootState) as MutableSchema;
-
-    const definitions: Record<string, RecordJsonSchema> = {};
-    for (const key of [...definitionKeys].sort((left, right) => left.localeCompare(right))) {
-      const definition = contract.definitions[key];
-      const definitionState: RenderState = {
-        definitionKeys,
-        conditionalScopes: [],
-        definitionBeingRendered: key,
-      };
-      const renderedDefinition = renderNode(definition, '' as RecordContractPointer, definitionState) as MutableSchema;
-      definitions[key] = renderedDefinition;
-    }
-
-    const document: RecordJsonSchemaDocument = {
-      $schema: JSON_SCHEMA_DRAFT_2020_12,
-      ...(Object.keys(definitions).length === 0 ? {} : { $defs: definitions }),
-      ...root,
-      type: 'object',
-      'x-redbox-contract-format': RECORD_CONTRACT_FORMAT_V1,
-      'x-redbox-context': renderRecordContractPublicContext(contract.context),
-      'x-redbox-completeness': contract.completeness,
-      'x-redbox-validation': renderedValidation(contract.validatorSummaries),
-      'x-redbox-diagnostics': renderedDiagnostics(contract.diagnostics),
-    };
-    const allowedReferences = new Set([...definitionKeys].map(key => localDefinitionReference(key)));
-    assertOnlyLocalReferences(document, allowedReferences);
-    return freezeDeep(document);
-  }
-}
-
 export function renderRecordJsonSchema(contract: RecordContract): RecordJsonSchemaDocument {
-  return new RecordJsonSchemaRenderer().render(contract);
+  const definitionKeys = new Set(Object.keys(contract.definitions));
+  const rootState: RenderState = { definitionKeys, conditionalScopes: [] };
+  const root = renderNode(contract.root, '' as RecordContractPointer, rootState) as MutableSchema;
+
+  const definitions: Record<string, RecordJsonSchema> = {};
+  for (const key of [...definitionKeys].sort((left, right) => left.localeCompare(right))) {
+    const definition = contract.definitions[key];
+    const definitionState: RenderState = {
+      definitionKeys,
+      conditionalScopes: [],
+      definitionBeingRendered: key,
+    };
+    definitions[key] = renderNode(definition, '' as RecordContractPointer, definitionState) as MutableSchema;
+  }
+
+  const document: RecordJsonSchemaDocument = {
+    $schema: JSON_SCHEMA_DRAFT_2020_12,
+    ...(Object.keys(definitions).length === 0 ? {} : { $defs: definitions }),
+    ...root,
+    type: 'object',
+    'x-redbox-contract-format': RECORD_CONTRACT_FORMAT_V1,
+    'x-redbox-context': renderRecordContractPublicContext(contract.context),
+    'x-redbox-completeness': contract.completeness,
+    'x-redbox-validation': renderedValidation(contract.validatorSummaries),
+    'x-redbox-diagnostics': renderedDiagnostics(contract.diagnostics),
+  };
+  const allowedReferences = new Set([...definitionKeys].map(key => localDefinitionReference(key)));
+  assertOnlyLocalReferences(document, allowedReferences);
+  return freezeDeep(document);
 }

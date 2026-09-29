@@ -669,6 +669,13 @@ describe("Construct Visitor", async () => {
 
         it("should include save status message properties", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
+            const expectedConfig = {
+              successDisplayDurationMs: 5000,
+              warningMessageCreate: "@storage-workspace-save-warning",
+              warningMessageUpdate: "@storage-workspace-save-warning",
+              unknownMessageCreate: "@storage-workspace-save-unknown",
+              unknownMessageUpdate: "@storage-workspace-save-unknown",
+            };
             const actual = await visitor.start({
                 formMode: "edit",
                 data: {
@@ -678,13 +685,7 @@ describe("Construct Visitor", async () => {
                         name: "save_status",
                         component: {
                           class: "SaveStatusComponent",
-                          config: {
-                            successDisplayDurationMs: 5000,
-                            warningMessageCreate: "@storage-workspace-save-warning",
-                            warningMessageUpdate: "@storage-workspace-save-warning",
-                            unknownMessageCreate: "@storage-workspace-save-unknown",
-                            unknownMessageUpdate: "@storage-workspace-save-unknown",
-                          }
+                          config: { ...expectedConfig }
                         }
                       }
                     ]
@@ -692,13 +693,7 @@ describe("Construct Visitor", async () => {
             });
 
             expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("SaveStatusComponent");
-            expect(actual.componentDefinitions?.[0]?.component?.config).to.containSubset({
-              successDisplayDurationMs: 5000,
-              warningMessageCreate: "@storage-workspace-save-warning",
-              warningMessageUpdate: "@storage-workspace-save-warning",
-              unknownMessageCreate: "@storage-workspace-save-unknown",
-              unknownMessageUpdate: "@storage-workspace-save-unknown",
-            });
+            expect(actual.componentDefinitions?.[0]?.component?.config).to.containSubset(expectedConfig);
         });
     });
 

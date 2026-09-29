@@ -9,21 +9,23 @@ import { DashboardConfigApiService } from './dashboard-config-api.service';
 import { TableConfigEditorComponent } from './table-config-editor/table-config-editor.component';
 import { ColumnEditorComponent } from './column-editor/column-editor.component';
 import { ColumnDetailComponent } from './column-editor/column-detail.component';
-import { FormatRulesEditorComponent } from './format-rules-editor/format-rules-editor.component';
+import { FiltersEditorComponent } from './format-rules-editor/filters-editor.component';
+import { GroupingEditorComponent } from './format-rules-editor/grouping-editor.component';
+import { FieldPickerComponent } from './field-picker/field-picker.component';
 import { RuleSetEditorComponent } from './rule-set-editor/rule-set-editor.component';
 import { RuleEditorComponent } from './rule-set-editor/rule-editor.component';
 import { TemplatePreviewComponent } from './template-preview/template-preview.component';
 import { TemplatePreviewService } from './template-preview/template-preview.service';
-import { TableConfigPreviewComponent } from './table-config-preview/table-config-preview.component';
 
 @NgModule({
   declarations: [
     DashboardConfigEditorComponent,
     TableConfigEditorComponent,
-    TableConfigPreviewComponent,
     ColumnEditorComponent,
     ColumnDetailComponent,
-    FormatRulesEditorComponent,
+    FiltersEditorComponent,
+    GroupingEditorComponent,
+    FieldPickerComponent,
     RuleSetEditorComponent,
     RuleEditorComponent,
     TemplatePreviewComponent

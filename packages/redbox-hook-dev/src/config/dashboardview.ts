@@ -3,6 +3,10 @@ import type { DashboardViewConfig } from '@researchdatabox/redbox-core';
 /**
  * Demo "consolidated" dashboard view tied to the demo record types.
  * Moved out of @researchdatabox/redbox-core; supplied via redbox-hook-dev.
+ *
+ * Dashboard table settings declared here (and in workflow.ts `config.dashboard.table`)
+ * are one-time starting values: each stage/view step gets an independent copy the first
+ * time it is initialised, and later edits here do not change saved settings.
  */
 export const dashboardview: DashboardViewConfig = {
     consolidated: {

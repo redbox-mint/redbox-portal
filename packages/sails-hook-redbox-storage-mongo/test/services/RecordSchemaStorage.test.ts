@@ -565,35 +565,7 @@ describe('MongoStorageService record-schema persistence', function () {
     expect(references.documents).to.have.length(0);
   });
 
-  it('never bypasses a retention lock while a reference write is in flight', async function () {
-    await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, DEFAULT_DOCUMENT));
-    const findArtifact = artifacts.findOne.bind(artifacts);
-    let artifactReads = 0;
-    sinon.stub(artifacts, 'findOne').callsFake(async criteria => {
-      const result = await findArtifact(criteria);
-      artifactReads += 1;
-      if (artifactReads === 1) {
-        artifacts.documents[0]._retentionDeleteLock = {
-          token: 'delete-in-progress',
-          // Lock age cannot prove that the deleting worker will not resume.
-          acquiredAt: new Date(0),
-        };
-      }
-      return result;
-    });
-
-    const response = await service.putRecordSchemaReference({
-      ...commonReference('racing-reference'),
-      kind: 'grant',
-      schemaKind: 'create',
-    });
-
-    expect(response.success).to.equal(false);
-    expect(response.details).to.deep.equal({ code: RECORD_SCHEMA_STORAGE_CODES.ARTIFACT_NOT_FOUND });
-    expect(references.documents).to.have.length(0);
-  });
-
-  it('lists grants and bounded filtered references without cross-digest or expired-pin results', async function () {
+  it('lists bounded filtered references without cross-digest or expired-pin results', async function () {
     const clock = sinon.useFakeTimers({ now: NOW });
     try {
       await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, DEFAULT_DOCUMENT));
@@ -614,14 +586,6 @@ describe('MongoStorageService record-schema persistence', function () {
       for (const value of values) {
         await service.putRecordSchemaReference(value);
       }
-
-      const grants = await service.listRecordSchemaGrants({
-        digest: DIGEST_A,
-        brand: 'default',
-        portal: 'default',
-        limit: 10,
-      });
-      expect(grants.map(reference => reference.referenceKey)).to.deep.equal(['grant-a']);
 
       const live = await service.listRecordSchemaReferences({ digest: DIGEST_A, limit: 10 });
       expect(live.map(reference => reference.referenceKey)).to.deep.equal(['grant-a', 'save-a']);
@@ -667,134 +631,5 @@ describe('MongoStorageService record-schema persistence', function () {
     const page = await service.listRecordSchemaReferences(query);
 
     expect(page.map(reference => reference.referenceKey)).to.deep.equal(['grant-c']);
-  });
-
-  function ageArtifact(days: number): void {
-    artifacts.documents[0].createdAt = new Date(NOW.getTime() - days * 24 * 60 * 60 * 1_000);
-    artifacts.documents[0].updatedAt = artifacts.documents[0].createdAt;
-  }
-
-  it('protects artifacts younger than the requested minimum age', async function () {
-    await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, DEFAULT_DOCUMENT));
-
-    const response = await service.deleteRecordSchemaArtifactIfUnreferenced({
-      digest: DIGEST_A,
-      now: NOW,
-      minimumAgeDays: 365,
-    });
-
-    expect(response.success).to.equal(true);
-    expect(response.data).to.deep.equal({
-      kind: 'retained',
-      digest: DIGEST_A,
-      reasons: ['minimum-age'],
-    });
-    expect(artifacts.documents).to.have.length(1);
-  });
-
-  for (const [kind, expectedReason] of [
-    ['grant', 'grant-reference'],
-    ['save', 'save-reference'],
-    ['pin', 'active-pin'],
-  ] as const) {
-    it(`protects an old artifact with a live ${kind} reference`, async function () {
-      await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, DEFAULT_DOCUMENT));
-      ageArtifact(400);
-      const reference: RecordSchemaReferenceInput =
-        kind === 'grant'
-          ? { ...commonReference('retention-grant'), kind, schemaKind: 'create' }
-          : kind === 'save'
-            ? {
-                ...commonReference('retention-save'),
-                kind,
-                schemaKind: 'update',
-                oid: 'record-1',
-              }
-            : {
-                ...commonReference('retention-pin'),
-                kind,
-                schemaKind: 'create',
-                owner: 'integration',
-                purpose: 'Active pin',
-                expiresAt: new Date('2027-01-01T00:00:00.000Z'),
-              };
-      await service.putRecordSchemaReference(reference);
-
-      const response = await service.deleteRecordSchemaArtifactIfUnreferenced({
-        digest: DIGEST_A,
-        now: NOW,
-        minimumAgeDays: 365,
-      });
-
-      expect(response.data).to.deep.equal({
-        kind: 'retained',
-        digest: DIGEST_A,
-        reasons: [expectedReason],
-      });
-      expect(artifacts.documents).to.have.length(1);
-    });
-  }
-
-  it('deletes an eligible artifact and its expired pin references', async function () {
-    await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, DEFAULT_DOCUMENT));
-    ageArtifact(400);
-    await service.putRecordSchemaReference({
-      ...commonReference('expired-retention-pin'),
-      kind: 'pin',
-      schemaKind: 'create',
-      owner: 'integration',
-      purpose: 'Expired pin',
-      expiresAt: new Date('2026-01-01T00:00:00.000Z'),
-    });
-
-    const response = await service.deleteRecordSchemaArtifactIfUnreferenced({
-      digest: DIGEST_A,
-      now: NOW,
-      minimumAgeDays: 365,
-    });
-
-    expect(response.data).to.deep.equal({ kind: 'deleted', digest: DIGEST_A });
-    expect(artifacts.documents).to.have.length(0);
-    expect(references.documents).to.have.length(0);
-  });
-
-  it('rechecks after acquiring the delete lock and retains a newly-created reference', async function () {
-    await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, DEFAULT_DOCUMENT));
-    ageArtifact(400);
-    artifacts.afterFindOneAndUpdate = () => {
-      references.documents.push({
-        ...commonReference('racing-grant'),
-        kind: 'grant',
-        schemaKind: 'create',
-        createdAt: NOW,
-        updatedAt: NOW,
-      });
-    };
-
-    const response = await service.deleteRecordSchemaArtifactIfUnreferenced({
-      digest: DIGEST_A,
-      now: NOW,
-      minimumAgeDays: 365,
-    });
-
-    expect(response.data).to.deep.equal({
-      kind: 'retained',
-      digest: DIGEST_A,
-      reasons: ['grant-reference'],
-    });
-    expect(artifacts.documents).to.have.length(1);
-    expect(artifacts.documents[0]).not.to.have.property('_retentionDeleteLock');
-    expect(references.documents).to.have.length(1);
-  });
-
-  it('reports a missing artifact as a successful typed non-deletion outcome', async function () {
-    const response = await service.deleteRecordSchemaArtifactIfUnreferenced({
-      digest: DIGEST_A,
-      now: NOW,
-      minimumAgeDays: 365,
-    });
-
-    expect(response.success).to.equal(true);
-    expect(response.data).to.deep.equal({ kind: 'not-found', digest: DIGEST_A });
   });
 });

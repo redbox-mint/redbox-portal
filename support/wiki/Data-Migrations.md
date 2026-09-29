@@ -260,6 +260,10 @@ up: async ({ context: sails } = {}) => {
 }
 ```
 
+## Core-supplied migrations
+
+- `20260925T000000-dashboard-stage-configuration` converts v5.0.1 dashboard profiles, defaults and overrides into independent per-stage settings. It keeps a recovery snapshot, is safe to rerun, and stops before publishing a brand with unresolved differences. When migrations are skipped on an existing installation, dashboards report `503` until it has run. See [Configuring Dashboard Tables](Configuring-Dashboard-Tables.md#upgrading-from-v501) for the preflight and resolution procedure.
+
 ## Verifying Migrations
 
 ### Check Executed Migrations

@@ -8,7 +8,6 @@ import type {
   ActionExecutionAction,
   ActionExecutionContext,
   ActionExecutionDependencies,
-  ActionExecutionCounts,
   ActionExecutionOperation,
   ActionExecutionOutcome,
   ActionExecutionReport,
@@ -18,7 +17,6 @@ import type {
   ActionSkippedReason,
   SafeActionFailure,
 } from './types';
-import { EMPTY_ACTION_COUNTS } from './types';
 
 /** A single attempt that fulfilled. */
 interface AttemptSuccess {
@@ -70,19 +68,8 @@ function durationMs(startedAt: string, completedAt: string): number {
   return Math.max(0, Math.round(new Date(completedAt).getTime() - new Date(startedAt).getTime()));
 }
 
-function countByStatus(results: readonly ActionExecutionResult[]): ActionExecutionCounts {
-  const counts = { ...EMPTY_ACTION_COUNTS };
-  for (const result of results) {
-    counts[result.status] += 1;
-  }
-  return counts;
-}
-
 function isCooperativelyCancellable(action: ActionExecutionAction): boolean {
-  if (typeof action.cooperativeCancellation === 'function') {
-    return action.cooperativeCancellation();
-  }
-  return action.cooperativeCancellation !== false;
+  return action.cooperativeCancellation?.() ?? true;
 }
 
 function maxAttempts(action: Pick<ActionExecutionAction, 'policy'>): number {
@@ -337,7 +324,6 @@ export function createActionExecutionOperation(
 ): ActionExecutionOperation {
   const operation: ActionExecutionOperation = {
     executionId: newId(dependencies),
-    trigger: 'record-hook',
     mode,
     reports: [],
     startedAt: iso(now(dependencies)),
@@ -357,17 +343,11 @@ export function createActionExecutionOperation(
  * a closed datastore.
  */
 export function createActionExecutionSupervisor(): ActionExecutionDependencies['supervisor'] {
-  const fibers = new Set<Fiber.Fiber<unknown, unknown>>();
+  const fibers = new Set<Fiber.RuntimeFiber<unknown, unknown>>();
   return {
-    register(fiber: unknown): void {
-      if (fiber !== null && typeof fiber === 'object') {
-        fibers.add(fiber as Fiber.Fiber<unknown, unknown>);
-      }
-    },
-    unregister(fiber: unknown): void {
-      if (fiber !== null && typeof fiber === 'object') {
-        fibers.delete(fiber as Fiber.Fiber<unknown, unknown>);
-      }
+    register(fiber): void {
+      fibers.add(fiber);
+      fiber.addObserver(() => fibers.delete(fiber));
     },
     interruptAll(): void {
       const active = Array.from(fibers);
@@ -388,7 +368,6 @@ export function createPhaseContext(
   const context: ActionExecutionContext = {
     executionId: operation.executionId,
     phaseExecutionId: newId(dependencies),
-    trigger: 'record-hook',
     mode,
     phase,
   };
@@ -410,16 +389,12 @@ function makeReport(
 ): ActionExecutionReport {
   const completedAt = iso(now(dependencies));
   const report: ActionExecutionReport = {
-    schemaVersion: 1,
-    executionId: context.executionId,
-    phaseExecutionId: context.phaseExecutionId,
     context,
     status,
     startedAt,
     completedAt,
     durationMs: durationMs(startedAt, completedAt),
     actions: results,
-    counts: countByStatus(results),
   };
 
   const fields = commonFields(context, { actionId: 'phase', mode: context.mode, phase: context.phase, index: -1 });
@@ -444,16 +419,12 @@ export function runSequentialActionPlan(
   const plan = validatedPlan(actions);
   return Effect.gen(function* () {
     const startedAt = iso(now(dependencies));
-    const values: unknown[] = [];
     const results: ActionExecutionResult[] = [];
     let terminalCause: unknown;
     let failed = false;
 
     for (const [index, action] of plan.entries()) {
-      const executed = yield* executeAction(action, dependencies, context, false, value => {
-        onSuccess?.(value, index);
-        values.push(value);
-      });
+      const executed = yield* executeAction(action, dependencies, context, false, value => onSuccess?.(value, index));
       results.push(executed.result);
       if (executed.attempt.ok) {
         continue;
@@ -467,7 +438,7 @@ export function runSequentialActionPlan(
     }
 
     const report = makeReport(context, results, startedAt, dependencies, failed ? 'failed' : 'completed');
-    const outcome: ActionExecutionOutcome = { report, values };
+    const outcome: ActionExecutionOutcome = { report };
     if (terminalCause !== undefined) {
       outcome.terminalCause = terminalCause;
     }
@@ -549,26 +520,7 @@ export function dispatchDetachedActionPlan(
       )
     );
     dependencies.supervisor?.register?.(fiber);
-    // Awaiting the fiber from a separate watcher avoids retaining completed
-    // fibers in the supervisor set while keeping shutdown interruption cheap.
-    if (dependencies.supervisor?.unregister) {
-      Effect.runFork(
-        Fiber.await(fiber).pipe(
-          Effect.flatMap(() => Effect.sync(() => dependencies.supervisor?.unregister?.(fiber))),
-          Effect.catchAll(() => Effect.sync(() => dependencies.supervisor?.unregister?.(fiber)))
-        )
-      );
-    }
   }
 
-  return { report: makeReport(context, results, startedAt, dependencies, 'dispatched'), values: [] };
-}
-
-/** Promise bridge for callers outside an Effect program. */
-export async function runActionPlan(
-  actions: readonly ActionExecutionAction[],
-  context: ActionExecutionContext,
-  dependencies: ActionExecutionDependencies = {}
-): Promise<ActionExecutionOutcome> {
-  return Effect.runPromise(runSequentialActionPlan(actions, context, dependencies));
+  return { report: makeReport(context, results, startedAt, dependencies, 'dispatched') };
 }

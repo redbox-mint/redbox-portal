@@ -2,7 +2,6 @@ import { expect } from 'chai';
 
 import {
   JSON_SCHEMA_DRAFT_2020_12,
-  RecordJsonSchemaRenderer,
   RecordJsonSchemaRendererError,
   renderRecordJsonSchema,
 } from '../../../src/record-contract/json-schema-renderer';
@@ -115,7 +114,7 @@ describe('RecordJsonSchemaRenderer', function () {
   });
 
   it('renders root-relative exists, equals, in, all, any, and not conditions against their target fields', function () {
-    const document = new RecordJsonSchemaRenderer().render(
+    const document = renderRecordJsonSchema(
       contract({
         decision: { kind: 'scalar', nullable: false, scalarType: 'string' },
         detail: {

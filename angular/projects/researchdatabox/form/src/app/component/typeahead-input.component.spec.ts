@@ -871,6 +871,59 @@ describe("TypeaheadInputComponent", () => {
         expect(input.disabled).toBeTrue();
     });
 
+    it("keeps an empty repeatable pristine when its disabled gate opens", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "geolocations",
+                    component: {
+                        class: "RepeatableComponent",
+                        config: {
+                            disabled: true,
+                            elementTemplate: {
+                                name: "",
+                                component: {
+                                    class: "TypeaheadInputComponent",
+                                    config: { sourceType: "static", staticOptions: [] }
+                                },
+                                model: { class: "TypeaheadInputModel", config: {} },
+                                layout: { class: "RepeatableElementLayout", config: {} }
+                            }
+                        }
+                    },
+                    model: { class: "RepeatableModel", config: { value: [null] } },
+                    layout: { class: "DefaultLayout", config: { disabled: true } }
+                }
+            ]
+        };
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component: TypeaheadInputComponent = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance;
+        const input: HTMLInputElement = fixture.nativeElement.querySelector("redbox-typeahead-input input");
+
+        expect(input.disabled).toBeTrue();
+        expect(formComponent.form?.pristine).toBeTrue();
+
+        const repeatable: RepeatableComponent = fixture.debugElement.query(By.directive(RepeatableComponent)).componentInstance;
+        repeatable.setDisabled(false);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(input.disabled).toBeFalse();
+        expect(component.formControl.value).toBeNull();
+        expect(component.formControl.pristine).toBeTrue();
+        expect(component.formControl.untouched).toBeTrue();
+        expect(formComponent.form?.pristine).toBeTrue();
+
+        // Opening the gate must still leave real edits able to update the model.
+        input.value = "Newcastle";
+        input.dispatchEvent(new Event("input"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+        expect(component.formControl.value).toBe("Newcastle");
+        expect(formComponent.form?.dirty).toBeTrue();
+    });
+
     it("honours a field.disabled gate expression when nested inside a repeatable", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",

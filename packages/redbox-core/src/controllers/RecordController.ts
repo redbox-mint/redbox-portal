@@ -42,7 +42,6 @@ import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
-import type { DashboardTableConfig } from '../config/workflow.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
@@ -68,6 +67,7 @@ import {
 import type { RecordConcurrencyContext, RecordSaveContext, RecordSaveOperation } from '../RecordSaveResponse';
 import {
   parsePublicRecordConcurrencyRequest,
+  recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
   recordRepresentationRevision,
   recordSaveResultHeaderOption,
@@ -102,15 +102,16 @@ interface GenerationBindingServiceLike {
   resolveCreateLaunches(
     actor: GenerationActorContext,
     targetRecordType: string,
-    targetFormName?: string,
+    targetFormName?: string
   ): Promise<GenerationLaunchDefinition[]>;
   resolveTargetSession(
     actor: GenerationActorContext,
     runId: string,
     targetRecordType: string,
-    targetFormName?: string,
+    targetFormName?: string
   ): Promise<GenerationRuntimeSession>;
 }
+
 /**
  * Package that contains all Controllers.
  */
@@ -180,6 +181,8 @@ export namespace Controllers {
       'getAllDashboardTypes',
       'getDashboardType',
       'getDashboardView',
+      'getDashboardWorkflowSettings',
+      'getDashboardViewSettings',
       'redirectLegacyConsolidatedDashboard',
       'renderDeletedRecords',
       'getDeletedRecordList',
@@ -362,16 +365,7 @@ export namespace Controllers {
       res: Sails.Res,
       failure: { readonly code: string; readonly header: string }
     ) {
-      if (this.getApiVersion(req) === '1.0') {
-        return this.sendResp(req, res, {
-          status: 400,
-          v1: { message: 'Invalid record concurrency request.' },
-        });
-      }
-      return this.sendResp(req, res, {
-        status: 400,
-        displayErrors: [{ code: failure.code, source: { header: failure.header } }],
-      });
+      return this.sendResp(req, res, recordConcurrencyRequestFailureResponse(this.getApiVersion(req), failure));
     }
 
     private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {
@@ -546,7 +540,7 @@ export namespace Controllers {
         portal: String(req.param('portal') ?? req.session.portal ?? ''),
         userId: String(user.id),
         username: String(user.username),
-        roles: (user.roles ?? []).map((role) => String(role.name ?? '')).filter(Boolean),
+        roles: (user.roles ?? []).map(role => String(role.name ?? '')).filter(Boolean),
       };
     }
 
@@ -634,9 +628,7 @@ export namespace Controllers {
           if (!recordOid) {
             continue;
           }
-          if (recordOid === graph.rootOid) {
-            keptRecords.push(record);
-            allowedTargetOids.add(recordOid);
+          if (!brand?.id || _.get(record, 'metaMetadata.brandId') !== brand.id) {
             continue;
           }
           const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record));
@@ -651,7 +643,7 @@ export namespace Controllers {
       }
 
       const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
-        if (allowedTargetOids.has(edge.targetOid) || edge.targetOid === graph.rootOid) {
+        if (allowedTargetOids.has(edge.sourceOid) && allowedTargetOids.has(edge.targetOid)) {
           return true;
         }
         omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
@@ -899,19 +891,16 @@ export namespace Controllers {
         }
 
         const pageTitle = this.getSavedRecordPageTitle(record as AnyRecord, locals);
-        return this.sendView(req, res, 'record/view', {
+        return this.sendView(req, res, (locals?.['view'] as string | undefined) ?? 'record/view', {
           title: this.formatDocumentTitle(pageTitle, locals),
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error ?? '');
-        if (errorMessage.toLowerCase().includes('not found')) {
-          return res.notFound();
-        }
+        sails.log.error(error);
         return res.serverError();
       }
     }
 
-    public edit(req: Sails.Req, res: Sails.Res) {
+    public async edit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ? req.param('oid') : '';
       let recordType = req.param('recordType') ? req.param('recordType') : '';
@@ -925,6 +914,18 @@ export namespace Controllers {
       const appSelector = 'dmp-form';
       const appName = 'dmp';
       const hasExistingRecord = String(oid ?? '').trim() !== '';
+      let existingRecord: RecordModel | undefined;
+      if (hasExistingRecord) {
+        try {
+          existingRecord = await this.recordsService.getMeta(oid);
+        } catch (error) {
+          sails.log.error(error);
+          return res.serverError();
+        }
+        if (_.isEmpty(existingRecord)) {
+          return res.notFound();
+        }
+      }
       const buildEditViewLocals = (pageTitle?: string) => ({
         oid: oid,
         rdmp: rdmp,
@@ -944,18 +945,12 @@ export namespace Controllers {
           buildEditViewLocals(`Create ${this.getRecordTypePageTitle(recordType, locals)}`)
         );
 
-      const renderExistingEditView = () =>
-        this.recordsService.getMeta(oid).then(record => {
-          if (!recordType) {
-            recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
-          }
-          return this.sendView(
-            req,
-            res,
-            'record/edit',
-            buildEditViewLocals(this.getSavedRecordPageTitle(record as AnyRecord, locals))
-          );
-        });
+      const renderExistingEditView = () => {
+        if (!recordType) {
+          recordType = String(_.get(existingRecord, 'metaMetadata.type', '') ?? '').trim();
+        }
+        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(existingRecord as AnyRecord, locals)));
+      };
 
       if (recordType != '' && extFormName == '') {
         FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(form => {
@@ -988,32 +983,25 @@ export namespace Controllers {
           }
         );
       } else {
-        from(this.recordsService.getMeta(oid))
-          .pipe(
-            flatMap(record => {
-              const formName = record.metaMetadata.form;
-              return FormsService.getFormByName(formName, true, String(brand.id));
-            })
-          )
-          .subscribe(
-            form => {
-              if (!form) {
-                return this.sendResp(req, res, {
-                  status: 404,
-                  displayErrors: [{ detail: 'Form not found' }],
-                });
-              }
-              sails.log.debug(form);
-              // Deprecated: customAngularApp has been removed from FormConfigFrame
-              if (!recordType) {
-                recordType = form.configuration?.type ?? '';
-              }
-              return renderExistingEditView();
-            },
-            _error => {
-              return this.sendView(req, res, 'record/edit', buildEditViewLocals());
-            }
-          );
+        of(existingRecord).pipe(flatMap(record => {
+          const formName = record?.metaMetadata.form ?? '';
+          return FormsService.getFormByName(formName, true, String(brand.id));
+        })).subscribe(form => {
+          if (!form) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ detail: 'Form not found' }]
+            });
+          }
+          sails.log.debug(form);
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
+          if (!recordType) {
+            recordType = form.configuration?.type ?? '';
+          }
+          return renderExistingEditView();
+        }, _error => {
+          return this.sendView(req, res, 'record/edit', buildEditViewLocals());
+        });
       }
     }
 
@@ -1064,11 +1052,9 @@ export namespace Controllers {
           // defaults to retrieve the form of the current workflow state...
           currentRec = await this.recordsService.getMeta(oid);
           if (_.isEmpty(currentRec)) {
-            const msg = `Error, empty metadata for OID: ${oid}`;
             return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ detail: msg }],
-              v1: { message: msg },
+              status: 404,
+              displayErrors: [{ code: 'missing-record' }],
             });
           }
 
@@ -1220,7 +1206,6 @@ export namespace Controllers {
               validationOperations,
               formFingerprint,
               ...(representation?.metadata ?? {}),
-              ...runtimeMeta,
             },
             prehydrate,
             headers: representation?.headers,
@@ -1234,25 +1219,10 @@ export namespace Controllers {
           });
         }
       } catch (error) {
-        if (error instanceof GenerationError) {
-          return this.sendResp(req, res, {
-            status: error.status,
-            data: { error: error.toSafeJSON() },
-            displayErrors: [{ code: error.code, detail: `generation-error-${error.code.toLowerCase().replaceAll('_', '-')}` }],
-            v1: { error: error.toSafeJSON() },
-          });
-        }
-        const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition' };
-        let msg;
-        const typedError = error as { error?: { code?: number }; message?: string };
-        if (typedError.error && typedError.error.code == 500) {
-          displayError.code = 'missing-record';
-          msg = TranslationService.t('missing-record');
-        } else {
-          displayError.detail = typedError.message;
-          msg = typedError.message;
-        }
+        const msg = (error as { message?: string }).message;
+        const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition', detail: msg };
         return this.sendResp(req, res, {
+          status: 500,
           errors: [this.asError(error)],
           displayErrors: [displayError],
           v1: msg,
@@ -1678,7 +1648,7 @@ export namespace Controllers {
         );
       }
       metaMetadata['lastSavedBy'] = user?.['username'];
-      metaMetadata['lastSaveDate'] = DateTime.local().toISO();
+      metaMetadata['lastSaveDate'] = DateTime.utc().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
       return from(
@@ -1906,25 +1876,45 @@ export namespace Controllers {
       );
     }
 
-    public getDashboardType(req: Sails.Req, res: Sails.Res) {
+    private async buildDashboardTypeResponse(
+      brand: BrandingModel,
+      dashboardType: globalThis.Record<string, unknown>
+    ): Promise<DashboardTypeResponseModel> {
+      const name = String(_.get(dashboardType, 'name', ''));
+      return new DashboardTypeResponseModel({
+        name,
+        description: _.get(dashboardType, 'description') as string | undefined,
+        formatRules: (await DashboardConfigService.getDashboardContext(brand, name)) as globalThis.Record<string, unknown>,
+        searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
+        system: _.get(dashboardType, 'system') as boolean | undefined,
+      });
+    }
+
+    private sendDashboardConfigError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      const typed = error as { status?: number; code?: string; message?: string };
+      if (typed?.status && typed?.code) {
+        return this.sendResp(req, res, {
+          status: typed.status,
+          displayErrors: [{ status: String(typed.status), code: typed.code, detail: typed.message }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
+      return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+    }
+
+    public async getDashboardType(req: Sails.Req, res: Sails.Res) {
       const dashboardTypeParam = req.param('dashboardType') || '';
       const brand: BrandingModel = this.getReqBrand(req);
-      DashboardTypesService.get(brand, dashboardTypeParam).subscribe(
-        dashboardType => {
-          const dashboardTypeModel = new DashboardTypeResponseModel({
-            name: String(_.get(dashboardType, 'name', '')),
-            description: _.get(dashboardType, 'description') as string | undefined,
-            formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
-            tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
-            searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
-            system: _.get(dashboardType, 'system') as boolean | undefined,
-          });
-          this.sendResp(req, res, { data: dashboardTypeModel });
-        },
-        error => {
-          this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
-        }
-      );
+      try {
+        const dashboardType = await firstValueFrom(DashboardTypesService.get(brand, dashboardTypeParam));
+        const data = await this.buildDashboardTypeResponse(
+          brand,
+          (dashboardType ?? { name: dashboardTypeParam }) as unknown as globalThis.Record<string, unknown>
+        );
+        return this.sendResp(req, res, { data });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
     }
 
     private isValidDashboardViewDefinition(dashboardView: unknown): dashboardView is DashboardViewDefinition {
@@ -1952,37 +1942,54 @@ export namespace Controllers {
             !_.isEmpty(dashboardViewStep.name.trim()) &&
             _.isString(dashboardViewStep.sourceRecordType) &&
             !_.isEmpty(dashboardViewStep.sourceRecordType.trim()) &&
-            (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage') &&
-            _.isObject(dashboardViewStep.dashboardTable)
+            (dashboardViewStep.fetchMode === 'allForRecordType' || dashboardViewStep.fetchMode === 'workflowStage')
           );
         })
       );
     }
 
-    public getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
+    public async getAllDashboardTypes(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
-      DashboardTypesService.getAll(brand).subscribe(
-        dashboardTypes => {
-          const dashboardTypesModel = { dashboardTypes: [] };
-          const dashboardTypesModelList = [];
-          for (const dashboardType of dashboardTypes) {
-            const dashboardTypeModel = new DashboardTypeResponseModel({
-              name: String(_.get(dashboardType, 'name', '')),
-              description: _.get(dashboardType, 'description') as string | undefined,
-              formatRules: (_.get(dashboardType, 'formatRules') ?? {}) as globalThis.Record<string, unknown>,
-              tableConfig: _.get(dashboardType, 'tableConfig') as unknown as DashboardTableConfig,
-              searchable: _.get(dashboardType, 'searchable') as boolean | undefined,
-              system: _.get(dashboardType, 'system') as boolean | undefined,
-            });
-            dashboardTypesModelList.push(dashboardTypeModel);
-          }
-          _.set(dashboardTypesModel, 'dashboardTypes', dashboardTypesModelList);
-          this.sendResp(req, res, { data: dashboardTypesModel });
-        },
-        error => {
-          this.sendResp(req, res, { errors: [this.asError(error)], v1: error.message });
+      try {
+        const dashboardTypes = await firstValueFrom(DashboardTypesService.getAll(brand));
+        const models: DashboardTypeResponseModel[] = [];
+        for (const dashboardType of dashboardTypes) {
+          models.push(await this.buildDashboardTypeResponse(brand, dashboardType as unknown as globalThis.Record<string, unknown>));
         }
-      );
+        return this.sendResp(req, res, { data: { dashboardTypes: models } });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
+    }
+
+    /**
+     * Independent settings for every stage of a record type, from one
+     * configuration snapshot. Available to ordinary dashboard users.
+     */
+    public async getDashboardWorkflowSettings(req: Sails.Req, res: Sails.Res) {
+      const recordType = String(req.param('recordType') ?? '').trim();
+      if (!recordType) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record Type is required' }] });
+      }
+      try {
+        const data = await DashboardConfigService.getRuntimeSettings(this.getReqBrand(req), 'workflow', recordType);
+        return this.sendResp(req, res, { data, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
+    }
+
+    public async getDashboardViewSettings(req: Sails.Req, res: Sails.Res) {
+      const dashboardView = String(req.param('dashboardView') ?? '').trim();
+      if (!this.isValidDashboardViewDefinition(DashboardTypesService.getDashboardView(dashboardView))) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Dashboard view provided is not valid' }] });
+      }
+      try {
+        const data = await DashboardConfigService.getRuntimeSettings(this.getReqBrand(req), 'view', dashboardView);
+        return this.sendResp(req, res, { data, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendDashboardConfigError(req, res, error);
+      }
     }
 
     public getDashboardView(req: Sails.Req, res: Sails.Res) {
@@ -2200,6 +2207,9 @@ export namespace Controllers {
         });
         if (!found) {
           sails.log.verbose('Error: Attachment not found in do attachment.');
+          if (!this.isAjax(req)) {
+            return res.notFound();
+          }
           return this.sendResp(req, res, {
             status: 404,
             errors: [this.asError(new Error(TranslationService.t('attachment-not-found')))],
@@ -2211,20 +2221,18 @@ export namespace Controllers {
           // Set octet stream as a default
           mimeType = 'application/octet-stream';
         }
-        res.set('Content-Type', mimeType);
-
         const size = found['size'] as string;
-        if (!_.isEmpty(size)) {
-          res.set('Content-Length', size);
-        }
-
         sails.log.verbose('found.name ' + found['name']);
-        res.attachment(found['name'] as string);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found['name']}, attachId: ${attachId}`);
         try {
           const response = await that.datastreamService.getDatastream(oid, attachId, {
             username: String(req.user?.username ?? '') || undefined,
           });
+          res.set('Content-Type', mimeType);
+          if (!_.isEmpty(size)) {
+            res.set('Content-Length', size);
+          }
+          res.attachment(found['name'] as string);
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
@@ -2244,6 +2252,9 @@ export namespace Controllers {
               displayErrors: [{ code: 'edit-error-no-permissions' }],
             });
           } else if (errorMessage == TranslationService.t('attachment-not-found')) {
+            if (!this.isAjax(req)) {
+              return res.notFound();
+            }
             return this.sendResp(req, res, {
               status: 404,
               errors: [this.asError(error)],
@@ -2314,20 +2325,41 @@ export namespace Controllers {
       }
     }
 
-    public getRelatedRecords(req: Sails.Req, res: Sails.Res) {
-      return this.getRelatedRecordsInternal(req, res).then(response => {
-        return this.sendResp(req, res, { data: response });
-      });
+    public async getRelatedRecords(req: Sails.Req, res: Sails.Res) {
+      try {
+        const response = await this.getRelatedRecordsInternal(req, res);
+        if (response !== undefined) {
+          return this.sendResp(req, res, { data: response });
+        }
+      } catch (error) {
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Failed to load related records.' }],
+        });
+      }
     }
 
-    public async getRelatedRecordsInternal(req: Sails.Req, _res: Sails.Res) {
+    public async getRelatedRecordsInternal(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
       const brand: BrandingModel = this.getReqBrand(req);
-      const oid = req.param('oid');
-      //TODO may need to check user authorization like in getPermissionsInternal?
-      //let record = await this.getRecord(oid).toPromise();
-      //or the permissions may be checked in a parent call that will retrieved record oids that a user has access to
-      //plus some additional rules/logic that may be applied to filter the records
+      const oid = String(req.param('oid') ?? '').trim();
+      if (!oid) {
+        this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+        return;
+      }
+
+      // Authorize the root before traversal, even when relationshipDepth is zero.
+      const record = await this.recordsService.getMeta(oid);
+      if (_.isEmpty(record) || !brand?.id || record.metaMetadata?.brandId !== brand.id) {
+        this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
+        return;
+      }
+      if (!await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record))) {
+        this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'error-403-heading' }] });
+        return;
+      }
+
       const relationshipOptions = this.parseRelationshipExpandOptions(req);
       const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand, relationshipOptions);
       const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relatedRecords);

@@ -11,7 +11,6 @@ import {
   fromDoiPublishingFormModel,
   toDoiPublishingFormModel
 } from './DoiPublishing';
-import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from './RaidPublishing';
 import { WebAnalytics, WEB_ANALYTICS_SCHEMA } from './WebAnalytics';
@@ -41,7 +40,6 @@ export type ConfigModelKey =
     | 'figsharePublishing'
     | 'oniPublishing'
     | 'doiPublishing'
-    | 'dashboardTableConfig'
     | 'integrationNotification'
     | 'raidPublishing'
     | 'webAnalytics';
@@ -109,13 +107,6 @@ export class ConfigModels {
                 toForm: toDoiPublishingFormModel,
                 fromForm: fromDoiPublishingFormModel
             }
-        }],
-        ['dashboardTableConfig', {
-            modelName: 'DashboardTableOverrideConfig',
-            title: 'Dashboard Table Configuration',
-            class: DashboardTableOverrideConfig,
-            schema: DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA,
-            tsGlob: path.join(__dirname, '../../src/configmodels/DashboardTableOverrideConfig.ts')
         }],
         ['integrationNotification', {
             modelName: 'IntegrationNotificationConfig',

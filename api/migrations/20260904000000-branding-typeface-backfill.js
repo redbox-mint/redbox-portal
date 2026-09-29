@@ -1,0 +1,287 @@
+'use strict';
+
+const crypto = require('crypto');
+
+/**
+ * Branding typeface backfill migration.
+ *
+ * Backfills the Brand Typeface persistence fields introduced for custom brand
+ * typefaces (see design.md section 6):
+ *
+ * 1. `BrandingConfig.typeface` / `draftTypeface` (absent -> null, i.e. Default
+ *    Typography) and `draftRevision` (absent -> 0) for every brand.
+ * 2. `BrandingConfigHistory.typeface` (absent -> null) for every history row.
+ * 3. Legacy rollback repair: the old `rollback` implementation rewound the
+ *    active version number instead of allocating a new version. If the current
+ *    active state is not represented by the maximum history version, or the
+ *    active snapshot (css/hash) differs from the history row bearing
+ *    its version, the current active colours are preserved as a new complete
+ *    history row at `max(maxHistoryVersion, activeVersion) + 1` (Default
+ *    Typography) and the active version is moved to that value before any
+ *    pruning.
+ * 4. Retains only the newest configured (`sails.config.branding.historyMaxVersions`,
+ *    default 3) history rows per brand.
+ *
+ * Idempotency: every write is conditional on the row still needing it, so a
+ * second execution performs zero writes. Two instances attempting the same
+ * pending migration converge via the unique `(branding, version)` history
+ * index: a duplicate version insert is re-read and accepted only when the
+ * existing row represents the same preserved active snapshot.
+ *
+ * No `down` migration is provided on purpose: step 4 prunes history rows and
+ * deleted rows cannot be reconstructed, so a destructive rollback would risk
+ * data loss. Recovery from a bad deploy uses the pre-deployment database
+ * backup (see the implementation plan deployment sequence).
+ */
+
+const MIGRATION_NAME = '20260904000000-branding-typeface-backfill';
+const DEFAULT_HISTORY_MAX_VERSIONS = 3;
+// Frozen legacy editable keys: hidden/derived CSS tokens cannot be restored as inputs.
+const LEGACY_EDITABLE_KEYS = new Set([
+  'site-branding-area-background-color',
+  'logo-heading-text-color',
+  'panel-branding-background-color',
+  'panel-branding-color',
+  'panel-branding-border-color',
+  'main-menu-branding-background-color',
+  'header-branding-link-color',
+  'header-branding-background-color',
+  'header-branding-text-color',
+  'main-menu-active-item-color',
+  'main-menu-active-item-color-hover',
+  'main-menu-active-item-background-color',
+  'main-menu-active-item-background-color-hover',
+  'main-menu-inactive-item-color',
+  'main-menu-inactive-item-color-hover',
+  'main-menu-inactive-item-background-color',
+  'main-menu-inactive-item-background-color-hover',
+  'main-menu-inactive-dropdown-item-color',
+  'main-menu-inactive-dropdown-item-color-hover',
+  'main-menu-inactive-dropdown-item-background-color',
+  'main-menu-active-dropdown-item-color',
+  'main-menu-active-dropdown-item-color-hover',
+  'main-menu-active-dropdown-item-background-color',
+  'main-menu-active-dropdown-item-background-color-hover',
+  'body-background-color',
+  'body-text-color',
+  'anchor-color',
+  'anchor-color-hover',
+  'anchor-color-focus',
+  'footer-bottom-area-branding-background-color',
+  'footer-bottom-area-branding-color',
+  'primary',
+  'secondary',
+  'success',
+  'info',
+  'warning',
+  'danger',
+  'light',
+  'dark',
+]);
+
+function isMissing(value) {
+  return value === undefined || value === null;
+}
+
+function snapshotKey(value) {
+  return JSON.stringify(value === undefined ? null : value);
+}
+
+function effectiveHash(brand) {
+  // Mirrors the preservation fallback so reruns compare equal (idempotency).
+  return (
+    brand.hash ||
+    crypto
+      .createHash('sha256')
+      .update(String(brand.css || ''))
+      .digest('hex')
+      .slice(0, 32)
+  );
+}
+
+function activeMatchesHistory(brand, history) {
+  return snapshotKey(brand.css) === snapshotKey(history.css) && effectiveHash(brand) === history.hash;
+}
+
+function readHistoryMaxVersions(sails) {
+  try {
+    const configured = sails && sails.config && sails.config.branding && sails.config.branding.historyMaxVersions;
+    if (typeof configured === 'number' && Number.isSafeInteger(configured) && configured > 0) {
+      return configured;
+    }
+  } catch (_ignored) {
+    // Fall through to the default.
+  }
+  sails.log.info('Branding typeface backfill: Invalid historyMaxVersions; using safe default 3.');
+  return DEFAULT_HISTORY_MAX_VERSIONS;
+}
+
+function isUniqueViolation(error) {
+  if (!error) {
+    return false;
+  }
+  const code = typeof error.code === 'string' ? error.code : '';
+  const message = typeof error.message === 'string' ? error.message : '';
+  return code === 'E_UNIQUE' || /E_UNIQUE|unique|duplicate key/i.test(code + ' ' + message);
+}
+
+async function backfillBrandFields(BrandingConfig, brand) {
+  const patch = {};
+  if (brand.typeface === undefined) {
+    patch.typeface = null;
+  }
+  if (brand.draftTypeface === undefined) {
+    patch.draftTypeface = null;
+  }
+  if (isMissing(brand.draftRevision)) {
+    patch.draftRevision = 0;
+  }
+  if (Object.keys(patch).length === 0) {
+    return;
+  }
+  await BrandingConfig.updateOne({ id: brand.id }).set(patch);
+  Object.assign(brand, patch);
+}
+
+async function backfillHistoryTypeface(BrandingConfigHistory, histories) {
+  for (const history of histories) {
+    if (history.typeface === undefined) {
+      await BrandingConfigHistory.updateOne({ id: history.id }).set({ typeface: null });
+      history.typeface = null;
+    }
+  }
+}
+
+// `variables` on the brand is the independent draft, never publication evidence.
+function publishedVariables(brand, histories) {
+  const matching = histories.find(row => activeMatchesHistory(brand, row));
+  if (matching) return matching.variables || {};
+  const root = /:root\s*\{([^}]+)\}/.exec(brand.css || '');
+  const variables = {};
+  if (root) {
+    for (const match of root[1].matchAll(/--rb-([a-z0-9-]+)\s*:\s*(#[a-fA-F0-9]{3,8})\s*;/g)) {
+      if (LEGACY_EDITABLE_KEYS.has(match[1])) variables[match[1]] = match[2];
+    }
+  }
+  if (Object.keys(variables).length === 0) {
+    // Do not prune anything when the published snapshot cannot be recovered.
+    throw new Error(`Branding typeface backfill: cannot recover published colours for brand ${brand.id}`);
+  }
+  return variables;
+}
+
+async function preserveActiveState(BrandingConfig, BrandingConfigHistory, sails, brand, maxVersion, histories) {
+  const activeVersion = typeof brand.version === 'number' ? brand.version : 0;
+  const nextVersion = Math.max(maxVersion, activeVersion) + 1;
+  // BrandingConfigHistory.hash is required and rejects empty strings, so a
+  // never-published brand (empty hash) is preserved under the deterministic
+  // effective content hash (see effectiveHash) instead of ''.
+  const preservedHash = effectiveHash(brand);
+  const preserved = {
+    branding: brand.id,
+    version: nextVersion,
+    hash: preservedHash,
+    css: brand.css || '',
+    variables: publishedVariables(brand, histories),
+    typeface: null,
+  };
+  try {
+    await BrandingConfigHistory.create(preserved);
+  } catch (error) {
+    if (!isUniqueViolation(error)) {
+      throw error;
+    }
+    // A concurrent migration runner may have won the same preservation.
+    // Converge only when the existing row is the same preserved snapshot.
+    const existing = await BrandingConfigHistory.findOne({ branding: brand.id, version: nextVersion });
+    if (!existing || !activeMatchesHistory(brand, existing)) {
+      throw error;
+    }
+    sails.log.verbose(`Branding typeface backfill: concurrent preservation of brand ${brand.id} converged.`);
+  }
+  // Conditional move so a concurrent winner is never overwritten blindly.
+  const updated = await BrandingConfig.updateOne({ id: brand.id, version: brand.version }).set({
+    version: nextVersion,
+  });
+  if (updated) {
+    brand.version = nextVersion;
+  } else {
+    const reread = await BrandingConfig.findOne({ id: brand.id });
+    if (!reread || reread.version !== nextVersion) {
+      throw new Error(`Branding typeface backfill: concurrent brand update conflict for brand ${brand.id}`);
+    }
+    brand.version = reread.version;
+  }
+  return nextVersion;
+}
+
+async function pruneHistories(BrandingConfigHistory, brandId, retain) {
+  const histories = await BrandingConfigHistory.find({ branding: brandId }).sort('version DESC');
+  const excess = histories.slice(retain);
+  for (const history of excess) {
+    await BrandingConfigHistory.destroy({ id: history.id });
+  }
+  return excess.length;
+}
+
+async function migrateBrand(sails, brand, retain) {
+  const BrandingConfig = sails.models.brandingconfig;
+  const BrandingConfigHistory = sails.models.brandingconfighistory;
+  const stats = { brandBackfilled: false, preservedVersion: null, pruned: 0 };
+
+  const needsBackfill =
+    brand.typeface === undefined || brand.draftTypeface === undefined || isMissing(brand.draftRevision);
+  await backfillBrandFields(BrandingConfig, brand);
+  stats.brandBackfilled = needsBackfill;
+
+  let histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
+  await backfillHistoryTypeface(BrandingConfigHistory, histories);
+
+  const maxVersion = histories.reduce((max, history) => Math.max(max, history.version), 0);
+  const activeVersion = brand.version || 0;
+  // Version zero with no history is the generated-default state and is already
+  // represented. Otherwise the active state must equal the maximum-version row;
+  // a rewound version, an unmatched version, or a divergent same-number
+  // snapshot is preserved as max(maxVersion, activeVersion) + 1 before any pruning.
+  const maxRow = histories.find(history => history.version === maxVersion);
+  const activeRepresented =
+    (activeVersion === 0 && maxVersion === 0) ||
+    (activeVersion === maxVersion && maxRow !== undefined && activeMatchesHistory(brand, maxRow));
+  if (!activeRepresented) {
+    stats.preservedVersion = await preserveActiveState(
+      BrandingConfig,
+      BrandingConfigHistory,
+      sails,
+      brand,
+      maxVersion,
+      histories
+    );
+    histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
+  }
+
+  stats.pruned = await pruneHistories(BrandingConfigHistory, brand.id, retain);
+  return stats;
+}
+
+async function up(params) {
+  const sails = params && params.context;
+  if (!sails || !sails.models || !sails.models.brandingconfig || !sails.models.brandingconfighistory) {
+    throw new Error('branding-typeface-backfill-models-unavailable');
+  }
+  const retain = readHistoryMaxVersions(sails);
+  const brands = await sails.models.brandingconfig.find({});
+  let preserved = 0;
+  let pruned = 0;
+  for (const brand of brands) {
+    const stats = await migrateBrand(sails, brand, retain);
+    if (stats.preservedVersion !== null && stats.preservedVersion !== undefined) {
+      preserved += 1;
+    }
+    pruned += stats.pruned;
+  }
+  sails.log.info(
+    `Branding typeface backfill complete: brands=${brands.length}, preserved=${preserved}, pruned=${pruned}, retain=${retain}.`
+  );
+}
+
+module.exports = { name: MIGRATION_NAME, up };

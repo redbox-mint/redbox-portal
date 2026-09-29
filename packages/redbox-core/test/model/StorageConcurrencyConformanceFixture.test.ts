@@ -1,5 +1,5 @@
 import {
-  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+  RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   STORAGE_CONCURRENCY_CONFORMANCE_CHECKS,
   StorageMutationResponse,
   type RecordStorageMutationOptions,
@@ -113,7 +113,7 @@ function createReferenceHarness(): StorageConcurrencyConformanceHarness {
 
   return {
     adapter: {
-      getCapabilities: () => ({ recordConcurrency: { ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } }),
+      getCapabilities: () => ({ recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION }),
       getTombstone: async (brand, oid) => {
         const current = tombstones.get(String(oid));
         return current && storedBrandId(current) === brandId(brand) ? (current as any) : null;

@@ -7,13 +7,10 @@ import type { ApiRouteDefinition } from '../api-routes';
 import { getHookProcessingOrder } from '../hooks/hookDiscovery';
 import {
     createCoreRecordContractContributors,
-    getDiscoveredRecordContractContributorState,
+    recordContractContributorDiscoveryState,
     RecordContractContributorRegistry,
     RecordContractContributorRegistrationError,
     RECORD_CONTRACT_REGISTRATION_CODES,
-    resetDiscoveredRecordContractContributorRegistry,
-    setDiscoveredRecordContractContributorRegistrationIssues,
-    setDiscoveredRecordContractContributorRegistry,
 } from '../record-contract';
 import type {
     RecordContractContributor,
@@ -22,7 +19,7 @@ import type {
     RecordContractRegistrationIssue,
 } from '../record-contract';
 import type { RedboxMigration } from './MigrationRunner';
-import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import { handlebarsCompile } from '@researchdatabox/sails-ng-common';
 
 export type { RedboxMigration } from './MigrationRunner';
 
@@ -53,11 +50,11 @@ export interface HookPolicyRegistration extends HookModuleRegistration {
     exportName?: string;
 }
 
-export interface HookServiceRegistration extends HookModuleRegistration { }
+export interface HookServiceRegistration extends HookModuleRegistration {}
 
-export interface HookControllerRegistration extends HookModuleRegistration { }
+export interface HookControllerRegistration extends HookModuleRegistration {}
 
-export interface HookModelRegistration extends HookModuleRegistration { }
+export interface HookModelRegistration extends HookModuleRegistration {}
 
 export interface HookRegistrations {
     hookModels: Record<string, HookModelRegistration>;
@@ -335,17 +332,15 @@ function isRecordContractContributor(value: unknown): value is RecordContractCon
     }
     const contributor = value as Record<string, unknown>;
     if (
-        (contributor.kind !== 'component' && contributor.kind !== 'extension')
-        || typeof contributor.key !== 'string'
-        || typeof contributor.version !== 'string'
-        || !['non-null', 'nullable', 'configuration', 'legacy-permissive'].includes(String(contributor.nullability))
-        || typeof contributor.compile !== 'function'
+        contributor.kind !== 'component' ||
+        typeof contributor.key !== 'string' ||
+        typeof contributor.version !== 'string' ||
+        !['non-null', 'nullable', 'configuration'].includes(String(contributor.nullability)) ||
+        typeof contributor.compile !== 'function'
     ) {
         return false;
     }
-    return contributor.kind === 'component'
-        ? typeof contributor.componentType === 'string' && Array.isArray(contributor.ownedPointers)
-        : typeof contributor.namespace === 'string' && typeof contributor.root === 'string';
+    return typeof contributor.componentType === 'string' && Array.isArray(contributor.ownedPointers);
 }
 
 /**
@@ -355,8 +350,7 @@ function isRecordContractContributor(value: unknown): value is RecordContractCon
  */
 export async function discoverRecordContractContributorRegistry(
     appPath: string
-): Promise<RecordContractContributorRegistry> {
-    resetDiscoveredRecordContractContributorRegistry();
+): Promise<RecordContractContributorDiscoveryState> {
     const registrations: RecordContractContributorRegistration[] = createCoreRecordContractContributors().map(
         contributor => ({ contributor, source: 'core' })
     );
@@ -411,11 +405,10 @@ export async function discoverRecordContractContributorRegistry(
 
     try {
         const registry = new RecordContractContributorRegistry(registrations, { additionalIssues: issues });
-        setDiscoveredRecordContractContributorRegistry(registry);
-        return registry;
+        return recordContractContributorDiscoveryState(registry.registrations());
     } catch (error) {
         if (error instanceof RecordContractContributorRegistrationError) {
-            setDiscoveredRecordContractContributorRegistrationIssues(error.issues, registrations);
+            return recordContractContributorDiscoveryState(registrations, error.issues);
         }
         throw error;
     }
@@ -558,7 +551,9 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                     for (const controllerName of Object.keys(wsControllers)) {
                         hookWebserviceControllers[controllerName] = { module: depName };
                     }
-                    log.verbose(`Registered ${Object.keys(wsControllers).length} webservice controllers from ${depName}`);
+                    log.verbose(
+                        `Registered ${Object.keys(wsControllers).length} webservice controllers from ${depName}`
+                    );
                 }
             }
 
@@ -634,7 +629,8 @@ export async function generateMigrationConfigShim(
 
     const migrationSourceEntries = [
         ...hookMigrations.map(
-            hook => `  { source: 'hook:${hook.name}', migrations: ${sanitizePackageNameForVar(hook.name, 'migrations')} },`
+            hook =>
+                `  { source: 'hook:${hook.name}', migrations: ${sanitizePackageNameForVar(hook.name, 'migrations')} },`
         ),
         ...localMigrationFiles.map(
             (fileName, index) => `  { source: 'api/migrations/${fileName}', migrations: [appMigration_${index}] },`
@@ -674,7 +670,7 @@ export async function generateMigrationConfigShim(
         `      continue;`,
         `    }`,
         `    seenMigrationNames.set(migration.name, source);`,
-        `    migrations.push(migration);`,
+        `    migrations.push({ ...migration, source: migration.source || source });`,
         `  }`,
         `}`,
         ``,
@@ -895,7 +891,8 @@ export async function generateControllerShims(
     hookControllers: Record<string, HookControllerRegistration>,
     hookWebserviceControllers: Record<string, HookControllerRegistration>
 ): Promise<HookGenerationStats> {
-    const { ControllerNames, WebserviceControllerNames, ControllerExports, WebserviceControllerExports } = loadCoreTypes();
+    const { ControllerNames, WebserviceControllerNames, ControllerExports, WebserviceControllerExports } =
+        loadCoreTypes();
 
     const allApiControllers = new Set([...ControllerNames, ...Object.keys(hookControllers)]);
     const allWSControllers = new Set([...WebserviceControllerNames, ...Object.keys(hookWebserviceControllers)]);
@@ -995,7 +992,9 @@ export async function generateFormConfigShims(
         .map(([moduleName, varName]) => `const ${varName} = require('${moduleName}').registerRedboxFormConfigs();`)
         .join('\n');
     const includeCoreExports = loadDefaultForms && coreFormNames.length > 0;
-    const coreRequire = includeCoreExports ? "const { FormConfigExports } = require('@researchdatabox/redbox-core');\n\n" : '';
+    const coreRequire = includeCoreExports
+        ? "const { FormConfigExports } = require('@researchdatabox/redbox-core');\n\n"
+        : '';
 
     const formsEntries = orderedFormNames
         .map(name => {
@@ -1164,7 +1163,11 @@ export async function generatePreLiftSnapshot(appPath: string, hookConfigs: Hook
             if (typeof hookModule.registerRedboxConfig === 'function') {
                 const hookConfig = hookModule.registerRedboxConfig();
                 mergedConfig = Object.keys(hookConfig).reduce((config, name) => {
-                    config[name] = mergeRedboxConfig(name, config[name] as RedboxConfigMap ?? {}, hookConfig[name] as RedboxConfigMap ?? {});
+                    config[name] = mergeRedboxConfig(
+                        name,
+                        (config[name] as RedboxConfigMap) ?? {},
+                        (hookConfig[name] as RedboxConfigMap) ?? {}
+                    );
                     return config;
                 }, mergedConfig as RedboxConfigMap);
             }
@@ -1195,7 +1198,10 @@ export async function generateBootstrapShim(
     const filePath = path.join(configDir, 'bootstrap.js');
 
     const hookImports = hookBootstraps
-        .map(hook => `const ${sanitizePackageNameForVar(hook.name, 'bootstrap')} = require('${hook.module}').registerRedboxBootstrap();`)
+        .map(
+            hook =>
+                `const ${sanitizePackageNameForVar(hook.name, 'bootstrap')} = require('${hook.module}').registerRedboxBootstrap();`
+        )
         .join('\n');
 
     const hookCalls = hookBootstraps
@@ -1243,17 +1249,12 @@ export async function shouldRegenerateShims(appPath: string, forceRegenerate = f
 
 export async function generateAllShims(appPath: string, options: LoaderOptions = {}): Promise<GenerateAllShimsResult> {
     const startTime = performance.now();
-    try {
-        await discoverRecordContractContributorRegistry(appPath);
-    } catch (error) {
-        if (!(error instanceof RecordContractContributorRegistrationError)) {
-            throw error;
-        }
+    const recordContractContributorState = await discoverRecordContractContributorRegistry(appPath);
+    if (recordContractContributorState.registrationIssues.length > 0) {
         log.warn(
             'Record-contract contributor discovery found invalid registrations; the enabled lifecycle gate will report them.'
         );
     }
-    const recordContractContributorState = getDiscoveredRecordContractContributorState();
     const { shouldRegenerate, reason, deleteMarker } = await shouldRegenerateShims(appPath, options.forceRegenerate);
 
     if (!shouldRegenerate) {
@@ -1329,18 +1330,30 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
 
         log.verbose(`Shim generation took ${(performance.now() - genStart).toFixed(2)}ms`);
         log.verbose(`Models: ${modelStats.generated}/${modelStats.total} written (${modelStats.fromHooks} from hooks)`);
-        log.verbose(`Policies: ${policyStats.generated}/${policyStats.total} written (${policyStats.fromHooks} from hooks)`);
+        log.verbose(
+            `Policies: ${policyStats.generated}/${policyStats.total} written (${policyStats.fromHooks} from hooks)`
+        );
         log.verbose(`Middleware: ${middlewareStats.generated}/${middlewareStats.total} written`);
         log.verbose(`Responses: ${responseStats.generated}/${responseStats.total} written`);
-        log.verbose(`Services: ${serviceStats.generated}/${serviceStats.total} written (${serviceStats.fromHooks} from hooks)`);
-        log.verbose(`Controllers: ${controllerStats.generated}/${controllerStats.total} written (${controllerStats.fromHooks} from hooks)`);
+        log.verbose(
+            `Services: ${serviceStats.generated}/${serviceStats.total} written (${serviceStats.fromHooks} from hooks)`
+        );
+        log.verbose(
+            `Controllers: ${controllerStats.generated}/${controllerStats.total} written (${controllerStats.fromHooks} from hooks)`
+        );
         log.verbose(
             `Form-config: index ${formConfigStats.generated ? 'written' : 'unchanged'}; entries ${formConfigStats.indexCount} (${formConfigStats.fromHooks} from hooks)`
         );
         log.verbose(`Config Shims: ${configShimStats.generated}/${configShimStats.total} written`);
-        log.verbose(`API route hooks: ${apiRouteHookStats.generated}/${apiRouteHookStats.total} written (${hookApiRoutes.length} hooks)`);
-        log.verbose(`Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`);
-        log.verbose(`Migrations: ${migrationStats.generated}/${migrationStats.total} written (${hookMigrations.length} hooks)`);
+        log.verbose(
+            `API route hooks: ${apiRouteHookStats.generated}/${apiRouteHookStats.total} written (${hookApiRoutes.length} hooks)`
+        );
+        log.verbose(
+            `Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`
+        );
+        log.verbose(
+            `Migrations: ${migrationStats.generated}/${migrationStats.total} written (${hookMigrations.length} hooks)`
+        );
 
         await generatePreLiftSnapshot(appPath, hookConfigs);
 

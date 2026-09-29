@@ -9,7 +9,6 @@ import { reusableFormDefinitions } from '../src/config/reusableFormDefinitions.c
 import { createCoreRecordContractContributors } from '../src/record-contract/core-contributors';
 import {
   RecordContractContributorRegistry,
-  type RecordContractComponentContributor,
   type RecordContractContributorRegistration,
 } from '../src/record-contract/contributor-registry';
 import { RecordContractCompiler } from '../src/record-contract/record-contract-compiler';
@@ -44,13 +43,6 @@ export interface RecordSchemaRolloutEvidenceFinding {
   readonly componentType?: string;
 }
 
-export interface RecordSchemaRolloutLegacyNullabilityFinding {
-  readonly form: string;
-  readonly kinds: readonly RecordContractSchemaKind[];
-  readonly pointer: string;
-  readonly componentType: string;
-}
-
 export interface RecordSchemaRolloutEvidenceEntry {
   readonly form: string;
   readonly kind: RecordContractSchemaKind;
@@ -61,7 +53,6 @@ export interface RecordSchemaRolloutEvidenceEntry {
   readonly observedProperties: number;
   readonly diagnosticCount: number;
   readonly diagnosticCodes: readonly string[];
-  readonly legacyNullabilityCount: number;
   readonly unknownPropertyProbe: 'accepted';
   readonly shadowWarningCodes: readonly string[];
 }
@@ -89,7 +80,6 @@ export interface RecordSchemaRolloutEvidenceReport {
     readonly completeSchemas: number;
     readonly partialSchemas: number;
     readonly unsupportedComponents: number;
-    readonly legacyNullability: number;
     readonly schemaWarnings: number;
     readonly unknownPropertyProbesAccepted: number;
   };
@@ -105,7 +95,6 @@ export interface RecordSchemaRolloutEvidenceReport {
     };
   };
   readonly unsupportedComponents: readonly RecordSchemaRolloutEvidenceFinding[];
-  readonly legacyNullability: readonly RecordSchemaRolloutLegacyNullabilityFinding[];
   readonly schemaDiagnostics: readonly RecordSchemaRolloutEvidenceFinding[];
   readonly schemas: readonly RecordSchemaRolloutEvidenceEntry[];
 }
@@ -127,13 +116,6 @@ interface MutableFinding {
   readonly kinds: Set<RecordContractSchemaKind>;
   readonly pointer?: string;
   readonly componentType?: string;
-}
-
-interface MutableLegacyFinding {
-  readonly form: string;
-  readonly kinds: Set<RecordContractSchemaKind>;
-  readonly pointer: string;
-  readonly componentType: string;
 }
 
 export type RecordSchemaRolloutEvidenceErrorCode =
@@ -243,45 +225,6 @@ function addDiagnosticFinding(
   }
 }
 
-function legacyFindingKey(finding: Omit<MutableLegacyFinding, 'kinds'>): string {
-  return [finding.form, finding.pointer, finding.componentType].join('\u0000');
-}
-
-function trackedRegistrations(
-  registrations: readonly RecordContractContributorRegistration[],
-  form: string,
-  kind: RecordContractSchemaKind,
-  legacyFindings: Map<string, MutableLegacyFinding>,
-  schemaLegacyFindings: Set<string>
-): readonly RecordContractContributorRegistration[] {
-  return registrations.map(registration => {
-    const contributor = registration.contributor;
-    if (contributor.kind !== 'component' || contributor.nullability !== 'legacy-permissive') {
-      return registration;
-    }
-    const tracked: RecordContractComponentContributor = {
-      ...contributor,
-      compile: context => {
-        const finding = {
-          form,
-          pointer: context.pointer,
-          componentType: contributor.componentType,
-        };
-        const key = legacyFindingKey(finding);
-        const existing = legacyFindings.get(key);
-        if (existing) {
-          existing.kinds.add(kind);
-        } else {
-          legacyFindings.set(key, { ...finding, kinds: new Set([kind]) });
-        }
-        schemaLegacyFindings.add(key);
-        return contributor.compile(context);
-      },
-    };
-    return { ...registration, contributor: tracked };
-  });
-}
-
 function nodeMetrics(node: ContractNode, depth = 0): NodeMetrics {
   switch (node.kind) {
     case 'scalar':
@@ -334,19 +277,6 @@ function immutableFindings(
     .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
 }
 
-function immutableLegacyFindings(
-  findings: ReadonlyMap<string, MutableLegacyFinding>
-): readonly RecordSchemaRolloutLegacyNullabilityFinding[] {
-  return [...findings.values()]
-    .map(finding => ({
-      form: finding.form,
-      kinds: [...finding.kinds].sort(compareKinds),
-      pointer: finding.pointer,
-      componentType: finding.componentType,
-    }))
-    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
-}
-
 function headroom(limit: number, observedMaximum: number): LimitHeadroom {
   return { limit, observedMaximum, remaining: limit - observedMaximum };
 }
@@ -385,15 +315,11 @@ export async function generateRecordSchemaRolloutEvidence(
   assertForms(forms);
 
   const diagnostics = new Map<string, MutableFinding>();
-  const legacyFindings = new Map<string, MutableLegacyFinding>();
   const schemas: RecordSchemaRolloutEvidenceEntry[] = [];
 
   for (const evidenceForm of [...forms].sort((left, right) => left.id.localeCompare(right.id))) {
     for (const kind of ['create', 'update'] as const) {
-      const schemaLegacyFindings = new Set<string>();
-      const registry = new RecordContractContributorRegistry(
-        trackedRegistrations(registrations, evidenceForm.id, kind, legacyFindings, schemaLegacyFindings)
-      );
+      const registry = new RecordContractContributorRegistry(registrations);
       const result = await new RecordContractCompiler(registry, limits).compile({
         form: evidenceForm.form,
         context: {
@@ -453,7 +379,6 @@ export async function generateRecordSchemaRolloutEvidence(
         observedProperties: Math.max(metrics.properties, Object.keys(result.contract.fieldOwners).length),
         diagnosticCount: result.contract.diagnostics.length,
         diagnosticCodes: uniqueSorted(result.contract.diagnostics.map(diagnostic => diagnostic.code)),
-        legacyNullabilityCount: schemaLegacyFindings.size,
         unknownPropertyProbe: 'accepted',
         shadowWarningCodes: uniqueSorted(warningProbe.issues.map(issue => issue.code)),
       });
@@ -461,9 +386,8 @@ export async function generateRecordSchemaRolloutEvidence(
   }
 
   const schemaDiagnostics = immutableFindings(diagnostics);
-  const legacyNullability = immutableLegacyFindings(legacyFindings);
   const unsupportedComponents = schemaDiagnostics.filter(finding => finding.code === 'x-redbox-unsupported-component');
-  if (schemaDiagnostics.length + legacyNullability.length > MAX_FINDINGS) {
+  if (schemaDiagnostics.length > MAX_FINDINGS) {
     throw new RecordSchemaRolloutEvidenceError(
       'record-schema-rollout.too-many-findings',
       'The rollout evidence finding count exceeds its report bound.'
@@ -494,7 +418,6 @@ export async function generateRecordSchemaRolloutEvidence(
       completeSchemas,
       partialSchemas: schemas.length - completeSchemas,
       unsupportedComponents: unsupportedComponents.length,
-      legacyNullability: legacyNullability.length,
       schemaWarnings: schemas.reduce((count, schema) => count + schema.shadowWarningCodes.length, 0),
       unknownPropertyProbesAccepted: schemas.filter(schema => schema.unknownPropertyProbe === 'accepted').length,
     },
@@ -507,7 +430,6 @@ export async function generateRecordSchemaRolloutEvidence(
       contributorTimeoutMs: { limit: limits.contributorTimeoutMs, breaches: 0 },
     },
     unsupportedComponents,
-    legacyNullability,
     schemaDiagnostics,
     schemas,
   };
@@ -545,7 +467,7 @@ async function main(): Promise<void> {
   try {
     const report = await runRecordSchemaRolloutEvidence();
     process.stdout.write(
-      `Record-schema shadow rollout passed: ${report.summary.formsChecked} forms, ${report.summary.schemasChecked} schemas, ${report.summary.completeSchemas} complete, ${report.summary.partialSchemas} partial, ${report.summary.unsupportedComponents} unsupported components, ${report.summary.legacyNullability} legacy-nullability findings.\n`
+      `Record-schema shadow rollout passed: ${report.summary.formsChecked} forms, ${report.summary.schemasChecked} schemas, ${report.summary.completeSchemas} complete, ${report.summary.partialSchemas} partial, ${report.summary.unsupportedComponents} unsupported components.\n`
     );
     process.stdout.write(`Evidence: ${path.relative(process.cwd(), APPROVED_REPORT_PATH)}\n`);
   } catch (error) {

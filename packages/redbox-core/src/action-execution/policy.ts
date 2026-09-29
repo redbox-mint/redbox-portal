@@ -162,9 +162,3 @@ export function retryDelayMs(
   const sample = Math.min(1, Math.max(0, random()));
   return Math.min(MAX_DELAY_MS, Math.round(base * (0.5 + sample)));
 }
-
-export const ACTION_EXECUTION_LIMITS = {
-  maxTimeoutMs: MAX_TIMEOUT_MS,
-  maxDelayMs: MAX_DELAY_MS,
-  maxAttempts: MAX_ATTEMPTS,
-} as const;

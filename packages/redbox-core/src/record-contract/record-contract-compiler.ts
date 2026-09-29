@@ -1,9 +1,13 @@
 import type {
+  AvailableFormComponentDefinitionFrames,
   FormComponentDefinitionFrame,
   FormConfigFrame,
   FormValidatorConfig,
   FormValidatorTargetFieldConfig,
+  ILogger,
+  ReusableFormDefinitions,
 } from '@researchdatabox/sails-ng-common';
+import { FormOverride } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
@@ -11,7 +15,6 @@ import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
 import { freezeDeep } from './deep-freeze';
 import type {
   ContractCondition,
-  ContractJsonValue,
   ContractNode,
   ContractObjectNode,
   ContractOwner,
@@ -26,7 +29,6 @@ import type {
 import type {
   RecordContractComponentContribution,
   RecordContractContributorRegistration,
-  RecordContractExtensionContribution,
 } from './contributor-registry';
 import { RecordContractContributorRegistry } from './contributor-registry';
 import {
@@ -34,18 +36,32 @@ import {
   joinRecordContractPointer,
   recordContractPointer,
   recordContractPointerFromTokens,
-  recordContractPointerTokens,
 } from './json-pointer';
 import { CORE_RECORD_CONTRACT_COMPONENT_INVENTORY } from './core-contributors';
 import { snapshotRecordContractPublicContext, type RecordContractEffectiveForm } from './record-contract-context';
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
+const noopFormOverrideLog = (): void => undefined;
+const FORM_OVERRIDE_LOGGER: ILogger = Object.freeze({
+  silly: noopFormOverrideLog,
+  verbose: noopFormOverrideLog,
+  trace: noopFormOverrideLog,
+  debug: noopFormOverrideLog,
+  log: noopFormOverrideLog,
+  info: noopFormOverrideLog,
+  warn: noopFormOverrideLog,
+  error: noopFormOverrideLog,
+  crit: noopFormOverrideLog,
+  fatal: noopFormOverrideLog,
+  silent: noopFormOverrideLog,
+  blank: noopFormOverrideLog,
+});
+
 export interface RecordContractCompileRequest {
   readonly form: RecordContractEffectiveForm;
   readonly context: RecordContractPublicContext;
   readonly reusableFormDefinitions?: Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>;
-  readonly extensionMetadata?: Readonly<Record<string, unknown>>;
 }
 
 class CompilerFailure extends Error {
@@ -123,7 +139,6 @@ function contributorIdentity(registration: RecordContractContributorRegistration
     key: contributor.key,
     version: contributor.version,
     source: registration.source,
-    ...(contributor.kind === 'extension' ? { namespace: contributor.namespace } : {}),
   };
 }
 
@@ -150,6 +165,14 @@ function isPlainObject(value: object): value is Record<string, unknown> {
 
 function isNativeRegExp(value: object): value is RegExp {
   return Object.getPrototypeOf(value) === RegExp.prototype;
+}
+
+function isNonPersistingContribution(value: unknown): boolean {
+  if (value === null || typeof value !== 'object' || Array.isArray(value) || !isPlainObject(value)) {
+    return false;
+  }
+  const kind = Object.getOwnPropertyDescriptor(value, 'kind');
+  return kind?.enumerable === true && 'value' in kind && kind.value === 'non-persisting';
 }
 
 /** Clone without invoking accessors or accepting values JSON would silently rewrite. */
@@ -264,9 +287,6 @@ function snapshotCompileRequest(request: RecordContractCompileRequest): RecordCo
             '$request.reusableFormDefinitions'
           ),
         }),
-    ...(request.extensionMetadata === undefined
-      ? {}
-      : { extensionMetadata: cloneCompilerInput(request.extensionMetadata, '$request.extensionMetadata') }),
   });
 }
 
@@ -446,7 +466,6 @@ export class RecordContractCompiler {
         state
       );
       this.collectValidators(snapshot.form.validators, recordContractPointer(''), snapshot.form, state);
-      await this.compileExtensions(root, snapshot, state);
       this.validateNodeBounds(root, 0, recordContractPointer(''));
 
       const contract = freezeDeep<RecordContract>({
@@ -505,7 +524,11 @@ export class RecordContractCompiler {
   ): Promise<ContractObjectNode> {
     this.assertDepth(depth, parent);
     const properties: Record<string, ContractNode> = {};
+    const roleFilteredComponents = new Map<string, FormComponentDefinitionFrame[]>();
     for (const component of components) {
+      if (this.isRoleFilteredDuplicate(component, roleFilteredComponents)) {
+        continue;
+      }
       const contributions = await this.compileComponent(component, parent, depth + 1, request, state);
       for (const [name, node] of contributions) {
         if (Object.hasOwn(properties, name)) {
@@ -535,10 +558,15 @@ export class RecordContractCompiler {
     state: CompilerState
   ): Promise<Array<readonly [string, ContractNode]>> {
     this.assertDepth(depth, parent);
+    if (!this.isAvailableInEditMode(component)) {
+      return [];
+    }
     const reusableName = component.overrides?.reusableFormName;
     if (typeof reusableName === 'string' && reusableName !== '') {
-      return this.compileReusable(reusableName, parent, depth, request, state);
+      return this.compileReusable(component, reusableName, parent, depth, request, state);
     }
+
+    component = this.applyEditModeName(component);
 
     const componentType = component.component?.class;
     if (typeof componentType !== 'string' || componentType.trim() === '') {
@@ -592,12 +620,14 @@ export class RecordContractCompiler {
           ),
       });
       contribution = await this.withTimeout(() => contributor.compile(compileContext), contributor.key, pointer);
+      const allowRuntimeChildren = isNonPersistingContribution(contribution);
       contribution = cloneJsonSafe(
         contribution,
         `$contributor[${contributor.key}]`,
         new Set<object>(),
         0,
-        this.limits.maxDepth + 8
+        this.limits.maxDepth + 8,
+        allowRuntimeChildren
       );
       if (estimatedBytes(contribution) > this.limits.maxDocumentBytes) {
         throw this.limitFailure(
@@ -685,6 +715,7 @@ export class RecordContractCompiler {
   }
 
   private async compileReusable(
+    component: FormComponentDefinitionFrame,
     name: string,
     parent: RecordContractPointer,
     depth: number,
@@ -708,7 +739,30 @@ export class RecordContractCompiler {
     }
     state.activeDefinitions.add(name);
     try {
-      const compiled = await this.compileChildren(definition, parent, depth + 1, request, state);
+      const reusableFormDefinitions: ReusableFormDefinitions = {};
+      for (const [definitionName, components] of Object.entries(request.reusableFormDefinitions ?? {})) {
+        // Reusable definitions are hook-extensible at the compiler boundary,
+        // while the shared form expander exposes the closed core component
+        // union. The runtime shape is the common FormComponentDefinitionFrame.
+        reusableFormDefinitions[definitionName] = [...components] as AvailableFormComponentDefinitionFrames[];
+      }
+      const expanded = new FormOverride(FORM_OVERRIDE_LOGGER).applyOverridesReusable(
+        [component as AvailableFormComponentDefinitionFrames],
+        reusableFormDefinitions
+      );
+      const effectiveComponents = expanded.map(expandedComponent => {
+        if (expandedComponent.name || !component.name) {
+          return expandedComponent;
+        }
+        const overrides = { ...expandedComponent.overrides };
+        delete overrides.replaceName;
+        return {
+          ...expandedComponent,
+          name: component.name,
+          ...(Object.keys(overrides).length > 0 ? { overrides } : { overrides: undefined }),
+        };
+      });
+      const compiled = await this.compileChildren(effectiveComponents, parent, depth + 1, request, state);
       return Object.entries(compiled.properties).map(([propertyName, node]) => {
         if (node.definitionKey) {
           return [propertyName, node] as const;
@@ -729,6 +783,53 @@ export class RecordContractCompiler {
     } finally {
       state.activeDefinitions.delete(name);
     }
+  }
+
+  private isAvailableInEditMode(component: FormComponentDefinitionFrame): boolean {
+    const allowModes = component.constraints?.allowModes;
+    return !Array.isArray(allowModes) || allowModes.length === 0 || allowModes.includes('edit');
+  }
+
+  /**
+   * Role-specific form variants can describe the same persisted field more
+   * than once. The record schema is role-independent, so retain the first
+   * variant when the role scopes are disjoint and let the client visitor pick
+   * the variant for the current user. Overlapping or unrestricted variants
+   * remain a contract error because they may represent a real collision.
+   */
+  private isRoleFilteredDuplicate(
+    component: FormComponentDefinitionFrame,
+    roleFilteredComponents: Map<string, FormComponentDefinitionFrame[]>
+  ): boolean {
+    if (!component.model || !this.isAvailableInEditMode(component)) {
+      return false;
+    }
+
+    const fieldName = this.applyEditModeName(component).name;
+    const allowRoles = component.constraints?.authorization?.allowRoles;
+    if (!fieldName || !Array.isArray(allowRoles) || allowRoles.length === 0) {
+      return false;
+    }
+
+    const priorComponents = roleFilteredComponents.get(fieldName) ?? [];
+    const isDuplicate = priorComponents.some(priorComponent => {
+      const priorRoles = priorComponent.constraints?.authorization?.allowRoles;
+      return (
+        Array.isArray(priorRoles) &&
+        priorRoles.length > 0 &&
+        allowRoles.every(role => !priorRoles.includes(role))
+      );
+    });
+    priorComponents.push(component);
+    roleFilteredComponents.set(fieldName, priorComponents);
+    return isDuplicate;
+  }
+
+  private applyEditModeName(component: FormComponentDefinitionFrame): FormComponentDefinitionFrame {
+    const replaceName = component.overrides?.replaceName;
+    return replaceName === undefined || replaceName === component.name
+      ? component
+      : { ...component, name: replaceName };
   }
 
   private unsupportedComponent(
@@ -767,133 +868,6 @@ export class RecordContractCompiler {
     );
     state.partial = true;
     return [[component.name, node]];
-  }
-
-  private async compileExtensions(
-    root: ContractObjectNode,
-    request: RecordContractCompileRequest,
-    state: CompilerState
-  ): Promise<void> {
-    for (const registration of this.registry.extensions()) {
-      if (registration.contributor.kind !== 'extension') {
-        continue;
-      }
-      const contributor = registration.contributor;
-      const identity = contributorIdentity(registration);
-      let contribution: RecordContractExtensionContribution;
-      try {
-        const rawMetadata = request.extensionMetadata?.[contributor.namespace];
-        const metadata =
-          rawMetadata === undefined
-            ? undefined
-            : freezeDeep(cloneJsonSafe(rawMetadata, `$extensionMetadata[${contributor.namespace}]`));
-        const compileContext = Object.freeze({
-          namespace: contributor.namespace,
-          root: contributor.root,
-          metadata: metadata as ContractJsonValue | undefined,
-          publicContext: request.context,
-        });
-        contribution = await this.withTimeout(
-          () => contributor.compile(compileContext),
-          contributor.key,
-          contributor.root
-        );
-        contribution = cloneJsonSafe(
-          contribution,
-          `$extension[${contributor.key}]`,
-          new Set<object>(),
-          0,
-          this.limits.maxDepth + 8
-        );
-        this.validateNodeBounds(
-          contribution.node,
-          recordContractPointerTokens(contributor.root).length,
-          contributor.root
-        );
-        if (estimatedBytes(contribution) > this.limits.maxDocumentBytes) {
-          throw this.limitFailure(
-            RECORD_SCHEMA_PROBLEM_CODES.LIMIT_DOCUMENT_BYTES,
-            `Extension contributor ${contributor.key} output exceeds the configured output estimate.`,
-            contributor.root
-          );
-        }
-      } catch (error) {
-        if (error instanceof CompilerFailure) {
-          throw error;
-        }
-        if (error instanceof CloneDepthLimitError) {
-          throw this.limitFailure(
-            RECORD_SCHEMA_PROBLEM_CODES.LIMIT_DEPTH,
-            `Record-contract extension contributor ${contributor.key} output exceeds the configured nesting-depth limit.`,
-            contributor.root
-          );
-        }
-        throw new CompilerFailure('contributor-failed', RECORD_SCHEMA_PROBLEM_CODES.CONTRIBUTOR_FAILED, {
-          code: RECORD_SCHEMA_PROBLEM_CODES.CONTRIBUTOR_FAILED,
-          severity: 'error',
-          message: `Record-contract extension contributor ${contributor.key} returned invalid output.`,
-          pointer: contributor.root,
-          contributor: identity,
-        });
-      }
-      this.insertExtensionNode(root, contributor.root, contribution.node, identity, request, state);
-      for (const diagnostic of contribution.diagnostics ?? []) {
-        this.addDiagnostic({ ...diagnostic, contributor: identity }, state);
-      }
-      if (containsPermissiveNode(contribution.node)) {
-        state.partial = true;
-      }
-    }
-  }
-
-  private insertExtensionNode(
-    root: ContractObjectNode,
-    pointer: RecordContractPointer,
-    node: ContractNode,
-    identity: RecordContractContributorIdentity,
-    request: RecordContractCompileRequest,
-    state: CompilerState
-  ): void {
-    const tokens = recordContractPointerTokens(pointer);
-    let properties = root.properties as Record<string, ContractNode>;
-    let current = recordContractPointer('');
-    for (const [index, token] of tokens.entries()) {
-      current = joinRecordContractPointer(current, token);
-      const final = index === tokens.length - 1;
-      if (final) {
-        if (Object.hasOwn(properties, token)) {
-          throw this.invalidFailure(
-            'record-contract.path-ownership-collision',
-            `Extension contributor attempted to overwrite ${current}.`,
-            current
-          );
-        }
-        properties[token] = node;
-        this.claimProperty(current, identity.key, identity, state, 'extension');
-        continue;
-      }
-      const existing = properties[token];
-      if (existing) {
-        if (existing.kind !== 'object') {
-          throw this.invalidFailure(
-            'record-contract.path-ownership-collision',
-            `Extension contributor cannot descend through non-object ${current}.`,
-            current
-          );
-        }
-        properties = existing.properties as Record<string, ContractNode>;
-      } else {
-        const intermediate: ContractObjectNode = {
-          kind: 'object',
-          nullable: false,
-          properties: {},
-          unknownProperties: request.context.unknownProperties,
-        };
-        properties[token] = intermediate;
-        properties = intermediate.properties as Record<string, ContractNode>;
-        this.claimProperty(current, identity.key, identity, state, 'extension');
-      }
-    }
   }
 
   private collectValidators(

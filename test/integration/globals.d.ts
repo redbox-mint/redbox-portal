@@ -69,7 +69,6 @@ declare const FormVocabularyService: any;
 declare const WorkflowStepsService: any;
 
 declare const RecordType: any;
-declare const RecordTypesService: any;
 declare const Record: any;
 declare const DeletedRecord: any;
 declare const RecordAudit: any;

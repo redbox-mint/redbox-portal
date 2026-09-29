@@ -32,31 +32,35 @@
   (where `e` is an optional message, error, or array of errors to include in the response)
 
 -->
-<div class="col-xs-2"></div>
-<div class="col-xs-8">
-  <div class="panel panel-danger">
-    <div class="panel-heading">
-      <h3 class="panel-title"><%= TranslationService.t('error-500-heading') %></h3>
-    </div>
-    <div class="panel-body">
-      <p>
-        <% if( typeof req.session.data == 'undefined') { %>
-         You don't have permission on this page, please contact an administrator.
-       <% } else if( typeof req.session.data == 'object') { %>   
-         <%= TranslationService.t(req.session.data.message) %>
-       </p>
-       <p>
-        <% if( req.session.data.interpolation == true) { %>
-          <%= TranslationService.tInter(req.session.data.detailedMessage, req.session.data.interpolationObj) %>
-         <% }  else { %>
-           <%= TranslationService.t(req.session.data.detailedMessage) %>
-         <% } %>
+<div class="container">
+  <div class="row">
+    <div class="col-xs-2"></div>
+    <div class="col-xs-8">
+      <div class="panel panel-danger">
+        <div class="panel-heading">
+          <h3 class="panel-title"><%= TranslationService.t('error-500-heading') %></h3>
+        </div>
+        <div class="panel-body">
+          <p>
+            <% if( typeof req.session.data == 'undefined') { %>
+             You don't have permission on this page, please contact an administrator.
+           <% } else if( typeof req.session.data == 'object') { %>
+             <%= TranslationService.t(req.session.data.message) %>
+           </p>
+           <p>
+            <% if( req.session.data.interpolation == true) { %>
+              <%= TranslationService.tInter(req.session.data.detailedMessage, req.session.data.interpolationObj) %>
+             <% }  else { %>
+               <%= TranslationService.t(req.session.data.detailedMessage) %>
+             <% } %>
 
-       <% }  else { %>
-         <%= TranslationService.t(req.session.data) %>
-       <% } %>
-      </p>
-     </div>
+           <% }  else { %>
+             <%= TranslationService.t(req.session.data) %>
+           <% } %>
+          </p>
+         </div>
+      </div>
+    </div>
+    <div class="col-xs-2"></div>
   </div>
 </div>
-<div class="col-xs-2"></div>

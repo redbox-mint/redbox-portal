@@ -47,6 +47,7 @@ import {
   timeout
 } from 'rxjs';
 import { DOCUMENT, Location, LocationStrategy, PathLocationStrategy } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   AbstractControl,
   FormControlStatus,
@@ -78,6 +79,7 @@ import {
 import {
   DynamicScriptResponse,
   FormConfigFrame,
+  FormRuntimeMeta,
   FormRequestParamsMap,
   FormRequestParamValue,
   FormRuntimeRequestContext,
@@ -140,6 +142,8 @@ import {
   FormConflictReviewProjection,
   FormConflictReviewService,
 } from './form-conflict-review.service';
+import { GenerationProvenanceStoreService } from './generation/generation-provenance-store.service';
+import * as GenerationActions from './generation/state/generation.actions';
 
 interface ServerControlCandidate {
   field: string;
@@ -162,8 +166,6 @@ interface FormValueGenerationSnapshot {
   readonly generation: number;
   readonly value: Record<string, unknown>;
 }
-import { GenerationProvenanceStoreService } from './generation/generation-provenance-store.service';
-import * as GenerationActions from './generation/state/generation.actions';
 
 /**
  * The ReDBox Form
@@ -292,6 +294,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
    * Indicates whether the form components have been loaded
    */
   componentsLoaded = signal<boolean>(false);
+  readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
   private readonly serverSyncService = inject(FormServerSyncService);
   private readonly recordBaselineState = signal<FormRecordBaselineState | null>(null);
@@ -411,6 +414,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     super();
     this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
     this.window = this.document.defaultView;
+    this.debugState.refreshFromUrl();
     // Params can be injected via HTML if the app is used outside of Angular
     if (_isEmpty(this.trimmedParams.oid())) {
       this.oid.set(elementRef.nativeElement.getAttribute('oid'));
@@ -464,9 +468,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     } catch (error) {
       this.loggerService.error(`${this.logName}: Error loading form`, error);
       // Dispatch load failure action instead of direct mutation
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred during form load';
+      const missingRecord = error instanceof HttpErrorResponse && error.status === 404 &&
+        /\/record\/(form|metadata)\//.test(error.url ?? '');
+      const errorMsg = missingRecord ? 'missing-record' : 'form-load-error';
       this.store.dispatch(FormActions.loadInitialDataFailure({ error: errorMsg }));
-      throw error;
     }
   }
 
@@ -538,7 +543,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.eventBus.publish(createFormDefinitionReadyEvent({}));
     // Finally set the flag indicating components are loaded
     this.componentsLoaded.set(true);
-    const meta = this.formDefMap?.formConfigMeta;
+    const meta = this.formDefMap?.formConfigMeta as FormRuntimeMeta | undefined;
     this.store.dispatch(GenerationActions.configure({
       actions: meta?.runtimeActions ?? [],
       session: meta?.generationSession ?? null,
@@ -1378,33 +1383,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
-            response =
-              Object.keys(concurrency).length > 0
-                ? await this.recordService.create(
-                    currentFormValue,
-                    this.trimmedParams.recordType(),
-                    targetStep,
-                    operation,
-                    concurrency
-                  )
-                : await this.recordService.create(
-                    currentFormValue,
-                    this.trimmedParams.recordType(),
-                    targetStep,
-                    operation
-                  );
+            response = await this.recordService.create(
+              currentFormValue,
+              this.trimmedParams.recordType(),
+              targetStep,
+              operation,
+              concurrency
+            );
           } else {
             // Actual record update via RecordService call
-            response =
-              Object.keys(concurrency).length > 0
-                ? await this.recordService.update(
-                    this.trimmedParams.oid(),
-                    currentFormValue,
-                    targetStep,
-                    operation,
-                    concurrency
-                  )
-                : await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, operation);
+            response = await this.recordService.update(
+              this.trimmedParams.oid(),
+              currentFormValue,
+              targetStep,
+              operation,
+              concurrency
+            );
           }
           if (this.recordBaselineState() !== requestBaseline) {
             this.loggerService.warn(`${this.logName}: ignored a save response after the form scope changed.`);
@@ -1501,9 +1495,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
               }
             }
           }
-          // A persisted warning is still a successful save, but it is not a
-          // complete save.  Keep the record open so the user can review the
-          // affected follow-up work before leaving the form.
+          // Schema diagnostics can accompany a complete save. Keep the form
+          // open only when required save work remains incomplete.
           const isComplete = response.isComplete();
           if (response.wasPersisted()) {
             this.loggerService.info(`${this.logName}: Form submitted successfully:`, response);
@@ -1590,9 +1583,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
-            const failureMessage = response.outcome === 'unknown'
-              ? unknownMessageKey
-              : (String(_get(response, 'message') ?? '').startsWith('@')
+            // Retained conflict review state must not mask a different retry failure.
+            const failureMessage = this.formConflictState() && this.isRecordRevisionStaleConflict(response)
+              ? '@form-conflict-stale-title'
+              : response.outcome === 'unknown'
+                ? unknownMessageKey
+                : (String(_get(response, 'message') ?? '').startsWith('@')
                   ? String(_get(response, 'message'))
                   : '@record-save-failed');
             // Emit failure event
@@ -2219,24 +2215,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return typeof translated === 'string' ? translated : '@form-conflict-navigation-warning';
   }
 
-  /**
-   * Decision entry point for SPA hosts that register
-   * `formConflictCanDeactivateGuard` on their form route. The shipped
-   * bootstrap-only host has no Angular Router and uses `beforeunload` below.
-   */
-  public canDeactivate(): boolean {
-    if (this.allowConflictNavigationOnce) {
-      this.allowConflictNavigationOnce = false;
-      return true;
-    }
-    if (!this.formConflictState()) {
-      return true;
-    }
-    // Keep unresolved state intact when navigation is cancelled. If a later
-    // guard cancels after confirmation, the next attempt must ask again.
-    return this.window?.confirm(this.conflictNavigationWarning()) === true;
-  }
-
   /** Native navigation warning for unresolved memory-only conflict work. */
   @HostListener('window:beforeunload', ['$event'])
   public protectUnresolvedConflictNavigation(event: BeforeUnloadEvent): string | undefined {
@@ -2390,6 +2368,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const formLevelErrors: Record<string, unknown> = {};
     let issueIndex = 0;
     for (const problem of problems) {
+      // The conflict presenter owns recovery; a concurrency failure does not
+      // make otherwise valid form values into validation errors.
+      if (problem.kind === 'conflict' && this.formConflictState()) continue;
       for (const issue of Array.isArray(problem?.issues) ? problem.issues : []) {
         const resolved = this.resolveServerIssue(issue);
         if (!resolved) {
@@ -2561,6 +2542,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .map(segment => /^\d+$/.test(segment) ? Number(segment) : segment);
   }
 
+  public canRetryFormLevelServerErrors(): boolean {
+    const errors = Object.keys(this.form?.errors ?? {});
+    return errors.length > 0 && errors.every(key => key.startsWith('server#')) &&
+      Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled);
+  }
+
   private clearServerSaveProblems(): void {
     if (this.form) {
       this.clearServerErrorsFromControl(this.form, true);
@@ -2647,7 +2634,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             oid,
             response,
             formScopeId: this.eventScopeId,
-            requestId: typeof response?.requestId === 'string' ? response.requestId : undefined,
             closeOnDelete: options?.closeOnDelete,
             redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
             redirectDelaySeconds: options?.redirectDelaySeconds,

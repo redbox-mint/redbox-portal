@@ -27,11 +27,11 @@ import { createSchema } from 'genson-js';
 import * as path from 'path';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
-  AvailableFormComponentDefinitionOutlines,
   FormConfigFrame,
   FormConfigOutline,
   FormModesConfig,
   ReusableFormDefinitions,
+  type AvailableFormComponentDefinitionOutlines,
   ValidationOperationDiscovery,
   compareRecordValidationIdentifiers,
   RECORD_VALIDATION_REFERENCE_PATTERN,
@@ -44,6 +44,10 @@ import { RelatedObjectDataInlineFormConfigVisitor } from '../visitor/related-obj
 import type { RecordsService } from '../RecordsService';
 import type { RecordValidationCandidate, RecordValidationOperationDiscoveryRequest } from './RecordValidationService';
 import type { RecordContractContext, RecordContractFormBuildResult } from '../record-contract/record-contract-context';
+import {
+  CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
+  type CoreRecordContractComponentType,
+} from '../record-contract/core-contributors';
 
 type WorkflowStepLike = {
   id: string;
@@ -903,7 +907,8 @@ export namespace Services {
       reusableFormDefs?: ReusableFormDefinitions,
       branding?: string,
       contextVariablesMap?: Record<string, unknown>,
-      recordAccessContext?: FormRecordAccessContext
+      recordAccessContext?: FormRecordAccessContext,
+      preserveDefaultValues = false
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({
@@ -912,6 +917,7 @@ export namespace Services {
         formMode,
         record: recordMetadata,
         translate: this.buildFormConfigTranslator(branding),
+        preserveDefaultValues,
       });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding, {
@@ -987,12 +993,12 @@ export namespace Services {
         reusableFormDefinitions,
         context.publicContext.brand,
         _.cloneDeep(resolution.contextVariables),
-        recordAccessContext
+        recordAccessContext,
+        true
       );
-      effectiveForm.componentDefinitions = this.removeNonSubmittableContractComponents(
+      effectiveForm.componentDefinitions = this.retainSubmittableContractComponents(
         effectiveForm.componentDefinitions ?? []
       );
-
       if (effectiveForm.componentDefinitions.length === 0) {
         return { ok: false, reason: 'empty-effective-form' };
       }
@@ -1000,70 +1006,39 @@ export namespace Services {
       return { ok: true, effectiveForm };
     }
 
-    /** Remove display-only leaves and structural containers with no submittable descendants. */
-    private removeNonSubmittableContractComponents(
+    /** Prune known display-only core leaves and structural shells emptied by that pruning. */
+    private retainSubmittableContractComponents(
       componentDefinitions: AvailableFormComponentDefinitionOutlines[]
     ): AvailableFormComponentDefinitionOutlines[] {
-      return componentDefinitions.filter(componentDefinition =>
-        this.pruneAndShouldRetainContractComponent(componentDefinition)
-      );
-    }
+      const nestedKeys = ['componentDefinitions', 'tabs', 'panels', 'headerActions'] as const;
+      return componentDefinitions.filter(componentDefinition => {
+        const componentType = componentDefinition.component.class;
+        const classification = Object.prototype.hasOwnProperty.call(
+          CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
+          componentType
+        )
+          ? CORE_RECORD_CONTRACT_COMPONENT_INVENTORY[componentType as CoreRecordContractComponentType]
+          : undefined;
+        const config = componentDefinition.component.config as
+          | Partial<Record<(typeof nestedKeys)[number], AvailableFormComponentDefinitionOutlines[]>>
+          | undefined;
+        let nestedComponentCount = 0;
+        let hasNestedComponents = false;
 
-    private pruneAndShouldRetainContractComponent(
-      componentDefinition: AvailableFormComponentDefinitionOutlines
-    ): boolean {
-      switch (componentDefinition.component.class) {
-        case 'AccordionComponent': {
-          const config = componentDefinition.component.config;
-          if (!config) {
-            return false;
-          }
-          config.panels = config.panels.filter(panel => this.pruneAndShouldRetainContractComponent(panel));
-          return config.panels.length > 0;
+        for (const key of nestedKeys) {
+          if (!config) break;
+          const children = config[key];
+          if (!Array.isArray(children)) continue;
+          hasNestedComponents = true;
+          const retained = this.retainSubmittableContractComponents(children);
+          config[key] = retained;
+          nestedComponentCount += retained.length;
         }
-        case 'AccordionPanelComponent':
-        case 'GroupComponent':
-        case 'ReusableComponent':
-        case 'TabContentComponent': {
-          const config = componentDefinition.component.config;
-          if (!config) {
-            return false;
-          }
-          config.componentDefinitions = this.removeNonSubmittableContractComponents(config.componentDefinitions);
-          return config.componentDefinitions.length > 0;
-        }
-        case 'PublishDataLocationSelectorComponent': {
-          const config = componentDefinition.component.config;
-          if (config?.headerActions) {
-            config.headerActions = this.removeNonSubmittableContractComponents(config.headerActions);
-          }
-          return componentDefinition.model !== undefined;
-        }
-        case 'QuestionTreeComponent': {
-          const config = componentDefinition.component.config;
-          if (config) {
-            config.componentDefinitions = this.removeNonSubmittableContractComponents(config.componentDefinitions);
-          }
-          return componentDefinition.model !== undefined;
-        }
-        case 'RepeatableComponent': {
-          const config = componentDefinition.component.config;
-          if (!config?.elementTemplate || !this.pruneAndShouldRetainContractComponent(config.elementTemplate)) {
-            return false;
-          }
-          return componentDefinition.model !== undefined;
-        }
-        case 'TabComponent': {
-          const config = componentDefinition.component.config;
-          if (!config) {
-            return false;
-          }
-          config.tabs = config.tabs.filter(tab => this.pruneAndShouldRetainContractComponent(tab));
-          return config.tabs.length > 0;
-        }
-        default:
-          return componentDefinition.model !== undefined;
-      }
+
+        if (classification === 'non-persisting') return false;
+        if (classification === 'container') return hasNestedComponents && nestedComponentCount > 0;
+        return true;
+      });
     }
 
     private findComponentDefinitionByName(

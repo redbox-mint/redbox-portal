@@ -4,6 +4,7 @@ import { performance } from 'perf_hooks';
 import type {
   FormComponentDefinitionFrame,
   FormConfigFrame,
+  ReusableFormComponentDefinitionFrame,
   ReusableFormDefinitions,
 } from '@researchdatabox/sails-ng-common';
 
@@ -21,7 +22,6 @@ import type {
   ContractNode,
   RecordContractComponentContributor,
   RecordContractContributorRegistration,
-  RecordContractExtensionContributor,
   RecordContractPublicContext,
   RecordSchemaLimitsConfig,
 } from '../../../src';
@@ -44,10 +44,6 @@ const generousLimits: RecordSchemaLimitsConfig = {
   contributorTimeoutMs: 100,
 };
 
-class RuntimeBoundaryValue {
-  public readonly stable = true;
-}
-
 class RuntimeReusableFormComponent implements FormComponentDefinitionFrame {
   public readonly name = 'runtime-reusable';
   public readonly component = { class: 'SimpleInputComponent', config: {} };
@@ -59,7 +55,7 @@ class RuntimeComponentContribution {
 }
 
 function registrations(
-  additional: readonly (RecordContractComponentContributor | RecordContractExtensionContributor)[] = [],
+  additional: readonly RecordContractComponentContributor[] = [],
   excludedCoreType?: string
 ): RecordContractContributorRegistration[] {
   return [
@@ -76,7 +72,7 @@ function registrations(
 
 function compiler(
   limits: RecordSchemaLimitsConfig = generousLimits,
-  additional: readonly (RecordContractComponentContributor | RecordContractExtensionContributor)[] = [],
+  additional: readonly RecordContractComponentContributor[] = [],
   excludedCoreType?: string
 ): RecordContractCompiler {
   return new RecordContractCompiler(
@@ -126,9 +122,9 @@ function hookContributor(
 }
 
 function expectCompiled(result: Awaited<ReturnType<RecordContractCompiler['compile']>>) {
-  expect(result.kind).to.equal('compiled');
+  expect(result.kind, result.kind === 'failed' ? JSON.stringify(result.diagnostics) : undefined).to.equal('compiled');
   if (result.kind !== 'compiled') {
-    throw new Error(`Expected compilation, received ${result.code}.`);
+    throw new Error(`Expected compilation, received ${result.code}: ${JSON.stringify(result.diagnostics)}.`);
   }
   return result.contract;
 }
@@ -188,7 +184,6 @@ describe('RecordContractCompiler and core contributors', function () {
     const request = {
       form: fixture.form,
       reusableFormDefinitions: fixture.reusableFormDefinitions,
-      extensionMetadata: fixture.namespacedExtensionMetadata,
       context: publicContext,
     };
     const first = expectCompiled(await compiler().compile(request));
@@ -269,6 +264,35 @@ describe('RecordContractCompiler and core contributors', function () {
     }
   });
 
+  it('allows null for fields without configured defaults because empty form controls use null', async function () {
+    const contract = expectCompiled(
+      await compiler().compile({
+        form: form([
+          field('description', 'TextAreaComponent'),
+          field('keywords', 'RepeatableComponent', {
+            elementTemplate: field('', 'SimpleInputComponent'),
+          }),
+        ]),
+        context: { ...publicContext, unknownProperties: 'declared' },
+      })
+    );
+
+    expect(contract.root.properties.description).to.include({ kind: 'scalar', scalarType: 'string', nullable: true });
+    expect(contract.root.properties.keywords).to.include({ kind: 'array', nullable: true });
+
+    const keywords = contract.root.properties.keywords;
+    if (keywords.kind === 'array') {
+      expect(keywords.items).to.include({ kind: 'scalar', scalarType: 'string', nullable: true });
+    }
+
+    const schema = renderRecordJsonSchema(contract);
+    expect(schema.properties?.description).to.deep.equal({ type: ['string', 'null'] });
+    expect(schema.properties?.keywords).to.deep.equal({
+      type: ['array', 'null'],
+      items: { type: ['string', 'null'] },
+    });
+  });
+
   it('compiles the configured data record form with RegExp validator configuration', async function () {
     const configuredFormModule = require('../../../../redbox-hook-dev/src/form-config/dataRecord-1.0-draft') as {
       default: FormConfigFrame;
@@ -303,9 +327,13 @@ describe('RecordContractCompiler and core contributors', function () {
     const contract = expectCompiled(await compiler().compile(request));
 
     expect(request).to.deep.equal(before);
-    expect(contract.root.properties.aliases).to.deep.include({ kind: 'array', nullable: false });
+    expect(contract.root.properties.aliases).to.deep.include({ kind: 'array', nullable: true });
     if (contract.root.properties.aliases.kind === 'array') {
-      expect(contract.root.properties.aliases.items).to.include({ kind: 'scalar', scalarType: 'string' });
+      expect(contract.root.properties.aliases.items).to.include({
+        kind: 'scalar',
+        scalarType: 'string',
+        nullable: true,
+      });
     }
     expect(contract.fieldOwners).to.have.property('/aliases/__record_schema_item');
   });
@@ -377,20 +405,13 @@ describe('RecordContractCompiler and core contributors', function () {
     );
   });
 
-  it('keeps the runtime-form bridge isolated from reusable, extension, and contributor inputs', async function () {
+  it('keeps the runtime-form bridge isolated from reusable and contributor inputs', async function () {
     const reusableResult = await compiler().compile({
       form: form([]),
       context: publicContext,
       reusableFormDefinitions: { runtime: [new RuntimeReusableFormComponent()] },
     });
     expectFailure(reusableResult, RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT);
-
-    const extensionResult = await compiler().compile({
-      form: form([]),
-      context: publicContext,
-      extensionMetadata: { 'test:runtime': new RuntimeBoundaryValue() },
-    });
-    expectFailure(extensionResult, RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT);
 
     const runtimeContributor = hookContributor('RuntimeOutputComponent', () => new RuntimeComponentContribution());
     const contributorResult = await compiler(generousLimits, [runtimeContributor]).compile({
@@ -427,6 +448,119 @@ describe('RecordContractCompiler and core contributors', function () {
     }
   });
 
+  it('de-duplicates disjoint role-filtered variants of the same edit-mode field', async function () {
+    const researcherVariant = {
+      ...field('rdmp-id', 'SimpleInputComponent'),
+      constraints: { authorization: { allowRoles: ['Researcher'] } },
+    } as FormComponentDefinitionFrame;
+    const staffVariant = {
+      ...field('rdmp-id', 'TextAreaComponent'),
+      constraints: { authorization: { allowRoles: ['Admin', 'Librarians'] } },
+    } as FormComponentDefinitionFrame;
+
+    const contract = expectCompiled(
+      await compiler().compile({
+        form: form([researcherVariant, staffVariant]),
+        context: publicContext,
+      })
+    );
+
+    expect(Object.keys(contract.root.properties)).to.deep.equal(['rdmp-id']);
+    expect(contract.root.properties['rdmp-id']).to.include({ kind: 'scalar', scalarType: 'string' });
+    expect(contract.fieldOwners).to.have.property('/rdmp-id');
+
+    const overlappingVariants = await compiler().compile({
+      form: form([
+        {
+          ...field('rdmp-id', 'SimpleInputComponent'),
+          constraints: { authorization: { allowRoles: ['Researcher', 'Admin'] } },
+        } as FormComponentDefinitionFrame,
+        {
+          ...field('rdmp-id', 'TextAreaComponent'),
+          constraints: { authorization: { allowRoles: ['Admin'] } },
+        } as FormComponentDefinitionFrame,
+      ]),
+      context: publicContext,
+    });
+    expectFailure(overlappingVariants, RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT);
+  });
+
+  it('compiles only edit-mode values, including nested components', async function () {
+    const viewOnlyTitle = {
+      ...field('title', 'SimpleInputComponent'),
+      constraints: { allowModes: ['view'] },
+    } as FormComponentDefinitionFrame;
+    const editOnlyTitle = {
+      ...field('title', 'TextAreaComponent'),
+      constraints: { allowModes: ['edit'] },
+    } as FormComponentDefinitionFrame;
+    const nested = field('details', 'GroupComponent', {
+      componentDefinitions: [
+        {
+          ...field('view_only_note', 'SimpleInputComponent'),
+          constraints: { allowModes: ['view'] },
+        },
+        {
+          ...field('edit_only_note', 'SimpleInputComponent'),
+          constraints: { allowModes: ['edit'] },
+        },
+        field('all_modes_note', 'SimpleInputComponent'),
+      ],
+    });
+
+    const contract = expectCompiled(
+      await compiler().compile({
+        form: form([viewOnlyTitle, editOnlyTitle, nested]),
+        context: publicContext,
+      })
+    );
+
+    expect(contract.root.properties.title).to.include({ kind: 'scalar', scalarType: 'string' });
+    expect(contract.root.properties.details.kind).to.equal('object');
+    if (contract.root.properties.details.kind === 'object') {
+      expect(contract.root.properties.details.properties).to.have.all.keys('all_modes_note', 'edit_only_note');
+      expect(contract.root.properties.details.properties).not.to.have.property('view_only_note');
+    }
+    expect(contract.fieldOwners).to.have.property('/title');
+    expect(contract.fieldOwners).to.have.property('/details/edit_only_note');
+    expect(contract.fieldOwners).not.to.have.property('/details/view_only_note');
+  });
+
+  it('accepts undefined runtime defaults while traversing edit-mode containers', async function () {
+    const tab = {
+      name: 'mainTab',
+      component: {
+        class: 'TabComponent',
+        config: {
+          tabs: [
+            {
+              name: 'details',
+              component: {
+                class: 'TabContentComponent',
+                config: {
+                  componentDefinitions: [
+                    {
+                      ...field('view_only_note', 'SimpleInputComponent'),
+                      constraints: { allowModes: ['view'] },
+                      debugValue: undefined,
+                    },
+                    { ...field('edit_note', 'SimpleInputComponent'), debugValue: undefined },
+                  ],
+                  runtimeDefault: undefined,
+                },
+              },
+            },
+          ],
+        },
+      },
+    } as FormComponentDefinitionFrame;
+
+    const contract = expectCompiled(await compiler().compile({ form: form([tab]), context: publicContext }));
+
+    expect(contract.root.properties).to.have.all.keys('edit_note');
+    expect(contract.root.properties).not.to.have.property('view_only_note');
+  });
+
   it('expands reusable definitions with stable identity and rejects missing definitions and cycles', async function () {
     const reusableField = {
       ...field('placeholder', 'ReusableComponent'),
@@ -459,7 +593,7 @@ describe('RecordContractCompiler and core contributors', function () {
       $ref: `#/$defs/${encodeURIComponent(definitionKey!)}`,
     });
     expect(rendered.$defs).to.have.all.keys(definitionKey!);
-    expect(rendered.$defs?.[definitionKey!]).to.include({ type: 'string' });
+    expect(rendered.$defs?.[definitionKey!]).to.deep.include({ type: ['string', 'null'] });
 
     expectFailure(
       await compiler().compile({ form: form([reusableField]), context: publicContext }),
@@ -490,6 +624,94 @@ describe('RecordContractCompiler and core contributors', function () {
       }),
       RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT
     );
+  });
+
+  it('preserves distinct usage paths and replaceName overrides when expanding reusable groups', async function () {
+    const reusableFormDefinitions: ReusableFormDefinitions = {
+      'standard-contributor-fields': [
+        {
+          name: 'name',
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: {} },
+        },
+        {
+          name: 'email',
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: {} },
+        },
+      ],
+      'standard-contributor-fields-group': [
+        {
+          name: 'standard_contributor_fields_group',
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'standard_contributor_fields_reusable',
+                  overrides: { reusableFormName: 'standard-contributor-fields' },
+                  component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
+                },
+              ],
+            },
+          },
+          model: { class: 'GroupModel', config: {} },
+        },
+      ],
+    };
+    const reusableGroupUsage = (usageName: string): ReusableFormComponentDefinitionFrame => ({
+      name: usageName,
+      overrides: { reusableFormName: 'standard-contributor-fields-group' },
+      component: {
+        class: 'ReusableComponent',
+        config: {
+          componentDefinitions: [
+            {
+              name: 'standard_contributor_fields_group',
+              overrides: { replaceName: usageName },
+              component: { class: 'GroupComponent', config: { componentDefinitions: [] } },
+              model: { class: 'GroupModel', config: {} },
+            },
+          ],
+        },
+      },
+    });
+    const repeatableUsage = field('contributors', 'RepeatableComponent', {
+      elementTemplate: {
+        ...reusableGroupUsage(''),
+        name: '',
+      },
+    });
+
+    const contract = expectCompiled(
+      await compiler().compile({
+        form: form([
+          reusableGroupUsage('contributor_ci'),
+          reusableGroupUsage('contributor_data_creator'),
+          repeatableUsage,
+        ]),
+        reusableFormDefinitions,
+        context: publicContext,
+      })
+    );
+
+    expect(contract.root.properties).to.have.all.keys('contributor_ci', 'contributor_data_creator', 'contributors');
+    expect(contract.root.properties).not.to.have.property('standard_contributor_fields_group');
+    expect(contract.fieldOwners).to.include.all.keys(
+      '/contributor_ci/name',
+      '/contributor_ci/email',
+      '/contributor_data_creator/name',
+      '/contributor_data_creator/email',
+      '/contributors/__record_schema_item/name',
+      '/contributors/__record_schema_item/email'
+    );
+    expect(contract.root.properties.contributors.kind).to.equal('array');
+    if (contract.root.properties.contributors.kind === 'array') {
+      expect(contract.root.properties.contributors.items.kind).to.equal('object');
+      if (contract.root.properties.contributors.items.kind === 'object') {
+        expect(contract.root.properties.contributors.items.properties).to.have.all.keys('email', 'name');
+      }
+    }
   });
 
   it('redacts validator implementation/configuration and preserves fields with runtime expressions', async function () {
@@ -553,45 +775,6 @@ describe('RecordContractCompiler and core contributors', function () {
     if (uncovered.kind === 'failed') {
       expect(uncovered.diagnostics[0]?.code).to.equal('record-contract.uncovered-core-component');
     }
-  });
-
-  it('applies namespaced extensions independently of registration order', async function () {
-    const alpha: RecordContractExtensionContributor = {
-      kind: 'extension',
-      key: 'test.alpha-extension',
-      version: '1',
-      namespace: 'test:alpha',
-      root: recordContractPointer('/test:alpha'),
-      nullability: 'non-null',
-      compile: ({ metadata }) => ({
-        node: {
-          kind: 'object',
-          nullable: false,
-          properties: {
-            value: { kind: 'scalar', nullable: false, scalarType: 'string' },
-          },
-          unknownProperties: 'declared',
-          ...(metadata ? { annotations: { extensions: { 'test:metadata': metadata } } } : {}),
-        },
-      }),
-    };
-    const zeta: RecordContractExtensionContributor = {
-      ...alpha,
-      key: 'test.zeta-extension',
-      namespace: 'test:zeta',
-      root: recordContractPointer('/test:zeta'),
-    };
-    const request = {
-      form: form([]),
-      extensionMetadata: { 'test:alpha': { stable: true } },
-      context: publicContext,
-    };
-    const forward = expectCompiled(await compiler(generousLimits, [alpha, zeta]).compile(request));
-    const reverseRegistry = new RecordContractContributorRegistry(registrations([zeta, alpha]).reverse());
-    const reverse = expectCompiled(await new RecordContractCompiler(reverseRegistry, generousLimits).compile(request));
-
-    expect(reverse).to.deep.equal(forward);
-    expect(Object.keys(forward.root.properties)).to.deep.equal(['test:alpha', 'test:zeta']);
   });
 
   it('returns typed failures for malformed, throwing, and oversized contributor output', async function () {

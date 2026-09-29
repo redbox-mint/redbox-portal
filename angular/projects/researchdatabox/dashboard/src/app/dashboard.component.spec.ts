@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import {
   ConfigService,
+  DashboardSettings,
   HandlebarsTemplateService,
   I18NextPipe,
   LoggerService,
@@ -11,1543 +12,313 @@ import {
   TranslationService,
   UserService,
   UtilityService,
-} from '@researchdatabox/portal-ng-common';
-import {
   getStubConfigService,
   getStubTranslationService,
-  getStubRecordService,
   getStubUserService,
 } from '@researchdatabox/portal-ng-common';
-import { handlebarsCompile } from '@researchdatabox/sails-ng-common';
 
-const username = 'testUser';
-const password = 'some-password';
-const dashboardTypeOptions: any = ['standard', 'workspace', 'consolidated'];
-let recordDataStandard = {
-  dashboardType: {
-    formatRules: {
-      filterBy: [],
-      filterWorkflowStepsBy: [],
-      queryFilters: {
-        rdmp: [
-          {
-            filterType: 'text',
-            filterFields: [
-              {
-                name: 'Title',
-                path: 'metadata.title',
-              },
-            ],
-          },
-        ],
-      },
-      groupBy: '',
-      sortGroupBy: [],
-      hideWorkflowStepTitleForRecordType: [],
+function settings(title: string, extra: Partial<DashboardSettings['tableConfig']> = {}, flags: Partial<DashboardSettings> = {}): DashboardSettings {
+  return {
+    searchable: true,
+    showStageTitle: true,
+    ...flags,
+    tableConfig: {
+      rowConfig: [{ title, variable: 'metadata.title', template: '{{metadata.title}}', initialSort: 'desc', defaultSort: true }],
+      rowRulesConfig: [],
+      groupRowConfig: [],
+      groupRowRulesConfig: [],
+      formatRules: {},
+      ...extra,
     },
-  },
-  step: [
-    {
-      name: 'draft',
-      config: {
-        workflow: {
-          stage: 'draft',
-        },
-        dashboard: {
-          table: {
-            dummyRowConfig: ['dummy'], //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
-          },
-        },
-      },
-    },
-  ],
-  records: {
-    items: [
-      {
-        oid: '1234567890',
-        title: 'test',
-        dateCreated: 'dateCreated',
-        dateModified: 'dateModified',
-        metadata: {
-          metaMetadata: {
-            type: 'rdmp',
-            lastSaveDate: '',
-          },
-          metadata: { title: 'test' },
-          packageType: 'rdmp',
-          workflow: '',
-          hasEditAccess: '',
-          recordType: 'rdmp',
-        },
-      },
-    ],
-    totalItems: 0,
-    currentPage: 1,
-    noItems: 10,
-  },
-  paginationData: {
-    itemsPerPage: 10,
-    page: 2,
-    step: 'draft',
-  },
+  };
+}
+
+const records = {
+  items: [{ oid: 'r1', title: 'One', metadata: { metadata: { title: 'One' }, metaMetadata: { type: 'rdmp' }, workflow: { stage: 'draft' } } }],
+  totalItems: 1,
+  currentPage: 1,
+  noItems: 10,
 };
 
-describe('DashboardComponent standard', () => {
-  beforeEach(async () => {
-    let configService = getStubConfigService();
-    let translationService = getStubTranslationService();
-    let recordService = getStubRecordService(recordDataStandard);
-    let userService = getStubUserService(username, password);
+describe('DashboardComponent', () => {
+  let recordService: jasmine.SpyObj<any>;
+  let templates: jasmine.SpyObj<any>;
+  let attributes: Record<string, string>;
 
-    const testModule = TestBed.configureTestingModule({
+  function create(): DashboardComponent {
+    // The host element's attributes are read in the constructor; set the equivalent fields directly.
+    const component = TestBed.createComponent(DashboardComponent).componentInstance;
+    component.recordType = attributes['recordType'] ?? '';
+    component.packageType = attributes['packageType'] ?? '';
+    component.dashboardView = attributes['dashboardView'] ?? '';
+    component.dashboardTypeSelected = attributes['dashboardType'] || 'standard';
+    return component;
+  }
+
+  async function init(component: DashboardComponent) {
+    (component as any).branding = 'default';
+    (component as any).portal = 'rdmp';
+    (component as any).currentUser = { user: { email: 'me@example.org' } };
+    if (component.dashboardView) {
+      await component.initDashboardView(component.dashboardView);
+    } else {
+      await component.initView(component.recordType);
+    }
+  }
+
+  beforeEach(async () => {
+    attributes = { recordType: 'rdmp', dashboardType: 'standard' };
+    recordService = jasmine.createSpyObj('RecordService', ['getDashboardType', 'getDashboardSettings', 'getWorkflowSteps', 'getRecords', 'getRelatedRecords', 'getDashboardView', 'getConfig', 'waitForInit', 'isInitializing']);
+    recordService.waitForInit.and.returnValue(recordService);
+    recordService.isInitializing.and.returnValue(false);
+    recordService.getConfig.and.returnValue({ branding: 'default', portal: 'rdmp', baseUrl: '' });
+    recordService.getDashboardType.and.resolveTo({ name: 'standard', formatRules: {} });
+    recordService.getWorkflowSteps.and.resolveTo([
+      { name: 'review', config: { workflow: { stage: 'review', stageLabel: 'Review' }, displayIndex: 2 } },
+      { name: 'draft', config: { workflow: { stage: 'draft', stageLabel: 'Draft' }, displayIndex: 1 } },
+    ]);
+    recordService.getRecords.and.resolveTo(records);
+    templates = jasmine.createSpyObj('HandlebarsTemplateService', ['loadDashboardTargetTemplates', 'buildDashboardTemplateKeyPrefix', 'compileAndRunTemplate', 'waitForInit', 'isInitializing']);
+    templates.loadDashboardTargetTemplates.and.resolveTo(true);
+    templates.buildDashboardTemplateKeyPrefix.and.callFake((b: string, t: any, fp: string) => [b, t.kind, t.recordType ?? t.view, t.stage ?? t.step, fp]);
+    templates.compileAndRunTemplate.and.callFake((_tpl: string, ctx: any, key: string[]) => `${key.join('|')}:${ctx?.metadata?.title ?? ''}`);
+
+    await TestBed.configureTestingModule({
       declarations: [DashboardComponent],
       imports: [FormsModule, I18NextPipe],
       providers: [
-        {
-          provide: APP_BASE_HREF,
-          useValue: 'base',
-        },
+        { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,
         UtilityService,
-        {
-          provide: TranslationService,
-          useValue: translationService,
-        },
-        {
-          provide: ConfigService,
-          useValue: configService,
-        },
-        {
-          provide: RecordService,
-          useValue: recordService,
-        },
-        {
-          provide: UserService,
-          useValue: userService,
-        },
-        {
-          provide: HandlebarsTemplateService,
-          useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            loadDashboardTemplates: Promise.resolve(),
-            loadDashboardViewTemplates: Promise.resolve(),
-            runTemplate: 'Template Result',
-            compileAndRunTemplate: 'Template Result',
-          }),
-        },
+        { provide: TranslationService, useValue: getStubTranslationService() },
+        { provide: ConfigService, useValue: getStubConfigService() },
+        { provide: RecordService, useValue: recordService },
+        { provide: UserService, useValue: getStubUserService('user', 'pw') },
+        { provide: HandlebarsTemplateService, useValue: templates },
       ],
-    });
-    TestBed.inject(RecordService);
-    await testModule.compileComponents();
+    }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent).toBeTruthy();
-  });
-
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
-
-  it(`should have a default dashboard type`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeSelected).toEqual(dashboardComponent.defaultDashboardTypeSelected);
-  });
-
-  it(`init view`, async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    await dashboardComponent.initView('rdmp');
-    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('standard');
-    let defaultSortObject = {
-      sort: 'desc',
-      secondarySort: '',
-      step: 'draft',
-      title: '',
-      variable: 'metaMetadata.lastSaveDate',
-    };
-    await dashboardComponent.initStep('draft', 'draft', 'rdmp', '', 1, defaultSortObject);
-    let planTable = dashboardComponent.evaluatePlanTableColumns(
-      {},
-      {},
-      {},
-      'draft',
-      recordDataStandard['records'],
-      'rdmp'
-    );
-    expect(planTable.items.length).toBeGreaterThan(0);
-    expect(dashboardComponent.sortMap['draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
-    dashboardComponent.pageChanged(recordDataStandard['paginationData'], recordDataStandard['paginationData'].step);
-    expect(dashboardComponent.records['draft'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['draft'].items.length).toBeGreaterThan(0);
-  });
-
-  it('keeps the default sort when paginating before any column sort is selected', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    const recordService = TestBed.inject(RecordService);
-    const getRecordsSpy = spyOn(recordService, 'getRecords').and.returnValue(Promise.resolve(recordDataStandard.records as any));
-    spyOn(dashboardComponent, 'evaluatePlanTableColumns').and.returnValue({
-      items: recordDataStandard.records.items,
-      totalItems: recordDataStandard.records.totalItems,
-      currentPage: recordDataStandard.records.currentPage,
-      noItems: recordDataStandard.records.noItems,
-    } as any);
-
-    dashboardComponent.dashboardTypeSelected = 'standard';
-    dashboardComponent.recordType = 'rdmp';
-    dashboardComponent.filterFieldPath = 'metadata.title';
-    dashboardComponent.sortFields = {
-      draft: ['metadata.title', 'metadata.contributor_data_manager.text_full_name', 'metaMetadata.lastSaveDate'],
-    };
-    dashboardComponent.sortMap = {
-      draft: {
-        'metadata.title': { sort: 'desc', secondarySort: '', defaultSort: false },
-        'metadata.contributor_data_manager.text_full_name': { sort: 'desc', secondarySort: '', defaultSort: false },
-        'metaMetadata.lastSaveDate': { sort: 'desc', secondarySort: '', defaultSort: true },
-      },
-    };
-
-    await dashboardComponent.pageChanged({ page: 2 } as any, 'draft');
-
-    expect(getRecordsSpy).toHaveBeenCalledWith(
-      'rdmp',
-      'draft',
-      2,
-      '',
-      'metaMetadata.lastSaveDate:-1',
-      'metadata.title',
-      '',
-      '',
-      ''
-    );
-  });
-
-  it('keeps the clicked sort when paginating after a column sort is selected', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    const recordService = TestBed.inject(RecordService);
-    const getRecordsSpy = spyOn(recordService, 'getRecords').and.returnValue(Promise.resolve(recordDataStandard.records as any));
-    spyOn(dashboardComponent, 'evaluatePlanTableColumns').and.returnValue({
-      items: recordDataStandard.records.items,
-      totalItems: recordDataStandard.records.totalItems,
-      currentPage: recordDataStandard.records.currentPage,
-      noItems: recordDataStandard.records.noItems,
-    } as any);
-
-    dashboardComponent.dashboardTypeSelected = 'standard';
-    dashboardComponent.recordType = 'rdmp';
-    dashboardComponent.filterFieldPath = 'metadata.title';
-    dashboardComponent.sortFields = {
-      draft: ['metadata.contributor_data_manager.text_full_name', 'metadata.title', 'metaMetadata.lastSaveDate'],
-    };
-    dashboardComponent.tableConfig = {
-      draft: [
-        { variable: 'metadata.contributor_data_manager.text_full_name', noSort: '', secondarySort: '' },
-        { variable: 'metadata.title', noSort: '', secondarySort: '' },
-        { variable: 'metaMetadata.lastSaveDate', noSort: '', secondarySort: '' },
-      ],
-    };
-    dashboardComponent.sortMap = {
-      draft: {
-        'metadata.contributor_data_manager.text_full_name': { sort: 'desc', secondarySort: '', defaultSort: false },
-        'metadata.title': { sort: 'desc', secondarySort: '', defaultSort: false },
-        'metaMetadata.lastSaveDate': { sort: 'desc', secondarySort: '', defaultSort: true },
-      },
-    };
-
-    await dashboardComponent.sortChanged({
-      step: 'draft',
-      sort: 'asc',
-      secondarySort: '',
-      variable: 'metadata.title',
-    } as any);
-    await dashboardComponent.pageChanged({ page: 2 } as any, 'draft');
-
-    expect(getRecordsSpy).toHaveBeenCalledTimes(2);
-    expect(getRecordsSpy.calls.mostRecent().args).toEqual([
-      'rdmp',
-      'draft',
-      2,
-      '',
-      'metadata.title:1',
-      'metadata.title',
-      '',
-      '',
-      '',
-    ]);
-  });
-
-  it('initializes a dashboard view and loads view templates', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    const recordService = TestBed.inject(RecordService);
-    const handlebarsTemplateService = TestBed.inject(
-      HandlebarsTemplateService
-    ) as jasmine.SpyObj<HandlebarsTemplateService>;
-
-    spyOn(recordService, 'getDashboardView').and.returnValue(
-      Promise.resolve({
-        sourceRecordType: 'rdmp',
-        dashboardType: 'workspace',
-        steps: [
-          {
-            name: 'draft',
-            baseRecordType: 'rdmp',
-            dashboardTable: {
-              rowConfig: [
-                {
-                  title: 'Record Title',
-                  variable: 'metadata.title',
-                  template: '{{title}}',
-                },
-              ],
-            },
-            fetchMode: 'workflowStage',
-            sourceWorkflowStage: 'draft',
-            sourceRecordType: 'rdmp',
-          },
-        ],
-      } as any)
-    );
-    spyOn(recordService, 'getDashboardType').and.returnValue(Promise.resolve(recordDataStandard.dashboardType as any));
-    spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
-
-    await dashboardComponent.initDashboardView('workspace-dashboard');
-
-    expect(dashboardComponent.dashboardViewConfig?.sourceRecordType).toBe('rdmp');
-    expect(dashboardComponent.dashboardTypeSelected).toBe('workspace');
-    expect(handlebarsTemplateService.loadDashboardViewTemplates).toHaveBeenCalledWith(
-      dashboardComponent.branding,
-      dashboardComponent.portal,
-      'workspace-dashboard',
-      'draft',
-      'workspace'
-    );
-    expect(dashboardComponent.initStep).toHaveBeenCalledWith('draft', 'draft', 'rdmp', '', 1, jasmine.any(Object));
-  });
-
-  it('restores dashboard view rule configuration for the step being rendered', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    const recordService = TestBed.inject(RecordService);
-    const firstRowRules = [{ ruleSetName: 'first-row-rules' }];
-    const firstGroupRowConfig = [{ variable: 'first-group-column' }];
-    const firstGroupRowRules = [{ ruleSetName: 'first-group-rules' }];
-    const secondRowRules = [{ ruleSetName: 'second-row-rules' }];
-    const secondGroupRowConfig = [{ variable: 'second-group-column' }];
-    const secondGroupRowRules = [{ ruleSetName: 'second-group-rules' }];
-    const dashboardFormatRules = recordDataStandard.dashboardType.formatRules;
-    const firstFormatRules = {
-      ...dashboardFormatRules,
-      groupBy: 'groupedByRelationships',
-    };
-    const renderedRuleConfigs: any[] = [];
-
-    dashboardComponent.dashboardView = 'multi-step-dashboard';
-    spyOn(recordService, 'getDashboardView').and.returnValue(Promise.resolve({
-      sourceRecordType: 'rdmp',
-      dashboardType: 'consolidated',
-      steps: [
-        {
-          name: 'first-step',
-          sourceRecordType: 'rdmp',
-          fetchMode: 'allForRecordType',
-          dashboardTable: {
-            rowRulesConfig: firstRowRules,
-            groupRowConfig: firstGroupRowConfig,
-            groupRowRulesConfig: firstGroupRowRules,
-            formatRules: firstFormatRules,
-          },
+  describe('workflow stage dashboards', () => {
+    beforeEach(() => {
+      recordService.getDashboardSettings.and.resolveTo({
+        revision: 7,
+        targets: {
+          draft: { settings: settings('Draft title', { formatRules: { filterBy: { filterBase: 'record', filterBaseFieldOrValue: 'mine', filterField: 'metadata.owner', filterMode: 'equal' } } }), fingerprint: 'fp-draft' },
+          review: { settings: settings('Review title', {}, { searchable: false, showStageTitle: false }), fingerprint: 'fp-review' },
         },
-        {
-          name: 'second-step',
-          sourceRecordType: 'rdmp',
-          fetchMode: 'allForRecordType',
-          dashboardTable: {
-            rowRulesConfig: secondRowRules,
-            groupRowConfig: secondGroupRowConfig,
-            groupRowRulesConfig: secondGroupRowRules,
-          },
-        },
-      ],
-    } as any));
-    spyOn(recordService, 'getDashboardType').and.returnValue(Promise.resolve(recordDataStandard.dashboardType as any));
-    spyOn(dashboardComponent, 'initStep').and.callFake(async (_stepName, evaluateStepName) => {
-      renderedRuleConfigs.push({
-        evaluateStepName,
-        rowLevelRules: dashboardComponent.rowLevelRules,
-        groupRowConfig: dashboardComponent.groupRowConfig,
-        groupRowRules: dashboardComponent.groupRowRules,
-        formatRules: dashboardComponent.formatRules,
       });
     });
 
-    await dashboardComponent.initDashboardView('multi-step-dashboard');
-    await dashboardComponent.pageChanged({ page: 2 } as any, 'first-step');
+    it('loads each stage from one settings snapshot and pins templates to its fingerprint', async () => {
+      const component = create();
+      await init(component);
 
-    expect(renderedRuleConfigs).toEqual([
-      {
-        evaluateStepName: 'first-step',
-        rowLevelRules: firstRowRules,
-        groupRowConfig: firstGroupRowConfig,
-        groupRowRules: firstGroupRowRules,
-        formatRules: firstFormatRules,
-      },
-      {
-        evaluateStepName: 'second-step',
-        rowLevelRules: secondRowRules,
-        groupRowConfig: secondGroupRowConfig,
-        groupRowRules: secondGroupRowRules,
-        formatRules: dashboardFormatRules,
-      },
-      {
-        evaluateStepName: 'first-step',
-        rowLevelRules: firstRowRules,
-        groupRowConfig: firstGroupRowConfig,
-        groupRowRules: firstGroupRowRules,
-        formatRules: firstFormatRules,
-      },
+      expect(recordService.getDashboardSettings).toHaveBeenCalledOnceWith('workflow', 'rdmp');
+      expect(component.workflowSteps.map((s: any) => s.name)).toEqual(['draft', 'review']);
+      expect(templates.loadDashboardTargetTemplates).toHaveBeenCalledWith('default', 'rdmp', { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, 'fp-draft');
+      expect(component.tableConfig['draft'][0].title).toBe('Draft title');
+      expect(component.tableConfig['review'][0].title).toBe('Review title');
+      expect(component.records['draft'].items[0]['metadata.title']).toBe('default|workflow|rdmp|draft|fp-draft|rowConfig|0|metadata.title:One');
+    });
+
+    it('keeps each stage\'s filter, search and title settings to itself', async () => {
+      const component = create();
+      await init(component);
+
+      const calls = recordService.getRecords.calls.all().map((c: any) => c.args);
+      const draftCall = calls.find((a: any[]) => a[1] === 'draft');
+      const reviewCall = calls.find((a: any[]) => a[1] === 'review');
+      expect(draftCall.slice(5, 8)).toEqual(['metadata.owner', 'mine', 'equal']);
+      // The review stage has no filter even though draft was initialised first.
+      expect(reviewCall.slice(5, 8)).toEqual([undefined, undefined, undefined]);
+      expect(component.isSearchEnabled('draft')).toBeTrue();
+      expect(component.isSearchEnabled('review')).toBeFalse();
+      expect(component.isStageTitleShown('draft')).toBeTrue();
+      expect(component.isStageTitleShown('review')).toBeFalse();
+    });
+
+    it('does not submit text merely typed into the search box during page or sort changes', async () => {
+      const component = create();
+      await init(component);
+
+      component.filterSearchString['draft'] = 'first search';
+      await component.pageChanged({ page: 2 } as any, 'draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.owner', 'mine', 'equal']);
+
+      await component.filterChanged('draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', 'first search', '']);
+
+      component.filterSearchString['draft'] = 'still typing';
+      await component.sortChanged({ step: 'draft', variable: 'metadata.title', sort: 'asc', secondarySort: '' });
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', 'first search', '']);
+
+      await component.resetFilterAndSearch('draft', { preventDefault() {} });
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
+      await component.pageChanged({ page: 2 } as any, 'draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
+    });
+
+    it('reloads settings and templates together once when the templates no longer match', async () => {
+      templates.loadDashboardTargetTemplates.and.returnValues(Promise.resolve(false), Promise.resolve(true), Promise.resolve(true), Promise.resolve(true));
+      const component = create();
+      await init(component);
+      expect(recordService.getDashboardSettings).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows settings unavailable when templates still fail after reloading', async () => {
+      templates.loadDashboardTargetTemplates.and.resolveTo(false);
+      const component = create();
+      await init(component);
+
+      expect(recordService.getDashboardSettings).toHaveBeenCalledTimes(2);
+      expect(component.settingsUnavailable).toBeTrue();
+      expect(component.workflowSteps).toEqual([]);
+      expect(component.stepState).toEqual({});
+      expect(component.tableConfig).toEqual({});
+      expect(recordService.getRecords).not.toHaveBeenCalled();
+    });
+
+    it('does not silently omit a stage missing from the settings snapshot', async () => {
+      recordService.getDashboardSettings.and.resolveTo({ revision: 7, targets: { draft: { settings: settings('Draft'), fingerprint: 'fp-draft' } } });
+      const component = create();
+      await init(component);
+
+      expect(component.settingsUnavailable).toBeTrue();
+      expect(component.workflowSteps).toEqual([]);
+      expect(recordService.getRecords).not.toHaveBeenCalled();
+    });
+
+    it('uses the column sort first, then the stage overall sort', async () => {
+      const component = create();
+      await init(component);
+      expect((component as any).getSortStringFromSortMap(component.sortMap['draft'], 'draft', true)).toBe('metadata.title:-1');
+      component.stepState['draft'].settings.tableConfig.formatRules.sortBy = 'metaMetadata.createdOn:1';
+      expect((component as any).getSortStringFromSortMap({}, 'draft', true)).toBe('metaMetadata.createdOn:1');
+      component.stepState['draft'].settings.tableConfig.formatRules.sortBy = undefined;
+      expect((component as any).getSortStringFromSortMap({}, 'draft', true)).toBe('metaMetadata.lastSaveDate:-1');
+    });
+
+    it('uses the search filter fields and templates of the stage being searched', async () => {
+      recordService.getDashboardSettings.and.resolveTo({
+        revision: 1,
+        targets: {
+          draft: { settings: settings('A', { formatRules: { queryFilters: { rdmp: [{ filterType: 'text', filterFields: [{ name: 'Owner', path: 'metadata.owner', template: '{{value}}*' }] }] } } }), fingerprint: 'fa' },
+          review: { settings: settings('B'), fingerprint: 'fb' },
+        },
+      });
+      const component = create();
+      await init(component);
+      expect(component.getFilterFieldName('draft')).toBe('Owner');
+      expect(component.getFilterFieldName('review')).toBe('Title');
+      component.filterSearchString['draft'] = 'abc';
+      component.getFilterSearchString('draft');
+      expect(templates.compileAndRunTemplate).toHaveBeenCalledWith('{{value}}*', { value: 'abc' }, ['default', 'workflow', 'rdmp', 'draft', 'fa', 'filters', 'rdmp', '0', 'fields', '0', 'template']);
+    });
+
+    it('supplies the stage\'s row rule sets to templates', async () => {
+      const component = create();
+      await init(component);
+      component.stepState['draft'].settings.tableConfig.rowRulesConfig = [{ ruleSetName: 'actions', applyRuleSet: true, separator: ' | ', rules: [{ name: 'Edit', action: 'show', renderItemTemplate: 'edit' }, { name: 'Hide', action: 'show', renderItemTemplate: 'x', evaluateRulesTemplate: 'false' }] }];
+      templates.compileAndRunTemplate.and.callFake((tpl: string) => (tpl === 'false' ? 'false' : tpl));
+      const rendered = component.evaluateRowLevelRules(component.stepState['draft'].settings.tableConfig.rowRulesConfig, {}, {}, {}, 'r1', 'actions', 'rdmp', 'draft');
+      expect(rendered).toBe('edit');
+    });
+  });
+
+  it('shows an empty-columns state rather than restoring built-in columns', async () => {
+    recordService.getWorkflowSteps.and.resolveTo([{ name: 'draft', config: { workflow: { stage: 'draft' } } }]);
+    recordService.getDashboardSettings.and.resolveTo({ revision: 1, targets: { draft: { settings: settings('x', { rowConfig: [] }), fingerprint: 'f' } } });
+    const component = create();
+    await init(component);
+    expect(component.tableConfig['draft']).toEqual([]);
+  });
+
+  it('uses the workspace context to choose the stage settings and lists records by package type', async () => {
+    attributes = { recordType: 'workspace', packageType: 'workspace', dashboardType: 'workspace' };
+    recordService.getDashboardType.and.resolveTo({ name: 'workspace', formatRules: { recordTypeFilterBy: 'existing-locations', filterWorkflowStepsBy: ['existing-locations-draft'] } });
+    recordService.getWorkflowSteps.and.resolveTo([
+      { name: 'existing-locations-draft', config: { workflow: { stage: 'existing-locations-draft' } } },
+      { name: 'other', config: { workflow: { stage: 'other' } } },
     ]);
-  });
-
-  it('initializes through initComponent when a dashboard view is configured', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    const recordService = TestBed.inject(RecordService);
-    const handlebarsTemplateService = TestBed.inject(
-      HandlebarsTemplateService
-    ) as jasmine.SpyObj<HandlebarsTemplateService>;
-
-    dashboardComponent.dashboardView = 'workspace-dashboard';
-    dashboardComponent.dashboardTypeSelected = 'workspace';
-    (recordService as any).getConfig = jasmine.createSpy('getConfig').and.returnValue({
-      baseUrl: 'http://localhost',
-      branding: 'default',
-      portal: 'rdmp',
-    } as any);
-    (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy('getInfo').and.returnValue(Promise.resolve({
-      username,
-    }));
-    spyOn(recordService, 'getDashboardView').and.returnValue(
-      Promise.resolve({
-        name: 'workspace-dashboard',
-        titleLabelKey: 'workspace-dashboard',
-        dashboardType: 'workspace',
-        sourceRecordType: 'rdmp',
-        steps: [
-          {
-            name: 'workspace-dashboard-step',
-            sourceRecordType: 'rdmp',
-            fetchMode: 'allForRecordType',
-            dashboardTable: {
-              rowConfig: [],
+    recordService.getDashboardSettings.and.resolveTo({
+      revision: 1,
+      targets: {
+        'existing-locations-draft': {
+          settings: settings('Workspace', {
+            formatRules: {
+              filterBy: {
+                filterBase: 'record',
+                filterBaseFieldOrValue: 'published',
+                filterField: 'metaMetadata.status',
+                filterMode: 'equal',
+              },
+              queryFilters: {
+                workspace: [
+                  {
+                    filterType: 'text',
+                    filterFields: [{ name: 'Title', path: 'metadata.title', template: '', legacyTemplateLookupFailed: true }],
+                  },
+                ],
+              },
             },
-          },
-        ],
-      } as any)
-    );
-    spyOn(recordService, 'getDashboardType').and.returnValue(Promise.resolve(recordDataStandard.dashboardType as any));
-    spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
-
-    await (dashboardComponent as any).initComponent();
-
-    expect(dashboardComponent.dashboardViewConfig?.name).toBe('workspace-dashboard');
-    expect(handlebarsTemplateService.loadDashboardViewTemplates).toHaveBeenCalledWith(
-      dashboardComponent.branding,
-      dashboardComponent.portal,
-      'workspace-dashboard',
-      'workspace-dashboard-step',
-      'workspace'
-    );
-    expect(dashboardComponent.initStep).toHaveBeenCalledWith('', 'workspace-dashboard-step', 'rdmp', '', 1, {});
-    expect(dashboardComponent.records['workspace-dashboard-step']).toBeUndefined();
-  });
-
-  it('pageChanged skips dashboard view pagination when no workflow steps are loaded', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardView = 'consolidated';
-    dashboardComponent.dashboardTypeSelected = 'consolidated';
-    dashboardComponent.workflowSteps = [];
-    dashboardComponent.recordType = 'rdmp';
-    const initStepSpy = spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
-
-    await dashboardComponent.pageChanged({ page: 2 } as any, 'consolidated');
-
-    expect(initStepSpy).not.toHaveBeenCalled();
-    expect(dashboardComponent.isProcessingPageChange).toBeFalse();
-  });
-
-  it('pageChanged preserves workflow-stage step names for dashboard view pagination', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardView = 'consolidated';
-    dashboardComponent.dashboardTypeSelected = 'consolidated';
-    dashboardComponent.workflowSteps = [
-      {
-        name: 'consolidated',
-        dashboardViewStep: {
-          fetchMode: 'workflowStage',
-          sourceWorkflowStage: 'draft',
-          sourceRecordType: 'rdmp',
-        },
-      },
-    ] as any;
-    dashboardComponent.recordType = 'rdmp';
-    const initStepSpy = spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
-
-    await dashboardComponent.pageChanged({ page: 2 } as any, 'consolidated');
-
-    expect(initStepSpy).toHaveBeenCalledWith('draft', 'consolidated', 'rdmp', '', 2, {});
-    expect(dashboardComponent.isProcessingPageChange).toBeFalse();
-  });
-
-  it('pageChanged keeps all-for-record-type dashboard view steps on the fallback step name', async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardView = 'consolidated';
-    dashboardComponent.dashboardTypeSelected = 'consolidated';
-    dashboardComponent.workflowSteps = [
-      {
-        name: 'consolidated',
-        dashboardViewStep: {
-          fetchMode: 'allForRecordType',
-          sourceRecordType: 'rdmp',
-        },
-      },
-    ] as any;
-    dashboardComponent.recordType = 'rdmp';
-    const initStepSpy = spyOn(dashboardComponent, 'initStep').and.returnValue(Promise.resolve());
-
-    await dashboardComponent.pageChanged({ page: 3 } as any, 'consolidated');
-
-    expect(initStepSpy).toHaveBeenCalledWith('', 'consolidated', 'rdmp', '', 3, {});
-    expect(dashboardComponent.isProcessingPageChange).toBeFalse();
-  });
-
-  // getSecondarySortStringFromSortMap tests
-  describe('getSecondarySortStringFromSortMap', () => {
-    it('returns empty string when sortFields is empty', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = {};
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap({}, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns empty string when sortFields is undefined', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = undefined;
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap({}, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns empty string when sortMapAtStep is undefined', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(undefined, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns empty string when sortMapAtStep is empty', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap({}, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns empty string when sortField is not in sortMapAtStep', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { otherField: { sort: 'desc', secondarySort: 'date' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns descending secondary sort string when sort is desc and secondarySort is set', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc', secondarySort: 'dateCreated' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('dateCreated:-1');
-    });
-
-    it('returns ascending secondary sort string when sort is asc and secondarySort is set', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'asc', secondarySort: 'dateCreated' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('dateCreated:1');
-    });
-
-    it('returns empty string when sort is desc but secondarySort is empty', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc', secondarySort: '' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns empty string when sort is asc but secondarySort is empty', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'asc', secondarySort: '' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns empty string when sort is null', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: null, secondarySort: 'dateCreated' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('returns secondary sort when sortField is empty string but exists in sortMapAtStep', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: [''] };
-      const sortMapAtStep = { '': { sort: 'desc', secondarySort: 'dateCreated' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('handles step that does not exist in sortFields', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc', secondarySort: 'dateCreated' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'nonexistent');
-      expect(secondarySort).toEqual('');
-    });
-
-    it('uses first matching field with sort when multiple fields exist', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
-      const sortMapAtStep = {
-        title: { sort: null, secondarySort: 'field1' },
-        date: { sort: 'asc', secondarySort: 'field2' },
-        name: { sort: 'desc', secondarySort: 'field3' },
-      };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('field2:1');
-    });
-
-    it('returns empty string when secondarySort is undefined', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc' } };
-      const secondarySort = dashboardComponent.getSecondarySortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(secondarySort).toEqual('');
-    });
-  });
-
-  // getSortStringFromSortMap tests
-  describe('getSortStringFromSortMap', () => {
-    it('returns default sort when sortFields is empty', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = {};
-      const sortString = dashboardComponent.getSortStringFromSortMap({}, 'draft');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-
-    it('returns default sort when sortFields is undefined', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = undefined;
-      const sortString = dashboardComponent.getSortStringFromSortMap({}, 'draft');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-
-    it('returns default sort when sortMapAtStep is undefined', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortString = dashboardComponent.getSortStringFromSortMap(undefined, 'draft');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-
-    it('returns default sort when sortMapAtStep is empty', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortString = dashboardComponent.getSortStringFromSortMap({}, 'draft');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-
-    it('returns default sort when sortField is not in sortMapAtStep', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { otherField: { sort: 'desc' } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-
-    it('returns descending sort string when sort is desc', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc' } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(sortString).toEqual('title:-1');
-    });
-
-    it('returns ascending sort string when sort is asc', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'asc' } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(sortString).toEqual('title:1');
-    });
-
-    it('returns default sort when sort is null', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: null } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-
-    it('returns sort string with forceDefault=true and defaultSort=true for desc', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc', defaultSort: true } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
-      expect(sortString).toEqual('title:-1');
-    });
-
-    it('returns sort string with forceDefault=true and defaultSort=true for asc', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'asc', defaultSort: true } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
-      expect(sortString).toEqual('title:1');
-    });
-
-    it('continues to next field when forceDefault=true but defaultSort=false', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title', 'date'] };
-      const sortMapAtStep = {
-        title: { sort: 'desc', defaultSort: false },
-        date: { sort: 'asc', defaultSort: true },
-      };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
-      expect(sortString).toEqual('date:1');
-    });
-
-    it('returns default sort when forceDefault=true but no field has defaultSort=true', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc', defaultSort: false } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft', true);
-      expect(sortString).toEqual('title:-1');
-    });
-
-    it('uses first matching field with sort when multiple fields exist', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title', 'date', 'name'] };
-      const sortMapAtStep = {
-        title: { sort: null },
-        date: { sort: 'asc' },
-        name: { sort: 'desc' },
-      };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(sortString).toEqual('date:1');
-    });
-
-    it('returns default sort when sortField is empty string', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: [''] };
-      const sortMapAtStep = { '': { sort: 'desc' } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'draft');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-
-    it('handles step that does not exist in sortFields', () => {
-      const fixture = TestBed.createComponent(DashboardComponent);
-      const dashboardComponent = fixture.componentInstance as any;
-      dashboardComponent.sortFields = { draft: ['title'] };
-      const sortMapAtStep = { title: { sort: 'desc' } };
-      const sortString = dashboardComponent.getSortStringFromSortMap(sortMapAtStep, 'nonexistent');
-      expect(sortString).toEqual('metaMetadata.lastSaveDate:-1');
-    });
-  });
-});
-
-let recordDataWorkspace = {
-  dashboardType: {
-    formatRules: {
-      filterBy: [],
-      recordTypeFilterBy: 'existing-locations',
-      filterWorkflowStepsBy: ['existing-locations-draft'],
-      queryFilters: {
-        workspace: [
-          {
-            filterType: 'text',
-            filterFields: [
-              {
-                name: 'Title',
-                path: 'metadata.title',
-              },
-            ],
-          },
-        ],
-      },
-      groupBy: '',
-      sortGroupBy: [],
-      hideWorkflowStepTitleForRecordType: [],
-    },
-  },
-  step: [
-    {
-      name: 'existing-locations-draft',
-      config: {
-        workflow: {
-          stage: 'existing-locations-draft',
-        },
-        dashboard: {
-          table: {
-            dummyRowConfig: ['dummy'], //intentionally not using rowConfig to avoid overriding the default but making sure config.dashboard.table is not undefined
-          },
-        },
-      },
-    },
-  ],
-  records: {
-    items: [
-      {
-        oid: '1234567890',
-        title: 'test',
-        dateCreated: 'dateCreated',
-        dateModified: 'dateModified',
-        metadata: {
-          metaMetadata: {
-            type: 'rdmp',
-            lastSaveDate: '',
-          },
-          metadata: { title: 'test' },
-          packageType: 'workspace',
-          workflow: '',
-          hasEditAccess: '',
-          recordType: 'existing-locations',
-        },
-      },
-    ],
-    totalItems: 0,
-    currentPage: 1,
-    noItems: 10,
-  },
-  paginationData: {
-    itemsPerPage: 10,
-    page: 2,
-    step: 'existing-locations-draft',
-  },
-};
-
-describe('DashboardComponent workspace', () => {
-  beforeEach(async () => {
-    let configService = getStubConfigService();
-    let translationService = getStubTranslationService();
-    let recordService = getStubRecordService(recordDataWorkspace);
-    let userService = getStubUserService(username, password);
-
-    const testModule = TestBed.configureTestingModule({
-      declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
-      providers: [
-        {
-          provide: APP_BASE_HREF,
-          useValue: 'base',
-        },
-        LoggerService,
-        UtilityService,
-        {
-          provide: TranslationService,
-          useValue: translationService,
-        },
-        {
-          provide: ConfigService,
-          useValue: configService,
-        },
-        {
-          provide: RecordService,
-          useValue: recordService,
-        },
-        {
-          provide: UserService,
-          useValue: userService,
-        },
-        {
-          provide: HandlebarsTemplateService,
-          useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            loadDashboardTemplates: Promise.resolve(),
-            runTemplate: 'Template Result',
-            compileAndRunTemplate: 'Template Result',
           }),
+          fingerprint: 'w',
         },
-      ],
+      },
     });
-    TestBed.inject(RecordService);
-    await testModule.compileComponents();
+    const component = create();
+    await init(component);
+    expect(recordService.getDashboardSettings).toHaveBeenCalledWith('workflow', 'existing-locations');
+    expect(component.workflowSteps.map((s: any) => s.name)).toEqual(['existing-locations-draft']);
+    expect(recordService.getRecords.calls.mostRecent().args.slice(0, 4)).toEqual(['', '', 1, 'workspace']);
+    expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metaMetadata.status', 'published', 'equal']);
+    expect(component.isStageTitleShown('existing-locations-draft')).toBeFalse();
+    component.filterSearchString['existing-locations-draft'] = 'a search term';
+    expect(component.getFilterSearchString('existing-locations-draft')).toBe('');
+    await component.pageChanged({ page: 2 } as any, 'existing-locations-draft');
+    expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metaMetadata.status', 'published', 'equal']);
+    await component.filterChanged('existing-locations-draft');
+    expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.title', '', '']);
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent).toBeTruthy();
-  });
-
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
-
-  it(`should have a default dashboard type`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'workspace';
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
-  });
-
-  it(`init view`, async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'workspace';
-    await dashboardComponent.initView('workspace');
-    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('workspace');
-    let defaultSortObject = {
-      sort: 'desc',
-      secondarySort: '',
-      step: 'draft',
-      title: '',
-      variable: 'metaMetadata.lastSaveDate',
-    };
-    await dashboardComponent.initStep('', 'existing-locations-draft', '', 'workspace', 1, defaultSortObject);
-    let planTable = dashboardComponent.evaluatePlanTableColumns(
-      {},
-      {},
-      {},
-      'existing-locations-draft',
-      recordDataWorkspace['records'],
-      'existing-locations'
-    );
-    expect(planTable.items.length).toBeGreaterThan(0);
-    expect(dashboardComponent.sortMap['existing-locations-draft']['metaMetadata.lastSaveDate'].sort).toEqual('desc');
-    dashboardComponent.pageChanged(recordDataWorkspace['paginationData'], recordDataWorkspace['paginationData'].step);
-    expect(dashboardComponent.records['existing-locations-draft'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['existing-locations-draft'].items.length).toBeGreaterThan(0);
-  });
-});
-
-let recordDataConsolidated = {
-  dashboardType: {
-    formatRules: {
-      filterBy: [],
-      filterWorkflowStepsBy: ['consolidated'],
-      queryFilters: {
-        rdmp: [
-          {
-            filterType: 'text',
-            filterFields: [
-              {
-                name: 'Title',
-                path: 'metadata.title',
-              },
-            ],
-          },
-        ],
-      },
-      sortBy: '',
-      groupBy: 'groupedByRecordType',
-      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
-      hideWorkflowStepTitleForRecordType: [],
-    },
-  },
-  step: [
-    {
-      name: 'consolidated',
-      config: {
-        workflow: {
-          stage: 'consolidated',
-        },
-        baseRecordType: 'rdmp',
-        dashboard: {
-          table: {
-            rowRulesConfig: [
-              {
-                ruleSetName: 'dashboardActionsPerRow',
-                applyRuleSet: true,
-                type: 'multi-item-rendering',
-                rules: [
-                  {
-                    name: 'Edit',
-                    action: 'show',
-                    renderItemTemplate: `<%= name %>`,
-                    evaluateRulesTemplate: `<%= true %>`,
-                  },
-                ],
-              },
-            ],
-            groupRowConfig: [
-              {
-                title: 'Actions',
-                variable: '',
-                template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`,
-              },
-            ],
-            groupRowRulesConfig: [
-              {
-                ruleSetName: 'dashboardActionsPerGroupRow',
-                applyRuleSet: true,
-                rules: [
-                  {
-                    name: 'Send for Conferral',
-                    action: 'show',
-                    mode: 'alo',
-                    renderItemTemplate: `<%= name %>`,
-                    evaluateRulesTemplate: `<%= true %>`,
-                  },
-                ],
-              },
-            ],
-          },
+  it('renders custom view steps with their own grouping and group rows', async () => {
+    attributes = { dashboardView: 'consolidated', dashboardType: 'consolidated' };
+    recordService.getDashboardView.and.resolveTo({ name: 'consolidated', titleLabelKey: 'c', dashboardType: 'consolidated', sourceRecordType: 'rdmp', steps: [{ name: 'main', sourceRecordType: 'rdmp', fetchMode: 'allForRecordType' }] });
+    recordService.getDashboardSettings.and.resolveTo({
+      revision: 1,
+      targets: {
+        main: {
+          settings: settings('Title', {
+            groupRowConfig: [{ title: 'Group', variable: 'g', template: 'group' }],
+            formatRules: { groupBy: 'groupedByRecordType', sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: '', relatedTo: '' }] },
+          }, { searchable: false }),
+          fingerprint: 'v',
         },
       },
-    },
-  ],
-  records: {
-    items: [
-      {
-        oid: '1234567890',
-        title: 'test',
-        dateCreated: 'dateCreated',
-        dateModified: 'dateModified',
-        metadata: {
-          metaMetadata: {
-            type: 'rdmp',
-            lastSaveDate: '',
-          },
-          metadata: { title: 'test' },
-          packageType: 'rdmp',
-          workflow: '',
-          hasEditAccess: '',
-          recordType: 'rdmp',
-        },
-      },
-    ],
-    totalItems: 0,
-    currentPage: 1,
-    noItems: 10,
-  },
-  groupedRecords: {
-    totalItems: 1,
-    currentPage: 1,
-    noItems: 10,
-    itemsByGroup: true,
-    groupedItems: [
-      {
-        items: [
-          {
-            oid: '1234567890',
-            title: 'test',
-            dateCreated: 'dateCreated',
-            dateModified: 'dateModified',
-            metadata: {
-              metaMetadata: {
-                type: 'rdmp',
-                lastSaveDate: '',
-              },
-              metadata: { title: 'test' },
-              packageType: 'rdmp',
-              workflow: '',
-              hasEditAccess: '',
-              recordType: 'rdmp',
-            },
-          },
-        ],
-      },
-    ],
-  },
-  paginationData: {
-    itemsPerPage: 10,
-    page: 2,
-    step: 'consolidated',
-  },
-};
-
-describe('DashboardComponent consolidated group by record type', () => {
-  beforeEach(async () => {
-    let configService = getStubConfigService();
-    let translationService = getStubTranslationService();
-    let recordService = getStubRecordService(recordDataConsolidated);
-    let userService = getStubUserService(username, password);
-
-    const testModule = TestBed.configureTestingModule({
-      declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
-      providers: [
-        {
-          provide: APP_BASE_HREF,
-          useValue: 'base',
-        },
-        LoggerService,
-        UtilityService,
-        {
-          provide: TranslationService,
-          useValue: translationService,
-        },
-        {
-          provide: ConfigService,
-          useValue: configService,
-        },
-        {
-          provide: RecordService,
-          useValue: recordService,
-        },
-        {
-          provide: UserService,
-          useValue: userService,
-        },
-        {
-          provide: HandlebarsTemplateService,
-          useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            loadDashboardTemplates: Promise.resolve(),
-            runTemplate: 'Template Result',
-            compileAndRunTemplate: 'Template Result',
-          }),
-        },
-      ],
     });
-    TestBed.inject(RecordService);
-    await testModule.compileComponents();
+    const component = create();
+    await init(component);
+    expect(recordService.getDashboardSettings).toHaveBeenCalledWith('view', 'consolidated');
+    expect(templates.loadDashboardTargetTemplates).toHaveBeenCalledWith('default', 'rdmp', { kind: 'view', view: 'consolidated', step: 'main' }, 'v');
+    // One record row plus one group row.
+    expect(component.records['main'].items.length).toBe(2);
+    expect(component.records['main'].items[1]['g']).toContain('default|view|consolidated|main|v|groupRowConfig|0|g');
+    expect(component.enableSort).toBeFalse();
+    expect(component.isSearchEnabled('main')).toBeFalse();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent).toBeTruthy();
-  });
+  it('does not render custom view rows when their templates cannot be loaded', async () => {
+    attributes = { dashboardView: 'consolidated', dashboardType: 'consolidated' };
+    recordService.getDashboardView.and.resolveTo({ name: 'consolidated', titleLabelKey: 'c', dashboardType: 'consolidated', sourceRecordType: 'rdmp', steps: [{ name: 'main', sourceRecordType: 'rdmp', fetchMode: 'allForRecordType' }] });
+    recordService.getDashboardSettings.and.resolveTo({ revision: 1, targets: { main: { settings: settings('Title'), fingerprint: 'v' } } });
+    templates.loadDashboardTargetTemplates.and.resolveTo(false);
 
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
+    const component = create();
+    await init(component);
 
-  it(`should have a default dashboard type`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'consolidated';
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-  });
-
-  it(`init view`, async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'consolidated';
-    await dashboardComponent.initView('consolidated');
-    console.log('===================== DashboardComponent consolidated group by record type =========================');
-    console.log('==============================================');
-    console.log('==============================================');
-    console.log(JSON.stringify(dashboardComponent.sortFields));
-    console.log(JSON.stringify(dashboardComponent.sortMap));
-    console.log('==============================================');
-    console.log('==============================================');
-    console.log('==============================================');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-    let defaultSortObject = {};
-    await dashboardComponent.initStep('', 'consolidated', 'rdmp', '', 1, defaultSortObject);
-    let groupedRecords = recordDataConsolidated['groupedRecords'];
-    let planTable = dashboardComponent.evaluatePlanTableColumns(
-      dashboardComponent.groupRowConfig,
-      dashboardComponent.groupRowRules,
-      dashboardComponent.rowLevelRules,
-      'consolidated',
-      groupedRecords,
-      'rdmp'
-    );
-    expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.evaluateRowLevelRules(
-      dashboardComponent.rowLevelRules,
-      recordDataConsolidated['records'].items[0].metadata.metadata,
-      recordDataConsolidated['records'].items[0].metadata.metaMetadata,
-      recordDataConsolidated['records'].items[0].metadata.workflow,
-      recordDataConsolidated['records'].items[0].oid,
-      'dashboardActionsPerRow',
-      'rdmp',
-      'consolidated'
-    );
-    dashboardComponent.evaluateGroupRowRules(
-      dashboardComponent.groupRowRules,
-      groupedRecords['groupedItems'][0].items,
-      'dashboardActionsPerGroupRow',
-      'rdmp',
-      'consolidated'
-    );
-    dashboardComponent.pageChanged(
-      recordDataConsolidated['paginationData'],
-      recordDataConsolidated['paginationData'].step
-    );
-    expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
-  });
-
-  it('renders row and group rules through the Handlebars template context', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    const handlebarsTemplateService = TestBed.inject(HandlebarsTemplateService) as jasmine.SpyObj<HandlebarsTemplateService>;
-
-    handlebarsTemplateService.compileAndRunTemplate.and.callFake((template: string, context: any) => handlebarsCompile(template)(context));
-
-    dashboardComponent.tableConfig = {
-      consolidated: [
-        {
-          variable: 'actions',
-          template: '{{evaluateRowLevelRules rulesConfig metadata metaMetadata workflow oid "dashboardActionsPerRow"}}',
-        },
-      ],
-    };
-
-    const rowRules = [
-      {
-        ruleSetName: 'dashboardActionsPerRow',
-        rules: [
-          {
-            evaluateRulesTemplate: 'true',
-            renderItemTemplate: '<a href="/record/edit/{{oid}}">Edit</a>',
-          },
-        ],
-      },
-    ];
-    const groupRowConfig = [
-      {
-        variable: 'actions',
-        template: '{{evaluateGroupRowRules groupRulesConfig groupedItems "dashboardActionsPerGroupRow"}}',
-      },
-    ];
-    const groupRules = [
-      {
-        ruleSetName: 'dashboardActionsPerGroupRow',
-        rules: [
-          {
-            evaluateRulesTemplate: 'true',
-            renderItemTemplate: '<button type="button">Send for Conferral</button>',
-          },
-        ],
-      },
-    ];
-
-    const planTable = dashboardComponent.evaluatePlanTableColumns(
-      groupRowConfig,
-      groupRules,
-      rowRules,
-      'consolidated',
-      recordDataConsolidated.groupedRecords,
-      'rdmp'
-    );
-
-    expect(planTable.items[0].actions).toBe('<a href="/record/edit/1234567890">Edit</a>');
-    expect(planTable.items[1].actions).toBe('<button type="button">Send for Conferral</button>');
-  });
-});
-
-let recordDataConsolidatedRelationships = {
-  dashboardType: {
-    formatRules: {
-      filterBy: [],
-      filterWorkflowStepsBy: ['consolidated'],
-      queryFilters: {
-        rdmp: [
-          {
-            filterType: 'text',
-            filterFields: [
-              {
-                name: 'Title',
-                path: 'metadata.title',
-              },
-            ],
-          },
-        ],
-      },
-      sortBy: '',
-      groupBy: 'groupedByRelationships',
-      sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }],
-      hideWorkflowStepTitleForRecordType: [],
-    },
-  },
-  step: [
-    {
-      name: 'consolidated',
-      config: {
-        workflow: {
-          stage: 'consolidated',
-        },
-        baseRecordType: 'rdmp',
-        dashboard: {
-          table: {
-            rowRulesConfig: [
-              {
-                ruleSetName: 'dashboardActionsPerRow',
-                applyRuleSet: true,
-                type: 'multi-item-rendering',
-                rules: [
-                  {
-                    name: 'Edit',
-                    action: 'show',
-                    renderItemTemplate: `<%= name %>`,
-                    evaluateRulesTemplate: `<%= true %>`,
-                  },
-                ],
-              },
-            ],
-            groupRowConfig: [
-              {
-                title: 'Actions',
-                variable: '',
-                template: `<%= rulesService.evaluateGroupRowRules(groupRulesConfig, groupedItems, 'dashboardActionsPerGroupRow') %>`,
-              },
-            ],
-            groupRowRulesConfig: [
-              {
-                ruleSetName: 'dashboardActionsPerGroupRow',
-                applyRuleSet: true,
-                rules: [
-                  {
-                    name: 'Send for Conferral',
-                    action: 'show',
-                    mode: 'alo',
-                    renderItemTemplate: `<%= name %>`,
-                    evaluateRulesTemplate: `<%= true %>`,
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      },
-    },
-  ],
-  records: {
-    items: [
-      {
-        oid: '1234567890',
-        title: 'test',
-        dateCreated: 'dateCreated',
-        dateModified: 'dateModified',
-        metadata: {
-          metaMetadata: {
-            type: 'rdmp',
-            lastSaveDate: '',
-          },
-          metadata: { title: 'test' },
-          packageType: 'rdmp',
-          workflow: '',
-          hasEditAccess: '',
-          recordType: 'rdmp',
-        },
-      },
-    ],
-    totalItems: 0,
-    currentPage: 1,
-    noItems: 10,
-  },
-  groupedRecords: {
-    totalItems: 1,
-    currentPage: 1,
-    noItems: 10,
-    itemsByGroup: true,
-    groupedItems: [
-      {
-        items: [
-          {
-            oid: '1234567890',
-            title: 'test',
-            dateCreated: 'dateCreated',
-            dateModified: 'dateModified',
-            metadata: {
-              metaMetadata: {
-                type: 'rdmp',
-                lastSaveDate: '',
-              },
-              metadata: { title: 'test' },
-              packageType: 'rdmp',
-              workflow: '',
-              hasEditAccess: '',
-              recordType: 'rdmp',
-            },
-          },
-        ],
-      },
-    ],
-  },
-  paginationData: {
-    itemsPerPage: 10,
-    page: 2,
-    step: 'consolidated',
-  },
-  relatedRecords: {
-    items: [
-      {
-        oid: '1234567890',
-        title: 'test',
-        dateCreated: 'dateCreated',
-        dateModified: 'dateModified',
-        metadata: {
-          metaMetadata: {
-            type: 'rdmp',
-            lastSaveDate: '',
-          },
-          metadata: { title: 'test' },
-          packageType: 'rdmp',
-          workflow: '',
-          hasEditAccess: '',
-          recordType: 'rdmp',
-        },
-      },
-    ],
-  },
-};
-
-describe('DashboardComponent consolidated group by relationships', () => {
-  beforeEach(async () => {
-    let configService = getStubConfigService();
-    let translationService = getStubTranslationService();
-    let recordService = getStubRecordService(recordDataConsolidatedRelationships);
-    let userService = getStubUserService(username, password);
-
-    const testModule = TestBed.configureTestingModule({
-      declarations: [DashboardComponent],
-      imports: [FormsModule, I18NextPipe],
-      providers: [
-        {
-          provide: APP_BASE_HREF,
-          useValue: 'base',
-        },
-        LoggerService,
-        UtilityService,
-        {
-          provide: TranslationService,
-          useValue: translationService,
-        },
-        {
-          provide: ConfigService,
-          useValue: configService,
-        },
-        {
-          provide: RecordService,
-          useValue: recordService,
-        },
-        {
-          provide: UserService,
-          useValue: userService,
-        },
-        {
-          provide: HandlebarsTemplateService,
-          useValue: jasmine.createSpyObj('HandlebarsTemplateService', {
-            loadDashboardTemplates: Promise.resolve(),
-            runTemplate: 'Template Result',
-            compileAndRunTemplate: 'Template Result',
-          }),
-        },
-      ],
-    });
-    TestBed.inject(RecordService);
-    await testModule.compileComponents();
-  });
-
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent).toBeTruthy();
-  });
-
-  it(`should have a set a pre defined dashboard type options`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    expect(dashboardComponent.dashboardTypeOptions).toEqual(dashboardTypeOptions);
-  });
-
-  it(`should have a default dashboard type`, () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'consolidated';
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-  });
-
-  it(`init view`, async () => {
-    const fixture = TestBed.createComponent(DashboardComponent);
-    const dashboardComponent = fixture.componentInstance;
-    dashboardComponent.dashboardTypeSelected = 'consolidated';
-    await dashboardComponent.initView('consolidated');
-    expect(dashboardComponent.workflowSteps.length).toBeGreaterThan(0);
-    expect(dashboardComponent.defaultRowConfig.length).toBeGreaterThan(0);
-    expect(dashboardComponent.dashboardTypeSelected).toEqual('consolidated');
-    let defaultSortObject = {};
-    await dashboardComponent.initStep('', 'consolidated', 'rdmp', '', 1, defaultSortObject);
-    let groupedRecords = recordDataConsolidatedRelationships['groupedRecords'];
-    let planTable = dashboardComponent.evaluatePlanTableColumns(
-      dashboardComponent.groupRowConfig,
-      dashboardComponent.groupRowRules,
-      dashboardComponent.rowLevelRules,
-      'consolidated',
-      groupedRecords,
-      'rdmp'
-    );
-    expect(planTable.items.length).toBeGreaterThan(0);
-    dashboardComponent.evaluateRowLevelRules(
-      dashboardComponent.rowLevelRules,
-      recordDataConsolidatedRelationships['records'].items[0].metadata.metadata,
-      recordDataConsolidatedRelationships['records'].items[0].metadata.metaMetadata,
-      recordDataConsolidatedRelationships['records'].items[0].metadata.workflow,
-      recordDataConsolidatedRelationships['records'].items[0].oid,
-      'dashboardActionsPerRow',
-      'rdmp',
-      'consolidated'
-    );
-    dashboardComponent.evaluateGroupRowRules(
-      dashboardComponent.groupRowRules,
-      groupedRecords['groupedItems'][0].items,
-      'dashboardActionsPerGroupRow',
-      'rdmp',
-      'consolidated'
-    );
-    dashboardComponent.pageChanged(
-      recordDataConsolidatedRelationships['paginationData'],
-      recordDataConsolidatedRelationships['paginationData'].step
-    );
-    expect(dashboardComponent.records['consolidated'].currentPage).toEqual(1);
-    expect(dashboardComponent.records['consolidated'].items.length).toBeGreaterThan(0);
+    expect(component.settingsUnavailable).toBeTrue();
+    expect(component.workflowSteps).toEqual([]);
+    expect(recordService.getRecords).not.toHaveBeenCalled();
   });
 });

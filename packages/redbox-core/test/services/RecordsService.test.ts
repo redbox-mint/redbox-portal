@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { Settings } from 'luxon';
 import _ from 'lodash';
 import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
@@ -20,7 +21,7 @@ import {
   type RecordSchemaStorageCapabilityMethod,
   type StorageService,
 } from '../../src/StorageService';
-import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
+import { RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } from '../../src/RecordStorageConcurrency';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { StorageServiceResponse } from '../../src/StorageServiceResponse';
 import { recordSchema } from '../../src/config/recordSchema.config';
@@ -38,10 +39,7 @@ import type {
   PersistRecordSchemaSaveUsageRequest,
   PersistRecordSchemaSaveUsageResult,
 } from '../../src/services/RecordSchemaService';
-import {
-  isInternalRecordSchemaCreateAuthorizationCapability,
-  isInternalRecordSchemaUpdateAuthorizationCapability,
-} from '../../src/services/internal-record-schema-authorization';
+import { isInternalRecordSchemaAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import {
   createCoreRecordContractContributors,
@@ -349,7 +347,7 @@ describe('RecordsService', function () {
 
   function enableLifecycleStorage() {
     mockStorageService.getCapabilities = sinon.stub().returns({
-      recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
     });
     mockStorageService.getTombstone = sinon.stub().resolves(null);
     mockStorageService.getLifecycleTombstones = sinon.stub().resolves([]);
@@ -362,6 +360,99 @@ describe('RecordsService', function () {
       workflow: { stage: 'draft' },
     });
   }
+
+  describe('UTC metadata timestamps', function () {
+    let originalZone: typeof Settings.defaultZone;
+
+    beforeEach(function () {
+      originalZone = Settings.defaultZone;
+      Settings.defaultZone = 'Australia/Brisbane';
+      sinon.stub(Date, 'now').returns(Date.parse('2026-09-24T04:30:00Z'));
+    });
+
+    afterEach(function () {
+      Settings.defaultZone = originalZone;
+    });
+
+    for (const [name, recordType] of [
+      ['configured', { name: 'rdmp', hooks: {}, searchable: false }],
+      ['bootstrap', {}],
+    ] as const) {
+      it(`creates ${name} records with UTC creation and save timestamps`, async function () {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'UTC record' } },
+          recordType,
+          { username: 'user-1' },
+          false,
+          false
+        );
+
+        expect(result.wasPersisted()).to.equal(true);
+        expect(mockStorageService.create.calledOnce).to.equal(true);
+        expect(mockStorageService.create.firstCall.args[1].metaMetadata).to.include({
+          createdOn: '2026-09-24T04:30:00.000Z',
+          lastSaveDate: '2026-09-24T04:30:00.000Z',
+        });
+      });
+    }
+
+    it('preserves supplied bootstrap timestamps', async function () {
+      const metaMetadata = {
+        createdOn: '2026-09-01T10:00:00+10:00',
+        lastSaveDate: '2026-09-02T10:00:00+10:00',
+      };
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Imported record' }, metaMetadata },
+        {},
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.create.firstCall.args[1].metaMetadata).to.include({
+        createdOn: '2026-09-01T10:00:00+10:00',
+        lastSaveDate: '2026-09-02T10:00:00+10:00',
+      });
+    });
+
+    it('updates the save timestamp in UTC while preserving the creation timestamp', async function () {
+      const record = {
+        redboxOid: 'record-123',
+        metaMetadata: {
+          type: 'rdmp',
+          form: 'default-form',
+          brandId: 'brand-1',
+          createdOn: '2026-09-01T10:00:00+10:00',
+          lastSaveDate: '2026-09-02T10:00:00+10:00',
+        },
+        metadata: { title: 'Test record' },
+        authorization: {},
+      };
+      mockStorageService.getMeta.resolves(_.cloneDeep(record));
+      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        record,
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata).to.include({
+        createdOn: '2026-09-01T10:00:00+10:00',
+        lastSaveDate: '2026-09-24T04:30:00.000Z',
+        lastSavedBy: 'user-1',
+      });
+    });
+  });
 
   describe('constructor', function () {
     it('should set logHeader', function () {
@@ -378,104 +469,6 @@ describe('RecordsService', function () {
       lowerRegistration.args[1]();
       expect(interruptAll.calledOnce).to.equal(true);
       interruptAll.restore();
-    });
-  });
-
-  describe('record validation rollout audit', function () {
-    it('resolves durable storage when bootstrap runs before the Sails ready event', async function () {
-      RecordsService.storageService = undefined;
-
-      const result = await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
-
-      expect(result.status).to.equal('audited');
-      expect(RecordsService.storageService).to.equal(mockStorageService);
-      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
-    });
-
-    it('durably records only normalized rollout modes and skips an unchanged fingerprint', async function () {
-      mockSails.config.recordValidation = {
-        mode: 'shadow',
-        timeoutMs: 5_000,
-        shadowReportMaxSeries: 1_000,
-        operations: { publish: { mode: 'enforce', secret: 'must-not-audit' } },
-      };
-      const recordTypes = [
-        {
-          name: 'dataset',
-          recordValidation: {
-            mode: 'shadow',
-            operations: {
-              submit: { mode: 'enforce', enabledValidationGroups: ['private-group'], roles: ['private-role'] },
-            },
-          },
-          privateConfiguration: 'must-not-audit',
-        },
-      ];
-
-      const first = await RecordsService.auditRecordValidationRollout(recordTypes);
-
-      expect(first.status).to.equal('audited');
-      expect(first.fingerprint).to.match(/^[a-f0-9]{64}$/);
-      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
-      const audit = mockStorageService.createRecordAudit.firstCall.args[0];
-      expect(audit.redboxOid).to.equal('record-validation-rollout');
-      expect(audit.action).to.equal('validation-mode-changed');
-      expect(audit.record.recordValidationRollout).to.deep.include({
-        schemaVersion: 1,
-        fingerprint: first.fingerprint,
-        changeType: 'baseline',
-      });
-      expect(audit.record.recordValidationRollout.snapshot.global).to.deep.equal({
-        mode: 'shadow',
-        operations: [{ operation: 'publish', mode: 'enforce' }],
-        malformedOperationCount: 0,
-      });
-      expect(audit.record.recordValidationRollout.snapshot.recordTypes).to.deep.equal([
-        {
-          recordType: 'dataset',
-          rollout: {
-            mode: 'shadow',
-            operations: [{ operation: 'submit', mode: 'enforce' }],
-            malformedOperationCount: 0,
-          },
-        },
-      ]);
-      expect(JSON.stringify(audit)).not.to.match(/must-not-audit|private-group|private-role|privateConfiguration/);
-
-      mockStorageService.createRecordAudit.resetHistory();
-      mockStorageService.getRecordAudit.resolves([audit]);
-      const unchanged = await RecordsService.auditRecordValidationRollout(recordTypes);
-      expect(unchanged).to.deep.equal({ status: 'unchanged', fingerprint: first.fingerprint });
-      expect(mockStorageService.createRecordAudit.notCalled).to.equal(true);
-    });
-
-    it('links mode changes to the previous fingerprint and fails closed without durable confirmation', async function () {
-      mockSails.config.recordValidation = { mode: 'shadow' };
-      const baseline = await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
-      const baselineAudit = mockStorageService.createRecordAudit.firstCall.args[0];
-      mockStorageService.getRecordAudit.resolves([baselineAudit]);
-      mockStorageService.createRecordAudit.resetHistory();
-      mockSails.config.recordValidation = { mode: 'enforce' };
-
-      const changed = await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
-      expect(changed.status).to.equal('audited');
-      const changedAudit = mockStorageService.createRecordAudit.firstCall.args[0];
-      expect(changedAudit.record.recordValidationRollout).to.deep.include({
-        changeType: 'mode-change',
-        previousFingerprint: baseline.fingerprint,
-      });
-
-      mockStorageService.getRecordAudit.resolves([changedAudit]);
-      mockStorageService.createRecordAudit.resolves(undefined);
-      mockSails.config.recordValidation = { mode: 'shadow' };
-      let failure: unknown;
-      try {
-        await RecordsService.auditRecordValidationRollout([{ name: 'dataset' }]);
-      } catch (error) {
-        failure = error;
-      }
-      expect(failure).to.be.instanceOf(Error);
-      expect((failure as Error).message).to.equal('Durable record-validation rollout audit was not confirmed.');
     });
   });
 
@@ -1249,7 +1242,6 @@ describe('RecordsService', function () {
           },
         },
         ['attachments'],
-        'record-1',
         'generation-1',
         [
           {
@@ -1566,7 +1558,7 @@ describe('RecordsService', function () {
 
     const setMode = (mode: 'strict' | 'observe' | 'last-write-wins') => {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode } })
@@ -1899,10 +1891,7 @@ describe('RecordsService', function () {
       setMode('last-write-wins');
       mockStorageService.getMeta.resolves(lifecycleRecord());
       mockStorageService.getCapabilities.returns({
-        recordConcurrency: {
-          ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
-          conditionalTombstoneCreate: false,
-        },
+        recordConcurrency: 2,
       });
 
       const result = await RecordsService.delete(
@@ -2529,8 +2518,8 @@ describe('RecordsService', function () {
       expect(preparedRows.map(row => row.fileId)).to.deep.equal(['new-file', 'old-file']);
       expect(preparedRows[0].storageKey).to.not.equal(preparedRows[1].storageKey);
       expect(journal.markMutation.callCount).to.equal(4);
-      expect(journal.markMutation.getCall(0).args[5]).to.equal('new-file');
-      expect(journal.markMutation.getCall(2).args[5]).to.equal('old-file');
+      expect(journal.markMutation.getCall(0).args[4]).to.equal('new-file');
+      expect(journal.markMutation.getCall(2).args[4]).to.equal('old-file');
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
       expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
     });
@@ -2624,7 +2613,7 @@ describe('RecordsService', function () {
     });
     const installMode = (mode: 'strict' | 'observe' | 'last-write-wins', hooks: Record<string, unknown> = {}) => {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({
@@ -2741,6 +2730,7 @@ describe('RecordsService', function () {
         expectedRevision: 3,
         formFingerprint: issuedFingerprint!,
       });
+      expect(stale.oid).to.equal('record-123');
       expect(stale.problems[0].issues[0].code).to.equal('record-revision-stale');
       expect(stale.concurrency).to.include({ expectedRevision: 3, currentRevision: 4 });
       expect(stale.concurrency?.formFingerprint).to.equal(issuedFingerprint);
@@ -2780,7 +2770,7 @@ describe('RecordsService', function () {
         configuration: { componentDefinitions: [] },
       };
       (global as any).FormsService.getFormByName.returns(of(deliveredForm));
-      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType, undefined, deliveredForm);
+      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
       expect(issued).to.match(/^sha256:[0-9a-f]{64}$/);
 
       // Save recomputation resolves the same authoritative form identity and
@@ -2802,18 +2792,23 @@ describe('RecordsService', function () {
 
     it('refuses to fingerprint a delivered form outside the authoritative stored form identity', async function () {
       const stored = record();
-      const fingerprint = await RecordsService.getRecordFormFingerprint(stored, { name: 'rdmp' }, undefined, {
-        id: 'other-id',
-        name: 'other-form',
-        branding: 'brand-1',
-        configuration: {},
-      });
+      const fingerprint = await RecordsService.getRecordFormFingerprint(
+        stored,
+        { name: 'rdmp' },
+        undefined,
+        {
+          id: 'other-id',
+          name: 'other-form',
+          branding: 'brand-1',
+          configuration: {},
+        }
+      );
 
       expect(fingerprint).to.equal(undefined);
       expect((global as any).FormsService.getFormByName.notCalled).to.equal(true);
     });
 
-    it('binds target workflow mappings while keeping one fingerprint stable across a transition', async function () {
+    it('binds workflow mappings into a stable fingerprint', async function () {
       installMode('strict');
       const stored = record();
       const recordType = { name: 'rdmp', hooks: {}, searchable: false };
@@ -2822,13 +2817,8 @@ describe('RecordsService', function () {
       );
 
       const current = await RecordsService.getRecordFormFingerprint(stored, recordType);
-      const target = await RecordsService.getRecordFormFingerprint(stored, recordType, {
-        name: 'published',
-        config: { form: 'published-form' },
-      });
 
       expect(current).to.match(/^sha256:[0-9a-f]{64}$/);
-      expect(target).to.equal(current);
       expect((global as any).FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(
         true
       );
@@ -3493,7 +3483,7 @@ describe('RecordsService', function () {
   describe('create save pipeline', function () {
     it('accepts the starting form fingerprint when a create transitions to its target step', async function () {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       const recordType = {
         name: 'rdmp',
@@ -3530,12 +3520,51 @@ describe('RecordsService', function () {
       );
 
       expect(result.wasPersisted()).to.equal(true);
-      expect(result.outcome).to.be.oneOf(['saved', 'saved-with-warnings']);
       expect(result.problems.flatMap((problem: any) => problem.issues).map((issue: any) => issue.code)).not.to.include(
         'form-definition-changed'
       );
       expect(result.concurrency?.formFingerprint).to.equal(issued);
       expect(mockStorageService.create.calledOnce).to.equal(true);
+    });
+
+    it('normalizes a missing brand id in the starting form fingerprint contract', async function () {
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
+      });
+      const recordType = {
+        name: 'rdmp',
+        hooks: {},
+        searchable: false,
+        concurrentModification: { mode: 'strict' },
+      };
+      const getFingerprint = sinon.stub(RecordsService, 'getRecordFormFingerprint').resolves('issued-fingerprint');
+      const context = createRecordSaveContext({
+        routeFamily: 'browser',
+        operation: 'create',
+        targetStep: 'published',
+        concurrency: { entityTagSupplied: false, formFingerprint: 'issued-fingerprint' },
+      });
+
+      const result = await RecordsService.create(
+        {},
+        {
+          metadata: { title: 'Create without brand id' },
+          authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+        },
+        recordType,
+        { username: 'user-1' },
+        true,
+        false,
+        'published',
+        context
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(getFingerprint.calledOnce).to.equal(true);
+      expect(getFingerprint.firstCall.args[0]).to.deep.include({
+        metaMetadata: { brandId: '', form: 'default-form' },
+        workflow: { stage: 'draft' },
+      });
     });
 
     it('generates a historical hyphenless OID for a configured create before storage', async function () {
@@ -4173,7 +4202,7 @@ describe('RecordsService', function () {
 
     const enableInternalRecordMutationStorage = () => {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
     };
 
@@ -4216,10 +4245,6 @@ describe('RecordsService', function () {
         Parameters<NonNullable<StorageService['putRecordSchemaReference']>>,
         ReturnType<NonNullable<StorageService['putRecordSchemaReference']>>
       >(),
-      listRecordSchemaGrants: sinon.stub<
-        Parameters<NonNullable<StorageService['listRecordSchemaGrants']>>,
-        ReturnType<NonNullable<StorageService['listRecordSchemaGrants']>>
-      >(),
       findRecordSchemaGrantForAuthorization: sinon.stub<
         Parameters<NonNullable<StorageService['findRecordSchemaGrantForAuthorization']>>,
         ReturnType<NonNullable<StorageService['findRecordSchemaGrantForAuthorization']>>
@@ -4227,10 +4252,6 @@ describe('RecordsService', function () {
       listRecordSchemaReferences: sinon.stub<
         Parameters<NonNullable<StorageService['listRecordSchemaReferences']>>,
         ReturnType<NonNullable<StorageService['listRecordSchemaReferences']>>
-      >(),
-      deleteRecordSchemaArtifactIfUnreferenced: sinon.stub<
-        Parameters<NonNullable<StorageService['deleteRecordSchemaArtifactIfUnreferenced']>>,
-        ReturnType<NonNullable<StorageService['deleteRecordSchemaArtifactIfUnreferenced']>>
       >(),
     });
 
@@ -4609,7 +4630,7 @@ describe('RecordsService', function () {
         concurrency: { entityTagSupplied: false },
       });
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
 
       for (const mode of ['last-write-wins', 'observe'] as const) {
@@ -4772,9 +4793,7 @@ describe('RecordsService', function () {
         },
       });
       expect(
-        isInternalRecordSchemaCreateAuthorizationCapability(
-          resolveCreate.firstCall.firstArg.internalAuthorizationCapability
-        )
+        isInternalRecordSchemaAuthorizationCapability(resolveCreate.firstCall.firstArg.internalAuthorizationCapability)
       ).to.equal(true);
       expect(validateResolvedArtifact.calledOnce).to.equal(true);
       expect(validateResolvedArtifact.firstCall.args[0]).to.deep.include({
@@ -7062,7 +7081,7 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
 
-    it('reports advisory failures without blocking an enforced save', async function () {
+    it('reports advisory failures without downgrading an enforced save', async function () {
       const advisoryErrors: RecordSaveIssue[] = [
         {
           message: '@validator-error-recommended',
@@ -7091,9 +7110,10 @@ describe('RecordsService', function () {
         { username: 'user-1' }
       );
 
-      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.outcome).to.equal('saved');
+      expect(result.isComplete()).to.equal(true);
       expect(result.problems).to.have.length(1);
-      expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+      expect(result.problems[0]).to.deep.include({ kind: 'validation', source: 'advisory', phase: 'pre-save' });
       expect(result.problems[0].issues).to.deep.equal(advisoryErrors);
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
@@ -7113,7 +7133,7 @@ describe('RecordsService', function () {
           { username: 'user-1' }
         );
 
-        expect(result.outcome, mode).to.equal('saved-with-warnings');
+        expect(result.outcome, mode).to.equal('saved');
         expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
         expect(
           result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class),
@@ -7164,7 +7184,7 @@ describe('RecordsService', function () {
         false
       );
       const createdCandidate = mockStorageService.create.firstCall.args[1];
-      expect(createResult.outcome).to.equal('saved-with-warnings');
+      expect(createResult.outcome).to.equal('saved');
       expect(createdCandidate.metadata.description).to.equal('<p>Validator pass</p><img src="x">');
       expect(JSON.stringify(createdCandidate)).not.to.match(/<script|onerror/);
 
@@ -7190,7 +7210,7 @@ describe('RecordsService', function () {
         false
       );
       const updatedCandidate = mockStorageService.updateMeta.firstCall.args[2];
-      expect(updateResult.outcome).to.equal('saved-with-warnings');
+      expect(updateResult.outcome).to.equal('saved');
       expect(updatedCandidate.metadata.description).to.equal('<p>Validator pass</p><img src="x">');
       expect(JSON.stringify(updatedCandidate)).not.to.match(/<script|onerror/);
     });
@@ -7359,7 +7379,7 @@ describe('RecordsService', function () {
           targetStep
         );
 
-        expect(result.outcome, writeKind).to.equal('saved-with-warnings');
+        expect(result.outcome, writeKind).to.equal('saved');
         expect(
           result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class),
           writeKind
@@ -7414,8 +7434,8 @@ describe('RecordsService', function () {
         );
         await new Promise(resolveImmediate => setImmediate(resolveImmediate));
 
-        expect(result.outcome).to.equal('saved-with-warnings');
-        expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'post-save' });
+        expect(result.outcome).to.equal('saved');
+        expect(result.problems[0]).to.deep.include({ kind: 'validation', source: 'advisory', phase: 'post-save' });
         expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class)).to.deep.equal(['htmlSanitized']);
         expect(resolve.callCount).to.equal(2);
         const validationResult = await resolve.secondCall.returnValue;
@@ -8319,7 +8339,7 @@ describe('RecordsService', function () {
       requestedRecord.metadata.nested.values = [{ id: 'incoming' }];
       const rawDelta = { nested: { values: [{ id: 'incoming' }] } };
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       mockStorageService.getMeta.resolves(stored);
       mockStorageService.updateMeta.callsFake(
@@ -8396,9 +8416,7 @@ describe('RecordsService', function () {
         committedRecord: { ...structuredClone(saved), revision: 2 },
       }));
       const resolveUpdate = sinon.stub().callsFake(async (request: { internalAuthorizationCapability?: unknown }) => {
-        expect(isInternalRecordSchemaUpdateAuthorizationCapability(request.internalAuthorizationCapability)).to.equal(
-          true
-        );
+        expect(isInternalRecordSchemaAuthorizationCapability(request.internalAuthorizationCapability)).to.equal(true);
         return updateSchemaResolution('enforce');
       });
       const validateResolvedArtifact = sinon.stub().returns({
@@ -10866,7 +10884,7 @@ describe('RecordsService', function () {
     it('resolves authoritative brand and fails closed for append/remove when validation is unavailable', async function () {
       mockSails.config.recordValidation = { mode: 'shadow' };
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } })
@@ -11367,33 +11385,34 @@ describe('RecordsService', function () {
 
   describe('finishSave operational handoff', function () {
     function persistedTracker() {
-      const { RecordSaveTracker, createRecordSaveContext } = require('../../src/RecordSaveResponse');
-      const tracker = new RecordSaveTracker(createRecordSaveContext());
+      const { RecordSaveResponse, createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const tracker = new RecordSaveResponse(createRecordSaveContext());
       tracker.confirmPrimaryPersistence('tracker-oid', { message: '@record-save-post-save-failed' });
       return tracker;
     }
 
-    it('returns a deeply detached save response for nested adapter and hook data', function () {
-      const { RecordSaveTracker, createRecordSaveContext } = require('../../src/RecordSaveResponse');
-      const tracker = new RecordSaveTracker(createRecordSaveContext());
-      tracker.confirmPrimaryPersistence('tracker-oid', {
+    it('copies nested adapter and hook data at the response boundary', function () {
+      const { RecordSaveResponse, createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const response = new RecordSaveResponse(createRecordSaveContext());
+      const source = {
         success: true,
         data: { nested: { value: 'data' } },
         metadata: { nested: { value: 'metadata' } },
         items: [{ nested: { value: 'item' } }],
-      });
-      tracker.mergeLegacyHookFields({ workspaceData: { nested: { value: 'workspace' } } });
+      };
+      const hookFields = { workspaceData: { nested: { value: 'workspace' } } };
+      response.confirmPrimaryPersistence('tracker-oid', source);
+      response.mergeLegacyHookFields(hookFields);
 
-      const response = tracker.toResponse();
-      (response.data as any).nested.value = 'changed';
-      (response.metadata as any).nested.value = 'changed';
-      (response.items[0] as any).nested.value = 'changed';
-      (response.workspaceData as any).nested.value = 'changed';
+      source.data.nested.value = 'changed';
+      source.metadata.nested.value = 'changed';
+      source.items[0].nested.value = 'changed';
+      hookFields.workspaceData.nested.value = 'changed';
 
-      expect((tracker.result.data as any).nested.value).to.equal('data');
-      expect((tracker.result.metadata as any).nested.value).to.equal('metadata');
-      expect((tracker.result.items[0] as any).nested.value).to.equal('item');
-      expect((tracker.result.workspaceData as any).nested.value).to.equal('workspace');
+      expect((response.data as any).nested.value).to.equal('data');
+      expect((response.metadata as any).nested.value).to.equal('metadata');
+      expect((response.items[0] as any).nested.value).to.equal('item');
+      expect((response.workspaceData as any).nested.value).to.equal('workspace');
     });
 
     it('returns saved-with-warnings and retains committed concurrency when final reconciliation reload fails', async function () {
@@ -11722,12 +11741,165 @@ describe('RecordsService', function () {
 
     const enableConcurrency = (mode: 'last-write-wins' | 'observe' | 'strict') => {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: true, concurrentModification: { mode } })
       );
     };
+
+    describe('appendToRecord array normalization', function () {
+      const firstWorkspace = { id: 'workspace-first', reference: 'RDS-FIRST' };
+      const secondWorkspace = { id: 'workspace-second', reference: 'RDS-SECOND' };
+      let current: ReturnType<typeof internalRecord> & { metadata: { workspaces?: unknown } };
+
+      beforeEach(function () {
+        enableConcurrency('strict');
+        current = internalRecord(1);
+        mockStorageService.getMeta.callsFake(async () => _.cloneDeep(current));
+        mockStorageService.updateMeta.callsFake(async (_brand, oid, candidate, _user, options) => {
+          expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: current.revision });
+          current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: current.revision + 1 };
+          return {
+            success: true,
+            oid,
+            applicationState: 'applied',
+            committedRevision: current.revision,
+            committedRecord: _.cloneDeep(current),
+          };
+        });
+      });
+
+      const cases = [
+        { name: 'absent', existing: undefined, expected: [secondWorkspace] },
+        { name: 'null', existing: null, expected: [secondWorkspace] },
+        { name: 'empty array', existing: [], expected: [secondWorkspace] },
+        { name: 'populated array', existing: [firstWorkspace], expected: [firstWorkspace, secondWorkspace] },
+        { name: 'singleton', existing: firstWorkspace, expected: [firstWorkspace, secondWorkspace] },
+        { name: 'duplicate singleton', existing: secondWorkspace, expected: [secondWorkspace] },
+        {
+          name: 'duplicate array',
+          existing: [firstWorkspace, secondWorkspace],
+          expected: [firstWorkspace, secondWorkspace],
+        },
+      ];
+      for (const { name, existing, expected } of cases) {
+        it(`preserves associations and metadata when appending to ${name}`, async function () {
+          if (existing !== undefined) current.metadata.workspaces = _.cloneDeep(existing);
+          const callerRecord = _.cloneDeep(current);
+          const baseline = _.cloneDeep(current);
+          const linkData = _.cloneDeep(secondWorkspace);
+
+          const result = await RecordsService.appendToRecord(
+            current.redboxOid,
+            linkData,
+            'metadata.workspaces',
+            'array',
+            callerRecord
+          );
+
+          expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+          expect(current.metadata).to.deep.equal({ ...baseline.metadata, workspaces: expected });
+          expect(callerRecord).to.deep.equal(baseline);
+          expect(linkData).to.deep.equal(secondWorkspace);
+          expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+
+          const repeated = await RecordsService.appendToRecord(
+            current.redboxOid,
+            _.cloneDeep(linkData),
+            'metadata.workspaces',
+            'array'
+          );
+          expect(repeated.wasPersisted()).to.equal(true);
+          expect(current.metadata).to.deep.equal({ ...baseline.metadata, workspaces: expected });
+        });
+      }
+
+      it('stores two sequential WorkspaceService additions from null as an ordered array', async function () {
+        current.metadata.workspaces = null;
+        const { Services } =
+          require('../../src/services/WorkspaceService') as typeof import('../../src/services/WorkspaceService');
+        const workspaceService = new Services.WorkspaceService();
+        const previousRecordsService = Reflect.get(globalThis, 'RecordsService');
+        Object.assign(globalThis, { RecordsService });
+        try {
+          const first = await workspaceService.addWorkspaceToRecord(current.redboxOid, firstWorkspace.id, {
+            reference: firstWorkspace.reference,
+          });
+          const second = await workspaceService.addWorkspaceToRecord(current.redboxOid, secondWorkspace.id, {
+            reference: secondWorkspace.reference,
+          });
+          expect(first.wasPersisted()).to.equal(true);
+          expect(second.wasPersisted()).to.equal(true);
+          expect(current.metadata).to.deep.equal({
+            ...internalRecord(1).metadata,
+            workspaces: [firstWorkspace, secondWorkspace],
+          });
+        } finally {
+          if (previousRecordsService === undefined) Reflect.deleteProperty(globalThis, 'RecordsService');
+          else Object.assign(globalThis, { RecordsService: previousRecordsService });
+        }
+      });
+
+      for (const initial of [null, firstWorkspace]) {
+        it(`recomputes after a stale revision from ${initial === null ? 'null' : 'singleton'} without losing concurrent associations or duplicating the append`, async function () {
+          current.metadata.workspaces = _.cloneDeep(initial);
+          const concurrentWorkspace = { id: 'workspace-concurrent' };
+          mockStorageService.updateMeta.onFirstCall().callsFake(async (_brand, oid) => {
+            current = {
+              ...current,
+              revision: 2,
+              metadata: {
+                ...current.metadata,
+                title: 'Concurrent title',
+                workspaces: [firstWorkspace, concurrentWorkspace, _.cloneDeep(secondWorkspace)],
+              },
+            };
+            return { success: false, oid, applicationState: 'not-applied', nonApplicationReason: 'stale-revision' };
+          });
+
+          const result = await RecordsService.appendToRecord(
+            current.redboxOid,
+            secondWorkspace,
+            'metadata.workspaces',
+            'array'
+          );
+
+          expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+          expect(mockStorageService.updateMeta.callCount).to.equal(2);
+          expect(current.metadata).to.deep.equal({
+            ...internalRecord(1).metadata,
+            title: 'Concurrent title',
+            workspaces: [firstWorkspace, concurrentWorkspace, secondWorkspace],
+          });
+          expect(result.concurrency.resolutionOfRequestId).to.equal(
+            mockStorageService.updateMeta.firstCall.args[4].requestId
+          );
+          expect(result.requestId).not.to.equal(mockStorageService.updateMeta.firstCall.args[4].requestId);
+        });
+      }
+
+      for (const fieldType of [undefined, 'object']) {
+        for (const { name, existing } of cases) {
+          it(`preserves ${name} behavior when fieldType is ${String(fieldType)}`, async function () {
+            if (existing !== undefined) current.metadata.workspaces = _.cloneDeep(existing);
+            const result = await RecordsService.appendToRecord(
+              current.redboxOid,
+              secondWorkspace,
+              'metadata.workspaces',
+              fieldType
+            );
+            const expected = Array.isArray(existing)
+              ? existing.some(value => _.isEqual(value, secondWorkspace))
+                ? existing
+                : [...existing, secondWorkspace]
+              : secondWorkspace;
+            expect(result.wasPersisted()).to.equal(true);
+            expect(current.metadata).to.deep.equal({ ...internalRecord(1).metadata, workspaces: expected });
+          });
+        }
+      }
+    });
 
     it('fails closed for an untrusted writer identity before loading or writing record state', async function () {
       const result = await RecordsService.updateMetaInternal({

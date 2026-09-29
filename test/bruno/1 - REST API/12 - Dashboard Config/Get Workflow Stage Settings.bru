@@ -1,0 +1,35 @@
+meta {
+  name: Get Workflow Stage Settings
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/dashboard-config/workflows/rdmp/draft
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:post-response {
+  var data = res.getBody().data;
+  bru.setVar("dashboardConfigRevision", data.revision);
+  bru.setVar("dashboardConfigDraftSettings", JSON.stringify(data.settings));
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns complete settings and a revision", function () {
+    var data = res.getBody().data;
+    expect(data.revision).to.be.a("number");
+    expect(data.settings).to.have.property("searchable");
+    expect(data.settings.tableConfig).to.have.all.keys("rowConfig", "rowRulesConfig", "groupRowConfig", "groupRowRulesConfig", "formatRules");
+  });
+}

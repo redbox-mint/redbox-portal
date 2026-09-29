@@ -1,0 +1,41 @@
+meta {
+  name: App Typeface publish
+  type: http
+  seq: 57
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/publish
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json, text/plain, */*
+}
+
+body:json {
+  {
+    "expectedVersion": {{app_version}},
+    "expectedDraftRevision": {{app_revision}}
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200 with aligned draft", function(){
+    expect(res.getStatus()).to.equal(200);
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body.active.typeface.mode).to.equal('custom');
+    expect(body.draft.dirty.typeface).to.equal(false);
+    bru.setVar('app_version', body.active.version);
+    bru.setVar('app_revision', body.draft.revision);
+  });
+}

@@ -1,7 +1,6 @@
 import type { FormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
 
 import type {
-  ContractJsonValue,
   ContractNode,
   ContractObjectNode,
   RecordContractDiagnostic,
@@ -10,7 +9,7 @@ import type {
 } from './types';
 import { isRecordContractPointer, recordContractPointer, recordContractPointersOverlap } from './json-pointer';
 
-export type RecordContractContributorNullability = 'non-null' | 'nullable' | 'configuration' | 'legacy-permissive';
+export type RecordContractContributorNullability = 'non-null' | 'nullable' | 'configuration';
 
 export interface RecordContractCompileChildrenOptions {
   readonly definitionKey?: string;
@@ -38,18 +37,6 @@ export type RecordContractComponentContribution =
       readonly children?: readonly FormComponentDefinitionFrame[];
     };
 
-export interface RecordContractExtensionCompileContext {
-  readonly namespace: string;
-  readonly root: RecordContractPointer;
-  readonly metadata: ContractJsonValue | undefined;
-  readonly publicContext: RecordContractPublicContext;
-}
-
-export type RecordContractExtensionContribution = {
-  readonly node: ContractNode;
-  readonly diagnostics?: readonly RecordContractDiagnostic[];
-};
-
 interface RecordContractContributorBase {
   readonly key: string;
   readonly version: string;
@@ -66,16 +53,7 @@ export interface RecordContractComponentContributor extends RecordContractContri
   ): RecordContractComponentContribution | Promise<RecordContractComponentContribution>;
 }
 
-export interface RecordContractExtensionContributor extends RecordContractContributorBase {
-  readonly kind: 'extension';
-  readonly namespace: string;
-  readonly root: RecordContractPointer;
-  compile(
-    context: RecordContractExtensionCompileContext
-  ): RecordContractExtensionContribution | Promise<RecordContractExtensionContribution>;
-}
-
-export type RecordContractContributor = RecordContractComponentContributor | RecordContractExtensionContributor;
+export type RecordContractContributor = RecordContractComponentContributor;
 
 export interface RecordContractContributorRegistration {
   readonly contributor: RecordContractContributor;
@@ -87,13 +65,10 @@ export const RECORD_CONTRACT_REGISTRATION_CODES = {
   INVALID_KEY: 'record-contract.registration.invalid-key',
   INVALID_VERSION: 'record-contract.registration.invalid-version',
   INVALID_COMPONENT_TYPE: 'record-contract.registration.invalid-component-type',
-  INVALID_NAMESPACE: 'record-contract.registration.invalid-namespace',
   INVALID_POINTER: 'record-contract.registration.invalid-pointer',
   DUPLICATE_KEY: 'record-contract.registration.duplicate-key',
   DUPLICATE_COMPONENT: 'record-contract.registration.duplicate-component',
-  DUPLICATE_NAMESPACE: 'record-contract.registration.duplicate-namespace',
   OVERLAPPING_ROOT: 'record-contract.registration.overlapping-root',
-  FORM_PATH_OVERWRITE: 'record-contract.registration.form-path-overwrite',
   INVALID_EXPORT: 'record-contract.registration.invalid-export',
 } as const;
 
@@ -124,7 +99,6 @@ export class RecordContractContributorRegistrationError extends Error {
 const STABLE_KEY = /^[a-z0-9][a-z0-9._:/-]*$/;
 const STABLE_VERSION = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const COMPONENT_TYPE = /^[A-Za-z][A-Za-z0-9_.:-]*$/;
-const EXTENSION_NAMESPACE = /^[A-Za-z][A-Za-z0-9+.-]*:[A-Za-z0-9][A-Za-z0-9._~-]*$/;
 
 function sortRegistrationIssues(issues: readonly RecordContractRegistrationIssue[]): RecordContractRegistrationIssue[] {
   return [...issues].sort(
@@ -137,20 +111,16 @@ function sortRegistrationIssues(issues: readonly RecordContractRegistrationIssue
 
 function registrationSortKey(registration: RecordContractContributorRegistration): string {
   const contributor = registration.contributor;
-  const target = contributor.kind === 'component' ? contributor.componentType : contributor.namespace;
-  return `${contributor.kind}:${target}:${contributor.key}:${registration.packageName ?? ''}`;
+  return `${contributor.componentType}:${contributor.key}:${registration.packageName ?? ''}`;
 }
 
 function immutableRegistration(
   registration: RecordContractContributorRegistration
 ): RecordContractContributorRegistration {
-  const contributor =
-    registration.contributor.kind === 'component'
-      ? Object.freeze({
-          ...registration.contributor,
-          ownedPointers: Object.freeze([...registration.contributor.ownedPointers]),
-        })
-      : Object.freeze({ ...registration.contributor });
+  const contributor = Object.freeze({
+    ...registration.contributor,
+    ownedPointers: Object.freeze([...registration.contributor.ownedPointers]),
+  });
 
   return Object.freeze({
     contributor,
@@ -164,8 +134,6 @@ function issue(code: RecordContractRegistrationCode, key: string, detail: string
 }
 
 export interface RecordContractContributorRegistryOptions {
-  /** Exact form-owned roots that extension contributors may not replace. */
-  readonly formOwnedRoots?: readonly RecordContractPointer[];
   readonly additionalIssues?: readonly RecordContractRegistrationIssue[];
 }
 
@@ -173,7 +141,6 @@ export interface RecordContractContributorRegistryOptions {
 export class RecordContractContributorRegistry {
   readonly #registrations: readonly RecordContractContributorRegistration[];
   readonly #components: ReadonlyMap<string, RecordContractContributorRegistration>;
-  readonly #extensions: readonly RecordContractContributorRegistration[];
 
   public constructor(
     registrations: readonly RecordContractContributorRegistration[],
@@ -185,11 +152,6 @@ export class RecordContractContributorRegistry {
     const issues = [...(options.additionalIssues ?? [])];
     const keys = new Map<string, RecordContractContributorRegistration>();
     const components = new Map<string, RecordContractContributorRegistration>();
-    const namespaces = new Map<string, RecordContractContributorRegistration>();
-    const extensionRoots: Array<{
-      root: RecordContractPointer;
-      registration: RecordContractContributorRegistration;
-    }> = [];
 
     for (const registration of ordered) {
       const contributor = registration.contributor;
@@ -216,111 +178,56 @@ export class RecordContractContributorRegistry {
         keys.set(key, registration);
       }
 
-      if (contributor.kind === 'component') {
-        if (!COMPONENT_TYPE.test(contributor.componentType)) {
-          issues.push(
-            issue(
-              RECORD_CONTRACT_REGISTRATION_CODES.INVALID_COMPONENT_TYPE,
-              contributor.key,
-              `Invalid component type ${JSON.stringify(contributor.componentType)}.`
-            )
-          );
-        }
-        if (components.has(contributor.componentType)) {
-          issues.push(
-            issue(
-              RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_COMPONENT,
-              contributor.componentType,
-              'Component type is already registered.'
-            )
-          );
-        } else {
-          components.set(contributor.componentType, registration);
-        }
-        if (contributor.ownedPointers.length === 0) {
-          issues.push(
-            issue(
-              RECORD_CONTRACT_REGISTRATION_CODES.INVALID_POINTER,
-              contributor.key,
-              'A component contributor must declare at least one owned pointer.'
-            )
-          );
-        }
-        const owned: RecordContractPointer[] = [];
-        for (const pointer of contributor.ownedPointers) {
-          if (!isRecordContractPointer(pointer)) {
-            issues.push(
-              issue(
-                RECORD_CONTRACT_REGISTRATION_CODES.INVALID_POINTER,
-                contributor.key,
-                `Invalid relative owned pointer ${JSON.stringify(pointer)}.`
-              )
-            );
-          } else if (owned.some(existing => recordContractPointersOverlap(existing, pointer))) {
-            issues.push(
-              issue(
-                RECORD_CONTRACT_REGISTRATION_CODES.OVERLAPPING_ROOT,
-                contributor.key,
-                `Owned pointer ${JSON.stringify(pointer)} overlaps another owned pointer.`
-              )
-            );
-          } else {
-            owned.push(recordContractPointer(pointer));
-          }
-        }
+      if (!COMPONENT_TYPE.test(contributor.componentType)) {
+        issues.push(
+          issue(
+            RECORD_CONTRACT_REGISTRATION_CODES.INVALID_COMPONENT_TYPE,
+            contributor.key,
+            `Invalid component type ${JSON.stringify(contributor.componentType)}.`
+          )
+        );
+      }
+      if (components.has(contributor.componentType)) {
+        issues.push(
+          issue(
+            RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_COMPONENT,
+            contributor.componentType,
+            'Component type is already registered.'
+          )
+        );
       } else {
-        if (!EXTENSION_NAMESPACE.test(contributor.namespace)) {
-          issues.push(
-            issue(
-              RECORD_CONTRACT_REGISTRATION_CODES.INVALID_NAMESPACE,
-              contributor.key,
-              `Invalid extension namespace ${JSON.stringify(contributor.namespace)}.`
-            )
-          );
-        }
-        if (!isRecordContractPointer(contributor.root) || contributor.root === '') {
+        components.set(contributor.componentType, registration);
+      }
+      if (contributor.ownedPointers.length === 0) {
+        issues.push(
+          issue(
+            RECORD_CONTRACT_REGISTRATION_CODES.INVALID_POINTER,
+            contributor.key,
+            'A component contributor must declare at least one owned pointer.'
+          )
+        );
+      }
+      const owned: RecordContractPointer[] = [];
+      for (const pointer of contributor.ownedPointers) {
+        if (!isRecordContractPointer(pointer)) {
           issues.push(
             issue(
               RECORD_CONTRACT_REGISTRATION_CODES.INVALID_POINTER,
               contributor.key,
-              'Extension root must be a non-root RFC 6901 pointer.'
+              `Invalid relative owned pointer ${JSON.stringify(pointer)}.`
             )
           );
-        }
-        if (namespaces.has(contributor.namespace)) {
+        } else if (owned.some(existing => recordContractPointersOverlap(existing, pointer))) {
           issues.push(
             issue(
-              RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_NAMESPACE,
-              contributor.namespace,
-              'Extension namespace is already registered.'
+              RECORD_CONTRACT_REGISTRATION_CODES.OVERLAPPING_ROOT,
+              contributor.key,
+              `Owned pointer ${JSON.stringify(pointer)} overlaps another owned pointer.`
             )
           );
         } else {
-          namespaces.set(contributor.namespace, registration);
+          owned.push(recordContractPointer(pointer));
         }
-        for (const existing of extensionRoots) {
-          if (recordContractPointersOverlap(existing.root, contributor.root)) {
-            issues.push(
-              issue(
-                RECORD_CONTRACT_REGISTRATION_CODES.OVERLAPPING_ROOT,
-                contributor.key,
-                `Extension root ${contributor.root} overlaps ${existing.root}.`
-              )
-            );
-          }
-        }
-        for (const formRoot of options.formOwnedRoots ?? []) {
-          if (recordContractPointersOverlap(formRoot, contributor.root)) {
-            issues.push(
-              issue(
-                RECORD_CONTRACT_REGISTRATION_CODES.FORM_PATH_OVERWRITE,
-                contributor.key,
-                `Extension root ${contributor.root} overlaps form-owned root ${formRoot}.`
-              )
-            );
-          }
-        }
-        extensionRoots.push({ root: recordContractPointer(contributor.root), registration });
       }
     }
 
@@ -330,7 +237,6 @@ export class RecordContractContributorRegistry {
 
     this.#registrations = Object.freeze(ordered);
     this.#components = components;
-    this.#extensions = Object.freeze(ordered.filter(item => item.contributor.kind === 'extension'));
   }
 
   public registrations(): readonly RecordContractContributorRegistration[] {
@@ -340,10 +246,6 @@ export class RecordContractContributorRegistry {
   public component(componentType: string): RecordContractContributorRegistration | undefined {
     return this.#components.get(componentType);
   }
-
-  public extensions(): readonly RecordContractContributorRegistration[] {
-    return this.#extensions;
-  }
 }
 
 export interface RecordContractContributorDiscoveryState {
@@ -352,69 +254,19 @@ export interface RecordContractContributorDiscoveryState {
   readonly componentTypes: readonly string[];
 }
 
-const EMPTY_DISCOVERY_STATE: RecordContractContributorDiscoveryState = Object.freeze({
-  registrations: Object.freeze([]),
-  registrationIssues: Object.freeze([]),
-  componentTypes: Object.freeze([]),
-});
-
-let discoveredContributorRegistry: RecordContractContributorRegistry | undefined;
-let discoveredContributorState = EMPTY_DISCOVERY_STATE;
-
-function componentTypesFromRegistrations(
-  registrations: readonly RecordContractContributorRegistration[]
-): readonly string[] {
-  return Object.freeze(
-    [
-      ...new Set(
-        registrations.flatMap(registration =>
-          registration.contributor.kind === 'component' ? [registration.contributor.componentType] : []
-        )
-      ),
-    ].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
-  );
-}
-
-export function setDiscoveredRecordContractContributorRegistry(registry: RecordContractContributorRegistry): void {
-  discoveredContributorRegistry = registry;
-  discoveredContributorState = Object.freeze({
-    registrations: registry.registrations(),
-    registrationIssues: Object.freeze([]),
-    componentTypes: componentTypesFromRegistrations(registry.registrations()),
-  });
-}
-
-export function getDiscoveredRecordContractContributorRegistry(): RecordContractContributorRegistry | undefined {
-  return discoveredContributorRegistry;
-}
-
-export function setDiscoveredRecordContractContributorRegistrationIssues(
-  issues: readonly RecordContractRegistrationIssue[],
-  registrations: readonly RecordContractContributorRegistration[] = []
-): void {
-  discoveredContributorRegistry = undefined;
-  discoveredContributorState = Object.freeze({
+export function recordContractContributorDiscoveryState(
+  registrations: readonly RecordContractContributorRegistration[],
+  registrationIssues: readonly RecordContractRegistrationIssue[] = []
+): RecordContractContributorDiscoveryState {
+  return Object.freeze({
     registrations: Object.freeze([...registrations]),
-    registrationIssues: Object.freeze(sortRegistrationIssues(issues).map(item => Object.freeze({ ...item }))),
-    componentTypes: componentTypesFromRegistrations(registrations),
+    registrationIssues: Object.freeze(
+      sortRegistrationIssues(registrationIssues).map(item => Object.freeze({ ...item }))
+    ),
+    componentTypes: Object.freeze(
+      [...new Set(registrations.map(registration => registration.contributor.componentType))].sort((left, right) =>
+        left < right ? -1 : left > right ? 1 : 0
+      )
+    ),
   });
-}
-
-export function getDiscoveredRecordContractContributorRegistrationIssues(): readonly RecordContractRegistrationIssue[] {
-  return discoveredContributorState.registrationIssues;
-}
-
-/** Component coverage retained even when other registrations prevent construction of the full registry. */
-export function getDiscoveredRecordContractContributorComponentTypes(): readonly string[] {
-  return discoveredContributorState.componentTypes;
-}
-
-/** Immutable discovery result passed explicitly from the loader to the exported service runtime. */
-export function getDiscoveredRecordContractContributorState(): RecordContractContributorDiscoveryState {
-  return discoveredContributorState;
-}
-
-export function resetDiscoveredRecordContractContributorRegistry(): void {
-  discoveredContributorRegistry = undefined;
-  discoveredContributorState = EMPTY_DISCOVERY_STATE;
 }

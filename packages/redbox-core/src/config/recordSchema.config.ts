@@ -1,9 +1,5 @@
 import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
-import {
-  RECORD_CONTRACT_FORMAT_V1,
-  type RecordContractFormat,
-  type RecordContractSchemaKind,
-} from '../record-contract/types';
+import type { RecordContractSchemaKind } from '../record-contract/types';
 
 export type RecordSchemaUnknownProperties = 'allow' | 'declared';
 
@@ -34,7 +30,6 @@ export interface RecordSchemaIntegrationPinConfig {
 export interface RecordSchemaConfig {
   readonly enabled: boolean;
   readonly unknownProperties: RecordSchemaUnknownProperties;
-  readonly contractFormat: RecordContractFormat;
   readonly cacheMaxEntries: number;
   readonly limits: RecordSchemaLimitsConfig;
   readonly retention: RecordSchemaRetentionConfig;
@@ -46,7 +41,11 @@ export interface RecordTypeRecordSchemaConfig {
 }
 
 export type RecordSchemaConfigurationProblemReason =
-  'required' | 'type' | 'positive-integer' | 'unsupported-value' | 'maximum-items';
+  | 'required'
+  | 'type'
+  | 'positive-integer'
+  | 'unsupported-value'
+  | 'maximum-items';
 
 export interface RecordSchemaConfigurationProblem {
   readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID;
@@ -71,7 +70,6 @@ export const MAX_RECORD_SCHEMA_INTEGRATION_PINS = 100;
 export const recordSchema: RecordSchemaConfig = {
   enabled: false,
   unknownProperties: 'allow',
-  contractFormat: RECORD_CONTRACT_FORMAT_V1,
   cacheMaxEntries: DEFAULT_RECORD_SCHEMA_CACHE_MAX_ENTRIES,
   limits: {
     maxDepth: DEFAULT_RECORD_SCHEMA_MAX_DEPTH,
@@ -125,10 +123,6 @@ export function isRecordSchemaEnabled(value: unknown): boolean {
   return isObjectRecord(normalized) && normalized.enabled === true;
 }
 
-function isPositiveInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value) && value > 0;
-}
-
 function isRecordSchemaIntegrationPinConfig(value: unknown): value is RecordSchemaIntegrationPinConfig {
   if (!isObjectRecord(value)) {
     return false;
@@ -143,31 +137,6 @@ function isRecordSchemaIntegrationPinConfig(value: unknown): value is RecordSche
     typeof value.owner === 'string' &&
     typeof value.purpose === 'string' &&
     (value.expiresAt === undefined || typeof value.expiresAt === 'string')
-  );
-}
-
-function isValidatedRecordSchemaConfig(
-  value: Record<string, unknown>
-): value is Record<string, unknown> & RecordSchemaConfig {
-  const limits = value.limits;
-  const retention = value.retention;
-  return (
-    typeof value.enabled === 'boolean' &&
-    isRecordSchemaUnknownProperties(value.unknownProperties) &&
-    value.contractFormat === RECORD_CONTRACT_FORMAT_V1 &&
-    isPositiveInteger(value.cacheMaxEntries) &&
-    isObjectRecord(limits) &&
-    isPositiveInteger(limits.maxDepth) &&
-    isPositiveInteger(limits.maxProperties) &&
-    isPositiveInteger(limits.maxDocumentBytes) &&
-    isPositiveInteger(limits.maxDiagnostics) &&
-    isPositiveInteger(limits.contributorTimeoutMs) &&
-    isObjectRecord(retention) &&
-    isPositiveInteger(retention.minimumAgeDays) &&
-    (value.integrationPins === undefined ||
-      (Array.isArray(value.integrationPins) &&
-        value.integrationPins.length <= MAX_RECORD_SCHEMA_INTEGRATION_PINS &&
-        value.integrationPins.every(isRecordSchemaIntegrationPinConfig)))
   );
 }
 
@@ -223,15 +192,6 @@ export function validateRecordSchemaConfig(value: unknown): RecordSchemaConfigVa
       )
     );
   }
-  if (value.contractFormat !== RECORD_CONTRACT_FORMAT_V1) {
-    problems.push(
-      configurationProblem(
-        'recordSchema.contractFormat',
-        value.contractFormat === undefined ? 'required' : 'unsupported-value'
-      )
-    );
-  }
-
   validatePositiveInteger(value, 'cacheMaxEntries', 'recordSchema.cacheMaxEntries', problems);
   const limits = isObjectRecord(value.limits) ? value.limits : undefined;
   if (!limits) {
@@ -271,8 +231,23 @@ export function validateRecordSchemaConfig(value: unknown): RecordSchemaConfigVa
       problems: problems.sort((left, right) => left.path.localeCompare(right.path)),
     };
   }
-  if (!isValidatedRecordSchemaConfig(value)) {
-    throw new Error('Record schema configuration validation completed without a typed configuration.');
-  }
-  return { valid: true, config: value };
+  return {
+    valid: true,
+    config: {
+      enabled: value.enabled as boolean,
+      unknownProperties: value.unknownProperties as RecordSchemaUnknownProperties,
+      cacheMaxEntries: value.cacheMaxEntries as number,
+      limits: {
+        maxDepth: limits?.maxDepth as number,
+        maxProperties: limits?.maxProperties as number,
+        maxDocumentBytes: limits?.maxDocumentBytes as number,
+        maxDiagnostics: limits?.maxDiagnostics as number,
+        contributorTimeoutMs: limits?.contributorTimeoutMs as number,
+      },
+      retention: { minimumAgeDays: retention?.minimumAgeDays as number },
+      ...(value.integrationPins === undefined
+        ? {}
+        : { integrationPins: value.integrationPins as unknown as readonly RecordSchemaIntegrationPinConfig[] }),
+    },
+  };
 }

@@ -5,6 +5,7 @@ import {
   isRecordConcurrencyResolution,
   isRecordFormFingerprint,
   isRecordRevision,
+  isRecordSaveComplete,
   isRecordSaveRequestId,
   reduceAttachmentStatus,
   sanitizeRecordConcurrencyMetadata,
@@ -25,14 +26,12 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import type { RecordContractCompleteness, RecordContractEnforcement } from './record-contract/types';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './record-contract/codes';
+import { normalizeRedboxCanonicalJsonV1 } from './record-contract/canonical-json';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 
 export type RecordSaveRouteFamily = 'browser' | 'api' | 'internal';
 export type RecordSaveOperation = 'create' | 'update' | 'transition' | 'delete' | 'restore' | 'purge';
-declare const normalizedRecordSchemaOperationBrand: unique symbol;
-export type NormalizedRecordSchemaOperation = string & {
-  readonly [normalizedRecordSchemaOperationBrand]: 'NormalizedRecordSchemaOperation';
-};
+export type NormalizedRecordSchemaOperation = string;
 export type RecordValidationContextJSONValue =
   | string
   | number
@@ -86,9 +85,6 @@ export function isInternalRecordValidationBypass(value: unknown): value is Inter
   );
 }
 
-declare const recordSaveContextFactoryBrand: unique symbol;
-declare const recordSaveSchemaOutcomeBrand: unique symbol;
-
 const trustedRecordSaveContexts = new WeakSet<object>();
 const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const RECORD_SCHEMA_IMMUTABLE_URL_PATTERN = /^\/([^/?#]+)\/([^/?#]+)\/api\/records\/schemas\/([0-9a-f]{64})$/;
@@ -100,12 +96,9 @@ export interface RecordSaveSchemaOutcomeInput {
   readonly enforcement: RecordContractEnforcement;
 }
 
-export interface RecordSaveSchemaOutcomeMetadata extends RecordSaveSchemaOutcomeInput {
-  readonly [recordSaveSchemaOutcomeBrand]: true;
-}
+export type RecordSaveSchemaOutcomeMetadata = Readonly<RecordSaveSchemaOutcomeInput>;
 
 export interface RecordSaveContext {
-  readonly [recordSaveContextFactoryBrand]: true;
   readonly requestId: string;
   readonly routeFamily?: RecordSaveRouteFamily;
   readonly operation?: RecordSaveOperation;
@@ -153,34 +146,30 @@ function invalidNestedRecordSaveContext(name: RecordSaveNestedContextName): Type
   return new TypeError(`${name} must contain only acyclic JSON values.`);
 }
 
-/**
- * Materialize a caller-controlled JSON value exactly once, then recursively
- * freeze the detached copy. This prevents mutable references, getters, and
- * proxies from changing a context after the factory has trusted it.
- */
-function snapshotRecordSaveContextJSONValue(
+/** Materialize caller-controlled accessors and proxies exactly once at the trust boundary. */
+function materializeRecordSaveContextJSONValue(
   value: unknown,
   name: RecordSaveNestedContextName,
   ancestors: WeakSet<object>
-): RecordValidationContextJSONValue {
+): unknown {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number') {
     if (Number.isFinite(value)) return value;
     throw invalidNestedRecordSaveContext(name);
   }
-  if (typeof value !== 'object') throw invalidNestedRecordSaveContext(name);
-  if (ancestors.has(value)) throw invalidNestedRecordSaveContext(name);
+  if (typeof value !== 'object' || ancestors.has(value)) {
+    throw invalidNestedRecordSaveContext(name);
+  }
 
   ancestors.add(value);
   try {
     if (Array.isArray(value)) {
-      const source = value as readonly unknown[];
-      const length = source.length;
-      const snapshot: RecordValidationContextJSONValue[] = [];
+      const snapshot: unknown[] = [];
+      const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        snapshot.push(snapshotRecordSaveContextJSONValue(source[index], name, ancestors));
+        snapshot.push(materializeRecordSaveContextJSONValue(value[index], name, ancestors));
       }
-      return Object.freeze(snapshot);
+      return snapshot;
     }
 
     const prototype = Object.getPrototypeOf(value);
@@ -188,18 +177,25 @@ function snapshotRecordSaveContextJSONValue(
       throw invalidNestedRecordSaveContext(name);
     }
     const source = value as Readonly<Record<string, unknown>>;
-    const snapshot: Record<string, RecordValidationContextJSONValue> = {};
+    const snapshot: Record<string, unknown> = {};
     for (const key of Object.keys(source)) {
-      Object.defineProperty(snapshot, key, {
-        configurable: false,
-        enumerable: true,
-        value: snapshotRecordSaveContextJSONValue(source[key], name, ancestors),
-        writable: false,
-      });
+      snapshot[key] = materializeRecordSaveContextJSONValue(source[key], name, ancestors);
     }
-    return Object.freeze(snapshot);
+    return snapshot;
   } finally {
     ancestors.delete(value);
+  }
+}
+
+function snapshotRecordSaveContextJSONValue(
+  value: unknown,
+  name: RecordSaveNestedContextName
+): RecordValidationContextJSONValue {
+  try {
+    const materialized = materializeRecordSaveContextJSONValue(value, name, new WeakSet<object>());
+    return normalizeRedboxCanonicalJsonV1(materialized) as RecordValidationContextJSONValue;
+  } catch {
+    throw invalidNestedRecordSaveContext(name);
   }
 }
 
@@ -208,7 +204,7 @@ function snapshotRecordSaveContextObject(
   name: 'validationRequestParameters' | 'validationRuntimeContext'
 ): Readonly<Record<string, RecordValidationContextJSONValue>> | undefined {
   if (value === undefined) return undefined;
-  const snapshot = snapshotRecordSaveContextJSONValue(value, name, new WeakSet<object>());
+  const snapshot = snapshotRecordSaveContextJSONValue(value, name);
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw invalidNestedRecordSaveContext(name);
   }
@@ -219,11 +215,7 @@ function snapshotRecordValidationBypass(
   value: InternalRecordValidationBypass | undefined
 ): InternalRecordValidationBypass | undefined {
   if (value === undefined) return undefined;
-  return snapshotRecordSaveContextJSONValue(
-    value,
-    'validationBypass',
-    new WeakSet<object>()
-  ) as unknown as InternalRecordValidationBypass;
+  return snapshotRecordSaveContextJSONValue(value, 'validationBypass') as unknown as InternalRecordValidationBypass;
 }
 
 /** Runtime counterpart to the nominal context type for JavaScript/service boundaries. */
@@ -355,6 +347,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   problems: RecordSaveProblem[] = [];
   completion = emptyRecordSaveCompletion();
   requestId: string;
+  readonly context: RecordSaveContext;
   concurrency?: RecordConcurrencyMetadata;
   #schemaOutcome?: RecordSaveSchemaOutcomeMetadata;
   /** Safe schema identity/result facts; never part of the stored record payload. */
@@ -363,9 +356,10 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   workspaceOid?: string;
   workspaceData?: unknown;
 
-  constructor(requestId: string = randomUUID()) {
+  constructor(context: RecordSaveContext | string = createRecordSaveContext()) {
     super();
-    this.requestId = requestId;
+    this.context = typeof context === 'string' ? createRecordSaveContext({ requestId: context }) : context;
+    this.requestId = this.context.requestId;
     Object.defineProperty(this, 'schemaOutcome', {
       configurable: false,
       enumerable: true,
@@ -380,12 +374,14 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
 
   /** True only when all required awaited save phases completed. */
   public isComplete(): boolean {
-    return this.outcome === 'saved';
+    return isRecordSaveComplete(this);
   }
 
   public addProblem(problem: RecordSaveProblem): void {
     this.problems.push(cloneProblem(problem));
-    this.downgradeCompleteSave();
+    if (problem.source !== 'advisory') {
+      this.downgradeCompleteSave();
+    }
   }
 
   public setAttachmentItems(items: readonly RecordAttachmentCompletionItem[]): void {
@@ -410,6 +406,70 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     this.concurrency = sanitizeRecordConcurrencyMetadata(metadata);
   }
 
+  /** Compatibility view used by save-pipeline code while the response owns its state directly. */
+  public get result(): RecordSaveResponse {
+    return this;
+  }
+
+  public confirmPrimaryPersistence(oid: string, source?: StorageServiceResponse): void {
+    if (this.outcome === 'unknown') return;
+    this.oid = oid ?? '';
+    if (source) {
+      this.message = typeof source.message === 'string' ? source.message : '';
+      this.data = _cloneDeep(source.data);
+      this.metadata = _cloneDeep(source.metadata ?? null);
+      this.totalItems = source.totalItems;
+      this.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
+    }
+    this.outcome = this.problems.some(problem => problem.source !== 'advisory')
+      ? 'saved-with-warnings'
+      : 'saved';
+    this.success = true;
+  }
+
+  public recordPrimaryNotApplied(problem?: RecordSaveProblem): void {
+    this.recordPrimaryFailure('not-saved', problem);
+  }
+
+  public recordPrimaryUnknown(problem?: RecordSaveProblem): void {
+    this.recordPrimaryFailure('unknown', problem);
+  }
+
+  public recordPostPersistenceProblem(problem: RecordSaveProblem): void {
+    this.addProblem(problem);
+  }
+
+  public recordWarning(problem: RecordSaveProblem): void {
+    this.addProblem(problem);
+  }
+
+  public mergeLegacyHookFields(source: unknown): void {
+    if (!source || typeof source !== 'object') return;
+    const fields = source as Record<string, unknown>;
+    if (typeof fields.workspaceOid === 'string' && fields.workspaceOid.trim()) this.workspaceOid = fields.workspaceOid;
+    if (Object.hasOwn(fields, 'workspaceData')) this.workspaceData = _cloneDeep(fields.workspaceData);
+  }
+
+  public toResponse(): RecordSaveResponse {
+    const copy = new RecordSaveResponse(this.context);
+    copy.success = this.success;
+    copy.oid = this.oid;
+    copy.message = this.message;
+    copy.data = _cloneDeep(this.data);
+    copy.metadata = _cloneDeep(this.metadata);
+    copy.details = _cloneDeep(this.details);
+    copy.totalItems = this.totalItems;
+    copy.items = _cloneDeep(this.items);
+    copy.outcome = this.outcome;
+    copy.problems = this.problems.map(cloneProblem);
+    copy.completion = _cloneDeep(this.completion);
+    copy.setConcurrencyMetadata(this.concurrency);
+    copy.workspaceOid = this.workspaceOid;
+    copy.workspaceData = _cloneDeep(this.workspaceData);
+    if (this.schemaOutcome) copy.setSchemaOutcome(this.schemaOutcome);
+    return copy;
+  }
+
   public setSchemaOutcome(metadata: RecordSaveSchemaOutcomeInput): void {
     this.#schemaOutcome = createRecordSaveSchemaOutcomeMetadata(metadata);
   }
@@ -423,6 +483,16 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     if (this.outcome === 'saved') {
       this.outcome = 'saved-with-warnings';
     }
+  }
+
+  private recordPrimaryFailure(
+    outcome: Extract<RecordSaveOutcome, 'not-saved' | 'unknown'>,
+    problem?: RecordSaveProblem
+  ): void {
+    if (this.wasPersisted()) return;
+    this.outcome = outcome;
+    this.success = false;
+    if (problem) this.addProblem(problem);
   }
 }
 
@@ -458,7 +528,9 @@ export class RecordSaveTracker {
       this.response.totalItems = source.totalItems;
       this.response.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
     }
-    this.response.outcome = this.response.problems.length > 0 ? 'saved-with-warnings' : 'saved';
+    this.response.outcome = this.response.problems.some(problem => problem.source !== 'advisory')
+      ? 'saved-with-warnings'
+      : 'saved';
     this.response.success = true;
   }
 

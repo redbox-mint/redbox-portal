@@ -1,5 +1,11 @@
 import type { DashboardTableConfig } from '../config/workflow.config';
 
+/**
+ * Compatibility description of a dashboard mode (for example `standard` or
+ * `workspace`). `formatRules` only carries read-only structural context
+ * (`recordTypeFilterBy`, `filterWorkflowStepsBy`); table settings are owned by
+ * each workflow stage or view step and `tableConfig` is always empty.
+ */
 export class DashboardTypeResponseModel {
     name: string;
     description?: string;

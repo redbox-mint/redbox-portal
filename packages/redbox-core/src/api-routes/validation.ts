@@ -18,7 +18,7 @@ export interface ApiValidationOptions {
   files?: Record<string, unknown[]>;
 }
 
-export interface ApiRouteValidationOptions extends ApiValidationOptions { }
+export interface ApiRouteValidationOptions extends ApiValidationOptions {}
 
 function formatIssuePath(path: (string | number)[]): string {
   if (!path.length) {
@@ -63,7 +63,8 @@ function validateSource(
 function validateFiles(
   files: Record<string, unknown[]>,
   constraints: Record<string, ApiFileConstraint>,
-  issues: ApiValidationIssue[]
+  issues: ApiValidationIssue[],
+  maxBytesOverrides?: Record<string, number>
 ): void {
   for (const [name, constraint] of Object.entries(constraints)) {
     const uploaded = files[name] ?? [];
@@ -79,6 +80,10 @@ function validateFiles(
       continue;
     }
 
+    // A controller-supplied runtime maximum (operator-configured) takes
+    // precedence over the static contract default, which is documentation.
+    const override = maxBytesOverrides?.[name];
+    const maxBytes = override != null && Number.isFinite(override) && override > 0 ? override : constraint.maxBytes;
     for (let index = 0; index < uploaded.length; index += 1) {
       const file = uploaded[index];
       if (!isRecord(file)) {
@@ -87,13 +92,8 @@ function validateFiles(
       const sizeValue = file.size ?? file.bytes;
       const size =
         typeof sizeValue === 'number' ? sizeValue : typeof sizeValue === 'string' ? Number(sizeValue) : undefined;
-      if (
-        constraint.maxBytes != null &&
-        typeof size === 'number' &&
-        Number.isFinite(size) &&
-        size > constraint.maxBytes
-      ) {
-        issues.push({ path: `files.${name}[${index}]`, message: `File exceeds maxBytes ${constraint.maxBytes}` });
+      if (maxBytes != null && typeof size === 'number' && Number.isFinite(size) && size > maxBytes) {
+        issues.push({ path: `files.${name}[${index}]`, message: `File exceeds maxBytes ${maxBytes}` });
       }
 
       const contentType = [file.type, file.mimetype, file.mimeType, file.contentType].find(
@@ -115,9 +115,8 @@ function getHeaderValue(req: Sails.Req, name: string): string | string[] | undef
 
 function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | undefined {
   const contentTypeHeader = getHeaderValue(req, 'content-type');
-  const requestContentType = typeof contentTypeHeader === 'string'
-    ? contentTypeHeader.split(';')[0]?.trim().toLowerCase()
-    : undefined;
+  const requestContentType =
+    typeof contentTypeHeader === 'string' ? contentTypeHeader.split(';')[0]?.trim().toLowerCase() : undefined;
   if (!requestContentType) {
     return contentTypes[0];
   }
@@ -200,18 +199,21 @@ export function validateApiRouteRequest(
 
 export function validateApiRouteFiles(
   route: ApiRouteDefinition,
-  files: Record<string, unknown[]>
+  files: Record<string, unknown[]>,
+  options: { maxBytesOverrides?: Record<string, number> } = {}
 ): ApiValidationResult {
   const issues: ApiValidationIssue[] = [];
   if (route.request?.files) {
-    validateFiles(files, route.request.files, issues);
+    validateFiles(files, route.request.files, issues, options.maxBytesOverrides);
   }
   return { valid: issues.length === 0, issues };
 }
 
 export function getValidatedApiRequest(req: Sails.Req): ValidatedApiRouteRequest {
   if (!req.apiRequest) {
-    throw new Error(`Missing validated API request context for ${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`);
+    throw new Error(
+      `Missing validated API request context for ${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`
+    );
   }
   return req.apiRequest;
 }

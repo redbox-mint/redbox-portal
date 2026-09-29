@@ -123,145 +123,35 @@ describe('DashboardTypesService', function () {
         });
     });
 
-    describe('getDashboardTableConfig', function () {
-        it('should return null if record type not found', async function () {
-            global.RecordTypesService = {
-                get: () => of(null)
-            };
-            const result = await DashboardTypesService.getDashboardTableConfig({}, 'invalid', 'draft');
-            expect(result).to.be.null;
-        });
+    describe('template extraction from independent settings', function () {
+        let originalDashboardConfigService;
+        before(function () { originalDashboardConfigService = global.DashboardConfigService; });
+        after(function () { global.DashboardConfigService = originalDashboardConfigService; });
 
-        it('should return null if workflow step not found', async function () {
-            global.RecordTypesService = {
-                get: () => of({ name: 'valid' })
-            };
-            global.WorkflowStepsService = {
-                get: () => of(null)
-            };
-            const result = await DashboardTypesService.getDashboardTableConfig({}, 'valid', 'invalid');
-            expect(result).to.be.null;
-        });
-    });
-
-    describe('extractDashboardTemplates', function () {
-        it('should extract templates using default config when rowConfig is missing', async function () {
-            // Mock RecordTypesService
-            global.RecordTypesService = {
-                get: () => of({ name: 'rdmp' })
-            };
-
-            // Mock WorkflowStepsService with missing dashboard config (simulation of the bug case)
-            global.WorkflowStepsService = {
-                get: () => of({ config: { dashboard: { table: {} } } })
-            };
-
-            // Call the service method
-            // Note: first argument 'brand' is mocked as empty object
-            const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft');
-
-            // Expect default templates (fallback logic)
-            expect(templates).to.be.an('array');
-            expect(templates.length).to.be.greaterThan(0);
-
-            // defaultRowConfig has title at index 0 (usually)
-            // key structure: [recordType, workflowStage, 'rowConfig', index, variable]
-            const titleTemplate = templates.find(t => {
-                const keyStr = t.key.join('__'); // helper to check content
-                return keyStr.includes('metadata.title');
-            });
-
-            expect(titleTemplate).to.exist;
-            expect(titleTemplate.value).to.contain('{{metadata.title}}');
-
-            // Verify keys match expected flattened format (as string array)
-            expect(titleTemplate.key).to.be.an('array');
-            expect(titleTemplate.key[0]).to.equal('rdmp');
-            expect(titleTemplate.key[1]).to.equal('draft');
-            expect(titleTemplate.key[2]).to.equal('rowConfig');
-        });
-
-        it('should extract templates from explicit config when provided', async function () {
-            // Mock RecordTypesService
-            global.RecordTypesService = {
-                get: () => of({ name: 'rdmp' })
-            };
-
-            // Mock WorkflowStepsService WITH explicit dashboard config
-            const explicitConfig = {
-                rowConfig: [
-                    {
-                        variable: 'custom.field',
-                        template: '<b>{{custom.field}}</b>'
-                    }
-                ]
-            };
-
-            global.WorkflowStepsService = {
-                get: () => of({ config: { dashboard: { table: explicitConfig } } })
-            };
-            global.DashboardConfigService = {
-                getMergedDashboardTableConfig: () => Promise.resolve(null),
-                getMergedDashboardTypeFormatRules: () => Promise.resolve({ filterBy: {}, queryFilters: {} })
-            };
-
-            const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft');
-
-            expect(templates).to.be.an('array');
-            expect(templates.length).to.equal(1);
-
-            const customTemplate = templates[0];
-            expect(customTemplate.key).to.contain('custom.field');
-            expect(customTemplate.value).to.equal('<b>{{custom.field}}</b>');
-        });
-
-        it('should extract templates from queryFilters in DashboardType config', async function () {
-            let originalDashboardType = global.DashboardType;
-            let originalDashboardConfigService = global.DashboardConfigService;
-            
-            // Mock RecordTypesService
-            global.RecordTypesService = {
-                get: () => of({ name: 'rdmp' })
-            };
-            // Mock WorkflowStepsService
-            global.WorkflowStepsService = {
-                get: () => of({ config: { dashboard: { table: {} } } })
-            };
-            
-            const mockDashboardType = {
-                formatRules: {
-                    queryFilters: {
-                        'rdmp': [
-                            {
-                                filterFields: [
-                                    {
-                                        template: '{{filterTemplate}}'
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                }
-            };
-            
-            global.DashboardType = {
-                findOne: () => mockQuery(mockDashboardType)
-            };
-            global.DashboardConfigService = {
-                getMergedDashboardTableConfig: () => Promise.resolve(null),
-                getMergedDashboardTypeFormatRules: () => Promise.resolve(mockDashboardType.formatRules)
-            };
-            
-            try {
-                const templates = await DashboardTypesService.extractDashboardTemplates({}, 'rdmp', 'draft', 'standard');
-                
-                const filterTemplate = templates.find(t => t.value === '{{filterTemplate}}');
-                expect(filterTemplate).to.exist;
-                expect(filterTemplate.key).to.include('filters');
-            } finally {
-                global.DashboardType = originalDashboardType;
-                global.DashboardConfigService = originalDashboardConfigService;
+        const settings = {
+            searchable: true,
+            showStageTitle: true,
+            tableConfig: {
+                rowConfig: [{ title: 'Custom', variable: 'custom.field', template: '<b>{{custom.field}}</b>' }],
+                rowRulesConfig: [],
+                groupRowConfig: [],
+                groupRowRulesConfig: [],
+                formatRules: { queryFilters: { rdmp: [{ filterType: 'text', filterFields: [{ name: 'T', path: 'metadata.title', template: '{{filterTemplate}}' }] }] } }
             }
+        };
+
+        it('returns null table config when a stage has no saved settings', async function () {
+            global.DashboardConfigService = { getRuntimeTargetSettings: () => Promise.resolve(null) };
+            const result = await DashboardTypesService.getDashboardTableConfig({ name: 'default' }, 'rdmp', 'draft');
+            expect(result).to.be.null;
+        });
+
+        it('extracts only the saved columns and search filter templates, keyed by target and fingerprint', async function () {
+            global.DashboardConfigService = { getRuntimeTargetSettings: () => Promise.resolve({ settings, fingerprint: '0123456789abcdef0123' }) };
+            const templates = await DashboardTypesService.extractDashboardTemplates({ name: 'default' }, 'rdmp', 'draft');
+            expect(templates.map(t => t.value)).to.deep.equal(['<b>{{custom.field}}</b>', '{{filterTemplate}}']);
+            expect(templates[0].key).to.deep.equal(['default', 'workflow', 'rdmp', 'draft', '0123456789abcdef', 'rowConfig', '0', 'custom.field']);
+            expect(templates[1].key).to.include('filters');
         });
     });
 });

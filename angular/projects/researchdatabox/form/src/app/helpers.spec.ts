@@ -49,8 +49,8 @@ import { ConfirmationDialogService } from "./confirmation-dialog.service";
 import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
 import { RecordAuditLauncherComponent } from "./record-audit/record-audit-launcher.component";
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
-import { GenerationProvenanceStoreService } from "./generation/generation-provenance-store.service";
 import { ApplicationRef, ComponentRef, CUSTOM_ELEMENTS_SCHEMA } from "@angular/core";
+import { GenerationProvenanceStoreService } from "./generation/generation-provenance-store.service";
 import isSpy = jasmine.isSpy;
 
 // provide to test the same way as provided to browser
@@ -169,6 +169,26 @@ export async function createFormAndWaitForReady(
   await formComponent.downloadAndCreateFormComponents(formConfig);
 
   await fixture.whenStable();
+
+  // Other form fixtures may finish asynchronous work while this helper is
+  // creating the current fixture. Re-apply an explicitly requested debug URL
+  // after the form is ready so this helper remains isolated from that work.
+  if (formDebugUrlOptions) {
+    setFormDebugUrl(formDebugUrlOptions);
+    formComponent.debugState.refreshFromUrl();
+    const rawDebugValue = formDebugUrlOptions.formDebugParam;
+    const expectedDebugEnabled = typeof rawDebugValue === 'boolean'
+      ? rawDebugValue
+      : ['1', 'true', 'yes'].includes(String(rawDebugValue ?? '').trim().toLowerCase());
+    // Karma runs all form specs in one browser context. A live fixture from an
+    // earlier spec can restore the shared history URL while this fixture is
+    // being created, so keep an explicit helper option isolated at the state
+    // boundary as well as at the URL boundary.
+    if (formComponent.debugState.isDebugEnabled() !== expectedDebugEnabled) {
+      formComponent.debugState.isDebugEnabled.set(expectedDebugEnabled);
+    }
+    fixture.detectChanges();
+  }
 
   logFormTestHelper('createFormAndWaitForReady - finished', {
     debugInfo: formComponent.getDebugInfo(),

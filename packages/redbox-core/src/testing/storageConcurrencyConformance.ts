@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import type { StorageMutationResponse } from '../StorageServiceResponse';
 import type { StorageService } from '../StorageService';
-import type { RecordStorageMutationOptions } from '../RecordStorageConcurrency';
+import {
+  RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
+  type RecordStorageMutationOptions,
+} from '../RecordStorageConcurrency';
 
 /**
  * The subset of {@link StorageService} a storage adapter must implement before
@@ -77,14 +80,7 @@ export const STORAGE_CONCURRENCY_CONFORMANCE_CHECKS: readonly StorageConcurrency
     name: 'declares every required concurrency primitive',
     async run(harness) {
       const capability = harness.adapter.getCapabilities?.().recordConcurrency;
-      assert.equal(capability?.conditionalActiveCreate, true);
-      assert.equal(capability?.conditionalActiveUpdate, true);
-      assert.equal(capability?.conditionalActiveRemove, true);
-      assert.equal(capability?.conditionalTombstoneCreate, true);
-      assert.equal(capability?.conditionalTombstoneUpdate, true);
-      assert.equal(capability?.conditionalTombstoneRemove, true);
-      assert.equal(capability?.certifiedNonApplicationReasons, true);
-      assert.equal(capability?.revisionLineage, true);
+      assert.equal(capability, RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION);
     },
   },
   {

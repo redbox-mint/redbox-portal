@@ -1,4 +1,8 @@
-import { RECORD_CONTRACT_FORMAT_V1, RECORD_SCHEMA_PROBLEM_CODES } from '@researchdatabox/redbox-core';
+import {
+  normalizeRedboxCanonicalJsonV1,
+  RECORD_CONTRACT_FORMAT_V1,
+  RECORD_SCHEMA_PROBLEM_CODES,
+} from '@researchdatabox/redbox-core';
 import type {
   ContractJsonObject,
   ContractJsonValue,
@@ -43,61 +47,6 @@ function invalidReference(message: string): never {
   throw new RecordSchemaPersistenceError(RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE, message);
 }
 
-function normalizeJsonValue(value: unknown, ancestors: WeakSet<object>): ContractJsonValue {
-  if (value === null) {
-    return null;
-  }
-  if (typeof value === 'string' || typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      return invalidArtifact('Record schema artifacts must contain only finite JSON numbers.');
-    }
-    return value;
-  }
-  if (typeof value !== 'object') {
-    return invalidArtifact('Record schema artifacts must contain only JSON-safe values.');
-  }
-  if (ancestors.has(value)) {
-    return invalidArtifact('Record schema artifacts must not contain cyclic values.');
-  }
-
-  ancestors.add(value);
-  try {
-    if (Array.isArray(value)) {
-      const normalized: ContractJsonValue[] = [];
-      for (let index = 0; index < value.length; index += 1) {
-        if (!Object.hasOwn(value, index)) {
-          return invalidArtifact('Record schema artifact arrays must not contain holes.');
-        }
-        normalized.push(normalizeJsonValue(value[index], ancestors));
-      }
-      return normalized;
-    }
-
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) {
-      return invalidArtifact('Record schema artifacts must contain only plain JSON objects.');
-    }
-    if (Object.getOwnPropertySymbols(value).length > 0) {
-      return invalidArtifact('Record schema artifacts must not contain symbol properties.');
-    }
-
-    const entries: Array<[string, ContractJsonValue]> = [];
-    for (const key of Object.keys(value).sort()) {
-      const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (!descriptor || !descriptor.enumerable || !('value' in descriptor)) {
-        return invalidArtifact('Record schema artifacts must contain only enumerable data properties.');
-      }
-      entries.push([key, normalizeJsonValue(descriptor.value, ancestors)]);
-    }
-    return Object.fromEntries(entries);
-  } finally {
-    ancestors.delete(value);
-  }
-}
-
 export interface ValidatedRecordSchemaArtifact extends RecordSchemaArtifactInput {
   readonly serializedDocument: string;
 }
@@ -128,7 +77,12 @@ export function validateRecordSchemaArtifactInput(input: RecordSchemaArtifactInp
     return invalidArtifact('Record schema artifact byte length must be a positive safe integer.');
   }
 
-  const document = normalizeJsonValue(input.document, new WeakSet<object>());
+  let document: ContractJsonValue;
+  try {
+    document = normalizeRedboxCanonicalJsonV1(input.document);
+  } catch {
+    return invalidArtifact('Record schema artifacts must contain only canonical JSON values.');
+  }
   if (!isContractJsonObject(document)) {
     return invalidArtifact('Record schema artifact document must be a JSON object.');
   }

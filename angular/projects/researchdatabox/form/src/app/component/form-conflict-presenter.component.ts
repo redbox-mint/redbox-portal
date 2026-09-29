@@ -227,61 +227,40 @@ export class FormConflictPresenterComponent implements OnChanges {
   }
 
   public get titleKey(): string {
-    const conflict = this.conflict;
-    if (!conflict) {
-      return '@form-conflict-already-current-title';
-    }
-    if (conflict.status === 'retrying') {
-      return '@form-conflict-merging-title';
-    }
-    if (conflict.status === 'form-changed') {
-      return '@form-conflict-form-changed-title';
-    }
-    if (conflict.status === 'deleted') {
-      return '@form-conflict-deleted-title';
-    }
-    if (conflict.status === 'permission-lost') {
-      return '@form-conflict-permission-lost-title';
-    }
-    if (conflict.cause === 'precondition-required') {
-      return '@form-conflict-old-tab-title';
-    }
-    if (conflict.status === 'reviewing' && conflict.autoRetryAttempted) {
-      return '@form-conflict-repeated-race-title';
-    }
-    if (conflict.status === 'reviewing') {
-      return '@form-conflict-reviewing-title';
-    }
-    return '@form-conflict-stale-title';
+    return `${this.messageKeyStem}-title`;
   }
 
   public get messageKey(): string {
+    return `${this.messageKeyStem}-message`;
+  }
+
+  private get messageKeyStem(): string {
     const conflict = this.conflict;
     if (!conflict) {
-      return '@form-conflict-already-current-message';
+      return '@form-conflict-already-current';
     }
     if (conflict.status === 'retrying') {
-      return '@form-conflict-merging-message';
+      return '@form-conflict-merging';
     }
     if (conflict.status === 'form-changed') {
-      return '@form-conflict-form-changed-message';
+      return '@form-conflict-form-changed';
     }
     if (conflict.status === 'deleted') {
-      return '@form-conflict-deleted-message';
+      return '@form-conflict-deleted';
     }
     if (conflict.status === 'permission-lost') {
-      return '@form-conflict-permission-lost-message';
+      return '@form-conflict-permission-lost';
     }
     if (conflict.cause === 'precondition-required') {
-      return '@form-conflict-old-tab-message';
+      return '@form-conflict-old-tab';
     }
     if (conflict.status === 'reviewing' && conflict.autoRetryAttempted) {
-      return '@form-conflict-repeated-race-message';
+      return '@form-conflict-repeated-race';
     }
     if (conflict.status === 'reviewing') {
-      return '@form-conflict-reviewing-message';
+      return '@form-conflict-reviewing';
     }
-    return '@form-conflict-stale-message';
+    return '@form-conflict-stale';
   }
 
   public get canReview(): boolean {

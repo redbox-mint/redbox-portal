@@ -9,9 +9,6 @@ import type {
   RecordSchemaArtifactQuery,
   RecordSchemaArtifactSummary,
   RecordSchemaAuthorizationGrantQuery,
-  RecordSchemaDeleteRequest,
-  RecordSchemaDeleteResult,
-  RecordSchemaGrantQuery,
   RecordSchemaReferenceInput,
   RecordSchemaReferenceModel,
   RecordSchemaReferenceQuery,
@@ -23,10 +20,8 @@ export const RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS = [
   'listRecordSchemaArtifacts',
   'touchRecordSchemaArtifact',
   'putRecordSchemaReference',
-  'listRecordSchemaGrants',
   'findRecordSchemaGrantForAuthorization',
   'listRecordSchemaReferences',
-  'deleteRecordSchemaArtifactIfUnreferenced',
 ] as const;
 
 export type RecordSchemaStorageCapabilityMethod = (typeof RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS)[number];
@@ -173,14 +168,10 @@ export interface StorageService {
   listRecordSchemaArtifacts?(query: RecordSchemaArtifactQuery): Promise<RecordSchemaArtifactSummary[]>;
   touchRecordSchemaArtifact?(digest: string): Promise<StorageServiceResponse>;
   putRecordSchemaReference?(reference: RecordSchemaReferenceInput): Promise<StorageServiceResponse>;
-  listRecordSchemaGrants?(query: string | RecordSchemaGrantQuery): Promise<RecordSchemaReferenceModel[]>;
   findRecordSchemaGrantForAuthorization?(
     query: RecordSchemaAuthorizationGrantQuery
   ): Promise<RecordSchemaReferenceModel | null>;
   listRecordSchemaReferences?(query: RecordSchemaReferenceQuery): Promise<RecordSchemaReferenceModel[]>;
-  deleteRecordSchemaArtifactIfUnreferenced?(
-    request: RecordSchemaDeleteRequest
-  ): Promise<StorageServiceResponse<RecordSchemaDeleteResult>>;
   exists(oid: unknown): Promise<boolean>;
   getRecordAudit(params: unknown): Promise<unknown>;
   getIntegrationAudit(params: unknown): Promise<unknown>;

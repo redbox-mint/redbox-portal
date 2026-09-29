@@ -20,7 +20,6 @@ export interface RecordContractFixture {
   readonly form: RecordContractFormFixture;
   readonly reusableFormDefinitions: ReusableFormDefinitions;
   readonly vocabularies: Readonly<Record<string, RecordContractVocabularyFixture>>;
-  readonly namespacedExtensionMetadata: Readonly<Record<string, unknown>>;
   readonly expectedShapeByPointer: Readonly<Record<string, string>>;
 }
 
@@ -335,12 +334,6 @@ export function createRecordContractFixture(): RecordContractFixture {
           { value: 'one', label: 'One' },
           { value: 'two', label: 'Two' },
         ],
-      },
-    },
-    namespacedExtensionMetadata: {
-      'example:contract-extension': {
-        enabled: true,
-        codes: ['stable-a', 'stable-b'],
       },
     },
     expectedShapeByPointer: {
