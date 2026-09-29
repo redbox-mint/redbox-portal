@@ -8,6 +8,8 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
+import { CheckboxTreeComponent } from './component/checkbox-tree.component';
+import { FormServerSyncService } from './form-server-sync.service';
 import {
   createFormAndWaitForReady,
   createTestbedModule,
@@ -184,6 +186,7 @@ describe('FormComponent', () => {
         declarations: {
           "SimpleInputComponent": SimpleInputComponent,
           "GroupFieldComponent": GroupFieldComponent,
+          "CheckboxTreeComponent": CheckboxTreeComponent,
         }
       });
     Object.assign(translationService.translationMap, {
@@ -937,6 +940,90 @@ describe('FormComponent', () => {
       expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({ revision: 4 }));
       expect(formComponent.saveResponse()?.concurrency?.resolution).not.toBe('already-current');
     } finally {
+      successSub.unsubscribe();
+    }
+  });
+
+  it('synchronizes a representative FoR correction after save without a review warning', async () => {
+    const fieldName = 'dc:subject_anzsrc:for';
+    const formConfig: FormConfigFrame = {
+      name: 'publication-for-sync-investigation',
+      type: 'dataPublication',
+      componentDefinitions: [{
+        name: fieldName,
+        model: {
+          class: 'CheckboxTreeModel',
+          config: { value: [{ notation: 'old', label: 'Original classification', name: 'old - Original classification' }] },
+        },
+        component: {
+          class: 'CheckboxTreeComponent',
+          config: {
+            inlineVocab: true,
+            leafOnly: true,
+            treeData: [
+              { id: 'old', value: 'old', notation: 'old', label: 'Original classification', hasChildren: false },
+              { id: 'corrected', value: 'corrected', notation: 'corrected', label: 'Corrected classification', hasChildren: false },
+            ],
+          },
+        },
+      }],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, {
+      oid: 'disposable-publication',
+      recordType: 'dataPublication',
+      editMode: true,
+      formName: formConfig.name!,
+      downloadAndCreateOnInit: false,
+    });
+    const checkboxes = fixture.nativeElement.querySelectorAll('input[type="checkbox"]') as NodeListOf<HTMLInputElement>;
+    expect(checkboxes).toHaveSize(2);
+    checkboxes[0].click();
+    checkboxes[1].click();
+    await fixture.whenStable();
+    const control = formComponent.form!.get(fieldName)!;
+    const submittedValue = structuredClone(control.value);
+    expect(submittedValue).toHaveSize(1);
+    expect(submittedValue[0].notation).toBe('corrected');
+    expect(control.dirty).toBeTrue();
+
+    const authoritative = {
+      [fieldName]: [{ ...submittedValue[0], label: 'Authoritative classification', name: 'corrected - Authoritative classification' }],
+    };
+    const response = persistedSaveResponse({
+      oid: 'disposable-publication',
+      metadata: authoritative,
+      concurrency: {
+        revision: 5,
+        entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        formFingerprint: 'sha256:publication_for',
+      },
+    });
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+    const syncSpy = spyOn(TestBed.inject(FormServerSyncService), 'applyServerMetadata').and.callThrough();
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const failures: FormSaveFailureEvent[] = [];
+    const successes: FormSaveSuccessEvent[] = [];
+    const failureSub = eventBus.select$(FormComponentEventType.FORM_SAVE_FAILURE).subscribe(event => failures.push(event));
+    const successSub = eventBus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => successes.push(event));
+    try {
+      await formComponent.saveForm();
+
+      expect(updateSpy.calls.mostRecent().args[1]).toEqual({ [fieldName]: submittedValue });
+      expect(syncSpy).toHaveBeenCalledTimes(1);
+      expect(await syncSpy.calls.mostRecent().returnValue).toEqual({ patched: [fieldName], skipped: [] });
+      expect(control.value).toEqual(authoritative[fieldName]);
+      expect(formComponent.form?.pristine).toBeTrue();
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({
+        metadata: authoritative,
+        revision: 5,
+        trusted: true,
+      }));
+      expect(formComponent.saveResponse()?.wasPersisted()).toBeTrue();
+      expect(failures).toEqual([]);
+      expect(successes).toHaveSize(1);
+      expect(successes[0].modelSnapshot).toEqual(authoritative);
+    } finally {
+      failureSub.unsubscribe();
       successSub.unsubscribe();
     }
   });
