@@ -174,7 +174,7 @@ describe('Oni v2 OCFL repository', () => {
     const harness = makeHarness();
     const stream = Readable.from(['streamed']);
     (harness.datastreamService.getDatastream as sinon.SinonStub)
-      .onFirstCall().resolves({ readstream: stream })
+      .onFirstCall().resolves({ readstream: stream, size: 8 })
       .onSecondCall().resolves({ body: 'buffered' });
     const crate = {
       rootId: 'dataset-1',
@@ -191,7 +191,15 @@ describe('Oni v2 OCFL repository', () => {
     expect(harness.datasetObject.update.calledOnce).to.be.true;
     expect(harness.datasetObject.update.firstCall.args[1]).to.equal('REPLACE');
     expect(harness.transaction.write.getCall(0).args[0]).to.equal('ro-crate-metadata.json');
-    expect(harness.transaction.write.getCall(1).args).to.deep.equal(['files/one.txt', stream]);
+    const streamedWrite = harness.transaction.write.getCall(1).args;
+    expect(streamedWrite[0]).to.equal('files/one.txt');
+    expect(streamedWrite[1]).to.be.instanceOf(ReadableStream);
+    expect(streamedWrite[2]).to.deep.equal({ contentLength: 8 });
+    let content = '';
+    for await (const chunk of streamedWrite[1]) {
+      content += Buffer.from(chunk).toString();
+    }
+    expect(content).to.equal('streamed');
     expect(harness.transaction.write.getCall(2).args).to.deep.equal(['files/two.txt', 'buffered']);
   });
 });
