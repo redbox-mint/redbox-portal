@@ -33926,10 +33926,17 @@
                         "additionalProperties": false,
                         "description": "The configuration specific to the class of this form field.",
                         "properties": {
+                          "dateOnly": {
+                            "description": "Store a calendar date as YYYY-MM-DD (or null), without a time or timezone. Defaults to false.",
+                            "type": "boolean"
+                          },
                           "defaultValue": {
                             "anyOf": [
                               {
                                 "format": "date-time",
+                                "type": "string"
+                              },
+                              {
                                 "type": "string"
                               },
                               {
@@ -33950,6 +33957,9 @@
                             "anyOf": [
                               {
                                 "format": "date-time",
+                                "type": "string"
+                              },
+                              {
                                 "type": "string"
                               },
                               {
@@ -34068,6 +34078,9 @@
                             "anyOf": [
                               {
                                 "format": "date-time",
+                                "type": "string"
+                              },
+                              {
                                 "type": "string"
                               },
                               {
@@ -91175,10 +91188,17 @@
                   "additionalProperties": false,
                   "description": "The configuration specific to the class of this form field.",
                   "properties": {
+                    "dateOnly": {
+                      "description": "Store a calendar date as YYYY-MM-DD (or null), without a time or timezone. Defaults to false.",
+                      "type": "boolean"
+                    },
                     "defaultValue": {
                       "anyOf": [
                         {
                           "format": "date-time",
+                          "type": "string"
+                        },
+                        {
                           "type": "string"
                         },
                         {
@@ -91199,6 +91219,9 @@
                       "anyOf": [
                         {
                           "format": "date-time",
+                          "type": "string"
+                        },
+                        {
                           "type": "string"
                         },
                         {
@@ -91317,6 +91340,9 @@
                       "anyOf": [
                         {
                           "format": "date-time",
+                          "type": "string"
+                        },
+                        {
                           "type": "string"
                         },
                         {
