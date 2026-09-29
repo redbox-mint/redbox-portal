@@ -5,7 +5,7 @@ import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatabl
 import {GroupFieldComponent} from './group.component';
 import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
-import {FormComponentEventBus, FormComponentEventType} from "../form-state";
+import {FieldValueChangedEvent, FormComponentEventBus, FormComponentEventType} from "../form-state";
 import {LoggerService} from '@researchdatabox/portal-ng-common';
 import {applyExpressionTarget} from '../form-state/apply-expression-target';
 import {resolveFieldByPointer} from '../form-state/behaviours/behaviour-field-resolver';
@@ -310,13 +310,15 @@ describe('RepeatableComponent', () => {
     { name: 'clears all rows', value: [], expected: [], allowZeroRows: true, dirty: false },
     { name: 'retains a default row when cleared', value: [], expected: [''], allowZeroRows: false, dirty: false },
     { name: 'preserves existing user edits', value: ['replacement'], expected: ['replacement'], allowZeroRows: false, dirty: true },
+    { name: 'does not notify when clearing an existing default row', initial: [''], value: [], expected: [''], allowZeroRows: false, dirty: false, unchanged: true },
+    { name: 'notifies when clearing a blank row with zero rows allowed', initial: [''], value: [], expected: [], allowZeroRows: true, dirty: false },
   ]) {
     it(`expression prefill ${scenario.name} without changing dirty state`, async () => {
       const formConfig: FormConfigFrame = {
         name: 'testing_repeatable_expression_prefill',
         componentDefinitions: [{
           name: 'repeatable_prefill',
-          model: { class: 'RepeatableModel', config: { value: ['one', 'two'] } },
+          model: { class: 'RepeatableModel', config: { value: scenario.initial ?? ['one', 'two'] } },
           component: {
             class: 'RepeatableComponent',
             config: {
@@ -354,7 +356,7 @@ describe('RepeatableComponent', () => {
       await fixture.whenStable();
 
       expect(repeatable.model?.getValue()).toEqual(scenario.expected);
-      expect(values).toEqual([scenario.expected]);
+      expect(values).toEqual(scenario.unchanged ? [] : [scenario.expected]);
       // Only the final row change validates the completed array.
       expect(validatedValues.filter(value => JSON.stringify(value) === JSON.stringify(scenario.expected)).length).toBe(1);
       expect(dirtyRequests).not.toHaveBeenCalled();
@@ -408,7 +410,7 @@ describe('RepeatableComponent', () => {
     expect(resolveFieldByPointer('/rows/1/title', { formComponent })?.control.value).toBe('second');
   });
 
-  it('attributes a replacement row disabled by a model.disabled expression to the write', async () => {
+  it('suppresses unchanged disabled-row events while attributing the replacement to the write', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing_repeatable_disabled_prefill_attribution',
       componentDefinitions: [{
@@ -441,9 +443,9 @@ describe('RepeatableComponent', () => {
     const ctx = { eventBus, logger: TestBed.inject(LoggerService) };
     await applyExpressionTarget('model.disabled', true, { model: repeatable.model, component: repeatable }, ctx);
     expect(repeatable.model?.formControl?.disabled).toBeTrue();
-    const rowEvents: { expressionChain?: readonly string[] }[] = [];
+    const valueEvents: FieldValueChangedEvent[] = [];
     const sub = eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
-      if (event.sourceId === '*' && event.fieldId === '/rows/0') rowEvents.push(event);
+      if (event.sourceId === '*') valueEvents.push(event);
     });
 
     await applyExpressionTarget('model.value', [{ title: 'new' }], { model: repeatable.model, component: repeatable }, {
@@ -454,10 +456,14 @@ describe('RepeatableComponent', () => {
     sub.unsubscribe();
 
     expect(repeatable.model?.getValue()).toEqual([{ title: 'new' }]);
-    // The row still inherits the disabled state, with notifications attributed to the write.
+    // Disabling the new row does not change its value; the array replacement still notifies.
     expect(repeatable.model?.formControl?.at(0).disabled).toBeTrue();
-    expect(rowEvents.length).toBeGreaterThan(0);
-    expect(rowEvents.every(event => event.expressionChain?.includes('prefill'))).toBeTrue();
+    expect(valueEvents.filter(event => event.fieldId === '/rows/0')).toEqual([]);
+    expect(valueEvents.filter(event => event.fieldId === '/rows')).toEqual([jasmine.objectContaining({
+      value: [{ title: 'new' }],
+      previousValue: [{ title: 'old' }],
+      expressionChain: ['prefill'],
+    })]);
   });
 
   it('should replace repeatable elements silently when emitEvent is false', async () => {

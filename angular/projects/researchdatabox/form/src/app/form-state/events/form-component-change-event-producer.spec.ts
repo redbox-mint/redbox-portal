@@ -89,6 +89,25 @@ describe('FormComponentChangeEventProducer', () => {
     expect(secondCall.value).toBe('second-change');
   });
 
+  for (const initialValue of [[''], { person: { names: ['Ada'] } }]) {
+    it(`suppresses equivalent ${Array.isArray(initialValue) ? 'arrays' : 'objects'} on both channels and preserves the previous value`, () => {
+      const options = createOptions('field', initialValue);
+      producer.bind(options);
+
+      options.control.setValue(structuredClone(initialValue));
+      expect(eventBus.publish).not.toHaveBeenCalled();
+      expect(scopedBus.publish).not.toHaveBeenCalled();
+
+      options.control.setValue('changed');
+      expect(eventBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+        value: 'changed', previousValue: initialValue,
+      }));
+      expect(scopedBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+        value: 'changed', previousValue: initialValue,
+      }));
+    });
+  }
+
   it('publishes expression changes only after ancestor values are current', async () => {
     const { control, component, definition } = createOptions('title', 'original');
     const parent = new FormGroup({ title: control });

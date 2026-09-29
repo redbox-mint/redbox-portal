@@ -1,4 +1,5 @@
 import { AbstractControl } from '@angular/forms';
+import { isEqual } from 'lodash-es';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { createFieldValueChangedEvent, FormComponentEventType } from './form-component-event.types';
 import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
@@ -95,16 +96,12 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 
     const previousValue = this.previousValue;
 
-    // Only publish the event if the value has changed.
-    // Try a direct comparison first, then a structuredClone comparison.
-    if (value === previousValue) {
+    // Compare contents so replacing a control with an equivalent value does not notify dependants.
+    if (isEqual(value, previousValue)) {
       return;
     }
     const valueClone = structuredClone(value);
     const previousValueClone = structuredClone(previousValue);
-    if (valueClone === previousValueClone) {
-      return;
-    }
 
     // The general channel uses sourceId="*" to indicate broadcast
     const baseEvent = createFieldValueChangedEvent({
