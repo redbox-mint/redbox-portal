@@ -191,7 +191,9 @@ z-index: 999;
   background-color: var(--rb-main-menu-active-dropdown-item-background-color-hover, #{$main-menu-active-dropdown-item-background-color-hover});
 }
 
-.mainmenu-area .nav > li > a:focus {
+.mainmenu-area ul.navbar-nav > li > a:focus,
+.mainmenu-area ul.navbar-nav > li.active > a:focus,
+.mainmenu-area ul.navbar-nav > li.nav-active-item > a:focus {
   color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color})
 }
 
