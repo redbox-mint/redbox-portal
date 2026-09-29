@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { pipeline } from 'node:stream/promises';
 import { firstValueFrom, from } from 'rxjs';
 import * as path from 'path';
 import {
@@ -742,12 +743,16 @@ export namespace Controllers {
         try {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId, { username: String(req.user?.username ?? '') || undefined });
           if (response.readstream) {
-            response.readstream.on('error', (error: unknown) => {
-              // Handle the error here
-              sails.log.error('Error reading stream:', error);
+            // The client may have disconnected while getDatastream was pending.
+            if (res.destroyed) {
+              if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
+                response.readstream.destroy();
+              } else {
+                response.readstream.resume();
+              }
               return;
-            });
-            response.readstream.pipe(res);
+            }
+            await pipeline(response.readstream, res);
           } else {
             const body = response.body ?? '';
             const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
@@ -755,6 +760,13 @@ export namespace Controllers {
           }
           return;
         } catch (error) {
+          if (res.destroyed) {
+            const code = error instanceof Error && 'code' in error ? error.code : undefined;
+            if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {
+              sails.log.error('Attachment download failed', error);
+            }
+            return;
+          }
           return this.sendResp(req, res, {
             errors: [this.asError(error)],
             displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
