@@ -7079,14 +7079,11 @@ export namespace Services {
           const targetRecordObj = snapshot as unknown as AnyRecord;
           let nextData = _.cloneDeep(linkData);
           const existingData = _.get(targetRecordObj, fieldName);
-          if (_.isUndefined(existingData)) {
-            if (fieldType === 'array') {
-              nextData = [nextData];
-            }
-          } else if (_.isArray(existingData)) {
-            nextData = existingData.some(value => _.isEqual(value, nextData))
-              ? [...existingData]
-              : [...existingData, nextData];
+          if (fieldType === 'array' || _.isArray(existingData)) {
+            const existingItems = _.isArray(existingData) ? existingData : _.isNil(existingData) ? [] : [existingData];
+            nextData = existingItems.some(value => _.isEqual(value, nextData))
+              ? [...existingItems]
+              : [...existingItems, nextData];
           }
           _.set(targetRecordObj, fieldName, nextData);
           return targetRecordObj;

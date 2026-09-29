@@ -11743,6 +11743,159 @@ describe('RecordsService', function () {
       );
     };
 
+    describe('appendToRecord array normalization', function () {
+      const firstWorkspace = { id: 'workspace-first', reference: 'RDS-FIRST' };
+      const secondWorkspace = { id: 'workspace-second', reference: 'RDS-SECOND' };
+      let current: ReturnType<typeof internalRecord> & { metadata: { workspaces?: unknown } };
+
+      beforeEach(function () {
+        enableConcurrency('strict');
+        current = internalRecord(1);
+        mockStorageService.getMeta.callsFake(async () => _.cloneDeep(current));
+        mockStorageService.updateMeta.callsFake(async (_brand, oid, candidate, _user, options) => {
+          expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: current.revision });
+          current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: current.revision + 1 };
+          return {
+            success: true,
+            oid,
+            applicationState: 'applied',
+            committedRevision: current.revision,
+            committedRecord: _.cloneDeep(current),
+          };
+        });
+      });
+
+      const cases = [
+        { name: 'absent', existing: undefined, expected: [secondWorkspace] },
+        { name: 'null', existing: null, expected: [secondWorkspace] },
+        { name: 'empty array', existing: [], expected: [secondWorkspace] },
+        { name: 'populated array', existing: [firstWorkspace], expected: [firstWorkspace, secondWorkspace] },
+        { name: 'singleton', existing: firstWorkspace, expected: [firstWorkspace, secondWorkspace] },
+        { name: 'duplicate singleton', existing: secondWorkspace, expected: [secondWorkspace] },
+        {
+          name: 'duplicate array',
+          existing: [firstWorkspace, secondWorkspace],
+          expected: [firstWorkspace, secondWorkspace],
+        },
+      ];
+      for (const { name, existing, expected } of cases) {
+        it(`preserves associations and metadata when appending to ${name}`, async function () {
+          if (existing !== undefined) current.metadata.workspaces = _.cloneDeep(existing);
+          const callerRecord = _.cloneDeep(current);
+          const baseline = _.cloneDeep(current);
+          const linkData = _.cloneDeep(secondWorkspace);
+
+          const result = await RecordsService.appendToRecord(
+            current.redboxOid,
+            linkData,
+            'metadata.workspaces',
+            'array',
+            callerRecord
+          );
+
+          expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+          expect(current.metadata).to.deep.equal({ ...baseline.metadata, workspaces: expected });
+          expect(callerRecord).to.deep.equal(baseline);
+          expect(linkData).to.deep.equal(secondWorkspace);
+          expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+
+          const repeated = await RecordsService.appendToRecord(
+            current.redboxOid,
+            _.cloneDeep(linkData),
+            'metadata.workspaces',
+            'array'
+          );
+          expect(repeated.wasPersisted()).to.equal(true);
+          expect(current.metadata).to.deep.equal({ ...baseline.metadata, workspaces: expected });
+        });
+      }
+
+      it('stores two sequential WorkspaceService additions from null as an ordered array', async function () {
+        current.metadata.workspaces = null;
+        const { Services } =
+          require('../../src/services/WorkspaceService') as typeof import('../../src/services/WorkspaceService');
+        const workspaceService = new Services.WorkspaceService();
+        const previousRecordsService = Reflect.get(globalThis, 'RecordsService');
+        Object.assign(globalThis, { RecordsService });
+        try {
+          const first = await workspaceService.addWorkspaceToRecord(current.redboxOid, firstWorkspace.id, {
+            reference: firstWorkspace.reference,
+          });
+          const second = await workspaceService.addWorkspaceToRecord(current.redboxOid, secondWorkspace.id, {
+            reference: secondWorkspace.reference,
+          });
+          expect(first.wasPersisted()).to.equal(true);
+          expect(second.wasPersisted()).to.equal(true);
+          expect(current.metadata).to.deep.equal({
+            ...internalRecord(1).metadata,
+            workspaces: [firstWorkspace, secondWorkspace],
+          });
+        } finally {
+          if (previousRecordsService === undefined) Reflect.deleteProperty(globalThis, 'RecordsService');
+          else Object.assign(globalThis, { RecordsService: previousRecordsService });
+        }
+      });
+
+      for (const initial of [null, firstWorkspace]) {
+        it(`recomputes after a stale revision from ${initial === null ? 'null' : 'singleton'} without losing concurrent associations or duplicating the append`, async function () {
+          current.metadata.workspaces = _.cloneDeep(initial);
+          const concurrentWorkspace = { id: 'workspace-concurrent' };
+          mockStorageService.updateMeta.onFirstCall().callsFake(async (_brand, oid) => {
+            current = {
+              ...current,
+              revision: 2,
+              metadata: {
+                ...current.metadata,
+                title: 'Concurrent title',
+                workspaces: [firstWorkspace, concurrentWorkspace, _.cloneDeep(secondWorkspace)],
+              },
+            };
+            return { success: false, oid, applicationState: 'not-applied', nonApplicationReason: 'stale-revision' };
+          });
+
+          const result = await RecordsService.appendToRecord(
+            current.redboxOid,
+            secondWorkspace,
+            'metadata.workspaces',
+            'array'
+          );
+
+          expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+          expect(mockStorageService.updateMeta.callCount).to.equal(2);
+          expect(current.metadata).to.deep.equal({
+            ...internalRecord(1).metadata,
+            title: 'Concurrent title',
+            workspaces: [firstWorkspace, concurrentWorkspace, secondWorkspace],
+          });
+          expect(result.concurrency.resolutionOfRequestId).to.equal(
+            mockStorageService.updateMeta.firstCall.args[4].requestId
+          );
+          expect(result.requestId).not.to.equal(mockStorageService.updateMeta.firstCall.args[4].requestId);
+        });
+      }
+
+      for (const fieldType of [undefined, 'object']) {
+        for (const { name, existing } of cases) {
+          it(`preserves ${name} behavior when fieldType is ${String(fieldType)}`, async function () {
+            if (existing !== undefined) current.metadata.workspaces = _.cloneDeep(existing);
+            const result = await RecordsService.appendToRecord(
+              current.redboxOid,
+              secondWorkspace,
+              'metadata.workspaces',
+              fieldType
+            );
+            const expected = Array.isArray(existing)
+              ? existing.some(value => _.isEqual(value, secondWorkspace))
+                ? existing
+                : [...existing, secondWorkspace]
+              : secondWorkspace;
+            expect(result.wasPersisted()).to.equal(true);
+            expect(current.metadata).to.deep.equal({ ...internalRecord(1).metadata, workspaces: expected });
+          });
+        }
+      }
+    });
+
     it('fails closed for an untrusted writer identity before loading or writing record state', async function () {
       const result = await RecordsService.updateMetaInternal({
         actor: { kind: 'service', id: '../unsafe writer' },
