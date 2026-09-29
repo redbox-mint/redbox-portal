@@ -207,6 +207,27 @@ export const agendaQueue: AgendaQueueConfig = {
                     skipImmediate: true
                 }
             }
+        },
+        'GenerationRunService-Execute': {
+            fnName: 'generationworkerservice.executeQueuedRun',
+            options: {
+                lockLifetime: generation.queue.lockLifetimeMs,
+                lockLimit: generation.queue.concurrency,
+                concurrency: generation.queue.concurrency
+            }
+        },
+        'GenerationRunService-ExpireArtifacts': {
+            fnName: 'generationrunservice.expireAbandonedRuns',
+            options: {
+                lockLifetime: 60 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            },
+            schedule: {
+                method: 'every',
+                intervalOrSchedule: '15 minutes',
+                opts: { skipImmediate: true }
+            }
         }
     }
 };
