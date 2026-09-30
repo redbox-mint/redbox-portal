@@ -13,18 +13,11 @@ export async function findUser(request: APIRequestContext, username: string): Pr
   return user;
 }
 
-/** Users and roles have no deletion API. Remove assignments and disable the
- * exact owned account; its audit history and inert identity last until reset. */
+/** Remove custom assignments and disable the exact owned account. Keep its
+ * baseline Researcher role so the brand can still address the disable request;
+ * its audit history and inert identity last until reset. */
 export function trackUser(api: PortalApi, resources: ResourceLedger, user: PortalUser): void {
   resources.track({ kind: 'disabled-user-history', id: user.id, cleanup: async () => {
-    const beforeDisable = await findUser(api.request, user.username);
-    const disabled = await api.mutate('post', `admin/users/${user.id}/disable`, {
-      expectedVersion: beforeDisable.loginDisabledVersion ?? 1,
-    });
-    expect(disabled.ok()).toBeTruthy();
-    expect(((await disabled.json()) as { status: boolean }).status).toBe(true);
-    const beforeDetach = await findUser(api.request, user.username);
-    expect(beforeDetach.loginDisabled).toBe(true);
     const assignments = await api.get(`api/authorization/assignments?userId=${encodeURIComponent(user.id)}&source=manual&status=active&limit=100`);
     expect(assignments.ok()).toBeTruthy();
     const page = await assignments.json() as {
@@ -34,16 +27,23 @@ export function trackUser(api: PortalApi, resources: ResourceLedger, user: Porta
     expect(page.nextCursor).toBeUndefined();
     for (const assignment of page.items) {
       expect(assignment.principalId).toBe(user.id);
+      if (assignment.roleKey.toLowerCase() === 'researcher') continue;
       const detached = await api.mutate('delete', `api/authorization/assignments/${encodeURIComponent(assignment.roleKey)}/users/${encodeURIComponent(user.id)}`, {
         expectedVersion: assignment.version,
       });
       expect(detached.ok()).toBeTruthy();
       expect(((await detached.json()) as { changed: boolean }).changed).toBe(true);
     }
-    const listed = await api.get('admin/users/get?includeDisabled=true');
-    expect(listed.ok()).toBeTruthy();
-    const current = await listed.json() as PortalUser[];
-    expect(current.find(candidate => candidate.id === user.id)).toBeUndefined();
+    const beforeDisable = await findUser(api.request, user.username);
+    expect(beforeDisable.roles.map(role => role.name)).toEqual(['Researcher']);
+    const disabled = await api.mutate('post', `admin/users/${user.id}/disable`, {
+      expectedVersion: beforeDisable.loginDisabledVersion ?? 1,
+    });
+    expect(disabled.ok()).toBeTruthy();
+    expect(((await disabled.json()) as { status: boolean }).status).toBe(true);
+    const current = await findUser(api.request, user.username);
+    expect(current.loginDisabled).toBe(true);
+    expect(current.roles.map(role => role.name)).toEqual(['Researcher']);
   } });
 }
 
