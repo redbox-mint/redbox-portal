@@ -88,6 +88,23 @@ describe('EmailService', function () {
       // Skipped
     });
 
+    it('sends messages with null optional recipients without failing diagnostic logging', async function () {
+      mockSails.config.emailnotification.settings.serverOptions = { jsonTransport: true };
+      mockSails.config.emailnotification.defaults.cc = null;
+      mockSails.config.emailnotification.defaults.bcc = null;
+
+      const result = await firstValueFrom(EmailService.sendMessage('recipient@example.test', 'Message body'));
+
+      expect(result.success).to.equal(true);
+      expect(
+        mockSails.log.debug.calledWith('Email message prepared for transport.', {
+          format: 'text',
+          hasCc: false,
+          hasBcc: false,
+        })
+      ).to.equal(true);
+    });
+
     it('keeps complete managed messages and secret sentinels out of transport logs', async function () {
       const sentinel = 'message-secret-must-not-be-logged';
       mockSails.config.emailnotification.settings.serverOptions = { jsonTransport: true };

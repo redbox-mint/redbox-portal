@@ -1,5 +1,6 @@
 import { manualRecordTypes } from '../form-config/pw-remaining-manual';
 import type { RecordTypeConfig } from '@researchdatabox/redbox-core';
+import { rdmpActionPlan } from './rdmp-actions';
 
 /**
  * Demo record type definitions.
@@ -57,7 +58,8 @@ export const recordtype: RecordTypeConfig = {
               templates: [
                 {
                   field: 'metadata.date',
-                  template: "<%= record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : '' %>",
+                  template:
+                    "<%= record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : '' %>",
                 },
               ],
             },
@@ -121,86 +123,7 @@ export const recordtype: RecordTypeConfig = {
   },
   rdmp: {
     packageType: 'rdmp',
-    hooks: {
-      onCreate: {
-        pre: [
-          {
-            function: 'sails.services.rdmpservice.runTemplates',
-            options: {
-              parseObject: false,
-              templates: [
-                {
-                  field: 'metadata.server_sync_test_value',
-                  template: 'test-<%= _.random(100000, 999999) %>',
-                },
-              ],
-            },
-          },
-          {
-            function: 'sails.services.rdmpservice.assignPermissions',
-            options: {
-              emailProperty: 'email',
-              editContributorProperties: [
-                'metadata.contributor_ci',
-                'metadata.contributor_data_manager',
-                'metadata.dataowner_email',
-              ],
-              viewContributorProperties: [
-                'metadata.contributor_ci',
-                'metadata.contributor_data_manager',
-                'metadata.contributor_supervisor',
-                'metadata.contributors',
-              ],
-              recordCreatorPermissions: 'view&edit',
-            },
-          },
-        ],
-        post: [],
-      },
-      onUpdate: {
-        pre: [
-          {
-            function: 'sails.services.rdmpservice.runTemplates',
-            options: {
-              parseObject: false,
-              templates: [
-                {
-                  field: 'metadata.server_sync_test_value',
-                  template: 'test-<%= _.random(100000, 999999) %>',
-                },
-              ],
-            },
-          },
-          {
-            function: 'sails.services.rdmpservice.assignPermissions',
-            options: {
-              emailProperty: 'email',
-              editContributorProperties: [
-                'metadata.contributor_ci',
-                'metadata.contributor_data_manager',
-                'metadata.dataowner_email',
-              ],
-              viewContributorProperties: [
-                'metadata.contributor_ci',
-                'metadata.contributor_data_manager',
-                'metadata.contributor_supervisor',
-                'metadata.contributors',
-              ],
-              recordCreatorPermissions: 'view&edit',
-            },
-          },
-          {
-            function: 'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
-            options: {
-              triggerCondition:
-                '<%= _.isEqual(record.workflow.stage, "draft") || _.isEqual(record.workflow.stage, "queued") || _.isEqual(record.workflow.stage, "published") %>',
-              maxUploadSizeMessageCode: 'max-total-files-upload-size-alternative-validation-error',
-              replaceOrAppend: 'append',
-            },
-          },
-        ],
-      },
-    },
+    actionPlan: rdmpActionPlan,
     relatedTo: [
       {
         recordType: 'dataRecord',

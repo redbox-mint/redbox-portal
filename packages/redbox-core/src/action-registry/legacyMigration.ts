@@ -64,7 +64,7 @@ export const LEGACY_RECORD_ACTION_MAPPINGS: readonly LegacyRecordActionMapping[]
     'sails.services.rdmpservice.runTemplates',
     BUILT_IN_ACTION_IDS.applyTemplates,
     'action-binding',
-    5,
+    3,
     true,
     'Convert each supported template to an ordered managed JSONata binding; reject unsupported Lodash functions.'
   ),
@@ -72,7 +72,7 @@ export const LEGACY_RECORD_ACTION_MAPPINGS: readonly LegacyRecordActionMapping[]
     'sails.services.rdmpservice.assignPermissions',
     BUILT_IN_ACTION_IDS.assignPermissions,
     'action-binding',
-    6,
+    4,
     true,
     'Copy permission parameters and translate a present Lodash trigger condition to managed JSONata.'
   ),
@@ -80,7 +80,7 @@ export const LEGACY_RECORD_ACTION_MAPPINGS: readonly LegacyRecordActionMapping[]
     'sails.services.rdmpservice.checkTotalSizeOfFilesInRecord',
     BUILT_IN_ACTION_IDS.validateTotalAttachmentSize,
     'action-binding',
-    1,
+    0,
     true,
     'Copy message options and keep the server-owned attachment limit outside persisted parameters.'
   ),

@@ -6,6 +6,7 @@ import {
   LegacyRecordActionMigrationError,
   actionRegistrationSource,
   buildActionRegistry,
+  deriveStableActionBindingId,
   migrateLegacyRecordAction,
   parseActionContext,
   registerRedboxActions,
@@ -29,6 +30,9 @@ import {
 
 const { recordtype: shippedRecordTypes } = require('../../../redbox-hook-dev/src/config/recordtype') as {
   recordtype: Record<string, { hooks?: HooksFixture }>;
+};
+const { rdmpActionPlan } = require('../../../redbox-hook-dev/src/config/rdmp-actions') as {
+  rdmpActionPlan: import('../../src/action-registry').ActionPlan;
 };
 
 function scope(mode: string, phase: string): ActionBindingScope {
@@ -115,6 +119,69 @@ function shippedDefinitions(): ShippedDefinition[] {
 describe('registered legacy record action migration', function () {
   this.timeout(15_000);
 
+  it('validates the migrated development RDMP plan and preserves six-digit server write-back values', async () => {
+    const registry = buildActionRegistry([
+      actionRegistrationSource('@researchdatabox/redbox-core', 'actions/index', registerRedboxActions),
+    ]);
+    const validation = validateActionPlan(registry, rdmpActionPlan);
+    assert.equal(validation.ok, true, validation.ok ? undefined : JSON.stringify(validation.issues));
+    assert.equal(rdmpActionPlan.bindings.length, 5);
+    for (const binding of rdmpActionPlan.bindings) {
+      assert.equal(
+        binding.id,
+        deriveStableActionBindingId({
+          recordTypeKey: 'rdmp',
+          actionId: binding.actionId,
+          contractVersion: binding.contractVersion,
+          stableKey: binding.stableKey,
+          scope: binding.scope,
+        })
+      );
+      if (binding.actionId !== BUILT_IN_ACTION_IDS.applyTemplates) continue;
+      const value = binding.parameters.value;
+      assert.equal(value?.kind, 'jsonata');
+      if (value?.kind !== 'jsonata') assert.fail('Expected managed server write-back.');
+      const context = projectActionParameterContext(
+        parseActionContext({
+          schemaVersion: 1,
+          executionId: 'server-write-back',
+          correlationId: 'server-write-back',
+          timestamp: '2026-09-30T00:00:00Z',
+          brandId: 'default',
+          recordTypeKey: 'rdmp',
+          scope: binding.scope,
+          actor: null,
+          record: { candidate: { metadata: {} } },
+          priorOutputs: [],
+        })
+      );
+      const result = await evaluateManagedJsonata(compileManagedJsonataExpression(value.expression), context, {
+        timeoutMs: 1_000,
+      });
+      assert.equal(typeof result, 'string');
+      assert.match(result as string, /^test-\d{6}$/);
+    }
+  });
+
+  it('continues to reject unsupported legacy random templates', () => {
+    assert.throws(
+      () =>
+        migrate(
+          {
+            function: 'sails.services.rdmpservice.runTemplates',
+            options: {
+              templates: [
+                { field: 'metadata.server_sync_test_value', template: 'test-<%= _.random(100000, 999999) %>' },
+              ],
+            },
+          },
+          { context: 'record-lifecycle', mode: 'onCreate', phase: 'pre' }
+        ),
+      (error: Error) =>
+        error instanceof LegacyRecordActionMigrationError && error.code === 'unsupported-legacy-expression'
+    );
+  });
+
   it('matches all thirteen governed mappings and registers exactly the eleven executable identities', () => {
     const governed = loadLegacyActionMappings().mappings;
     assert.equal(LEGACY_RECORD_ACTION_MAPPINGS.length, 13);
@@ -146,7 +213,7 @@ describe('registered legacy record action migration', function () {
     assert.equal(registeredIds.includes(BUILT_IN_ACTION_IDS.dispatchQueuedAction), true);
   });
 
-  it('accounts for every shipped occurrence and explicitly rejects only unsupported random generation', () => {
+  it('accounts for every shipped legacy occurrence', () => {
     const inventory = loadLegacyActionInventory();
     const registry = buildActionRegistry([
       actionRegistrationSource('@researchdatabox/redbox-core', 'actions/index', registerRedboxActions),
@@ -188,9 +255,9 @@ describe('registered legacy record action migration', function () {
         rejectedRandom += 1;
       }
     });
-    assert.equal(definitions.length, 31);
-    assert.equal(migrated, 29);
-    assert.equal(rejectedRandom, 2);
+    assert.equal(definitions.length, 26);
+    assert.equal(migrated, 26);
+    assert.equal(rejectedRandom, 0);
   });
 
   it('preserves shipped date write-back formatting with a managed expression', async () => {

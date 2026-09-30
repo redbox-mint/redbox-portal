@@ -158,8 +158,8 @@ export namespace Services {
       };
       sails.log.debug('Email message prepared for transport.', {
         format: msgFormat,
-        hasCc: cc.trim().length > 0,
-        hasBcc: bcc.trim().length > 0,
+        hasCc: typeof cc === 'string' && cc.trim().length > 0,
+        hasBcc: typeof bcc === 'string' && bcc.trim().length > 0,
       });
       try {
         const sendResult = await transport.sendMail(message);
@@ -613,8 +613,7 @@ export namespace Services {
       templateData: Record<string, unknown>
     ) {
       const templateFunc = _.get(propConfig, 'templateFunc', null) as
-        | ((value: string | null, data: Record<string, unknown>) => unknown)
-        | null;
+        ((value: string | null, data: Record<string, unknown>) => unknown) | null;
       if (!_.isNil(propValue) && !_.isNil(templateFunc)) {
         sails.log.verbose('EmailService::EvaluatePropertyTemplate: Rendering configured value.');
 

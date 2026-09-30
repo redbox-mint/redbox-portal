@@ -68,7 +68,8 @@
             "rule": "Translate the Lodash condition to JSONata. The server-owned maximum remains outside persisted parameters."
           }
         ]
-      }
+      },
+      "shippedOccurrenceCount": 0
     },
     {
       "legacyExpression": "sails.services.triggerservice.transitionWorkflow",
@@ -147,7 +148,9 @@
       },
       "parameterTransform": {
         "copy": ["permissionTypes"],
-        "defaults": { "permissionTypes": "edit" },
+        "defaults": {
+          "permissionTypes": "edit"
+        },
         "transform": [
           {
             "from": "triggerCondition",
@@ -288,7 +291,9 @@
       },
       "parameterTransform": {
         "copy": ["rdmpOidField"],
-        "defaults": { "rdmpOidField": "rdmpOid" },
+        "defaults": {
+          "rdmpOidField": "rdmpOid"
+        },
         "drop": ["forceRun", "returnType"],
         "note": "The registered result contract owns workspace response output; legacy returnType must not select an unvalidated result shape."
       }

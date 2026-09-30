@@ -581,13 +581,16 @@ jobs:
           name: Verify record-contract coverage
           command: nvm install && npm run test:record-contracts
       - run:
+          name: Compile redbox-core test runtime
+          command: nvm install && npm --prefix packages/redbox-core run build
+      - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m
           command: |
             cd ./packages/redbox-core
             mkdir -p support/junit
             nvm install && npx nyc --no-clean --report-dir ./coverage/redbox-core --reporter=lcov --exclude-after-remap=false \
-              npx mocha --config .mocharc.js --exit test/**/*.test.ts
+              npx mocha --config .mocharc.js --exit
       - run:
           name: Upload redbox-core code coverage
           command: |
