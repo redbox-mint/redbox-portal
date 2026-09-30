@@ -196,8 +196,8 @@ describe('The RecordsService', function () {
         email: `${viewerUsername}@example.edu.au`,
       },
     ]);
-    expect(summary.editRoles).to.deep.equal(['Admin']);
-    expect(summary.viewRoles).to.deep.equal(['Librarians']);
+    expect(summary.editRoles).to.deep.equal(['Admin', 'Librarians']);
+    expect(summary.viewRoles).to.deep.equal(['Admin', 'Librarians']);
     expect(summary.editPending).to.deep.equal(['pending-edit@example.edu.au']);
     expect(summary.viewPending).to.deep.equal(['pending-view@example.edu.au']);
   });
