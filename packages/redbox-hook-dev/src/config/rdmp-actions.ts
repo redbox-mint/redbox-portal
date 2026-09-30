@@ -1,4 +1,14 @@
-import { ActionRegistry } from '@researchdatabox/redbox-core';
+import type { ActionRegistry } from '@researchdatabox/redbox-core';
+
+// Keep configuration loadable before the core runtime is compiled. The migration tests verify these stable IDs.
+const bindingIds = {
+  onCreate: ['actb_f8d7897e5507bb2c392ae143e48294a6', 'actb_9bf6ff5173ee85afd40384e09bb1f88e'],
+  onUpdate: [
+    'actb_352ceb07dba54d40ef97ae2406c43aef',
+    'actb_dd15d13ae9bc5b8568bf26bbdc3e7a0f',
+    'actb_70f2d23858b54853f413895133148ce2',
+  ],
+};
 
 /** Registered development actions preserve the server write-back demo without legacy JavaScript evaluation. */
 export const rdmpActionPlan: ActionRegistry.ActionPlan = {
@@ -12,7 +22,7 @@ export const rdmpActionPlan: ActionRegistry.ActionPlan = {
       parameters: ActionRegistry.ActionParameterValues;
     }[] = [
       {
-        actionId: ActionRegistry.BUILT_IN_ACTION_IDS.applyTemplates,
+        actionId: 'redbox.core.record.apply-templates' as ActionRegistry.ActionDefinitionId,
         stableKey: 'server-write-back',
         parameters: {
           field: { kind: 'literal', value: 'metadata.server_sync_test_value' },
@@ -21,7 +31,7 @@ export const rdmpActionPlan: ActionRegistry.ActionPlan = {
         },
       },
       {
-        actionId: ActionRegistry.BUILT_IN_ACTION_IDS.assignPermissions,
+        actionId: 'redbox.core.record.assign-permissions' as ActionRegistry.ActionDefinitionId,
         stableKey: 'contributor-permissions',
         parameters: {
           condition: { kind: 'jsonata', expression: 'true' },
@@ -45,7 +55,7 @@ export const rdmpActionPlan: ActionRegistry.ActionPlan = {
     ];
     if (mode === 'onUpdate') {
       actions.push({
-        actionId: ActionRegistry.BUILT_IN_ACTION_IDS.validateTotalAttachmentSize,
+        actionId: 'redbox.core.record.validate-total-attachment-size' as ActionRegistry.ActionDefinitionId,
         stableKey: 'total-attachment-size',
         parameters: {
           condition: {
@@ -63,13 +73,7 @@ export const rdmpActionPlan: ActionRegistry.ActionPlan = {
     }
     return actions.map(({ actionId, stableKey, parameters }, order) => ({
       schemaVersion: 1 as const,
-      id: ActionRegistry.deriveStableActionBindingId({
-        recordTypeKey: 'rdmp',
-        scope,
-        actionId,
-        contractVersion: 1,
-        stableKey,
-      }),
+      id: bindingIds[mode][order] as ActionRegistry.ActionBindingId,
       stableKey,
       actionId,
       contractVersion: 1,
