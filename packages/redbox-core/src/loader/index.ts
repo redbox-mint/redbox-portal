@@ -29,8 +29,6 @@ import type {
   RecordContractContributorRegistration,
   RecordContractRegistrationIssue,
 } from '../record-contract';
-import type { RedboxMigration } from './MigrationRunner';
-import { handlebarsCompile } from '@researchdatabox/sails-ng-common';
 import {
   isRuntimeArray,
   isRuntimeRecord,

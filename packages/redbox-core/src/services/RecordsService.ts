@@ -4370,7 +4370,7 @@ export namespace Services {
         wfStep = automaticTarget;
         this.transitionWorkflowStepMetadata(recordObj, wfStep);
         if (automaticMatch.definition.validationOperation !== undefined) {
-          tracker.context.validationOperation = automaticMatch.definition.validationOperation;
+          tracker.setValidationOperation(automaticMatch.definition.validationOperation);
         }
       }
       const transitionApplied = targetStepName !== undefined || automaticMatch !== null;
@@ -5634,7 +5634,7 @@ export namespace Services {
         nextStepObj = automaticTarget;
         this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
         if (automaticMatch.definition.validationOperation !== undefined) {
-          tracker.context.validationOperation = automaticMatch.definition.validationOperation;
+          tracker.setValidationOperation(automaticMatch.definition.validationOperation);
         }
       }
       const transitionApplied = transitionRequested || automaticMatch !== null;

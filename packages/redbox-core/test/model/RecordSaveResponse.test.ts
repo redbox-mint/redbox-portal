@@ -58,9 +58,19 @@ describe('RecordSaveResponse', function () {
 
     it('keeps pre-save and post-save advisories on a complete save', function () {
       const saveTracker = tracker();
-      saveTracker.recordWarning({ kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'suggestion' }] });
+      saveTracker.recordWarning({
+        kind: 'validation',
+        source: 'advisory',
+        phase: 'pre-save',
+        issues: [{ message: 'suggestion' }],
+      });
       saveTracker.confirmPrimaryPersistence('oid-1');
-      saveTracker.recordWarning({ kind: 'validation', source: 'advisory', phase: 'post-save', issues: [{ message: 'another suggestion' }] });
+      saveTracker.recordWarning({
+        kind: 'validation',
+        source: 'advisory',
+        phase: 'post-save',
+        issues: [{ message: 'another suggestion' }],
+      });
       const result = saveTracker.toResponse();
       expect(result.outcome).to.equal('saved');
       expect(result.isComplete()).to.be.true;
@@ -69,8 +79,18 @@ describe('RecordSaveResponse', function () {
 
     it('keeps schema warnings visible while allowing a complete save', function () {
       const saveTracker = tracker();
-      saveTracker.recordWarning({ kind: 'validation', source: 'schema', phase: 'schema', issues: [{ message: 'type mismatch' }] });
-      saveTracker.recordWarning({ kind: 'validation', source: 'advisory', phase: 'pre-save', issues: [{ message: 'suggestion' }] });
+      saveTracker.recordWarning({
+        kind: 'validation',
+        source: 'schema',
+        phase: 'schema',
+        issues: [{ message: 'type mismatch' }],
+      });
+      saveTracker.recordWarning({
+        kind: 'validation',
+        source: 'advisory',
+        phase: 'pre-save',
+        issues: [{ message: 'suggestion' }],
+      });
       saveTracker.confirmPrimaryPersistence('oid-1');
       const result = saveTracker.toResponse();
       expect(result.outcome).to.equal('saved-with-warnings');
@@ -497,6 +517,30 @@ describe('RecordSaveResponse', function () {
       });
     });
 
+    it('selects automatic validation intent without mutating the trusted save context', function () {
+      const ifMatch = `"sha256:${'a'.repeat(64)}"`;
+      const context = createRecordSaveContext({
+        requestId,
+        portal: 'tenant-portal',
+        validationOperation: 'draft',
+        evaluateAutomaticTransitions: false,
+        recordSchemaIfMatch: ifMatch,
+      });
+      const save = new RecordSaveTracker(context);
+
+      save.setValidationOperation('publish');
+
+      expect(context.validationOperation).to.equal('draft');
+      expect(save.context.validationOperation).to.equal('publish');
+      expect(save.context.schemaOperation).to.equal('publish');
+      expect(save.context.requestId).to.equal(requestId);
+      expect(save.context.portal).to.equal('tenant-portal');
+      expect(save.context.ifMatch).to.equal(ifMatch);
+      expect(save.context.evaluateAutomaticTransitions).to.equal(false);
+      expect(isRecordSaveContext(save.context)).to.equal(true);
+      expect(Object.isFrozen(save.context)).to.equal(true);
+    });
+
     it('derives the normalized schema operation and accepts If-Match only through the trusted option', function () {
       const ifMatch = `"sha256:${'a'.repeat(64)}"`;
       const context = createRecordSaveContext({
@@ -811,21 +855,20 @@ describe('RecordSaveResponse', function () {
       expect(recordSaveFailureStatus(validation)).to.equal(400);
 
       const stalePrecondition = new RecordSaveResponse(requestId);
-      stalePrecondition.addProblem(recordSaveProblem(
-        'validation',
-        'pre-save',
-        '@record-schema.precondition-failed',
-        'record-schema.precondition-failed'
-      ));
+      stalePrecondition.addProblem(
+        recordSaveProblem(
+          'validation',
+          'pre-save',
+          '@record-schema.precondition-failed',
+          'record-schema.precondition-failed'
+        )
+      );
       expect(recordSaveFailureStatus(stalePrecondition)).to.equal(412);
 
       const malformedPrecondition = new RecordSaveResponse(requestId);
-      malformedPrecondition.addProblem(recordSaveProblem(
-        'validation',
-        'pre-save',
-        '@record-schema.invalid-request',
-        'record-schema.invalid-request'
-      ));
+      malformedPrecondition.addProblem(
+        recordSaveProblem('validation', 'pre-save', '@record-schema.invalid-request', 'record-schema.invalid-request')
+      );
       expect(recordSaveFailureStatus(malformedPrecondition)).to.equal(400);
 
       const authorization = new RecordSaveResponse(requestId);

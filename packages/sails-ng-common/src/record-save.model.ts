@@ -383,6 +383,7 @@ export interface RecordSaveLifecycleProblem {
   source?: never;
   phase: RecordSaveLifecyclePhase;
   issues: RecordSaveIssue[];
+  executionSummary?: RecordActionExecutionSummary;
 }
 
 /** A nonblocking form suggestion, distinct from incomplete save work. */
@@ -391,6 +392,7 @@ export interface RecordSaveAdvisoryProblem {
   source: 'advisory';
   phase: 'pre-save' | 'post-save';
   issues: RecordSaveIssue[];
+  executionSummary?: RecordActionExecutionSummary;
 }
 
 /** Provenance and phase form one discriminated contract. */
@@ -435,8 +437,10 @@ export function isRecordSaveComplete(result: Pick<RecordSaveResult, 'outcome' | 
   }
   if (result.outcome === 'saved') return true;
   if (result.outcome !== 'saved-with-warnings') return false;
-  return result.problems.length > 0 &&
-    result.problems.every(problem => problem.source === 'schema' || problem.source === 'advisory');
+  return (
+    result.problems.length > 0 &&
+    result.problems.every(problem => problem.source === 'schema' || problem.source === 'advisory')
+  );
 }
 
 export type StorageMutationApplicationState = 'applied' | 'not-applied' | 'unknown';

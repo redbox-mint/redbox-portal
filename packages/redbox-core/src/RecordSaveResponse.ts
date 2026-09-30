@@ -424,9 +424,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
       this.totalItems = source.totalItems;
       this.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
     }
-    this.outcome = this.problems.some(problem => problem.source !== 'advisory')
-      ? 'saved-with-warnings'
-      : 'saved';
+    this.outcome = this.problems.some(problem => problem.source !== 'advisory') ? 'saved-with-warnings' : 'saved';
     this.success = true;
   }
 
@@ -505,12 +503,26 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
  */
 export class RecordSaveTracker {
   private readonly response: RecordSaveResponse;
+  private currentContext: RecordSaveContext;
 
-  constructor(public readonly context: RecordSaveContext) {
+  constructor(context: RecordSaveContext) {
     if (!isRecordSaveContext(context)) {
       throw new TypeError('Record save contexts must be created by createRecordSaveContext().');
     }
+    this.currentContext = context;
     this.response = new RecordSaveResponse(context.requestId);
+  }
+
+  get context(): RecordSaveContext {
+    return this.currentContext;
+  }
+
+  setValidationOperation(validationOperation: string): void {
+    this.currentContext = createRecordSaveContext({
+      ...this.currentContext,
+      validationOperation,
+      recordSchemaIfMatch: this.currentContext.ifMatch,
+    });
   }
 
   public get result(): RecordSaveResponse {
