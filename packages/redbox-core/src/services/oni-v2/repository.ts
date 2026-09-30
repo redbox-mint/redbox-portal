@@ -189,10 +189,11 @@ class FlydriveOniRepository implements OniOcflRepository {
           }).pipe(Effect.provide(this.datastreamLayer))
         );
         if (datastream.readstream != null) {
+          // StandardDatastreamService uses zero when the attachment length is unknown.
           await transaction.write(
             attachment.logicalPath,
             Readable.toWeb(datastream.readstream as Readable),
-            typeof datastream.size === 'number' ? { contentLength: datastream.size } : undefined
+            typeof datastream.size === 'number' && datastream.size > 0 ? { contentLength: datastream.size } : undefined
           );
         } else {
           const body = datastream.body ?? '';
