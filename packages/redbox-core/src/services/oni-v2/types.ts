@@ -3,7 +3,7 @@ import type {
   OniPublishingSiteConfig,
   OniSiteStorageConfig,
 } from '../../configmodels/OniPublishing';
-import type { Readable } from 'node:stream';
+import type { ReadableStream } from 'node:stream/web';
 
 export type AnyRecord = Record<string, unknown>;
 
@@ -123,7 +123,7 @@ export interface OcflObjectAdapter {
 export interface OcflTransactionAdapter {
   write(
     logicalPath: string,
-    data: string | Uint8Array | Readable,
+    data: string | Uint8Array | ReadableStream,
     options?: Record<string, unknown> | string
   ): Promise<void>;
 }

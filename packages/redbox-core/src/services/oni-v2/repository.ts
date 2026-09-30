@@ -1,7 +1,7 @@
 import type { OniPublishingSiteConfig } from '../../configmodels/OniPublishing';
 import type { DatastreamService } from '../../DatastreamService';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import { Context, Effect, Layer } from 'effect';
 import {
   OcflModuleAdapter,
@@ -189,7 +189,12 @@ class FlydriveOniRepository implements OniOcflRepository {
           }).pipe(Effect.provide(this.datastreamLayer))
         );
         if (datastream.readstream != null) {
-          await transaction.write(attachment.logicalPath, datastream.readstream as Readable);
+          // StandardDatastreamService uses zero when the attachment length is unknown.
+          await transaction.write(
+            attachment.logicalPath,
+            Readable.toWeb(datastream.readstream as Readable),
+            typeof datastream.size === 'number' && datastream.size > 0 ? { contentLength: datastream.size } : undefined
+          );
         } else {
           const body = datastream.body ?? '';
           await transaction.write(
