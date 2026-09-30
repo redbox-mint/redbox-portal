@@ -51,9 +51,14 @@ describe('Route and record access checks', function () {
       )
     );
     targetId = String(target.id);
-    await firstValueFrom(UsersService.setUserKey(targetId, 'initial-regression-token', {
+    await firstValueFrom(UsersService.updateUserRoles(target.id, RolesService.getRoleIds(brand.roles, ['Researcher']), {
       ...options,
       expectedVersion: target.loginDisabledVersion,
+    }));
+    const targetWithRole = await User.findOne({ id: targetId });
+    await firstValueFrom(UsersService.setUserKey(targetId, 'initial-regression-token', {
+      ...options,
+      expectedVersion: targetWithRole.loginDisabledVersion,
     }));
 
     for (const [agent, loginUsername, password] of [
