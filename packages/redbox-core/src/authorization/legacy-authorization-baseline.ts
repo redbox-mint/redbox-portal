@@ -47,7 +47,7 @@ export interface LegacyRouteBaselineEntry {
   readonly controller?: string;
   readonly action?: string;
   /** Sails policy owner (e.g. `disallowedHeadRequestHandler`) for policy-only or policy-guarded routes. */
-  readonly policy?: string;
+  readonly policy?: string | readonly string[];
   readonly authorizationKind: RouteAuthorization['kind'];
   readonly scopeOrReason: string;
   readonly authExpectation: LegacyAuthExpectation;
@@ -180,7 +180,7 @@ export function buildLegacyRouteBaselineEntry(input: {
   readonly pattern: string;
   readonly controller?: string;
   readonly action?: string;
-  readonly policy?: string;
+  readonly policy?: string | readonly string[];
   readonly authorization: RouteAuthorization;
   readonly routeId: string;
 }): LegacyRouteBaselineEntry {
@@ -218,7 +218,7 @@ export function buildLegacyRouteBaseline(
       {
         controller?: string;
         action?: string;
-        policy?: string;
+        policy?: string | readonly string[];
         authorization: RouteAuthorization;
         routeId: string;
       }

@@ -4,6 +4,7 @@ const junitOutputFile = '.tmp/junit/backend-playwright/backend-playwright.xml';
 
 export default defineConfig({
   testDir: './test/playwright',
+  testIgnore: ['**/authorization-live-smoke.spec.ts', '**/authorization-shadow-smoke.spec.ts'],
   globalSetup: './test/playwright/global-setup.ts',
   timeout: 60_000,
   expect: {

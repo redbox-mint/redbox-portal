@@ -145,7 +145,7 @@ describe('ManageUsersComponent', () => {
     );
     const testModule = TestBed.configureTestingModule({
       declarations: [ManageUsersComponent],
-      imports: [FormsModule, ReactiveFormsModule, I18NextPipe, ModalModule.forRoot()],
+      imports: [FormsModule, ReactiveFormsModule, I18NextPipe, ModalModule],
       providers: [
         FormBuilder,
         {
@@ -313,7 +313,7 @@ describe('ManageUsersComponent', () => {
     await app.genKey('ABC123');
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(generate).toHaveBeenCalledOnceWith('ABC123');
+    expect(generate).toHaveBeenCalledOnceWith('ABC123', 1);
     expect(app.showToken).toBeTrue();
     expect(app.currentUser?.token).toBe('generated-token');
     expect(app.updateDetailsMsg).toBe('Token generated.');
@@ -322,7 +322,7 @@ describe('ManageUsersComponent', () => {
     await app.revokeKey('ABC123');
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(revoke).toHaveBeenCalledOnceWith('ABC123');
+    expect(revoke).toHaveBeenCalledOnceWith('ABC123', 1);
     expect(app.currentUser?.token).toBe('');
     expect(app.updateDetailsMsg).toBe('Token revoked.');
     expect(document.body.querySelector('.mu-token-display')).toBeNull();

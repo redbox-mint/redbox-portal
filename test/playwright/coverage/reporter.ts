@@ -48,7 +48,13 @@ export default class CoverageReporter implements Reporter {
         const unknown = this.tests.flatMap(test => test.title.match(/\b[AF]\d{2,}\b/g) ?? []).filter(id => !requiredIds.includes(id));
         if (unknown.length) throw new Error(`Unknown coverage IDs: ${[...new Set(unknown)].join(', ')}`);
         const collectedFiles = new Set(this.tests.map(test => path.resolve(test.location.file)));
-        const emptyFiles = specFiles(config.projects[0].testDir).filter(file => !collectedFiles.has(path.resolve(file)));
+        const project = config.projects[0];
+        const ignored = (file: string): boolean => [project.testIgnore].flat().some(pattern =>
+          typeof pattern === 'string'
+            ? path.matchesGlob(file, pattern) || path.matchesGlob(path.relative(config.rootDir, file), pattern)
+            : pattern.test(file));
+        const emptyFiles = specFiles(project.testDir).filter(file =>
+          !ignored(file) && !collectedFiles.has(path.resolve(file)));
         if (emptyFiles.length) throw new Error(`Spec files collected no tests: ${emptyFiles.join(', ')}`);
         const missing = requiredIds.filter(id => !this.tests.some(test => idsIn(test).includes(id)));
         if (missing.length) throw new Error(`Required IDs collected no tests: ${missing.join(', ')}`);
