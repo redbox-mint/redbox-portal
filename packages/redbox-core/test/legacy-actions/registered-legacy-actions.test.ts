@@ -34,6 +34,9 @@ const { recordtype: shippedRecordTypes } = require('../../../redbox-hook-dev/src
 const { rdmpActionPlan } = require('../../../redbox-hook-dev/src/config/rdmp-actions') as {
   rdmpActionPlan: import('../../src/action-registry').ActionPlan;
 };
+const { lifecycleRecordType } = require('../../../redbox-hook-dev/src/playwright/scenarios/lifecycle') as {
+  lifecycleRecordType: (id: string) => Partial<import('../../src/config/recordtype.config').RecordTypeDefinition>;
+};
 
 function scope(mode: string, phase: string): ActionBindingScope {
   if (mode === 'onTransitionWorkflow') {
@@ -118,6 +121,55 @@ function shippedDefinitions(): ShippedDefinition[] {
 
 describe('registered legacy record action migration', function () {
   this.timeout(15_000);
+
+  it('validates browser lifecycle write-back plans and derives the server value from the candidate title', async () => {
+    const registry = buildActionRegistry([
+      actionRegistrationSource('@researchdatabox/redbox-core', 'actions/index', registerRedboxActions),
+    ]);
+    for (const id of ['lifecycle-server-writeback', 'lifecycle-edit-during-save']) {
+      const recordType = lifecycleRecordType(id);
+      assert.equal(recordType.hooks, undefined);
+      const plan = recordType.actionPlan;
+      assert.ok(plan);
+      const validation = validateActionPlan(registry, plan);
+      assert.equal(validation.ok, true, validation.ok ? undefined : JSON.stringify(validation.issues));
+      assert.deepEqual(plan.bindings.map(binding => binding.scope.mode), ['onCreate', 'onUpdate']);
+      for (const binding of plan.bindings) {
+        assert.equal(
+          binding.id,
+          deriveStableActionBindingId({
+            recordTypeKey: plan.recordTypeKey,
+            actionId: binding.actionId,
+            contractVersion: binding.contractVersion,
+            stableKey: binding.stableKey,
+            scope: binding.scope,
+          })
+        );
+        assert.equal(binding.actionId, BUILT_IN_ACTION_IDS.applyTemplates);
+        assert.deepEqual(binding.parameters.field, { kind: 'literal', value: 'metadata.serverValue' });
+        const value = binding.parameters.value;
+        if (value?.kind !== 'jsonata') assert.fail('Expected managed server write-back.');
+        const context = projectActionParameterContext(
+          parseActionContext({
+            schemaVersion: 1,
+            executionId: 'browser-write-back',
+            correlationId: 'browser-write-back',
+            timestamp: '2026-09-30T00:00:00Z',
+            brandId: 'default',
+            recordTypeKey: plan.recordTypeKey,
+            scope: binding.scope,
+            actor: null,
+            record: { candidate: { metadata: { title: 'Changed title' } } },
+            priorOutputs: [],
+          })
+        );
+        const result = await evaluateManagedJsonata(compileManagedJsonataExpression(value.expression), context, {
+          timeoutMs: 1_000,
+        });
+        assert.equal(result, 'Server: Changed title');
+      }
+    }
+  });
 
   it('validates the migrated development RDMP plan and preserves six-digit server write-back values', async () => {
     const registry = buildActionRegistry([
