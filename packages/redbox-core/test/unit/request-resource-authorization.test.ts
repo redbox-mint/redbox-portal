@@ -3,10 +3,10 @@ import { describe, it } from 'mocha';
 import {
   asScopeKey,
   freezeAuthorizationContext,
-  requireRequestBrandId,
   requireRequestResourceAuthorization,
 } from '../../src';
 import { resetResolvedApiRouteCache } from '../../src/api-routes';
+import { Services as BrandingServices } from '../../src/services/BrandingService';
 
 function context(authorized = true) {
   return freezeAuthorizationContext({
@@ -54,7 +54,7 @@ describe('request resource authorization extraction', () => {
     assert.equal(first.context.brand?.id, 'brand-a-id');
     assert.equal(first.requiredScope, 'record.read');
     assert.equal(first.routeId, 'record-get');
-    assert.equal(requireRequestBrandId(req), 'brand-a-id');
+    assert.ok(Object.isFrozen(first));
   });
 
   it('fails closed when a resource action is not backed by a scoped route or authorized brand', () => {
@@ -67,7 +67,8 @@ describe('request resource authorization extraction', () => {
 
     const unauthorizedBrandReq = request();
     unauthorizedBrandReq.authorization = context(false);
-    assert.throws(() => requireRequestBrandId(unauthorizedBrandReq), /authorized brand context/);
+    const brandingService = new BrandingServices.Branding();
+    assert.throws(() => brandingService.getBrandFromReq(unauthorizedBrandReq), /authorization-brand-unavailable/);
   });
 
   it('treats explicit runtime target authorization as authoritative over the central contract map', () => {

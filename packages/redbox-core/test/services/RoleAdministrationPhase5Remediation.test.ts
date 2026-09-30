@@ -872,7 +872,11 @@ describe('Phase 5 remediation: route contracts, migration registry, controller a
       'manage-users.component.ts'
     );
     const component = fs.readFileSync(componentPath, 'utf8');
-    assert.ok(component.includes("hasScope('user.read')"), 'audit display must gate on user.read');
+    assert.match(
+      component,
+      /canViewAudit\(\): boolean\s*\{\s*return this\.hasUserScope\('user\.read'\);/u,
+      'audit display must gate on user.read'
+    );
     assert.ok(component.includes('pollLinkOperation'), 'UI must implement bounded link-operation polling');
     assert.ok(component.includes('retryPendingLinkOperation'), 'UI must implement bounded link retry');
     assert.ok(!component.includes('as unknown as SaveResponse'), 'double-casts must be removed');
