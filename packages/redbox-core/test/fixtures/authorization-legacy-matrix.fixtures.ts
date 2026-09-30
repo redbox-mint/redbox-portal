@@ -13,7 +13,7 @@
  *
  * - RouteId-keyed reconciliation: every frozen route-baseline entry with
  *   `authorizationKind === 'scope'` and a legacy PathRule grant
- *   (`noRuleGrant === false`, 286 entries) is reconciled as
+ *   (`noRuleGrant === false`, 329 entries) is reconciled as
  *   routeId × granting role × applicable operation (GET→read,
  *   POST/PUT/PATCH/DELETE→write, methodless `*`→both) × brand
  *   (brand-1 `/default/...`, brand-2 `/second/...`). Every parity row carries
@@ -28,7 +28,7 @@
  *   exact route-pattern witnesses (layering is stated in reasons, not in
  *   mismatched paths). Missing keys fail the test.
  * - Explicitly excluded from routeId reconciliation (frozen in
- *   `LEGACY_MATRIX_ROUTE_EXCLUSIONS`, 31 entries): public routes with no rule
+ *   `LEGACY_MATRIX_ROUTE_EXCLUSIONS`, 32 entries): public routes with no rule
  *   grant, pre-auth infrastructure routes, and scope routes with no legacy
  *   rule grant (historically allowed, denied in enforce under security
  *   difference `enforce-no-rule-deny`). Stale exclusions and unexcluded
@@ -103,7 +103,7 @@ export interface LegacyMatrixRouteExclusion {
  */
 export const LEGACY_MATRIX_ROUTE_EXCLUSIONS: readonly LegacyMatrixRouteExclusion[] = Object.freeze([
   Object.freeze({
-    routeId: 'GET /csrfToken (security/grant-csrf-token)',
+    routeId: 'GET /csrfToken (policy-only)',
     reason: 'pre-auth infrastructure route; outside the session/bearer path-rule parity matrix',
   }),
   Object.freeze({
@@ -252,6 +252,12 @@ export const LEGACY_MATRIX_ROUTE_EXCLUSIONS: readonly LegacyMatrixRouteExclusion
     reason:
       'public route with no legacy PathRule grant; anonymous expectation, outside the session/bearer path-rule parity matrix',
   }),
+
+  // Routes introduced by the updated next base.
+  {
+    routeId: 'GET /fonts/branding/:branding/:sha256.woff2 (BrandingController#renderFont)',
+    reason: 'Public immutable font asset; no legacy PathRule resource grant.',
+  },
 ]);
 
 export const LEGACY_MATRIX_BRANDS: readonly LegacyMatrixBrandFixture[] = Object.freeze([
@@ -3917,90 +3923,90 @@ export const LEGACY_MATRIX_EXPECTATIONS: readonly LegacyMatrixExpectation[] = Ob
   },
   {
     principal: 'librarians-brand-1',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-1',
     path: '/default/rdmp/record/view-orig/test-oid',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Librarians read grant in brand-1',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Librarians read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'researcher-brand-1',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-1',
     path: '/default/rdmp/record/view-orig/test-oid',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Researcher read grant in brand-1',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Researcher read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'librarians-brand-1',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-1',
     path: '/default/rdmp/record/view-orig/test-oid',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Librarians write grant in brand-1',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Librarians write grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'researcher-brand-1',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-1',
     path: '/default/rdmp/record/view-orig/test-oid',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Researcher write grant in brand-1',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Researcher write grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'librarians-brand-2',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-2',
     path: '/second/rdmp/record/view-orig/test-oid',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Librarians read grant in brand-2',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Librarians read grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'researcher-brand-2',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-2',
     path: '/second/rdmp/record/view-orig/test-oid',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Researcher read grant in brand-2',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Researcher read grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'librarians-brand-2',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-2',
     path: '/second/rdmp/record/view-orig/test-oid',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Librarians write grant in brand-2',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Librarians write grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'researcher-brand-2',
-    routeId: '* /:branding/:portal/record/view-orig/:oid (RenderViewController#render)',
+    routeId: '* /:branding/:portal/record/view-orig/:oid (RecordController#view)',
     brandId: 'brand-2',
     path: '/second/rdmp/record/view-orig/test-oid',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RenderViewController#render): Researcher write grant in brand-2',
+      'RouteId-keyed parity witness for * /:branding/:portal/record/view-orig/:oid (RecordController#view): Researcher write grant in brand-2',
     gate: 'path-rule',
   },
   {
@@ -5405,142 +5411,144 @@ export const LEGACY_MATRIX_EXPECTATIONS: readonly LegacyMatrixExpectation[] = Ob
   },
   {
     principal: 'admin-brand-1',
-    routeId: 'GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#getDefaults)',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/defaults',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#getDefaults): Admin read grant in brand-1',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
-    routeId: 'GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#getDefaults)',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/defaults',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#getDefaults): Admin read grant in brand-2',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/defaults (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-1',
-    routeId: 'GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#getConfigInfo)',
+    routeId: 'GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/info',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#getConfigInfo): Admin read grant in brand-1',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
-    routeId: 'GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#getConfigInfo)',
+    routeId: 'GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/info',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#getConfigInfo): Admin read grant in brand-2',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/info (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-1',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#getMergedTypeFormatRules)',
+      'GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/merged-type/test-param',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#getMergedTypeFormatRules): Admin read grant in brand-1',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#getMergedTypeFormatRules)',
+      'GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/merged-type/test-param',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#getMergedTypeFormatRules): Admin read grant in brand-2',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-1',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#getMergedViewConfig)',
+      'GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/merged-view/test-param/test-param',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#getMergedViewConfig): Admin read grant in brand-1',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#getMergedViewConfig)',
+      'GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/merged-view/test-param/test-param',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#getMergedViewConfig): Admin read grant in brand-2',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-1',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#getMergedConfig)',
+      'GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/merged/test-param/test-param',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#getMergedConfig): Admin read grant in brand-1',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#getMergedConfig)',
+      'GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/merged/test-param/test-param',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#getMergedConfig): Admin read grant in brand-2',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-1',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#getOverrides)',
+      'GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/overrides',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#getOverrides): Admin read grant in brand-1',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
     routeId:
-      'GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#getOverrides)',
+      'GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/overrides',
     operation: 'read',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#getOverrides): Admin read grant in brand-2',
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation): Admin read grant in brand-2',
     gate: 'path-rule',
   },
   {
@@ -10020,73 +10028,73 @@ export const LEGACY_MATRIX_EXPECTATIONS: readonly LegacyMatrixExpectation[] = Ob
   {
     principal: 'admin-brand-1',
     routeId:
-      'PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#saveDashboardViewStepConfig)',
+      'PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/merged-view/test-param/test-param',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#saveDashboardViewStepConfig): Admin write grant in brand-1',
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation): Admin write grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
     routeId:
-      'PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#saveDashboardViewStepConfig)',
+      'PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/merged-view/test-param/test-param',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#saveDashboardViewStepConfig): Admin write grant in brand-2',
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName (webservice/DashboardConfigController#retiredOperation): Admin write grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-1',
     routeId:
-      'PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#saveWorkflowStateDashboardConfig)',
+      'PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/merged/test-param/test-param',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#saveWorkflowStateDashboardConfig): Admin write grant in brand-1',
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation): Admin write grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
     routeId:
-      'PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#saveWorkflowStateDashboardConfig)',
+      'PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/merged/test-param/test-param',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#saveWorkflowStateDashboardConfig): Admin write grant in brand-2',
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage (webservice/DashboardConfigController#retiredOperation): Admin write grant in brand-2',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-1',
     routeId:
-      'PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#saveOverrides)',
+      'PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/dashboard-config/overrides',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#saveOverrides): Admin write grant in brand-1',
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation): Admin write grant in brand-1',
     gate: 'path-rule',
   },
   {
     principal: 'admin-brand-2',
     routeId:
-      'PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#saveOverrides)',
+      'PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation)',
     brandId: 'brand-2',
     path: '/second/rdmp/api/dashboard-config/overrides',
     operation: 'write',
     expected: 'allow',
     reason:
-      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#saveOverrides): Admin write grant in brand-2',
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/overrides (webservice/DashboardConfigController#retiredOperation): Admin write grant in brand-2',
     gate: 'path-rule',
   },
   {
@@ -10922,6 +10930,930 @@ export const LEGACY_MATRIX_EXPECTATIONS: readonly LegacyMatrixExpectation[] = Ob
     operation: 'read',
     expected: 'allow',
     reason: 'Admin update grant implies legacy read in brand-2; per-brand read characterization for frozen template',
+    gate: 'path-rule',
+  },
+
+  // Routes introduced by the updated next base.
+  {
+    principal: 'admin-brand-1',
+    routeId: 'GET /:branding/:portal/admin/dashboard-config/targets (DashboardConfigController#listTargets)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/targets',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/targets (DashboardConfigController#listTargets): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'GET /:branding/:portal/admin/dashboard-config/targets (DashboardConfigController#listTargets)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/targets',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/targets (DashboardConfigController#listTargets): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#getWorkflowTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/workflows/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#getWorkflowTarget): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#getWorkflowTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/workflows/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#getWorkflowTarget): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'PUT /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#saveWorkflowTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/workflows/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#saveWorkflowTarget): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'PUT /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#saveWorkflowTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/workflows/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage (DashboardConfigController#saveWorkflowTarget): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#getViewTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/views/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#getViewTarget): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#getViewTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/views/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#getViewTarget): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'PUT /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#saveViewTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/views/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#saveViewTarget): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'PUT /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#saveViewTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/views/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/admin/dashboard-config/views/:view/:step (DashboardConfigController#saveViewTarget): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/admin/dashboard-config/validate (DashboardConfigController#validateSettings)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/validate',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/admin/dashboard-config/validate (DashboardConfigController#validateSettings): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/admin/dashboard-config/validate (DashboardConfigController#validateSettings)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/validate',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/admin/dashboard-config/validate (DashboardConfigController#validateSettings): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/admin/dashboard-config/copy/preview (DashboardConfigController#previewCopy)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/copy/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/admin/dashboard-config/copy/preview (DashboardConfigController#previewCopy): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/admin/dashboard-config/copy/preview (DashboardConfigController#previewCopy)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/copy/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/admin/dashboard-config/copy/preview (DashboardConfigController#previewCopy): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/admin/dashboard-config/copy/apply (DashboardConfigController#applyCopy)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/copy/apply',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/admin/dashboard-config/copy/apply (DashboardConfigController#applyCopy): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/admin/dashboard-config/copy/apply (DashboardConfigController#applyCopy)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/copy/apply',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/admin/dashboard-config/copy/apply (DashboardConfigController#applyCopy): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields (DashboardConfigController#getWorkflowFields)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/workflows/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields (DashboardConfigController#getWorkflowFields): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields (DashboardConfigController#getWorkflowFields)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/workflows/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields (DashboardConfigController#getWorkflowFields): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/views/:view/:step/fields (DashboardConfigController#getViewFields)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/admin/dashboard-config/views/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/views/:view/:step/fields (DashboardConfigController#getViewFields): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/admin/dashboard-config/views/:view/:step/fields (DashboardConfigController#getViewFields)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/admin/dashboard-config/views/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/admin/dashboard-config/views/:view/:step/fields (DashboardConfigController#getViewFields): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'PUT /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#uploadFace)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#uploadFace): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'PUT /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#uploadFace)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#uploadFace): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'DELETE /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#deleteFace)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for DELETE /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#deleteFace): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'DELETE /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#deleteFace)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for DELETE /:branding/:portal/app/branding/draft/typeface/faces/:slot (BrandingAppController#deleteFace): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/app/branding/draft/typeface/use-default (BrandingAppController#useDefault)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/draft/typeface/use-default',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/draft/typeface/use-default (BrandingAppController#useDefault): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/app/branding/draft/typeface/use-default (BrandingAppController#useDefault)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/draft/typeface/use-default',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/draft/typeface/use-default (BrandingAppController#useDefault): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/app/branding/draft/typeface/revert (BrandingAppController#revert)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/draft/typeface/revert',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/draft/typeface/revert (BrandingAppController#revert): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/app/branding/draft/typeface/revert (BrandingAppController#revert)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/draft/typeface/revert',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/draft/typeface/revert (BrandingAppController#revert): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'GET /:branding/:portal/app/branding/versions (BrandingAppController#versions)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/versions',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/app/branding/versions (BrandingAppController#versions): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'GET /:branding/:portal/app/branding/versions (BrandingAppController#versions)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/versions',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/app/branding/versions (BrandingAppController#versions): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/app/branding/versions/:versionId/preview (BrandingAppController#versionPreview)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/versions/test-param/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/versions/:versionId/preview (BrandingAppController#versionPreview): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/app/branding/versions/:versionId/preview (BrandingAppController#versionPreview)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/versions/test-param/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/versions/:versionId/preview (BrandingAppController#versionPreview): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/app/branding/restore/:versionId (BrandingAppController#restore)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/restore/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/restore/:versionId (BrandingAppController#restore): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/app/branding/restore/:versionId (BrandingAppController#restore)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/restore/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/restore/:versionId (BrandingAppController#restore): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/app/branding/rollback/:versionId (BrandingAppController#rollback)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/app/branding/rollback/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/rollback/:versionId (BrandingAppController#rollback): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/app/branding/rollback/:versionId (BrandingAppController#rollback)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/app/branding/rollback/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/app/branding/rollback/:versionId (BrandingAppController#rollback): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'researcher-brand-1',
+    routeId:
+      'GET /:branding/:portal/dashboard/settings/workflow/:recordType (RecordController#getDashboardWorkflowSettings)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/dashboard/settings/workflow/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/dashboard/settings/workflow/:recordType (RecordController#getDashboardWorkflowSettings): Researcher read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'researcher-brand-2',
+    routeId:
+      'GET /:branding/:portal/dashboard/settings/workflow/:recordType (RecordController#getDashboardWorkflowSettings)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/dashboard/settings/workflow/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/dashboard/settings/workflow/:recordType (RecordController#getDashboardWorkflowSettings): Researcher read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'researcher-brand-1',
+    routeId:
+      'GET /:branding/:portal/dashboard/settings/view/:dashboardView (RecordController#getDashboardViewSettings)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/dashboard/settings/view/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/dashboard/settings/view/:dashboardView (RecordController#getDashboardViewSettings): Researcher read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'researcher-brand-2',
+    routeId:
+      'GET /:branding/:portal/dashboard/settings/view/:dashboardView (RecordController#getDashboardViewSettings)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/dashboard/settings/view/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/dashboard/settings/view/:dashboardView (RecordController#getDashboardViewSettings): Researcher read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'DELETE /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#deleteFace)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for DELETE /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#deleteFace): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'DELETE /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#deleteFace)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for DELETE /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#deleteFace): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'PUT /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#uploadFace)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#uploadFace): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'PUT /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#uploadFace)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/draft/typeface/faces/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/branding/draft/typeface/faces/:slot (webservice/BrandingController#uploadFace): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/api/branding/draft/typeface/revert (webservice/BrandingController#revert)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/draft/typeface/revert',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/draft/typeface/revert (webservice/BrandingController#revert): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/api/branding/draft/typeface/revert (webservice/BrandingController#revert)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/draft/typeface/revert',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/draft/typeface/revert (webservice/BrandingController#revert): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'POST /:branding/:portal/api/branding/draft/typeface/use-default (webservice/BrandingController#useDefault)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/draft/typeface/use-default',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/draft/typeface/use-default (webservice/BrandingController#useDefault): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'POST /:branding/:portal/api/branding/draft/typeface/use-default (webservice/BrandingController#useDefault)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/draft/typeface/use-default',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/draft/typeface/use-default (webservice/BrandingController#useDefault): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/migration/preflight (webservice/DashboardConfigController#migrationPreflight)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/migration/preflight',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/migration/preflight (webservice/DashboardConfigController#migrationPreflight): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/migration/preflight (webservice/DashboardConfigController#migrationPreflight)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/migration/preflight',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/migration/preflight (webservice/DashboardConfigController#migrationPreflight): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/api/dashboard-config/copy/apply (webservice/DashboardConfigController#applyCopy)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/copy/apply',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/dashboard-config/copy/apply (webservice/DashboardConfigController#applyCopy): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/api/dashboard-config/copy/apply (webservice/DashboardConfigController#applyCopy)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/copy/apply',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/dashboard-config/copy/apply (webservice/DashboardConfigController#applyCopy): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'POST /:branding/:portal/api/dashboard-config/copy/preview (webservice/DashboardConfigController#previewCopy)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/copy/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/dashboard-config/copy/preview (webservice/DashboardConfigController#previewCopy): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'POST /:branding/:portal/api/dashboard-config/copy/preview (webservice/DashboardConfigController#previewCopy)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/copy/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/dashboard-config/copy/preview (webservice/DashboardConfigController#previewCopy): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'POST /:branding/:portal/api/branding/versions/:versionId/preview (webservice/BrandingController#versionPreview)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/versions/test-param/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/versions/:versionId/preview (webservice/BrandingController#versionPreview): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'POST /:branding/:portal/api/branding/versions/:versionId/preview (webservice/BrandingController#versionPreview)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/versions/test-param/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/versions/:versionId/preview (webservice/BrandingController#versionPreview): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/views/:view/:step/fields (webservice/DashboardConfigController#getViewFields)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/views/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/views/:view/:step/fields (webservice/DashboardConfigController#getViewFields): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/views/:view/:step/fields (webservice/DashboardConfigController#getViewFields)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/views/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/views/:view/:step/fields (webservice/DashboardConfigController#getViewFields): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields (webservice/DashboardConfigController#getWorkflowFields)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/workflows/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields (webservice/DashboardConfigController#getWorkflowFields): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields (webservice/DashboardConfigController#getWorkflowFields)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/workflows/test-param/test-param/fields',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields (webservice/DashboardConfigController#getWorkflowFields): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#getViewTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/views/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#getViewTarget): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#getViewTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/views/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#getViewTarget): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#getWorkflowTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/workflows/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#getWorkflowTarget): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#getWorkflowTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/workflows/test-param/test-param',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#getWorkflowTarget): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'PUT /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#saveViewTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/views/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#saveViewTarget): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'PUT /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#saveViewTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/views/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/views/:view/:step (webservice/DashboardConfigController#saveViewTarget): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'PUT /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#saveWorkflowTarget)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/workflows/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#saveWorkflowTarget): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'PUT /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#saveWorkflowTarget)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/workflows/test-param/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for PUT /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage (webservice/DashboardConfigController#saveWorkflowTarget): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/api/branding/restore/:versionId (webservice/BrandingController#restore)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/restore/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/restore/:versionId (webservice/BrandingController#restore): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/api/branding/restore/:versionId (webservice/BrandingController#restore)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/restore/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/branding/restore/:versionId (webservice/BrandingController#restore): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'GET /:branding/:portal/api/branding/config (webservice/BrandingController#config)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/config',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/branding/config (webservice/BrandingController#config): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'GET /:branding/:portal/api/branding/config (webservice/BrandingController#config)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/config',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/branding/config (webservice/BrandingController#config): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'GET /:branding/:portal/api/branding/versions (webservice/BrandingController#versions)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/branding/versions',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/branding/versions (webservice/BrandingController#versions): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'GET /:branding/:portal/api/branding/versions (webservice/BrandingController#versions)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/branding/versions',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/branding/versions (webservice/BrandingController#versions): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'GET /:branding/:portal/api/dashboard-config/targets (webservice/DashboardConfigController#listTargets)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/targets',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/targets (webservice/DashboardConfigController#listTargets): Admin read prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'GET /:branding/:portal/api/dashboard-config/targets (webservice/DashboardConfigController#listTargets)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/targets',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for GET /:branding/:portal/api/dashboard-config/targets (webservice/DashboardConfigController#listTargets): Admin read prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'POST /:branding/:portal/api/dashboard-config/validate (webservice/DashboardConfigController#validateSettings)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/dashboard-config/validate',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/dashboard-config/validate (webservice/DashboardConfigController#validateSettings): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'POST /:branding/:portal/api/dashboard-config/validate (webservice/DashboardConfigController#validateSettings)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/dashboard-config/validate',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for POST /:branding/:portal/api/dashboard-config/validate (webservice/DashboardConfigController#validateSettings): Admin write prerequisite in brand-2',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId: 'DELETE /:branding/:portal/api/appconfig/:appConfigId (webservice/AppConfigController#resetAppConfig)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/appconfig/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for DELETE /:branding/:portal/api/appconfig/:appConfigId (webservice/AppConfigController#resetAppConfig): Admin write prerequisite in brand-1',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'DELETE /:branding/:portal/api/appconfig/:appConfigId (webservice/AppConfigController#resetAppConfig)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/appconfig/test-param',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'RouteId-keyed parity witness for DELETE /:branding/:portal/api/appconfig/:appConfigId (webservice/AppConfigController#resetAppConfig): Admin write prerequisite in brand-2',
     gate: 'path-rule',
   },
 ]);

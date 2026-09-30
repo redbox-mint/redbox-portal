@@ -15,9 +15,10 @@ import {
 
 export interface RouteTargetObject {
   target?: string;
+  fn?: (req: Sails.Req, res: Sails.Res) => unknown;
   controller?: string;
   action?: string;
-  policy?: string;
+  policy?: string | string[];
   csrf?: boolean;
   skipAssets?: boolean;
   locals?: Record<string, unknown> & {
@@ -29,7 +30,7 @@ export interface RouteTargetObject {
   routeId: string;
 }
 
-export type RouteTarget = string | RouteTargetObject | ((req: Sails.Req, res: Sails.Res) => unknown);
+export type RouteTarget = RouteTargetObject;
 
 export interface RoutesConfig {
   [routePattern: string]: RouteTarget;
@@ -44,7 +45,7 @@ type RawRoutesConfig = Record<string, RawRouteTarget>;
 
 const rawRoutes: RawRoutesConfig = {
   // CSRF Token
-  'GET /csrfToken': (_req, res) => res.json({ _csrf: res.locals._csrf }),
+  'GET /csrfToken': { fn: (_req, res) => res.json({ _csrf: res.locals._csrf }) },
 
   // Home routes (demo hook overrides to /default/rdmp/home)
   '/:branding/:portal/home': {

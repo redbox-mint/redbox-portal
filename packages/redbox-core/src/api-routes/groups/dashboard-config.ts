@@ -180,16 +180,20 @@ const retired = (method: 'get' | 'put' | 'post' | 'delete', path: string, summar
     responses: { 410: responseField(objectField({ errors: anyField('Retirement error') }, ['errors'], 'Operation retired', true), 'Operation retired') },
   });
 
+const retiredWorkflowParams = objectField({ recordType: stringField('Record type name'), workflowStage: stringField('Workflow stage name') }, ['recordType', 'workflowStage']);
+const retiredViewParams = objectField({ viewName: stringField('Dashboard view name'), stepName: stringField('Dashboard view step name') }, ['viewName', 'stepName']);
+const retiredTypeParams = objectField({ dashboardType: stringField('Dashboard type name') }, ['dashboardType']);
+
 export const retiredDashboardConfigRoutes = [
   retired('get', '/info', 'Get dashboard configuration info'),
   retired('get', '/defaults', 'Get dashboard configuration defaults'),
   retired('get', '/overrides', 'Get dashboard configuration overrides'),
   retired('put', '/overrides', 'Save dashboard configuration overrides'),
-  retired('get', '/merged/:recordType/:workflowStage', 'Get merged dashboard configuration'),
-  retired('put', '/merged/:recordType/:workflowStage', 'Save workflow state dashboard configuration'),
-  retired('get', '/merged-view/:viewName/:stepName', 'Get merged dashboard view configuration'),
-  retired('put', '/merged-view/:viewName/:stepName', 'Save dashboard view step configuration'),
-  retired('get', '/merged-type/:dashboardType', 'Get merged dashboard type format rules'),
+  retired('get', '/merged/:recordType/:workflowStage', 'Get merged dashboard configuration', { params: retiredWorkflowParams }),
+  retired('put', '/merged/:recordType/:workflowStage', 'Save workflow state dashboard configuration', { params: retiredWorkflowParams }),
+  retired('get', '/merged-view/:viewName/:stepName', 'Get merged dashboard view configuration', { params: retiredViewParams }),
+  retired('put', '/merged-view/:viewName/:stepName', 'Save dashboard view step configuration', { params: retiredViewParams }),
+  retired('get', '/merged-type/:dashboardType', 'Get merged dashboard type format rules', { params: retiredTypeParams }),
 ];
 
 export const dashboardConfigApiRoutes = [

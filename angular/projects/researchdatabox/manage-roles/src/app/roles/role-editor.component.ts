@@ -1,4 +1,8 @@
 import {
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  Optional,
+  Inject,
   AfterViewInit,
   Component,
   ElementRef,
@@ -37,6 +41,7 @@ const NEW_ROLE_KEY_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
   templateUrl: './role-editor.component.html',
   styleUrls: ['./role-editor.component.scss'],
   standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RoleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() public roleKey?: string;
@@ -79,7 +84,10 @@ export class RoleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private roleLoadId = 0;
   private previewRequest?: RolePreviewRequest;
 
-  constructor(private readonly authorizationAdminService: AuthorizationAdminService) {}
+  constructor(
+    private readonly authorizationAdminService: AuthorizationAdminService,
+    @Optional() @Inject(ChangeDetectorRef) private readonly changeDetectorRef: ChangeDetectorRef | null = null
+  ) {}
 
   public get editing(): boolean {
     return Boolean(this.roleKey);
@@ -95,7 +103,11 @@ export class RoleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public async ngOnInit(): Promise<void> {
-    if (this.roleKey) await this.loadRole(true);
+    try {
+      if (this.roleKey) await this.loadRole(true);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public ngAfterViewInit(): void {
@@ -116,251 +128,303 @@ export class RoleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public async loadRole(resetInput: boolean): Promise<void> {
-    if (!this.roleKey) return;
-    const loadId = ++this.roleLoadId;
-    this.loading = true;
-    this.error = undefined;
     try {
-      const current = await this.authorizationAdminService.getRole(this.roleKey);
-      if (loadId !== this.roleLoadId) return;
-      if (resetInput || !this.role) {
-        this.applyRole(current);
-        this.serverComparison = undefined;
-        this.liveMessage = 'Latest server version loaded.';
-      } else {
-        this.serverComparison = current;
-        this.liveMessage = 'Latest server version loaded for comparison; your input is unchanged.';
+      if (!this.roleKey) return;
+      const loadId = ++this.roleLoadId;
+      this.loading = true;
+      this.error = undefined;
+      try {
+        const current = await this.authorizationAdminService.getRole(this.roleKey);
+        if (loadId !== this.roleLoadId) return;
+        if (resetInput || !this.role) {
+          this.applyRole(current);
+          this.serverComparison = undefined;
+          this.liveMessage = 'Latest server version loaded.';
+        } else {
+          this.serverComparison = current;
+          this.liveMessage = 'Latest server version loaded for comparison; your input is unchanged.';
+        }
+      } catch (error) {
+        if (loadId === this.roleLoadId) this.setError(error);
+      } finally {
+        if (loadId === this.roleLoadId) this.loading = false;
       }
-    } catch (error) {
-      if (loadId === this.roleLoadId) this.setError(error);
     } finally {
-      if (loadId === this.roleLoadId) this.loading = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
   public async creationSourceChanged(): Promise<void> {
-    const loadId = ++this.creationSelectionLoadId;
-    this.loading = true;
-    this.error = undefined;
-    this.clonePreview = undefined;
-    this.selectedScopeKeys = [];
-    if (this.creationKind === 'template' && this.templateKey) {
-      const template = this.templates.find(candidate => candidate.key === this.templateKey);
-      this.templateRevision = template?.currentRevision;
-      if (template && this.templateRevision) {
+    try {
+      const loadId = ++this.creationSelectionLoadId;
+      this.loading = true;
+      this.error = undefined;
+      this.clonePreview = undefined;
+      this.selectedScopeKeys = [];
+      if (this.creationKind === 'template' && this.templateKey) {
+        const template = this.templates.find(candidate => candidate.key === this.templateKey);
+        this.templateRevision = template?.currentRevision;
+        if (template && this.templateRevision) {
+          try {
+            const revision = await this.authorizationAdminService.getTemplateRevision(
+              template.key,
+              this.templateRevision
+            );
+            if (loadId !== this.creationSelectionLoadId) return;
+            this.selectedScopeKeys = [...revision.scopeKeys];
+          } catch (error) {
+            if (loadId === this.creationSelectionLoadId) this.setError(error);
+          }
+        }
+      }
+      if (this.creationKind === 'clone' && this.cloneRoleKey) {
         try {
-          const revision = await this.authorizationAdminService.getTemplateRevision(
-            template.key,
-            this.templateRevision
-          );
+          this.clonePreview = await this.authorizationAdminService.getRole(this.cloneRoleKey);
           if (loadId !== this.creationSelectionLoadId) return;
-          this.selectedScopeKeys = [...revision.scopeKeys];
+          this.selectedScopeKeys = [...this.clonePreview.effectiveScopeKeys];
         } catch (error) {
           if (loadId === this.creationSelectionLoadId) this.setError(error);
         }
       }
+      if (loadId === this.creationSelectionLoadId) this.loading = false;
+    } finally {
+      this.changeDetectorRef?.markForCheck();
     }
-    if (this.creationKind === 'clone' && this.cloneRoleKey) {
-      try {
-        this.clonePreview = await this.authorizationAdminService.getRole(this.cloneRoleKey);
-        if (loadId !== this.creationSelectionLoadId) return;
-        this.selectedScopeKeys = [...this.clonePreview.effectiveScopeKeys];
-      } catch (error) {
-        if (loadId === this.creationSelectionLoadId) this.setError(error);
-      }
-    }
-    if (loadId === this.creationSelectionLoadId) this.loading = false;
   }
 
   public async createRole(): Promise<void> {
-    if (!this.canManage) return;
-    const key = this.key.trim();
-    const displayName = this.displayName.trim();
-    if (!NEW_ROLE_KEY_PATTERN.test(key) || !displayName) {
-      this.setClientError(
-        'Enter a display label and a key that starts with a lowercase letter and contains only lowercase letters, numbers, or hyphens.'
-      );
-      return;
-    }
-    if (this.creationKind !== 'clone' && !this.scopeCatalogAvailable) {
-      this.setClientError('The complete scope catalog must be loaded before creating this role.');
-      return;
-    }
-    if (this.creationKind === 'template' && !this.templatesAvailable) {
-      this.setClientError('The complete template catalog must be loaded before creating a template-based role.');
-      return;
-    }
-    if (this.creationKind === 'template' && (!this.templateKey || !this.templateRevision)) {
-      this.setClientError('Select a template revision before creating the role.');
-      return;
-    }
-    if (this.creationKind === 'clone' && !this.cloneRoleKey) {
-      this.setClientError('Select a same-brand role to clone.');
-      return;
-    }
-    this.pending = true;
-    this.liveMessage = 'Creating the role.';
-    this.error = undefined;
     try {
-      const commonRequest = {
-        key,
-        displayName,
-        ...(this.description.trim() ? { description: this.description.trim() } : {}),
-        ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
-      };
-      let request: CreateRoleRequest;
-      if (this.creationKind === 'template') {
-        request = {
-          ...commonRequest,
-          templateKey: this.templateKey,
-          templateRevision: this.templateRevision,
-          scopeKeys: [...this.selectedScopeKeys],
-        };
-      } else if (this.creationKind === 'clone') {
-        request = { ...commonRequest, cloneRoleKey: this.cloneRoleKey };
-      } else {
-        request = { ...commonRequest, scopeKeys: [...this.selectedScopeKeys] };
+      if (!this.canManage) return;
+      const key = this.key.trim();
+      const displayName = this.displayName.trim();
+      if (!NEW_ROLE_KEY_PATTERN.test(key) || !displayName) {
+        this.setClientError(
+          'Enter a display label and a key that starts with a lowercase letter and contains only lowercase letters, numbers, or hyphens.'
+        );
+        return;
       }
-      await this.authorizationAdminService.createRole(request);
-      this.authorizationChanged.emit(`Role ${key} created.`);
-    } catch (error) {
-      this.setError(error);
+      if (this.creationKind !== 'clone' && !this.scopeCatalogAvailable) {
+        this.setClientError('The complete scope catalog must be loaded before creating this role.');
+        return;
+      }
+      if (this.creationKind === 'template' && !this.templatesAvailable) {
+        this.setClientError('The complete template catalog must be loaded before creating a template-based role.');
+        return;
+      }
+      if (this.creationKind === 'template' && (!this.templateKey || !this.templateRevision)) {
+        this.setClientError('Select a template revision before creating the role.');
+        return;
+      }
+      if (this.creationKind === 'clone' && !this.cloneRoleKey) {
+        this.setClientError('Select a same-brand role to clone.');
+        return;
+      }
+      this.pending = true;
+      this.liveMessage = 'Creating the role.';
+      this.error = undefined;
+      try {
+        const commonRequest = {
+          key,
+          displayName,
+          ...(this.description.trim() ? { description: this.description.trim() } : {}),
+          ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
+        };
+        let request: CreateRoleRequest;
+        if (this.creationKind === 'template') {
+          request = {
+            ...commonRequest,
+            templateKey: this.templateKey,
+            templateRevision: this.templateRevision,
+            scopeKeys: [...this.selectedScopeKeys],
+          };
+        } else if (this.creationKind === 'clone') {
+          request = { ...commonRequest, cloneRoleKey: this.cloneRoleKey };
+        } else {
+          request = { ...commonRequest, scopeKeys: [...this.selectedScopeKeys] };
+        }
+        await this.authorizationAdminService.createRole(request);
+        this.authorizationChanged.emit(`Role ${key} created.`);
+      } catch (error) {
+        this.setError(error);
+      } finally {
+        this.pending = false;
+      }
     } finally {
-      this.pending = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
   public async saveMetadata(): Promise<void> {
-    if (!this.role || !this.canManage) return;
-    if (!this.displayName.trim()) {
-      this.setClientError('A display label is required.');
-      return;
-    }
-    this.pending = true;
-    this.liveMessage = 'Saving role metadata.';
-    this.error = undefined;
     try {
-      const result = await this.authorizationAdminService.updateRole(this.role.key, {
-        expectedVersion: this.role.version,
-        displayName: this.displayName.trim(),
-        description: this.description.trim() || null,
-        ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
-      });
-      this.applyRole(result.data);
-      this.authorizationChanged.emit(`Role ${this.role.key} updated.`);
-      this.liveMessage = 'Role metadata saved.';
-    } catch (error) {
-      this.setError(error);
+      if (!this.role || !this.canManage) return;
+      if (!this.displayName.trim()) {
+        this.setClientError('A display label is required.');
+        return;
+      }
+      this.pending = true;
+      this.liveMessage = 'Saving role metadata.';
+      this.error = undefined;
+      try {
+        const result = await this.authorizationAdminService.updateRole(this.role.key, {
+          expectedVersion: this.role.version,
+          displayName: this.displayName.trim(),
+          description: this.description.trim() || null,
+          ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
+        });
+        this.applyRole(result.data);
+        this.authorizationChanged.emit(`Role ${this.role.key} updated.`);
+        this.liveMessage = 'Role metadata saved.';
+      } catch (error) {
+        this.setError(error);
+      } finally {
+        this.pending = false;
+      }
     } finally {
-      this.pending = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
   public async previewOperation(operation: RolePreviewRequest['operation'], event?: Event): Promise<void> {
-    if (!this.role || !this.canManage) return;
-    const roleKey = this.role.key;
-    const expectedVersion = this.role.version;
-    const reasonPart = this.reason.trim() ? { reason: this.reason.trim() } : {};
-    if (operation === 'role-scopes') {
-      if (!this.scopeCatalogAvailable) return;
-      this.capturePreviewTrigger(event);
-      const request: RoleScopeRequest = { expectedVersion, scopeKeys: [...this.selectedScopeKeys], ...reasonPart };
-      await this.openPreview(this.authorizationAdminService.previewRoleScopes(roleKey, request), 'Apply scope change', {
-        operation,
-        request,
-      });
-    } else if (operation === 'template-upgrade') {
-      if (!this.targetRevision) return;
-      this.capturePreviewTrigger(event);
-      const request: RoleTemplateUpgradeRequest = {
-        expectedVersion,
-        targetRevision: this.targetRevision,
-        ...reasonPart,
-      };
-      await this.openPreview(
-        this.authorizationAdminService.previewRoleTemplateUpgrade(roleKey, request),
-        'Apply template upgrade',
-        { operation, request }
-      );
-    } else if (operation === 'role-inactivate') {
-      this.capturePreviewTrigger(event);
-      const request: RoleLifecycleRequest = { expectedVersion, ...reasonPart };
-      await this.openPreview(this.authorizationAdminService.previewRoleInactivation(roleKey, request), 'Inactivate role', {
-        operation,
-        request,
-      });
-    } else {
-      this.capturePreviewTrigger(event);
-      const request: RoleLifecycleRequest = { expectedVersion, ...reasonPart };
-      await this.openPreview(this.authorizationAdminService.previewRoleDeletion(roleKey, request), 'Delete eligible role', {
-        operation,
-        request,
-      });
+    try {
+      if (!this.role || !this.canManage) return;
+      const roleKey = this.role.key;
+      const expectedVersion = this.role.version;
+      const reasonPart = this.reason.trim() ? { reason: this.reason.trim() } : {};
+      if (operation === 'role-scopes') {
+        if (!this.scopeCatalogAvailable) return;
+        this.capturePreviewTrigger(event);
+        const request: RoleScopeRequest = { expectedVersion, scopeKeys: [...this.selectedScopeKeys], ...reasonPart };
+        await this.openPreview(
+          this.authorizationAdminService.previewRoleScopes(roleKey, request),
+          'Apply scope change',
+          {
+            operation,
+            request,
+          }
+        );
+      } else if (operation === 'template-upgrade') {
+        if (!this.targetRevision) return;
+        this.capturePreviewTrigger(event);
+        const request: RoleTemplateUpgradeRequest = {
+          expectedVersion,
+          targetRevision: this.targetRevision,
+          ...reasonPart,
+        };
+        await this.openPreview(
+          this.authorizationAdminService.previewRoleTemplateUpgrade(roleKey, request),
+          'Apply template upgrade',
+          { operation, request }
+        );
+      } else if (operation === 'role-inactivate') {
+        this.capturePreviewTrigger(event);
+        const request: RoleLifecycleRequest = { expectedVersion, ...reasonPart };
+        await this.openPreview(
+          this.authorizationAdminService.previewRoleInactivation(roleKey, request),
+          'Inactivate role',
+          {
+            operation,
+            request,
+          }
+        );
+      } else {
+        this.capturePreviewTrigger(event);
+        const request: RoleLifecycleRequest = { expectedVersion, ...reasonPart };
+        await this.openPreview(
+          this.authorizationAdminService.previewRoleDeletion(roleKey, request),
+          'Delete eligible role',
+          {
+            operation,
+            request,
+          }
+        );
+      }
+    } finally {
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
   public async previewScopes(event?: Event): Promise<void> {
-    return this.previewOperation('role-scopes', event);
+    try {
+      return this.previewOperation('role-scopes', event);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async previewTemplateUpgrade(event?: Event): Promise<void> {
-    return this.previewOperation('template-upgrade', event);
+    try {
+      return this.previewOperation('template-upgrade', event);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async previewInactivation(event?: Event): Promise<void> {
-    return this.previewOperation('role-inactivate', event);
+    try {
+      return this.previewOperation('role-inactivate', event);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async previewDeletion(event?: Event): Promise<void> {
-    return this.previewOperation('role-delete', event);
+    try {
+      return this.previewOperation('role-delete', event);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async applyPreview(): Promise<void> {
-    if (!this.role || !this.canManage || !this.preview?.confirmationToken || !this.previewRequest) return;
-    this.pending = true;
-    this.liveMessage = 'Applying the confirmed server preview.';
-    this.error = undefined;
     try {
-      const roleKey = this.role.key;
-      const confirmationToken = this.preview.confirmationToken;
-      const request = this.previewRequest.request;
-      const applyActions: Record<RolePreviewRequest['operation'], () => Promise<unknown>> = {
-        'role-scopes': () =>
-          this.authorizationAdminService.applyRoleScopes(roleKey, {
-            ...(request as RoleScopeRequest),
-            confirmationToken,
-          }),
-        'template-upgrade': () =>
-          this.authorizationAdminService.applyRoleTemplateUpgrade(roleKey, {
-            ...(request as RoleTemplateUpgradeRequest),
-            confirmationToken,
-          }),
-        'role-inactivate': () =>
-          this.authorizationAdminService.inactivateRole(roleKey, {
-            ...(request as RoleLifecycleRequest),
-            confirmationToken,
-          }),
-        'role-delete': () =>
-          this.authorizationAdminService.deleteRole(roleKey, {
-            ...(request as RoleLifecycleRequest),
-            confirmationToken,
-          }),
-      };
-      await applyActions[this.previewRequest.operation]();
-      if (this.previewRequest.operation === 'role-delete') {
-        this.authorizationChanged.emit(`Role ${this.role.key} deleted.`);
+      if (!this.role || !this.canManage || !this.preview?.confirmationToken || !this.previewRequest) return;
+      this.pending = true;
+      this.liveMessage = 'Applying the confirmed server preview.';
+      this.error = undefined;
+      try {
+        const roleKey = this.role.key;
+        const confirmationToken = this.preview.confirmationToken;
+        const request = this.previewRequest.request;
+        const applyActions: Record<RolePreviewRequest['operation'], () => Promise<unknown>> = {
+          'role-scopes': () =>
+            this.authorizationAdminService.applyRoleScopes(roleKey, {
+              ...(request as RoleScopeRequest),
+              confirmationToken,
+            }),
+          'template-upgrade': () =>
+            this.authorizationAdminService.applyRoleTemplateUpgrade(roleKey, {
+              ...(request as RoleTemplateUpgradeRequest),
+              confirmationToken,
+            }),
+          'role-inactivate': () =>
+            this.authorizationAdminService.inactivateRole(roleKey, {
+              ...(request as RoleLifecycleRequest),
+              confirmationToken,
+            }),
+          'role-delete': () =>
+            this.authorizationAdminService.deleteRole(roleKey, {
+              ...(request as RoleLifecycleRequest),
+              confirmationToken,
+            }),
+        };
+        await applyActions[this.previewRequest.operation]();
+        if (this.previewRequest.operation === 'role-delete') {
+          this.authorizationChanged.emit(`Role ${this.role.key} deleted.`);
+          this.clearPreview();
+          return;
+        }
+        const operation = this.preview.operation;
         this.clearPreview();
-        return;
+        await this.loadRole(true);
+        this.authorizationChanged.emit(`Confirmed ${operation} change applied.`);
+      } catch (error) {
+        this.clearPreview();
+        this.setError(error);
+      } finally {
+        this.pending = false;
       }
-      const operation = this.preview.operation;
-      this.clearPreview();
-      await this.loadRole(true);
-      this.authorizationChanged.emit(`Confirmed ${operation} change applied.`);
-    } catch (error) {
-      this.clearPreview();
-      this.setError(error);
     } finally {
-      this.pending = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 

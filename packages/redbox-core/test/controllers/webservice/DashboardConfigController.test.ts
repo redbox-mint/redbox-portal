@@ -28,6 +28,7 @@ describe('Webservice DashboardConfigController', () => {
     (global as any).sails = { log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub(), info: sinon.stub(), warn: sinon.stub(), trace: sinon.stub() } };
     (global as any).BrandingService = {
       getBrand: sinon.stub().callsFake((name: string) => (name === 'default' ? { id: 'brand-1', name: 'default' } : undefined)),
+      getBrandFromReq: sinon.stub().callsFake((req: Sails.Req) => BrandingService.getBrand(req.param('branding'))),
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
     (global as any).DashboardConfigService = {

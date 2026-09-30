@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectorRef, ChangeDetectionStrategy, Optional, Inject, Component, Input, OnInit } from '@angular/core';
 import {
   AuthorizationRole,
   AuthorizationRoleSummary,
@@ -17,6 +17,7 @@ const ROLE_USAGE_LIMIT = 100;
   templateUrl: './scope-catalog.component.html',
   styleUrls: ['./scope-catalog.component.scss'],
   standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ScopeCatalogComponent implements OnInit {
   @Input() public scopeKeys: string[] = [];
@@ -38,44 +39,55 @@ export class ScopeCatalogComponent implements OnInit {
   public status: ScopeStatus | '' = '';
   private scopeLoadId = 0;
 
-  constructor(private readonly authorizationAdminService: AuthorizationAdminService) {}
+  constructor(
+    private readonly authorizationAdminService: AuthorizationAdminService,
+    @Optional() @Inject(ChangeDetectorRef) private readonly changeDetectorRef: ChangeDetectorRef | null = null
+  ) {}
 
   public async ngOnInit(): Promise<void> {
-    await Promise.all([this.loadScopes(false), this.loadRoleUsage()]);
+    try {
+      await Promise.all([this.loadScopes(false), this.loadRoleUsage()]);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async loadScopes(append: boolean): Promise<void> {
-    const loadId = ++this.scopeLoadId;
-    this.loading = true;
-    this.liveMessage = 'Loading scope definitions.';
-    this.error = undefined;
     try {
-      const page = await this.authorizationAdminService.listScopes({
-        limit: 50,
-        ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
-        ...(this.search.trim() ? { search: this.search.trim() } : {}),
-        ...(this.namespace.trim() ? { namespace: this.namespace.trim() } : {}),
-        ...(this.risk ? { risk: this.risk } : {}),
-        ...(this.sourceType ? { sourceType: this.sourceType } : {}),
-        ...(this.status ? { status: this.status } : {}),
-      });
-      if (loadId !== this.scopeLoadId) return;
-      if (append && this.generation && page.generation !== this.generation) {
-        throw new AuthorizationAdminError(
-          409,
-          'authorization.scope-generation-changed',
-          'The deployed scope catalog changed while loading more rows. Reset the filters to load one consistent generation.'
-        );
+      const loadId = ++this.scopeLoadId;
+      this.loading = true;
+      this.liveMessage = 'Loading scope definitions.';
+      this.error = undefined;
+      try {
+        const page = await this.authorizationAdminService.listScopes({
+          limit: 50,
+          ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
+          ...(this.search.trim() ? { search: this.search.trim() } : {}),
+          ...(this.namespace.trim() ? { namespace: this.namespace.trim() } : {}),
+          ...(this.risk ? { risk: this.risk } : {}),
+          ...(this.sourceType ? { sourceType: this.sourceType } : {}),
+          ...(this.status ? { status: this.status } : {}),
+        });
+        if (loadId !== this.scopeLoadId) return;
+        if (append && this.generation && page.generation !== this.generation) {
+          throw new AuthorizationAdminError(
+            409,
+            'authorization.scope-generation-changed',
+            'The deployed scope catalog changed while loading more rows. Reset the filters to load one consistent generation.'
+          );
+        }
+        this.scopes = append ? [...this.scopes, ...page.items] : page.items;
+        this.generation = page.generation;
+        this.nextCursor = page.nextCursor;
+        this.liveMessage = `${this.scopes.length} scope definitions loaded.`;
+      } catch (error) {
+        if (loadId !== this.scopeLoadId) return;
+        this.setError(error);
+      } finally {
+        if (loadId === this.scopeLoadId) this.loading = false;
       }
-      this.scopes = append ? [...this.scopes, ...page.items] : page.items;
-      this.generation = page.generation;
-      this.nextCursor = page.nextCursor;
-      this.liveMessage = `${this.scopes.length} scope definitions loaded.`;
-    } catch (error) {
-      if (loadId !== this.scopeLoadId) return;
-      this.setError(error);
     } finally {
-      if (loadId === this.scopeLoadId) this.loading = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 

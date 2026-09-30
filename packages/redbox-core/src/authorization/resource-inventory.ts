@@ -136,10 +136,6 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
     reason: 'Static reusable-form-definition registry read; no brand-owned resource.',
   }),
   Object.freeze({
-    operation: 'DashboardConfigService#getDefaultDashboardTableConfig',
-    reason: 'Static default dashboard table config; no brand-owned resource.',
-  }),
-  Object.freeze({
     operation: 'DashboardTypesService#getDashboardView',
     reason: 'Static sails.config.dashboardview read; no brand-owned resource.',
   }),
@@ -1397,27 +1393,11 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
   }),
   // RecordValidationService: Record validation and shadow-report diagnostics; no brand-owned resource.
   Object.freeze({
-    operation: 'RecordValidationService#clearCaches',
-    reason: 'Record validation and shadow-report diagnostics; no brand-owned resource.',
-  }),
-  Object.freeze({
     operation: 'RecordValidationService#convertToType',
     reason: 'Inherited Core.Service DTO utility, not a resource operation.',
   }),
   Object.freeze({
     operation: 'RecordValidationService#discoverOperations',
-    reason: 'Record validation and shadow-report diagnostics; no brand-owned resource.',
-  }),
-  Object.freeze({
-    operation: 'RecordValidationService#getCacheStats',
-    reason: 'Record validation and shadow-report diagnostics; no brand-owned resource.',
-  }),
-  Object.freeze({
-    operation: 'RecordValidationService#getShadowReport',
-    reason: 'Record validation and shadow-report diagnostics; no brand-owned resource.',
-  }),
-  Object.freeze({
-    operation: 'RecordValidationService#registerMetricsHooks',
     reason: 'Record validation and shadow-report diagnostics; no brand-owned resource.',
   }),
   Object.freeze({
@@ -2012,6 +1992,106 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
     operation: 'WorkspaceTypesService#getOne',
     reason: 'Workspace-type configuration reads; no brand-owned resource.',
   }),
+
+  // Typeface presentation, encoding helpers, and static dashboard probes.
+  Object.freeze({
+    operation: 'BrandingService#getActiveTypefaceFontInfo',
+    reason: 'Published typeface presentation from the brand cache; no independent mutation authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingService#hasActiveCustomTypeface',
+    reason: 'Published typeface presentation from the brand cache; no independent mutation authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingThemeCssService#buildTypefaceCss',
+    reason: 'Pure stylesheet generation from supplied typeface descriptors.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#assertTypefaceAvailable',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#collectReferencedKeys',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#convertToType',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#enforceFamilyLimit',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#faceExists',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#inspectAndStoreFace',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#isKeyReferenced',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#mismatchWarnings',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#parseStorageKey',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#publicUrl',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#readFace',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#reconcileAssets',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#slotDescriptor',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingTypefaceService#storageKey',
+    reason:
+      'Font encoding and binary asset storage helpers used within the brand-authorized lifecycle; no independent request authority.',
+  }),
+  Object.freeze({
+    operation: 'BrandingController#renderFont',
+    reason: 'Public immutable font asset delivery scoped by brand and content hash.',
+  }),
+  Object.freeze({
+    operation: 'DashboardConfigService#isReady',
+    reason: 'Static configuration readiness or reserved-key probe; no brand-owned resource read or write.',
+  }),
+  Object.freeze({
+    operation: 'DashboardConfigService#isReservedAppConfigKey',
+    reason: 'Static configuration readiness or reserved-key probe; no brand-owned resource read or write.',
+  }),
+  Object.freeze({
+    operation: 'DashboardTypesService#buildDashboardTemplateKeyPrefix',
+    reason: 'Pure template cache key construction from supplied dashboard identifiers.',
+  }),
 ]);
 
 export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRow[] = Object.freeze([
@@ -2452,13 +2532,6 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
   // Dashboard types and config.
   {
     family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getDashboardConfigInfo',
-    classification: 'brand-bearing',
-    notes: 'Dashboard config merges only the active brand.',
-  },
-  {
-    family: 'dashboard-types-config',
     service: 'DashboardTypesService',
     operation: 'get',
     classification: 'brand-bearing',
@@ -2855,13 +2928,6 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
     operation: 'triggerPostSaveTransitionWorkflowTriggers',
     classification: 'internal-job',
     notes: 'Post-save workflow-transition trigger fan-out running inside authorized transition flows.',
-  },
-  {
-    family: 'active-deleted-records',
-    service: 'RecordsService',
-    operation: 'auditRecordValidationRollout',
-    classification: 'internal-job',
-    notes: 'Record-validation rollout audit helper; no request entry point.',
   },
   {
     family: 'attachments-audit-related-integration-audit-schemas-forms',
@@ -3768,76 +3834,6 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
     notes: 'Workflow-step bootstrap for seeded record types; no request path.',
   },
   // Dashboards: remaining exported operations.
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getDashboardOverrides',
-    classification: 'brand-bearing',
-    notes: 'Brand-keyed dashboard override read backing merged config resolution.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'saveDashboardOverrides',
-    classification: 'brand-bearing',
-    notes: 'Brand-keyed dashboard override write with normalization.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getWorkflowStateDashboardConfig',
-    classification: 'brand-bearing',
-    notes: 'Brand-keyed workflow-state dashboard config read.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'saveWorkflowStateDashboardConfig',
-    classification: 'brand-bearing',
-    notes: 'Brand-keyed workflow-state dashboard config write.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getDashboardViewStepConfig',
-    classification: 'brand-bearing',
-    notes: 'Brand-keyed dashboard view-step config read.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'saveDashboardViewStepConfig',
-    classification: 'brand-bearing',
-    notes: 'Brand-keyed dashboard view-step config write.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getEffectiveDashboardType',
-    classification: 'brand-bearing',
-    notes: 'Effective dashboard-type resolution carrying the request brand and record or view context.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getMergedDashboardTableConfig',
-    classification: 'brand-bearing',
-    notes: 'Merged dashboard table config read carrying brand, record type, and workflow stage.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getMergedDashboardViewTableConfig',
-    classification: 'brand-bearing',
-    notes: 'Merged dashboard view-table config read carrying brand, view, and step.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'DashboardConfigService',
-    operation: 'getMergedDashboardTypeFormatRules',
-    classification: 'brand-bearing',
-    notes: 'Dashboard format-rule read for a brand-keyed dashboard type.',
-  },
   {
     family: 'dashboard-types-config',
     service: 'DashboardConfigService',
@@ -5098,104 +5094,6 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
     notes: 'Brand theme history read resolving the request brand.',
   },
   // Webservice dashboard entries.
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getConfigInfo',
-    classification: 'brand-bearing',
-    notes: 'Dashboard config info read delegating to DashboardConfigService.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getDefaults',
-    classification: 'brand-bearing',
-    notes: 'Merged dashboard default read resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getOverrides',
-    classification: 'brand-bearing',
-    notes: 'Dashboard override read resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'saveOverrides',
-    classification: 'brand-bearing',
-    notes: 'Dashboard override write resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getDashboardTypes',
-    classification: 'list-search-export',
-    notes: 'Dashboard-type list resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'createDashboardType',
-    classification: 'brand-bearing',
-    notes: 'Dashboard-type create resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getDashboardType',
-    classification: 'brand-bearing',
-    notes: 'Dashboard-type read resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'updateDashboardType',
-    classification: 'brand-bearing',
-    notes: 'Dashboard-type update resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'deleteDashboardType',
-    classification: 'brand-bearing',
-    notes: 'Dashboard-type delete resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'saveWorkflowStateDashboardConfig',
-    classification: 'brand-bearing',
-    notes: 'Workflow-state dashboard config write resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'saveDashboardViewStepConfig',
-    classification: 'brand-bearing',
-    notes: 'Dashboard view-step config write resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getMergedConfig',
-    classification: 'brand-bearing',
-    notes: 'Merged dashboard config read resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getMergedViewConfig',
-    classification: 'brand-bearing',
-    notes: 'Merged dashboard view-config read resolving the request brand.',
-  },
-  {
-    family: 'dashboard-types-config',
-    service: 'webservice/DashboardConfigController',
-    operation: 'getMergedTypeFormatRules',
-    classification: 'brand-bearing',
-    notes: 'Dashboard format-rule read resolving the request brand.',
-  },
   // Webservice export entry.
   {
     family: 'record-acl-search-storage-exports',
@@ -5903,5 +5801,518 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
     classification: 'brand-bearing',
     notes:
       'Hook model registration contract: a hook dependency declaring sails.hasModels must export registerRedboxModels(); the loader records hookModels[modelName] = { module } ownership and generateModelShims embeds require(module).registerRedboxModels()[name] with globalId. Future hook models must declare global/brand ownership and a brand-aware contract.',
+  },
+
+  // Operations introduced on next: independent dashboards and versioned branding.
+  {
+    family: 'app-navigation-config',
+    service: 'AppConfigService',
+    operation: 'hasConfigOverride',
+    classification: 'brand-bearing',
+    notes: 'Brand-constrained app configuration override inspection and reset.',
+  },
+  {
+    family: 'app-navigation-config',
+    service: 'AppConfigService',
+    operation: 'resetConfigOverride',
+    classification: 'brand-bearing',
+    notes: 'Brand-constrained app configuration override inspection and reset.',
+  },
+  {
+    family: 'app-navigation-config',
+    service: 'webservice/AppConfigController',
+    operation: 'resetAppConfig',
+    classification: 'brand-bearing',
+    notes: 'App configuration reset under the request brand and app-config.manage route scope.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'getAdminState',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'listVersions',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'previewVersion',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'uploadTypefaceFace',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'removeTypefaceFace',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'useDefaultTypography',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'revertTypefaceDraft',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingService',
+    operation: 'restore',
+    classification: 'brand-bearing',
+    notes: 'Versioned theme and typeface lifecycle bound to the resolved brand; writes check revision counters.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'uploadFace',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'deleteFace',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'useDefault',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'revert',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'versions',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'versionPreview',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'restore',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'uploadFace',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'deleteFace',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'useDefault',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'revert',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'versions',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'versionPreview',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'restore',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme and font lifecycle protected by branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'BrandingAppController',
+    operation: 'rollback',
+    classification: 'brand-bearing',
+    notes: 'Deprecated alias for brand-constrained theme restore under branding.manage.',
+  },
+  {
+    family: 'branding-assets',
+    service: 'webservice/BrandingController',
+    operation: 'config',
+    classification: 'brand-bearing',
+    notes: 'Authorized brand theme administration state under branding.manage.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'listTargets',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'getWorkflowTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'saveWorkflowTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'getViewTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'saveViewTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'validateSettings',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'previewCopy',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'applyCopy',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'getWorkflowFields',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigController',
+    operation: 'getViewFields',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard target settings and field catalogues under the authorized brand and dashboard.configure scope.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'listTargets',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'getWorkflowTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'saveWorkflowTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'getViewTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'saveViewTarget',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'validateSettings',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'previewCopy',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'applyCopy',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'getWorkflowFields',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'getViewFields',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'migrationPreflight',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'webservice/DashboardConfigController',
+    operation: 'retiredOperation',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard API under the authorized brand and dashboard.configure scope; legacy routes report retirement.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'RecordController',
+    operation: 'getDashboardWorkflowSettings',
+    classification: 'brand-bearing',
+    notes: 'Dashboard runtime settings constrained to the request brand under dashboard.read.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'RecordController',
+    operation: 'getDashboardViewSettings',
+    classification: 'brand-bearing',
+    notes: 'Dashboard runtime settings constrained to the request brand under dashboard.read.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'getTargetCatalogue',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'getTargetSettings',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'saveTargetSettings',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'validateTargetSettings',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'previewCopy',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'applyCopy',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'getFieldCatalogue',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'getRuntimeSettings',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'getRuntimeTargetSettings',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'getDashboardContext',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'initialiseMissingTargets',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'captureLegacyInput',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'preflightLegacyMigration',
+    classification: 'brand-bearing',
+    notes:
+      'Independent dashboard settings and legacy capture carry the resolved brand; target writes enforce revision and preview fingerprints.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'initialiseAfterBootstrap',
+    classification: 'internal-job',
+    notes: 'Bootstrap configuration initialisation and migration iterate persisted brands using their stored identity.',
+  },
+  {
+    family: 'dashboard-types-config',
+    service: 'DashboardConfigService',
+    operation: 'migrateLegacyConfiguration',
+    classification: 'internal-job',
+    notes: 'Bootstrap configuration initialisation and migration iterate persisted brands using their stored identity.',
+  },
+  {
+    family: 'attachments-audit-related-integration-audit-schemas-forms',
+    service: 'RecordSchemaService',
+    operation: 'describeStage',
+    classification: 'brand-bearing',
+    notes: 'Stage schema field description resolves the record type and workflow stage under the supplied brand.',
+  },
+  {
+    family: 'forms-record-types-workflows',
+    service: 'WorkflowStepsService',
+    operation: 'getAllForRecordTypeIncludingHidden',
+    classification: 'brand-bearing',
+    notes: 'Workflow catalogue including hidden stages follows the resolved brand record type.',
   },
 ]);

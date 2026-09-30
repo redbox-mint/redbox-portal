@@ -49,6 +49,8 @@ const NON_SERVICE_MODULES = new Set([
   'AuthorizationRollbackExposure',
   'AuthorizationServiceAccess',
   'BrandingThemeTokens',
+  'BrandingWoff2Inspector',
+  'DashboardLegacyConversion',
   'form-record-access-user',
   'internal-record-schema-authorization',
 ]);

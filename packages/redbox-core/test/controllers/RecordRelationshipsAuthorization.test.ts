@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import * as lodash from 'lodash';
 import * as sinon from 'sinon';
+import { allowedResource } from '../../src/authorization';
+import { authorizationRequestFixture } from '../fixtures/authorization-request.fixtures';
 import { Controllers } from '../../src/controllers/RecordController';
 import { RecordsService, RecordRelationshipGraph } from '../../src/RecordsService';
 import { BrandingModel } from '../../src/model/storage/BrandingModel';
@@ -46,10 +48,12 @@ describe('Record relationship authorization', () => {
       omittedByAccess: {},
     });
     hasViewAccess = sinon.stub().returns(true);
-    controller.recordsService = { getMeta, getRelatedRecords, hasViewAccess } as unknown as RecordsService;
+    const getAuthorizedMeta = sinon.stub().callsFake(async () => allowedResource({ allowed: true, reasonCode: 'allowed' }, await getMeta.firstCall.returnValue));
+    controller.recordsService = { getMeta, getRelatedRecords, hasViewAccess, getAuthorizedMeta } as unknown as RecordsService;
     sinon.stub(controller as unknown as { getReqBrand(): BrandingModel }, 'getReqBrand').returns(brand);
     sendResp = controller.sendResp;
     req = {
+      ...authorizationRequestFixture({ scope: 'record.relationships.read' }),
       param: (name: string) => (name === 'oid' ? 'root' : undefined),
       query: { relationshipDepth: '0' },
       user: { username: 'alice', roles: [{ id: 'researcher-1', name: 'Researcher' }] },

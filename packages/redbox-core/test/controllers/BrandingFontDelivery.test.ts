@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as fs from 'fs';
+import * as sinon from 'sinon';
 import { createHash } from 'crypto';
 const path = require('path');
 import { setupServiceTestGlobals, cleanupServiceTestGlobals } from '../services/testHelper';
@@ -44,6 +45,7 @@ function fakeReq(
   body?: Record<string, unknown>
 ): Record<string, unknown> {
   return {
+    params,
     param: (name: string) => params[name],
     headers,
     method,
@@ -153,6 +155,7 @@ describe('Branding public font delivery and layouts', function () {
   });
 
   afterEach(function () {
+    sinon.restore();
     cleanupServiceTestGlobals();
     delete (global as unknown as Record<string, unknown>).StorageManagerService;
     delete (global as unknown as Record<string, unknown>).BrandingThemeCssService;
@@ -291,6 +294,7 @@ describe('Branding public font delivery and layouts', function () {
   it('creates public preview tokens bound to the current draft revision', async function () {
     const branding = require('../../src/services/BrandingService');
     (global as unknown as Record<string, unknown>).BrandingService = new branding.Services.Branding();
+    sinon.stub(BrandingService, 'getBrandFromReq').returns(brandRow as unknown as ReturnType<typeof BrandingService.getBrandFromReq>);
     (global as unknown as Record<string, unknown>).BrandingThemeCssService =
       new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
     const cacheEntries: Array<Record<string, unknown>> = [];
@@ -317,6 +321,7 @@ describe('Branding public font delivery and layouts', function () {
   it('keeps legacy preview requests bound to the current draft revision', async function () {
     const branding = require('../../src/services/BrandingService');
     (global as unknown as Record<string, unknown>).BrandingService = new branding.Services.Branding();
+    sinon.stub(BrandingService, 'getBrandFromReq').returns(brandRow as unknown as ReturnType<typeof BrandingService.getBrandFromReq>);
     (global as unknown as Record<string, unknown>).BrandingThemeCssService =
       new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
     const cacheEntries: Array<Record<string, unknown>> = [];
@@ -344,6 +349,7 @@ describe('Branding public font delivery and layouts', function () {
   it('rejects preview token creation on a stale draft revision with 409', async function () {
     const branding = require('../../src/services/BrandingService');
     (global as unknown as Record<string, unknown>).BrandingService = new branding.Services.Branding();
+    sinon.stub(BrandingService, 'getBrandFromReq').returns(brandRow as unknown as ReturnType<typeof BrandingService.getBrandFromReq>);
     (global as unknown as Record<string, unknown>).BrandingThemeCssService =
       new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
     (global as unknown as Record<string, unknown>).CacheEntry = {

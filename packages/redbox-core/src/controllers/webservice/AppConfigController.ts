@@ -38,7 +38,7 @@ export namespace Controllers {
     public async resetAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const { params } = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const value = await AppConfigService.resetConfigOverride(brand, params.appConfigId as string);
         res.setHeader('X-ReDBox-Config-Source', 'default');
         return this.apiRespond(req, res, value, 200);

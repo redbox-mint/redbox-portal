@@ -80,6 +80,7 @@ function stubBrandingService(sandbox: sinon.SinonSandbox): Record<string, sinon.
   for (const method of methods) {
     stubs[method] = sandbox.stub().resolves(ADMIN_STATE);
   }
+  stubs.getBrandFromReq = sandbox.stub().returns(ADMIN_STATE.branding);
   stubs.preview.resolves({ token: 't', url: 'u', hash: 'h', revision: 2 });
   stubs.previewVersion.resolves({ token: 't', url: 'u', hash: 'h' });
   stubs.listVersions.resolves([]);

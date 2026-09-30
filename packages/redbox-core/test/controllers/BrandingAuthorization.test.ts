@@ -10,12 +10,15 @@ describe('branding controller resource authorization', function () {
   let previousBrandingService: unknown;
   let previousBrandingLogoService: unknown;
   let previousSails: unknown;
+  let previousBrandingConfig: unknown;
 
   before(async function () {
     expect = (await import('chai')).expect;
   });
 
   beforeEach(function () {
+    previousBrandingConfig = Reflect.get(globalThis, 'BrandingConfig');
+    Reflect.set(globalThis, 'BrandingConfig', { findOne: sinon.stub().resolves({ draftRevision: 7 }) });
     previousBrandingService = Reflect.get(globalThis, 'BrandingService');
     previousBrandingLogoService = Reflect.get(globalThis, 'BrandingLogoService');
     previousSails = (globalThis as unknown as { sails: any }).sails;
@@ -39,6 +42,7 @@ describe('branding controller resource authorization', function () {
 
   afterEach(function () {
     sinon.restore();
+    Reflect.set(globalThis, 'BrandingConfig', previousBrandingConfig);
     (globalThis as unknown as { sails: any }).sails = previousSails;
     if (previousBrandingService === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
     else Reflect.set(globalThis, 'BrandingService', previousBrandingService);
@@ -48,10 +52,7 @@ describe('branding controller resource authorization', function () {
 
   it('ignores a spoofed webservice route brand when saving a draft', async function () {
     const controller = new WebserviceBrandingControllers.Branding();
-    const apiRespond = sinon.stub(
-      controller as unknown as { apiRespond: (...args: unknown[]) => unknown },
-      'apiRespond'
-    );
+    const sendResp = sinon.stub(controller, 'sendResp');
     const req = {
       apiRequest: {
         params: { branding: 'foreign', portal: 'rdmp' },
@@ -67,11 +68,12 @@ describe('branding controller resource authorization', function () {
     expect(Reflect.get(globalThis, 'BrandingService').saveDraft.firstCall.args[0]).to.include({
       branding: 'authorized',
     });
-    expect(apiRespond.calledOnce).to.equal(true);
+    expect(sendResp.calledOnce).to.equal(true);
   });
 
   it('ignores a spoofed Angular-app route brand when saving a draft', async function () {
     const controller = new BrandingAppControllers.BrandingApp();
+    const sendResp = sinon.stub(controller, 'sendResp');
     const req = {
       params: { branding: 'foreign', portal: 'rdmp' },
       body: { variables: { primary: '#123456' } },
@@ -84,11 +86,12 @@ describe('branding controller resource authorization', function () {
     expect(Reflect.get(globalThis, 'BrandingService').saveDraft.firstCall.args[0]).to.include({
       branding: 'authorized',
     });
-    expect((response.ok as sinon.SinonStub).calledOnce).to.equal(true);
+    expect(sendResp.calledOnce).to.equal(true);
   });
 
   it('uses the authorized brand for the legacy preview mutation', async function () {
     const controller = new BrandingControllers.Branding();
+    sinon.stub(controller, 'sendResp');
     const req = {
       params: { branding: 'foreign', portal: 'rdmp' },
       param(name: string) {

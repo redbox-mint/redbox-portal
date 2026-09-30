@@ -6097,7 +6097,8 @@ export namespace Services {
       try {
         const loaded = await this.getMeta(oid);
         if (!_.isEmpty(loaded)) record = loaded;
-      } catch {
+      } catch (error) {
+        if (!(error instanceof Error && error.message.startsWith('Record not found:'))) throw error;
         record = null;
       }
       const baseScope = asScopeKey(mode === 'read' ? 'record.read' : 'record.update');

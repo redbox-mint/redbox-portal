@@ -1326,7 +1326,9 @@ export namespace Controllers {
     public async getDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const brand: BrandingModel = this.getReqBrand(req);
-      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404 });
+      if (!oid || !brand?.id) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Deleted record not found.' }] });
+      }
       let record: RecordModel;
       try {
         record = await this.getAuthorizedDeletedRecord(req, oid, 'read');

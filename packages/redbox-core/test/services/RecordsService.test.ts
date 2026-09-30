@@ -3550,7 +3550,7 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
 
-    it('normalizes a missing brand id in the starting form fingerprint contract', async function () {
+    it('rejects a public create without a resolved brand before issuing a form fingerprint', async function () {
       mockStorageService.getCapabilities = sinon.stub().returns({
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
@@ -3582,12 +3582,12 @@ describe('RecordsService', function () {
         context
       );
 
-      expect(result.wasPersisted()).to.equal(true);
-      expect(getFingerprint.calledOnce).to.equal(true);
-      expect(getFingerprint.firstCall.args[0]).to.deep.include({
-        metaMetadata: { brandId: '', form: 'default-form' },
-        workflow: { stage: 'draft' },
-      });
+      expect(result.wasPersisted()).to.equal(false);
+      expect(result.problems.flatMap(problem => problem.issues).map(issue => issue.code)).to.include(
+        'record-validation-edit-unauthorized'
+      );
+      expect(getFingerprint.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
     });
 
     it('generates a historical hyphenless OID for a configured create before storage', async function () {

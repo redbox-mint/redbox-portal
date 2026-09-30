@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, ChangeDetectionStrategy, Optional, Inject, Component, OnInit } from '@angular/core';
 import {
   AuthorizationAuditEvent,
   AuthorizationAuditEventType,
@@ -13,6 +13,7 @@ import { AuthorizationAdminService } from '../authorization-admin.service';
   templateUrl: './authorization-audit.component.html',
   styleUrls: ['./authorization-audit.component.scss'],
   standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthorizationAuditComponent implements OnInit {
   public readonly eventTypes: AuthorizationAuditEventType[] = [
@@ -74,7 +75,10 @@ export class AuthorizationAuditComponent implements OnInit {
   public readonly timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   private auditLoadId = 0;
 
-  constructor(private readonly authorizationAdminService: AuthorizationAdminService) {}
+  constructor(
+    private readonly authorizationAdminService: AuthorizationAdminService,
+    @Optional() @Inject(ChangeDetectorRef) private readonly changeDetectorRef: ChangeDetectorRef | null = null
+  ) {}
 
   public get visibleEvents(): AuthorizationAuditEvent[] {
     const from = this.dateBoundary(this.occurredFrom, Number.NEGATIVE_INFINITY);
@@ -86,34 +90,42 @@ export class AuthorizationAuditComponent implements OnInit {
   }
 
   public async ngOnInit(): Promise<void> {
-    await this.loadAudit(false);
+    try {
+      await this.loadAudit(false);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async loadAudit(append: boolean): Promise<void> {
-    const loadId = ++this.auditLoadId;
-    this.loading = true;
-    this.liveMessage = 'Loading redacted authorization audit events.';
-    this.error = undefined;
     try {
-      const page = await this.authorizationAdminService.listAudit({
-        limit: 50,
-        ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
-        ...(this.eventType ? { eventType: this.eventType } : {}),
-        ...(this.outcome ? { outcome: this.outcome } : {}),
-        ...(this.actorId.trim() ? { actorId: this.actorId.trim() } : {}),
-        ...(this.targetType ? { targetType: this.targetType } : {}),
-        ...(this.targetId.trim() ? { targetId: this.targetId.trim() } : {}),
-      });
-      if (loadId !== this.auditLoadId) return;
-      this.events = append ? [...this.events, ...page.items] : page.items;
-      this.nextCursor = page.nextCursor;
-      this.liveMessage = `${this.visibleEvents.length} audit events shown.`;
-    } catch (error) {
-      if (loadId !== this.auditLoadId) return;
-      this.error = this.authorizationAdminService.toUiError(error);
-      this.liveMessage = this.error.message;
+      const loadId = ++this.auditLoadId;
+      this.loading = true;
+      this.liveMessage = 'Loading redacted authorization audit events.';
+      this.error = undefined;
+      try {
+        const page = await this.authorizationAdminService.listAudit({
+          limit: 50,
+          ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
+          ...(this.eventType ? { eventType: this.eventType } : {}),
+          ...(this.outcome ? { outcome: this.outcome } : {}),
+          ...(this.actorId.trim() ? { actorId: this.actorId.trim() } : {}),
+          ...(this.targetType ? { targetType: this.targetType } : {}),
+          ...(this.targetId.trim() ? { targetId: this.targetId.trim() } : {}),
+        });
+        if (loadId !== this.auditLoadId) return;
+        this.events = append ? [...this.events, ...page.items] : page.items;
+        this.nextCursor = page.nextCursor;
+        this.liveMessage = `${this.visibleEvents.length} audit events shown.`;
+      } catch (error) {
+        if (loadId !== this.auditLoadId) return;
+        this.error = this.authorizationAdminService.toUiError(error);
+        this.liveMessage = this.error.message;
+      } finally {
+        if (loadId === this.auditLoadId) this.loading = false;
+      }
     } finally {
-      if (loadId === this.auditLoadId) this.loading = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 

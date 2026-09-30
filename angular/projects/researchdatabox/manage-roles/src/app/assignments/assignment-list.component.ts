@@ -1,4 +1,14 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  Optional,
+  Inject,
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+} from '@angular/core';
 import {
   AssignmentCatalogQuery,
   AssignmentExpiryFilter,
@@ -28,6 +38,7 @@ interface AssignmentRoleOption {
   templateUrl: './assignment-list.component.html',
   styleUrls: ['./assignment-list.component.scss'],
   standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AssignmentListComponent implements OnInit {
   @Input() public scopeKeys: string[] = [];
@@ -74,7 +85,10 @@ export class AssignmentListComponent implements OnInit {
   // service retains the bounded API methods, but this Phase 9 view deliberately
   // does not present a bulk apply surface without that product approval.
 
-  constructor(private readonly authorizationAdminService: AuthorizationAdminService) {}
+  constructor(
+    private readonly authorizationAdminService: AuthorizationAdminService,
+    @Optional() @Inject(ChangeDetectorRef) private readonly changeDetectorRef: ChangeDetectorRef | null = null
+  ) {}
 
   public get canManage(): boolean {
     return this.scopeKeys.includes('authorization.assignment.manage');
@@ -117,36 +131,44 @@ export class AssignmentListComponent implements OnInit {
   }
 
   public async ngOnInit(): Promise<void> {
-    await this.loadRoles();
-    await this.loadAssignments(false);
+    try {
+      await this.loadRoles();
+      await this.loadAssignments(false);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async loadAssignments(append: boolean): Promise<void> {
-    const loadId = ++this.assignmentLoadId;
-    this.loading = true;
-    this.liveMessage = 'Loading assignment source rows.';
-    this.error = undefined;
     try {
-      const query: AssignmentCatalogQuery = {
-        limit: 50,
-        ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
-        ...(this.userId.trim() ? { userId: this.userId.trim() } : {}),
-        ...(this.roleKey ? { roleKey: this.roleKey } : {}),
-        ...(this.source ? { source: this.source } : {}),
-        ...(this.status ? { status: this.status } : {}),
-        ...(this.sourcePresent ? { sourcePresent: this.sourcePresent === 'true' } : {}),
-        ...(this.expiry ? { expiry: this.expiry } : {}),
-      };
-      const page = await this.authorizationAdminService.listAssignments(query);
-      if (loadId !== this.assignmentLoadId) return;
-      this.assignments = append ? [...this.assignments, ...page.items] : page.items;
-      this.nextCursor = page.nextCursor;
-      this.liveMessage = `${this.assignments.length} assignment source rows loaded.`;
-    } catch (error) {
-      if (loadId !== this.assignmentLoadId) return;
-      this.setError(error);
+      const loadId = ++this.assignmentLoadId;
+      this.loading = true;
+      this.liveMessage = 'Loading assignment source rows.';
+      this.error = undefined;
+      try {
+        const query: AssignmentCatalogQuery = {
+          limit: 50,
+          ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
+          ...(this.userId.trim() ? { userId: this.userId.trim() } : {}),
+          ...(this.roleKey ? { roleKey: this.roleKey } : {}),
+          ...(this.source ? { source: this.source } : {}),
+          ...(this.status ? { status: this.status } : {}),
+          ...(this.sourcePresent ? { sourcePresent: this.sourcePresent === 'true' } : {}),
+          ...(this.expiry ? { expiry: this.expiry } : {}),
+        };
+        const page = await this.authorizationAdminService.listAssignments(query);
+        if (loadId !== this.assignmentLoadId) return;
+        this.assignments = append ? [...this.assignments, ...page.items] : page.items;
+        this.nextCursor = page.nextCursor;
+        this.liveMessage = `${this.assignments.length} assignment source rows loaded.`;
+      } catch (error) {
+        if (loadId !== this.assignmentLoadId) return;
+        this.setError(error);
+      } finally {
+        if (loadId === this.assignmentLoadId) this.loading = false;
+      }
     } finally {
-      if (loadId === this.assignmentLoadId) this.loading = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
@@ -170,38 +192,42 @@ export class AssignmentListComponent implements OnInit {
   }
 
   public async grantAssignment(): Promise<void> {
-    if (!this.canManage) return;
-    const role = this.availableRoles.find(candidate => candidate.key === this.grantRoleKey);
-    if (!this.grantUserId.trim() || !role || !this.grantRoleAllowed(role)) {
-      this.setClientError('A user ID and assignable role are required.');
-      return;
-    }
-    const expiresAt = this.normalizedExpiry();
-    if (this.grantExpiresAt && !expiresAt) {
-      this.setClientError('Enter a valid expiry date and time.');
-      return;
-    }
-    this.pendingId = 'grant';
-    this.liveMessage = 'Granting or reactivating the manual assignment.';
-    this.error = undefined;
     try {
-      await this.authorizationAdminService.grantAssignment(this.grantRoleKey, this.grantUserId.trim(), {
-        ...(this.grantExpectedVersion !== undefined ? { expectedVersion: this.grantExpectedVersion } : {}),
-        ...(expiresAt ? { expiresAt } : {}),
-        ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
-      });
-      const successMessage = `Manual ${this.grantRoleKey} assignment granted or reactivated.`;
-      this.grantUserId = '';
-      this.grantRoleKey = '';
-      this.grantExpiresAt = '';
-      this.grantExpectedVersion = undefined;
-      this.editingAssignmentId = undefined;
-      this.serverComparisonAssignment = undefined;
-      await this.afterMutation(successMessage);
-    } catch (error) {
-      this.setError(error);
+      if (!this.canManage) return;
+      const role = this.availableRoles.find(candidate => candidate.key === this.grantRoleKey);
+      if (!this.grantUserId.trim() || !role || !this.grantRoleAllowed(role)) {
+        this.setClientError('A user ID and assignable role are required.');
+        return;
+      }
+      const expiresAt = this.normalizedExpiry();
+      if (this.grantExpiresAt && !expiresAt) {
+        this.setClientError('Enter a valid expiry date and time.');
+        return;
+      }
+      this.pendingId = 'grant';
+      this.liveMessage = 'Granting or reactivating the manual assignment.';
+      this.error = undefined;
+      try {
+        await this.authorizationAdminService.grantAssignment(this.grantRoleKey, this.grantUserId.trim(), {
+          ...(this.grantExpectedVersion !== undefined ? { expectedVersion: this.grantExpectedVersion } : {}),
+          ...(expiresAt ? { expiresAt } : {}),
+          ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
+        });
+        const successMessage = `Manual ${this.grantRoleKey} assignment granted or reactivated.`;
+        this.grantUserId = '';
+        this.grantRoleKey = '';
+        this.grantExpiresAt = '';
+        this.grantExpectedVersion = undefined;
+        this.editingAssignmentId = undefined;
+        this.serverComparisonAssignment = undefined;
+        await this.afterMutation(successMessage);
+      } catch (error) {
+        this.setError(error);
+      } finally {
+        this.pendingId = undefined;
+      }
     } finally {
-      this.pendingId = undefined;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
@@ -209,36 +235,49 @@ export class AssignmentListComponent implements OnInit {
     op: 'revoke' | 'suppress' | 'unsuppress',
     assignment: AuthorizationAssignment
   ): Promise<void> {
-    if (!this.canAct(op, assignment)) return;
-    const request = {
-      expectedVersion: assignment.version,
-      ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
-    };
-    const mutation =
-      op === 'revoke'
-        ? () => this.authorizationAdminService.revokeAssignment(assignment.roleKey, assignment.principalId, request)
-        : op === 'suppress'
-          ? () => this.authorizationAdminService.suppressAssignment(assignment.id, request)
-          : () => this.authorizationAdminService.unsuppressAssignment(assignment.id, request);
-    await this.mutate(assignment, op, mutation);
+    try {
+      if (!this.canAct(op, assignment)) return;
+      const request = {
+        expectedVersion: assignment.version,
+        ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
+      };
+      const mutation =
+        op === 'revoke'
+          ? () => this.authorizationAdminService.revokeAssignment(assignment.roleKey, assignment.principalId, request)
+          : op === 'suppress'
+            ? () => this.authorizationAdminService.suppressAssignment(assignment.id, request)
+            : () => this.authorizationAdminService.unsuppressAssignment(assignment.id, request);
+      await this.mutate(assignment, op, mutation);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async revoke(assignment: AuthorizationAssignment): Promise<void> {
-    return this.mutateAssignment('revoke', assignment);
+    try {
+      return this.mutateAssignment('revoke', assignment);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async suppress(assignment: AuthorizationAssignment): Promise<void> {
-    return this.mutateAssignment('suppress', assignment);
+    try {
+      return this.mutateAssignment('suppress', assignment);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public async unsuppress(assignment: AuthorizationAssignment): Promise<void> {
-    return this.mutateAssignment('unsuppress', assignment);
+    try {
+      return this.mutateAssignment('unsuppress', assignment);
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
-  public canAct(
-    action: 'revoke' | 'suppress' | 'unsuppress' | 'edit',
-    assignment: AuthorizationAssignment
-  ): boolean {
+  public canAct(action: 'revoke' | 'suppress' | 'unsuppress' | 'edit', assignment: AuthorizationAssignment): boolean {
     if (!this.canManage) return false;
     return this.assignmentGuards[action](assignment);
   }
@@ -282,18 +321,22 @@ export class AssignmentListComponent implements OnInit {
   }
 
   public async reloadAssignmentForComparison(): Promise<void> {
-    const editingAssignmentId = this.editingAssignmentId;
-    await this.loadAssignments(false);
-    if (this.error || !editingAssignmentId) return;
-    const current = this.assignments.find(assignment => assignment.id === editingAssignmentId);
-    if (!current) {
-      this.setClientError(
-        'The assignment is no longer present in the current filtered results. Your input is retained.'
-      );
-      return;
+    try {
+      const editingAssignmentId = this.editingAssignmentId;
+      await this.loadAssignments(false);
+      if (this.error || !editingAssignmentId) return;
+      const current = this.assignments.find(assignment => assignment.id === editingAssignmentId);
+      if (!current) {
+        this.setClientError(
+          'The assignment is no longer present in the current filtered results. Your input is retained.'
+        );
+        return;
+      }
+      this.serverComparisonAssignment = current;
+      this.liveMessage = `Server assignment version ${current.version} loaded for comparison; your expiry input is unchanged.`;
+    } finally {
+      this.changeDetectorRef?.markForCheck();
     }
-    this.serverComparisonAssignment = current;
-    this.liveMessage = `Server assignment version ${current.version} loaded for comparison; your expiry input is unchanged.`;
   }
 
   public useServerAssignmentVersion(): void {

@@ -22,7 +22,7 @@ describe('Webservice AppConfigController override lifecycle', () => {
 
   beforeEach(() => {
     Object.values(service).forEach(stub => stub.reset());
-    Object.assign(globalThis, { sails: { log: { error: sinon.stub() } }, BrandingService: { getBrand: () => brand }, AppConfigService: service });
+    Object.assign(globalThis, { sails: { log: { error: sinon.stub() } }, BrandingService: { getBrand: () => ({ id: 'foreign-brand', name: 'foreign' }), getBrandFromReq: () => brand }, AppConfigService: service });
     controller = new TestAppConfigController();
     setHeader = sinon.stub();
     response = { setHeader } as unknown as Sails.Res;

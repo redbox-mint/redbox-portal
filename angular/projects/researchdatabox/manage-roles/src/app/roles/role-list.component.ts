@@ -1,4 +1,16 @@
-import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+  Optional,
+  Inject,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import {
   AuthorizationRole,
   AuthorizationRoleSummary,
@@ -20,6 +32,7 @@ const MAX_BULK_ROLE_COUNT = 100;
   templateUrl: './role-list.component.html',
   styleUrls: ['./role-list.component.scss'],
   standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RoleListComponent implements OnInit {
   @Input() public scopeKeys: string[] = [];
@@ -56,7 +69,10 @@ export class RoleListComponent implements OnInit {
   private roleLoadId = 0;
   private editorReturnFocus?: HTMLElement;
 
-  constructor(private readonly authorizationAdminService: AuthorizationAdminService) {}
+  constructor(
+    private readonly authorizationAdminService: AuthorizationAdminService,
+    @Optional() @Inject(ChangeDetectorRef) private readonly changeDetectorRef: ChangeDetectorRef | null = null
+  ) {}
 
   public get canManageRoles(): boolean {
     return this.scopeKeys.includes('authorization.role.manage');
@@ -72,52 +88,60 @@ export class RoleListComponent implements OnInit {
   }
 
   public async ngOnInit(): Promise<void> {
-    const supportingRequests = [this.loadCatalog('templates')];
-    if (this.scopeKeys.includes('authorization.scope.read')) {
-      supportingRequests.push(this.loadCatalog('scopes'));
-    }
-    const supportingResults = await Promise.allSettled(supportingRequests);
-    this.supportingErrors = supportingResults
-      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-      .map(result => this.authorizationAdminService.toUiError(result.reason));
-    await this.loadRoles(false);
-    if (this.supportingErrors.length) {
-      this.liveMessage = 'Some supporting role data could not be loaded. Unsafe controls remain unavailable.';
+    try {
+      const supportingRequests = [this.loadCatalog('templates')];
+      if (this.scopeKeys.includes('authorization.scope.read')) {
+        supportingRequests.push(this.loadCatalog('scopes'));
+      }
+      const supportingResults = await Promise.allSettled(supportingRequests);
+      this.supportingErrors = supportingResults
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .map(result => this.authorizationAdminService.toUiError(result.reason));
+      await this.loadRoles(false);
+      if (this.supportingErrors.length) {
+        this.liveMessage = 'Some supporting role data could not be loaded. Unsafe controls remain unavailable.';
+      }
+    } finally {
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
   public async loadRoles(append: boolean): Promise<void> {
-    const loadId = ++this.roleLoadId;
-    this.loading = true;
-    this.liveMessage = 'Loading roles.';
-    this.error = undefined;
     try {
-      const query: RoleCatalogQuery = {
-        limit: 50,
-        ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
-        ...(this.search.trim() ? { search: this.search.trim() } : {}),
-        ...(this.status ? { status: this.status } : {}),
-        ...(this.templateFilter ? { templateKey: this.templateFilter } : {}),
-      };
-      const page = await this.authorizationAdminService.listRoles(query);
-      if (loadId !== this.roleLoadId) return;
-      if (!append) {
-        this.selectedRoleIds = new Set();
-        this.clearBulkPreview();
+      const loadId = ++this.roleLoadId;
+      this.loading = true;
+      this.liveMessage = 'Loading roles.';
+      this.error = undefined;
+      try {
+        const query: RoleCatalogQuery = {
+          limit: 50,
+          ...(append && this.nextCursor ? { cursor: this.nextCursor } : {}),
+          ...(this.search.trim() ? { search: this.search.trim() } : {}),
+          ...(this.status ? { status: this.status } : {}),
+          ...(this.templateFilter ? { templateKey: this.templateFilter } : {}),
+        };
+        const page = await this.authorizationAdminService.listRoles(query);
+        if (loadId !== this.roleLoadId) return;
+        if (!append) {
+          this.selectedRoleIds = new Set();
+          this.clearBulkPreview();
+        }
+        this.roles = append ? [...this.roles, ...page.items] : page.items;
+        this.nextCursor = page.nextCursor;
+        await Promise.all([
+          this.loadRoleDetails(page.items, append, loadId),
+          this.canReadAssignments ? this.loadAssignmentCounts(loadId) : Promise.resolve(),
+        ]);
+        if (loadId !== this.roleLoadId) return;
+        this.liveMessage = `${this.roles.length} roles loaded.`;
+      } catch (error) {
+        if (loadId !== this.roleLoadId) return;
+        this.setError(error);
+      } finally {
+        if (loadId === this.roleLoadId) this.loading = false;
       }
-      this.roles = append ? [...this.roles, ...page.items] : page.items;
-      this.nextCursor = page.nextCursor;
-      await Promise.all([
-        this.loadRoleDetails(page.items, append, loadId),
-        this.canReadAssignments ? this.loadAssignmentCounts(loadId) : Promise.resolve(),
-      ]);
-      if (loadId !== this.roleLoadId) return;
-      this.liveMessage = `${this.roles.length} roles loaded.`;
-    } catch (error) {
-      if (loadId !== this.roleLoadId) return;
-      this.setError(error);
     } finally {
-      if (loadId === this.roleLoadId) this.loading = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
@@ -146,10 +170,14 @@ export class RoleListComponent implements OnInit {
   }
 
   public async editorChanged(message: string): Promise<void> {
-    this.liveMessage = message;
-    await this.loadRoles(false);
-    this.closeEditor();
-    this.authorizationChanged.emit();
+    try {
+      this.liveMessage = message;
+      await this.loadRoles(false);
+      this.closeEditor();
+      this.authorizationChanged.emit();
+    } finally {
+      this.changeDetectorRef?.markForCheck();
+    }
   }
 
   public overrideCount(role: AuthorizationRoleSummary): number | undefined {
@@ -204,52 +232,60 @@ export class RoleListComponent implements OnInit {
   }
 
   public async previewBulkUpgrade(event?: Event): Promise<void> {
-    if (!this.canManageSystem || !this.bulkTemplateKey || !this.bulkTargetRevision || !this.selectedRoleIds.size)
-      return;
-    this.bulkPreviewReturnFocus = event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
-    this.pending = true;
-    this.liveMessage = 'Requesting a server impact preview for the selected roles.';
-    this.error = undefined;
     try {
-      const request: BulkTemplateUpgradeRequest = {
-        templateKey: this.bulkTemplateKey,
-        targetRevision: this.bulkTargetRevision,
-        roles: this.roles
-          .filter(role => this.selectedRoleIds.has(role.id))
-          .map(role => ({ roleId: role.id, expectedVersion: role.version })),
-        ...(this.bulkReason.trim() ? { reason: this.bulkReason.trim() } : {}),
-      };
-      this.bulkPreview = await this.authorizationAdminService.previewBulkTemplateUpgrade(request);
-      this.bulkPreviewRequest = request;
-      this.liveMessage = 'Selected-role template upgrade preview ready.';
-    } catch (error) {
-      this.setError(error);
-      queueMicrotask(() => this.bulkPreviewReturnFocus?.focus());
+      if (!this.canManageSystem || !this.bulkTemplateKey || !this.bulkTargetRevision || !this.selectedRoleIds.size)
+        return;
+      this.bulkPreviewReturnFocus = event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
+      this.pending = true;
+      this.liveMessage = 'Requesting a server impact preview for the selected roles.';
+      this.error = undefined;
+      try {
+        const request: BulkTemplateUpgradeRequest = {
+          templateKey: this.bulkTemplateKey,
+          targetRevision: this.bulkTargetRevision,
+          roles: this.roles
+            .filter(role => this.selectedRoleIds.has(role.id))
+            .map(role => ({ roleId: role.id, expectedVersion: role.version })),
+          ...(this.bulkReason.trim() ? { reason: this.bulkReason.trim() } : {}),
+        };
+        this.bulkPreview = await this.authorizationAdminService.previewBulkTemplateUpgrade(request);
+        this.bulkPreviewRequest = request;
+        this.liveMessage = 'Selected-role template upgrade preview ready.';
+      } catch (error) {
+        this.setError(error);
+        queueMicrotask(() => this.bulkPreviewReturnFocus?.focus());
+      } finally {
+        this.pending = false;
+      }
     } finally {
-      this.pending = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 
   public async applyBulkUpgrade(): Promise<void> {
-    if (!this.canManageSystem || !this.bulkPreview?.confirmationToken || !this.bulkPreviewRequest) return;
-    this.pending = true;
-    this.liveMessage = 'Applying the confirmed selected-role template upgrades.';
     try {
-      await this.authorizationAdminService.applyBulkTemplateUpgrade({
-        ...this.bulkPreviewRequest,
-        confirmationToken: this.bulkPreview.confirmationToken,
-      });
-      this.clearBulkPreview();
-      this.selectedRoleIds = new Set();
-      await this.loadRoles(false);
-      this.authorizationChanged.emit();
-      this.liveMessage = 'Selected-role template upgrades applied.';
-      setTimeout(() => this.bulkUpgradeHeading?.nativeElement.focus());
-    } catch (error) {
-      this.clearBulkPreview();
-      this.setError(error);
+      if (!this.canManageSystem || !this.bulkPreview?.confirmationToken || !this.bulkPreviewRequest) return;
+      this.pending = true;
+      this.liveMessage = 'Applying the confirmed selected-role template upgrades.';
+      try {
+        await this.authorizationAdminService.applyBulkTemplateUpgrade({
+          ...this.bulkPreviewRequest,
+          confirmationToken: this.bulkPreview.confirmationToken,
+        });
+        this.clearBulkPreview();
+        this.selectedRoleIds = new Set();
+        await this.loadRoles(false);
+        this.authorizationChanged.emit();
+        this.liveMessage = 'Selected-role template upgrades applied.';
+        setTimeout(() => this.bulkUpgradeHeading?.nativeElement.focus());
+      } catch (error) {
+        this.clearBulkPreview();
+        this.setError(error);
+      } finally {
+        this.pending = false;
+      }
     } finally {
-      this.pending = false;
+      this.changeDetectorRef?.markForCheck();
     }
   }
 

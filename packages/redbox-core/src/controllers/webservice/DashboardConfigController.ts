@@ -44,9 +44,13 @@ export namespace Controllers {
       });
     }
 
-    /** The brand comes from the route; never fall back to the default brand. */
+    /** Resolve the authorized brand without falling back to a default. */
     private resolveBrand(req: Sails.Req): BrandingModel {
-      return BrandingService.getBrandFromReq(req);
+      const brand = BrandingService.getBrandFromReq(req);
+      if (!brand) {
+        throw new DashboardConfigServices.DashboardConfigError('target-not-found', 'Dashboard configuration brand not found.');
+      }
+      return brand;
     }
 
     /** The signed-in administrator; record field catalogues follow their access. */

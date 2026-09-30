@@ -31,11 +31,12 @@ function withAuthorizedRecordLookups(overrides: Record<string, unknown> = {}): R
       let record: unknown = null;
       try {
         record = await service.getMeta(oid);
-      } catch {
+      } catch (error) {
+        if (!(error instanceof Error && error.message.startsWith('Record not found:'))) throw error;
         record = null;
       }
-      if (record == null) return deniedResource(missingDecision);
-      const allowed = mode === 'read' ? service.hasViewAccess() : service.hasEditAccess();
+      if (_.isEmpty(record)) return deniedResource(missingDecision);
+      const allowed = mode === 'read' ? service.hasViewAccess(undefined, undefined, undefined, record) : service.hasEditAccess(undefined, undefined, undefined, record);
       return allowed ? allowedResource(allowedDecision, record) : deniedResource(deniedDecision);
     });
   service.getAuthorizedDeletedRecordMeta ??= sinon
@@ -47,8 +48,8 @@ function withAuthorizedRecordLookups(overrides: Record<string, unknown> = {}): R
       } catch {
         record = null;
       }
-      if (record == null) return deniedResource(missingDecision);
-      const allowed = mode === 'read' ? service.hasViewAccess() : service.hasEditAccess();
+      if (_.isEmpty(record)) return deniedResource(missingDecision);
+      const allowed = mode === 'read' ? service.hasViewAccess(undefined, undefined, undefined, record) : service.hasEditAccess(undefined, undefined, undefined, record);
       return allowed ? allowedResource(allowedDecision, record) : deniedResource(deniedDecision);
     });
   service.authorizeBrandOperation ??= sinon
@@ -166,6 +167,7 @@ describe('RecordController getWorkflowSteps', () => {
     function createResponse() {
       return {
         status: sinon.stub().returnsThis(),
+        type: sinon.stub().returnsThis(),
         set: sinon.stub().returnsThis(),
         json: sinon.stub().returnsThis(),
       };
@@ -177,8 +179,9 @@ describe('RecordController getWorkflowSteps', () => {
       { name: 'brand ID is missing', oid: 'deleted-oid', brand: {} },
     ]) {
       it(`returns a serializable 404 without reading storage when ${testCase.name}`, async () => {
-        (BrandingService.getBrand as sinon.SinonStub).returns(testCase.brand);
+        (BrandingService.getBrandFromReq as sinon.SinonStub).returns(testCase.brand);
         const req = {
+          ...authorizationRequestFixture({ scope: 'record.read' }),
           param: sinon.stub().withArgs('oid').returns(testCase.oid),
           session: { branding: 'default' },
         } as unknown as Sails.Req;
@@ -195,6 +198,7 @@ describe('RecordController getWorkflowSteps', () => {
     for (const apiVersion of ['1.0', '2.0']) {
       it(`returns a serializable 404 when a deleted record has been purged (API ${apiVersion})`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'record.read' }),
           param: sinon.stub().withArgs('oid').returns('purged-oid'),
           session: { branding: 'default' },
           headers: { 'x-redbox-api-version': apiVersion },
@@ -206,12 +210,13 @@ describe('RecordController getWorkflowSteps', () => {
 
         sinon.assert.calledOnceWithExactly(res.status, 404);
         const body = res.json.firstCall.args[0];
-        expect(apiVersion === '1.0' ? body.message : body.errors[0].detail).to.equal('Deleted record not found.');
+        expect(body).to.include({ status: 404, code: 'authorization.not-found' });
         sinon.assert.notCalled(controller.recordsService.hasViewAccess as sinon.SinonStub);
       });
 
       it(`returns a serializable 403 without exposing deleted metadata when access is denied (API ${apiVersion})`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'record.read' }),
           param: sinon.stub().withArgs('oid').returns('deleted-oid'),
           session: { branding: 'default' },
           user: { username: 'alice', roles: [] },
@@ -229,9 +234,7 @@ describe('RecordController getWorkflowSteps', () => {
 
         sinon.assert.calledOnceWithExactly(res.status, 403);
         const body = res.json.firstCall.args[0];
-        expect(apiVersion === '1.0' ? body.message : body.errors[0].detail).to.equal(
-          'Access to this deleted record is denied.'
-        );
+        expect(body).to.include({ status: 403, code: 'authorization.resource-denied' });
         expect(JSON.stringify(body)).not.to.include('private-deleted-value');
         sinon.assert.notCalled(controller.recordsService.hasEditAccess as sinon.SinonStub);
         sinon.assert.notCalled(FormsService.getFormByName as sinon.SinonStub);
@@ -350,14 +353,14 @@ describe('RecordController getWorkflowSteps', () => {
     expect(sendViewStub.firstCall.args[3]).to.deep.equal({ title: 'oid-1 | Site' });
   });
 
-  it('returns an opaque not-found response when the authorized record lookup fails', async () => {
+  it('returns an opaque not-found response when the authorized record lookup reports a missing record', async () => {
     const req = {
       ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       session: { branding: 'default' },
     } as unknown as Sails.Req;
     const res = authorizationResponseStub();
-    (controller.recordsService.getMeta as sinon.SinonStub).rejects(new Error('boom'));
+    (controller.recordsService.getMeta as sinon.SinonStub).rejects(new Error('Record not found: oid-1'));
 
     await controller.view(req, res);
 
@@ -412,6 +415,7 @@ describe('RecordController getWorkflowSteps', () => {
     it(`renders an existing record through ${routeName} using one metadata lookup`, async () => {
       expect(route).to.include({ controller: 'RecordController', action: 'view' });
       const req = {
+        ...authorizationRequestFixture({ scope: 'record.read' }),
         param: sinon.stub().withArgs('oid').returns('oid-1'),
         session: { branding: 'default' },
         user: { username: 'alice', roles: [] },
@@ -434,19 +438,21 @@ describe('RecordController getWorkflowSteps', () => {
       it(`returns notFound for ${routeName} when metadata is ${JSON.stringify(missingRecord)}`, async () => {
         expect(route).to.include({ controller: 'RecordController', action: 'view' });
         const req = {
+          ...authorizationRequestFixture({ scope: 'record.read' }),
           param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'deleted-oid' : 'rdmp'),
           session: { branding: 'default' },
           options: { ...route, locals: { ...route.locals, localFormName: 'form-1' } },
         } as unknown as Sails.Req;
         const notFound = sinon.stub();
         const serverError = sinon.stub();
-        const res = { notFound, serverError } as unknown as Sails.Res;
+        const res = { ...authorizationResponseStub(), notFound, serverError } as unknown as Sails.Res;
         const sendView = sinon.stub(controller, 'sendView');
         (controller.recordsService.getMeta as sinon.SinonStub).resolves(missingRecord);
 
         await controller.view(req, res);
 
-        expect(notFound.calledOnceWithExactly()).to.be.true;
+        expect((res.status as sinon.SinonStub).calledOnceWithExactly(404)).to.be.true;
+        expect((res.json as sinon.SinonStub).firstCall.args[0]).to.include({ code: 'authorization.not-found' });
         expect(serverError.called).to.be.false;
         expect(sendView.called).to.be.false;
         expect((controller.recordsService.getMeta as sinon.SinonStub).calledOnceWithExactly('deleted-oid')).to.be.true;
@@ -457,13 +463,14 @@ describe('RecordController getWorkflowSteps', () => {
     for (const lookupError of [new Error('Storage unavailable'), new Error('Storage index not found'), { code: 500, message: 'Storage unavailable' }]) {
       it(`returns serverError for ${routeName} when lookup rejects with ${lookupError.message}`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'record.read' }),
           param: sinon.stub().withArgs('oid').returns('oid-1'),
           session: { branding: 'default' },
           options: route,
         } as unknown as Sails.Req;
         const notFound = sinon.stub();
         const serverError = sinon.stub();
-        const res = { notFound, serverError } as unknown as Sails.Res;
+        const res = { ...authorizationResponseStub(), notFound, serverError } as unknown as Sails.Res;
         const sendView = sinon.stub(controller, 'sendView');
         (controller.recordsService.getMeta as sinon.SinonStub).rejects(lookupError);
 
@@ -478,20 +485,22 @@ describe('RecordController getWorkflowSteps', () => {
 
     it(`returns forbidden for ${routeName} when the record is inaccessible`, async () => {
       const req = {
+        ...authorizationRequestFixture({ scope: 'record.read' }),
         param: sinon.stub().withArgs('oid').returns('oid-1'),
         session: { branding: 'default' },
         options: route,
       } as unknown as Sails.Req;
       const forbidden = sinon.stub();
       const notFound = sinon.stub();
-      const res = { forbidden, notFound } as unknown as Sails.Res;
+      const res = { ...authorizationResponseStub(), forbidden, notFound } as unknown as Sails.Res;
       const sendView = sinon.stub(controller, 'sendView');
       (controller.recordsService.getMeta as sinon.SinonStub).resolves({ redboxOid: 'oid-1' });
       (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
 
       await controller.view(req, res);
 
-      expect(forbidden.calledOnce).to.be.true;
+      expect((res.status as sinon.SinonStub).calledOnceWithExactly(403)).to.be.true;
+      expect((res.json as sinon.SinonStub).firstCall.args[0]).to.include({ code: 'authorization.resource-denied' });
       expect(notFound.called).to.be.false;
       expect(sendView.called).to.be.false;
     });
@@ -697,6 +706,7 @@ describe('RecordController getWorkflowSteps', () => {
     for (const route of ['standard', 'named-form', 'record-type']) {
       it(`returns notFound for ${route} edit when the record lookup returns ${JSON.stringify(missingRecord)}`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'record.update' }),
           param: sinon.stub().callsFake((name: string) => {
             if (name === 'oid') return 'deleted-oid';
             if (name === 'recordType' && route === 'record-type') return 'rdmp';
@@ -707,13 +717,14 @@ describe('RecordController getWorkflowSteps', () => {
           options: { locals: route === 'named-form' ? { localFormName: 'form-1' } : {} },
         } as unknown as Sails.Req;
         const notFound = sinon.stub();
-        const res = { notFound } as unknown as Sails.Res;
+        const res = { ...authorizationResponseStub(), notFound } as unknown as Sails.Res;
         const sendView = sinon.stub(controller, 'sendView');
         (controller.recordsService.getMeta as sinon.SinonStub).resolves(missingRecord);
 
         await controller.edit(req, res);
 
-        expect(notFound.calledOnce).to.be.true;
+        expect((res.status as sinon.SinonStub).calledOnceWithExactly(404)).to.be.true;
+        expect((res.json as sinon.SinonStub).firstCall.args[0]).to.include({ code: 'authorization.not-found' });
         expect(sendView.called).to.be.false;
         expect((FormsService.getFormByName as sinon.SinonStub).called).to.be.false;
         expect((FormsService.getFormByStartingWorkflowStep as sinon.SinonStub).called).to.be.false;
@@ -723,6 +734,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('returns a server error without rendering the editor when the record lookup fails', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
       query: {},
       session: { branding: 'default' },
@@ -742,33 +754,31 @@ describe('RecordController getWorkflowSteps', () => {
 
   for (const apiVersion of ['1.0', '2.0']) {
     for (const edit of ['true', 'false']) {
-      it(`returns a missing-record 404 for a deleted record's form (API ${apiVersion}, edit=${edit})`, async () => {
+      it(`returns an authorization 404 for a deleted record's form (API ${apiVersion}, edit=${edit})`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'form.read' }),
           param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'deleted-oid' : 'auto'),
           query: { apiVersion, edit },
           session: { branding: 'default' },
         } as unknown as Sails.Req;
         const status = sinon.stub().returnsThis();
         const json = sinon.stub().returnsThis();
-        const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+        const res = { status, json, type: sinon.stub().returnsThis(), set: sinon.stub() } as unknown as Sails.Res;
         (controller.recordsService.getMeta as sinon.SinonStub).resolves(undefined);
 
         await controller.getForm(req, res);
 
         expect(status.calledOnceWithExactly(404)).to.be.true;
         expect(json.calledOnce).to.be.true;
-        if (apiVersion === '1.0') {
-          expect(json.firstCall.args[0]).to.include({ message: 'missing-record' });
-        } else {
-          expect(json.firstCall.args[0].errors[0]).to.include({ code: 'missing-record' });
-        }
+        expect(json.firstCall.args[0]).to.include({ status: 404, code: 'authorization.not-found' });
         expect((controller.recordsService.hasViewAccess as sinon.SinonStub).called).to.be.false;
       });
     }
 
     for (const edit of ['true', 'false']) {
-      it(`returns missing-record when the record disappears after page rendering (API ${apiVersion}, edit=${edit})`, async () => {
+      it(`returns an authorization 404 when the record disappears after page rendering (API ${apiVersion}, edit=${edit})`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'form.read' }),
           param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
           query: { apiVersion, edit },
           session: { branding: 'default' },
@@ -776,7 +786,7 @@ describe('RecordController getWorkflowSteps', () => {
         } as unknown as Sails.Req;
         const status = sinon.stub().returnsThis();
         const json = sinon.stub().returnsThis();
-        const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+        const res = { status, json, type: sinon.stub().returnsThis(), set: sinon.stub() } as unknown as Sails.Res;
         const sendView = sinon.stub(controller, 'sendView');
         const getMeta = controller.recordsService.getMeta as sinon.SinonStub;
         getMeta.onFirstCall().resolves({
@@ -792,17 +802,14 @@ describe('RecordController getWorkflowSteps', () => {
         expect(sendView.calledOnce).to.be.true;
         expect(sendView.firstCall.args[2]).to.equal(edit === 'true' ? 'record/edit' : 'record/view');
         (controller.recordsService.hasViewAccess as sinon.SinonStub).resetHistory();
+        (controller.recordsService.hasEditAccess as sinon.SinonStub).resetHistory();
 
         await controller.getForm(req, res);
 
         expect(getMeta.calledTwice).to.be.true;
         expect(status.calledOnceWithExactly(404)).to.be.true;
         expect(json.calledOnce).to.be.true;
-        if (apiVersion === '1.0') {
-          expect(json.firstCall.args[0]).to.include({ message: 'missing-record' });
-        } else {
-          expect(json.firstCall.args[0].errors[0]).to.include({ code: 'missing-record' });
-        }
+        expect(json.firstCall.args[0]).to.include({ status: 404, code: 'authorization.not-found' });
         expect((FormsService.getForm as sinon.SinonStub).called).to.be.false;
         expect((controller.recordsService.hasEditAccess as sinon.SinonStub).called).to.be.false;
         expect((controller.recordsService.hasViewAccess as sinon.SinonStub).called).to.be.false;
@@ -811,13 +818,14 @@ describe('RecordController getWorkflowSteps', () => {
       for (const lookup of ['record', 'form']) {
         it(`keeps code-500 ${lookup} lookup failures as server errors (API ${apiVersion}, edit=${edit})`, async () => {
           const req = {
+            ...authorizationRequestFixture({ scope: 'form.read' }),
             param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : 'auto'),
             query: { apiVersion, edit },
             session: { branding: 'default' },
           } as unknown as Sails.Req;
           const status = sinon.stub().returnsThis();
           const json = sinon.stub().returnsThis();
-          const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+          const res = { status, json, type: sinon.stub().returnsThis(), set: sinon.stub() } as unknown as Sails.Res;
           const lookupError = { error: { code: 500 }, message: 'Storage unavailable' };
           if (lookup === 'record') {
             (controller.recordsService.getMeta as sinon.SinonStub).rejects(lookupError);
@@ -845,13 +853,14 @@ describe('RecordController getWorkflowSteps', () => {
 
       it(`preserves permission errors for an existing form (API ${apiVersion}, edit=${edit})`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'form.read' }),
           param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : 'auto'),
           query: { apiVersion, edit },
           session: { branding: 'default' },
         } as unknown as Sails.Req;
         const status = sinon.stub().returnsThis();
         const json = sinon.stub().returnsThis();
-        const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+        const res = { status, json, type: sinon.stub().returnsThis(), set: sinon.stub() } as unknown as Sails.Res;
         (controller.recordsService.getMeta as sinon.SinonStub).resolves({ redboxOid: 'oid-1' });
         const access = controller.recordsService[edit === 'true' ? 'hasEditAccess' : 'hasViewAccess'] as sinon.SinonStub;
         access.returns(false);
@@ -859,12 +868,8 @@ describe('RecordController getWorkflowSteps', () => {
         await controller.getForm(req, res);
 
         expect(access.calledOnce).to.be.true;
-        expect(status.calledOnceWithExactly(500)).to.be.true;
-        if (apiVersion === '1.0') {
-          expect(json.firstCall.args[0]).to.include({ message: 'view-error-no-permissions' });
-        } else {
-          expect(json.firstCall.args[0].errors[0]).to.include({ code: 'view-error-no-permissions' });
-        }
+        expect(status.calledOnceWithExactly(403)).to.be.true;
+        expect(json.firstCall.args[0]).to.include({ status: 403, code: 'authorization.resource-denied' });
         expect((FormsService.getForm as sinon.SinonStub).called).to.be.false;
       });
     }
@@ -874,6 +879,7 @@ describe('RecordController getWorkflowSteps', () => {
     for (const recordType of ['rdmp', null]) {
       it(`uses saved record type ${JSON.stringify(recordType)} with a ${formSelection} form that has no configured type`, async () => {
         const req = {
+          ...authorizationRequestFixture({ scope: 'record.update' }),
           param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
           query: {},
           session: { branding: 'default' },
@@ -906,6 +912,7 @@ describe('RecordController getWorkflowSteps', () => {
   for (const formName of [undefined, null]) {
     it(`reports an unavailable form without mislabeling an existing record whose form is ${formName}`, async () => {
       const req = {
+        ...authorizationRequestFixture({ scope: 'record.update' }),
         param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
         query: { apiVersion: '2.0' },
         session: { branding: 'default' },
@@ -935,6 +942,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('renders a named create form without looking up an existing record', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       param: sinon.stub().callsFake((name: string) => name === 'recordType' ? 'rdmp' : ''),
       query: {},
       session: { branding: 'default' },
@@ -985,6 +993,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('uses create record type title on create routes', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       param: sinon.stub().callsFake((name: string) => (name === 'recordType' ? 'rdmp' : '')),
       query: {},
       session: { branding: 'default' },
@@ -1488,6 +1497,7 @@ describe('RecordController getWorkflowSteps', () => {
       })
     );
     const req = {
+      ...authorizationRequestFixture({ scope: 'form.read' }),
       param: sinon
         .stub()
         .callsFake((name: string) => (name === 'name' ? 'dataset' : name === 'formName' ? 'dataset-draft' : undefined)),
@@ -2141,12 +2151,13 @@ describe('RecordController getWorkflowSteps', () => {
     getMeta.rejects(new Error('private lookup failure'));
     resetAuthorizationResponse();
     await (controller as any).updateInternal(baseRequest, res);
-    expectAuthorizationProblem(404, 'authorization.not-found');
+    expect(sendResp.lastCall.args[2].errors).to.have.lengthOf(1);
 
     resetAuthorizationResponse();
     await controller.delete(baseRequest, res);
-    expectAuthorizationProblem(404, 'authorization.not-found');
+    expect(sendResp.lastCall.args[2].errors).to.have.lengthOf(1);
     expect(JSON.stringify((res.json as unknown as sinon.SinonStub).args)).not.to.include('private lookup failure');
+    sendResp.resetHistory();
 
     getMeta.resetBehavior();
     getMeta.resolves({
@@ -2580,10 +2591,11 @@ describe('AsynchController authorization', () => {
       let record: unknown = null;
       try {
         record = await recordsService.getMeta(oid);
-      } catch {
+      } catch (error) {
+        if (!(error instanceof Error && error.message.startsWith('Record not found:'))) throw error;
         record = null;
       }
-      if (record == null) return deniedResource(missingDecision);
+      if (_.isEmpty(record)) return deniedResource(missingDecision);
       return recordsService.hasViewAccess() ? allowedResource(allowedDecision, record) : deniedResource(deniedDecision);
     });
     controller = new AsynchControllers.Asynch();
@@ -2603,7 +2615,7 @@ describe('AsynchController authorization', () => {
       if (oid === 'record-1') {
         return { redboxOid: oid };
       }
-      throw new Error('not found');
+      throw new Error('Record not found: ' + oid);
     });
     (global as any).AsynchsService.get.callsFake(({ id }: { id: string }) =>
       of(id === 'job-1' ? [{ id, relatedRecordId: 'record-1' }] : [])
