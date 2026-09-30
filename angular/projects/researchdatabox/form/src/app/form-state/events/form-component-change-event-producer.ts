@@ -1,7 +1,9 @@
 import { AbstractControl } from '@angular/forms';
+import { isEqual } from 'lodash-es';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { createFieldValueChangedEvent, FormComponentEventType } from './form-component-event.types';
 import { FormComponentEventBaseProducerConsumer, FormComponentEventBindingOptions } from './form-component-base-event-producer-consumer';
+import { publishControlValueNotification, ValueNotificationCause } from '../control-value-notifications';
 
 /**
  * Wires `FormFieldBaseComponent` instances to the `FormComponentEventBus`.
@@ -45,8 +47,10 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 		this.scopedBus = this.eventBus.scoped(fieldId);
 		this.previousValue = control.value;
 
-		const sub = control.valueChanges.subscribe((value: unknown) => {
-			this.publishValueChanged(value);
+		const sub = control.valueChanges.subscribe(value => {
+			publishControlValueNotification(control, cause => {
+				this.publishValueChanged(value, cause);
+			});
 		});
 		this.subscriptions.set(FormComponentEventType.FIELD_VALUE_CHANGED, sub);
 		this.subscriptions.set(FormComponentEventType.FORM_DEFINITION_READY, 
@@ -82,9 +86,10 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 	 * Publishes value changed events to both the general and scoped event buses.
 	 * 
 	 * @param value 
+	 * @param cause handlers whose writes caused this change
 	 * @returns 
 	 */
-	private publishValueChanged(value: unknown): void {
+	private publishValueChanged(value: unknown, cause: ValueNotificationCause = {}): void {
 
     // Repeatable descendants keep their controls when earlier rows are removed.
     // Resolve the current lineage instead of continuing to publish the old index.
@@ -99,23 +104,20 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 
     const previousValue = this.previousValue;
 
-    // Only publish the event if the value has changed.
-    // Try a direct comparison first, then a structuredClone comparison.
-    if (value === previousValue) {
+    // Compare contents so replacing a control with an equivalent value does not notify dependants.
+    if (isEqual(value, previousValue)) {
       return;
     }
     const valueClone = structuredClone(value);
     const previousValueClone = structuredClone(previousValue);
-    if (valueClone === previousValueClone) {
-      return;
-    }
 
     // The general channel uses sourceId="*" to indicate broadcast
     const baseEvent = createFieldValueChangedEvent({
       fieldId: this.fieldId,
       value: valueClone,
       previousValue: previousValueClone,
-      sourceId: "*"
+      sourceId: "*",
+      ...cause
     });
 
 		this.eventBus.publish(baseEvent);
@@ -124,7 +126,8 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
       fieldId: this.fieldId,
       value: valueClone,
       previousValue: previousValueClone,
-      sourceId: this.fieldId
+      sourceId: this.fieldId,
+      ...cause
     });
 
     this.scopedBus?.publish(scopedEvent);

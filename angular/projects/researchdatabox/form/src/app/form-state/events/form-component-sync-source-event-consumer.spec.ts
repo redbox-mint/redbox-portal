@@ -151,6 +151,8 @@ describe('FormComponentSyncSourceEventConsumer', () => {
     };
     const { control, definition, component } = createSetup([expr]);
     control.setValue('existing');
+    const changed = jasmine.createSpy('value changed');
+    control.valueChanges.subscribe(changed);
 
     spyOn<any>(consumer, 'getMatchedExpressions').and.returnValue(Promise.resolve([expr]));
     spyOn<any>(consumer, 'evaluateExpressionJSONata').and.returnValue(Promise.resolve(null));
@@ -167,11 +169,8 @@ describe('FormComponentSyncSourceEventConsumer', () => {
     tick();
 
     expect(control.value).toBeNull();
-    expect(eventBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({
-      type: FormComponentEventType.FIELD_VALUE_CHANGED,
-      value: null,
-      previousValue: 'existing'
-    }));
+    expect(changed).toHaveBeenCalledOnceWith(null);
+    expect(control.pristine).toBeTrue();
   }));
 
   it('should still update when template returns empty array', fakeAsync(() => {

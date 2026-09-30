@@ -1559,8 +1559,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             const unknownMessageKey = _isEmpty(this.trimmedParams.oid())
               ? '@dmpt-form-save-unknown-create'
               : '@dmpt-form-save-unknown-update';
-            const failureMessage =
-              response.outcome === 'unknown'
+            // Retained conflict review state must not mask a different retry failure.
+            const failureMessage = this.formConflictState() && this.isRecordRevisionStaleConflict(response)
+              ? '@form-conflict-stale-title'
+              : response.outcome === 'unknown'
                 ? unknownMessageKey
                 : String(_get(response, 'message') ?? '').startsWith('@')
                   ? String(_get(response, 'message'))
@@ -2522,6 +2524,12 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       .filter(Boolean)
       .map(segment => segment.replace(/~1/g, '/').replace(/~0/g, '~'))
       .map(segment => (/^\d+$/.test(segment) ? Number(segment) : segment));
+  }
+
+  public canRetryFormLevelServerErrors(): boolean {
+    const errors = Object.keys(this.form?.errors ?? {});
+    return errors.length > 0 && errors.every(key => key.startsWith('server#')) &&
+      Object.values(this.form?.controls ?? {}).every(control => control.valid || control.disabled);
   }
 
   private clearServerSaveProblems(): void {

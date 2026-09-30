@@ -683,6 +683,82 @@ describe('OniService', function () {
     });
   });
 
+  it('publishes snake_case creators through the real metadata-only crate workflow without DOI or files', async function () {
+    const record = publicationRecord();
+    delete record.metadata.citation_doi;
+    record.metadata.accessRightsToggle = true;
+    record.metadata.dataLocations = [];
+    record.metadata.creators = [
+      {
+        given_name: 'Amelia',
+        family_name: 'Hartwell',
+        orcid: 'https://orcid.org/0000-0002-1825-0097',
+        email: 'amelia@example.test',
+      },
+    ];
+    oniPublishing.sites['test-site'].ingestion = {
+      enabled: true,
+      apiUrl: 'https://oni.example.test/api',
+      adminToken: 'test-token',
+      forceReindex: false,
+      pollIntervalMs: 1,
+      timeoutMs: 1000,
+    };
+    const repository = {
+      ensureStorageRoot: sinon.stub().resolves(),
+      ensureRootCollection: sinon.stub().resolves(),
+      writeDatasetObject: sinon.stub().resolves(),
+    };
+    const serviceInternals = service as unknown as Record<string, (...args: unknown[]) => unknown>;
+    sinon.stub(serviceInternals, 'createRepository').returns(repository);
+    const ingestion = sinon
+      .stub(ingestionModule, 'ingestOniRepository')
+      .resolves({ structuralObjects: 2, searchItems: 1 });
+
+    const published = await service.exportDataset(
+      'pub-1',
+      record,
+      { site: 'test-site', forceRun: true },
+      { email: 'approver@example.edu' }
+    );
+
+    expect(repository.writeDatasetObject.calledOnce).to.equal(true);
+    const written = repository.writeDatasetObject.firstCall.args[0];
+    expect(written.attachments).to.deep.equal([]);
+    const graph: Array<Record<string, unknown>> = JSON.parse(JSON.stringify(written.crateJson))['@graph'];
+    const root = graph.find(entity => entity['@id'] === written.rootId)!;
+    expect(root.hasPart).to.deep.equal([]);
+    expect(root.author).to.deep.equal([{ '@id': 'https://orcid.org/0000-0002-1825-0097' }]);
+    expect(graph.find(entity => entity['@id'] === 'https://orcid.org/0000-0002-1825-0097')).to.deep.include({
+      '@type': 'Person',
+      name: 'Amelia Hartwell',
+      givenName: 'Amelia',
+      familyName: 'Hartwell',
+      email: 'amelia@example.test',
+    });
+    expect(ingestion.calledOnce).to.equal(true);
+    expect(published.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
+    expect(published.metadata).not.to.have.property('citation_doi');
+    expect(published.metadata).not.to.have.property('publication_error');
+    const audit = (
+      global as unknown as {
+        IntegrationAuditService: {
+          startAudit: sinon.SinonStub;
+          completeAudit: sinon.SinonStub;
+          failAudit: sinon.SinonStub;
+        };
+      }
+    ).IntegrationAuditService;
+    expect(audit.startAudit.getCalls().map(call => call.args[1])).to.deep.equal([
+      IntegrationAuditAction.publishOniDataset,
+      IntegrationAuditAction.buildOniRoCrate,
+      IntegrationAuditAction.writeOniOcflObject,
+      IntegrationAuditAction.ingestOniDataset,
+    ]);
+    expect(audit.completeAudit.callCount).to.equal(4);
+    expect(audit.failAudit.called).to.equal(false);
+  });
+
   it('omits ingestion counts from the publish audit when ingestion is disabled', async function () {
     const serviceInternals = service as unknown as Record<string, (...args: unknown[]) => unknown>;
     sinon.stub(serviceInternals, 'createRepository').returns({});

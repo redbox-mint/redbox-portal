@@ -592,6 +592,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
                 if (type === "attachment") {
                     return {
                         type: "attachment",
+                        attachmentId: this.optionalString(item.attachmentId),
                         location: String(item.location ?? ""),
                         uploadUrl: String(item.uploadUrl ?? ""),
                         fileId: String(item.fileId ?? ""),
@@ -606,6 +607,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
                 return {
                     type: this.isManualDraftType(type) ? type : "url",
+                    attachmentId: this.optionalString(item.attachmentId),
                     location: String(item.location ?? ""),
                     notes: this.optionalString(item.notes),
                     isc: this.optionalString(item.isc)

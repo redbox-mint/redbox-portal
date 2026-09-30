@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { pipeline } from 'node:stream/promises';
 import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, map } from 'rxjs/operators';
 import {
@@ -2150,7 +2151,16 @@ export namespace Controllers {
           }
           res.attachment(found['name'] as string);
           if (response.readstream) {
-            response.readstream.pipe(res);
+            // The client may have disconnected while getDatastream was pending.
+            if (res.destroyed) {
+              if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
+                response.readstream.destroy();
+              } else {
+                response.readstream.resume();
+              }
+              return;
+            }
+            await pipeline(response.readstream, res);
           } else {
             const body = response.body ?? '';
             const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
@@ -2158,6 +2168,13 @@ export namespace Controllers {
           }
           return of(oid);
         } catch (error) {
+          if (res.destroyed) {
+            const code = error instanceof Error && 'code' in error ? error.code : undefined;
+            if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {
+              sails.log.error('Attachment download failed', error);
+            }
+            return;
+          }
           const errorMessage = this.getErrorMessage(error);
           if (this.isAjax(req)) {
             return this.sendResp(req, res, { errors: [this.asError(error)], v1: errorMessage });
@@ -2387,7 +2404,16 @@ export namespace Controllers {
             username: String(req.user?.username ?? '') || undefined,
           });
           if (response.readstream) {
-            response.readstream.pipe(res);
+            // The client may have disconnected while getDatastream was pending.
+            if (res.destroyed) {
+              if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
+                response.readstream.destroy();
+              } else {
+                response.readstream.resume();
+              }
+              return;
+            }
+            await pipeline(response.readstream, res);
           } else {
             const body = response.body ?? '';
             const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
@@ -2395,6 +2421,13 @@ export namespace Controllers {
           }
           return of(oid);
         } catch (error) {
+          if (res.destroyed) {
+            const code = error instanceof Error && 'code' in error ? error.code : undefined;
+            if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {
+              sails.log.error('Attachment download failed', error);
+            }
+            return;
+          }
           const errorMessage = this.getErrorMessage(error);
           if (this.isAjax(req)) {
             return this.sendResp(req, res, { errors: [this.asError(error)], v1: errorMessage });

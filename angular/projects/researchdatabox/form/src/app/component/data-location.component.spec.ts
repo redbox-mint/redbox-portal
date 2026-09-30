@@ -3,6 +3,7 @@ import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { DataLocationComponent } from "./data-location.component";
+import { FormComponentEventBus, createFormSaveSuccessEvent } from "../form-state/events";
 
 class FakeUppy {
     public plugins: Record<string, any> = {};
@@ -85,6 +86,45 @@ describe("DataLocationComponent", () => {
         const fixture = TestBed.createComponent(DataLocationComponent);
         expect(fixture.componentInstance).toBeDefined();
     });
+
+    for (const action of ["edit notes", "save success"]) {
+        it(`preserves persisted attachment identity after ${action}`, async () => {
+            const formConfig: FormConfigFrame = {
+                name: "attachment_identity",
+                componentDefinitions: [{
+                    name: "dataLocations",
+                    component: { class: "DataLocationComponent" },
+                    model: {
+                        class: "DataLocationModel",
+                        config: { defaultValue: [] }
+                    }
+                }]
+            };
+            const { fixture } = await createFormAndWaitForReady(formConfig, {
+                oid: "oid-1", editMode: true, recordType: "testing",
+                formName: "attachment_identity", downloadAndCreateOnInit: false
+            });
+            const component: DataLocationComponent = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance;
+            component.formControl.setValue([
+                { type: "attachment", attachmentId: "stable-id", fileId: "file-1",
+                  name: "existing.txt", location: "/record/oid-1/attach/file-1",
+                  uploadUrl: "http://localhost/record/oid-1/attach/file-1", pending: false },
+                { type: "url", attachmentId: "url-id", location: "https://example.org/data", notes: "Original" }
+            ]);
+            if (action === "edit notes") {
+                component.startEditNotes(1);
+                component.editingNotesValue = "Changed URL notes";
+                component.applyEditNotes();
+            } else {
+                TestBed.inject(FormComponentEventBus).publish(createFormSaveSuccessEvent({ oid: "oid-1" }));
+            }
+            await fixture.whenStable();
+            expect(component.formControl.value[0]).toEqual(jasmine.objectContaining({
+                attachmentId: "stable-id", fileId: "file-1", location: "/record/oid-1/attach/file-1"
+            }));
+            expect(component.formControl.value[1].attachmentId).toBe("url-id");
+        });
+    }
 
     it("defaults to URL when no data type placeholder is configured", async () => {
         const formConfig: FormConfigFrame = {

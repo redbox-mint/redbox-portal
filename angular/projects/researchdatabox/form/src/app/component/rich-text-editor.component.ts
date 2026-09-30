@@ -251,8 +251,9 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   }
 
   /**
-   * Invoked by the framework after expression-driven `model.value` updates,
-   * which use emitEvent:false and therefore bypass the valueChanges subscription.
+   * Invoked by the framework after expression-driven `model.value` updates so
+   * the write can await the editor, and after silent writes that bypass the
+   * valueChanges subscription.
    *
    * Without this, a "populate from related record" expression updates the model
    * but leaves the editor rendering its stale (usually empty) document.

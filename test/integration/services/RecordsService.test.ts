@@ -62,6 +62,63 @@ describe('The RecordsService', function () {
     }
   });
 
+  it('stores sequential workspace associations from null as an array through WorkspaceService and Mongo', async function () {
+    const oid = `workspace-associations-${Date.now()}`;
+    const brand = BrandingService.getDefault();
+    const user = { username: 'admin', roles: [{ name: 'Admin' }] };
+    const storage = sails.services.mongostorageservice;
+    const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+    const metadata = { title: 'Workspace association regression', workspaces: null, unrelated: { retained: true } };
+    const created = await storage.create(
+      brand,
+      {
+        redboxOid: oid,
+        revision: 0,
+        harvestId: '',
+        metadata,
+        metaMetadata: {
+          type: recordType.name,
+          packageType: recordType.packageType,
+          brandId: brand.id,
+          createdBy: user.username,
+          searchCore: 'default',
+          form: 'default-1.0-draft',
+          attachmentFields: [],
+        },
+        workflow: { stage: 'draft', stageLabel: 'Draft' },
+        authorization: {
+          edit: [user.username],
+          view: [user.username],
+          editRoles: [],
+          viewRoles: [],
+          editPending: [],
+          viewPending: [],
+        },
+      },
+      {},
+      user
+    );
+    expect(created.success).to.equal(true);
+    createdOids.push(oid);
+
+    const workspaceService = sails.services.workspaceservice;
+    const first = { id: 'workspace-first', reference: 'RDS-FIRST', capacity: '100 GB' };
+    const second = { id: 'workspace-second', reference: 'RDS-SECOND', capacity: '200 GB' };
+    for (const association of [first, second, { ...first }]) {
+      const result = await workspaceService.addWorkspaceToRecord(
+        oid,
+        association.id,
+        { ...association },
+        undefined,
+        user
+      );
+      expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+    }
+
+    const stored = await recordsService.getMeta(oid);
+    expect(stored.metadata).to.deep.include({ ...metadata, workspaces: [first, second] });
+  });
+
   it('resolves record permissions to user summaries and preserves pending access metadata', async function () {
     const suffix = Date.now().toString();
     const editorUsername = `recordaudit-editor-${suffix}`;

@@ -968,8 +968,8 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       .subscribe(() => this.syncSelectionFromModel());
   }
 
-  // Invoked by the framework after expression-driven model.value updates,
-  // which use emitEvent:false and therefore bypass the valueChanges subscription.
+  // Invoked by the framework after expression-driven model.value updates so the
+  // write can await the display sync; concurrent calls share one queued sync.
   public async syncDisplayFromModel(): Promise<void> {
     if (this.displaySyncInFlight) {
       this.displaySyncQueued = true;

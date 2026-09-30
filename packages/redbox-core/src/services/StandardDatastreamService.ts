@@ -964,8 +964,6 @@ export namespace Services {
         throw new Error(`Attachment not found: ${destKey}`);
       }
 
-      const readstream: Readable = await primaryDisk.getStream(destKey);
-
       const metadataService = this.attachmentMetadataService();
       const metadataRow = await metadataService?.findOneByStorageKey(destKey);
 
@@ -993,6 +991,9 @@ export namespace Services {
         }
       }
 
+      // Resolve metadata before opening the body: an unread S3 stream holds a
+      // connection that a subsequent metadata request may need to acquire.
+      const readstream: Readable = await primaryDisk.getStream(destKey);
       await this.safelyRecordAccess({
         oid,
         fileId,

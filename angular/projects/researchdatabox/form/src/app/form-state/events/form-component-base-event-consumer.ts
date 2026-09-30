@@ -1,6 +1,5 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
-  createFieldValueChangedEvent,
   FormComponentEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
@@ -14,12 +13,11 @@ import {
   FormExpressionsConfigFrame,
   ExpressionsConditionKind,
   ExpressionsConditionKindType,
-  FormExpressionsTargetModelValue,
   FormExpressionsTargetValidationGroups,
   DynamicScriptResponse,
   jsonataDecodeCompile,
 } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, isEqual as _isEqual } from 'lodash-es';
+import { isEmpty as _isEmpty } from 'lodash-es';
 import { isTypeFormValidationGroupsChangeRequestInfo } from '../custom-set-value.control';
 import { applyExpressionTarget } from '../apply-expression-target';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
@@ -55,6 +53,10 @@ export interface FormComponentEventJSONataQueryMatchOptions extends FormComponen
  * evaluation context, and target mutation.
  */
 export abstract class FormComponentEventBaseConsumer extends FormComponentEventBaseProducerConsumer {
+  private static nextConsumerId = 0;
+  /** Distinguishes this binding's expressions in event expression chains. */
+  private readonly consumerId = FormComponentEventBaseConsumer.nextConsumerId++;
+
   /** Cache for the compiled items module */
   protected compiledItemsCache?: DynamicScriptResponse;
 
@@ -342,7 +344,11 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     this.setupQuerySourceUpdateListener();
 
     const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
-      const hasConditionMatches = await this.getMatchedExpressions(event, this.expressions!);
+      // An expression never reacts to a change caused by its own write, directly or via other handlers.
+      const expressions = this.expressions!.filter(
+        expr => !event.expressionChain?.includes(this.getExpressionChainId(expr))
+      );
+      const hasConditionMatches = await this.getMatchedExpressions(event, expressions);
       if (hasConditionMatches) {
         for (const expr of hasConditionMatches) {
           await this.consumeEvent(event, expr);
@@ -491,9 +497,6 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
       return;
     }
 
-    const control = exprTarget === FormExpressionsTargetModelValue ? this.model?.formControl : undefined;
-    const previousValue = control?.value;
-
     await applyExpressionTarget(
       exprTarget,
       targetValue,
@@ -508,23 +511,16 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         logger: this.loggerService,
         broadcastFormStatus: () => this.formComp?.broadcastFormStatus(),
         eventFieldId: event.fieldId,
+        cause: {
+          ...(event.behaviourChain ? { behaviourChain: event.behaviourChain } : {}),
+          expressionChain: [...(event.expressionChain ?? []), this.getExpressionChainId(expression)],
+        },
       }
     );
+  }
 
-    // Silent control writes bypass the regular value-change producer. Publish
-    // the resulting change so expressions depending on this field can run.
-    if (control && !_isEqual(previousValue, control.value)) {
-      const fieldId = this.options && this.resolveFieldId(this.options);
-      if (fieldId) {
-        this.eventBus.publish(createFieldValueChangedEvent({
-          fieldId,
-          sourceId: '*',
-          value: control.value,
-          previousValue,
-          behaviourChain: event.behaviourChain,
-        }));
-      }
-    }
+  protected getExpressionChainId(expression: FormExpressionsConfigFrame): string {
+    return `${this.consumerId}:${this.expressions?.indexOf(expression) ?? -1}`;
   }
 
   /**

@@ -387,6 +387,7 @@ describe('FormComponent', () => {
     const updateSpy = spyOn(formComponent.recordService, 'update').and.callFake(
       () => new Promise<RecordActionResult>(resolve => (resolveSave = resolve))
     );
+    const publishSpy = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
     const savePromise = formComponent.saveForm();
     await Promise.resolve();
     formComponent.form?.get('title')?.setValue('Edited while saving');
@@ -414,6 +415,10 @@ describe('FormComponent', () => {
       })
     );
     expect(formComponent.recordBaseline()?.metadata).toEqual({ title: 'Loaded title' });
+    expect(publishSpy).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: FormComponentEventType.FORM_SAVE_FAILURE,
+      error: '@form-conflict-stale-title',
+    }));
   });
 
   it('keeps conflict state component-scoped and never creates it for unknown outcomes', () => {
@@ -818,10 +823,13 @@ describe('FormComponent', () => {
     const { fixture, formComponent } = await createConcurrencyTestForm();
     formComponent.form?.get('title')?.setValue('Mine');
     formComponent.form?.get('title')?.markAsDirty();
+    const failureResponse = retryFailureResponse('not-saved');
+    failureResponse.message = '@dmpt-form-invalid';
     const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
       Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })),
-      Promise.resolve(retryFailureResponse('not-saved'))
+      Promise.resolve(failureResponse)
     );
+    const publishSpy = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
 
     await formComponent.saveForm();
     fixture.detectChanges();
@@ -831,6 +839,11 @@ describe('FormComponent', () => {
     expect(formComponent.form?.dirty).toBeTrue();
     expect(formComponent.saveResponse()?.outcome).toBe('not-saved');
     expect(fixture.nativeElement.textContent).toContain('Download my edits');
+    expect(publishSpy).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: FormComponentEventType.FORM_SAVE_FAILURE,
+      error: failureResponse.message,
+      response: failureResponse,
+    }));
   });
 
   it('requires reload after an unknown automatic retry without leaving recovery disabled', async () => {
@@ -841,6 +854,7 @@ describe('FormComponent', () => {
       Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })),
       Promise.resolve(retryFailureResponse('unknown'))
     );
+    const publishSpy = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
 
     await formComponent.saveForm();
     fixture.detectChanges();
@@ -856,6 +870,10 @@ describe('FormComponent', () => {
     expect(formComponent.manualConflictMergeAllowed).toBeFalse();
     expect(fixture.nativeElement.textContent).toContain('Download my edits');
     expect(fixture.nativeElement.textContent).toContain('Load current form');
+    expect(publishSpy).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: FormComponentEventType.FORM_SAVE_FAILURE,
+      error: '@dmpt-form-save-unknown-update',
+    }));
 
     const recoverySteps: string[] = [];
     spyOn(formComponent, 'exportConflictLocalValues').and.callFake(() => {
@@ -1744,6 +1762,17 @@ describe('FormComponent', () => {
 
     expect(formComponent.form.invalid).toBeTrue();
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it('keeps conflict recovery separate from form validation errors', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    const response = staleSaveResponse();
+    response.problems[0].issues.push({ field: 'title', code: 'record-revision-stale', message: 'The record changed.' });
+    (formComponent as any).captureConflictResponse(response);
+    (formComponent as any).applyServerSaveProblems(response);
+    expect(formComponent.conflictState()).not.toBeNull();
+    expect(formComponent.form?.errors).toBeNull();
+    expect(formComponent.form!.get('title')!.errors).toBeNull();
   });
 
   it('replaces prior server errors with uniquely keyed translated save issues', function () {

@@ -121,6 +121,7 @@ describe('WorkspaceService', function() {
       expect(args[0]).to.equal(targetRecordOid);
       expect(args[1].id).to.equal(workspaceOid);
       expect(args[2]).to.equal('metadata.workspaces');
+      expect(args[3]).to.equal('array');
       expect(args[5]).to.equal(user);
     });
 

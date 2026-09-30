@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { pipeline } from 'node:stream/promises';
 import { firstValueFrom, from } from 'rxjs';
 import * as path from 'path';
 import {
@@ -1226,20 +1227,32 @@ export namespace Controllers {
             username: String(req.user?.username ?? '') || undefined,
           });
           if (response.readstream) {
-            response.readstream.on('error', () => {
-              sails.log.error('record_datastream_stream_failed', {
-                event: 'record_datastream_stream_failed',
-              });
+            // The client may have disconnected while getDatastream was pending.
+            if (res.destroyed) {
+              if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
+                response.readstream.destroy();
+              } else {
+                response.readstream.resume();
+              }
               return;
-            });
-            response.readstream.pipe(res);
+            }
+            await pipeline(response.readstream, res);
           } else {
             const body = response.body ?? '';
             const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
             res.end(buffer, 'binary');
           }
           return;
-        } catch {
+        } catch (error) {
+          if (res.destroyed) {
+            const code = error instanceof Error && 'code' in error ? error.code : undefined;
+            if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {
+              sails.log.error('record_datastream_stream_failed', {
+                event: 'record_datastream_stream_failed',
+              });
+            }
+            return;
+          }
           return this.sendResp(req, res, {
             status: 500,
             displayErrors: [{ detail: 'There was a problem with the upstream request.' }],

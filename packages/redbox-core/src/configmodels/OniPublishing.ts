@@ -42,6 +42,27 @@ export type OniValueBinding =
   | { kind: 'handlebars'; template: string; defaultValue?: unknown }
   | { kind: 'jsonata'; expression: string; defaultValue?: unknown };
 
+// Keep name normalization in the configurable default bindings. Meaningful full
+// names win; each name part prefers camelCase and falls back to snake_case.
+function defaultCreatorNameBinding(value: string): OniValueBinding {
+  return {
+    kind: 'jsonata',
+    expression: `(
+      $clean := function($value) {
+        $type($value) = "string" ? (
+          $trimmed := $trim($value);
+          $contains($trimmed, /\\b(undefined|null)\\b/i) ? "" : $trimmed
+        ) : ""
+      };
+      $givenName := $clean(item.givenName) ? $clean(item.givenName) : $clean(item.given_name);
+      $familyName := $clean(item.familyName) ? $clean(item.familyName) : $clean(item.family_name);
+      $fullName := $clean(item.text_full_name);
+      $name := $fullName ? $fullName : $trim($givenName & " " & $familyName);
+      ${value}
+    )`,
+  };
+}
+
 export interface OniDatasetFieldMapping {
   property: string;
   value: OniValueBinding;
@@ -262,12 +283,16 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
       {
         sourcePath: 'metadata.creators',
         itemMode: 'array',
-        id: { kind: 'jsonata', expression: 'item.orcid ? item.orcid : item.email ? item.email : item.text_full_name' },
+        // Retain existing full-name identifiers; derive one only for the newly
+        // supported name-only shapes, after the established ORCID/email priority.
+        id: defaultCreatorNameBinding(
+          'item.orcid ? item.orcid : item.email ? item.email : $fullName ? item.text_full_name : $name'
+        ),
         type: { kind: 'path', path: 'context.personType', defaultValue: 'Person' },
         fields: [
-          { property: 'name', value: { kind: 'path', path: 'item.text_full_name' } },
-          { property: 'givenName', value: { kind: 'path', path: 'item.givenName' } },
-          { property: 'familyName', value: { kind: 'path', path: 'item.familyName' } },
+          { property: 'name', value: defaultCreatorNameBinding('$name') },
+          { property: 'givenName', value: defaultCreatorNameBinding('$givenName') },
+          { property: 'familyName', value: defaultCreatorNameBinding('$familyName') },
           { property: 'email', value: { kind: 'path', path: 'item.email' } },
           { property: 'affiliation', value: { kind: 'path', path: 'organization' } },
         ],

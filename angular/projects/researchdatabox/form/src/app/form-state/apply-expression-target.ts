@@ -1,3 +1,4 @@
+import { isEqual } from 'lodash-es';
 import { FormFieldBaseComponent, FormFieldModel, LoggerService } from '@researchdatabox/portal-ng-common';
 import {
   FormExpressionsTargetComponentPrefix,
@@ -13,7 +14,7 @@ import { FormComponentEventBus } from './events/form-component-event-bus.service
 import { createFormValidationGroupsChangeRequestEvent } from './events/form-component-event.types';
 import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from './custom-set-value.control';
 import { CustomDisplaySyncComponentLike, syncComponentDisplayFromModel } from './custom-display-sync.control';
-import { isEqual } from 'lodash-es';
+import { ValueNotificationCause, withExpressionValueNotifications } from './control-value-notifications';
 
 /**
  * The pieces of a form field that expression targets can mutate.
@@ -42,13 +43,18 @@ export interface ApplyExpressionTargetContext {
   broadcastFormStatus?: () => void;
   /** fieldId attached to published validation-groups change-request events. */
   eventFieldId?: string;
+  /**
+   * Handlers attached to value notifications from a `model.value` write. A
+   * handler skips events it caused, so write cycles stop after one pass.
+   */
+  cause?: ValueNotificationCause;
 }
 
 /**
  * Apply an expression target mutation to a field host.
  *
  * Supported targets:
- * - `model.value` → the model's form control value (silent write + display sync)
+ * - `model.value` → the model's form control value (value change notification + display sync)
  * - `model.disabled` → the model's disabled state
  * - `layout.[prop]` / `component.[prop]` → arbitrary layout/component property
  * - `field.visible` → convenience: `component.visible` + `layout.visible`
@@ -70,14 +76,14 @@ export async function applyExpressionTarget(
   if (target === FormExpressionsTargetModelValue) {
     // The model.value property must be handled specially.
     if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
-      await setControlValue(host.model.formControl, targetValue, { emitEvent: false });
+      const control = host.model.formControl;
+      await withExpressionValueNotifications(control, async options => {
+        // Validate once, retaining Angular's asynchronous validation events.
+        await setControlValue(control, targetValue, options);
+      }, ctx.cause);
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
-      // setControlValue with emitEvent:false suppresses Angular's
-      // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,
-      // listeners like SaveButtonComponent never see that an expression-driven
-      // update flipped the form to valid (e.g. a downstream "required" target
-      // becoming populated), and the Save button stays disabled. Re-emit the
-      // current form status so signal-effect consumers can re-evaluate.
+      // Propagate populated values to dependent fields, then refresh form status
+      // after asynchronous custom-control/display updates have completed.
       ctx.broadcastFormStatus?.();
     }
 

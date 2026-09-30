@@ -35,13 +35,46 @@ import {
   FormComponentEventBus,
 } from '../form-state';
 import { CustomSetValueControl } from '../form-state/custom-set-value.control';
+import { withWriteOptions } from '../form-state/control-value-notifications';
 import { FormComponent } from '../form.component';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
 type RepeatableSetValueOptions = ModifyOptions;
+/** Applies a row's form-model change, letting replacement observe its final change. */
+type ModelChange = (change: () => void) => void;
 
 class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements CustomSetValueControl<Array<unknown>> {
   public customValueSetter?: (value: Array<unknown>, options?: RepeatableSetValueOptions) => Promise<void> | void;
+  /** onlySelf for the update run by an in-progress collection change, which Angular does not forward. */
+  private collectionOnlySelf = false;
+
+  override push(control: AbstractControl<unknown> | AbstractControl<unknown>[], options: RepeatableSetValueOptions = {}): void {
+    this.changeCollection(options, () => super.push(control, options));
+  }
+
+  override insert(index: number, control: AbstractControl<unknown>, options: RepeatableSetValueOptions = {}): void {
+    this.changeCollection(options, () => super.insert(index, control, options));
+  }
+
+  override removeAt(index: number, options: RepeatableSetValueOptions = {}): void {
+    this.changeCollection(options, () => super.removeAt(index, options));
+  }
+
+  override updateValueAndValidity(options: RepeatableSetValueOptions = {}): void {
+    // Consume the flag so updates triggered by subscribers are unaffected.
+    const onlySelf = this.collectionOnlySelf;
+    this.collectionOnlySelf = false;
+    super.updateValueAndValidity(onlySelf ? { ...options, onlySelf } : options);
+  }
+
+  private changeCollection(options: RepeatableSetValueOptions, change: () => void): void {
+    this.collectionOnlySelf = options.onlySelf === true;
+    try {
+      change();
+    } finally {
+      this.collectionOnlySelf = false;
+    }
+  }
 
   public async setCustomValue(value: Array<unknown>, options?: RepeatableSetValueOptions): Promise<void> {
     if (this.customValueSetter) {
@@ -510,7 +543,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return elementTemplateModelConfig?.newEntryValue ?? elementTemplateModelConfig?.value;
   }
 
-  public async appendNewElement(value?: any, markFormDirty: boolean = true, options?: RepeatableSetValueOptions) {
+  public async appendNewElement(
+    value?: any,
+    markFormDirty: boolean = true,
+    options?: RepeatableSetValueOptions,
+    applyModelChange: ModelChange = change => change()
+  ) {
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -518,7 +556,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       value = this.getElementTemplateDefaultValue();
     }
     const elemEntry = this.createFieldNewMapEntry(this.elemInitFieldEntry, value, options);
-    await this.createElement(elemEntry, options);
+    await this.createElement(elemEntry, options, applyModelChange);
     if (markFormDirty && this.shouldEmitComponentEvents(options)) {
       this.requestFormDirty('repeatable.element.appended');
     }
@@ -535,24 +573,46 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       control.length === nextValues.length && nextValues.every((value, index) =>
         this.hasSameValueShape(control.at(index).getRawValue(), value))) {
       control.setValue(nextValues, options);
-      if (this.shouldEmitComponentEvents(options)) {
-        this.requestFormDirty('repeatable.value.replaced');
+      return;
+    }
+
+    const appendValues = nextValues.length === 0 && !this.allowZeroRows ? [undefined] : nextValues;
+    const removeCount = this.compDefMapEntries.length;
+    if (removeCount + appendValues.length === 0) {
+      return;
+    }
+    // Intermediate rows change silently. Only the final change uses the caller's
+    // options, so dependants see one complete array that is validated once, and
+    // an expression write can attribute the change to itself by those options.
+    // Programmatic replacement is not a user deletion, so it does not dirty the form.
+    const rowOptions: RepeatableSetValueOptions = { ...options, emitEvent: false };
+    let finalChangeApplied = false;
+    const applyFinalChange: ModelChange = change => {
+      finalChangeApplied = true;
+      change();
+    };
+
+    try {
+      for (let removed = 1; removed <= removeCount; removed++) {
+        const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
+        const isFinal = removed === removeCount && appendValues.length === 0;
+        const removeElement = this.removeElementFn(lastEntry, isFinal ? options : rowOptions, false);
+        if (isFinal) {
+          applyFinalChange(removeElement);
+        } else {
+          removeElement();
+        }
       }
-      return;
-    }
-
-    while (this.compDefMapEntries.length > 0) {
-      const lastEntry = this.compDefMapEntries[this.compDefMapEntries.length - 1];
-      this.removeElementFn(lastEntry, options)();
-    }
-
-    if (nextValues.length === 0 && !this.allowZeroRows) {
-      await this.appendNewElement(undefined, false, options);
-      return;
-    }
-
-    for (const value of nextValues) {
-      await this.appendNewElement(value, false, options);
+      for (const [index, value] of appendValues.entries()) {
+        const isFinal = index === appendValues.length - 1;
+        await this.appendNewElement(value, false, isFinal ? options : rowOptions, isFinal ? applyFinalChange : undefined);
+      }
+    } finally {
+      if (!finalChangeApplied) {
+        // The final row change failed or was skipped; still publish the resulting state.
+        this.rebuildLineagePaths(options);
+        this.model?.formControl?.updateValueAndValidity(options);
+      }
     }
   }
 
@@ -585,6 +645,10 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       entry.lineagePaths = lineagePath;
       if (previous) this.rebaseDescendantLineage(entry.component?.formFieldCompMapEntries ?? [], previous, lineagePath);
     }
+    this.publishDefinitionChange(options);
+  }
+
+  protected publishDefinitionChange(options?: RepeatableSetValueOptions) {
     if (!this.shouldEmitComponentEvents(options)) {
       return;
     }
@@ -696,17 +760,24 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     };
   }
 
-  protected async createElement(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions) {
+  protected async createElement(
+    elemEntry: RepeatableElementEntry,
+    options?: RepeatableSetValueOptions,
+    applyModelChange: ModelChange = change => change()
+  ) {
     const elemFieldEntry = elemEntry.defEntry;
     // Pushing early so rebuilding the lineage paths will be accurate
     this.compDefMapEntries.push(elemEntry);
     this.updateCanRemoveFlags();
-    this.rebuildLineagePaths(options);
+    // The element needs its lineage paths to initialise, but the definition change is published
+    // afterwards so the query source includes the element's nested components.
+    this.rebuildLineagePaths({ ...options, emitEvent: false });
     // Create a new component for the repeatable element
     const wrapperRef = this.repeatableContainer.createComponent(FormBaseWrapperComponent<unknown>);
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
+    this.publishDefinitionChange(options);
     const layoutInstance = elemFieldEntry.layout as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
     if (!layoutInstance) {
       this.loggerService.warn(`${this.logName}: repeatable element layout was not initialised for`, elemFieldEntry);
@@ -722,7 +793,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     elemEntry.layoutInstance = layoutInstance;
     this.updateCanSortFlags();
     if (this.model?.formControl && compInstance?.model) {
-      this.model.addElement(compInstance.model, options);
+      const elementModel = compInstance.model;
+      applyModelChange(() => this.model?.addElement(elementModel, options));
     } else {
       this.loggerService.warn(
         `${this.logName}: model or formControl is not defined, not adding the element's form control to the 'this.formControl'. If any data is missing, this is why.`
@@ -732,7 +804,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     return wrapperRef;
   }
 
-  public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions) {
+  public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions, markFormDirty = true) {
     const that = this;
     return function () {
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
@@ -749,7 +821,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         try {
           elemEntry.wrapperRef?.destroy();
           that.model?.removeElement(elemEntry.defEntry?.model, options);
-          if (that.shouldEmitComponentEvents(options)) {
+          if (markFormDirty && that.shouldEmitComponentEvents(options)) {
             that.requestFormDirty('repeatable.element.removed');
           }
           that.updateCanRemoveFlags();
@@ -763,7 +835,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
       that.compDefMapEntries.splice(defIdx, 1);
       elemEntry.wrapperRef?.destroy();
       that.model?.removeElement(elemEntry.defEntry?.model, options);
-      if (that.shouldEmitComponentEvents(options)) {
+      if (markFormDirty && that.shouldEmitComponentEvents(options)) {
         that.requestFormDirty('repeatable.element.removed');
       }
       that.updateCanRemoveFlags();
@@ -869,7 +941,8 @@ export class RepeatableComponentModel extends FormFieldModel<Array<unknown>> {
     const control = targetModel?.getFormControl();
     if (this.formControl && control) {
       if (this.formControl.disabled && control.enabled) {
-        control.disable();
+        // Not silent: row components such as typeahead sync their display from statusChanges.
+        withWriteOptions(options, () => control.disable());
       }
       this.formControl.push(control, options);
     } else {

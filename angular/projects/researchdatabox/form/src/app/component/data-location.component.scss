@@ -1,3 +1,8 @@
+.table-responsive {
+  // Keep the absolutely positioned screen-reader heading inside the scroll area.
+  position: relative;
+}
+
 .data-location-notes-cell,
 .data-location-action-cell {
   vertical-align: middle;

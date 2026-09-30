@@ -218,7 +218,9 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected readonly errorMessage = computed(() => this.formStateFacade.error() ?? '');
-  protected readonly messageType = computed<SaveStatusMessageType>(() => this.messageState());
+  protected readonly messageType = computed<SaveStatusMessageType>(() =>
+    this.messageState() === 'error' && !this.errorMessage() ? null : this.messageState()
+  );
   protected readonly errorPrefix = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-error' : '@dmpt-form-save-error');
   protected readonly successMessage = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-success' : '@dmpt-form-save-success');
   protected readonly warningMessage = computed(() => {
