@@ -62,6 +62,6 @@ export class PortalApi {
     const options = { data, headers: { 'X-CSRF-Token': this.token, ...headers } };
     if (method === 'post') return this.request.post(url, options);
     if (method === 'put') return this.request.put(url, options);
-    return this.request.delete(url, { headers: options.headers });
+    return this.request.delete(url, options);
   }
 }

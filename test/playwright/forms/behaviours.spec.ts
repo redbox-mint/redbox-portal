@@ -61,8 +61,8 @@ test('F09 behaviour events-errors handles early input during compiled loading an
     await openScenario(adminPage, 'behaviour-events-errors');
     expect((await gate.waitForCapture()).ok()).toBeTruthy();
     await expect(adminPage.locator('.rb-form-components')).not.toHaveAttribute('aria-hidden', 'true');
-    diagnostics.expectFailure({ kind: 'response', method: 'GET', url, status: 500, count: 1, reason: 'The storage service throws on the deliberately nonexistent record; the portal returns a real lookup error.' });
-    diagnostics.expectFailure({ kind: 'console', url, message: /Failed to load resource.*500/, count: 1, reason: 'Chromium reports the same nonexistent-record response.' });
+    diagnostics.expectFailure({ kind: 'response', method: 'GET', url, status: 404, count: 1, reason: 'The deliberately nonexistent record returns a missing-record lookup error.' });
+    diagnostics.expectFailure({ kind: 'console', url, message: /Failed to load resource.*404/, count: 1, reason: 'Chromium reports the same nonexistent-record response.' });
     diagnostics.expectFailure({ kind: 'console', url: /\/angular\/form\/browser\/(?:main|chunk)(?:-[\w-]+)?\.js$/, message: /BehaviourHandler: Behaviour execution failed/, count: 1, reason: 'The form bundle logs its handled metadata lookup failure (including hashed production assets).' });
     await field(adminPage, 'Lookup record').fill(missing);
     await gate.release();

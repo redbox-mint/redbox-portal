@@ -258,10 +258,11 @@ describe('Branding typeface lifecycle (mounted)', function () {
     expect(rolled.headers.deprecation).to.equal('true');
     expect(rolled.body.active.version).to.equal(3);
 
-    // Non-admin policy denial (JSON content type yields 403, not a login redirect).
-    await supertest(sails.hooks.http.app)
+    // JSON clients receive an authentication problem instead of a login redirect.
+    const denied = await supertest(sails.hooks.http.app)
       .get('/default/rdmp/app/branding/config')
-      .set('Content-Type', 'application/json')
-      .expect(403);
+      .set('Accept', 'application/json')
+      .expect(401);
+    expect(denied.body.code).to.equal('authorization.authentication-required');
   });
 });

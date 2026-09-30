@@ -77,33 +77,59 @@ test('A06 creates and edits a local user, persists an owned role and denies ordi
   expect((await findUser(adminPage.request, name)).name).toBe(`${name} edited`);
 });
 
-test('A12 searches a user and grants then removes an owned role with persisted permissions and ordinary-user denial', async ({ adminPage, adminCsrfToken, resources, browser, diagnostics }) => {
+test('A12 grants then revokes an owned manual role assignment with persisted state and ordinary-user denial', async ({ adminPage, adminCsrfToken, resources, browser, diagnostics }) => {
   const api = new PortalApi(adminPage.request, adminCsrfToken);
   const role = await createRole(api, resources, resources.name('A12', 'role'));
   const password = 'Owned-playwright-password-42';
   const user = await createUser(api, resources, resources.name('A12', 'user'), password);
-  await adminPage.goto('/default/rdmp/admin/roles');
-  const app = adminPage.locator('manage-roles');
-  await app.getByRole('textbox').fill(user.name);
-  const row = app.getByRole('row').filter({ hasText: user.name });
+  await adminPage.goto('/default/rdmp/admin/roles?tab=assignments');
+  const app = adminPage.locator('authorization-assignment-list');
+  await app.locator('#assignment-user').fill(user.id);
+  await app.locator('#assignment-role').selectOption(role.name);
+  await app.locator('#assignment-source').selectOption('manual');
+  await app.getByRole('button', { name: 'Apply filters', exact: true }).click();
+  await app.locator('#grant-user').fill(user.id);
+  await app.locator('#grant-role').selectOption(role.name);
+  const assignmentPath = `api/authorization/assignments/${encodeURIComponent(role.name)}/users/${encodeURIComponent(user.id)}`;
+  const grantResponse = adminPage.waitForResponse(response => response.request().method() === 'PUT' && response.url().endsWith(assignmentPath));
+  await app.getByRole('button', { name: 'Grant / reactivate', exact: true }).click();
+  const granted = await grantResponse;
+  expect(granted.ok()).toBeTruthy();
+  const grant = await granted.json() as { data: { id: string }; version: number; changed: boolean };
+  expect(grant.changed).toBe(true);
+  const assignmentQuery = `api/authorization/assignments?userId=${encodeURIComponent(user.id)}&roleKey=${encodeURIComponent(role.name)}&source=manual`;
+  resources.track({ kind: 'revoked-manual-assignment-history', id: grant.data.id, cleanup: async () => {
+    const listed = await api.get(assignmentQuery);
+    expect(listed.ok()).toBeTruthy();
+    const { items } = await listed.json() as { items: Array<{ id: string; status: string; version: number }> };
+    const owned = items.find(item => item.id === grant.data.id);
+    expect(owned).toBeDefined();
+    if (owned!.status === 'active') {
+      expect(owned!.version).toBe(grant.version);
+      const revoked = await api.mutate('delete', assignmentPath, { expectedVersion: grant.version });
+      expect(revoked.ok()).toBeTruthy();
+    }
+  } });
+  const row = app.getByRole('row').filter({ hasText: user.id }).filter({ hasText: role.name });
   await expect(row).toHaveCount(1);
-  await row.getByText('Edit', { exact: true }).click();
-  const modal = app.getByRole('dialog');
-  await modal.getByRole('checkbox', { name: role.name, exact: true }).check();
-  await modal.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(modal).toHaveCount(0);
+  await expect(row).toContainText('active');
   await adminPage.reload();
-  await app.getByRole('textbox').fill(user.name);
+  await app.locator('#assignment-user').fill(user.id);
+  await app.locator('#assignment-role').selectOption(role.name);
+  await app.locator('#assignment-source').selectOption('manual');
+  await app.getByRole('button', { name: 'Apply filters', exact: true }).click();
   await expect(row).toContainText(role.name);
-  await row.getByText('Edit', { exact: true }).click();
-  await expect(modal.getByRole('checkbox', { name: role.name, exact: true })).toBeChecked();
-  await modal.getByRole('checkbox', { name: role.name, exact: true }).uncheck();
-  await modal.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(modal).toHaveCount(0);
+  await expect(row).toContainText('active');
+  const revokeResponse = adminPage.waitForResponse(response => response.request().method() === 'DELETE' && response.url().endsWith(assignmentPath));
+  await row.getByRole('button', { name: 'Revoke', exact: true }).click();
+  expect((await revokeResponse).ok()).toBeTruthy();
+  await expect(row).toContainText('revoked');
   await adminPage.reload();
-  await app.getByRole('textbox').fill(user.name);
-  await expect(row).toContainText('Researcher');
-  await expect(row).not.toContainText(role.name);
+  await app.locator('#assignment-user').fill(user.id);
+  await app.locator('#assignment-role').selectOption(role.name);
+  await app.locator('#assignment-source').selectOption('manual');
+  await app.getByRole('button', { name: 'Apply filters', exact: true }).click();
+  await expect(row).toContainText('revoked');
   await assertManagementDenied(browser, { username: user.username, password }, diagnostics, 'roles', user.id);
   expect((await findUser(adminPage.request, user.username)).roles.map(value => value.name)).toEqual(['Researcher']);
 });

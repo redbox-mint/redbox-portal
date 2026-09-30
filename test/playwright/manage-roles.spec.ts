@@ -1,5 +1,5 @@
-import { expect, test, type Page, type Route } from '@playwright/test';
-import { adminStorageStatePath } from './helpers';
+import type { Page, Route } from '@playwright/test';
+import { expect, test } from './fixtures/test';
 
 const basePath = '/default/rdmp/api/authorization';
 const roleSummary = {
@@ -147,10 +147,8 @@ async function mockAuthorizationContract(page: Page, system: boolean): Promise<v
 }
 
 test.describe('authorization administration workflows', () => {
-  test.use({ storageState: adminStorageStatePath });
-
   test('brand administrator can use keyboard tabs and grant a manual source without system controls', async ({
-    page,
+    adminPage: page,
   }) => {
     await mockAuthorizationContract(page, false);
     await page.goto('/default/rdmp/admin/roles?tab=roles');
@@ -175,7 +173,7 @@ test.describe('authorization administration workflows', () => {
     );
   });
 
-  test('system administrator gets selected-role upgrade preview and accessible audit tab focus', async ({ page }) => {
+  test('system administrator gets selected-role upgrade preview and accessible audit tab focus', async ({ adminPage: page }) => {
     await mockAuthorizationContract(page, true);
     await page.goto('/default/rdmp/admin/roles?tab=roles');
     await expect(page.getByText('Selected-role template upgrade')).toBeVisible();
@@ -215,7 +213,7 @@ test.describe('authorization administration workflows', () => {
     await expect(page.locator('#audit-heading')).toBeVisible();
   });
 
-  test('effective scopes fail closed without mounting an unauthorized tab panel', async ({ page }) => {
+  test('effective scopes fail closed without mounting an unauthorized tab panel', async ({ adminPage: page }) => {
     let unexpectedCatalogRequest = false;
     await page.route('**/api/authorization/**', async route => {
       const url = new URL(route.request().url());

@@ -2,7 +2,7 @@ import type { APIRequestContext } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { PortalApi, type ResourceLedger } from '../fixtures/resources';
 
-export type PortalUser = { id: string; username: string; name: string; email: string; roles: Array<{ id: string; name: string }>; loginDisabled?: boolean };
+export type PortalUser = { id: string; username: string; name: string; email: string; roles: Array<{ id: string; name: string }>; loginDisabled?: boolean; loginDisabledVersion?: number };
 
 export async function findUser(request: APIRequestContext, username: string): Promise<PortalUser> {
   const response = await request.get('/default/rdmp/admin/users/get?includeDisabled=true');
@@ -17,10 +17,16 @@ export async function findUser(request: APIRequestContext, username: string): Pr
  * exact owned account; its audit history and inert identity last until reset. */
 export function trackUser(api: PortalApi, resources: ResourceLedger, user: PortalUser): void {
   resources.track({ kind: 'disabled-user-history', id: user.id, cleanup: async () => {
-    const disabled = await api.mutate('post', `admin/users/${user.id}/disable`, {});
+    const beforeDisable = await findUser(api.request, user.username);
+    const disabled = await api.mutate('post', `admin/users/${user.id}/disable`, {
+      expectedVersion: beforeDisable.loginDisabledVersion ?? 1,
+    });
     expect(disabled.ok()).toBeTruthy();
     expect(((await disabled.json()) as { status: boolean }).status).toBe(true);
-    const detached = await api.mutate('post', 'admin/roles/user', { userid: user.id, roles: ['Guest'] });
+    const beforeDetach = await findUser(api.request, user.username);
+    const detached = await api.mutate('post', 'admin/roles/user', {
+      userid: user.id, roles: ['Guest'], expectedVersion: beforeDetach.loginDisabledVersion ?? 1,
+    });
     expect(detached.ok()).toBeTruthy();
     expect(((await detached.json()) as { status: boolean }).status).toBe(true);
     const current = await findUser(api.request, user.username);
@@ -41,6 +47,8 @@ export async function createUser(api: PortalApi, resources: ResourceLedger, user
 }
 
 export async function createRole(api: PortalApi, resources: ResourceLedger, name: string): Promise<{ id: string; name: string }> {
+  name = name.toLowerCase();
+  expect(name).toMatch(/^[a-z][a-z0-9-]{0,63}$/);
   const response = await api.mutate('post', `api/roles/${encodeURIComponent(name)}`, { roleName: name });
   const listed = await api.get('admin/roles/get');
   const roles = (await listed.json()) as Array<{ id: string; name: string }>;

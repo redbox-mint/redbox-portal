@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
+import { adminMutationOptions } from '../helpers/authorization';
 
 describe('Route and record access checks', function () {
   this.timeout(60_000);
@@ -31,21 +32,29 @@ describe('Route and record access checks', function () {
     researcher = supertest.agent(app);
     admin = supertest.agent(app);
     const brand = BrandingService.getDefault();
+    const options = await adminMutationOptions();
     const user = await firstValueFrom(
-      UsersService.addLocalUser(username, 'Access test researcher', `${username}@example.edu.au`, 'RBTest123!')
+      UsersService.addLocalUser(username, 'Access test researcher', `${username}@example.edu.au`, 'RBTest123!', options)
     );
     userId = String(user.id);
-    await firstValueFrom(UsersService.updateUserRoles(user.id, RolesService.getRoleIds(brand.roles, ['Researcher'])));
+    await firstValueFrom(UsersService.updateUserRoles(user.id, RolesService.getRoleIds(brand.roles, ['Researcher']), {
+      ...options,
+      expectedVersion: user.loginDisabledVersion,
+    }));
     const target = await firstValueFrom(
       UsersService.addLocalUser(
         `access-target-${suffix}`,
         'Access test target',
         'target@example.edu.au',
-        'RBTest123!'
+        'RBTest123!',
+        options
       )
     );
     targetId = String(target.id);
-    await firstValueFrom(UsersService.setUserKey(targetId, 'initial-regression-token'));
+    await firstValueFrom(UsersService.setUserKey(targetId, 'initial-regression-token', {
+      ...options,
+      expectedVersion: target.loginDisabledVersion,
+    }));
 
     for (const [agent, loginUsername, password] of [
       [researcher, username, 'RBTest123!'],
@@ -88,7 +97,8 @@ describe('Route and record access checks', function () {
   for (const actor of ['anonymous', 'researcher'] as const) {
     it(`blocks ${actor} access to mixed-case administrative user lists`, async () => {
       const agent = actor === 'anonymous' ? anonymous : researcher;
-      await agent.get('/default/rdmp/AdMiN/users/get').set('Content-Type', 'application/json').expect(403);
+      await agent.get('/default/rdmp/AdMiN/users/get').set('Accept', 'application/json')
+        .expect(actor === 'anonymous' ? 401 : 403);
     });
 
     for (const path of [
@@ -106,7 +116,7 @@ describe('Route and record access checks', function () {
             userid: targetId,
             _csrf: await csrf(agent),
           })
-          .expect(403);
+          .expect(actor === 'anonymous' ? 401 : 403);
         const after = await User.findOne({ id: targetId });
         assert.equal(after.token, before.token);
       });
@@ -114,11 +124,13 @@ describe('Route and record access checks', function () {
   }
 
   it('still permits administrators to issue credentials on mixed-case routes', async () => {
+    const target = await User.findOne({ id: targetId });
     const response = await admin
       .post('/default/rdmp/AdMiN/users/genKey')
       .set('X-Source', 'jsclient')
       .send({
         userid: targetId,
+        expectedVersion: target.loginDisabledVersion,
         _csrf: await csrf(admin),
       })
       .expect(200);
