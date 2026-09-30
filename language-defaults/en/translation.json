@@ -1510,6 +1510,8 @@
   "branding-main-menu-background-color-label": "Main Menu Background Colour",
   "branding-main-menu-inactive-dropdown-item-background-color-help": "Sets the background colour for inactive dropdown items in the main menu.",
   "branding-main-menu-inactive-dropdown-item-background-color-label": "Main Menu Inactive Dropdown Item Background Colour",
+  "branding-main-menu-inactive-dropdown-item-background-color-hover-help": "Sets the background colour for inactive dropdown items on hover in the main menu.",
+  "branding-main-menu-inactive-dropdown-item-background-color-hover-label": "Main Menu Inactive Dropdown Item Background Colour Hover",
   "branding-main-menu-inactive-dropdown-item-color-help": "Sets the text colour for inactive dropdown items in the main menu.",
   "branding-main-menu-inactive-dropdown-item-color-hover-help": "Sets the text colour for inactive dropdown items in the main menu on hover.",
   "branding-main-menu-inactive-dropdown-item-color-hover-label": "Main Menu Inactive Dropdown Item Colour Hover",
