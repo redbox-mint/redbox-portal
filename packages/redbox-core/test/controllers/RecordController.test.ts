@@ -603,6 +603,7 @@ describe('RecordController getWorkflowSteps', () => {
         },
       });
       const req = {
+        ...authorizationRequestFixture({ scope: 'record.read', username: 'researcher' }),
         param: sinon.stub().withArgs("oid").returns("representative-data-record"),
         query: {},
         user: { username: "researcher", roles: [{ name: "Researcher" }] },
@@ -610,6 +611,7 @@ describe('RecordController getWorkflowSteps', () => {
       } as unknown as Sails.Req;
       const response = {
         status: sinon.stub().returnsThis(),
+        type: sinon.stub().returnsThis(),
         json: sinon.stub(),
         set: sinon.stub().returnsThis(),
       };

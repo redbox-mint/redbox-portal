@@ -24,6 +24,7 @@ describe('Attachment download stream cleanup', () => {
       BrandingService: {
         getBrandAndPortalPath: () => '/default/rdmp',
         getBrand: () => ({ id: 'brand-1' }),
+        getBrandFromReq: () => ({ id: 'brand-1' }),
       },
       _: lodash,
     });
