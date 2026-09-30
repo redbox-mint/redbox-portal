@@ -50,7 +50,7 @@ test('A06 creates and edits a local user, persists an owned role and denies ordi
   const researcher = modal.getByRole('checkbox', { name: 'Researcher', exact: true });
   if (!(await researcher.isChecked())) await researcher.locator('..').click();
   await expect(researcher).toBeChecked();
-  const created = adminPage.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/admin/users/newUser'));
+  const created = adminPage.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname === '/default/rdmp/api/users');
   await modal.getByRole('button', { name: 'Save', exact: true }).click();
   const createdResponse = await created;
   const user = await findUser(adminPage.request, name);

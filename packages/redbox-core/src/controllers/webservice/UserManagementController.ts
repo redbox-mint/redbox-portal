@@ -1612,9 +1612,17 @@ export namespace Controllers {
       }
     }
 
-    public listSystemRoles(req: Sails.Req, res: Sails.Res) {
+    public async listSystemRoles(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
-      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+      const requestBrand = BrandingService.getBrandFromReq(req);
+      const brand = await BrandingService.refreshBrandingCache(String(requestBrand.id));
+      if (!brand) {
+        return this.sendResp(req, res, {
+          status: 404,
+          displayErrors: [{ detail: 'Resource was not found.' }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
       const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
       response.summary.numFound = brand.roles.length;
       response.records = brand.roles;

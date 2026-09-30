@@ -24,14 +24,26 @@ export function trackUser(api: PortalApi, resources: ResourceLedger, user: Porta
     expect(disabled.ok()).toBeTruthy();
     expect(((await disabled.json()) as { status: boolean }).status).toBe(true);
     const beforeDetach = await findUser(api.request, user.username);
-    const detached = await api.mutate('post', 'admin/roles/user', {
-      userid: user.id, roles: ['Guest'], expectedVersion: beforeDetach.loginDisabledVersion ?? 1,
-    });
-    expect(detached.ok()).toBeTruthy();
-    expect(((await detached.json()) as { status: boolean }).status).toBe(true);
-    const current = await findUser(api.request, user.username);
-    expect(current.loginDisabled).toBe(true);
-    expect(current.roles.map(role => role.name)).toEqual(['Guest']);
+    expect(beforeDetach.loginDisabled).toBe(true);
+    const assignments = await api.get(`api/authorization/assignments?userId=${encodeURIComponent(user.id)}&source=manual&status=active&limit=100`);
+    expect(assignments.ok()).toBeTruthy();
+    const page = await assignments.json() as {
+      items: Array<{ principalId: string; roleKey: string; version: number }>;
+      nextCursor?: string;
+    };
+    expect(page.nextCursor).toBeUndefined();
+    for (const assignment of page.items) {
+      expect(assignment.principalId).toBe(user.id);
+      const detached = await api.mutate('delete', `api/authorization/assignments/${encodeURIComponent(assignment.roleKey)}/users/${encodeURIComponent(user.id)}`, {
+        expectedVersion: assignment.version,
+      });
+      expect(detached.ok()).toBeTruthy();
+      expect(((await detached.json()) as { changed: boolean }).changed).toBe(true);
+    }
+    const listed = await api.get('admin/users/get?includeDisabled=true');
+    expect(listed.ok()).toBeTruthy();
+    const current = await listed.json() as PortalUser[];
+    expect(current.find(candidate => candidate.id === user.id)).toBeUndefined();
   } });
 }
 

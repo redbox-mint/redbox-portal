@@ -46,6 +46,7 @@ describe('Webservice UserManagementController', () => {
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandFromReq: sinon.stub().callsFake(() => (global as any).BrandingService.getBrand()),
+      refreshBrandingCache: sinon.stub().resolves(null),
     };
     (global as any).UsersService = {
       getUserWithId: sinon.stub().returns(
@@ -676,20 +677,35 @@ describe('Webservice UserManagementController', () => {
   });
 
   describe('system roles (sendResp contract)', () => {
-    it('lists brand roles through sendResp with the declared list shape', async () => {
+    it('lists freshly loaded brand roles through sendResp with the declared list shape', async () => {
       (global as any).BrandingService.getBrand = sinon.stub().returns({
         id: 'brand-1',
         name: 'default',
         roles: [{ id: 'role-1', name: 'Researcher' }],
       });
+      const roles = [{ id: 'role-1', name: 'Researcher' }, { id: 'role-2', name: 'new-role' }];
+      const refreshBrandingCache = sinon.stub().resolves({ id: 'brand-1', name: 'default', roles });
+      BrandingService.refreshBrandingCache = refreshBrandingCache;
       const req = makeReq({ session: { branding: 'default' }, user: { username: 'admin-user' } });
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.listSystemRoles(req, {} as Sails.Res);
 
       expect(sendRespStub.calledOnce).to.be.true;
-      expect(sendRespStub.firstCall.args[2]?.data?.summary?.numFound).to.equal(1);
-      expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ id: 'role-1', name: 'Researcher' }]);
+      expect(refreshBrandingCache.calledOnceWithExactly('brand-1')).to.be.true;
+      expect(sendRespStub.firstCall.args[2]?.data?.summary?.numFound).to.equal(2);
+      expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal(roles);
+    });
+
+    it('returns 404 when the request brand has been removed from storage', async () => {
+      const req = makeReq({ session: { branding: 'default' }, user: { username: 'admin-user' } });
+      const sendRespStub = sinon.stub();
+      Reflect.set(controller, 'sendResp', sendRespStub);
+
+      await controller.listSystemRoles(req, {} as Sails.Res);
+
+      expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+      expect(sendRespStub.firstCall.args[2]?.data).to.be.undefined;
     });
 
     it('creates a system role through sendResp and never uses apiRespond', async () => {
