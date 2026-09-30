@@ -299,18 +299,18 @@ export class BrandingAdminComponent extends BaseComponent {
             default: '#ffffff',
             help: this.i18n.t('branding-logo-heading-text-color-help'),
           },
-        ],
-      },
-      {
-        name: this.i18n.t('branding-menu-name'),
-        help: this.i18n.t('branding-menu-help'),
-        variables: [
           {
             key: 'main-menu-branding-background-color',
             label: this.i18n.t('branding-main-menu-background-color-label'),
             default: '#500005',
             help: this.i18n.t('branding-main-menu-background-color-help'),
           },
+        ],
+      },
+      {
+        name: this.i18n.t('branding-menu-name'),
+        help: this.i18n.t('branding-menu-help'),
+        variables: [
           {
             key: 'main-menu-active-item-color',
             label: this.i18n.t('branding-main-menu-active-item-color-label'),
@@ -402,6 +402,12 @@ export class BrandingAdminComponent extends BaseComponent {
             label: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-label'),
             default: '#222',
             help: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-help'),
+          },
+          {
+            key: 'main-menu-inactive-dropdown-item-background-color-hover',
+            label: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-hover-label'),
+            default: '#fff',
+            help: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-hover-help'),
           },
         ],
       },
