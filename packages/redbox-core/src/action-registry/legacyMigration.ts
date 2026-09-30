@@ -25,10 +25,7 @@ import { resolveActionPlan } from './plan';
 import { actionRegistrationSource, buildActionRegistry } from './registration';
 
 export type LegacyActionMigrationTargetKind =
-  | 'action-binding'
-  | 'automatic-transition'
-  | 'flatten-only'
-  | 'queue-binding';
+  'action-binding' | 'automatic-transition' | 'flatten-only' | 'queue-binding';
 
 export interface LegacyRecordActionMapping {
   readonly legacyExpression: string;
@@ -67,7 +64,7 @@ export const LEGACY_RECORD_ACTION_MAPPINGS: readonly LegacyRecordActionMapping[]
     'sails.services.rdmpservice.runTemplates',
     BUILT_IN_ACTION_IDS.applyTemplates,
     'action-binding',
-    4,
+    5,
     true,
     'Convert each supported template to an ordered managed JSONata binding; reject unsupported Lodash functions.'
   ),
@@ -619,6 +616,11 @@ function translateValueTemplate(source: string): string {
     const translated =
       '$lowercase($exists(record.candidate.metadata.fullName) ? record.candidate.metadata.fullName : "")';
     return translated;
+  }
+  if (
+    expression === "record.metadata.date ? new Date(record.metadata.date).toISOString().replace('Z', '+00:00') : ''"
+  ) {
+    return 'record.candidate.metadata.date ? $replace($fromMillis($toMillis(record.candidate.metadata.date)), "Z", "+00:00") : ""';
   }
   return fail(
     'unsupported-legacy-expression',

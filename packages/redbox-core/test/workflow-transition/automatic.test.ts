@@ -51,6 +51,12 @@ function input(
 }
 
 describe('automatic transition evaluation', function () {
+  it('treats database null transition configuration as absent', async function () {
+    const plan = resolveAutomaticTransitionPlan({ automaticTransitions: null, hooks: null }, 'dataset');
+    assert.lengthOf(plan.transitions, 0);
+    assert.isNull(await evaluateAutomaticTransitionPlan(plan, input('draft', { workflow: { stage: 'draft' } })));
+  });
+
   it('returns no match without changing the candidate', async function () {
     const candidate: ActionJsonObject = { workflow: { stage: 'draft' }, metadata: { ready: false } };
     const snapshot = structuredClone(candidate);

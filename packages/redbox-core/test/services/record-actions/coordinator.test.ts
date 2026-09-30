@@ -34,6 +34,32 @@ function assertCandidateRejected(candidate: RuntimeRecord): void {
 }
 
 describe('registered record-action context projection', () => {
+  it('resolves database null action plans as absent while retaining legacy bindings', () => {
+    const registry = coreRecordActionRegistry();
+    assert.equal(resolveRecordActionPlan(registry, { actionPlan: null, hooks: null }, 'rdmp').bindings.length, 0);
+    const plan = resolveRecordActionPlan(
+      registry,
+      {
+        actionPlan: null,
+        hooks: {
+          onCreate: {
+            pre: [
+              {
+                function: 'sails.services.rdmpservice.runTemplates',
+                options: {
+                  templates: [{ field: 'metadata.title', template: "<%= _.get(record, 'metadata.title', '') %>" }],
+                },
+              },
+            ],
+          },
+        },
+      },
+      'rdmp'
+    );
+    assert.equal(plan.bindings.length, 1);
+    assert.equal(plan.bindings[0]?.binding.actionId, 'redbox.core.record.apply-templates');
+  });
+
   it('rejects an accessor-bearing legacy hook array without invoking its getter', () => {
     let getterInvocations = 0;
     const legacyHooks: RuntimeValue[] = [];

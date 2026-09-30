@@ -11,7 +11,7 @@
       {
         "name": "redbox-hook-dev",
         "paths": ["packages/redbox-hook-dev/src/config/**/*.ts"],
-        "occurrenceCount": 32
+        "occurrenceCount": 33
       },
       {
         "name": "supported-bundled-hooks",
@@ -27,9 +27,9 @@
       }
     ],
     "expectedCounts": {
-      "recordHookDefinitions": 26,
+      "recordHookDefinitions": 27,
       "nestedExecutableDefinitions": 6,
-      "totalExecutableOccurrences": 32,
+      "totalExecutableOccurrences": 33,
       "uniqueLegacyExpressions": 11
     },
     "exclusions": [
@@ -105,7 +105,22 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 17
+            "line": 54
+          },
+          "recordType": "pw-07-date-writeback",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "one date write-back template; parseObject=false",
+          "sourceOptions": {
+            "presence": "present"
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 128
           },
           "recordType": "rdmp",
           "lifecycleMode": "onCreate",
@@ -120,7 +135,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 52
+            "line": 163
           },
           "recordType": "rdmp",
           "lifecycleMode": "onUpdate",
@@ -135,7 +150,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 597
+            "line": 716
           },
           "recordType": "party",
           "lifecycleMode": "onCreate",
@@ -150,7 +165,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 618
+            "line": 737
           },
           "recordType": "party",
           "lifecycleMode": "onUpdate",
@@ -188,7 +203,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 29
+            "line": 140
           },
           "recordType": "rdmp",
           "lifecycleMode": "onCreate",
@@ -203,7 +218,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 64
+            "line": 175
           },
           "recordType": "rdmp",
           "lifecycleMode": "onUpdate",
@@ -218,7 +233,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 241
+            "line": 352
           },
           "recordType": "dataRecord",
           "lifecycleMode": "onCreate",
@@ -233,7 +248,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 263
+            "line": 374
           },
           "recordType": "dataRecord",
           "lifecycleMode": "onUpdate",
@@ -248,7 +263,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 349
+            "line": 478
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -263,7 +278,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 461
+            "line": 580
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onUpdate",
@@ -296,7 +311,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 82
+            "line": 193
           },
           "recordType": "rdmp",
           "lifecycleMode": "onUpdate",
@@ -377,7 +392,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 339
+            "line": 468
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -392,22 +407,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 451
-          },
-          "recordType": "dataPublication",
-          "lifecycleMode": "onUpdate",
-          "phase": "pre",
-          "order": 1,
-          "nesting": "record-hook",
-          "parameterVariant": "initialize notification.state=draft; saveRecord=false",
-          "sourceOptions": {
-            "presence": "present"
-          }
-        },
-        {
-          "source": {
-            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 392
+            "line": 521
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -423,7 +423,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 415
+            "line": 544
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -439,7 +439,22 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 504
+            "line": 570
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "initialize notification.state=draft; saveRecord=false",
+          "sourceOptions": {
+            "presence": "present"
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 623
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onUpdate",
@@ -455,7 +470,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 528
+            "line": 647
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onUpdate",
@@ -489,7 +504,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 359
+            "line": 488
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -504,7 +519,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 471
+            "line": 590
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onUpdate",
@@ -537,7 +552,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 366
+            "line": 495
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -552,7 +567,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 478
+            "line": 597
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onUpdate",
@@ -597,7 +612,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 374
+            "line": 503
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -612,52 +627,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 406
-          },
-          "recordType": "dataPublication",
-          "lifecycleMode": "onCreate",
-          "phase": "post",
-          "order": 1,
-          "nesting": "record-hook",
-          "parameterVariant": "publication published email with one success callback",
-          "sourceOptions": {
-            "presence": "present"
-          }
-        },
-        {
-          "source": {
-            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 486
-          },
-          "recordType": "dataPublication",
-          "lifecycleMode": "onUpdate",
-          "phase": "post",
-          "order": 0,
-          "nesting": "record-hook",
-          "parameterVariant": "publication staged email with two success callbacks",
-          "sourceOptions": {
-            "presence": "present"
-          }
-        },
-        {
-          "source": {
-            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 519
-          },
-          "recordType": "dataPublication",
-          "lifecycleMode": "onUpdate",
-          "phase": "post",
-          "order": 1,
-          "nesting": "record-hook",
-          "parameterVariant": "publication published email with one success callback",
-          "sourceOptions": {
-            "presence": "present"
-          }
-        },
-        {
-          "source": {
-            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 383
+            "line": 512
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -673,7 +643,37 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 495
+            "line": 535
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "post",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "publication published email with one success callback",
+          "sourceOptions": {
+            "presence": "present"
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 605
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "publication staged email with two success callbacks",
+          "sourceOptions": {
+            "presence": "present"
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 614
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onUpdate",
@@ -682,6 +682,21 @@
           "nesting": "onNotifySuccess",
           "parentOrder": 0,
           "parameterVariant": "forced reviewer email",
+          "sourceOptions": {
+            "presence": "present"
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 638
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "publication published email with one success callback",
           "sourceOptions": {
             "presence": "present"
           }
@@ -707,7 +722,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 429
+            "line": 558
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onCreate",
@@ -740,7 +755,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 542
+            "line": 661
           },
           "recordType": "dataPublication",
           "lifecycleMode": "onUpdate",
@@ -773,7 +788,7 @@
         {
           "source": {
             "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
-            "line": 576
+            "line": 695
           },
           "recordType": "existing-locations",
           "lifecycleMode": "onCreate",

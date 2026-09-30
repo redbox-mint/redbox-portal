@@ -59,8 +59,6 @@ import { ActionTransientFailure } from '../../src/action-execution';
 
 import type { ActionExecutionPolicy } from '../../src/action-execution/types';
 
-import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
-
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 
 import { StorageServiceResponse } from '../../src/StorageServiceResponse';
@@ -5440,20 +5438,22 @@ describe('RecordsService', function () {
       const researcherRole = authorizeCreateFromStartingStep();
       const { businessValidation, persistSaveUsageReference, resolveCreate, schemaStorage, validateResolvedArtifact } =
         installGeneratedSchemaValidationPipeline();
-      const recordType = {
-        name: 'rdmp',
-        hooks: {
-          onCreate: {
-            pre: [
-              {
-                function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1 } })',
+      const recordType = recordTypeWithActions({
+        onCreate: {
+          pre: [
+            {
+              handler: context => {
+                const candidate = context.record.candidate ?? {};
+                const metadata = (candidate.metadata as EffectRecord) ?? {};
+                return replaceCandidate(context, {
+                  ...candidate,
+                  metadata: { ...metadata, runBeforeValidatorCount: Number(metadata.runBeforeValidatorCount ?? 0) + 1 },
+                });
               },
-            ],
-          },
+            },
+          ],
         },
-        searchable: false,
-      };
+      });
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
       const cases: readonly {
         name: string;
@@ -5575,28 +5575,43 @@ describe('RecordsService', function () {
         validateResolvedArtifact,
         persistSaveUsageReference,
       };
-      const recordType = {
-        name: 'rdmp',
-        hooks: {
-          onUpdate: {
-            pre: [
-              {
-                function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1 } })',
+      const recordType = recordTypeWithActions({
+        onUpdate: {
+          pre: [
+            {
+              handler: context => {
+                const candidate = context.record.candidate ?? {};
+                const metadata = (candidate.metadata as EffectRecord) ?? {};
+                return replaceCandidate(context, {
+                  ...candidate,
+                  metadata: {
+                    ...metadata,
+                    updateRunBeforeValidatorCount: Number(metadata.updateRunBeforeValidatorCount ?? 0) + 1,
+                  },
+                });
               },
-            ],
-          },
-          onTransitionWorkflow: {
-            pre: [
-              {
-                function:
-                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1 } })',
-              },
-            ],
-          },
+            },
+          ],
         },
-        searchable: false,
-      };
+        onTransitionWorkflow: {
+          pre: [
+            {
+              scopeId: 'submitted',
+              handler: context => {
+                const candidate = context.record.candidate ?? {};
+                const metadata = (candidate.metadata as EffectRecord) ?? {};
+                return replaceCandidate(context, {
+                  ...candidate,
+                  metadata: {
+                    ...metadata,
+                    transitionRunBeforeValidatorCount: Number(metadata.transitionRunBeforeValidatorCount ?? 0) + 1,
+                  },
+                });
+              },
+            },
+          ],
+        },
+      });
       (global as any).RecordTypesService.get.returns(of(recordType));
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
@@ -6497,7 +6512,7 @@ describe('RecordsService', function () {
       expectDisabledRecordSchemaInert(schemaHarness);
     });
 
-    it('preserves schema-disabled hook failure precedence over transition authorization', async function () {
+    it('checks transition authorization before invalid actions while record schemas are disabled', async function () {
       mockSails.config.recordSchema = { enabled: false };
       const workflowStepsService = Reflect.get(globalThis, 'WorkflowStepsService') as {
         get: sinon.SinonStub;
@@ -6529,8 +6544,8 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('not-saved');
-      expect(result.problems[0].issues[0].code).to.equal('invalid-hook-configuration');
-      expect(transitionAuthorization.notCalled).to.equal(true);
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
+      expect(transitionAuthorization.calledOnce).to.equal(true);
       expect(mockStorageService.create.notCalled).to.equal(true);
     });
 
@@ -9109,20 +9124,22 @@ describe('RecordsService', function () {
       mockStorageService.getMeta.resolves(stored);
       (globalThis as Record<string, unknown>).__recordContractMergeHookInput = undefined;
       (global as any).RecordTypesService.get.returns(
-        of({
-          name: 'rdmp',
-          hooks: {
+        of(
+          recordTypeWithActions({
             onUpdate: {
               pre: [
                 {
-                  function:
-                    '(_oid, record) => { globalThis.__recordContractMergeHookInput = structuredClone(record.metadata); return record; }',
+                  handler: context => {
+                    (globalThis as Record<string, unknown>).__recordContractMergeHookInput = structuredClone(
+                      context.record.candidate?.metadata
+                    );
+                    return noChangeResult();
+                  },
                 },
               ],
             },
-          },
-          searchable: false,
-        })
+          })
+        )
       );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
@@ -12329,7 +12346,7 @@ describe('RecordsService', function () {
       RecordTypesService.get = sinon.stub().returns(of(strictRecordType));
       WorkflowStepsService.get = sinon.stub().returns(of(publishedStep));
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
         commitEffectRecord(oid, { ...candidate, revision: 5 });

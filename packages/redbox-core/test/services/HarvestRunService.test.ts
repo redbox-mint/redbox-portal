@@ -1,3 +1,4 @@
+import * as ActionRegistry from '../../src/action-registry';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import { createHash } from 'node:crypto';
@@ -85,6 +86,62 @@ function recordValidationResult(
     mode,
     blockingErrors,
   });
+}
+
+function recordTypeWithUpdateAction(handler: ActionRegistry.ActionHandler) {
+  const actionId = ActionRegistry.parseActionDefinitionId('redbox.test.harvest.update');
+  const scope = { context: 'record-lifecycle' as const, mode: 'onUpdate' as const, phase: 'pre' as const };
+  const descriptor: ActionRegistry.ActionRegistrationDescriptor = {
+    schemaVersion: 1,
+    id: actionId,
+    contractVersion: 1,
+    title: 'Harvest test action',
+    description: 'Updates the candidate before harvest validation and persistence.',
+    category: 'test',
+    handler,
+    contexts: [scope.context],
+    modes: [scope.mode],
+    phases: [scope.phase],
+    allowRepeatedBindings: false,
+    parameterSchema: { schemaVersion: 1, parameters: [] },
+    outputSchema: { schemaVersion: 1, fields: [], safeFields: [] },
+    resultContract: { allowedKinds: ['replace'] },
+    executionPolicy: {
+      timeout: { defaultMs: 1000, minMs: 1, maxMs: 2000 },
+      retry: { allowed: false },
+    },
+  };
+  (globalThis as any).sails.config.actionRegistry = ActionRegistry.buildActionRegistry([
+    ActionRegistry.actionRegistrationSource('@researchdatabox/redbox-core-test', 'harvest/actions', () => [descriptor]),
+  ]);
+  const stableKey = 'harvest-update';
+  return {
+    name: 'dataset',
+    hooks: {},
+    searchable: false,
+    actionPlan: {
+      schemaVersion: 1,
+      recordTypeKey: 'dataset',
+      bindings: [
+        {
+          schemaVersion: 1,
+          id: ActionRegistry.deriveStableActionBindingId({
+            recordTypeKey: 'dataset',
+            scope,
+            actionId,
+            contractVersion: 1,
+            stableKey,
+          }),
+          stableKey,
+          actionId,
+          contractVersion: 1,
+          scope,
+          parameters: {},
+          order: 0,
+        },
+      ],
+    },
+  };
 }
 
 describe('HarvestRunService', function () {
@@ -1514,20 +1571,21 @@ describe('HarvestRunService', function () {
         viewRoles: [],
       },
     };
-    const recordType = {
-      name: 'dataset',
-      hooks: {
-        onUpdate: {
-          pre: [
-            {
-              function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, harvestRunBeforeValidatorCount: (record.metadata.harvestRunBeforeValidatorCount ?? 0) + 1 } })',
-            },
-          ],
+    const recordType = recordTypeWithUpdateAction(context => {
+      const candidate = context.record.candidate ?? {};
+      const metadata = (candidate.metadata as ActionRegistry.ActionJsonObject) ?? {};
+      return {
+        schemaVersion: 1,
+        kind: 'replace',
+        candidate: {
+          ...candidate,
+          metadata: {
+            ...metadata,
+            harvestRunBeforeValidatorCount: Number(metadata.harvestRunBeforeValidatorCount ?? 0) + 1,
+          },
         },
-      },
-      searchable: false,
-    };
+      };
+    });
     (global as any).RecordTypesService = { get: sinon.stub().returns(of(recordType)) };
     const internalSave = sinon.spy(realRecordsService, 'updateMetaInternal');
     const applySubmittedMetadata = sinon.spy(realRecordsService, 'applySubmittedMetadata');
@@ -1840,20 +1898,20 @@ describe('HarvestRunService', function () {
         },
       };
       persistedRecords.set('record-1', structuredClone(originalRecord));
-      const recordType = {
-        name: 'dataset',
-        hooks: {
-          onUpdate: {
-            pre: [
-              {
-                function:
-                  '(_oid, record) => ({ ...record, authorization: { ...record.authorization, edit: ["replacement-owner"] } })',
-              },
-            ],
+      const recordType = recordTypeWithUpdateAction(context => {
+        const candidate = context.record.candidate ?? {};
+        return {
+          schemaVersion: 1,
+          kind: 'replace',
+          candidate: {
+            ...candidate,
+            authorization: {
+              ...((candidate.authorization as ActionRegistry.ActionJsonObject) ?? {}),
+              edit: ['replacement-owner'],
+            },
           },
-        },
-        searchable: false,
-      };
+        };
+      });
       (global as any).RecordTypesService = {
         get: sinon.stub().returns(of(recordType)),
       };

@@ -211,7 +211,7 @@ export function resolveRecordActionPlan(
 ): ResolvedActionPlan {
   const explicitPlan = ownDataValue(recordType, 'actionPlan', '$.actionPlan');
   const planValue: RuntimeValue =
-    explicitPlan === undefined
+    explicitPlan === undefined || explicitPlan === null
       ? {
           schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
           recordTypeKey,

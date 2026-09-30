@@ -7,11 +7,17 @@ import {
   actionRegistrationSource,
   buildActionRegistry,
   migrateLegacyRecordAction,
+  parseActionContext,
   registerRedboxActions,
   validateActionPlan,
   type ActionBindingScope,
   type LegacyRecordActionMigration,
 } from '../../src/action-registry';
+import {
+  compileManagedJsonataExpression,
+  evaluateManagedJsonata,
+  projectActionParameterContext,
+} from '../../src/expression-runtime';
 import {
   loadLegacyActionInventory,
   loadLegacyActionMappings,
@@ -182,9 +188,46 @@ describe('registered legacy record action migration', function () {
         rejectedRandom += 1;
       }
     });
-    assert.equal(definitions.length, 30);
-    assert.equal(migrated, 28);
+    assert.equal(definitions.length, 31);
+    assert.equal(migrated, 29);
     assert.equal(rejectedRandom, 2);
+  });
+
+  it('preserves shipped date write-back formatting with a managed expression', async () => {
+    const definition = shippedRecordTypes['pw-07-date-writeback']?.hooks?.onUpdate?.pre?.[0];
+    assert.ok(definition);
+    const result = bindingMigration(
+      migrate(definition, { context: 'record-lifecycle', mode: 'onUpdate', phase: 'pre' })
+    );
+    const value = result.bindings[0]?.parameters.value;
+    assert.equal(value?.kind, 'jsonata');
+    if (value?.kind !== 'jsonata') {
+      assert.fail('Expected a managed date expression.');
+    }
+    const expression = compileManagedJsonataExpression(value.expression);
+    for (const [metadata, expected] of [
+      [{ date: '2026-09-30T12:34:56.123+09:30' }, '2026-09-30T03:04:56.123+00:00'],
+      [{ date: '2026-09-30' }, '2026-09-30T00:00:00.000+00:00'],
+      [{ date: '' }, ''],
+      [{}, ''],
+    ] as const) {
+      const context = projectActionParameterContext(
+        parseActionContext({
+          schemaVersion: 1,
+          executionId: 'date-writeback',
+          correlationId: 'date-writeback',
+          requestId: 'date-writeback',
+          timestamp: '2026-09-30T00:00:00Z',
+          brandId: 'default',
+          recordTypeKey: 'pw-07-date-writeback',
+          scope: { context: 'record-lifecycle', mode: 'onUpdate', phase: 'pre' },
+          actor: null,
+          record: { candidate: { metadata } },
+          priorOutputs: [],
+        })
+      );
+      assert.equal(await evaluateManagedJsonata(expression, context, { timeoutMs: 1_000 }), expected);
+    }
   });
 
   it('converts supported Lodash value expressions and Handlebars paths without mutating input', () => {

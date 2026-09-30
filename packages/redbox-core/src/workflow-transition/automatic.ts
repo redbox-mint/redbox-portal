@@ -167,7 +167,7 @@ function preflightConfiguration(value: RuntimeValue, path: string): void {
 
 function explicitTransitions(recordType: RuntimeValue): readonly AutomaticTransitionDefinition[] {
   const value = ownDataValue(recordType, 'automaticTransitions', '$.automaticTransitions');
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return Object.freeze([]);
   }
   preflightConfiguration(value, '$.automaticTransitions');
