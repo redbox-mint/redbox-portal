@@ -202,4 +202,29 @@ describe('Oni v2 OCFL repository', () => {
     expect(content).to.equal('streamed');
     expect(harness.transaction.write.getCall(2).args).to.deep.equal(['files/two.txt', 'buffered']);
   });
+
+  it('writes a streamed attachment without size using undefined write options', async () => {
+    const harness = makeHarness();
+    (harness.datastreamService.getDatastream as sinon.SinonStub)
+      .resolves({ readstream: Readable.from(['streamed']) });
+    const crate = {
+      rootId: 'dataset-1',
+      dataRecordOid: 'record-1',
+      crateJson: { '@id': './' },
+      attachments: [{ fileId: 'file-1', logicalPath: 'files/unsized.txt' }],
+    } as unknown as OniCrateBuildResult;
+
+    await harness.repository.writeDatasetObject(crate, { oid: 'record-1' } as unknown as OniPublishInput);
+
+    const streamedWrite = harness.transaction.write.getCall(1).args;
+    expect(streamedWrite).to.have.lengthOf(3);
+    expect(streamedWrite[0]).to.equal('files/unsized.txt');
+    expect(streamedWrite[1]).to.be.instanceOf(ReadableStream);
+    expect(streamedWrite[2]).to.be.undefined;
+    let content = '';
+    for await (const chunk of streamedWrite[1]) {
+      content += Buffer.from(chunk).toString();
+    }
+    expect(content).to.equal('streamed');
+  });
 });
