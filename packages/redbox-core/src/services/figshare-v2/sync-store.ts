@@ -100,9 +100,9 @@ export class FigshareSyncStore {
   async release(oid: string, owner: string): Promise<void> {
     await this.collection.updateOne({ oid, leaseOwner: owner }, { $set: { leaseOwner: null, leaseUntil: 0 }, $inc: { revision: 1 } });
   }
-  async due(limit = 100): Promise<Array<{ oid: string; brandId: string }>> {
+  async due(limit = 100, excludeOids: Iterable<string> = []): Promise<Array<{ oid: string; brandId: string }>> {
     const now = Date.now();
-    return this.collection.find({ nextActionAt: { $ne: null, $lte: now }, dispatchUntil: { $lte: now } })
+    return this.collection.find({ oid: { $nin: [...excludeOids] }, nextActionAt: { $ne: null, $lte: now }, dispatchUntil: { $lte: now } })
       .sort({ nextActionAt: 1 }).limit(limit).project<{ oid: string; brandId: string }>({ oid: 1, brandId: 1 }).toArray();
   }
   async dispatchClaim(oid: string, cooldownMs = 10000, extend = false): Promise<boolean> {

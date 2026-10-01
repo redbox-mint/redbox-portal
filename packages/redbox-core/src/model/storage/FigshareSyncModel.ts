@@ -11,7 +11,8 @@ export interface FigshareSourceRequest {
 export interface FigshareSourceIntent {
   generation: number;
   pending: boolean;
-  readiness: 'initialising' | 'ready';
+  /** `abandoned` marks a save that reported failure; it is never recovered, and the next successful save supersedes it. */
+  readiness: 'initialising' | 'ready' | 'abandoned';
   saveToken: string;
   requestedAt: string;
   requestedBy: string;

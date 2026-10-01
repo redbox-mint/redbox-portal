@@ -190,6 +190,7 @@ describe('RecordsService', function () {
       const response = new StorageServiceResponse(); response.success = true; response.oid = 'record-123';
       mockStorageService.create.resolves(response);
       mockStorageService.readyFigshareIntent = sinon.stub().resolves(true);
+      mockStorageService.abandonFigshareIntent = sinon.stub().resolves(true);
       sinon.stub(RecordsService, 'triggerPreSaveTriggers').callsFake(async (_oid: unknown, value: unknown) => ({ ...(value && typeof value === 'object' ? value : {}), metadata: { title: 'after final pre hook' } }));
       sinon.stub(RecordsService, 'triggerPostSaveSyncTriggers').callsFake(async (_oid: unknown, _record: unknown, _type: unknown, _event: unknown, _user: unknown, response: unknown) => response);
       sinon.stub(RecordsService, 'triggerPostSaveTriggers');
@@ -224,12 +225,27 @@ describe('RecordsService', function () {
       expect(args[1].metadata.title).to.equal('after final pre hook');
       expect(args[4].figshareIntent.readiness).to.equal('initialising');
       sinon.assert.callOrder(mockStorageService.create, mockStorageService.updateMeta, mockStorageService.readyFigshareIntent);
+      sinon.assert.notCalled(mockStorageService.abandonFigshareIntent);
     });
-    it('leaves committed create intent initialising when a secondary save fails', async () => {
+    it('abandons committed create intent when a secondary save fails', async () => {
       mockStorageService.updateMeta.resolves({ success: false, isSuccessful: () => false });
       const response = await RecordsService.create(brand, record(), { name: 'rdmp', hooks }, actor);
       expect(response.isSuccessful()).to.equal(false);
       sinon.assert.calledOnce(mockStorageService.create); sinon.assert.notCalled(mockStorageService.readyFigshareIntent);
+      const token = mockStorageService.create.firstCall.args[4].figshareIntent.saveToken;
+      sinon.assert.calledOnceWithExactly(mockStorageService.abandonFigshareIntent, 'record-123', token);
+    });
+    it('abandons committed update intent when a synchronous post-save hook fails', async () => {
+      const { StorageServiceResponse } = require('../../src/StorageServiceResponse');
+      const saved = new StorageServiceResponse(); saved.success = true; saved.oid = 'record-123'; saved.metadata = { recordVersion: 1 };
+      mockStorageService.updateMeta.resolves(saved);
+      RecordsService.triggerPostSaveSyncTriggers.rejects(new Error('post-save hook failed'));
+      const response = await RecordsService.updateMeta(brand, 'record-123', record(), actor, true, true);
+      expect(response.isSuccessful()).to.equal(false);
+      const source = mockStorageService.updateMeta.firstCall.args[4].figshareIntent;
+      expect(source.readiness).to.equal('initialising');
+      sinon.assert.notCalled(mockStorageService.readyFigshareIntent);
+      sinon.assert.calledOnceWithExactly(mockStorageService.abandonFigshareIntent, 'record-123', source.saveToken);
     });
     it('never writes intent when a pre hook rejects the source save', async () => {
       RecordsService.triggerPreSaveTriggers.rejects(new Error('invalid record'));

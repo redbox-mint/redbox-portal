@@ -49,8 +49,9 @@ export async function importRecordIntent(store: FigshareSyncStore, record: Recor
 }
 
 const PAUSED_DISPATCH_BACKOFF_MS = 5 * 60 * 1000;
-// Longer than any save's synchronous hooks, so live saves are never promoted early.
-const STALE_INITIALISING_MS = 15 * 60 * 1000;
+// Failed saves abandon their intent explicitly, so only saves interrupted by a process stop reach this
+// threshold. It is set well beyond any synchronous post-save hook, so live saves are never promoted early.
+const STALE_INITIALISING_MS = 60 * 60 * 1000;
 
 export async function dispatchFigshare(): Promise<void> {
   const storage = RecordsService.getFigshareIntentStorage();
@@ -75,10 +76,11 @@ export async function dispatchFigshare(): Promise<void> {
     if (page.length < 100) break;
     afterOid = page[page.length - 1].redboxOid;
   }
-  // Claimed rows leave the due window, so paging continues past paused records instead of rereading them.
+  // Exclude rows already visited this run before the page limit, so paging continues past paused records
+  // even if a dispatch cooldown expires mid-run.
   const seen = new Set<string>();
   while (true) {
-    const page = (await store.due()).filter(due => !seen.has(due.oid));
+    const page = await store.due(100, seen);
     if (!page.length) break;
     for (const due of page) {
       seen.add(due.oid);

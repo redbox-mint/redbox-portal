@@ -71,6 +71,17 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     assert.equal(await service.recoverStaleFigshareIntents(new Date(Date.now() + 1000).toISOString()), 1);
     assert.equal((await service.pendingFigshareIntents(10)).length, 1);
   });
+  it('never recovers an intent abandoned by a failed save, and lets the next save supersede it', async () => {
+    const options = request('failed'); options.figshareIntent!.readiness = 'initialising';
+    await service.updateMeta(brand, 'record', {}, undefined, options);
+    assert.equal(await service.abandonFigshareIntent('record', 'other'), false);
+    assert.equal(await service.abandonFigshareIntent('record', 'failed'), true);
+    assert.equal(await service.recoverStaleFigshareIntents(new Date(Date.now() + 1000).toISOString()), 0);
+    assert.equal((await service.pendingFigshareIntents(10)).length, 0);
+    await service.updateMeta(brand, 'record', {}, undefined, request('next'));
+    const record = await service.recordCol.findOne({ redboxOid: 'record' });
+    assert.equal(record!.figshareSyncIntent.readiness, 'ready'); assert.equal(record!.figshareSyncIntent.generation, 2);
+  });
   it('rejects both primary and secondary background writes after an intervening user edit', async () => {
     await service.updateMeta(brand, 'record', { metadata: { title: 'user edit' } });
     await assert.rejects(service.updateMeta(brand, 'record', { metadata: { title: 'stale' } }, undefined, { expectedVersion: 0 }), RecordWriteConflict);

@@ -262,6 +262,22 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.deepEqual(delivered, ['record-1']);
     assert.ok((await store.get('bad-000')).dispatchUntil > Date.now() + 60000);
   });
+  it('keeps paging past visited due rows after their dispatch cooldown expires mid-run', async () => {
+    await importRecordIntent(store, await seed());
+    for (let i = 0; i < 120; i++) {
+      const oid = `slow-${String(i).padStart(3, '0')}`;
+      await store.initialise(oid, 'brand-1'); await store.change(oid, (s: FigshareSyncModel) => { s.work.sync.dueAt = 1; });
+    }
+    const claim = FigshareSyncStore.prototype.dispatchClaim;
+    // Simulate a cooldown that has already lapsed by the time the next page is read.
+    FigshareSyncStore.prototype.dispatchClaim = async function (this: typeof store, oid: string) {
+      await claim.call(this, oid); await this.collection.updateOne({ oid }, { $set: { dispatchUntil: 0 } }); return true;
+    };
+    const delivered: string[] = [];
+    assignGlobals({ AgendaQueueService: { now: async (_name: string, data: { oid: string }) => { delivered.push(data.oid); } } });
+    try { await dispatchFigshare(); } finally { FigshareSyncStore.prototype.dispatchClaim = claim; }
+    assert.equal(delivered.length, 121); assert.ok(delivered.includes('record-1'));
+  });
   for (const [setting, legacy] of [['observationMs', 'publishAfterUploadDelay'], ['cleanupMs', 'uploadedFilesCleanupDelay']] as const) {
     for (const imported of [false, true]) {
       it(`pauses invalid ${setting} configuration without losing ${imported ? 'imported' : 'pending'} work, and resumes after correction`, async () => {
