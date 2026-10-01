@@ -567,6 +567,20 @@ describe('FigshareService', function () {
     expect(remote.called).to.equal(false);
   });
 
+  it('keeps disabled processing compatible with unsupported legacy delays and warns once per brand', async function () {
+    appConfigByBrandStub.returns({ figsharePublishing: buildFigsharePublishingConfig({
+      processing: { enabled: false }, queue: { publishAfterUploadDelay: 'in one minute', uploadedFilesCleanupDelay: 'tomorrow at noon' }
+    }) });
+    const record = { redboxOid: 'oid', metaMetadata: { brandId: 'default' }, metadata: {}, workflow: { stage: 'draft' } };
+    const wake = sinon.stub(service, 'wakeFigshareRecord').resolves(record);
+    await service.createUpdateFigshareArticle('oid', record, { triggerCondition: '<%= false %>' }, {});
+    await service.uploadFilesToFigshareArticle('oid', record);
+    await service.uploadFilesToFigshareArticle('oid', record);
+    const warnings = ((global as any).sails.log.warn as sinon.SinonStub).getCalls().filter(call => String(call.args[0]).includes('processing.enabled is false'));
+    expect(warnings).to.have.length(1);
+    expect(warnings[0].args[0]).to.include('default');
+    expect(wake.callCount).to.equal(2);
+  });
   it('routes post-save and legacy poll jobs through the committed-intent wake-up', async function () {
     const record = { redboxOid: 'oid', metadata: {} };
     const wake = sinon.stub(service, 'wakeFigshareRecord').resolves(record);

@@ -438,7 +438,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
   }
 
   private recordSeenInProgress(items: IntegrationStatusItem[]): void {
-    const names = items.filter(i => this.isInProgress(i)).map(i => i.integrationName);
+    const names = items.filter(i => this.isInProgress(i) || (i.integrationName === 'figshare' && i.outcome?.severity === 'pending')).map(i => i.integrationName);
     if (names.length === 0) {
       return;
     }

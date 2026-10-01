@@ -7,7 +7,7 @@ import { getRecordField, setRecordField } from './types';
 import { DEFAULT_FIGSHARE_PROCESSING, type FigshareOperation } from '../../configmodels/FigsharePublishing';
 import { resolveFigsharePublishingConfig, type ResolvedFigsharePublishingConfigData } from './config';
 import { FigshareSyncStore, FigshareLeaseLost } from './sync-store';
-import { figshareExecution, FigshareWaiting, FigshareRepairRequired, type FigshareExecution } from './execution';
+import { figshareExecution, workerClient, FigshareWaiting, FigshareRepairRequired, type FigshareExecution } from './execution';
 import { apiNamespace, resolveCreationOwner, newCreateOperation, provisionalTitle, recoverCreate, observedPublished } from './identity';
 import { currentExecutionEligible } from './source-intent';
 import { makeLiveClient, makeFixtureClient, FigshareHttpError, type FigshareClient } from './http';
@@ -53,12 +53,27 @@ export async function dispatchFigshare(): Promise<void> {
   if (!storage.pendingFigshareIntents) return;
   const store = getSyncStore();
   await store.ensureIndexes();
-  for (const record of await storage.pendingFigshareIntents(100)) {
-    if (resolveFigsharePublishingConfig(record, { requireToken: false })?.processing?.enabled) await importRecordIntent(store, record);
+  let afterOid = '';
+  while (true) {
+    const page = await storage.pendingFigshareIntents(100, afterOid);
+    for (const record of page) {
+      try {
+        const config = resolveFigsharePublishingConfig(record, { requireToken: false });
+        if (config?.processing?.enabled && !config.processingError) await importRecordIntent(store, record);
+      } catch (error) {
+        sails.log.error(`Figshare intent import failed for ${record.redboxOid}; pending work is retained`, error);
+      }
+    }
+    if (page.length < 100) break;
+    afterOid = page[page.length - 1].redboxOid;
   }
   for (const due of await store.due()) {
     if (!await store.dispatchClaim(due.oid)) continue;
-    try { await AgendaQueueService.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId }); }
+    try {
+      const fresh = await RecordsService.getMeta(due.oid);
+      if (fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false })?.processingError) continue;
+      await AgendaQueueService.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId });
+    }
     catch (error) { sails.log.error('Figshare delivery failed; durable work remains due', error); }
   }
 }
@@ -74,7 +89,7 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
   }
   if (record.metaMetadata.brandId !== brandId) throw new FigshareRepairRequired('Queue brand does not match the fresh record');
   const config = resolveFigsharePublishingConfig(record, { requireToken: false });
-  if (!config?.processing?.enabled) return;
+  if (!config?.processing?.enabled || config.processingError) return;
   const settings = { ...DEFAULT_FIGSHARE_PROCESSING, ...config.processing };
   if (settings.heartbeatMs <= 0 || settings.leaseMs < settings.heartbeatMs * 3) throw new Error('Figshare lease must cover at least three heartbeat intervals');
   await store.ensureIndexes();
@@ -131,7 +146,7 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
     const fresh = await RecordsService.getMeta(oid);
     if (!fresh || fresh.metaMetadata.brandId !== brandId) throw new FigshareWaiting('record_changed');
     const latestConfig = resolveFigsharePublishingConfig(fresh, { requireToken: false });
-    if (!latestConfig?.processing?.enabled || contentHash(latestConfig) !== contentHash(config)) throw new FigshareWaiting('configuration_changed');
+    if (!latestConfig?.processing?.enabled || latestConfig.processingError || contentHash(latestConfig) !== contentHash(config)) throw new FigshareWaiting('configuration_changed');
     if (fresh.figshareSyncIntent?.readiness === 'initialising' || (fresh.figshareSyncIntent?.generation ?? 0) !== sourceGeneration) throw new FigshareWaiting('newer_save');
     if (kind === 'sync' && !await eligible(startedWork.sync.policies, fresh)) throw new FigshareWaiting('eligibility');
     return fresh;
@@ -171,7 +186,6 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
           : current.custom_fields as Record<string, unknown> ?? {};
         outgoing.custom_fields = { ...remote, ...payload.custom_fields };
       }
-      await assertCurrent();
       const result = await send(outgoing);
       await checkpoint(s => { s.checkpoints.metadata = hash; });
       return { ...result, id };
@@ -256,8 +270,7 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
             await checkpoint(s => { s.binding = binding; s.create = operation; s.createGeneration = sourceGeneration; s.createRequest = startedWork.sync.requested; });
             execution.binding = binding;
             try {
-              await execution.guard('create');
-              const response = await rawClient.createArticle({ title: provisionalTitle(operation.token) });
+              const response = await workerClient(rawClient).createArticle({ title: provisionalTitle(operation.token) });
               if (response.id == null) throw new Error('Create response did not contain an article identity');
               article = await recovery(() => rawClient.getArticle(String(response.id)));
               if (article.title !== provisionalTitle(operation.token)) throw new FigshareRepairRequired('Create response did not verify the operation token');

@@ -1,4 +1,4 @@
-import { figshareExecution, workerClient } from './execution';
+import { figshareExecution, workerClient, transportGuardedMethods } from './execution';
 import type { FigshareOperation } from '../../configmodels/FigsharePublishing';
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 import { Context, Layer } from 'effect';
@@ -347,7 +347,7 @@ export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData):
 }
 
 export function makeLiveClient(config: FigsharePublishingConfigData, runContext: FigshareRunContext): FigshareClient {
-  return {
+  const client: FigshareClient = {
     getAccount() { return requestWithRetry<FigshareInstitutionAccount>(config, runContext, { method: 'get', path: '/account', operation: 'metadata' }); },
     listArticles(page = 1, pageSize = 100) { return requestWithRetry<FigshareArticle[]>(config, runContext, { method: 'get', path: '/account/articles', params: { page, page_size: pageSize }, operation: 'recovery' }); },
     getPublicArticle(articleId) { return requestWithRetry<FigshareArticle>(config, runContext, { method: 'get', path: `/articles/${assertNumericPathId('articleId', articleId)}`, anonymous: true }); },
@@ -384,6 +384,7 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
       return requestWithRetry(config, runContext, {
         method: 'put',
         url: `${uploadUrl}/${partNo}`,
+        operation: 'assets',
         payload: data,
         headers: { 'Content-Type': 'application/octet-stream' },
         timeoutMs: config.connection.operationTimeouts.uploadPartMs,
@@ -445,6 +446,11 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
       });
     }
   };
+  for (const method of [client.createArticle, client.updateArticle, client.createArticleFile, client.uploadFilePart,
+    client.completeFileUpload, client.deleteArticleFile, client.setEmbargo, client.clearEmbargo, client.publishArticle]) {
+    transportGuardedMethods.add(method);
+  }
+  return client;
 }
 
 export function makeClientLayer(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext) {

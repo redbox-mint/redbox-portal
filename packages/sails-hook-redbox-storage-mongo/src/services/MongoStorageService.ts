@@ -348,9 +348,9 @@ export namespace Services {
       const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.saveToken': saveToken }, { $set: { 'figshareSyncIntent.readiness': 'ready' } });
       return result.matchedCount === 1;
     }
-    public async pendingFigshareIntents(limit: number): Promise<RecordModel[]> {
-      return this.recordCol.find<RecordModel>({ 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'ready' })
-        .sort({ 'figshareSyncIntent.requestedAt': 1 }).limit(limit).toArray();
+    public async pendingFigshareIntents(limit: number, afterOid = ''): Promise<RecordModel[]> {
+      return this.recordCol.find<RecordModel>({ redboxOid: { $gt: afterOid }, 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'ready' })
+        .sort({ redboxOid: 1 }).limit(limit).toArray();
     }
     public async acknowledgeFigshareIntent(oid: string, generation: number): Promise<boolean> {
       const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.generation': generation, 'figshareSyncIntent.readiness': 'ready' }, { $set: { 'figshareSyncIntent.pending': false } });

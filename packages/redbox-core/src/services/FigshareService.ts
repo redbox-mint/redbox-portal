@@ -2,7 +2,7 @@ import { dispatchFigshare, runFigshareWorker, getSyncStore, importRecordIntent }
 import { workerClient } from './figshare-v2/execution';
 import { buildMetadataPayload as buildLocalMetadataPayload } from './figshare-v2/metadata';
 import { Services as services } from '../CoreService';
-import { resolveFigsharePublishingConfig, getSyncState, setSyncState } from './figshare-v2/config';
+import { resolveFigsharePublishingConfig, getBrandName, getSyncState, setSyncState } from './figshare-v2/config';
 import { createRunContext } from './figshare-v2/context';
 import { preparePublication as preparePublicationPlan } from './figshare-v2/plan';
 import { validateHandlebarsTemplate } from './figshare-v2/bindings';
@@ -263,6 +263,15 @@ export namespace Services {
       await ensureNoUploadsInProgress(client, articleId);
     }
 
+    private readonly warnedDisabledBrands = new Set<string>();
+    private warnDisabledProcessing(record: RecordModel): void {
+      const config = resolveFigsharePublishingConfig(record, { requireToken: false });
+      const brand = getBrandName(record);
+      if (!config || config.processing?.enabled || this.warnedDisabledBrands.has(brand)) return;
+      this.warnedDisabledBrands.add(brand);
+      sails.log.warn(`Figshare legacy hook for brand ${brand} cannot synchronise articles while figsharePublishing.processing.enabled is false; enable queued processing after completing the migration checks.`);
+    }
+
     private readonly warnedAliases = new Set<string>();
     private deprecate(name: string, replacement: string): void {
       if (this.warnedAliases.has(name)) return;
@@ -282,7 +291,7 @@ export namespace Services {
     public async wakeFigshareRecord(oid: string, record?: RecordModel): Promise<RecordModel | undefined> {
       const fresh = await RecordsService.getMeta(oid);
       const config = fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false });
-      if (!fresh || !config?.processing?.enabled || fresh.figshareSyncIntent?.readiness === 'initialising') return record;
+      if (!fresh || !config?.processing?.enabled || config.processingError || fresh.figshareSyncIntent?.readiness === 'initialising') return record;
       const store = getSyncStore();
       await store.ensureIndexes();
       await importRecordIntent(store, fresh);
@@ -297,10 +306,12 @@ export namespace Services {
 
     public createUpdateFigshareArticle(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown) {
       this.deprecate('createUpdateFigshareArticle', 'validateFigshareRecord');
+      this.warnDisabledProcessing(record);
       return this.validateFigshareRecord(oid, record, options, user);
     }
     public uploadFilesToFigshareArticle(oid: string, record: RecordModel, _options?: Record<string, unknown>, _user?: UserModel) {
       this.deprecate('uploadFilesToFigshareArticle', 'wakeFigshareRecord');
+      this.warnDisabledProcessing(record);
       return this.wakeFigshareRecord(oid, record);
     }
     public requestFigshareCleanup(_oid: string, record: RecordModel, _options?: Record<string, unknown>, _user?: UserModel) {
@@ -309,10 +320,12 @@ export namespace Services {
     }
     public deleteFilesFromRedboxTrigger(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
       this.deprecate('deleteFilesFromRedboxTrigger', 'requestFigshareCleanup');
+      this.warnDisabledProcessing(record);
       return this.requestFigshareCleanup(oid, record, options, user);
     }
     public async syncRecordWithFigshare(record: RecordModel, _jobId?: string, _triggerSource?: string): Promise<RecordModel> {
       this.deprecate('syncRecordWithFigshare', 'wakeFigshareRecord');
+      this.warnDisabledProcessing(record);
       await this.wakeFigshareRecord(record.redboxOid ?? record.id, record);
       return record;
     }

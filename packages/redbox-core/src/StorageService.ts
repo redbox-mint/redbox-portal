@@ -16,7 +16,8 @@ export interface StorageService {
   findFigshareArticleRecords?(path: string, articleId: string): Promise<RecordModel[]>;
   setRecordFields?(oid: string, fields: Record<string, unknown>, expectedVersion: number, allowedPaths: string[]): Promise<RecordFieldWriteResult>;
   readyFigshareIntent?(oid: string, saveToken: string): Promise<boolean>;
-  pendingFigshareIntents?(limit: number): Promise<RecordModel[]>;
+  /** Ready pending records ordered by OID, strictly after the optional cursor. Skipped records remain pending. */
+  pendingFigshareIntents?(limit: number, afterOid?: string): Promise<RecordModel[]>;
   acknowledgeFigshareIntent?(oid: string, generation: number): Promise<boolean>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;

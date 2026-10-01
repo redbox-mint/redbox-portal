@@ -104,3 +104,28 @@ The core CI job now starts isolated Mongo 7.0, waits for its readiness and sets 
 Verification after the merge used Node 24.16.0 and a separate disposable Mongo instance, with controlled local HTTP responses and no Figshare UAT traffic. The core TypeScript build passed; the complete core suite passed 2,244 tests with 14 unrelated skips, including all 28 durable worker cases. The complete storage suite passed 233 tests. Oxlint passed across 607 files with zero warnings/errors, and the CircleCI YAML parsed with the expected database settings.
 
 Local LCOV line coverage was 86.34% for the queued worker, 81.30% for the admin module, 96.83% for the sync store and 92.19% for MongoStorageService. Combining the local core and storage reports covered 83.82% of instrumented changed lines relative to current master. This local calculation is not the final Codecov result, which also merges the other CI reports and evaluates the new commit.
+
+
+## CodeRabbit review remediation (2026-10-01)
+
+Reviewed all eight inline findings on [PR #4825](https://github.com/redbox-mint/redbox-portal/pull/4825).
+
+- Pending Figshare status is remembered for the viewing session so a completion between polls remains visible to researchers. Other integrations retain their existing visibility rules.
+- Explicit relinking to a different article clears an observed publication checkpoint after the existing publication/receipt uncertainty checks. The operation makes no remote mutations.
+- Disabled processing no longer attempts to parse legacy Agenda delays. The user confirmed that unsupported phrases with enabled processing must preserve record saves and pause Figshare work with a configuration error. Source intent is retained, live status identifies the required setting, and no remote operation or failure audit occurs until an explicit millisecond delay is configured.
+- Live mutations perform their full guard immediately before HTTP. Fixture and customer overrides retain boundary guards. Multipart PUTs are explicitly classified as asset operations. The suggested lease-only multipart check was not adopted because the design requires fresh generation, configuration, eligibility and curation checks before each mutation.
+- Dispatcher imports isolate record errors and page by OID beyond paused records. Failed and paused intents remain pending; their presence does not prevent delivering other due work.
+- Legacy hooks warn once per brand when publishing is configured but queued processing is disabled. No inline mutation path is restored during cutover.
+- Workflow-transition intent is collected only after an authorised transition is applied. Ordinary update policies remain eligible independently.
+- The user confirmed explicit owner account IDs for owner-based administrative link/relink reads. The CLI accepts `--owner-id`, reads the target in a read-only owner context, verifies the returned article and owner IDs, and rejects conflicting or missing owner evidence. The same verified article reuses its bound owner even after a CI change. Bound file repair reads also carry the persisted owner context. No remote mutation or ownership transfer is performed.
+
+Local verification used Node 24.16.0, Mongo 7.0 in a separate disposable container and controlled HTTP fixtures. The initial review fixes passed 2,250 core tests with 14 unrelated skips, including 31 durable worker cases. The complete storage suite passed 234 tests and the status-panel Karma suite passed 28 tests. Core and storage TypeScript builds and Oxlint passed. Additional focused runs covered unsupported legacy delays during disabled-processing saves and failure isolation after both invalid configuration and a changed persisted brand. No Figshare UAT request or local-stack credential read was needed.
+
+The previous pushed commit (`a654190db`) has successful CI checks and project coverage, while Codecov patch coverage is 67.15% against a 69.21% target. CI/Codecov results for these review changes require a new run after pushing.
+
+
+After both policy confirmations, the complete core suite passed 2,258 tests with 14 unrelated skips, including all 38 controlled-Mongo worker cases. These cover both legacy delay settings, paused pending and imported work, recovery after correction, explicit-owner dry runs and apply operations, mismatched/missing ownership evidence, same-article owner reuse after a CI change, and relinking to a different owner. A focused final upload-repair test also verified that private file reads use the persisted owner. Core TypeScript, Oxlint, CLI syntax/help and translation JSON validation passed. No UAT article or credential was accessed for these controlled tests.
+
+## Rebuilt-stack UAT verification after review remediation
+
+The CQU image and production form bundle were rebuilt from the reviewed sources and the stack recreated with its existing data. The real worker created private UAT article `11544326`, mapped all three related materials and uploaded two attachments with matching remote sizes/MD5 and retained local SHA-256 hashes. Three additional observe-only cycles preserved the expected pending state, with one started and one successful audit entry, no failed entries and no repeated remote mutations. The authenticated portal audit drawer displayed the successful sync trace. See the [full verification report](E2E-UAT-CODERABBIT-2026-10-01.md) for fixture links, image identity and coverage limits. The user authorised committing and pushing after this verification completed.

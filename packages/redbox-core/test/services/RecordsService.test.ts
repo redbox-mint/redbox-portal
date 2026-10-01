@@ -200,11 +200,22 @@ describe('RecordsService', function () {
     it('does not require remote credentials when queued processing is disabled', async () => {
       const { FigsharePublishing } = require('../../src/configmodels/FigsharePublishing');
       const config = new FigsharePublishing(); config.enabled = true; config.connection.token = ''; config.processing.enabled = false;
+      config.queue.publishAfterUploadDelay = 'in one minute'; config.queue.uploadedFilesCleanupDelay = 'tomorrow at noon';
       Reflect.set(globalThis, 'AppConfigService', { getAppConfigurationForBrand: () => ({ figsharePublishing: config }) });
       const response = await RecordsService.create(brand, record(), { name: 'rdmp', hooks }, actor);
       expect(response.isSuccessful()).to.equal(true);
       expect(mockStorageService.create.firstCall.args[4].figshareIntent).to.equal(undefined);
       sinon.assert.notCalled(mockStorageService.readyFigshareIntent);
+    });
+    it('preserves source saves and durable intent with an unsupported enabled-processing delay', async () => {
+      const { FigsharePublishing } = require('../../src/configmodels/FigsharePublishing');
+      const config = new FigsharePublishing(); config.enabled = true;
+      config.queue.publishAfterUploadDelay = 'in one minute';
+      Reflect.set(globalThis, 'AppConfigService', { getAppConfigurationForBrand: () => ({ figsharePublishing: { ...config, processing: { enabled: true } } }) });
+      expect((await RecordsService.create(brand, record(), { name: 'rdmp', hooks }, actor)).isSuccessful()).to.equal(true);
+      expect(mockStorageService.create.firstCall.args[4].figshareIntent).not.to.equal(undefined);
+      expect((await RecordsService.updateMeta(brand, 'record-123', record(), actor, true, false)).isSuccessful()).to.equal(true);
+      expect(mockStorageService.updateMeta.lastCall.args[4].figshareIntent).not.to.equal(undefined);
     });
     it('persists initialising intent after final pre hooks and marks ready after synchronous persistence', async () => {
       const response = await RecordsService.create(brand, record(), { name: 'rdmp', hooks }, actor);
@@ -226,6 +237,22 @@ describe('RecordsService', function () {
       expect(response.isSuccessful()).to.equal(false);
       sinon.assert.notCalled(mockStorageService.create); sinon.assert.notCalled(mockStorageService.readyFigshareIntent);
     });
+    for (const authorised of [false, true]) {
+      it(`collects transition intent only when the requested transition is authorised (${authorised})`, async () => {
+        const transitionHooks = { onUpdate: hooks.onUpdate, onTransitionWorkflow: { pre: [{ function: 'validateFigshareRecord' }] } };
+        Reflect.set(globalThis, 'RecordTypesService', { get: () => of({ name: 'rdmp', hooks: transitionHooks }) });
+        const preTransition = sinon.stub(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers').callsFake(async (_oid: unknown, value: unknown) => value);
+        const applyTransition = sinon.stub(RecordsService, 'transitionWorkflowStepMetadata').callsFake((value: any, step: any) => { value.workflow = step.config.workflow; });
+        const nextStep = { name: 'queued', config: { form: 'default-form', workflow: { stage: 'queued' }, authorization: { transitionRoles: ['Curator'] } } };
+        const user = { ...actor, roles: [{ name: authorised ? 'Curator' : 'Researcher' }] };
+        const response = await RecordsService.updateMeta(brand, 'record-123', record(), user, true, false, nextStep);
+        expect(response.isSuccessful()).to.equal(true);
+        const source = mockStorageService.updateMeta.firstCall.args[4].figshareIntent;
+        expect(source.intents.map((item: any) => item.policyId)).to.deep.equal(authorised ? ['onUpdate.pre.0', 'onTransitionWorkflow.pre.0'] : ['onUpdate.pre.0']);
+        expect(preTransition.called).to.equal(authorised);
+        expect(applyTransition.called).to.equal(authorised);
+      });
+    }
     it('carries the accepted version into secondary workflow writes and propagates conflicts', async () => {
       const { RecordWriteConflict } = require('../../src/RecordWriteOptions');
       mockStorageService.updateMeta.onFirstCall().resolves({ success: true, oid: 'record-123', metadata: { recordVersion: 8 }, isSuccessful: () => true });

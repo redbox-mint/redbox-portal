@@ -15,7 +15,7 @@ const { Services } = requireTest('../../src/services/FigshareService');
 const { runFigshareWorker, importRecordIntent, dispatchFigshare } = requireTest('../../src/services/figshare-v2/worker');
 const { mapCreateArticleResponse, makeLiveClient } = requireTest('../../src/services/figshare-v2/http');
 const { resolveCreationOwner } = requireTest('../../src/services/figshare-v2/identity');
-const { figshareExecution } = requireTest('../../src/services/figshare-v2/execution');
+const { figshareExecution, workerClient } = requireTest('../../src/services/figshare-v2/execution');
 const { prepareSourceIntent, currentExecutionEligible } = requireTest('../../src/services/figshare-v2/source-intent');
 
 const { figshareAdmin } = requireTest('../../src/services/figshare-v2/admin');
@@ -138,7 +138,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     const records = db.collection('records');
     const storage = {
       acknowledgeFigshareIntent: async (oid: string, generation: number) => (await records.updateOne({ redboxOid: oid, 'figshareSyncIntent.generation': generation }, { $set: { 'figshareSyncIntent.pending': false } })).matchedCount === 1,
-      pendingFigshareIntents: async () => records.find({ 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'ready' }).toArray(),
+      pendingFigshareIntents: async (limit: number, afterOid = '') => records.find({ redboxOid: { $gt: afterOid }, 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'ready' }).sort({ redboxOid: 1 }).limit(limit).toArray(),
       scanFigshareRecords: async () => records.find({}).toArray(),
       findFigshareArticleRecords: async (path: string, id: string) => records.find({ [path]: id }).toArray()
     };
@@ -230,6 +230,127 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     const record = await seed(); await store.importSource('record-1', 'brand-1', record.figshareSyncIntent);
     await importRecordIntent(store, record); await importRecordIntent(store, record);
     assert.equal((await store.get('record-1')).work.sync.requested, 1);
+  });
+  it('imports beyond paused brands and isolates invalid configuration before delivering due work', async () => {
+    const source = await seed();
+    await db.collection('records').insertMany(Array.from({ length: 100 }, (_, i) => ({ ...source, redboxOid: `paused-${String(i).padStart(3, '0')}`, metaMetadata: { ...source.metaMetadata, brandId: 'paused' } })));
+    await db.collection('records').insertOne({ ...source, redboxOid: 'bad-config', metaMetadata: { ...source.metaMetadata, brandId: 'bad' } });
+    await store.initialise('bad-import', 'previous-brand');
+    await db.collection('records').insertOne({ ...source, redboxOid: 'bad-import' });
+    assignGlobals({ BrandingService: { getBrandById: (id: string) => ({ id, name: id }), getBrand: () => ({ name: 'brand-1' }) },
+      AppConfigService: { getAppConfigurationForBrand: (name: string) => ({ figsharePublishing: name === 'paused' ? { ...config, processing: { ...config.processing, enabled: false } } : name === 'bad' ? { ...config, processing: { ...config.processing, observationMs: undefined }, queue: { ...config.queue, publishAfterUploadDelay: 'tomorrow at noon' } } : config }) } });
+    let deliveries = 0;
+    assignGlobals({ AgendaQueueService: { now: async () => { deliveries++; } } });
+    await dispatchFigshare();
+    assert.equal(deliveries, 1);
+    assert.ok(await store.get('record-1'));
+    assert.equal(await db.collection('records').countDocuments({ 'figshareSyncIntent.pending': true }), 102);
+  });
+  for (const [setting, legacy] of [['observationMs', 'publishAfterUploadDelay'], ['cleanupMs', 'uploadedFilesCleanupDelay']] as const) {
+    for (const imported of [false, true]) {
+      it(`pauses invalid ${setting} configuration without losing ${imported ? 'imported' : 'pending'} work, and resumes after correction`, async () => {
+        if (imported) await importRecordIntent(store, await seed());
+        const processing = { ...config.processing! };
+        Reflect.deleteProperty(processing, setting);
+        config.queue[legacy] = 'tomorrow at noon';
+        assignGlobals({ AppConfigService: { getAppConfigurationForBrand: () => ({ figsharePublishing: { ...config, processing } }) } });
+        let deliveries = 0;
+        assignGlobals({ AgendaQueueService: { now: async () => { deliveries++; } } });
+        for (let attempt = 0; attempt < 3; attempt++) {
+          await service.wakeFigshareRecord('record-1'); await dispatchFigshare(); await run();
+        }
+        assert.equal(deliveries, 0); assert.equal(requests.length, 0); assert.equal(traceStarts, 0); assert.equal(traceFailures, 0);
+        const record = (await db.collection('records').findOne({ redboxOid: 'record-1' }))!;
+        assert.equal(record.figshareSyncIntent.pending, !imported);
+        if (imported) assert.equal((await store.get('record-1')).work.sync.processed, 0);
+        const { figshareLiveSummary } = requireTest('../../src/services/figshare-v2/status');
+        const summary = await figshareLiveSummary('record-1', record);
+        assert.equal(summary.status, 'failed'); assert.equal(summary.outcome.state, 'configuration_error');
+        assert.match(summary.message, new RegExp(`processing.${setting}`));
+        assert.ok(!JSON.stringify(summary).includes('test-token'));
+        processing[setting] = 900000;
+        await run();
+        assert.equal(articles.length, 1); assert.equal((await store.get('record-1')).work.sync.processed, 1);
+        const fresh = (await db.collection('records').findOne({ redboxOid: 'record-1' }))!;
+        assert.equal((await figshareLiveSummary('record-1', fresh)).outcome.state, 'review');
+      });
+    }
+  }
+  it('requires and verifies an explicit owner for an unbound article with owner-based reads', async () => {
+    config.impersonation.enabled = true; config.impersonation.operations.read = 'owner';
+    articles.push({ id: 51, account_id: 101, title: 'Existing private article', files: [], version: 1, is_public: false });
+    const options = { action: 'link', oid: 'record-1', articleId: '51', username: 'admin' };
+    await assert.rejects(figshareAdmin(options), /requires --owner-id/);
+    await assert.rejects(figshareAdmin({ ...options, ownerId: 'not-an-account' }), /numeric/);
+    await assert.rejects(figshareAdmin({ ...options, ownerId: '202', apply: true }), /owner does not match/);
+    assert.equal(await store.get('record-1'), null);
+    const preview = await figshareAdmin({ ...options, ownerId: '101' });
+    assert.equal(preview.ownerId, '101'); assert.equal(preview.dryRun, true);
+    assert.equal(await store.get('record-1'), null);
+    await figshareAdmin({ ...options, ownerId: '101', apply: true });
+    assert.equal((await store.get('record-1')).binding.ownerId, '101');
+    assert.equal(requests.filter(r => r.path === '/account/articles/51').at(-1)!.query.get('impersonate'), '101');
+    assert.ok(requests.every(r => r.method === 'GET'));
+  });
+  it('reuses the verified owner for the same article even after the record CI changes', async () => {
+    config.impersonation.enabled = true; config.impersonation.operations.read = 'owner';
+    articles.push({ id: 51, account_id: 101, title: 'Original owner', files: [], version: 1, is_public: false });
+    const options = { action: 'link', oid: 'record-1', articleId: '51', username: 'admin', apply: true };
+    await figshareAdmin({ ...options, ownerId: '101' });
+    await db.collection('records').updateOne({ redboxOid: 'record-1' }, { $set: { 'metadata.contributor_ci': { dc_identifier: 'different-ci', email: 'other@example.org' } } });
+    await figshareAdmin(options);
+    assert.equal((await store.get('record-1')).binding.ownerId, '101');
+    await assert.rejects(figshareAdmin({ ...options, ownerId: '202' }), /differs from the verified binding/);
+    assert.equal(requests.filter(r => r.path === '/account/articles/51').at(-1)!.query.get('impersonate'), '101');
+    assert.ok(requests.every(r => r.method === 'GET'));
+  });
+  it('requires the new article owner on relink and rejects missing remote ownership evidence', async () => {
+    config.impersonation.enabled = true; config.impersonation.operations.read = 'owner';
+    articles.push({ id: 51, account_id: 101, title: 'Original', files: [], version: 1, is_public: false });
+    articles.push({ id: 52, account_id: 202, title: 'Replacement', files: [], version: 1, is_public: false });
+    await figshareAdmin({ action: 'link', oid: 'record-1', articleId: '51', ownerId: '101', username: 'admin', apply: true });
+    const options = { action: 'relink', oid: 'record-1', articleId: '52', username: 'admin', apply: true };
+    await assert.rejects(figshareAdmin(options), /requires --owner-id/);
+    await assert.rejects(figshareAdmin({ ...options, ownerId: '101' }), /owner does not match/);
+    delete articles[1].account_id;
+    await assert.rejects(figshareAdmin({ ...options, ownerId: '202' }), /owner does not match/);
+    assert.equal((await store.get('record-1')).binding.articleId, '51');
+    articles[1].account_id = 202;
+    await figshareAdmin({ ...options, ownerId: '202' });
+    assert.equal((await store.get('record-1')).binding.articleId, '52');
+    assert.equal((await store.get('record-1')).binding.ownerId, '202');
+    assert.equal(requests.filter(r => r.path === '/account/articles/52').at(-1)!.query.get('impersonate'), '202');
+    assert.ok(requests.every(r => r.method === 'GET'));
+  });
+  it('clears an observed publication checkpoint when relinking a different article', async () => {
+    await run();
+    await store.change('record-1', (s: FigshareSyncModel) => { s.publish!.outcome = 'observed'; });
+    articles.push({ id: 52, account_id: 1, title: 'Replacement', files: [], version: 1, is_public: false });
+    const mutationCount = requests.filter(r => r.method !== 'GET').length;
+    await figshareAdmin({ action: 'relink', oid: 'record-1', articleId: '52', username: 'admin', apply: true });
+    const state = await store.get('record-1');
+    assert.equal(state.binding.articleId, '52');
+    assert.equal(state.publish, undefined);
+    assert.equal(state.publication, 'private');
+    assert.equal(requests.filter(r => r.method !== 'GET').length, mutationCount);
+  });
+  it('checks live mutations once at transport and still guards customer overrides', async () => {
+    articles.push({ id: 51, account_id: 1, title: 'Initial', files: [], version: 1, is_public: false });
+    const operations: string[] = [];
+    await figshareExecution.run({ signal: new AbortController().signal,
+      guard: async (operation: string) => { operations.push(operation); },
+      metadata: async (_id: string, payload: unknown, send: (payload: unknown) => Promise<unknown>) => send(payload)
+    }, async () => {
+      const raw = makeLiveClient(config, { brandId: 'brand-1', recordOid: 'record-1' });
+      const client = workerClient(raw);
+      await client.updateArticle('51', { title: 'Updated' });
+      await client.uploadFilePart(`${config.connection.baseUrl}/upload/parts`, 1, Buffer.from('bytes'));
+      await client.publishArticle('51');
+      assert.deepEqual(operations, ['metadata', 'assets', 'publish']);
+      const custom = workerClient({ ...raw, updateArticle: async () => ({ id: 51 }) });
+      await custom.updateArticle('51', { title: 'Custom' });
+      assert.deepEqual(operations, ['metadata', 'assets', 'publish', 'metadata']);
+    });
   });
   it('coalesces duplicate deliveries into one create and one publish', async () => {
     await Promise.all([run(), run(), run()]);
@@ -377,7 +498,10 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.ok(requests.some(r => r.path === '/account/articles' && r.method === 'GET' && r.query.get('impersonate') === '101'));
   });
   it('requires matching file evidence and a free lease for an explicit upload repair', async () => {
+    config.impersonation.enabled = true;
+    await db.collection('records').updateOne({ redboxOid: 'record-1' }, { $set: { 'metadata.contributor_ci': { dc_identifier: 'ci-1', email: 'ci@example.org' } } });
     await run();
+    config.impersonation.operations.assets = 'owner';
     const md5 = '0123456789abcdef0123456789abcdef';
     articles[0].files = [{ id: 11, size: 10, status: 'created', supplied_md5: md5 }];
     await store.change('record-1', (s: FigshareSyncModel) => { s.receipts.push({ key: 'receipt', articleId: '51', localId: 'local', digest: 'sha256', md5, size: 10, name: 'data', kind: 'hosted', state: 'initialising', desired: true }); });
@@ -386,6 +510,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.equal((await store.get('record-1')).receipts[0].fileId, undefined);
     await figshareAdmin({ action: 'resume-upload', username: 'admin', oid: 'record-1', receipt: 'receipt', fileId: '11', apply: true });
     assert.equal((await store.get('record-1')).receipts[0].resumeApproved, true);
+    assert.equal(requests.filter(r => r.path === '/account/articles/51/files/11').at(-1)!.query.get('impersonate'), '101');
     await store.claim('record-1', 'brand-1', 'running', 60000);
     await assert.rejects(figshareAdmin({ action: 'resume-upload', username: 'admin', oid: 'record-1', receipt: 'receipt', fileId: '11', apply: true }), /active worker/);
   });

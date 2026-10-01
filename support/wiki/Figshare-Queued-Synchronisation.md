@@ -84,13 +84,13 @@ Run from the deployed portal using its normal environment, config and dependenci
 node support/figshare/admin.js inspect --username ADMIN --oid OID
 node support/figshare/admin.js reconcile --username ADMIN --oid OID
 node support/figshare/admin.js migrate --username ADMIN
-node support/figshare/admin.js link --username ADMIN --oid OID --article-id ID
+node support/figshare/admin.js link --username ADMIN --oid OID --article-id ID [--owner-id ACCOUNT_ID]
 node support/figshare/admin.js resume --username ADMIN --oid OID
 ```
 
 Commands are dry-run by default; add `--apply` to a reviewed correction. `inspect` and `reconcile` remain read-only. They require a current administrator; per-record operations also check edit access. The CLI loads the normal application with queue startup disabled in that process. Pause workers across all deployed processes before migration/repair; leases additionally reject repairs against active workers. No command publishes or transfers ownership.
 
-- `link` verifies accessible identity and exclusive binding. `relink` is the explicit alternative for an existing different article; unresolved publication or managed receipts block an unsafe change.
+- `link` verifies accessible identity and exclusive binding. With owner-based reads, supply `--owner-id` for an unbound article or a different relink target. Use the Figshare owner account ID, not the author user ID. The command reads as that owner and checks the returned article owner before saving the binding. An existing verified binding supplies the owner for the same article; changing the current CI never changes that owner. A supplied owner conflicting with a verified binding is rejected. `relink` is the explicit alternative for an existing different article; unresolved publication or managed receipts block an unsafe change.
 - `resume` requests another sync under an existing authorised source policy. It preserves create/publish/upload uncertainty and previous failure history.
 - `bind-file --receipt KEY --file-id ID` verifies a completed file's size and computed MD5 against the persisted receipt.
 - `resume-upload --receipt KEY --file-id ID` verifies size and supplied MD5 and explicitly permits resuming that upload. Stop the previous uploader first. Completed parts are skipped; no second file is initialised.

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { RecordModel } from './types';
+import type { RecordModel, FigshareArticle } from './types';
 import { getRecordField } from './types';
 import { getSyncStore } from './worker';
 import { resolveFigsharePublishingConfig } from './config';
@@ -7,10 +7,10 @@ import { createRunContext } from './context';
 import { makeLiveClient, makeFixtureClient } from './http';
 import { recoverCreate, apiNamespace, observedPublished } from './identity';
 import { figshareExecution, FigshareRepairRequired } from './execution';
-import type { FigshareSyncModel } from '../../model/storage/FigshareSyncModel';
+import type { FigshareSyncModel, FigshareBinding } from '../../model/storage/FigshareSyncModel';
 
 export type FigshareAdminAction = 'inspect' | 'reconcile' | 'link' | 'relink' | 'resume' | 'migrate' | 'bind-file' | 'resume-upload';
-export interface FigshareAdminOptions { action: FigshareAdminAction; oid?: string; username: string; articleId?: string; apply?: boolean; receipt?: string; fileId?: string }
+export interface FigshareAdminOptions { action: FigshareAdminAction; oid?: string; username: string; articleId?: string; ownerId?: string; apply?: boolean; receipt?: string; fileId?: string }
 
 /** Operators use application identities/configuration; no direct DB edits or remote writes. */
 export async function figshareAdmin(options: FigshareAdminOptions): Promise<unknown> {
@@ -78,6 +78,11 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
   const client = config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, createRunContext(record, config, undefined, 'admin'));
   const account = await client.getAccount!();
   if (state?.binding && (state.binding.namespace !== apiNamespace(config) || state.binding.accountId !== String(account.id))) throw new FigshareRepairRequired('Configured API environment/account differs from the persisted binding');
+  const readOnly = <T>(binding: FigshareBinding | undefined, read: () => Promise<T>) => figshareExecution.run({
+    binding, signal: new AbortController().signal,
+    guard: async () => { throw new Error('Administrative verification is read-only'); },
+    metadata: async () => { throw new Error('Administrative verification is read-only'); }
+  }, read);
   if (options.action === 'reconcile') {
     if (!state?.create) return { state, candidates: [] };
     const recovered = await figshareExecution.run({ binding: state.create.binding, recovery: true, signal: new AbortController().signal,
@@ -90,7 +95,8 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
   let verifiedFile: { id: string; available: boolean } | undefined;
   if (fileAction) {
     if (!receipt || !state?.binding?.articleId || !/^\d+$/.test(options.fileId ?? '')) throw new Error('An existing receipt, authoritative article and explicit numeric file ID are required');
-    const descriptor = await client.getLocation(`${apiNamespace(config)}/account/articles/${state.binding.articleId}/files/${options.fileId}`);
+    const binding = state.binding;
+    const descriptor = await readOnly(binding, () => client.getLocation(`${apiNamespace(config)}/account/articles/${binding.articleId}/files/${options.fileId}`));
     const available = ['available', 'completed'].includes(String(descriptor.status).toLowerCase());
     if (Number(descriptor.size) !== receipt.size || !receipt.md5 || String(available ? descriptor.computed_md5 : descriptor.supplied_md5).toLowerCase() !== receipt.md5) throw new Error('Remote file content evidence does not match the receipt');
     if (options.action === 'bind-file' && !available) throw new Error('Use resume-upload only after stopping the previous uploader');
@@ -98,7 +104,22 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
     if (String(descriptor.id) !== options.fileId) throw new Error('Remote descriptor returned a different file identity');
     verifiedFile = { id: String(descriptor.id), available };
   }
-  const remote = ['link', 'relink'].includes(options.action) ? await client.getArticle(String(options.articleId ?? '')) : undefined;
+  let remote: FigshareArticle | undefined;
+  let verifiedOwnerId: string | undefined;
+  if (['link', 'relink'].includes(options.action)) {
+    const articleId = String(options.articleId ?? '');
+    const existing = state?.binding?.articleId === articleId ? state.binding : undefined;
+    if (options.ownerId != null && !/^\d+$/.test(options.ownerId)) throw new Error('An explicit numeric Figshare owner account ID is required');
+    if (existing && options.ownerId != null && options.ownerId !== existing.ownerId) throw new FigshareRepairRequired('Supplied owner differs from the verified binding; linking cannot transfer ownership');
+    const ownerId = options.ownerId ?? existing?.ownerId;
+    const ownerReads = config.impersonation?.enabled && config.impersonation.operations.read === 'owner';
+    if (ownerReads && !ownerId) throw new FigshareRepairRequired('Owner-based verification of an unbound or different article requires --owner-id ACCOUNT_ID');
+    const binding = ownerId ? { namespace: apiNamespace(config), accountId: String(account.id), ownerId, articleId } : undefined;
+    remote = await readOnly(binding, () => client.getArticle(articleId));
+    if (String(remote.id) !== articleId) throw new FigshareRepairRequired('Remote article returned a different identity');
+    if (ownerId && String(remote.account_id ?? '') !== ownerId) throw new FigshareRepairRequired('Remote article owner does not match the supplied or previously verified owner account');
+    verifiedOwnerId = ownerId ?? String(remote.account_id ?? account.id);
+  }
   if (remote) {
     const duplicate = await store.collection.findOne({ namespace: apiNamespace(config), articleId: String(remote.id), oid: { $ne: oid } });
     if (duplicate) throw new FigshareRepairRequired(`Article is already bound to record ${duplicate.oid}`);
@@ -106,7 +127,7 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
     if (matches.some(r => r.redboxOid !== oid && resolveFigsharePublishingConfig(r)?.connection.baseUrl.replace(/\/+$/, '') === apiNamespace(config))) throw new FigshareRepairRequired('Duplicate legacy bindings must be resolved first');
     if (state?.binding?.articleId && state.binding.articleId !== String(remote.id) && options.action !== 'relink') throw new Error('Use explicit relink to change an existing authoritative article ID');
   }
-  if (!options.apply) return { dryRun: true, oid, action: options.action, articleId: remote?.id, file: verifiedFile, publication: remote && observedPublished(remote), ownerId: remote?.account_id, retainedLocalBytes: true };
+  if (!options.apply) return { dryRun: true, oid, action: options.action, articleId: remote?.id, file: verifiedFile, publication: remote && observedPublished(remote), ownerId: verifiedOwnerId, retainedLocalBytes: true };
   await store.ensureIndexes();
   await store.initialise(oid, record.metaMetadata.brandId);
   const owner = `admin:${randomUUID()}`;
@@ -122,11 +143,14 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
         s.status = 'queued'; delete s.error;
         if (s.auditClosed) { delete s.audit; s.auditClosed = false; }
         s.work.sync.requested++; s.work.sync.dueAt = Date.now();
-      } else if (remote) {
+      } else if (remote && verifiedOwnerId) {
         const changed = s.binding?.articleId && s.binding.articleId !== String(remote.id);
+        if (changed && options.action !== 'relink') throw new Error('Use explicit relink to change an existing authoritative article ID');
+        if (s.binding?.articleId === String(remote.id) && s.binding.ownerId !== verifiedOwnerId) throw new FigshareRepairRequired('Verified owner binding changed during verification; inspect and retry');
         if (changed && s.publish && s.publish.outcome !== 'observed') throw new Error('Reconcile the outstanding publication before relinking');
         if (changed && s.receipts.some(r => r.state !== 'removed')) throw new Error('Relinking with managed receipts requires reconciliation of those files first');
-        s.binding = { namespace: apiNamespace(config), accountId: String(account.id), ownerId: String(remote.account_id ?? account.id), articleId: String(remote.id) };
+        if (changed) delete s.publish;
+        s.binding = { namespace: apiNamespace(config), accountId: String(account.id), ownerId: verifiedOwnerId, articleId: String(remote.id) };
         s.namespace = s.binding.namespace; s.articleId = s.binding.articleId;
         s.publication = observedPublished(remote) ? 'published' : 'private'; s.embargoed = remote.is_embargoed === true;
         s.status = 'synced'; s.observedAt = new Date().toISOString();

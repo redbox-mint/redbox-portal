@@ -1745,6 +1745,7 @@
   "figshare-live-manual_publication": "Waiting for manual publication in Figshare",
   "figshare-live-review": "Waiting for Figshare review",
   "figshare-live-replacement_access": "Waiting for published files to become accessible",
+  "figshare-live-configuration_error": "Figshare paused: configuration needs correction",
   "figshare-live-configuration_changed": "Configuration changed; checking again",
   "figshare-publication-private": "Private draft in Figshare",
   "figshare-publication-pending": "Publication pending in Figshare",

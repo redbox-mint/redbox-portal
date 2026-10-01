@@ -33,6 +33,14 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     assert.equal(record!.metadata.title, record!.figshareSyncIntent.saveToken);
     assert.equal((await service.pendingFigshareIntents(100)).length, 1);
   });
+  it('paginates pending intents without skipping records when earlier entries remain pending', async () => {
+    await service.recordCol.insertMany(['a', 'b', 'c'].map(redboxOid => ({ redboxOid, figshareSyncIntent: { pending: true, readiness: 'ready' } })));
+    const first = await service.pendingFigshareIntents(2);
+    const second = await service.pendingFigshareIntents(2, first[first.length - 1].redboxOid);
+    assert.deepEqual(first.map(record => record.redboxOid), ['a', 'b']);
+    assert.deepEqual(second.map(record => record.redboxOid), ['c']);
+    assert.equal(await service.recordCol.countDocuments({ 'figshareSyncIntent.pending': true }), 3);
+  });
   it('cannot erase or forge protected intent or version with ordinary snapshot writes', async () => {
     await service.updateMeta(brand, 'record', { metadata: { title: 'authorised' } }, undefined, request('one'));
     await service.updateMeta(brand, 'record', { figshareSyncIntent: { generation: 999, pending: false }, recordVersion: 999, metadata: { title: 'maintenance' } });

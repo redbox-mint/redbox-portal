@@ -696,6 +696,7 @@ export namespace Services {
       updateResponse.oid = oid;
       const failedMessage = 'Failed to update record, please check server logs.';
       let hasPermissionToTransition = true;
+      let transitionApplied = false;
       const origRecord = _.cloneDeep(recordObj);
       const origRecordObj = this.normalizeRecord(origRecord as AnyRecord);
       sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
@@ -746,6 +747,7 @@ export namespace Services {
               userObj
             );
             this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
+            transitionApplied = true;
           } catch (err) {
             if (err instanceof RecordWriteConflict) throw err;
             sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
@@ -820,8 +822,8 @@ export namespace Services {
       }
       recordMeta.lastSaveDate = DateTime.local().toISO();
       // update
-      const initialising = triggerPostSaveTriggers && (this.hasPostSaveSyncHooks(recordType, 'onUpdate') || this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow'));
-      const figshareIntent = prepareSourceIntent({ ...recordObj, redboxOid: oid }, recordType, ['onUpdate', ...(!_.isEmpty(nextStepObj) ? ['onTransitionWorkflow'] : [])], userObj, initialising, writeOptions.maintenance);
+      const initialising = triggerPostSaveTriggers && (this.hasPostSaveSyncHooks(recordType, 'onUpdate') || (transitionApplied && this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')));
+      const figshareIntent = prepareSourceIntent({ ...recordObj, redboxOid: oid }, recordType, ['onUpdate', ...(transitionApplied ? ['onTransitionWorkflow'] : [])], userObj, initialising, writeOptions.maintenance);
       if (figshareIntent && !this.storageService.readyFigshareIntent) throw new Error('Storage adapter does not support durable Figshare intents');
       updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { ...writeOptions, figshareIntent });
       let expectedVersion = Number(updateResponse.metadata?.recordVersion ?? 0);

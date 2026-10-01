@@ -10,6 +10,8 @@ import { FigshareSyncState, getRecordField, setRecordField, RecordModel } from '
 import { ServiceExports } from '../index';
 
 export interface ResolvedFigsharePublishingConfigData extends FigsharePublishingConfigData {
+  /** Keeps source saves valid while preventing queued execution until configuration is corrected. */
+  processingError?: string;
   runtime: {
     mode: 'live' | 'fixture';
     fixtures?: FigshareFixtureConfig;
@@ -102,9 +104,14 @@ export function resolveFigsharePublishingConfig(record?: Record<string, unknown>
     : undefined;
   if (figsharePublishingConfig?.enabled === true) {
     const resolvedConfig = _.merge(new FigsharePublishing(), _.cloneDeep(figsharePublishingConfig)) as unknown as ResolvedFigsharePublishingConfigData;
-    if (resolvedConfig.processing) {
-      if (figsharePublishingConfig.processing?.observationMs == null) resolvedConfig.processing.observationMs = legacyDelayMs(resolvedConfig.queue.publishAfterUploadDelay);
-      if (figsharePublishingConfig.processing?.cleanupMs == null) resolvedConfig.processing.cleanupMs = legacyDelayMs(resolvedConfig.queue.uploadedFilesCleanupDelay);
+    if (resolvedConfig.processing?.enabled) {
+      const errors: string[] = [];
+      for (const [setting, legacy] of [['observationMs', 'publishAfterUploadDelay'], ['cleanupMs', 'uploadedFilesCleanupDelay']] as const) {
+        if (figsharePublishingConfig.processing?.[setting] != null) continue;
+        try { resolvedConfig.processing[setting] = legacyDelayMs(resolvedConfig.queue[legacy]); }
+        catch { errors.push(`Cannot convert queue.${legacy} to milliseconds; configure processing.${setting} explicitly.`); }
+      }
+      if (errors.length) resolvedConfig.processingError = errors.join(' ');
     }
     const figshareDev = resolveFigshareDevConfig();
     const useFixtureRuntime = shouldUseFixtureRuntime(figshareDev);
