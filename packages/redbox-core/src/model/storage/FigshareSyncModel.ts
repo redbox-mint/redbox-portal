@@ -8,17 +8,23 @@ export interface FigshareSourceRequest {
   condition: string;
   requestedBy?: string;
 }
+export interface FigshareSourceSave {
+  saveToken: string;
+  readiness: 'initialising' | 'ready';
+  requestedAt: string;
+  intents: FigshareSourceRequest[];
+}
 export interface FigshareSourceIntent {
   generation: number;
   pending: boolean;
-  /** `abandoned` marks a save that reported failure; it is never recovered, and the next successful save supersedes it. */
+  /** `abandoned` means every merged save reported failure; it is never recovered, and the next successful save supersedes it. */
   readiness: 'initialising' | 'ready' | 'abandoned';
   saveToken: string;
   requestedAt: string;
   requestedBy: string;
   intents: FigshareSourceRequest[];
-  /** Policies inherited from earlier unimported saves; abandoning this save reverts to exactly these. */
-  carriedIntents?: FigshareSourceRequest[];
+  /** Unimported saves merged into this intent. It is ready only once every save is ready; abandoning a save removes only its entry. */
+  saves?: FigshareSourceSave[];
 }
 export interface FigshareWork {
   requested: number;

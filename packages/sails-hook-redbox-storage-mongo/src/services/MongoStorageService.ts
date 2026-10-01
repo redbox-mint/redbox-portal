@@ -98,6 +98,23 @@ type RelatedRecordsContext = {
   visitedRelatedObjectKeys: Set<string>;
 };
 
+
+// Unimported saves merged into a pending intent. An intent written before per-save tracking counts as one save.
+const priorFigshareSaves = { $cond: [{ $eq: ['$figshareSyncIntent.pending', true] }, { $ifNull: ['$figshareSyncIntent.saves', {
+  $cond: [{ $in: ['$figshareSyncIntent.readiness', ['ready', 'initialising']] }, [{ saveToken: '$figshareSyncIntent.saveToken',
+    readiness: '$figshareSyncIntent.readiness', requestedAt: '$figshareSyncIntent.requestedAt', intents: { $ifNull: ['$figshareSyncIntent.intents', []] } }], []]
+}] }, []] };
+// The intent carries the union of its saves' policies, and is ready only once no save is still initialising.
+const deriveFigshareIntent = { $set: {
+  'figshareSyncIntent.intents': { $reduce: { input: '$figshareSyncIntent.saves', initialValue: [], in: { $setUnion: ['$$value', '$$this.intents'] } } },
+  'figshareSyncIntent.readiness': { $cond: [{ $eq: [{ $size: '$figshareSyncIntent.saves' }, 0] }, 'abandoned',
+    { $cond: [{ $in: ['initialising', '$figshareSyncIntent.saves.readiness'] }, 'initialising', 'ready'] }] }
+} };
+const figshareSaveFilter = (saveToken: string, readiness?: 'initialising') => ({ 'figshareSyncIntent.pending': true, $or: [
+  { 'figshareSyncIntent.saves': { $elemMatch: { saveToken, ...(readiness ? { readiness } : {}) } } },
+  { 'figshareSyncIntent.saves': { $exists: false }, 'figshareSyncIntent.saveToken': saveToken, ...(readiness ? { 'figshareSyncIntent.readiness': readiness } : {}) }
+] });
+
 export namespace Services {
   export class MongoStorageService extends services.Core.Service implements StorageService, DatastreamService {
     gridFsBucket!: mongodb.GridFSBucket;
@@ -264,7 +281,9 @@ export namespace Services {
         delete record.figshareSyncIntent;
         record.recordVersion = 1;
         if (options.figshareIntent) {
-          record.figshareSyncIntent = { ...options.figshareIntent, generation: 1, pending: true, requestedAt: new Date().toISOString() };
+          const { saveToken, readiness, intents } = options.figshareIntent;
+          const requestedAt = new Date().toISOString();
+          record.figshareSyncIntent = { ...options.figshareIntent, generation: 1, pending: true, requestedAt, saves: [{ saveToken, readiness, requestedAt, intents }] };
         }
         await Record.create(record);
         response.success = true;
@@ -299,19 +318,17 @@ export namespace Services {
         assignments.recordVersion = { $add: [{ $ifNull: ['$recordVersion', 0] }, 1] };
         if (options.figshareIntent) {
           const intent = options.figshareIntent;
-          // Abandoned saves contribute nothing; their own carried policies were restored when abandoned.
-          const carried = { $cond: [{ $and: ['$figshareSyncIntent.pending', { $ne: ['$figshareSyncIntent.readiness', 'abandoned'] }] }, { $ifNull: ['$figshareSyncIntent.intents', []] }, []] };
+          const requestedAt = new Date().toISOString();
+          const save = { saveToken: intent.saveToken, readiness: intent.readiness, requestedAt, intents: intent.intents };
           assignments.figshareSyncIntent = {
             $mergeObjects: [
-              { $literal: { ...intent, pending: true, requestedAt: new Date().toISOString() } },
+              { $literal: { ...intent, pending: true, requestedAt } },
               { generation: { $add: [{ $ifNull: ['$figshareSyncIntent.generation', 0] }, 1] },
-                carriedIntents: carried,
-                intents: { $setUnion: [carried, { $literal: intent.intents }] }
-              }
+                saves: { $concatArrays: [priorFigshareSaves, [{ $literal: save }]] } }
             ]
           };
         }
-        const result = await this.recordCol.findOneAndUpdate(filter, [{ $set: assignments }], { returnDocument: 'after', includeResultMetadata: false });
+        const result = await this.recordCol.findOneAndUpdate(filter, [{ $set: assignments }, ...(options.figshareIntent ? [deriveFigshareIntent] : [])], { returnDocument: 'after', includeResultMetadata: false });
         if (!result && options.expectedVersion != null) throw new RecordWriteConflict();
         response.success = result != null;
         if (result) response.metadata = { recordVersion: result.recordVersion, figshareSyncIntent: result.figshareSyncIntent };
@@ -350,7 +367,8 @@ export namespace Services {
       return { updated: result != null, recordVersion: result?.recordVersion };
     }
     public async readyFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
-      const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.saveToken': saveToken }, { $set: { 'figshareSyncIntent.readiness': 'ready' } });
+      const result = await this.recordCol.updateOne({ redboxOid: oid, ...figshareSaveFilter(saveToken) }, [{ $set: { 'figshareSyncIntent.saves': { $map: { input: priorFigshareSaves, as: 'save',
+        in: { $cond: [{ $eq: ['$$save.saveToken', { $literal: saveToken }] }, { $mergeObjects: ['$$save', { readiness: 'ready' }] }, '$$save'] } } } } }, deriveFigshareIntent]);
       return result.matchedCount === 1;
     }
     public async pendingFigshareIntents(limit: number, afterOid = ''): Promise<RecordModel[]> {
@@ -358,17 +376,19 @@ export namespace Services {
         .sort({ redboxOid: 1 }).limit(limit).toArray();
     }
     public async abandonFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
-      // Drop only this save's policies. Inherited policies from earlier successful saves become ready again.
-      const carried = { $ifNull: ['$figshareSyncIntent.carriedIntents', []] };
-      const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.saveToken': saveToken, 'figshareSyncIntent.readiness': 'initialising' }, [{ $set: {
-        'figshareSyncIntent.intents': carried,
-        'figshareSyncIntent.readiness': { $cond: [{ $gt: [{ $size: carried }, 0] }, 'ready', 'abandoned'] }
-      } }]);
+      // Drop only this save. Other merged saves keep their own policies and readiness.
+      const result = await this.recordCol.updateOne({ redboxOid: oid, ...figshareSaveFilter(saveToken, 'initialising') }, [{ $set: {
+        'figshareSyncIntent.saves': { $filter: { input: priorFigshareSaves, as: 'save', cond: { $ne: ['$$save.saveToken', { $literal: saveToken }] } } }
+      } }, deriveFigshareIntent]);
       return result.matchedCount === 1;
     }
     public async recoverStaleFigshareIntents(staleBefore: string): Promise<number> {
-      const result = await this.recordCol.updateMany({ 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'initialising', 'figshareSyncIntent.requestedAt': { $lt: staleBefore } },
-        { $set: { 'figshareSyncIntent.readiness': 'ready' } });
+      const result = await this.recordCol.updateMany({ 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'initialising', $or: [
+        { 'figshareSyncIntent.saves': { $elemMatch: { readiness: 'initialising', requestedAt: { $lt: staleBefore } } } },
+        { 'figshareSyncIntent.saves': { $exists: false }, 'figshareSyncIntent.requestedAt': { $lt: staleBefore } }
+      ] }, [{ $set: { 'figshareSyncIntent.saves': { $map: { input: priorFigshareSaves, as: 'save', in: { $cond: [
+        { $and: [{ $eq: ['$$save.readiness', 'initialising'] }, { $lt: ['$$save.requestedAt', { $literal: staleBefore }] }] },
+        { $mergeObjects: ['$$save', { readiness: 'ready' }] }, '$$save'] } } } } }, deriveFigshareIntent]);
       return result.modifiedCount;
     }
     public async acknowledgeFigshareIntent(oid: string, generation: number): Promise<boolean> {

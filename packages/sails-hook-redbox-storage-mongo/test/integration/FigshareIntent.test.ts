@@ -98,6 +98,21 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     record = await service.recordCol.findOne({ redboxOid: 'record' });
     assert.deepEqual(record!.figshareSyncIntent.intents.map((i: { kind: string }) => i.kind), ['sync']);
   });
+  it('keeps overlapping saves initialising until every merged save finishes its synchronous hooks', async () => {
+    const initialising = (token: string, kind: 'sync' | 'cleanup' = 'sync') => { const options = request(token, kind); options.figshareIntent!.readiness = 'initialising'; return options; };
+    await service.updateMeta(brand, 'record', {}, undefined, initialising('earlier'));
+    await service.updateMeta(brand, 'record', {}, undefined, initialising('later', 'cleanup'));
+    assert.equal(await service.abandonFigshareIntent('record', 'later'), true);
+    let record = await service.recordCol.findOne({ redboxOid: 'record' });
+    assert.equal(record!.figshareSyncIntent.readiness, 'initialising');
+    assert.deepEqual(record!.figshareSyncIntent.intents.map((i: { kind: string }) => i.kind), ['sync']);
+    await service.updateMeta(brand, 'record', {}, undefined, request('ready-save', 'cleanup'));
+    assert.equal((await service.pendingFigshareIntents(10)).length, 0);
+    assert.equal(await service.readyFigshareIntent('record', 'earlier'), true);
+    record = await service.recordCol.findOne({ redboxOid: 'record' });
+    assert.equal(record!.figshareSyncIntent.readiness, 'ready');
+    assert.deepEqual(record!.figshareSyncIntent.intents.map((i: { kind: string }) => i.kind).sort(), ['cleanup', 'sync']);
+  });
   it('rejects both primary and secondary background writes after an intervening user edit', async () => {
     await service.updateMeta(brand, 'record', { metadata: { title: 'user edit' } });
     await assert.rejects(service.updateMeta(brand, 'record', { metadata: { title: 'stale' } }, undefined, { expectedVersion: 0 }), RecordWriteConflict);
