@@ -515,7 +515,7 @@ export class FormDebugStateService implements OnDestroy {
       return value;
     }
     if (value instanceof Date) {
-      return value.toISOString();
+      return Number.isNaN(value.getTime()) ? null : value.toISOString();
     }
     if (value instanceof ElementRef) {
       return undefined;

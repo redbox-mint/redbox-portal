@@ -5544,6 +5544,16 @@
     "description": "Help text for main menu inactive dropdown item background color in the branding configuration admin UI",
     "contentFormat": "plain"
   },
+  "branding-main-menu-inactive-dropdown-item-background-color-hover-label": {
+    "category": "branding",
+    "description": "Label for the inactive dropdown menu item background colour hover setting in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-main-menu-inactive-dropdown-item-background-color-hover-help": {
+    "category": "branding",
+    "description": "Help text for main menu inactive dropdown item background color hover in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
   "branding-content-name": {
     "category": "branding",
     "description": "Section heading for content styling in the branding configuration admin UI",
