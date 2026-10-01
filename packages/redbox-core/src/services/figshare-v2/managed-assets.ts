@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { FigshareAssetReceipt, FigshareSyncModel } from '../../model/storage/FigshareSyncModel';
+import type { FigshareSyncModel } from '../../model/storage/FigshareSyncModel';
 import type { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import type { FigshareClient } from './http';
 import type { RecordModel, DataLocationEntry, FigshareArticle } from './types';

@@ -2,7 +2,7 @@ import { dispatchFigshare, runFigshareWorker, getSyncStore, importRecordIntent }
 import { workerClient } from './figshare-v2/execution';
 import { buildMetadataPayload as buildLocalMetadataPayload } from './figshare-v2/metadata';
 import { Services as services } from '../CoreService';
-import { resolveFigsharePublishingConfig, getSyncState, setSyncState, getBrandName } from './figshare-v2/config';
+import { resolveFigsharePublishingConfig, getSyncState, setSyncState } from './figshare-v2/config';
 import { createRunContext } from './figshare-v2/context';
 import { preparePublication as preparePublicationPlan } from './figshare-v2/plan';
 import { validateHandlebarsTemplate } from './figshare-v2/bindings';
@@ -29,8 +29,6 @@ import {
   FigshareSyncState,
   FigshareJob,
   AssetSyncResult,
-  getRecordField,
-  setRecordField,
 } from './figshare-v2/types';
 
 
