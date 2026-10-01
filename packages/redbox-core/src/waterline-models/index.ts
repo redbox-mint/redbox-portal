@@ -12,6 +12,7 @@ export * from './FigshareVocabularyCrosswalk';
 export * from './FigshareVocabularyCrosswalkMapping';
 export * from './FigshareVocabularySource';
 export * from './FigshareVocabularySyncRun';
+export * from './FigshareSync';
 export * from './Form';
 export * from './HarvestRecordEvent';
 export * from './HarvestRun';
@@ -50,6 +51,7 @@ import { FigshareVocabularyCrosswalkWLDef } from './FigshareVocabularyCrosswalk'
 import { FigshareVocabularyCrosswalkMappingWLDef } from './FigshareVocabularyCrosswalkMapping';
 import { FigshareVocabularySourceWLDef } from './FigshareVocabularySource';
 import { FigshareVocabularySyncRunWLDef } from './FigshareVocabularySyncRun';
+import { FigshareSyncWLDef } from './FigshareSync';
 import { FormWLDef } from './Form';
 import { HarvestRecordEventWLDef } from './HarvestRecordEvent';
 import { HarvestRunWLDef } from './HarvestRun';
@@ -91,6 +93,7 @@ export const WaterlineModels = {
   FigshareVocabularyCrosswalkMapping: FigshareVocabularyCrosswalkMappingWLDef,
   FigshareVocabularySource: FigshareVocabularySourceWLDef,
   FigshareVocabularySyncRun: FigshareVocabularySyncRunWLDef,
+  FigshareSync: FigshareSyncWLDef,
   Form: FormWLDef,
   HarvestRecordEvent: HarvestRecordEventWLDef,
   HarvestRun: HarvestRunWLDef,

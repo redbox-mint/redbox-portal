@@ -50,7 +50,7 @@ interface DatastreamResponse {
   size?: number;
 }
 
-async function getAttachmentStream(oid: string, fileId: string): Promise<DatastreamResponse> {
+export async function getAttachmentStream(oid: string, fileId: string): Promise<DatastreamResponse> {
   const datastreamService = getDatastreamService();
   if (datastreamService == null) {
     throw new Error('Datastream service is not configured');
@@ -92,7 +92,7 @@ function sanitizePathComponent(value: string): string {
   );
 }
 
-function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
+export function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
   const diskName = config.assets.staging.disk?.trim();
   if (!diskName) {
     return StorageManagerService.stagingDisk();
@@ -114,7 +114,7 @@ function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
   }
 }
 
-function buildStagingKey(
+export function buildStagingKey(
   config: FigsharePublishingConfigData,
   articleId: string,
   oid: string,
@@ -145,14 +145,14 @@ function buildStagingKey(
   return `${prefix}/${dir}/${storageFileName}`;
 }
 
-async function stageAttachmentToDisk(disk: IDisk, key: string, response: DatastreamResponse): Promise<number> {
+export async function stageAttachmentToDisk(disk: IDisk, key: string, response: DatastreamResponse): Promise<number> {
   const expectedSize = Number(response.size ?? 0);
   await disk.putStream(key, response.readstream as Readable, expectedSize > 0 ? { contentLength: expectedSize } : {});
   const meta = await disk.getMetaData(key);
   return meta.contentLength;
 }
 
-async function* readPartsSequentially(
+export async function* readPartsSequentially(
   source: Readable,
   parts: FigshareUploadPart[]
 ): AsyncGenerator<{ partNo: number; stream: Readable }> {

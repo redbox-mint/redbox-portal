@@ -1,7 +1,8 @@
 import * as sinon from 'sinon';
 import { Layer } from 'effect';
 import { FigsharePublishing } from '../../../src/configmodels/FigsharePublishing';
-import { FigshareClientTag, FigshareHttpError } from '../../../src/services/figshare-v2/http';
+import type { AxiosError } from 'axios';
+import { describeFigshareHttpFailure, FigshareClientTag, FigshareHttpError } from '../../../src/services/figshare-v2/http';
 import * as httpModule from '../../../src/services/figshare-v2/http';
 import { runBuildMetadataPayload } from '../../../src/services/figshare-v2/runtime';
 
@@ -14,6 +15,27 @@ describe('figshare-v2 runtime', function () {
 
   afterEach(function () {
     sinon.restore();
+  });
+
+  it('logs Figshare validation details without Axios request headers or tokens', function () {
+    const token = 'test-private-figshare-token';
+    const error = {
+      name: 'AxiosError',
+      code: 'ERR_BAD_REQUEST',
+      config: { headers: { Authorization: `token ${token}` } },
+      request: { headers: { Authorization: `token ${token}` } },
+      response: { data: { code: 'BadRequest', message: `Missing mandatory value: ${token}` } }
+    } as unknown as AxiosError;
+    const details = describeFigshareHttpFailure(error, token);
+
+    expect(details).to.deep.equal({
+      errorName: 'AxiosError',
+      errorCode: 'ERR_BAD_REQUEST',
+      responseCode: 'BadRequest',
+      responseMessage: 'Missing mandatory value: [REDACTED]'
+    });
+    expect(JSON.stringify(details)).not.to.include(token);
+    expect(JSON.stringify(details)).not.to.include('Authorization');
   });
 
   it('rethrows HTTP failures with status and response details instead of a FiberFailure wrapper', async function () {

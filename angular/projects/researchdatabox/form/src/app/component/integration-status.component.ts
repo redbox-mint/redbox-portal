@@ -67,6 +67,14 @@ import { RecordService, IntegrationStatusItem, IntegrationOutcome, TranslationSe
                       {{ outcome.helpKey | i18next }}
                     </div>
                   }
+                  @if (item.integrationName === 'figshare') {
+                    @if (getKeyResult(item, 'publication'); as publication) {
+                      <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">{{ ('@figshare-publication-' + publication) | i18next }}</div>
+                    }
+                    @if (item.keyResult?.['embargoed'] === true) {
+                      <div class="rb-int-meta mt-1 ms-1 ps-3 border-start">{{ '@figshare-embargoed' | i18next }}</div>
+                    }
+                  }
                   @if (getKeyResult(item, 'doi'); as doi) {
                     @if (outcome.severity !== 'error' && outcome.severity !== 'none') {
                       <div class="rb-int-meta mt-2 ms-1 ps-3 border-start">
@@ -257,7 +265,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
       return all;
     }
     const seen = this.seenInProgress();
-    return all.filter(item => this.isInProgress(item) || this.isError(item) || seen.has(item.integrationName));
+    return all.filter(item => this.isInProgress(item) || this.isError(item) || (item.integrationName === 'figshare' && item.outcome?.severity === 'pending') || seen.has(item.integrationName));
   });
 
   // Privileged roles can see the panel empty state; researchers only render
@@ -377,7 +385,7 @@ export class IntegrationStatusComponent extends FormFieldBaseComponent<undefined
         this.rapidPollUntil = null;
       }
 
-      const hasInFlight = response.integrations.some(i => i.status === 'started' && !i.synthesized);
+      const hasInFlight = response.integrations.some(i => !i.synthesized && (i.status === 'started' || (i.integrationName === 'figshare' && i.outcome?.severity === 'pending')));
       if (hasInFlight) {
         this.graceRemaining = 0;
         this.gracePollActive.set(false);

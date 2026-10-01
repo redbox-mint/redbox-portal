@@ -25,6 +25,10 @@ import {
   IntegrationAuditModel,
   IntegrationAuditParams,
   RecordModel,
+  RecordWriteOptions,
+  RecordWriteConflict,
+  RecordFieldWriteResult,
+  assertRecordFieldPaths,
   BrandingModel,
   UserModel,
   RoleModel,
@@ -107,6 +111,12 @@ export namespace Services {
       'create',
       'updateMeta',
       'getMeta',
+      'setRecordFields',
+      'scanFigshareRecords',
+      'findFigshareArticleRecords',
+      'readyFigshareIntent',
+      'pendingFigshareIntents',
+      'acknowledgeFigshareIntent',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
       'getRelatedRecords',
@@ -211,6 +221,7 @@ export namespace Services {
       }
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
       this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      await this.recordCol.createIndex({ "figshareSyncIntent.pending": 1, "figshareSyncIntent.readiness": 1, "figshareSyncIntent.requestedAt": 1 });
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       await this.createIndices(this.db);
       sails.emit('hook:redbox:storage:ready');
@@ -238,7 +249,8 @@ export namespace Services {
       _brand: BrandingModel,
       record: JsonMap,
       _recordType: unknown,
-      _user?: unknown
+      _user?: unknown,
+      options: RecordWriteOptions = {}
     ): Promise<StorageServiceResponse> {
       sails.log.verbose(`${this.logHeader} create() -> Begin`);
       const response = new StorageServiceResponse();
@@ -247,6 +259,11 @@ export namespace Services {
 
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
+        delete record.figshareSyncIntent;
+        record.recordVersion = 1;
+        if (options.figshareIntent) {
+          record.figshareSyncIntent = { ...options.figshareIntent, generation: 1, pending: true, requestedAt: new Date().toISOString() };
+        }
         await Record.create(record);
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record created...`);
@@ -262,7 +279,7 @@ export namespace Services {
       return response;
     }
 
-    public async updateMeta(brand: BrandingModel, oid: string, record: JsonMap, user?: UserModel): Promise<StorageServiceResponse> {
+    public async updateMeta(brand: BrandingModel, oid: string, record: JsonMap, user?: UserModel, options: RecordWriteOptions = {}): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
       response.oid = oid;
       try {
@@ -271,9 +288,30 @@ export namespace Services {
         _.unset(record, '_id');
         _.unset(record, 'id');
 
-        await Record.updateOne({ redboxOid: oid }).set(record);
-        response.success = true;
+        delete record.figshareSyncIntent;
+        delete record.recordVersion;
+        const filter: JsonMap = { redboxOid: oid };
+        if (options.expectedVersion != null) filter.recordVersion = options.expectedVersion === 0 ? { $in: [0, null] } : options.expectedVersion;
+        const assignments: JsonMap = Object.fromEntries(Object.entries(record).map(([key, value]) => [key, { $literal: value }]));
+        assignments.lastSaveDate = { $literal: new Date().toISOString() };
+        assignments.recordVersion = { $add: [{ $ifNull: ['$recordVersion', 0] }, 1] };
+        if (options.figshareIntent) {
+          const intent = options.figshareIntent;
+          assignments.figshareSyncIntent = {
+            $mergeObjects: [
+              { $literal: { ...intent, pending: true, requestedAt: new Date().toISOString() } },
+              { generation: { $add: [{ $ifNull: ['$figshareSyncIntent.generation', 0] }, 1] },
+                intents: { $setUnion: [{ $cond: ['$figshareSyncIntent.pending', { $ifNull: ['$figshareSyncIntent.intents', []] }, []] }, { $literal: intent.intents }] }
+              }
+            ]
+          };
+        }
+        const result = await this.recordCol.findOneAndUpdate(filter, [{ $set: assignments }], { returnDocument: 'after', includeResultMetadata: false });
+        if (!result && options.expectedVersion != null) throw new RecordWriteConflict();
+        response.success = result != null;
+        if (result) response.metadata = { recordVersion: result.recordVersion, figshareSyncIntent: result.figshareSyncIntent };
       } catch (err) {
+        if (err instanceof RecordWriteConflict) throw err;
         const errorMessage = this.getErrorMessage(err);
         sails.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}: ${errorMessage}`);
         sails.log.error(
@@ -290,6 +328,33 @@ export namespace Services {
         response.message = errorMessage;
       }
       return response;
+    }
+
+    public async scanFigshareRecords(afterOid: string, limit: number): Promise<RecordModel[]> {
+      return this.recordCol.find<RecordModel>({ redboxOid: { $gt: afterOid } }).sort({ redboxOid: 1 }).limit(limit).toArray();
+    }
+    public async findFigshareArticleRecords(path: string, articleId: string): Promise<RecordModel[]> {
+      assertRecordFieldPaths({ [path]: articleId }, [path]);
+      return this.recordCol.find<RecordModel>({ [path]: { $in: [articleId, Number(articleId)] } }).toArray();
+    }
+    public async setRecordFields(oid: string, fields: JsonMap, expectedVersion: number, allowedPaths: string[]): Promise<RecordFieldWriteResult> {
+      assertRecordFieldPaths(fields, allowedPaths);
+      const result = await this.recordCol.findOneAndUpdate({ redboxOid: oid, recordVersion: expectedVersion === 0 ? { $in: [0, null] } : expectedVersion }, {
+        $set: { ...fields, lastSaveDate: new Date().toISOString() }, $inc: { recordVersion: 1 }
+      }, { returnDocument: 'after', includeResultMetadata: false });
+      return { updated: result != null, recordVersion: result?.recordVersion };
+    }
+    public async readyFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
+      const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.saveToken': saveToken }, { $set: { 'figshareSyncIntent.readiness': 'ready' } });
+      return result.matchedCount === 1;
+    }
+    public async pendingFigshareIntents(limit: number): Promise<RecordModel[]> {
+      return this.recordCol.find<RecordModel>({ 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'ready' })
+        .sort({ 'figshareSyncIntent.requestedAt': 1 }).limit(limit).toArray();
+    }
+    public async acknowledgeFigshareIntent(oid: string, generation: number): Promise<boolean> {
+      const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.generation': generation, 'figshareSyncIntent.readiness': 'ready' }, { $set: { 'figshareSyncIntent.pending': false } });
+      return result.matchedCount === 1;
     }
 
     public async getMeta(oid: string): Promise<RecordModel> {

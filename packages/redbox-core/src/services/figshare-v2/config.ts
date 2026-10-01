@@ -36,7 +36,7 @@ function getAppConfigResolver(): AppConfigResolver | undefined {
   return ServiceExports.AppConfigService as AppConfigResolver | undefined;
 }
 
-export function getBrandName(record?: RecordModel): string {
+export function getBrandName(record?: Record<string, unknown>): string {
   if (record == null) return 'default';
   const rm = record as RecordModel;
   const rawBrand = String(rm.metaMetadata?.brandId ?? (record as Record<string, unknown>).branding ?? '').trim();
@@ -80,7 +80,18 @@ function shouldUseFixtureRuntime(figshareDev: FigshareDevConfig): boolean {
   return figshareDev.enabled === true && figshareDev.mode === 'fixture';
 }
 
-export function resolveFigsharePublishingConfig(record?: RecordModel): ResolvedFigsharePublishingConfigData | null {
+/** Keep configured legacy relative delays when the new millisecond setting is absent. */
+export function legacyDelayMs(value: string): number {
+  const match = /^\s*(?:in\s+)?(\d+(?:\.\d+)?)\s*(milliseconds?|ms|seconds?|minutes?|hours?|days?|weeks?)\s*$/i.exec(value);
+  if (!match) throw new Error(`Unsupported Figshare delay '${value}'; configure processing observationMs/cleanupMs explicitly`);
+  const unit = match[2].toLowerCase();
+  const multiplier = unit === 'ms' || unit.startsWith('millisecond') ? 1 : unit.startsWith('second') ? 1000 : unit.startsWith('minute') ? 60000 : unit.startsWith('hour') ? 3600000 : unit.startsWith('day') ? 86400000 : 604800000;
+  const result = Number(match[1]) * multiplier;
+  if (!Number.isFinite(result) || result <= 0) throw new Error('Figshare delay must be positive');
+  return result;
+}
+
+export function resolveFigsharePublishingConfig(record?: Record<string, unknown>, options: { requireToken?: boolean } = {}): ResolvedFigsharePublishingConfigData | null {
   const brandName = getBrandName(record);
   const appConfigService = getAppConfigResolver();
   const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName) ?? appConfigService?.getAppConfigurationForBrand?.('default');
@@ -91,6 +102,10 @@ export function resolveFigsharePublishingConfig(record?: RecordModel): ResolvedF
     : undefined;
   if (figsharePublishingConfig?.enabled === true) {
     const resolvedConfig = _.merge(new FigsharePublishing(), _.cloneDeep(figsharePublishingConfig)) as unknown as ResolvedFigsharePublishingConfigData;
+    if (resolvedConfig.processing) {
+      if (figsharePublishingConfig.processing?.observationMs == null) resolvedConfig.processing.observationMs = legacyDelayMs(resolvedConfig.queue.publishAfterUploadDelay);
+      if (figsharePublishingConfig.processing?.cleanupMs == null) resolvedConfig.processing.cleanupMs = legacyDelayMs(resolvedConfig.queue.uploadedFilesCleanupDelay);
+    }
     const figshareDev = resolveFigshareDevConfig();
     const useFixtureRuntime = shouldUseFixtureRuntime(figshareDev);
     resolvedConfig.runtime = {
@@ -102,7 +117,7 @@ export function resolveFigsharePublishingConfig(record?: RecordModel): ResolvedF
       : { ...new FigsharePublishing().connection };
     resolvedConfig.connection = resolvedConnection;
     const connectionToken = resolvedConfig.connection?.token;
-    const allowEmpty = resolvedConfig.runtime.mode === 'fixture';
+    const allowEmpty = resolvedConfig.runtime.mode === 'fixture' || options.requireToken === false;
     if (typeof connectionToken === 'string' && connectionToken.trim() !== '') {
       resolvedConfig.connection.token = resolveFigshareConnectionToken(connectionToken, { allowEmpty });
     } else if (!allowEmpty) {

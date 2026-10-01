@@ -1,3 +1,4 @@
+import type { RecordWriteOptions, RecordFieldWriteResult } from './RecordWriteOptions';
 import { Readable } from 'node:stream';
 import { RecordModel } from './model';
 import { StorageServiceResponse } from './StorageServiceResponse';
@@ -9,8 +10,14 @@ import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from './Reco
  * Type safety will be improved incrementally in future phases.
  */
 export interface StorageService {
-  create(brand: unknown, record: unknown, recordType: unknown, user?: unknown): Promise<StorageServiceResponse>;
-  updateMeta(brand: unknown, oid: unknown, record: unknown, user?: unknown): Promise<StorageServiceResponse>;
+  create(brand: unknown, record: unknown, recordType: unknown, user?: unknown, options?: RecordWriteOptions): Promise<StorageServiceResponse>;
+  updateMeta(brand: unknown, oid: unknown, record: unknown, user?: unknown, options?: RecordWriteOptions): Promise<StorageServiceResponse>;
+  scanFigshareRecords?(afterOid: string, limit: number): Promise<RecordModel[]>;
+  findFigshareArticleRecords?(path: string, articleId: string): Promise<RecordModel[]>;
+  setRecordFields?(oid: string, fields: Record<string, unknown>, expectedVersion: number, allowedPaths: string[]): Promise<RecordFieldWriteResult>;
+  readyFigshareIntent?(oid: string, saveToken: string): Promise<boolean>;
+  pendingFigshareIntents?(limit: number): Promise<RecordModel[]>;
+  acknowledgeFigshareIntent?(oid: string, generation: number): Promise<boolean>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
   provideUserAccessAndRemovePendingAccess(oid: unknown, userid: unknown, pendingValue: unknown): void;
