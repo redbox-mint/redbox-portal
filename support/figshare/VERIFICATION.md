@@ -94,3 +94,13 @@ Startup found and fixed a credential-validation boundary: preparing source inten
 Reapplied the queued hooks, durable job registration and processing/impersonation configuration on CQU `feature/v5-refactor` at `5361c4b`. Contributor form defaults, null-safe metadata bindings and the CQU metadata override come from that base. A clean hook compilation and all 262 unit tests passed; the earlier master-based hook run had 302 tests. The portal implementation and its master baseline are unchanged.
 
 Rebuilt `redbox-hook-cqu:figshare-queued-v5-local` and recreated the detached dev stack with the existing data mounts. Portal health passed and `/default/rdmp/home` returned HTTP 200. Container hashes matched the fresh CQU configuration/service build and the portal queued worker; both queued jobs were present and processing remained disabled.
+
+## CI coverage enablement and master update (2026-10-01)
+
+Merged current `master` at `0bc90811e` into the feature branch without conflicts. The Codecov report for `368f0e2fe` showed 37.35% patch coverage: CI had not configured `FIGSHARE_TEST_MONGO_URI` or `MONGO_TEST_URL`, so the durable worker and atomic storage integration suites were skipped despite being included in the test globs.
+
+The core CI job now starts isolated Mongo 7.0, waits for its readiness and sets the worker test URI. The storage CI job now has its own Mongo service and test URL. Both suites reject missing database settings when `CI=true`, preventing silent skips from reappearing. Coverage thresholds and exclusions are unchanged.
+
+Verification after the merge used Node 24.16.0 and a separate disposable Mongo instance, with controlled local HTTP responses and no Figshare UAT traffic. The core TypeScript build passed; the complete core suite passed 2,244 tests with 14 unrelated skips, including all 28 durable worker cases. The complete storage suite passed 233 tests. Oxlint passed across 607 files with zero warnings/errors, and the CircleCI YAML parsed with the expected database settings.
+
+Local LCOV line coverage was 86.34% for the queued worker, 81.30% for the admin module, 96.83% for the sync store and 92.19% for MongoStorageService. Combining the local core and storage reports covered 83.82% of instrumented changed lines relative to current master. This local calculation is not the final Codecov result, which also merges the other CI reports and evaluates the new commit.

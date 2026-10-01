@@ -4,6 +4,9 @@ import { MongoClient } from 'mongodb';
 import { Services } from '../../src/services/MongoStorageService';
 import { RecordWriteConflict, type RecordWriteOptions } from '@researchdatabox/redbox-core';
 
+if (process.env.CI === 'true' && !process.env.MONGO_TEST_URL) {
+  throw new Error('CI requires MONGO_TEST_URL; atomic Figshare intent tests must not be skipped');
+}
 const describeMongo = process.env.MONGO_TEST_URL ? describe : describe.skip;
 describeMongo('Atomic Figshare source intent and guarded record writes', function () {
   this.timeout(20000);

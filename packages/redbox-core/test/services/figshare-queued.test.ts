@@ -55,6 +55,9 @@ describe('Figshare queued contracts', () => {
   });
 });
 
+if (process.env.CI === 'true' && !process.env.FIGSHARE_TEST_MONGO_URI) {
+  throw new Error('CI requires FIGSHARE_TEST_MONGO_URI; durable Figshare tests must not be skipped');
+}
 const mongoDescribe = process.env.FIGSHARE_TEST_MONGO_URI ? describe : describe.skip;
 mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', function () {
   this.timeout(20000);
