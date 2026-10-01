@@ -17,6 +17,8 @@ export interface FigshareSourceIntent {
   requestedAt: string;
   requestedBy: string;
   intents: FigshareSourceRequest[];
+  /** Policies inherited from earlier unimported saves; abandoning this save reverts to exactly these. */
+  carriedIntents?: FigshareSourceRequest[];
 }
 export interface FigshareWork {
   requested: number;

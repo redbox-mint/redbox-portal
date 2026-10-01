@@ -299,11 +299,14 @@ export namespace Services {
         assignments.recordVersion = { $add: [{ $ifNull: ['$recordVersion', 0] }, 1] };
         if (options.figshareIntent) {
           const intent = options.figshareIntent;
+          // Abandoned saves contribute nothing; their own carried policies were restored when abandoned.
+          const carried = { $cond: [{ $and: ['$figshareSyncIntent.pending', { $ne: ['$figshareSyncIntent.readiness', 'abandoned'] }] }, { $ifNull: ['$figshareSyncIntent.intents', []] }, []] };
           assignments.figshareSyncIntent = {
             $mergeObjects: [
               { $literal: { ...intent, pending: true, requestedAt: new Date().toISOString() } },
               { generation: { $add: [{ $ifNull: ['$figshareSyncIntent.generation', 0] }, 1] },
-                intents: { $setUnion: [{ $cond: ['$figshareSyncIntent.pending', { $ifNull: ['$figshareSyncIntent.intents', []] }, []] }, { $literal: intent.intents }] }
+                carriedIntents: carried,
+                intents: { $setUnion: [carried, { $literal: intent.intents }] }
               }
             ]
           };
@@ -355,8 +358,12 @@ export namespace Services {
         .sort({ redboxOid: 1 }).limit(limit).toArray();
     }
     public async abandonFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
-      const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.saveToken': saveToken, 'figshareSyncIntent.readiness': 'initialising' },
-        { $set: { 'figshareSyncIntent.readiness': 'abandoned' } });
+      // Drop only this save's policies. Inherited policies from earlier successful saves become ready again.
+      const carried = { $ifNull: ['$figshareSyncIntent.carriedIntents', []] };
+      const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.saveToken': saveToken, 'figshareSyncIntent.readiness': 'initialising' }, [{ $set: {
+        'figshareSyncIntent.intents': carried,
+        'figshareSyncIntent.readiness': { $cond: [{ $gt: [{ $size: carried }, 0] }, 'ready', 'abandoned'] }
+      } }]);
       return result.matchedCount === 1;
     }
     public async recoverStaleFigshareIntents(staleBefore: string): Promise<number> {

@@ -82,6 +82,22 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     const record = await service.recordCol.findOne({ redboxOid: 'record' });
     assert.equal(record!.figshareSyncIntent.readiness, 'ready'); assert.equal(record!.figshareSyncIntent.generation, 2);
   });
+  it('drops only the abandoned save policies and restores policies inherited from earlier saves', async () => {
+    await service.updateMeta(brand, 'record', {}, undefined, request('earlier'));
+    const failed = request('failed', 'cleanup'); failed.figshareIntent!.readiness = 'initialising';
+    await service.updateMeta(brand, 'record', {}, undefined, failed);
+    assert.equal(await service.abandonFigshareIntent('record', 'failed'), true);
+    let record = await service.recordCol.findOne({ redboxOid: 'record' });
+    assert.equal(record!.figshareSyncIntent.readiness, 'ready');
+    assert.deepEqual(record!.figshareSyncIntent.intents.map((i: { kind: string }) => i.kind), ['sync']);
+    const transition = request('transition', 'cleanup'); transition.figshareIntent!.readiness = 'initialising';
+    await service.recordCol.updateOne({ redboxOid: 'record' }, { $set: { 'figshareSyncIntent.pending': false } });
+    await service.updateMeta(brand, 'record', {}, undefined, transition);
+    await service.abandonFigshareIntent('record', 'transition');
+    await service.updateMeta(brand, 'record', {}, undefined, request('later'));
+    record = await service.recordCol.findOne({ redboxOid: 'record' });
+    assert.deepEqual(record!.figshareSyncIntent.intents.map((i: { kind: string }) => i.kind), ['sync']);
+  });
   it('rejects both primary and secondary background writes after an intervening user edit', async () => {
     await service.updateMeta(brand, 'record', { metadata: { title: 'user edit' } });
     await assert.rejects(service.updateMeta(brand, 'record', { metadata: { title: 'stale' } }, undefined, { expectedVersion: 0 }), RecordWriteConflict);
