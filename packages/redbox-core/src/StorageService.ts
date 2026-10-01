@@ -18,6 +18,8 @@ export interface StorageService {
   readyFigshareIntent?(oid: string, saveToken: string): Promise<boolean>;
   /** Ready pending records ordered by OID, strictly after the optional cursor. Skipped records remain pending. */
   pendingFigshareIntents?(limit: number, afterOid?: string): Promise<RecordModel[]>;
+  /** Promote pending intents whose save stopped before readiness finalisation, so the dispatcher can recover them. */
+  recoverStaleFigshareIntents?(staleBefore: string): Promise<number>;
   acknowledgeFigshareIntent?(oid: string, generation: number): Promise<boolean>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;

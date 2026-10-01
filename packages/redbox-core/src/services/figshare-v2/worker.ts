@@ -48,11 +48,19 @@ export async function importRecordIntent(store: FigshareSyncStore, record: Recor
   await storage.acknowledgeFigshareIntent(record.redboxOid, intent.generation);
 }
 
+const PAUSED_DISPATCH_BACKOFF_MS = 5 * 60 * 1000;
+// Longer than any save's synchronous hooks, so live saves are never promoted early.
+const STALE_INITIALISING_MS = 15 * 60 * 1000;
+
 export async function dispatchFigshare(): Promise<void> {
   const storage = RecordsService.getFigshareIntentStorage();
   if (!storage.pendingFigshareIntents) return;
   const store = getSyncStore();
   await store.ensureIndexes();
+  if (storage.recoverStaleFigshareIntents) {
+    const recovered = await storage.recoverStaleFigshareIntents(new Date(Date.now() - STALE_INITIALISING_MS).toISOString());
+    if (recovered) sails.log.warn(`Recovered ${recovered} Figshare intent(s) left initialising by an interrupted save`);
+  }
   let afterOid = '';
   while (true) {
     const page = await storage.pendingFigshareIntents(100, afterOid);
@@ -67,14 +75,24 @@ export async function dispatchFigshare(): Promise<void> {
     if (page.length < 100) break;
     afterOid = page[page.length - 1].redboxOid;
   }
-  for (const due of await store.due()) {
-    if (!await store.dispatchClaim(due.oid)) continue;
-    try {
-      const fresh = await RecordsService.getMeta(due.oid);
-      if (fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false })?.processingError) continue;
-      await AgendaQueueService.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId });
+  // Claimed rows leave the due window, so paging continues past paused records instead of rereading them.
+  const seen = new Set<string>();
+  while (true) {
+    const page = (await store.due()).filter(due => !seen.has(due.oid));
+    if (!page.length) break;
+    for (const due of page) {
+      seen.add(due.oid);
+      if (!await store.dispatchClaim(due.oid)) continue;
+      try {
+        const fresh = await RecordsService.getMeta(due.oid);
+        if (fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false })?.processingError) {
+          await store.dispatchClaim(due.oid, PAUSED_DISPATCH_BACKOFF_MS, true);
+          continue;
+        }
+        await AgendaQueueService.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId });
+      }
+      catch (error) { sails.log.error('Figshare delivery failed; durable work remains due', error); }
     }
-    catch (error) { sails.log.error('Figshare delivery failed; durable work remains due', error); }
   }
 }
 

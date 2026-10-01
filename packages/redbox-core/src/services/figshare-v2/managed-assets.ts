@@ -17,7 +17,7 @@ const available = (status: unknown): boolean => ['available', 'completed'].inclu
 export async function mirrorManagedAssets(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, articleId: string, state: FigshareSyncModel, checkpoint: AssetCheckpoint): Promise<void> {
   const selected = getSelectedDataLocations(config, record);
   const hosted = selected.filter(e => e.type === 'attachment' || typeof e.figshareReceipt === 'string');
-  const links = hosted.length ? [] : selected.filter(e => e.type === 'url' && !e.ignore && !e.figshareReceipt);
+  const links = config.assets.enableHostedFiles && hosted.length ? [] : selected.filter(e => e.type === 'url' && !e.ignore && !e.figshareReceipt);
   const desired = new Set<string>();
   let files = await listArticleFiles(client, articleId);
   for (const entry of hosted) {
@@ -112,6 +112,8 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
       if (!receipt.fileId || !files.some(f => String(f.id) === receipt.fileId)) throw new FigshareRepairRequired('Uncertain linked file initialisation requires repair');
       continue;
     }
+    // A legacy-created link has no receipt, so it is reused but never adopted for deletion.
+    if (files.some(f => f.is_link_only === true && f.download_url === link)) continue;
     state = await checkpoint(s => {
       s.receipts = s.receipts.filter(r => r.key !== key);
       s.receipts.push({ key, localId: link, digest: key, size: 0, name: link, articleId, link, kind: 'link', state: 'initialising', desired: true });

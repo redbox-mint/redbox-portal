@@ -105,8 +105,8 @@ export class FigshareSyncStore {
     return this.collection.find({ nextActionAt: { $ne: null, $lte: now }, dispatchUntil: { $lte: now } })
       .sort({ nextActionAt: 1 }).limit(limit).project<{ oid: string; brandId: string }>({ oid: 1, brandId: 1 }).toArray();
   }
-  async dispatchClaim(oid: string, cooldownMs = 10000): Promise<boolean> {
-    const result = await this.collection.updateOne({ oid, dispatchUntil: { $lte: Date.now() } }, {
+  async dispatchClaim(oid: string, cooldownMs = 10000, extend = false): Promise<boolean> {
+    const result = await this.collection.updateOne(extend ? { oid } : { oid, dispatchUntil: { $lte: Date.now() } }, {
       $set: { dispatchUntil: Date.now() + cooldownMs }, $inc: { revision: 1 }
     });
     return result.matchedCount === 1;

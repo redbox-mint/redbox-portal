@@ -116,6 +116,7 @@ export namespace Services {
       'findFigshareArticleRecords',
       'readyFigshareIntent',
       'pendingFigshareIntents',
+      'recoverStaleFigshareIntents',
       'acknowledgeFigshareIntent',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
@@ -351,6 +352,11 @@ export namespace Services {
     public async pendingFigshareIntents(limit: number, afterOid = ''): Promise<RecordModel[]> {
       return this.recordCol.find<RecordModel>({ redboxOid: { $gt: afterOid }, 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'ready' })
         .sort({ redboxOid: 1 }).limit(limit).toArray();
+    }
+    public async recoverStaleFigshareIntents(staleBefore: string): Promise<number> {
+      const result = await this.recordCol.updateMany({ 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'initialising', 'figshareSyncIntent.requestedAt': { $lt: staleBefore } },
+        { $set: { 'figshareSyncIntent.readiness': 'ready' } });
+      return result.modifiedCount;
     }
     public async acknowledgeFigshareIntent(oid: string, generation: number): Promise<boolean> {
       const result = await this.recordCol.updateOne({ redboxOid: oid, 'figshareSyncIntent.generation': generation, 'figshareSyncIntent.readiness': 'ready' }, { $set: { 'figshareSyncIntent.pending': false } });

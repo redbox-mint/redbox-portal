@@ -122,4 +122,18 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
     assert.equal(current.metadata.dataLocations[0].type, 'attachment');
     assert.deepEqual(deleted, []);
   });
+  it('publishes selected URLs when hosted files are disabled for a record that also has attachments', async () => {
+    config.assets.enableHostedFiles = false;
+    const current = record();
+    current.metadata.dataLocations.push({ type: 'url', location: 'https://example.org/data', selected: true } as never);
+    await mirrorManagedAssets(client(), config, current, '51', state, checkpoint);
+    assert.equal(initialisations, 1); assert.equal(uploads, 0);
+    assert.equal(state.receipts.find(r => r.kind === 'link')?.link, 'https://example.org/data');
+  });
+  it('reuses a legacy linked file without a receipt instead of creating a duplicate', async () => {
+    files.push({ id: 77, name: 'legacy', size: 0, is_link_only: true, download_url: 'https://example.org/data' });
+    const current = { redboxOid: 'oid', metadata: { dataLocations: [{ type: 'url', location: 'https://example.org/data', selected: true }] } };
+    await mirrorManagedAssets(client(), config, current, '51', state, checkpoint);
+    assert.equal(initialisations, 0); assert.equal(state.receipts.length, 0); assert.deepEqual(deleted, []);
+  });
 });

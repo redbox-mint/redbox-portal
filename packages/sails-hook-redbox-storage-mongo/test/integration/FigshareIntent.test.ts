@@ -63,6 +63,14 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     assert.equal(await service.readyFigshareIntent('record', 'incomplete'), true);
     assert.equal((await service.pendingFigshareIntents(10)).length, 1);
   });
+  it('recovers only stale initialising intents left by an interrupted save', async () => {
+    const options = request('interrupted'); options.figshareIntent!.readiness = 'initialising';
+    await service.updateMeta(brand, 'record', {}, undefined, options);
+    assert.equal(await service.recoverStaleFigshareIntents(new Date(Date.now() - 60000).toISOString()), 0);
+    assert.equal((await service.pendingFigshareIntents(10)).length, 0);
+    assert.equal(await service.recoverStaleFigshareIntents(new Date(Date.now() + 1000).toISOString()), 1);
+    assert.equal((await service.pendingFigshareIntents(10)).length, 1);
+  });
   it('rejects both primary and secondary background writes after an intervening user edit', async () => {
     await service.updateMeta(brand, 'record', { metadata: { title: 'user edit' } });
     await assert.rejects(service.updateMeta(brand, 'record', { metadata: { title: 'stale' } }, undefined, { expectedVersion: 0 }), RecordWriteConflict);

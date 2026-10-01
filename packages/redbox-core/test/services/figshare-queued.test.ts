@@ -246,6 +246,22 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.ok(await store.get('record-1'));
     assert.equal(await db.collection('records').countDocuments({ 'figshareSyncIntent.pending': true }), 102);
   });
+  it('dispatches eligible work queued behind more than a page of paused due records', async () => {
+    const source = await seed();
+    await importRecordIntent(store, source);
+    await db.collection('records').insertMany(Array.from({ length: 120 }, (_, i) => ({ ...source, redboxOid: `bad-${String(i).padStart(3, '0')}`, metaMetadata: { ...source.metaMetadata, brandId: 'bad' } })));
+    for (let i = 0; i < 120; i++) {
+      const oid = `bad-${String(i).padStart(3, '0')}`;
+      await store.initialise(oid, 'bad'); await store.change(oid, (s: FigshareSyncModel) => { s.work.sync.dueAt = 1; });
+    }
+    assignGlobals({ BrandingService: { getBrandById: (id: string) => ({ id, name: id }), getBrand: () => ({ name: 'brand-1' }) },
+      AppConfigService: { getAppConfigurationForBrand: (name: string) => ({ figsharePublishing: name === 'bad' ? { ...config, processing: { ...config.processing, observationMs: undefined }, queue: { ...config.queue, publishAfterUploadDelay: 'tomorrow at noon' } } : config }) } });
+    const delivered: string[] = [];
+    assignGlobals({ AgendaQueueService: { now: async (_name: string, data: { oid: string }) => { delivered.push(data.oid); } } });
+    await dispatchFigshare();
+    assert.deepEqual(delivered, ['record-1']);
+    assert.ok((await store.get('bad-000')).dispatchUntil > Date.now() + 60000);
+  });
   for (const [setting, legacy] of [['observationMs', 'publishAfterUploadDelay'], ['cleanupMs', 'uploadedFilesCleanupDelay']] as const) {
     for (const imported of [false, true]) {
       it(`pauses invalid ${setting} configuration without losing ${imported ? 'imported' : 'pending'} work, and resumes after correction`, async () => {
