@@ -91,7 +91,7 @@ export interface FigshareSyncModel {
   accessible?: boolean;
   observedAt?: string;
   publicationAuditKey?: string;
-  error?: { category: string; message: string; count: number; firstAt: string; lastAt: string; terminal: boolean };
+  error?: { kind?: FigshareIntentKind; category: string; message: string; count: number; firstAt: string; lastAt: string; terminal: boolean };
   audit?: IntegrationAuditContext | null;
   auditClosed?: boolean;
   corrections?: Array<{ at: string; actor: string; action: string; articleId?: string }>;

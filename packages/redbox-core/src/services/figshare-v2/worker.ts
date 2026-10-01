@@ -84,7 +84,9 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
   if (!claimed) return;
   let state: FigshareSyncModel = claimed;
   const startedWork = _.cloneDeep(state.work);
-  let kind: FigshareIntentKind = 'sync';
+  const due = (k: FigshareIntentKind) => startedWork[k].dueAt != null && startedWork[k].dueAt! <= Date.now();
+  // Attribute errors in the initial account/article reads to the work being polled.
+  let kind: FigshareIntentKind = due('sync') ? 'sync' : due('cleanup') ? 'cleanup' : 'observe';
   const abort = new AbortController();
   let heartbeatBusy = false;
   const heartbeat = setInterval(() => {
@@ -100,13 +102,17 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
     if (abort.signal.aborted) throw new FigshareLeaseLost();
     state = await store.change(oid, fn, owner); return state;
   };
-  const due = (k: FigshareIntentKind) => startedWork[k].dueAt != null && startedWork[k].dueAt! <= Date.now();
   const finish = async (k: FigshareIntentKind) => checkpoint(s => {
     const w = s.work[k]; w.processed = Math.max(w.processed, startedWork[k].requested);
     if (w.requested === startedWork[k].requested) w.dueAt = null;
   });
   const wait = async (reason: string) => checkpoint(s => {
     s.status = 'waiting'; s.waitingReason = reason;
+    // Readiness is an expected wait, not a failed attempt. Clear recovered polling
+    // errors, while retaining a genuine terminal failure of unfinished source sync.
+    const unresolvedSyncFailure = s.error?.terminal && (!s.error.kind || s.error.kind === 'sync')
+      && s.work.sync.requested > s.work.sync.processed;
+    if (!unresolvedSyncFailure && (!s.error?.kind || s.error.kind === kind)) delete s.error;
     if (s.work[kind].requested === startedWork[kind].requested) s.work[kind].dueAt = Date.now() + settings.observationMs;
   });
   const rawClient = config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, createRunContext(record, config, owner, 'worker'));
@@ -394,10 +400,10 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
       const message = error instanceof Error ? error.message : String(error);
       const category = error instanceof FigshareRepairRequired ? 'repair' : error instanceof FigshareHttpError ? `http:${error.statusCode ?? 'transport'}` : 'configuration_or_operation';
       await checkpoint(s => {
-        const previous = s.error?.category === category ? s.error : undefined;
+        const previous = s.error?.category === category && (!s.error.kind || s.error.kind === kind) ? s.error : undefined;
         const count = (previous?.count ?? 0) + 1;
         const terminal = category === 'repair' || (error instanceof FigshareHttpError && error.statusCode != null && error.statusCode >= 400 && error.statusCode < 500 && ![408, 429].includes(error.statusCode)) || count >= settings.maxAttempts;
-        s.error = { category, message, count, firstAt: previous?.firstAt ?? new Date().toISOString(), lastAt: new Date().toISOString(), terminal };
+        s.error = { kind, category, message, count, firstAt: previous?.firstAt ?? new Date().toISOString(), lastAt: new Date().toISOString(), terminal };
         s.status = terminal ? category === 'repair' ? 'repair_required' : 'failed' : 'retrying';
         if (s.work[kind].requested === startedWork[kind].requested) s.work[kind].dueAt = terminal ? null : Date.now() + settings.retryBaseMs * 2 ** (count - 1);
       });

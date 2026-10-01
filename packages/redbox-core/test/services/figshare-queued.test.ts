@@ -68,6 +68,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   let requests: Array<{ method: string; path: string; body: Record<string, unknown>; query: URLSearchParams; authorization?: string }>;
   let createFailure: number | undefined;
   let publishFailure: number | undefined;
+  let articleReadFailure: number | undefined;
   let published = false;
   let hideArticles = false;
   let traceStarts = 0;
@@ -109,6 +110,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
       const id = Number(/\/articles\/(\d+)/.exec(url.pathname)?.[1]);
       const article = articles.find(a => a.id === id);
       if (!article) return send({}, 404);
+      if (req.method === 'GET' && url.pathname === `/account/articles/${id}` && articleReadFailure) return send({ message: 'controlled article read failure' }, articleReadFailure);
       if (/\/files\/\d+$/.test(url.pathname)) return send((article.files as Array<Record<string, unknown>>).find(f => String(f.id) === url.pathname.split('/').pop()) ?? {});
       if (url.pathname.endsWith('/files')) return send(article.files);
       if (url.pathname.endsWith('/publish')) {
@@ -122,7 +124,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   });
   beforeEach(async () => {
     await db.dropDatabase(); store = new FigshareSyncStore(db); await store.ensureIndexes();
-    articles = []; requests = []; createFailure = undefined; publishFailure = undefined; published = false; hideArticles = false; mutateOnUpdate = undefined;
+    articles = []; requests = []; createFailure = undefined; publishFailure = undefined; articleReadFailure = undefined; published = false; hideArticles = false; mutateOnUpdate = undefined;
     traceStarts = 0; traceFailures = 0; traceCompletions = 0;
     config = new FigsharePublishing(); config.enabled = true;
     config.processing = { ...config.processing!, enabled: true, serviceUsername: 'service', serviceUserType: 'local' };
@@ -264,15 +266,67 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     await run(); assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 0);
     await run(); assert.equal(articles.length, 1); assert.equal(articles[0].title, 'title-2'); assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 1);
   });
-  it('waits quietly for days of review without repeating publish or creating audit traces', async () => {
-    await run();
-    for (let day = 0; day < 20; day++) {
+  for (const publishMode of ['immediate', 'afterUploadsComplete', 'manual'] as const) {
+    it(`waits quietly for a private article through repeated legacy scans (${publishMode})`, async () => {
+      config.article.publishMode = publishMode;
+      config.workflow.transitionJob = { ...config.workflow.transitionJob, enabled: true, targetStep: 'published', figshareTargetFieldKey: 'status', figshareTargetFieldValue: 'public' };
+      await run();
+      articles[0].status = 'private';
+      const mutations = requests.filter(r => r.method !== 'GET').length;
+      assignGlobals({ AgendaQueueService: { now: async (name: string) => { assert.equal(name, 'Figshare-SyncRecord'); await run(); } } });
+      for (let day = 0; day < 20; day++) {
+        await store.change('record-1', (s: FigshareSyncModel) => { s.work.observe.dueAt = Date.now() - 1; s.dispatchUntil = 0; });
+        await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+      }
+      const state = await store.get('record-1');
+      const record = (await db.collection('records').findOne({ redboxOid: 'record-1' }))!;
+      const { figshareLiveSummary } = requireTest('../../src/services/figshare-v2/status');
+      const summary = await figshareLiveSummary('record-1', record);
+      assert.equal(state.status, 'waiting'); assert.equal(state.error, undefined);
+      assert.equal(state.waitingReason, publishMode === 'manual' ? 'manual_publication' : 'review');
+      assert.equal(summary.status, 'pending'); assert.equal(summary.outcome.severity, 'pending');
+      assert.equal(record.workflow.stage, 'queued');
+      assert.equal(traceStarts, 1); assert.equal(traceFailures, 0); assert.equal(traceCompletions, 1);
+      assert.equal(requests.filter(r => r.method !== 'GET').length, mutations);
+      assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, publishMode === 'manual' ? 0 : 1);
+    });
+  }
+  for (const status of [503, 403]) {
+    it(`clears a recovered observation error before waiting for private article review (${status})`, async () => {
+      await run(); articles[0].status = 'private';
+      articleReadFailure = status;
       await store.change('record-1', (s: FigshareSyncModel) => { s.work.observe.dueAt = Date.now() - 1; });
       await run();
-    }
-    assert.equal(traceStarts, 1); assert.equal(traceFailures, 0); assert.equal(traceCompletions, 1);
-    assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 1);
-    assert.equal((await store.get('record-1')).waitingReason, 'review');
+      let state = await store.get('record-1');
+      assert.equal(state.status, status === 503 ? 'retrying' : 'failed');
+      assert.equal(state.error.kind, 'observe'); assert.equal(state.error.count, 1);
+      articleReadFailure = undefined;
+      await store.request('record-1', 'observe', Date.now() - 1);
+      await run();
+      state = await store.get('record-1');
+      assert.equal(state.status, 'waiting'); assert.equal(state.waitingReason, 'review');
+      assert.equal(state.error, undefined); assert.equal(traceStarts, 1); assert.equal(traceFailures, 0);
+      const { figshareLiveSummary } = requireTest('../../src/services/figshare-v2/status');
+      const record = (await db.collection('records').findOne({ redboxOid: 'record-1' }))!;
+      assert.equal((await figshareLiveSummary('record-1', record)).status, 'pending');
+      articleReadFailure = status;
+      await store.change('record-1', (s: FigshareSyncModel) => { s.work.observe.dueAt = Date.now() - 1; });
+      await run();
+      assert.equal((await store.get('record-1')).error.count, 1);
+    });
+  }
+  it('keeps a genuine terminal source failure visible during private article polling', async () => {
+    await run();
+    await store.change('record-1', (s: FigshareSyncModel) => {
+      s.work.sync.requested++; s.work.sync.dueAt = null; s.work.observe.dueAt = Date.now() - 1;
+      s.error = { kind: 'sync', category: 'http:400', message: 'invalid metadata', count: 1, firstAt: '', lastAt: '', terminal: true };
+    });
+    await run();
+    const { figshareLiveSummary } = requireTest('../../src/services/figshare-v2/status');
+    const record = (await db.collection('records').findOne({ redboxOid: 'record-1' }))!;
+    assert.equal((await store.get('record-1')).error.message, 'invalid metadata');
+    assert.equal((await figshareLiveSummary('record-1', record)).status, 'failed');
+    assert.equal(traceStarts, 1); assert.equal(traceFailures, 0);
   });
   it('does no work for an incomplete create save', async () => {
     await db.collection('records').updateOne({ redboxOid: 'record-1' }, { $set: { 'figshareSyncIntent.readiness': 'initialising' } });

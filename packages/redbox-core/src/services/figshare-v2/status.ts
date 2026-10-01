@@ -8,7 +8,8 @@ export async function figshareLiveSummary(oid: string, record: Record<string, un
   const state = typeof FigshareSync === 'undefined' ? null : await getSyncStore().get(oid);
   const queued = intent?.pending && intent.readiness === 'ready' && intent.generation > (state?.importedGeneration ?? 0);
   if (!state && !queued) return null;
-  const unresolvedFailure = state?.error?.terminal && state.work.sync.requested > state.work.sync.processed;
+  const unresolvedFailure = state?.error?.terminal && (!state.error.kind || state.error.kind === 'sync')
+    && state.work.sync.requested > state.work.sync.processed;
   const status = queued ? 'queued' : unresolvedFailure ? state.error!.category === 'repair' ? 'repair_required' : 'failed' : state!.status;
   const failed = ['failed', 'repair_required'].includes(status);
   const waiting = ['waiting', 'queued', 'retrying'].includes(status);

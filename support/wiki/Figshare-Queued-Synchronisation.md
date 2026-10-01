@@ -72,6 +72,8 @@ Cleanup requires observed publication, no embargo, a matching public downloadabl
 
 Publication submission, acceptance and confirmed publication are separate. Review/manual-publication/upload waits do not consume failure budgets or open audits on every poll. A logical sync has one audit context; terminal failures and confirmed publication have bounded events. The access-checked Integration Status endpoint overlays current queued/waiting/retrying state, including an unimported ready intent. Researchers can see pending Figshare status after reload, with publication and embargo details.
 
+A successful account read returning a private article is an expected readiness wait, including while university staff process it manually. The legacy workflow-transition job delegates to the durable dispatcher; it does not write a failed audit for each unmet public-state check. Repeated checks leave the record queued and retain local attachment bytes. A recovered polling error is cleared when readiness is checked successfully, resetting that retry episode; a terminal failure of unfinished source synchronisation remains visible. Historical audits are retained, and neither a readiness check nor a waiting status approves or publishes an article.
+
 Workflow transitions require confirmed publication, no unresolved upload or newer pending sync, current eligibility and current service permissions. Background snapshot writes carry an expected record version through every synchronous persistence step; attachment-changing background transitions are rejected before datastream effects. **Master still allows a later stale ordinary save to overwrite a workflow transition.** This change does not introduce general optimistic concurrency.
 
 ## Operator commands
