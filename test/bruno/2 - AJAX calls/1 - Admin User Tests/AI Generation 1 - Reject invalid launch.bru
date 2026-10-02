@@ -29,9 +29,9 @@ script:pre-request {
 }
 
 tests {
-  test("Rejects a launch without a source record", function () {
-    expect(res.getStatus()).to.equal(400);
+  test("Rejects a launch without the source record required by its profile", function () {
+    expect(res.getStatus()).to.equal(403);
     const body = res.getBody();
-    expect(body.errors[0].code).to.equal("GENERATION_REQUEST_INVALID");
+    expect(body.errors[0].code).to.equal("GENERATION_SOURCE_FORBIDDEN");
   });
 }
