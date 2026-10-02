@@ -54,6 +54,8 @@ export interface FigshareAssetReceipt {
   localId: string;
   digest: string;
   md5?: string;
+  /** Datastream fingerprint of the local bytes this receipt was verified against; lets unchanged attachments skip staging. */
+  fingerprint?: string;
   resumeApproved?: boolean;
   size: number;
   name: string;

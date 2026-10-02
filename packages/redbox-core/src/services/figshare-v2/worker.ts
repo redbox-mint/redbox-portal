@@ -371,6 +371,8 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
             await checkpoint(s => { s.publish!.outcome = rejected ? 'rejected' : 'uncertain'; });
             throw error;
           }
+          // Immediate publication is visible now; a curated article still reads private and waits for review.
+          article = await rawClient.getArticle(id);
         }
         await finish('sync');
         await checkpoint(s => {

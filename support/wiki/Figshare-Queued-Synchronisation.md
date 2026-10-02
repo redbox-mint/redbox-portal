@@ -34,7 +34,7 @@ A hook with a requester-dependent `triggerCondition` needs a separate, user-inde
 }
 ```
 
-Assign stable `policyId` values when rearranging hooks. Source authorisation is recorded at save time; workers resolve that policy against the current hook configuration and current record. The service identity is not used to reauthorise the original requester. Explicit maintenance writes preserve pending intent without originating new requests.
+Without an explicit `policyId`, a hook's default ID is its event, phase and function name (for example `onUpdate.pre.validateFigshareRecord`), so rearranging other hooks keeps queued work eligible. Assign explicit `policyId` values when the same Figshare hook function appears more than once in a phase; a warning is logged until you do. Source authorisation is recorded at save time; workers resolve that policy against the current hook configuration and current record. The service identity is not used to reauthorise the original requester. Explicit maintenance writes preserve pending intent without originating new requests.
 
 ## Processing settings
 
@@ -66,7 +66,7 @@ Every mutation checks lease ownership, current source generation, current config
 
 The actual customised metadata payload is hashed, including customer overrides. Relevant remote fields are compared before sending updates; unmanaged custom fields are retained. Curation locks freeze metadata, files, embargo and publication together. Both automatic publish modes wait for confirmed upload completion; `manual` never submits publication.
 
-Managed files have durable staged-content SHA256/MD5, size and ownership receipts. Changed bytes under the same filename create a replacement; deliberate deselection deletes only receipt-owned remote files. Foreign files and uncertain upload initialisations are retained. A worker that still holds its lease may resume its own failed upload on retry. Uploads interrupted by a stopped process or lost lease are reported as needing repair, and need an explicit verified operator decision before resumption; age is not deletion authority.
+Managed files have durable staged-content SHA256/MD5, size and ownership receipts. Receipts also record the datastream fingerprint (storage ETag, size and modification time), so later syncs skip staging and hashing an unchanged attachment; datastream services without fingerprints re-hash each time. Changed bytes under the same filename create a replacement; deliberate deselection deletes only receipt-owned remote files. Foreign files and uncertain upload initialisations are retained. A worker that still holds its lease may resume its own failed upload on retry. Uploads interrupted by a stopped process or lost lease are reported as needing repair, and need an explicit verified operator decision before resumption; age is not deletion authority.
 
 Cleanup requires observed publication, no embargo, a matching public downloadable file and matching current local bytes. It conditionally replaces attachment references with URLs and keeps receipt references so the next sync retains the hosted files. **Local attachment bytes are retained. Cleanup does not reclaim storage.**
 

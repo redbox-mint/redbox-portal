@@ -264,7 +264,7 @@ describe('RecordsService', function () {
         const response = await RecordsService.updateMeta(brand, 'record-123', record(), user, true, false, nextStep);
         expect(response.isSuccessful()).to.equal(true);
         const source = mockStorageService.updateMeta.firstCall.args[4].figshareIntent;
-        expect(source.intents.map((item: any) => item.policyId)).to.deep.equal(authorised ? ['onUpdate.pre.0', 'onTransitionWorkflow.pre.0'] : ['onUpdate.pre.0']);
+        expect(source.intents.map((item: any) => item.policyId)).to.deep.equal(authorised ? ['onUpdate.pre.validateFigshareRecord', 'onTransitionWorkflow.pre.validateFigshareRecord'] : ['onUpdate.pre.validateFigshareRecord']);
         expect(preTransition.called).to.equal(authorised);
         expect(applyTransition.called).to.equal(authorised);
       });

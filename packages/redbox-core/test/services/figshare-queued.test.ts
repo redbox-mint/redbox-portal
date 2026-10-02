@@ -22,7 +22,7 @@ const { figshareAdmin } = requireTest('../../src/services/figshare-v2/admin');
 const { legacyDelayMs } = requireTest('../../src/services/figshare-v2/config');
 
 const intent = (generation = 1): FigshareSourceIntent => ({ generation, pending: true, readiness: 'ready', saveToken: `save-${generation}`,
-  requestedAt: new Date().toISOString(), requestedBy: 'researcher', intents: [{ kind: 'sync', policyId: 'onUpdate.pre.0', condition: '<%= record.workflow.stage === "queued" %>' }] });
+  requestedAt: new Date().toISOString(), requestedBy: 'researcher', intents: [{ kind: 'sync', policyId: 'onUpdate.pre.validateFigshareRecord', condition: '<%= record.workflow.stage === "queued" %>' }] });
 
 describe('Figshare queued contracts', () => {
   it('preserves legacy relative delays and requires explicit settings for ambiguous phrases', () => {
@@ -38,6 +38,30 @@ describe('Figshare queued contracts', () => {
     hook.options.executionCondition = '<%= false %>';
     assert.equal(currentExecutionEligible({ hooks: { onUpdate: { pre: [hook] } } }, policies, 'oid', record), false);
     assert.equal(currentExecutionEligible({ hooks: {} }, policies, 'oid', record), false);
+  });
+  it('keeps default hook policy IDs stable when other hooks are reordered, and honours earlier positional IDs', () => {
+    const validate = { function: 'sails.services.figshareservice.validateFigshareRecord', options: { executionCondition: '<%= record.workflow.stage === "queued" %>' } };
+    const other = { function: 'sails.services.emailservice.sendNotification' };
+    const record = { workflow: { stage: 'queued' } };
+    const policies = intent().intents;
+    assert.equal(currentExecutionEligible({ hooks: { onUpdate: { pre: [validate] } } }, policies, 'oid', record), true);
+    assert.equal(currentExecutionEligible({ hooks: { onUpdate: { pre: [other, validate] } } }, policies, 'oid', record), true);
+    // Work queued under the earlier position-based default still resolves.
+    assert.equal(currentExecutionEligible({ hooks: { onUpdate: { pre: [validate] } } }, [{ ...policies[0], policyId: 'onUpdate.pre.0' }], 'oid', record), true);
+  });
+  it('numbers a repeated hook function and warns once that it needs explicit policy IDs', () => {
+    const hook = (stage: string) => ({ function: 'validateFigshareRecord', options: { executionCondition: `<%= record.workflow.stage === "${stage}" %>` } });
+    const recordType = { hooks: { onTransitionWorkflow: { post: [hook('queued'), hook('published')] } } };
+    const policy = (policyId: string) => [{ kind: 'sync' as const, policyId, condition: '' }];
+    const warnings: string[] = [];
+    const previousSails = Reflect.get(globalThis, 'sails');
+    Reflect.set(globalThis, 'sails', { log: { warn: (message: string) => { warnings.push(message); } } });
+    try {
+      assert.equal(currentExecutionEligible(recordType, policy('onTransitionWorkflow.post.validateFigshareRecord'), 'oid', { workflow: { stage: 'queued' } }), true);
+      assert.equal(currentExecutionEligible(recordType, policy('onTransitionWorkflow.post.validateFigshareRecord.1'), 'oid', { workflow: { stage: 'queued' } }), false);
+      assert.equal(currentExecutionEligible(recordType, policy('onTransitionWorkflow.post.validateFigshareRecord.1'), 'oid', { workflow: { stage: 'published' } }), true);
+    } finally { if (previousSails === undefined) Reflect.deleteProperty(globalThis, 'sails'); else Reflect.set(globalThis, 'sails', previousSails); }
+    assert.equal(warnings.length, 1); assert.match(warnings[0], /policyId/);
   });
   it('parses every supported create response identity without relying on the title', () => {
     for (const response of [{ data: { id: 51 } }, { data: { entity_id: 51 } }, { data: { location: 'https://api.figshare.com/v2/account/articles/51' } }, { headers: { location: 'https://api.figshare.com/v2/account/articles/51' } }]) {
@@ -139,7 +163,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     const storage = {
       acknowledgeFigshareIntent: async (oid: string, generation: number) => (await records.updateOne({ redboxOid: oid, 'figshareSyncIntent.generation': generation }, { $set: { 'figshareSyncIntent.pending': false } })).matchedCount === 1,
       pendingFigshareIntents: async (limit: number, afterOid = '') => records.find({ redboxOid: { $gt: afterOid }, 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'ready' }).sort({ redboxOid: 1 }).limit(limit).toArray(),
-      scanFigshareRecords: async () => records.find({}).toArray(),
+      scanFigshareRecords: async (afterOid: string, limit: number) => records.find({ redboxOid: { $gt: afterOid } }).sort({ redboxOid: 1 }).limit(limit).toArray(),
       findFigshareArticleRecords: async (path: string, id: string) => records.find({ [path]: id }).toArray()
     };
     assignGlobals({
@@ -675,6 +699,29 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     await run();
     state = await store.get('record-1');
     assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 2); assert.equal(state.publish.outcome, 'accepted');
+  });
+  it('records an immediately published article as synced without waiting for the next observation', async () => {
+    config.article.publishMode = 'immediate'; published = true;
+    await run();
+    const state = await store.get('record-1');
+    assert.equal(state.status, 'synced'); assert.equal(state.waitingReason ?? undefined, undefined); assert.equal(state.publish.outcome, 'accepted');
+  });
+  it('migrates page by page, finding duplicates across pages without a per-record binding scan', async () => {
+    const source = await seed();
+    const records = db.collection('records');
+    await records.insertMany(Array.from({ length: 118 }, (_, i) => ({ ...source, redboxOid: `plain-${String(i).padStart(3, '0')}` })));
+    await records.insertMany(['dup-a', 'zz-dup'].map(redboxOid => ({ ...source, redboxOid, metadata: { ...source.metadata, figshare_article_id: '61' } })));
+    await records.updateOne({ redboxOid: 'record-1' }, { $set: { 'metadata.figshare_article_id': '52' } });
+    articles.push({ id: 52, account_id: 1, title: 'Existing article', files: [], version: 1, is_public: false });
+    const storage = Reflect.get(globalThis, 'RecordsService').getFigshareIntentStorage();
+    const scan = storage.scanFigshareRecords;
+    let scans = 0; let bindingScans = 0;
+    storage.scanFigshareRecords = async (afterOid: string, limit: number) => { scans++; return scan(afterOid, limit); };
+    storage.findFigshareArticleRecords = async () => { bindingScans++; return []; };
+    const report = await figshareAdmin({ action: 'migrate', username: 'admin' }) as Array<Record<string, unknown>>;
+    assert.deepEqual(report.filter(r => r.status === 'duplicate_binding').map(r => r.oid), ['dup-a', 'zz-dup']);
+    assert.equal((report.find(r => r.oid === 'record-1')!.result as { articleId: unknown }).articleId, 52);
+    assert.equal(scans, 4); assert.equal(bindingScans, 0);
   });
   it('reports an interrupted managed upload for repair, but waits quietly on a foreign pending upload', async () => {
     published = true; await run();

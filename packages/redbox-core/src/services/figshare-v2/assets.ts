@@ -65,6 +65,16 @@ export async function getAttachmentStream(oid: string, fileId: string): Promise<
   return response;
 }
 
+/** Identify stored attachment bytes without reading them, when the datastream service supports it. */
+export async function getAttachmentFingerprint(oid: string, fileId: string): Promise<string | undefined> {
+  const datastreamService = getDatastreamService();
+  const fingerprint = datastreamService?.getDatastreamFingerprint;
+  if (typeof fingerprint !== 'function') {
+    return undefined;
+  }
+  return (await (fingerprint as (oid: string, fileId: string) => Promise<string | undefined>).call(datastreamService, oid, fileId)) || undefined;
+}
+
 async function ensureAttachmentDatastream(oid: string, fileId: string): Promise<void> {
   const response = await getAttachmentStream(oid, fileId);
   const stream = response.readstream as Readable | undefined;

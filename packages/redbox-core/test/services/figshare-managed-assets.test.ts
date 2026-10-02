@@ -95,6 +95,33 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
     assert.equal(state.receipts[0].state, 'available'); assert.equal(state.receipts[0].resumeApproved, false);
     assert.deepEqual(deleted, []);
   });
+  it('skips re-reading an unchanged attachment, and re-reads it once its stored bytes change', async () => {
+    let reads = 0;
+    const streams = Reflect.get(sails.services, 'teststreams');
+    const read = streams.getDatastream;
+    Object.assign(streams, { getDatastream: async () => { reads++; return read(); }, getDatastreamFingerprint: async () => `etag-${bytes.toString('hex')}` });
+    const current = record(); const remote = client();
+    await mirrorManagedAssets(remote, config, current, '51', state, checkpoint);
+    assert.equal(reads, 1); assert.equal(state.receipts[0].fingerprint, `etag-${bytes.toString('hex')}`);
+    await mirrorManagedAssets(remote, config, current, '51', state, checkpoint);
+    assert.equal(reads, 1); assert.equal(initialisations, 1); assert.equal(state.receipts[0].desired, true); assert.deepEqual(deleted, []);
+    bytes = Buffer.from('changed bytes');
+    await mirrorManagedAssets(remote, config, current, '51', state, checkpoint);
+    assert.equal(reads, 2); assert.equal(initialisations, 2); assert.deepEqual(deleted, ['101']);
+  });
+  it('re-reads once to fingerprint a receipt verified before fingerprints were recorded', async () => {
+    let reads = 0;
+    const streams = Reflect.get(sails.services, 'teststreams');
+    const read = streams.getDatastream;
+    streams.getDatastream = async () => { reads++; return read(); };
+    const current = record(); const remote = client();
+    await mirrorManagedAssets(remote, config, current, '51', state, checkpoint);
+    assert.equal(state.receipts[0].fingerprint, undefined);
+    streams.getDatastreamFingerprint = async () => 'etag-1';
+    await mirrorManagedAssets(remote, config, current, '51', state, checkpoint);
+    await mirrorManagedAssets(remote, config, current, '51', state, checkpoint);
+    assert.equal(reads, 2); assert.equal(initialisations, 1); assert.equal(state.receipts[0].fingerprint, 'etag-1');
+  });
   it('approves resuming its own interrupted upload while it holds the lease, then resumes without another file', async () => {
     let failPart = true;
     const remote = { ...client(), uploadFilePart: async (_url: string, _part: number, stream: Readable) => {

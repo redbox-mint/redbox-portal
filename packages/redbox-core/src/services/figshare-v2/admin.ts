@@ -14,30 +14,34 @@ export type FigshareAdminAction = 'inspect' | 'reconcile' | 'abandon-create' | '
 export interface FigshareAdminOptions { action: FigshareAdminAction; oid?: string; username: string; articleId?: string; ownerId?: string; apply?: boolean; receipt?: string; fileId?: string }
 
 /** Operators use application identities/configuration; no direct DB edits or remote writes. */
-export async function figshareAdmin(options: FigshareAdminOptions): Promise<unknown> {
+export async function figshareAdmin(options: FigshareAdminOptions, internal: { legacyBindingsCounted?: boolean } = {}): Promise<unknown> {
   const actor = await UsersService.getUserWithUsername(options.username).toPromise();
   if (!actor || actor.disabled === true || !RolesService.getAdminFromRoles(actor.roles ?? [])) throw new Error('A current ReDBox administrator is required');
   const store = getSyncStore();
   const storage = RecordsService.getFigshareIntentStorage();
   if (options.action === 'migrate') {
-    if (!storage.scanFigshareRecords) throw new Error('Storage adapter cannot scan records for migration');
-    const records: RecordModel[] = [];
-    let after = '';
-    for (;;) {
-      const page = await storage.scanFigshareRecords(after, 100);
-      records.push(...page);
-      if (page.length < 100) break;
-      after = page[page.length - 1].redboxOid;
-    }
+    const scan = storage.scanFigshareRecords?.bind(storage);
+    if (!scan) throw new Error('Storage adapter cannot scan records for migration');
+    // Two paged passes hold one page at a time: the first counts legacy bindings, the second migrates.
+    const pages = async function* (): AsyncGenerator<RecordModel[]> {
+      for (let after = ''; ;) {
+        const page = await scan(after, 100);
+        yield page;
+        if (page.length < 100) return;
+        after = page[page.length - 1].redboxOid;
+      }
+    };
     const counts = new Map<string, number>();
-    for (const record of records) {
-      const config = resolveFigsharePublishingConfig(record);
-      if (!config) continue;
-      const id = String(getRecordField(record, config.record.articleIdPath) ?? '');
-      if (id) { const key = `${apiNamespace(config)}:${id}`; counts.set(key, (counts.get(key) ?? 0) + 1); }
+    for await (const page of pages()) {
+      for (const record of page) {
+        const config = resolveFigsharePublishingConfig(record);
+        if (!config) continue;
+        const id = String(getRecordField(record, config.record.articleIdPath) ?? '');
+        if (id) { const key = `${apiNamespace(config)}:${id}`; counts.set(key, (counts.get(key) ?? 0) + 1); }
+      }
     }
     const report: Array<Record<string, unknown>> = [];
-    for (const record of records) {
+    for await (const page of pages()) for (const record of page) {
       const config = resolveFigsharePublishingConfig(record);
       if (!config) continue;
       const id = String(getRecordField(record, config.record.articleIdPath) ?? '');
@@ -61,7 +65,7 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
         continue;
       }
       try {
-        report.push({ oid: record.redboxOid, result: await figshareAdmin({ ...options, action: 'link', oid: record.redboxOid, articleId: id }) });
+        report.push({ oid: record.redboxOid, result: await figshareAdmin({ ...options, action: 'link', oid: record.redboxOid, articleId: id }, { legacyBindingsCounted: true }) });
       } catch (e) { report.push({ oid: record.redboxOid, status: 'repair_required', message: e instanceof Error ? e.message : String(e) }); }
     }
     return report;
@@ -142,7 +146,8 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
   if (remote) {
     const duplicate = await store.collection.findOne({ namespace: apiNamespace(config), articleId: String(remote.id), oid: { $ne: oid } });
     if (duplicate) throw new FigshareRepairRequired(`Article is already bound to record ${duplicate.oid}`);
-    const matches = await storage.findFigshareArticleRecords?.(config.record.articleIdPath, String(remote.id)) ?? [];
+    // Migration has already counted every legacy binding, so a per-record scan would only repeat it.
+    const matches = internal.legacyBindingsCounted ? [] : await storage.findFigshareArticleRecords?.(config.record.articleIdPath, String(remote.id)) ?? [];
     if (matches.some(r => r.redboxOid !== oid && resolveFigsharePublishingConfig(r)?.connection.baseUrl.replace(/\/+$/, '') === apiNamespace(config))) throw new FigshareRepairRequired('Duplicate legacy bindings must be resolved first');
     if (state?.binding?.articleId && state.binding.articleId !== String(remote.id) && options.action !== 'relink') throw new Error('Use explicit relink to change an existing authoritative article ID');
   }

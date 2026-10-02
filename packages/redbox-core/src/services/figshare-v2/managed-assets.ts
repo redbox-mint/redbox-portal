@@ -5,7 +5,7 @@ import type { FigshareClient } from './http';
 import type { RecordModel, DataLocationEntry, FigshareArticle } from './types';
 import { getRecordField } from './types';
 import { getSelectedDataLocations } from './plan';
-import { getAttachmentStream, getStagingDisk, buildStagingKey, stageAttachmentToDisk, readPartsSequentially } from './assets';
+import { getAttachmentStream, getAttachmentFingerprint, getStagingDisk, buildStagingKey, stageAttachmentToDisk, readPartsSequentially } from './assets';
 import { listArticleFiles } from './runtime';
 import { FigshareRepairRequired, FigshareWaiting } from './execution';
 import { observedPublished } from './identity';
@@ -31,6 +31,14 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
     const localId = String(entry.fileId ?? '');
     const name = String(entry.name ?? '');
     if (!localId || !name) throw new Error('Selected attachment is missing its ID or name');
+    // Read before staging, so a concurrent rewrite can only make the recorded fingerprint stale (forcing a re-hash),
+    // never pair a new fingerprint with old content.
+    const fingerprint = await getAttachmentFingerprint(record.redboxOid, localId);
+    const unchanged = fingerprint && state.receipts.find(r => r.kind === 'hosted' && r.localId === localId && r.fingerprint === fingerprint && r.articleId === articleId && r.state === 'available');
+    if (unchanged && files.some(f => String(f.id) === unchanged.fileId && available(f.status) && Number(f.size) === unchanged.size)) {
+      desired.add(unchanged.key);
+      continue;
+    }
     const disk = getStagingDisk(config);
     const stagingKey = buildStagingKey(config, articleId, record.redboxOid, localId, name);
     try {
@@ -52,6 +60,7 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
           state = await checkpoint(s => {
             const target = s.receipts.find(r => r.key === verified.key)!;
             target.state = 'available'; target.completedAt = new Date().toISOString(); target.downloadUrl = remote.download_url; target.desired = true;
+            if (fingerprint) target.fingerprint = fingerprint;
           });
           continue;
         }
@@ -106,7 +115,7 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
       const remote = files.find(f => String(f.id) === fileId);
       if (!remote || !available(remote.status)) throw new FigshareWaiting('uploads');
       if (Number(remote.size) !== size) throw new FigshareRepairRequired('Uploaded file size does not match staged content');
-      state = await checkpoint(s => { Object.assign(s.receipts.find(r => r.key === key)!, { state: 'available', completedAt: new Date().toISOString(), downloadUrl: remote.download_url }); });
+      state = await checkpoint(s => { Object.assign(s.receipts.find(r => r.key === key)!, { state: 'available', completedAt: new Date().toISOString(), downloadUrl: remote.download_url, ...(fingerprint ? { fingerprint } : {}) }); });
     } finally {
       // Only temporary staging objects are removed. Source attachment bytes remain.
       await disk.delete(stagingKey);

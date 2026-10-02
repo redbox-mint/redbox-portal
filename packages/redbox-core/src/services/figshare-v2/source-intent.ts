@@ -6,6 +6,39 @@ import type { FigshareSourceRequest } from '../../model/storage/FigshareSyncMode
 import { resolveFigsharePublishingConfig } from './config';
 
 const syncHooks = new Set(['validateFigshareRecord', 'wakeFigshareRecord', 'createUpdateFigshareArticle', 'uploadFilesToFigshareArticle']);
+const cleanupHooks = new Set(['requestFigshareCleanup', 'deleteFilesFromRedboxTrigger']);
+const warnedRepeatedHooks = new Set<string>();
+interface FigshareHookPolicy { kind: 'sync' | 'cleanup'; options: Record<string, unknown>; policyId: string; legacyId: string }
+
+/**
+ * Figshare hooks configured for one event phase. A default policy ID names the hook function, so reordering
+ * other hooks keeps queued work eligible; a repeated function adds its occurrence. `legacyId` is the earlier
+ * position-based default, still honoured for work queued before this change.
+ */
+function figshareHookPolicies(recordType: unknown, event: string, phase: string): FigshareHookPolicy[] {
+  const hooks: unknown = _.get(recordType, `hooks.${event}.${phase}`, []);
+  if (!Array.isArray(hooks)) return [];
+  const occurrences = new Map<string, number>();
+  const policies: Array<FigshareHookPolicy & { site: string }> = [];
+  for (const [index, hook] of hooks.entries()) {
+    const name = String(hook.function ?? '').split('.').pop() ?? '';
+    const kind = syncHooks.has(name) ? 'sync' : cleanupHooks.has(name) ? 'cleanup' : null;
+    if (!kind) continue;
+    const options = hook.options ?? {};
+    const site = `${event}.${phase}.${name}`;
+    const occurrence = occurrences.get(site) ?? 0;
+    occurrences.set(site, occurrence + 1);
+    const legacyId = String(options.policyId ?? `${event}.${phase}.${index}`);
+    policies.push({ kind, options, site, legacyId, policyId: String(options.policyId ?? (occurrence ? `${site}.${occurrence}` : site)) });
+  }
+  for (const [site, count] of occurrences) {
+    if (count > 1 && policies.some(p => p.site === site && p.options.policyId == null) && !warnedRepeatedHooks.has(site)) {
+      warnedRepeatedHooks.add(site);
+      sails.log.warn(`Figshare hook ${site} is configured ${count} times; set options.policyId on each so reordering cannot exchange their queued work`);
+    }
+  }
+  return policies;
+}
 export function evaluateSourceCondition(condition: string, oid: string, record: Record<string, unknown>, user?: unknown): boolean {
   if (!condition) return true;
   return _.template(condition, { imports: { _, oid, record, user: user ?? null } })().trim() === 'true';
@@ -19,19 +52,13 @@ export function prepareSourceIntent(record: Record<string, unknown>, recordType:
   let configured = false;
   for (const event of events) {
     for (const phase of ['pre', 'postSync', 'post']) {
-      const hooks: unknown = _.get(recordType, `hooks.${event}.${phase}`, []);
-      if (!Array.isArray(hooks)) continue;
-      for (const [index, hook] of hooks.entries()) {
-        const name = String(hook.function ?? '').split('.').pop() ?? '';
-        const kind = syncHooks.has(name) ? 'sync' : ['requestFigshareCleanup', 'deleteFilesFromRedboxTrigger'].includes(name) ? 'cleanup' : null;
-        if (!kind) continue;
+      for (const { kind, options, policyId } of figshareHookPolicies(recordType, event, phase)) {
         configured = true;
-        const options = hook.options ?? {};
         const sourceCondition = String(options.triggerCondition ?? '');
         const condition = String(options.executionCondition ?? sourceCondition);
         if (/\buser\b/.test(condition)) throw new Error('Figshare hooks with requester conditions require a separate user-independent executionCondition');
         if (evaluateSourceCondition(sourceCondition, String(record.redboxOid ?? ''), record, user)) {
-          intents.push({ kind, policyId: String(options.policyId ?? `${event}.${phase}.${index}`), condition, requestedBy: String(user.username ?? user.id ?? 'unknown') });
+          intents.push({ kind, policyId, condition, requestedBy: String(user.username ?? user.id ?? 'unknown') });
         }
       }
     }
@@ -44,14 +71,8 @@ export function prepareSourceIntent(record: Record<string, unknown>, recordType:
 export function currentExecutionEligible(recordType: unknown, policies: FigshareSourceRequest[], oid: string, record: RecordModel): boolean {
   for (const event of ['onCreate', 'onUpdate', 'onTransitionWorkflow']) {
     for (const phase of ['pre', 'postSync', 'post']) {
-      const hooks: unknown = _.get(recordType, `hooks.${event}.${phase}`, []);
-      if (!Array.isArray(hooks)) continue;
-      for (const [index, hook] of hooks.entries()) {
-        const options = hook.options ?? {};
-        const id = String(options.policyId ?? `${event}.${phase}.${index}`);
-        const name = String(hook.function ?? '').split('.').pop() ?? '';
-        const kind = syncHooks.has(name) ? 'sync' : ['requestFigshareCleanup', 'deleteFilesFromRedboxTrigger'].includes(name) ? 'cleanup' : null;
-        if (!policies.some(policy => policy.policyId === id && policy.kind === kind)) continue;
+      for (const { kind, options, policyId, legacyId } of figshareHookPolicies(recordType, event, phase)) {
+        if (!policies.some(policy => (policy.policyId === policyId || policy.policyId === legacyId) && policy.kind === kind)) continue;
         const condition = String(options.executionCondition ?? options.triggerCondition ?? '');
         if (!/\buser\b/.test(condition) && evaluateSourceCondition(condition, oid, record)) return true;
       }

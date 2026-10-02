@@ -61,6 +61,7 @@ export namespace Services {
       'addAndRemoveDatastreams',
       'getDatastream',
       'listDatastreams',
+      'getDatastreamFingerprint',
     ];
 
     protected override logHeader: string = 'StandardDatastreamService::';
@@ -922,6 +923,22 @@ export namespace Services {
         contentType,
         size,
       };
+    }
+
+    /**
+     * Identify the stored bytes from primary disk metadata, without reading them or recording access.
+     * Disk ETags change whenever an object is rewritten. Undefined until the attachment is on the primary disk.
+     */
+    public async getDatastreamFingerprint(oid: string, fileId: string): Promise<string | undefined> {
+      try {
+        const meta = await StorageManagerService.primaryDisk().getMetaData(this.storageKey(oid, fileId));
+        return meta.etag ? `${meta.etag}:${meta.contentLength}:${this.safeToISOString(meta.lastModified) ?? ''}` : undefined;
+      } catch (err) {
+        if (this.isStorageNotFoundError(err)) {
+          return undefined;
+        }
+        throw err;
+      }
     }
 
     /**
