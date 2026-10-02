@@ -8,6 +8,7 @@ const { createMockSails } = requireTest('./testHelper');
 const { FigsharePublishing } = requireTest('../../src/configmodels/FigsharePublishing');
 const { mirrorManagedAssets, cleanupProjection } = requireTest('../../src/services/figshare-v2/managed-assets');
 const { FigshareWaiting, FigshareRepairRequired } = requireTest('../../src/services/figshare-v2/execution');
+const { FigshareLeaseLost } = requireTest('../../src/services/figshare-v2/sync-store');
 
 describe('Figshare managed asset receipts and retained-byte cleanup', () => {
   let state: FigshareSyncModel;
@@ -93,6 +94,25 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
     assert.equal(initialisations, 1); assert.equal(uploads, 1);
     assert.equal(state.receipts[0].state, 'available'); assert.equal(state.receipts[0].resumeApproved, false);
     assert.deepEqual(deleted, []);
+  });
+  it('approves resuming its own interrupted upload while it holds the lease, then resumes without another file', async () => {
+    let failPart = true;
+    const remote = { ...client(), uploadFilePart: async (_url: string, _part: number, stream: Readable) => {
+      if (failPart) { failPart = false; throw new Error('Part upload interrupted'); }
+      uploads++; for await (const _chunk of stream) { /* consume streamed part */ } return {};
+    } };
+    await assert.rejects(mirrorManagedAssets(remote, config, record(), '51', state, checkpoint), /Part upload interrupted/);
+    assert.equal(state.receipts[0].state, 'uploading'); assert.equal(state.receipts[0].fileId, '101'); assert.equal(state.receipts[0].resumeApproved, true);
+    await mirrorManagedAssets(remote, config, record(), '51', state, checkpoint);
+    assert.equal(initialisations, 1); assert.equal(uploads, 1);
+    assert.equal(state.receipts[0].state, 'available'); assert.equal(state.receipts[0].resumeApproved, false);
+  });
+  it('leaves an upload interrupted by a lost lease for an operator decision', async () => {
+    let leaseLost = false;
+    const guarded = async (change: (s: FigshareSyncModel) => void) => { if (leaseLost) throw new FigshareLeaseLost(); return checkpoint(change); };
+    const remote = { ...client(), uploadFilePart: async () => { leaseLost = true; throw new Error('Part upload interrupted'); } };
+    await assert.rejects(mirrorManagedAssets(remote, config, record(), '51', state, guarded), FigshareLeaseLost);
+    assert.equal(state.receipts[0].state, 'uploading'); assert.equal(state.receipts[0].resumeApproved, undefined);
   });
   it('observes pending completion without another upload or completion POST', async () => {
     pending = true;

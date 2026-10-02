@@ -76,6 +76,8 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     await service.updateMeta(brand, 'record', {}, undefined, options);
     assert.equal(await service.abandonFigshareIntent('record', 'other'), false);
     assert.equal(await service.abandonFigshareIntent('record', 'failed'), true);
+    const abandoned = await service.recordCol.findOne({ redboxOid: 'record' });
+    assert.equal(abandoned!.figshareSyncIntent.readiness, 'abandoned'); assert.equal(abandoned!.figshareSyncIntent.pending, false);
     assert.equal(await service.recoverStaleFigshareIntents(new Date(Date.now() + 1000).toISOString()), 0);
     assert.equal((await service.pendingFigshareIntents(10)).length, 0);
     await service.updateMeta(brand, 'record', {}, undefined, request('next'));

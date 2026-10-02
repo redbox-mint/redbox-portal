@@ -588,4 +588,107 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.equal(prepareSourceIntent(record, recordType, ['onUpdate'], { username: 'service' }, false).intents.length, 0);
     assert.equal(prepareSourceIntent(record, recordType, ['onUpdate'], { username: 'researcher' }, false, true), undefined);
   });
+  it('completes publication observation after a failed save abandons its only intent', async () => {
+    await run();
+    Object.assign(articles[0], { is_public: true, published_date: '2026-01-01', version: 2 });
+    await db.collection('records').updateOne({ redboxOid: 'record-1' }, { $set: { 'figshareSyncIntent.generation': 2, 'figshareSyncIntent.pending': true, 'figshareSyncIntent.readiness': 'abandoned' } });
+    await store.change('record-1', (s: FigshareSyncModel) => { s.work.observe.dueAt = Date.now() - 1; });
+    await run();
+    const state = await store.get('record-1');
+    assert.equal(state.status, 'synced'); assert.equal(state.waitingReason, undefined); assert.equal(state.publish.outcome, 'observed');
+  });
+  it('backs off due work for a paused brand instead of redelivering it on every dispatch', async () => {
+    await importRecordIntent(store, await seed());
+    config.processing!.enabled = false;
+    let deliveries = 0;
+    assignGlobals({ AgendaQueueService: { now: async () => { deliveries++; } } });
+    await dispatchFigshare();
+    assert.equal(deliveries, 0); assert.ok((await store.get('record-1')).dispatchUntil > Date.now() + 60000);
+    config.processing!.enabled = true;
+    await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+    await dispatchFigshare(); assert.equal(deliveries, 1);
+  });
+  it('discards a create refused before sending and creates once for the newer save', async () => {
+    const change = store.change.bind(store);
+    let saved = false;
+    store.change = async (oid: string, fn: (s: FigshareSyncModel) => void, owner?: string) => {
+      const result = await change(oid, fn, owner);
+      // A researcher saves between persisting the create operation and sending it.
+      if (result.create && !result.binding?.articleId && !saved) { saved = true; await seed(2); }
+      return result;
+    };
+    await run();
+    let state = await store.get('record-1');
+    assert.equal(requests.filter(r => r.method === 'POST' && r.path === '/account/articles').length, 0);
+    assert.equal(state.create, undefined); assert.equal(state.binding, undefined); assert.equal(state.waitingReason, 'newer_save');
+    await store.change('record-1', (s: FigshareSyncModel) => { s.work.sync.dueAt = Date.now() - 1; });
+    await run();
+    state = await store.get('record-1');
+    assert.equal(articles.length, 1); assert.equal(articles[0].title, 'title-2'); assert.equal(state.binding.articleId, '51');
+  });
+  it('lets an operator abandon an unresolved create only when no article carries its token', async () => {
+    createFailure = 503; hideArticles = true; await run();
+    createFailure = undefined; hideArticles = false;
+    await store.change('record-1', (s: FigshareSyncModel) => { s.work.sync.dueAt = Date.now() - 1; });
+    articles.length = 0; hideArticles = true; await run();
+    let state = await store.get('record-1');
+    assert.equal(state.status, 'repair_required'); assert.match(state.error.message, /abandon-create/);
+    hideArticles = false; articles.push({ id: 60, title: `ReDBox draft ${state.create.token}`, account_id: 1, files: [], version: 0, is_public: false });
+    await assert.rejects(figshareAdmin({ action: 'abandon-create', oid: 'record-1', username: 'admin', apply: true }), /link it instead/);
+    articles.length = 0;
+    await figshareAdmin({ action: 'abandon-create', oid: 'record-1', username: 'admin' });
+    assert.ok((await store.get('record-1')).create);
+    await figshareAdmin({ action: 'abandon-create', oid: 'record-1', username: 'admin', apply: true });
+    state = await store.get('record-1');
+    assert.equal(state.create, undefined); assert.equal(state.binding, undefined);
+    await figshareAdmin({ action: 'resume', oid: 'record-1', username: 'admin', apply: true });
+    await run();
+    state = await store.get('record-1');
+    assert.equal(articles.length, 1); assert.equal(state.binding.articleId, '51'); assert.equal(state.error, undefined);
+  });
+  it('resubmits publication for a newer save once a read shows the earlier request did not publish', async () => {
+    await run();
+    assert.equal((await store.get('record-1')).publish.outcome, 'accepted');
+    await seed(2); await run();
+    const state = await store.get('record-1');
+    assert.equal(articles[0].title, 'title-2'); assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 2);
+    assert.equal(state.publish.outcome, 'accepted'); assert.equal(state.publish.generation, 2); assert.equal(state.waitingReason, 'review');
+  });
+  it('reports an uncertain publication for repair and resubmits only after reset-publish', async () => {
+    publishFailure = 503; await run();
+    let state = await store.get('record-1');
+    assert.equal(state.publish.outcome, 'uncertain'); assert.equal(state.status, 'retrying');
+    publishFailure = undefined;
+    await store.change('record-1', (s: FigshareSyncModel) => { s.work.sync.dueAt = Date.now() - 1; });
+    await run();
+    state = await store.get('record-1');
+    assert.equal(state.status, 'repair_required'); assert.match(state.error.message, /reset-publish/);
+    assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 1);
+    const { figshareLiveSummary } = requireTest('../../src/services/figshare-v2/status');
+    const summary = await figshareLiveSummary('record-1', (await db.collection('records').findOne({ redboxOid: 'record-1' }))!);
+    assert.equal(summary.status, 'failed'); assert.equal(summary.outcome.state, 'repair_required');
+    await figshareAdmin({ action: 'reset-publish', oid: 'record-1', username: 'admin' });
+    assert.equal((await store.get('record-1')).publish.outcome, 'uncertain');
+    await figshareAdmin({ action: 'reset-publish', oid: 'record-1', username: 'admin', apply: true });
+    assert.equal((await store.get('record-1')).publish, undefined);
+    await figshareAdmin({ action: 'resume', oid: 'record-1', username: 'admin', apply: true });
+    await run();
+    state = await store.get('record-1');
+    assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 2); assert.equal(state.publish.outcome, 'accepted');
+  });
+  it('reports an interrupted managed upload for repair, but waits quietly on a foreign pending upload', async () => {
+    published = true; await run();
+    articles[0].files = [{ id: 11, size: 10, status: 'created' }];
+    await store.change('record-1', (s: FigshareSyncModel) => {
+      s.receipts.push({ key: 'receipt', articleId: '51', localId: 'local', digest: 'sha256', size: 10, name: 'data', kind: 'hosted', state: 'uploading', fileId: '11', desired: true });
+      s.work.sync.requested++; s.work.sync.dueAt = Date.now() - 1;
+    });
+    await run();
+    let state = await store.get('record-1');
+    assert.equal(state.status, 'repair_required'); assert.match(state.error.message, /resume-upload/);
+    await store.change('record-1', (s: FigshareSyncModel) => { s.receipts = []; delete s.error; s.work.sync.dueAt = Date.now() - 1; });
+    await run();
+    state = await store.get('record-1');
+    assert.equal(state.status, 'waiting'); assert.equal(state.waitingReason, 'uploads');
+  });
 });

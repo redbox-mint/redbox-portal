@@ -17,7 +17,7 @@ export interface FigshareSourceSave {
 export interface FigshareSourceIntent {
   generation: number;
   pending: boolean;
-  /** `abandoned` means every merged save reported failure; it is never recovered, and the next successful save supersedes it. */
+  /** `abandoned` means every merged save reported failure; it is not pending, never recovered, and the next successful save supersedes it. */
   readiness: 'initialising' | 'ready' | 'abandoned';
   saveToken: string;
   requestedAt: string;

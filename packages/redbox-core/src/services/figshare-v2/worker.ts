@@ -87,7 +87,9 @@ export async function dispatchFigshare(): Promise<void> {
       if (!await store.dispatchClaim(due.oid)) continue;
       try {
         const fresh = await RecordsService.getMeta(due.oid);
-        if (fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false })?.processingError) {
+        const freshConfig = fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false });
+        // Paused or misconfigured brands back off: the worker would return without consuming the due work.
+        if (fresh && (!freshConfig?.processing?.enabled || freshConfig.processingError)) {
           await store.dispatchClaim(due.oid, PAUSED_DISPATCH_BACKOFF_MS, true);
           continue;
         }
@@ -277,7 +279,7 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
         if (!state.binding?.articleId) {
           if (state.create) {
             const recovered = await recovery(() => recoverCreate(rawClient, state.create!));
-            if (!recovered) throw new FigshareRepairRequired('Uncertain create has no unique visible token match; do not create again');
+            if (!recovered) throw new FigshareRepairRequired('Uncertain create has no unique visible token match; do not create again. Reconcile, then run abandon-create if no article exists');
             const binding = { ...state.create.binding, articleId: String(recovered.id) };
             await checkpoint(s => { s.binding = binding; s.namespace = binding.namespace; s.articleId = binding.articleId; s.create!.verifiedId = binding.articleId; });
             execution.binding = binding; article = recovered;
@@ -298,6 +300,11 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
               await checkpoint(s => { s.binding!.articleId = id; s.namespace = binding.namespace; s.articleId = id; s.create!.verifiedId = id; s.create!.outcome = 'confirmed'; });
               execution.binding = state.binding;
             } catch (error) {
+              // Only the transport guard raises a wait here, and it refuses before sending, so nothing was created.
+              if (error instanceof FigshareWaiting) {
+                await checkpoint(s => { delete s.create; delete s.createGeneration; delete s.createRequest; delete s.binding; });
+                throw error;
+              }
               await checkpoint(s => { s.create!.outcome = error instanceof FigshareHttpError && error.statusCode ? 'failed' : 'uncertain'; s.create!.error = error instanceof Error ? error.message : String(error); });
               const recovered = await recovery(() => recoverCreate(rawClient, state.create!));
               if (recovered) {
@@ -312,21 +319,31 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
         }
         const id = state.binding!.articleId!;
         article = await rawClient.getArticle(id);
-        if (state.publish?.outcome === 'rejected') {
-          // A definite validation rejection may be retried only after a new eligible
-          // source save and a read confirming that the old request did not publish.
-          if (sourceGeneration <= state.publish.generation || observedPublished(article) || Number(article.version ?? 0) > state.publish.previousVersion) {
+        if (state.publish && state.publish.outcome !== 'observed') {
+          if (observedPublished(article) && Number(article.version ?? 0) > state.publish.previousVersion) {
+            await checkpoint(s => { s.publish!.outcome = 'observed'; });
+          } else if (isCurationLocked(config, article)) {
+            throw new FigshareWaiting('curation');
+          } else if (startedWork.sync.sourceGeneration > state.publish.generation) {
+            // The read confirms the earlier request did not publish. A newer eligible source save supersedes it,
+            // e.g. after a curator returns the article for changes, so its content syncs and publication is requested again.
+            await checkpoint(s => { delete s.publish; });
+          } else if (state.publish.outcome === 'submitted' || state.publish.outcome === 'uncertain') {
+            throw new FigshareRepairRequired('Publication outcome is uncertain; confirm the article in Figshare, then run reset-publish');
+          } else {
             throw new FigshareWaiting('publication_confirmation');
           }
-          await checkpoint(s => { delete s.publish; });
-        } else if (state.publish && state.publish.outcome !== 'observed') {
-          if (observedPublished(article) && Number(article.version ?? 0) > state.publish.previousVersion) await checkpoint(s => { s.publish!.outcome = 'observed'; });
-          else throw new FigshareWaiting('publication_confirmation');
         }
         if (isCurationLocked(config, article)) throw new FigshareWaiting('curation');
         const pendingFiles = (await listArticleFiles(rawClient, id)).filter(f => String(f.status).toLowerCase() === 'created');
         if (pendingFiles.length) {
-          if (!pendingFiles.every(file => state.receipts.some(r => r.fileId === String(file.id) && r.resumeApproved))) throw new FigshareWaiting('uploads');
+          if (!pendingFiles.every(file => state.receipts.some(r => r.fileId === String(file.id) && r.resumeApproved))) {
+            // An interrupted managed upload needs an operator decision; any other pending file belongs to another uploader.
+            if (state.receipts.some(r => ['initialising', 'uploading'].includes(r.state) && !r.resumeApproved)) {
+              throw new FigshareRepairRequired('Interrupted Figshare upload requires bind-file or resume-upload');
+            }
+            throw new FigshareWaiting('uploads');
+          }
           await mirrorManagedAssets(service.makeClient(config, record, owner, 'resume-upload'), config, record, id, state, checkpoint);
         }
         setRecordField(record, config.record.articleIdPath, id);
@@ -406,7 +423,9 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
           completeFigshareAudit(publicationAudit, { message: 'Figshare publication confirmed.', responseSummary: { articleId: id, version: article.version, publication: 'published' } });
         }
         record = await RecordsService.getMeta(oid);
-        if (record.figshareSyncIntent?.pending || state.work.sync.requested > state.work.sync.processed) throw new FigshareWaiting('newer_sync');
+        // An abandoned intent carries no work; only an unimported live save is newer content.
+        const newerSource = record.figshareSyncIntent?.pending && record.figshareSyncIntent.readiness !== 'abandoned';
+        if (newerSource || state.work.sync.requested > state.work.sync.processed) throw new FigshareWaiting('newer_sync');
         if (state.receipts.some(r => !['available', 'removed'].includes(r.state))) throw new FigshareWaiting('uploads');
         const transition = config.workflow.transitionJob;
         if (transition.enabled && record.workflow.stage !== transition.targetStep && article[transition.figshareTargetFieldKey] === transition.figshareTargetFieldValue) {

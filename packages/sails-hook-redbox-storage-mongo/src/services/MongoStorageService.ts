@@ -105,10 +105,12 @@ const priorFigshareSaves = { $cond: [{ $eq: ['$figshareSyncIntent.pending', true
     readiness: '$figshareSyncIntent.readiness', requestedAt: '$figshareSyncIntent.requestedAt', intents: { $ifNull: ['$figshareSyncIntent.intents', []] } }], []]
 }] }, []] };
 // The intent carries the union of its saves' policies, and is ready only once no save is still initialising.
+// Once every merged save is abandoned nothing remains to import, so the intent is no longer pending.
 const deriveFigshareIntent = { $set: {
   'figshareSyncIntent.intents': { $reduce: { input: '$figshareSyncIntent.saves', initialValue: [], in: { $setUnion: ['$$value', '$$this.intents'] } } },
   'figshareSyncIntent.readiness': { $cond: [{ $eq: [{ $size: '$figshareSyncIntent.saves' }, 0] }, 'abandoned',
-    { $cond: [{ $in: ['initialising', '$figshareSyncIntent.saves.readiness'] }, 'initialising', 'ready'] }] }
+    { $cond: [{ $in: ['initialising', '$figshareSyncIntent.saves.readiness'] }, 'initialising', 'ready'] }] },
+  'figshareSyncIntent.pending': { $gt: [{ $size: '$figshareSyncIntent.saves' }, 0] }
 } };
 const figshareSaveFilter = (saveToken: string, readiness?: 'initialising') => ({ 'figshareSyncIntent.pending': true, $or: [
   { 'figshareSyncIntent.saves': { $elemMatch: { saveToken, ...(readiness ? { readiness } : {}) } } },

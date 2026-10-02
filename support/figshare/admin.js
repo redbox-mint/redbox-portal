@@ -10,8 +10,8 @@ const { values, positionals } = parseArgs({ allowPositionals: true, options: {
   oid: { type: 'string' }, username: { type: 'string' }, 'article-id': { type: 'string' }, 'owner-id': { type: 'string' }, receipt: { type: 'string' }, 'file-id': { type: 'string' }, apply: { type: 'boolean', default: false }, help: { type: 'boolean' }
 } });
 const action = positionals[0];
-if (values.help || !['inspect', 'reconcile', 'link', 'relink', 'resume', 'migrate', 'bind-file', 'resume-upload'].includes(action) || !values.username) {
-  console.log('node support/figshare/admin.js <inspect|reconcile|link|relink|resume|migrate|bind-file|resume-upload> --username ADMIN [--oid OID] [--article-id ID --owner-id ACCOUNT_ID] [--receipt KEY --file-id ID] [--apply]');
+if (values.help || !['inspect', 'reconcile', 'abandon-create', 'link', 'relink', 'resume', 'reset-publish', 'migrate', 'bind-file', 'resume-upload'].includes(action) || !values.username) {
+  console.log('node support/figshare/admin.js <inspect|reconcile|abandon-create|link|relink|resume|reset-publish|migrate|bind-file|resume-upload> --username ADMIN [--oid OID] [--article-id ID --owner-id ACCOUNT_ID] [--receipt KEY --file-id ID] [--apply]');
   console.log('Changes default to dry-run. Pause Figshare workers before applying migration or repairs. No command publishes or transfers ownership.');
   process.exit(values.help ? 0 : 1);
 }

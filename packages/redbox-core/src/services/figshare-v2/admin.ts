@@ -7,9 +7,10 @@ import { createRunContext } from './context';
 import { makeLiveClient, makeFixtureClient } from './http';
 import { recoverCreate, apiNamespace, observedPublished } from './identity';
 import { figshareExecution, FigshareRepairRequired } from './execution';
-import type { FigshareSyncModel, FigshareBinding } from '../../model/storage/FigshareSyncModel';
+import { isCurationLocked } from './runtime';
+import type { FigshareSyncModel, FigshareBinding, FigshareCreateOperation } from '../../model/storage/FigshareSyncModel';
 
-export type FigshareAdminAction = 'inspect' | 'reconcile' | 'link' | 'relink' | 'resume' | 'migrate' | 'bind-file' | 'resume-upload';
+export type FigshareAdminAction = 'inspect' | 'reconcile' | 'abandon-create' | 'link' | 'relink' | 'resume' | 'reset-publish' | 'migrate' | 'bind-file' | 'resume-upload';
 export interface FigshareAdminOptions { action: FigshareAdminAction; oid?: string; username: string; articleId?: string; ownerId?: string; apply?: boolean; receipt?: string; fileId?: string }
 
 /** Operators use application identities/configuration; no direct DB edits or remote writes. */
@@ -83,12 +84,30 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
     guard: async () => { throw new Error('Administrative verification is read-only'); },
     metadata: async () => { throw new Error('Administrative verification is read-only'); }
   }, read);
+  const reconcileCreate = (create: FigshareCreateOperation) => figshareExecution.run({ binding: create.binding, recovery: true, signal: new AbortController().signal,
+    guard: async () => { throw new Error('Reconcile is read-only'); }, metadata: async () => { throw new Error('Reconcile is read-only'); }
+  }, () => recoverCreate(client, create));
   if (options.action === 'reconcile') {
     if (!state?.create) return { state, candidates: [] };
-    const recovered = await figshareExecution.run({ binding: state.create.binding, recovery: true, signal: new AbortController().signal,
-      guard: async () => { throw new Error('Reconcile is read-only'); }, metadata: async () => { throw new Error('Reconcile is read-only'); }
-    }, () => recoverCreate(client, state!.create!));
+    const recovered = await reconcileCreate(state.create);
     return { state, candidates: recovered ? [{ articleId: recovered.id, title: recovered.title }] : [] };
+  }
+  let abandonedCreate: string | undefined;
+  if (options.action === 'abandon-create') {
+    if (!state?.create || state.binding?.articleId) throw new Error('No unresolved create operation exists for this record');
+    // Only a create absent from the owning account may be abandoned; a visible match must be linked instead.
+    if (await reconcileCreate(state.create)) throw new FigshareRepairRequired('An article matches the create token; link it instead of abandoning the create');
+    abandonedCreate = state.create.token;
+  }
+  let unconfirmedPublish: string | undefined;
+  if (options.action === 'reset-publish') {
+    const publish = state?.publish;
+    if (!publish || publish.outcome === 'observed' || !state?.binding?.articleId) throw new Error('No unconfirmed publication request exists for this record');
+    const binding = state.binding;
+    const article = await readOnly(binding, () => client.getArticle(binding.articleId!));
+    if (observedPublished(article) && Number(article.version ?? 0) > publish.previousVersion) throw new Error('The request published the article; resume records the observation instead');
+    if (isCurationLocked(config, article)) throw new Error('The article is under curation; wait for the curator before resetting publication');
+    unconfirmedPublish = publish.submittedAt;
   }
   const fileAction = options.action === 'bind-file' || options.action === 'resume-upload';
   const receipt = fileAction ? state?.receipts.find(r => r.key === options.receipt) : undefined;
@@ -162,6 +181,14 @@ export async function figshareAdmin(options: FigshareAdminOptions): Promise<unkn
         if (s.auditClosed) { delete s.audit; s.auditClosed = false; }
         s.work.sync.requested++; s.work.sync.dueAt = Date.now();
         // Create/publish/receipt uncertainty is intentionally retained.
+      } else if (abandonedCreate) {
+        if (s.binding?.articleId || s.create?.token !== abandonedCreate) throw new Error('Create evidence changed during verification; inspect and retry');
+        delete s.create; delete s.createGeneration; delete s.createRequest; delete s.binding;
+        // A fresh create waits for resume or a new eligible source save.
+      } else if (unconfirmedPublish) {
+        if (s.publish?.submittedAt !== unconfirmedPublish || s.binding?.articleId !== state?.binding?.articleId) throw new Error('Publication evidence changed during verification; inspect and retry');
+        delete s.publish;
+        // Publication is requested again by resume or a new eligible source save.
       }
       s.corrections = [...(s.corrections ?? []).slice(-49), { at: new Date().toISOString(), actor: actor.username, action: options.action, articleId: remote ? String(remote.id) : undefined }];
     }, owner);

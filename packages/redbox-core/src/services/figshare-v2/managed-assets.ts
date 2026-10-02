@@ -65,8 +65,10 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
         }
       }
       let location: string;
+      let fileId: string | undefined;
       if (resumeFileId) {
         location = `${config.connection.baseUrl.replace(/\/+$/, '')}/account/articles/${articleId}/files/${resumeFileId}`;
+        fileId = resumeFileId;
         state = await checkpoint(s => { s.receipts.find(r => r.key === key)!.resumeApproved = false; });
       } else {
         receipt = { key, localId, digest, md5, size, name, articleId, kind: 'hosted', state: 'initialising', desired: true };
@@ -74,23 +76,32 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
         state = await checkpoint(s => { s.receipts = s.receipts.filter(r => r.key !== key); s.receipts.push(created); });
         const init = await client.createArticleFile(articleId, { name, size, md5 });
         const remoteId = String(init.entity_id ?? init.id ?? /\/files\/(\d+)(?:$|\?)/.exec(init.location)?.[1] ?? '');
-        if (remoteId) state = await checkpoint(s => { s.receipts.find(r => r.key === key)!.fileId = remoteId; });
+        if (remoteId) { fileId = remoteId; state = await checkpoint(s => { s.receipts.find(r => r.key === key)!.fileId = remoteId; }); }
         location = init.location;
       }
-      const descriptor = await client.getLocation(location);
-      const fileId = String(descriptor.id);
-      state = await checkpoint(s => { Object.assign(s.receipts.find(r => r.key === key)!, { fileId, state: 'uploading' }); });
-      const parts = (await client.getLocation(descriptor.upload_url)).parts ?? [];
-      const source = await disk.getStream(stagingKey);
       try {
-        for await (const part of readPartsSequentially(source, parts)) {
-          if (resumeFileId && ['COMPLETE', 'COMPLETED'].includes(String(parts.find(p => p.partNo === part.partNo)?.status).toUpperCase())) {
-            for await (const _chunk of part.stream) { /* advance through the confirmed part */ }
-          } else await client.uploadFilePart(descriptor.upload_url, part.partNo, part.stream);
-        }
-      } finally { source.destroy(); }
-      state = await checkpoint(s => { s.receipts.find(r => r.key === key)!.state = 'completing'; });
-      await client.completeFileUpload(articleId, fileId);
+        const descriptor = await client.getLocation(location);
+        const uploadFileId = String(descriptor.id);
+        fileId = uploadFileId;
+        state = await checkpoint(s => { Object.assign(s.receipts.find(r => r.key === key)!, { fileId: uploadFileId, state: 'uploading' }); });
+        const parts = (await client.getLocation(descriptor.upload_url)).parts ?? [];
+        const source = await disk.getStream(stagingKey);
+        try {
+          for await (const part of readPartsSequentially(source, parts)) {
+            if (resumeFileId && ['COMPLETE', 'COMPLETED'].includes(String(parts.find(p => p.partNo === part.partNo)?.status).toUpperCase())) {
+              for await (const _chunk of part.stream) { /* advance through the confirmed part */ }
+            } else await client.uploadFilePart(descriptor.upload_url, part.partNo, part.stream);
+          }
+        } finally { source.destroy(); }
+        state = await checkpoint(s => { s.receipts.find(r => r.key === key)!.state = 'completing'; });
+        await client.completeFileUpload(articleId, uploadFileId);
+      } catch (error) {
+        // This worker has stopped uploading and, if its lease-checked checkpoint succeeds, no successor can have
+        // started, so its own interrupted upload may resume on retry. A lost lease leaves the decision to an operator.
+        const interrupted = fileId;
+        if (interrupted) state = await checkpoint(s => { Object.assign(s.receipts.find(r => r.key === key)!, { fileId: interrupted, state: 'uploading', resumeApproved: true }); });
+        throw error;
+      }
       files = await listArticleFiles(client, articleId);
       const remote = files.find(f => String(f.id) === fileId);
       if (!remote || !available(remote.status)) throw new FigshareWaiting('uploads');
