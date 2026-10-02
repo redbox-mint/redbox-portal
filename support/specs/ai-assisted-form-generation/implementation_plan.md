@@ -17,6 +17,20 @@ The implementation is divided into two release milestones:
 
 Do not implement Milestone B shortcuts inside POC demo code. POC configuration is bootstrap-seeded through the same services and models that the admin UI will later call.
 
+### 1.1 Required source-input extension
+
+Implementation is present in the shared core pipeline and form panel. See [README.md](README.md#source-input-implementation) for configuration, supported formats, retention, and verification status.
+
+The confirmed capability must support record-only, document-only, and combined inputs through the same target form and generation pipeline. This extends the original record-based delivery plan; its placement within the milestones remains to be scheduled. It is required for capability completion and is independent of the later approved-knowledge upload/retrieval work.
+
+1. Extend profile, binding, run, and evidence contracts for permitted document sources and zero-record runs. Preserve existing published record-only configurations and make relationship initialization/validation conditional on an explicitly supplied source record.
+2. Define initial formats, extraction/OCR limits, and original-document retention/attachment behaviour. Implement authorised ingestion and extraction with stable document/content references and available page/section locations; keep uploads scoped to the project/run.
+3. Extend context review and prompt construction to consume records, extracted passages, and reviewed answers together. Preserve origins, enforce context limits, and surface missing/conflicting claims without changing the target-form schema or candidate application rules.
+4. Carry document evidence through queue execution, normal save, provenance commit, and reload. Verify that document-only operations never require or create a Research Activity and that content expiry does not erase useful source identity or expose expired content.
+5. Verify [AC-SRC-001–007](requirements.md#91-source-input-capability-acceptance-criteria) with deterministic fixtures across all three combinations and a second target-form profile. Include upload failures, source conflicts, unauthorized references, embedded instructions, and retention behaviour.
+
+Track this work under the `[SOURCE]` tasks in [task.md](task.md#11-required-source-input-capability). The existing POC demonstration alone is insufficient evidence that the extension is complete.
+
 ## 2. Cross-cutting implementation rules
 
 1. Keep all generation runtime code in core/shared packages. `redbox-hook-dev` contains only representative demo configuration.

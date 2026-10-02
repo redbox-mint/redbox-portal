@@ -1,6 +1,7 @@
 import { GenerationCandidatePatch } from './candidate-patch';
 import { GenerationRuntimeInitialValue } from './form-runtime-meta';
 import { GenerationQuestion } from './question';
+import { GenerationDocument, GenerationDocumentPolicy } from './document';
 
 export const GENERATION_RUN_STATUSES = [
   'draft',
@@ -45,9 +46,16 @@ export interface GenerationRunView {
   completionValues?: GenerationRuntimeInitialValue[];
   error?: GenerationSafeError;
   artifactExpiresAt?: string;
+  documentPolicy?: GenerationDocumentPolicy;
+  documents?: GenerationDocument[];
 }
 
 export interface GenerationExecuteRequest {
+  /** Explicit selection at execution; null clears an optional record source. */
+  sourceOid?: string | null;
+  documentIds?: string[];
+  documentsReviewed?: boolean;
+  documentNotes?: string;
   answers: Array<{ id: string; value: unknown }>;
   targetForm: {
     recordType: string;

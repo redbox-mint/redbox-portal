@@ -570,6 +570,40 @@ describe('Generation core primitives and services', () => {
     expect(fetchStub.callCount).to.equal(1);
   });
 
+  for (const adapter of ['bedrock', 'openrouter'] as const) {
+    for (const status of [401, 403]) {
+      it(`identifies ${adapter} HTTP ${status} as a credential/access failure that can be retried manually`, async () => {
+        const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({
+          message: 'Bearer Token has expired: private-provider-detail',
+          error: { message: 'Bearer Token has expired: private-provider-detail' },
+        }), { status }));
+        const provider = adapter === 'bedrock' ? new BedrockGenerationProvider() : new OpenRouterGenerationProvider();
+        const error = await expectRejection(provider.invoke({
+          connection: {
+            endpoint: adapter === 'bedrock'
+              ? 'https://bedrock-runtime.ap-southeast-2.amazonaws.com'
+              : 'https://openrouter.ai/api/v1',
+            secret: 'expired-test-token', timeoutMs: 1000,
+          },
+          deployment: { modelId: adapter === 'bedrock' ? 'amazon.nova-lite-v1:0' : 'provider/model' },
+          messages: [{ role: 'user', content: 'Synthetic document context' }],
+          responseSchema: { type: 'object' }, correlationId: 'run-credentials',
+        }, new AbortController().signal));
+
+        expect(error.code).to.equal('GENERATION_PROVIDER_AUTH_FAILED');
+        expect(error.retryable).to.equal(true);
+        expect(error.status).to.equal(503);
+        expect(error.toSafeJSON()).to.include({
+          messageKey: 'generation-error-generation-provider-auth-failed', correlationId: 'run-credentials',
+        });
+        expect(JSON.stringify(error)).not.to.contain('private-provider-detail');
+        expect(error.message).not.to.contain('private-provider-detail');
+        expect(JSON.stringify(error)).not.to.contain('expired-test-token');
+        expect(fetchStub.callCount).to.equal(1);
+      });
+    }
+  }
+
   it('maps an AI SDK transport abort to the ReDBox timeout contract', async () => {
     const fetchStub = sinon.stub(globalThis, 'fetch').callsFake((_request: string | URL | Request, init?: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {

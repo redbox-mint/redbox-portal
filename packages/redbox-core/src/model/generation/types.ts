@@ -5,6 +5,8 @@ import type {
   GenerationRuntimeInitialValue,
   GenerationRunPhase,
   GenerationRunStatus,
+  GenerationDocument,
+  GenerationDocumentPolicy,
 } from '@researchdatabox/sails-ng-common';
 
 export type GenerationOutputType =
@@ -21,6 +23,8 @@ export interface GenerationProfileSourceSlot {
   recordType: string;
   allowedPaths: string[];
   maxBytes: number;
+  /** Existing profiles require their record sources by default. */
+  required?: boolean;
 }
 
 export interface GenerationProfileQuestion extends Omit<GenerationQuestion, 'defaultValue'> {
@@ -44,6 +48,7 @@ export interface GenerationProfileDefinitionV1 {
   purpose: string;
   systemInstructions: string;
   sourceSlots: GenerationProfileSourceSlot[];
+  documentSources?: GenerationDocumentPolicy;
   questions: GenerationProfileQuestion[];
   targetFields: GenerationProfileTargetField[];
   knowledgeCollectionVersionIds: string[];
@@ -59,7 +64,7 @@ export interface GenerationProfileDefinitionV1 {
 export interface GenerationBindingDefinition {
   brandId: string;
   key: string;
-  sourceRecordType: string;
+  sourceRecordType?: string;
   targetRecordType: string;
   targetFormName?: string;
   targetStartingWorkflowStage: string;
@@ -67,7 +72,7 @@ export interface GenerationBindingDefinition {
   sourceModes?: Array<'view' | 'edit'>;
   allowedRoles: string[];
   action: Omit<FormRuntimeAction, 'id' | 'bindingKey' | 'sourceOid'>;
-  sourceRelationship: {
+  sourceRelationship?: {
     sourceSlotId: string;
     metadataPointer: string;
   };
@@ -143,6 +148,7 @@ export interface GenerationFrozenInput {
 }
 
 export interface GenerationArtifactPayload {
+  documents?: GenerationDocument[];
   frozenInput?: GenerationFrozenInput;
   knowledge?: GenerationEvidence[];
   providerRequest?: GenerationProviderRequest;

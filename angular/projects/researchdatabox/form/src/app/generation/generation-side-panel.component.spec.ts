@@ -48,7 +48,7 @@ describe('GenerationSidePanelComponent', () => {
 
   beforeEach(async () => {
     api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', [
-      'launch', 'getRun', 'execute', 'cancel', 'commit',
+      'launch', 'getRun', 'execute', 'cancel', 'commit', 'addDocument', 'removeDocument',
     ]);
     saveSuccess$ = new Subject<ReturnType<typeof createFormSaveSuccessEvent>>();
     eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
@@ -141,5 +141,106 @@ describe('GenerationSidePanelComponent', () => {
       candidateDigest: 'candidate-digest',
       reviewedFieldIds: [],
     });
+  });
+
+  it('starts a document-only run in the same target form without a source record', async () => {
+    fixture.componentRef.setInput('form', new FormGroup({ title: new FormControl('My draft') }));
+    fixture.componentRef.setInput('launches', [{ bindingKey: 'documents', allowDocumentsOnly: true }]);
+    api.launch.and.resolveTo({ runId: 'documents-run', targetUrl: '/unused' });
+    api.getRun.and.resolveTo(run('documents-run', 'draft'));
+
+    await component.startWithDocuments();
+
+    expect(api.launch).toHaveBeenCalledOnceWith({ bindingKey: 'documents' });
+    expect(component.effectiveSession()?.initialValues).toEqual([]);
+    expect(component.form()?.get('title')?.value).toBe('My draft');
+  });
+
+  it('includes the selected record when starting with documents', async () => {
+    fixture.componentRef.setInput('launches', [{ bindingKey: 'combined', sourcePointer: '/researchActivity', allowDocumentsOnly: true }]);
+    api.launch.and.resolveTo({ runId: 'combined-run', targetUrl: '/unused' });
+    api.getRun.and.resolveTo(run('combined-run', 'draft'));
+
+    await component.startWithDocuments();
+
+    expect(api.launch).toHaveBeenCalledOnceWith({ bindingKey: 'combined', sourceOid: 'activity-1' });
+  });
+
+  it('requires document review and sends corrections with server-issued document identifiers', async () => {
+    component.activeSession.set({ runId: 'documents-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run('documents-run', 'draft', []));
+    component.documents.set([{ id: 'document-1', name: 'grant.pdf', contentHash: 'hash', passages: [{ location: 'Page 1', text: 'Proposed research' }] }]);
+    component.documentNotes.setValue('Approval remains pending.');
+    api.execute.and.resolveTo(run('documents-run', 'completed', []));
+
+    await component.generate();
+    expect(api.execute).not.toHaveBeenCalled();
+    component.documentsReviewed.set(true);
+    await component.generate();
+
+    expect(api.execute).toHaveBeenCalledOnceWith('documents-run', jasmine.objectContaining({
+      documentIds: ['document-1'], documentsReviewed: true, documentNotes: 'Approval remains pending.',
+    }));
+  });
+
+  it('retries a provider credential failure without abandoning uploaded documents or corrections', async () => {
+    component.activeSession.set({ runId: 'documents-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set({
+      ...run('documents-run', 'failed', []), retryable: true,
+      error: {
+        code: 'GENERATION_PROVIDER_AUTH_FAILED',
+        messageKey: 'generation-error-generation-provider-auth-failed', retryable: true,
+      },
+    });
+    component.documents.set([{ id: 'document-1', name: 'grant.txt', contentHash: 'hash', passages: [{ location: 'Paragraph 1', text: 'Research' }] }]);
+    component.documentsReviewed.set(true);
+    component.documentNotes.setValue('Ethics approval remains pending.');
+    api.execute.and.resolveTo(run('documents-run', 'completed', []));
+
+    await component.generate();
+
+    expect(api.launch).not.toHaveBeenCalled();
+    expect(api.execute).toHaveBeenCalledOnceWith('documents-run', jasmine.objectContaining({
+      documentIds: ['document-1'], documentsReviewed: true, documentNotes: 'Ethics approval remains pending.',
+    }));
+  });
+
+  it('uses the current source selection when a record is added after documents', async () => {
+    component.activeSession.set({ runId: 'documents-run', bindingKey: 'rdmp-from-activity', autoOpen: true, initialValues: [] });
+    component.run.set(run('documents-run', 'draft', []));
+    component.documents.set([{ id: 'document-1', name: 'grant.txt', contentHash: 'hash', passages: [{ location: 'Paragraph 1', text: 'Research' }] }]);
+    component.documentsReviewed.set(true);
+    component.form()?.get('researchActivity')?.setValue('activity-2');
+    api.execute.and.resolveTo(run('documents-run', 'completed', []));
+
+    await component.generate();
+
+    expect(api.execute).toHaveBeenCalledOnceWith('documents-run', jasmine.objectContaining({ sourceOid: 'activity-2', documentIds: ['document-1'] }));
+  });
+
+  it('asks for re-upload when a failed document run cannot be retried', async () => {
+    component.activeSession.set({ runId: 'documents-run', bindingKey: 'rdmp-from-activity', autoOpen: true, initialValues: [] });
+    component.run.set(run('documents-run', 'failed', []));
+    component.documents.set([{ id: 'document-1', name: 'grant.txt', contentHash: 'hash', passages: [{ location: 'Paragraph 1', text: 'Research' }] }]);
+    component.documentsReviewed.set(true);
+
+    await component.generate();
+
+    expect(api.launch).not.toHaveBeenCalled();
+    expect(api.execute).not.toHaveBeenCalled();
+    expect(component.error()).toBe('generation-document-reupload');
+  });
+
+  it('cancels an abandoned document draft and clears its inputs', async () => {
+    component.activeSession.set({ runId: 'documents-run', bindingKey: 'rdmp-from-activity', autoOpen: true, initialValues: [] });
+    component.run.set(run('documents-run', 'draft', []));
+    component.documents.set([{ id: 'document-1', name: 'grant.txt', contentHash: 'hash', passages: [{ location: 'Paragraph 1', text: 'Research' }] }]);
+    api.cancel.and.resolveTo(run('documents-run', 'cancelled', []));
+
+    await component.cancel();
+
+    expect(api.cancel).toHaveBeenCalledOnceWith('documents-run');
+    expect(component.effectiveSession()).toBeNull();
+    expect(component.documents()).toEqual([]);
   });
 });

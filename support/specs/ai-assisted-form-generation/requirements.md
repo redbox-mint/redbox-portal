@@ -11,6 +11,7 @@ Audience: ReDBox product, engineering, institutional administrators, and POC pre
 ReDBox will provide a generic, brand-isolated capability that uses a configured language-model provider to propose values for an explicit subset of fields in a ReDBox form. It will combine:
 
 - metadata from authorised ReDBox source records;
+- evidence extracted from researcher-uploaded project documents, including documents produced during a grant process;
 - the current unsaved target-form state;
 - a short, profile-defined context review;
 - approved, versioned institutional knowledge; and
@@ -20,9 +21,11 @@ The first customer-facing POC demonstrates a researcher starting from a syntheti
 
 The feature is not an RDMP generator baked into the form definition. RDMP generation is the first configured use of a general form-generation subsystem.
 
+The generation capability must support records alone, uploaded documents alone, and their combination, alongside reviewed context and approved guidance. A Research Activity is optional at the capability level. These inputs converge on the same configured target form, validation, and save lifecycle; they do not require separate forms or generation engines. The record-based POC is one demonstration of this broader capability, not its completion criterion.
+
 ## 2. Product principles
 
-1. **Form-aware, not document-first.** The result is a validated patch against specific ReDBox controls, not Markdown that is parsed into a record.
+1. **Form-aware output.** Whether inputs are records, documents, or both, the result is a validated patch against specific ReDBox controls, not Markdown that is parsed into a record.
 2. **Configuration outside normal form definitions.** Generation Profiles and Generation Bindings are database entities. Existing institutional forms do not acquire AI-specific field annotations.
 3. **Explicit target allowlist.** Only selected, supported fields are described to the model or accepted from it. Everything else is completely excluded.
 4. **The model never writes records.** It returns a structured candidate. ReDBox validates, maps, and applies it to the in-browser form; the researcher saves normally.
@@ -38,6 +41,9 @@ The feature is not an RDMP generator baked into the form definition. RDMP genera
 | Area | Decision |
 |---|---|
 | Source data | Research Master, IRMA, Pure, and similar RIMS data are ingested as ordinary ReDBox Research Activity records. Generation reads the stored record rather than calling those products directly. |
+| Source-input capability | Confirmed: authorised record data and uploaded project documents are first-class sources. Each must work independently and together through the shared generation pipeline. This is a capability requirement, independent of UI entry points. |
+| Source optionality | Profiles may permit document-only generation with no source record or source relationship. Do not create a placeholder Research Activity to satisfy the record-based POC contracts. |
+| Project documents | Uploaded grant documents contribute project evidence. They remain scoped to the authorised project/run and do not become shared approved knowledge automatically. |
 | Initial source | A representative synthetic Research Activity containing all relevant project, data, access, storage, consent, sharing, and retention facts. |
 | Initial target | A representative demonstration RDMP form, not a customer-specific production form. |
 | Entry point | A `Create data management plan` runtime action on the Research Activity creates a new generation intent and opens a new linked RDMP form with the guided side panel. |
@@ -72,7 +78,7 @@ The feature is not an RDMP generator baked into the form definition. RDMP genera
 
 ### 4.1 Researcher
 
-The researcher can view a Research Activity, create a new RDMP from it, verify the context that will be used, request generation, understand progress and failure, inspect flagged content and provenance, edit populated controls, and save through the normal lifecycle.
+The researcher can supply authorised record data, uploaded project documents, or both, verify the context that will be used, request generation, understand progress and failure, inspect flagged content and provenance, edit populated controls, and save through the normal lifecycle. The initial POC demonstrates this using a Research Activity to create a linked RDMP.
 
 The researcher cannot change the provider, prompt, target allowlist, or approved knowledge and cannot use generation to read or write data beyond their existing permissions.
 
@@ -89,6 +95,8 @@ The operator installs supported provider adapters, supplies secret-resolution me
 ## 5. Researcher workflows
 
 ### 5.1 Start a plan
+
+Sections 5.1–5.5 describe the record-based POC. The source-input capability in section 5.6 extends context acquisition while retaining the shared target-form lifecycle.
 
 1. The researcher opens an authorised Research Activity.
 2. The form response contains a server-resolved `Create data management plan` runtime action because a published binding matches the brand, source record type, form mode, role, and workflow.
@@ -130,6 +138,16 @@ The operator installs supported provider adapters, supplies secret-resolution me
 3. Unchanged values display `AI generated`; values whose current hash differs from the generated hash display `AI-assisted, edited`.
 4. Raw prompts and responses are not required to render provenance and may already have expired.
 
+### 5.6 Supply record data, documents, or both
+
+1. The generation profile permits authorised source records, uploaded project documents, or their combination. A document-only run does not need a Research Activity.
+2. ReDBox projects permitted record fields and extracts document content into source evidence, preserving each item's origin.
+3. The researcher reviews the resulting context, corrects extracted suggestions, and supplies missing information. Conflicting evidence is surfaced for review; selecting a source type does not silently make its claims authoritative.
+4. The common generation pipeline combines that evidence with reviewed answers and approved guidance, validates the candidate against the same target form, and preserves source references.
+5. The researcher edits and saves through the normal form lifecycle. Source relationships are populated only when a source record was explicitly supplied and the binding configures that relationship.
+
+This workflow defines capability behaviour; it does not prescribe separate forms or UI entry points.
+
 ## 6. Functional requirements
 
 ### 6.1 Configuration and versioning
@@ -165,6 +183,19 @@ The operator installs supported provider adapters, supplies secret-resolution me
 - **FR-CTX-005** Source content and knowledge content must be marked as untrusted data in the prompt and kept distinct from system instructions.
 - **FR-CTX-006** Prompt building must impose deterministic per-field, per-document, and total context limits.
 - **FR-CTX-007** The prompt must not contain target definitions, source fields, hidden form values, credentials, or diagnostic data outside the profile allowlists.
+
+#### 6.3.1 Source-input capability
+
+- **FR-SRC-001** The shared generation capability must accept authorised record data alone, uploaded project documents alone, and both together. Support must be reusable across Generation Profiles and target record types.
+- **FR-SRC-002** Profiles must declare permitted source types and required context. A profile permitting document-only generation must allow zero source records throughout launch, execution, and provenance commit, without creating a placeholder record or requiring a source relationship.
+- **FR-SRC-003** Document ingestion must validate supported formats and configured size/count limits, extract usable content, and report unsupported or unreadable inputs. It must not silently proceed as though failed extraction supplied evidence.
+- **FR-SRC-004** Extracted content must enter the existing evidence/context pipeline with stable source references, content hashes, document identity, and page/section references where extraction provides them. Record and document evidence must pass the same context limits, prompt separation, and output validation.
+- **FR-SRC-005** Researchers must be able to review and correct extracted context and resolve gaps or conflicts before generation. Unresolved claims must remain identified as uncertain; a proposal must not be treated as evidence of an approval or completed activity.
+- **FR-SRC-006** Uploaded documents must remain scoped to the authorised project/run. Access must be checked before extraction and generation, and document content must not be added to shared approved knowledge automatically.
+- **FR-SRC-007** Generated fields must retain inspectable references to the record fields and document evidence used, including in combined runs. Durable provenance must remain meaningful after transient content expires without exposing expired or unauthorised document content.
+- **FR-SRC-008** All supported source combinations must converge on the same configured target form, schema validation, candidate application, review, and normal save lifecycle. Source ingestion must not introduce an RDMP-specific generation engine.
+
+The initial implementation supports text-based PDF, DOCX, and UTF-8 plain text. OCR is outside this implementation; scanned PDFs must be processed before upload. Original files are discarded after extraction, while extracted text follows the encrypted run-artifact lifecycle and is removed at successful commit or expiry. Durable provenance retains source identities and locations. See [implementation configuration and limits](README.md#source-input-implementation).
 
 ### 6.4 Knowledge grounding
 
@@ -350,6 +381,18 @@ Each document declares a fictional institution name prominently, carries a stabl
 - **AC-POC-018** Logs contain correlation/status metadata but no source prompt or response body.
 - **AC-POC-019** With diagnostic retention set to zero, encrypted input/candidate artifacts may exist only while operationally required to complete and commit the asynchronous run, then are deleted immediately; no raw diagnostic content remains retained. With diagnostic retention enabled, the retained diagnostic subset has an explicit expiry and can be purged immediately.
 - **AC-POC-020** The live-model smoke test is opt-in; all standard suites pass with the fake adapter.
+
+### 9.1 Source-input capability acceptance criteria
+
+These criteria cover the confirmed capability beyond the record-based POC demonstration. Passing AC-POC-001–020 alone does not establish source-input capability completion.
+
+- **AC-SRC-001** A record-only run continues to generate, review, save, and reload provenance without requiring an upload.
+- **AC-SRC-002** A document-only run completes those same operations with zero source records and no Research Activity created or required, using the same configured target form as the record-only case.
+- **AC-SRC-003** A combined run can use both record fields and document content; field provenance identifies the evidence actually used from each.
+- **AC-SRC-004** Missing facts, conflicting sources, and a proposal that does not establish approval are presented for review without silently inventing or resolving those facts.
+- **AC-SRC-005** Unsupported, unreadable, or oversized uploads produce actionable errors. Cross-brand/unauthorised document references are rejected before extraction or provider invocation; instructions embedded in documents remain untrusted content.
+- **AC-SRC-006** A second target-form profile can use the same document-ingestion and generation capability without RDMP-specific code.
+- **AC-SRC-007** Original uploads and extracted content follow the chosen retention policy, and saved provenance remains useful after expiry without retaining raw content implicitly.
 
 ## 10. Explicit POC exclusions
 

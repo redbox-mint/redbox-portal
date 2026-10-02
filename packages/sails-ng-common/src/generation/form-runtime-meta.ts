@@ -2,7 +2,8 @@ import { FormRuntimeAction } from './runtime-action';
 
 export interface GenerationLaunchDefinition {
   bindingKey: string;
-  sourcePointer: string;
+  sourcePointer?: string;
+  allowDocumentsOnly?: boolean;
 }
 
 export interface GenerationRuntimeInitialValue {

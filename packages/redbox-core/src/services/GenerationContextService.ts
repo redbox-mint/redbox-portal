@@ -1,6 +1,7 @@
 import { Services as services } from '../CoreService';
 import { canonicalHash, GenerationActorContext, GenerationError, GenerationEvidence, GenerationFrozenInput, GenerationProfileDefinitionV1 } from '../model/generation';
 import { requireService } from './generation/require-service';
+import type { GenerationDocument } from '@researchdatabox/sails-ng-common';
 
 type RecordLike = { redboxOid?: string; metadata?: Record<string, unknown>; metaMetadata?: Record<string, unknown>; workflow?: Record<string, unknown> };
 interface RecordsLike {
@@ -65,6 +66,8 @@ export namespace Services {
       answers: Array<{ id: string; value: unknown }>;
       targetForm: { recordType: string; formName?: string; mode: 'create' };
       targetDraft: Record<string, unknown>;
+      documents?: GenerationDocument[];
+      documentNotes?: string;
     }): Promise<GenerationFrozenInput> {
       const records = requireService<RecordsLike>('recordsservice', ['getMeta', 'hasViewAccess']);
       const userRoles = input.user && typeof input.user === 'object' && Array.isArray(Reflect.get(input.user, 'roles'))
@@ -81,6 +84,51 @@ export namespace Services {
       }
       const sourceValues: GenerationFrozenInput['sources'] = [];
       const sourceEvidence: GenerationEvidence[] = [];
+      const documents = input.documents ?? [];
+      const policy = input.definition.documentSources;
+      if ((!input.sourceRefs.length && !documents.length) ||
+        input.definition.sourceSlots.some((slot) => slot.required !== false && !input.sourceRefs.some((ref) => ref.slotId === slot.id))) {
+        throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Required generation sources are missing');
+      }
+      if (documents.length && (!policy || documents.length > policy.maxFiles || documents.length > sails.config.generation.documents.maxFiles)) {
+        throw new GenerationError('GENERATION_DOCUMENT_LIMIT', 'Document sources exceed profile limits');
+      }
+      for (const document of documents) {
+        if (document.passages.reduce((bytes, passage) => bytes + Buffer.byteLength(passage.text, 'utf8'), 0) > policy!.maxTextBytes) {
+          throw new GenerationError('GENERATION_DOCUMENT_LIMIT', 'Extracted text exceeds profile limits');
+        }
+        for (const [index, passage] of document.passages.entries()) {
+          // Split by Unicode code points, keeping page/paragraph locations on every bounded chunk.
+          let chunk = '';
+          let bytes = 0;
+          let part = 0;
+          const append = () => {
+            if (!chunk) return;
+            sourceEvidence.push({
+              id: `document:${document.id}:${index}:${part++}:${document.contentHash}`,
+              kind: 'source', label: `${document.name} — ${passage.location}`.slice(0, 200),
+              content: chunk, contentHash: canonicalHash(chunk),
+            });
+            chunk = ''; bytes = 0;
+          };
+          for (const character of passage.text) {
+            const length = Buffer.byteLength(character, 'utf8');
+            if (bytes + length > input.definition.contextLimits.maxChunkBytes) append();
+            chunk += character; bytes += length;
+          }
+          append();
+        }
+      }
+      if (input.documentNotes !== undefined && (typeof input.documentNotes !== 'string' || input.documentNotes.length > 2000 || !documents.length)) {
+        throw new GenerationError('GENERATION_REQUEST_INVALID', 'Document review notes are invalid');
+      }
+      if (input.documentNotes?.trim()) {
+        sourceEvidence.push({
+          id: `document-review:${canonicalHash(input.documentNotes)}`, kind: 'source',
+          label: 'Researcher corrections to document context', content: { reviewedCorrections: input.documentNotes },
+          contentHash: canonicalHash(input.documentNotes),
+        });
+      }
       for (const ref of input.sourceRefs) {
         const slot = input.definition.sourceSlots.find((candidate) => candidate.id === ref.slotId && candidate.recordType === ref.recordType);
         if (!slot) throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Generation source does not match the published profile');

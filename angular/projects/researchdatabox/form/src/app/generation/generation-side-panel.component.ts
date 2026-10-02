@@ -14,6 +14,7 @@ import {
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import {
   GenerationCandidatePatch,
+  GenerationDocument,
   GenerationLaunchDefinition,
   GenerationQuestion,
   GenerationQuestionValue,
@@ -59,6 +60,11 @@ export class GenerationSidePanelComponent implements OnDestroy {
     const hasContent = !!this.effectiveSession() || !!this.error();
     return hasContent && (this.inline() ? this.inlineOpen() : this.isOpen());
   });
+  readonly documents = signal<GenerationDocument[]>([]);
+  readonly documentsReviewed = signal(false);
+  readonly documentNotes = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(2000)] });
+  readonly documentLaunch = computed(() => this.launches().find((launch) => launch.allowDocumentsOnly));
+  readonly documentAccept = computed(() => this.run()?.documentPolicy?.formats.map((format) => `.${format}`).join(',') ?? '');
   readonly completed = computed(() => this.candidate() !== null);
   readonly restartRequired = computed(() => {
     const status = this.run()?.status;
@@ -132,14 +138,18 @@ export class GenerationSidePanelComponent implements OnDestroy {
   public async generate(): Promise<void> {
     const currentSession = this.effectiveSession();
     const form = this.form();
-    if (!currentSession || !form || this.busy() || this.completed() || this.questionForm.invalid) return;
+    if (!currentSession || !form || this.busy() || this.completed() || this.questionForm.invalid || this.documentNotes.invalid ||
+      (this.documents().length > 0 && !this.documentsReviewed())) return;
     this.busy.set(true);
     this.error.set(null);
     this.executionSnapshot = structuredClone(form.getRawValue());
     try {
       const retainedAnswers = this.questionValues();
       const session = await this.ensureExecutableSession(currentSession, form, retainedAnswers);
+      const sourcePointer = this.launches().find((launch) => launch.bindingKey === session.bindingKey)?.sourcePointer;
+      const selectedSource = sourcePointer ? this.readPointer(form.getRawValue(), sourcePointer) : undefined;
       const run = await this.api.execute(session.runId, {
+        ...(sourcePointer ? { sourceOid: typeof selectedSource === 'string' && selectedSource.trim() ? selectedSource.trim() : null } : {}),
         answers: this.questions().map((question) => ({ id: question.id, value: this.questionForm.get(question.id)?.value })),
         targetForm: {
           recordType: this.recordType(),
@@ -147,6 +157,11 @@ export class GenerationSidePanelComponent implements OnDestroy {
           mode: 'create',
         },
         targetDraft: this.executionSnapshot,
+        ...(this.documents().length ? {
+          documentIds: this.documents().map((document) => document.id),
+          documentsReviewed: this.documentsReviewed(),
+          documentNotes: this.documentNotes.value,
+        } : {}),
       });
       this.updateRun(run);
       await this.pollUntilSettled(session.runId);
@@ -157,10 +172,62 @@ export class GenerationSidePanelComponent implements OnDestroy {
     }
   }
 
+  public async startWithDocuments(): Promise<void> {
+    const launch = this.documentLaunch();
+    const form = this.form();
+    if (!launch || !form || this.busy() || this.effectiveSession() || this.completed()) return;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const selected = launch.sourcePointer ? this.readPointer(form.getRawValue(), launch.sourcePointer) : undefined;
+      const sourceOid = typeof selected === 'string' && selected.trim() ? selected.trim() : undefined;
+      const result = await this.api.launch({ bindingKey: launch.bindingKey, ...(sourceOid ? { sourceOid } : {}) });
+      const session: GenerationRuntimeSession = {
+        runId: result.runId, bindingKey: launch.bindingKey, autoOpen: true,
+        initialValues: sourceOid && launch.sourcePointer ? [{ metadataPointer: launch.sourcePointer, value: sourceOid }] : [],
+      };
+      this.activeSession.set(session);
+      this.initialisedRunId = session.runId;
+      this.inlineOpen.set(true);
+      this.store.dispatch(GenerationActions.openPanel());
+      await this.initialise(session, form);
+    } catch (error) { this.fail(error); }
+    finally { this.busy.set(false); }
+  }
+
+  public async uploadDocument(event: Event): Promise<void> {
+    const input = event.target instanceof HTMLInputElement ? event.target : null;
+    const file = input?.files?.[0];
+    const session = this.effectiveSession();
+    if (!file || !session || this.busy()) return;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      if (file.size > (this.run()?.documentPolicy?.maxFileBytes ?? 0)) {
+        throw new Error('generation-error-generation-document-limit');
+      }
+      this.updateRun(await this.api.addDocument(session.runId, file));
+      this.documentsReviewed.set(false);
+    } catch (error) { this.fail(error); }
+    finally { this.busy.set(false); if (input) input.value = ''; }
+  }
+
+  public async removeDocument(documentId: string): Promise<void> {
+    const session = this.effectiveSession();
+    if (!session || this.busy()) return;
+    this.busy.set(true);
+    try {
+      this.updateRun(await this.api.removeDocument(session.runId, documentId));
+      this.documentsReviewed.set(false);
+      if (!this.documents().length) this.documentNotes.setValue('');
+    } catch (error) { this.fail(error); }
+    finally { this.busy.set(false); }
+  }
+
   public async cancel(): Promise<void> {
     const session = this.effectiveSession();
     const status = this.run()?.status;
-    if (session && status && ['queued', 'running', 'validating', 'cancelRequested'].includes(status)) {
+    if (session && status && ['draft', 'queued', 'running', 'validating', 'cancelRequested'].includes(status)) {
       try { this.updateRun(await this.api.cancel(session.runId)); } catch (error) { this.fail(error); return; }
     }
     this.close();
@@ -170,6 +237,9 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.store.dispatch(GenerationActions.closePanel());
     this.inlineOpen.set(false);
     this.activeSession.set(null);
+    this.documents.set([]);
+    this.documentsReviewed.set(false);
+    this.documentNotes.reset('');
     queueMicrotask(() => this.restoreFocusTo?.focus());
   }
 
@@ -223,22 +293,24 @@ export class GenerationSidePanelComponent implements OnDestroy {
     form: FormGroup,
     retainedAnswers: ReadonlyMap<string, GenerationQuestionValue>,
   ): Promise<GenerationRuntimeSession> {
-    if (!this.restartRequired()) return session;
+    if (!this.restartRequired() || (this.run()?.status === 'failed' && this.run()?.retryable)) return session;
+    if (this.documents().length) throw new Error('generation-document-reupload');
 
     const launch = this.launches().find((candidate) => candidate.bindingKey === session.bindingKey);
     if (!launch) throw new Error('generation-request-failed');
-    const selectedSource = this.readPointer(form.getRawValue(), launch.sourcePointer)
-      ?? session.initialValues.find((value) => value.metadataPointer === launch.sourcePointer)?.value;
-    if (typeof selectedSource !== 'string' || !selectedSource.trim()) {
+    const selectedSource = launch.sourcePointer ? this.readPointer(form.getRawValue(), launch.sourcePointer)
+      ?? session.initialValues.find((value) => value.metadataPointer === launch.sourcePointer)?.value : undefined;
+    if (!launch.allowDocumentsOnly && (typeof selectedSource !== 'string' || !selectedSource.trim())) {
       throw new Error('generation-request-failed');
     }
 
-    const result = await this.api.launch({ bindingKey: launch.bindingKey, sourceOid: selectedSource.trim() });
+    const sourceOid = typeof selectedSource === 'string' && selectedSource.trim() ? selectedSource.trim() : undefined;
+    const result = await this.api.launch({ bindingKey: launch.bindingKey, ...(sourceOid ? { sourceOid } : {}) });
     const replacement: GenerationRuntimeSession = {
       runId: result.runId,
       bindingKey: launch.bindingKey,
       autoOpen: true,
-      initialValues: [{ metadataPointer: launch.sourcePointer, value: selectedSource.trim() }],
+      initialValues: launch.sourcePointer && sourceOid ? [{ metadataPointer: launch.sourcePointer, value: sourceOid }] : [],
     };
     const freshRun = await this.api.getRun(replacement.runId);
     this.activeSession.set(replacement);
@@ -267,6 +339,11 @@ export class GenerationSidePanelComponent implements OnDestroy {
 
   private updateRun(run: GenerationRunView): void {
     this.run.set(run);
+    if (run.documents && ['draft', 'failed'].includes(run.status)) {
+      const changed = this.documents().map((document) => document.id).join() !== run.documents.map((document) => document.id).join();
+      this.documents.set(run.documents);
+      if (changed) this.documentsReviewed.set(false);
+    }
     this.error.set(run.error?.messageKey ?? null);
     this.store.dispatch(GenerationActions.lifecycleChanged({
       status: run.status,
@@ -364,8 +441,8 @@ export class GenerationSidePanelComponent implements OnDestroy {
     sourceField.insertAdjacentElement('afterend', host);
   }
 
-  private rootPointer(pointer: string): string | null {
-    const rootSegment = pointer.split('/').filter(Boolean)[0];
+  private rootPointer(pointer?: string): string | null {
+    const rootSegment = pointer?.split('/').filter(Boolean)[0];
     return rootSegment ? `/${rootSegment}` : null;
   }
 
@@ -373,10 +450,11 @@ export class GenerationSidePanelComponent implements OnDestroy {
     const form = this.form();
     const normalizedFieldId = String(fieldId ?? '').split('/').filter(Boolean).at(-1) ?? '';
     const launch = this.launches().find((candidate) => {
+      if (!candidate.sourcePointer) return false;
       const segments = candidate.sourcePointer.split('/').filter(Boolean);
       return segments[0] === normalizedFieldId || this.pointerFieldId(candidate.sourcePointer) === normalizedFieldId;
     });
-    if (!form || !launch || this.effectiveSession() || this.busy()) return;
+    if (!form || !launch?.sourcePointer || this.effectiveSession() || this.busy()) return;
     const sourceOid = this.readPointer(form.getRawValue(), launch.sourcePointer);
     if (typeof sourceOid !== 'string' || !sourceOid.trim()) return;
 

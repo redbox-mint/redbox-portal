@@ -276,6 +276,8 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',
   'post /:branding/:portal/generation/launch': 'GenerationController.launch',
   'get /:branding/:portal/generation/runs/:id': 'GenerationController.getRun',
+  'post /:branding/:portal/generation/runs/:id/documents': 'GenerationController.addDocument',
+  'delete /:branding/:portal/generation/runs/:id/documents/:documentId': 'GenerationController.removeDocument',
   'post /:branding/:portal/generation/runs/:id/execute': 'GenerationController.execute',
   'post /:branding/:portal/generation/runs/:id/cancel': 'GenerationController.cancel',
   'post /:branding/:portal/generation/runs/:id/commit': 'GenerationController.commit',

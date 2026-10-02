@@ -154,6 +154,15 @@ export class BedrockGenerationProvider implements GenerationProviderAdapter {
         );
       }
       if (APICallError.isInstance(error)) {
+        if (error.statusCode === 401 || error.statusCode === 403) {
+          // No automatic retry; retain this run for a manual retry after credentials are fixed.
+          throw new GenerationError(
+            'GENERATION_PROVIDER_AUTH_FAILED',
+            'Generation provider credentials or model access were rejected',
+            true,
+            input.correlationId,
+          );
+        }
         if (error.statusCode === 408 || error.statusCode === 504) {
           throw new GenerationError(
             'GENERATION_PROVIDER_TIMEOUT',

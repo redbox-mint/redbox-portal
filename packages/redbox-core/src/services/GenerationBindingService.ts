@@ -45,7 +45,7 @@ export interface GenerationActionContext {
 export interface AuthorizedGenerationLaunch {
   binding: GenerationBindingAttributes;
   profileVersion: GenerationProfileVersionAttributes;
-  source: RecordLike;
+  source?: RecordLike;
 }
 
 export namespace Services {
@@ -59,7 +59,7 @@ export namespace Services {
       if (input.targetMode !== 'create' || input.maxSuccessfulRunsPerIntent !== 1 || input.allowMultipleTargetsPerSource !== true) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'The POC binding must be create-only, one-success-per-intent, and allow multiple targets per source');
       }
-      if (!input.sourceRelationship?.metadataPointer || !String(input.sourceRelationship.metadataPointer).startsWith('/')) {
+      if (input.sourceRecordType && (!input.sourceRelationship?.metadataPointer || !String(input.sourceRelationship.metadataPointer).startsWith('/'))) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation source relationship mapping is invalid');
       }
       const profile = await GenerationProfile.findOne({ id: input.profileId, brandId });
@@ -68,7 +68,9 @@ export namespace Services {
       const profileVersion = await profileService.resolvePublished(brandId, input.profileId);
       const sourceSlotId = String(input.sourceRelationship?.sourceSlotId ?? '');
       const sourceSlot = profileVersion.definition.sourceSlots.find((slot) => slot.id === sourceSlotId);
-      if (!sourceSlot || sourceSlot.recordType !== input.sourceRecordType || !input.allowedRoles.length) {
+      if (!input.allowedRoles.length || (input.sourceRecordType
+        ? !sourceSlot || sourceSlot.recordType !== input.sourceRecordType
+        : !profileVersion.definition.documentSources || profileVersion.definition.sourceSlots.some((slot) => slot.required !== false) || !!input.sourceRelationship || !!input.sourceValueMappings?.length)) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation binding source or role allowlist is invalid');
       }
       const workflow = sails.config.workflow[input.targetRecordType];
@@ -148,12 +150,13 @@ export namespace Services {
       for (const binding of bindings) {
         try {
           if (binding.targetFormName && targetFormName && binding.targetFormName !== targetFormName) continue;
-          if (!this.canCreateTarget(binding, actor.roles)) continue;
+          if (!this.canCreateTarget(binding, actor.roles) || !binding.allowedRoles.some((role) => actor.roles.includes(role))) continue;
           const profileService = requireService<ProfileLike>('generationprofileservice', ['resolvePublished']);
-          await profileService.resolvePublished(actor.brandId, binding.profileId);
+          const profile = await profileService.resolvePublished(actor.brandId, binding.profileId);
+          const allowDocumentsOnly = !!profile.definition.documentSources && profile.definition.sourceSlots.every((slot) => slot.required === false);
           const sourcePointer = String(binding.sourceRelationship?.metadataPointer ?? '').trim();
-          if (!sourcePointer.startsWith('/')) continue;
-          launches.push({ bindingKey: binding.key, sourcePointer });
+          if (!sourcePointer.startsWith('/') && !allowDocumentsOnly) continue;
+          launches.push({ bindingKey: binding.key, ...(sourcePointer ? { sourcePointer } : {}), ...(allowDocumentsOnly ? { allowDocumentsOnly: true } : {}) });
         } catch (error) {
           if (!(error instanceof GenerationError)) throw error;
         }
@@ -166,12 +169,24 @@ export namespace Services {
       brand: BrandingModel;
       user: UserModel;
       bindingKey: string;
-      sourceOid: string;
+      sourceOid?: string;
       mode?: 'view' | 'edit';
     }): Promise<AuthorizedGenerationLaunch> {
       if (!sails.config.generation.enabled) throw new GenerationError('GENERATION_NOT_CONFIGURED', 'Generation is disabled');
       const binding = await GenerationBinding.findOne({ brandId: input.actor.brandId, key: input.bindingKey, enabled: true });
       if (!binding) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Generation action is not available');
+      if (!binding.allowedRoles.some((role) => input.actor.roles.includes(role))) {
+        throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Generation role is not available');
+      }
+      if (!this.canCreateTarget(binding, input.actor.roles)) throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Target record cannot be created');
+      const profileService = requireService<ProfileLike>('generationprofileservice', ['resolvePublished']);
+      const profileVersion = await profileService.resolvePublished(input.actor.brandId, binding.profileId);
+      if (!input.sourceOid) {
+        if (!profileVersion.definition.documentSources || profileVersion.definition.sourceSlots.some((slot) => slot.required !== false)) {
+          throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'A source record is required by this profile');
+        }
+        return { binding, profileVersion };
+      }
       const records = requireService<RecordsLike>('recordsservice', ['getMeta', 'hasViewAccess']);
       const source = await records.getMeta(input.sourceOid);
       if (!source || String(source.metaMetadata?.brandId ?? '') !== input.actor.brandId ||
@@ -183,13 +198,11 @@ export namespace Services {
         formName: String(source.metaMetadata?.form ?? ''), mode: input.mode ?? 'view',
       };
       this.assertBindingContext(binding, context);
-      if (!this.canCreateTarget(binding, input.actor.roles)) throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Target record cannot be created');
-      const profileService = requireService<ProfileLike>('generationprofileservice', ['resolvePublished']);
-      const profileVersion = await profileService.resolvePublished(input.actor.brandId, binding.profileId);
       return { binding, profileVersion, source };
     }
 
     public buildInitialValues(binding: GenerationBindingAttributes, sourceOid: string): GenerationRuntimeSession['initialValues'] {
+      if (!sourceOid) return [];
       const pointer = String(binding.sourceRelationship?.metadataPointer ?? '');
       if (!pointer.startsWith('/')) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation relationship mapping is invalid');
       return [{ metadataPointer: pointer, value: sourceOid }];

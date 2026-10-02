@@ -1,5 +1,5 @@
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import {
@@ -12,7 +12,7 @@ import {
   GenerationProvenanceResponse,
   GenerationRunView,
 } from '@researchdatabox/sails-ng-common';
-import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, HttpClientService, UtilityService, RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE } from '@researchdatabox/portal-ng-common';
 import { firstValueFrom, Observable } from 'rxjs';
 
 type WrappedResponse<T> = { data: T };
@@ -45,6 +45,27 @@ export class GenerationApiService extends HttpClientService {
   public async getRun(runId: string): Promise<GenerationRunView> {
     return this.request(this.http.get<WrappedResponse<GenerationRunView>>(
       `${await this.generationBaseUrl()}/generation/runs/${encodeURIComponent(runId)}`,
+      this.options(),
+    ));
+  }
+
+  public async addDocument(runId: string, file: File): Promise<GenerationRunView> {
+    const url = `${await this.generationBaseUrl()}/generation/runs/${encodeURIComponent(runId)}/documents`;
+    const body = new FormData();
+    body.append('document', file);
+    // A separate context keeps the multipart override out of subsequent JSON requests.
+    const context = this.httpContext;
+    const uploadContext = new HttpContext();
+    for (const token of context.keys()) uploadContext.set(token, context.get(token));
+    uploadContext.set(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE, true);
+    return this.request(this.http.post<WrappedResponse<GenerationRunView>>(url, body, {
+      headers: { 'X-ReDBox-Api-Version': '2.0' }, context: uploadContext,
+    }));
+  }
+
+  public async removeDocument(runId: string, documentId: string): Promise<GenerationRunView> {
+    return this.request(this.http.delete<WrappedResponse<GenerationRunView>>(
+      `${await this.generationBaseUrl()}/generation/runs/${encodeURIComponent(runId)}/documents/${encodeURIComponent(documentId)}`,
       this.options(),
     ));
   }

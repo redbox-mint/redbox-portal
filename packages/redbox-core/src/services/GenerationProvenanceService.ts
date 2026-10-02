@@ -1,3 +1,4 @@
+import { authorizeRun } from './generation/authorize-run';
 import type {
   GenerationCommitRequest,
   GenerationCommitResult,
@@ -51,17 +52,15 @@ export namespace Services {
       }
       const records = requireService<RecordsLike>('recordsservice', ['getMeta', 'hasViewAccess', 'hasEditAccess']);
       const record = await records.getMeta(request.targetOid);
-      const sourceRecord = run.sourceRefs[0] ? await records.getMeta(run.sourceRefs[0].oid) : null;
+      await authorizeRun(run);
       if (!record || String(record.metaMetadata?.brandId ?? '') !== actor.brandId ||
         String(record.metaMetadata?.type ?? '') !== run.targetDescriptor.recordType ||
         String(record.metaMetadata?.createdBy ?? '') !== actor.username ||
-        !records.hasEditAccess(brand, user, user.roles, record) || !sourceRecord ||
-        String(sourceRecord.metaMetadata?.brandId ?? '') !== actor.brandId ||
-        !records.hasViewAccess(brand, user, user.roles, sourceRecord)) {
+        !records.hasEditAccess(brand, user, user.roles, record)) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Saved generation target is not available');
       }
       const binding = await GenerationBinding.findOne({ id: run.bindingId, brandId: actor.brandId });
-      if (!binding || getJsonPointer(record.metadata ?? {}, String(binding.sourceRelationship.metadataPointer ?? '')) !== run.sourceRefs[0]?.oid) {
+      if (!binding || (run.sourceRefs.length > 0 && getJsonPointer(record.metadata ?? {}, String(binding.sourceRelationship?.metadataPointer ?? '')) !== run.sourceRefs[0]?.oid)) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Saved generation target is not linked to the authorised source');
       }
       const artifact = await GenerationRunArtifact.findOne({ brandId: actor.brandId, runId });

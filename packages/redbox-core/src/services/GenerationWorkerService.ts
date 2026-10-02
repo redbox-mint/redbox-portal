@@ -1,3 +1,4 @@
+import { authorizeRun } from './generation/authorize-run';
 import { Services as services } from '../CoreService';
 import {
   asGenerationError,
@@ -68,7 +69,7 @@ export namespace Services {
         const knowledgeService = requireService<KnowledgeLike>('generationknowledgeservice', ['retrieve']);
         const knowledge = await knowledgeService.retrieve(brandId, run.knowledgeCollectionVersionIds, tags, {
           maxChunks: profile.definition.contextLimits.maxKnowledgeChunks,
-          maxBytes: profile.definition.contextLimits.totalBytes,
+          maxBytes: Math.max(0, profile.definition.contextLimits.totalBytes - Buffer.byteLength(JSON.stringify(payload.frozenInput), 'utf8')),
         });
         const evidence = [...payload.frozenInput.sourceEvidence, ...knowledge];
         const evidenceAliases = buildEvidenceAliases(evidence);
@@ -112,7 +113,7 @@ export namespace Services {
         } satisfies GenerationArtifactPayload & { questions?: unknown[] });
         await GenerationRunArtifact.updateOne({ id: artifact.id, brandId, runId }).set({
           ...envelope,
-          contentKinds: ['frozenInput', 'knowledge', 'providerRequest', 'rawResponse', 'candidate', 'completionValues'],
+          contentKinds: ['frozenInput', 'knowledge', 'providerRequest', 'rawResponse', 'candidate', 'completionValues', ...(payload.documents?.length ? ['documents'] : [])],
         });
         await persistence.transitionRun(brandId, runId, 'validating', 'completed', {
           phase: 'population', candidateDigest: candidate.candidateDigest,
@@ -142,32 +143,7 @@ export namespace Services {
     }
 
     private async reauthorize(run: GenerationRunAttributes): Promise<void> {
-      const source = run.sourceRefs[0];
-      if (!source) throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Generation source is unavailable');
-      const records = requireService<{
-        getMeta(oid: string): Promise<{ metaMetadata?: Record<string, unknown> }>;
-        hasViewAccess(brand: unknown, user: unknown, roles: unknown[], record: unknown): boolean;
-      }>('recordsservice', ['getMeta', 'hasViewAccess']);
-      const record = await records.getMeta(source.oid);
-      const user = await User.findOne({ id: run.initiatedByUserId }).populate('roles');
-      const brand = BrandingService.getBrandById(run.brandId);
-      const binding = await GenerationBinding.findOne({ id: run.bindingId, brandId: run.brandId });
-      const workflow = binding ? sails.config.workflow[binding.targetRecordType] : undefined;
-      const starting = workflow && Object.values(workflow).find((stage) => stage.starting);
-      const roles = user && typeof user === 'object' && Array.isArray(Reflect.get(user, 'roles'))
-        ? Reflect.get(user, 'roles') as unknown[]
-        : [];
-      const roleNames = roles
-        .map((role: unknown) => role && typeof role === 'object' ? String(Reflect.get(role, 'name') ?? '') : '')
-        .filter(Boolean);
-      if (!record || String(record.metaMetadata?.brandId ?? '') !== run.brandId || !user || !brand ||
-        !binding || binding.sourceRecordType !== source.recordType || binding.targetRecordType !== run.targetDescriptor.recordType ||
-        !binding.allowedRoles.some((role) => roleNames.includes(role)) || !starting ||
-        starting.config.workflow.stage !== binding.targetStartingWorkflowStage ||
-        !starting.config.authorization.editRoles.some((role) => roleNames.includes(role)) ||
-        !records.hasViewAccess(brand, user, roles, record)) {
-        throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Generation source authorization changed');
-      }
+      await authorizeRun(run);
     }
   }
 }

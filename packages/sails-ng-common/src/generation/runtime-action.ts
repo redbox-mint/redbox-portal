@@ -16,7 +16,7 @@ export interface FormRuntimeAction {
 
 export interface GenerationLaunchRequest {
   bindingKey: string;
-  sourceOid: string;
+  sourceOid?: string;
 }
 
 export interface GenerationLaunchResult {

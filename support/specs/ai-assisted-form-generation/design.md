@@ -6,7 +6,9 @@ Requirements: [requirements.md](requirements.md)
 
 Delivery: core capability with a researcher-first POC and post-POC administration/provider phases
 
-The design treats generation as a form-runtime effect, not a record-writing integration. A published Generation Binding exposes an authorised runtime action. That action creates a `GenerationRun` intent and navigates to the bound target form. The form side panel collects or confirms context, the server queues provider execution, and the model returns a strict response keyed by stable profile field IDs. ReDBox validates and maps that response into a candidate patch. The browser performs a final three-way safety check and populates the normal form controls. The existing save lifecycle remains the only way to create or update the target record.
+The design treats generation as a form-runtime effect, not a record-writing integration. A published Generation Binding exposes an authorised runtime action. That action creates a `GenerationRun` intent and resolves the bound target form. The form side panel collects or confirms context, the server queues provider execution, and the model returns a strict response keyed by stable profile field IDs. ReDBox validates and maps that response into a candidate patch. The browser performs a final three-way safety check and populates the normal form controls. The existing save lifecycle remains the only way to create or update the target record.
+
+The following sequence describes the record-based POC. The required source-input extension below also supports document-only and combined evidence through this same form/runtime pipeline.
 
 ```mermaid
 flowchart LR
@@ -24,6 +26,20 @@ flowchart LR
     F -->|normal form.save lifecycle| REC[RDMP record]
     REC -->|idempotent receipt commit| PR[Field provenance]
 ```
+
+## Required source-input capability
+
+The generation engine must consume authorised record data, extracted project documents, or both. Source selection is independent of target-form presentation. A Research Activity is optional; uploaded grant documents must be sufficient to supply project context when no source record exists. Reviewed answers and approved knowledge remain available for all source combinations.
+
+The record-based contracts and examples in subsequent sections need the following extensions before they satisfy [FR-SRC-001–008](requirements.md#631-source-input-capability):
+
+- **Profile and binding contracts:** declare permitted record/document sources and required context. Preserve existing published record-only profiles, while allowing bindings with no required source record or relationship. Target form, workflow, role, and create permissions remain explicit.
+- **Document ingestion:** authorise uploads, validate configured formats/limits, and extract content with document identity and page/section locations where available. Treat extraction as source acquisition before prompt construction. Do not depend on a model provider's native file support or publish researcher uploads into approved knowledge collections.
+- **Evidence and context:** normalise record fields and extracted document passages into the shared evidence catalogue. Retain source kind, stable references, hashes, and available locations through context review and execution. Reviewed corrections retain their origin; conflicts and missing facts require review rather than an unconditional record-versus-document precedence rule.
+- **Run lifecycle:** allow zero record references for a document-enabled profile. Launch, queue authorization, execution, target initialization, and provenance commit must not dereference a mandatory first source record. Apply relationship checks only for explicitly supplied record relationships, while retaining actor/brand, target, candidate, and saved-value checks.
+- **Form and provenance:** use one configured target form and the existing schema/candidate/save pipeline for every source combination. Evidence summaries distinguish document and record origins. Document access and retention determine which source details may be inspected after saving.
+
+The [source input implementation](README.md#source-input-implementation) adds these extensions to the shared pipeline. Initial formats are text-based PDF, DOCX, and UTF-8 plain text; OCR is not included. Originals are discarded after extraction and do not become durable attachments. Extracted passages use the existing encrypted run artifact, with compare-and-set updates for concurrent uploads and execution; compact source references survive successful commit after the passages are removed.
 
 ## 1. Data Model (Waterline Models)
 

@@ -1,4 +1,8 @@
-import type { GenerationCommitRequest, GenerationExecuteRequest } from '@researchdatabox/sails-ng-common';
+import type { GenerationCommitRequest, GenerationExecuteRequest, GenerationRunView } from '@researchdatabox/sails-ng-common';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { receiveSingleFile, isUploadSizeError, SkipperUploadedFile } from './BrandingControllerSupport';
 import { Controllers as controllers } from '../CoreController';
 import type { BrandingModel, UserModel } from '../index';
 import {
@@ -14,9 +18,11 @@ interface GenerationRunServiceLike {
     brand: BrandingModel;
     user: UserModel;
     bindingKey: string;
-    sourceOid: string;
+    sourceOid?: string;
   }): Promise<unknown>;
   getForActor(actor: GenerationActorContext, runId: string): Promise<unknown>;
+  addDocument(actor: GenerationActorContext, runId: string, filename: string, bytes: Buffer): Promise<GenerationRunView>;
+  removeDocument(actor: GenerationActorContext, runId: string, documentId: string): Promise<GenerationRunView>;
   execute(input: GenerationExecuteRequest & {
     actor: GenerationActorContext;
     brand: BrandingModel;
@@ -62,6 +68,8 @@ export namespace Controllers {
       'commit',
       'getProvenance',
       'reviewProvenance',
+      'addDocument',
+      'removeDocument',
     ];
 
     public async launch(req: Sails.Req, res: Sails.Res) {
@@ -74,7 +82,7 @@ export namespace Controllers {
             user,
             brand,
             bindingKey: requiredString(body.bindingKey, 'bindingKey'),
-            sourceOid: requiredString(body.sourceOid, 'sourceOid'),
+            ...(body.sourceOid !== undefined ? { sourceOid: requiredString(body.sourceOid, 'sourceOid') } : {}),
           }),
         };
       });
@@ -83,6 +91,41 @@ export namespace Controllers {
     public async getRun(req: Sails.Req, res: Sails.Res) {
       return this.respondGeneration(req, res, async (actor) => ({
         data: await this.runService.getForActor(actor, requiredString(req.param('id'), 'run id')),
+      }));
+    }
+
+    public async addDocument(req: Sails.Req, res: Sails.Res) {
+      return this.respondGeneration(req, res, async (actor) => {
+        const runId = requiredString(req.param('id'), 'run id');
+        const service = requireService<GenerationRunServiceLike>('generationrunservice', ['getForActor', 'addDocument']);
+        // Authorise before accepting/parsing the upload; the service rechecks before extraction.
+        await service.getForActor(actor, runId);
+        const files: SkipperUploadedFile[] = [];
+        const directory = await mkdtemp(join(tmpdir(), 'redbox-generation-'));
+        try {
+          await receiveSingleFile(req, 'document', sails.config.generation.documents.maxFileBytes, files, directory);
+          if (files.length !== 1) throw new GenerationError('GENERATION_DOCUMENT_INVALID', 'Upload one document at a time');
+          const bytes = await readFile(files[0].fd);
+          try {
+            return { status: 201, data: await service.addDocument(actor, runId, files[0].filename ?? '', bytes) };
+          } finally { bytes.fill(0); }
+        } catch (error) {
+          if (isUploadSizeError(error)) throw new GenerationError('GENERATION_DOCUMENT_LIMIT', 'Upload exceeds its limit');
+          throw error;
+        } finally {
+          await Promise.all([
+            ...files.map((file) => rm(file.fd, { force: true })),
+            rm(directory, { recursive: true, force: true }),
+          ]);
+        }
+      });
+    }
+
+    public async removeDocument(req: Sails.Req, res: Sails.Res) {
+      return this.respondGeneration(req, res, async (actor) => ({
+        data: await requireService<GenerationRunServiceLike>('generationrunservice', ['removeDocument']).removeDocument(
+          actor, requiredString(req.param('id'), 'run id'), requiredString(req.param('documentId'), 'document id'),
+        ),
       }));
     }
 
@@ -109,6 +152,10 @@ export namespace Controllers {
               mode: 'create',
             },
             targetDraft: body.targetDraft as Record<string, unknown>,
+            ...(body.sourceOid !== undefined ? { sourceOid: body.sourceOid === null ? null : requiredString(body.sourceOid, 'sourceOid') } : {}),
+            ...(body.documentIds !== undefined ? { documentIds: body.documentIds as string[] } : {}),
+            ...(body.documentsReviewed === true ? { documentsReviewed: true } : {}),
+            ...(body.documentNotes !== undefined ? { documentNotes: body.documentNotes as string } : {}),
           }),
         };
       });

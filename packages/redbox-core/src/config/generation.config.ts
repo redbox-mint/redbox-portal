@@ -1,4 +1,12 @@
 export interface GenerationConfig {
+  documents: {
+    maxFiles: number;
+    maxFileBytes: number;
+    maxTextBytes: number;
+    maxPages: number;
+    timeoutMs: number;
+    concurrency: number;
+  };
   enabled: boolean;
   adapters: string[];
   bootstrap: {
@@ -73,6 +81,14 @@ function envList(name: string, fallback: string[]): string[] {
 }
 
 export const generation: GenerationConfig = {
+  documents: {
+    maxFiles: 5,
+    maxFileBytes: 5 * 1024 * 1024,
+    maxTextBytes: 64_000,
+    maxPages: 200,
+    timeoutMs: 15_000,
+    concurrency: 2,
+  },
   enabled: envBoolean('sails__generation_enabled', false),
   adapters: envList('sails__generation_adapters', ['bedrock', 'openrouter', 'fake']),
   bootstrap: {
@@ -130,6 +146,7 @@ export function validateGenerationConfig(config: GenerationConfig): GenerationCo
     fail(`diagnosticRetentionDays must be between 0 and ${config.artifacts.maxDiagnosticRetentionDays}`);
   }
   const positiveValues: Array<[string, number]> = [
+    ...Object.entries(config.documents).map(([key, value]): [string, number] => [`documents.${key}`, value]),
     ['operationalExpiryMinutes', config.artifacts.operationalExpiryMinutes],
     ['provider.timeoutMs', config.provider.timeoutMs],
     ['provider.maxRequestBytes', config.provider.maxRequestBytes],

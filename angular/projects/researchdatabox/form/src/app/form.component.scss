@@ -281,6 +281,13 @@ redbox-generation-side-panel {
   background: color-mix(in srgb, var(--bs-warning, #ffc107) 8%, white);
 }
 
+.rb-generation-document-passage {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 20rem;
+  overflow: auto;
+}
+
 .rb-generation-badge {
   margin: 0.4rem 0 0.7rem;
   color: var(--bs-secondary-color, #5d6670);

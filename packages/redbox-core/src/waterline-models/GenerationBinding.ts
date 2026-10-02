@@ -6,7 +6,7 @@ const normalize = (record: Record<string, unknown>, callback: (error?: Error) =>
   normalizeStableEntity(record, (error) => {
     if (error) return callback(error);
     const sourceModes = record.sourceModes;
-    if (sourceModes !== undefined && (!Array.isArray(sourceModes) || sourceModes.some((mode) => !['view', 'edit'].includes(String(mode))))) {
+    if (sourceModes !== undefined && sourceModes !== null && (!Array.isArray(sourceModes) || sourceModes.some((mode) => !['view', 'edit'].includes(String(mode))))) {
       return callback(buildInvalidNewRecordError('Generation binding sourceModes must contain only view or edit'));
     }
     if (record.targetMode !== undefined && record.targetMode !== 'create') {
@@ -19,7 +19,7 @@ const normalize = (record: Record<string, unknown>, callback: (error?: Error) =>
       return callback(buildInvalidNewRecordError('Generation binding must allow multiple targets per source'));
     }
     const relationship = record.sourceRelationship;
-    if (relationship !== undefined && (!relationship || typeof relationship !== 'object' ||
+    if (relationship !== undefined && relationship !== null && (!relationship || typeof relationship !== 'object' ||
       !String(Reflect.get(relationship, 'sourceSlotId') ?? '').trim() ||
       !String(Reflect.get(relationship, 'metadataPointer') ?? '').startsWith('/'))) {
       return callback(buildInvalidNewRecordError('Generation binding sourceRelationship is invalid'));
@@ -58,7 +58,7 @@ export class GenerationBindingClass {
   @Attr({ type: 'string' }) public description?: string;
   @Attr({ type: 'boolean', defaultsTo: true }) public enabled!: boolean;
   @Attr({ type: 'string', required: true }) public profileId!: string;
-  @Attr({ type: 'string', required: true }) public sourceRecordType!: string;
+  @Attr({ type: 'string' }) public sourceRecordType?: string;
   @Attr({ type: 'json' }) public sourceWorkflowStages?: string[];
   @Attr({ type: 'json' }) public sourceModes?: string[];
   @Attr({ type: 'string', required: true }) public targetRecordType!: string;
@@ -67,7 +67,7 @@ export class GenerationBindingClass {
   @Attr({ type: 'string', defaultsTo: 'create' }) public targetMode!: string;
   @Attr({ type: 'json', required: true }) public allowedRoles!: string[];
   @Attr({ type: 'json', required: true }) public action!: Record<string, unknown>;
-  @Attr({ type: 'json', required: true }) public sourceRelationship!: Record<string, unknown>;
+  @Attr({ type: 'json' }) public sourceRelationship?: Record<string, unknown>;
   @Attr({ type: 'json' }) public sourceValueMappings?: Array<{ sourceMetadataPointer: string; targetMetadataPointer: string }>;
   @Attr({ type: 'boolean', defaultsTo: true }) public allowMultipleTargetsPerSource!: boolean;
   @Attr({ type: 'number', defaultsTo: 1 }) public maxSuccessfulRunsPerIntent!: number;
@@ -77,9 +77,9 @@ export class GenerationBindingClass {
 export const GenerationBindingWLDef = toWaterlineModelDef(GenerationBindingClass);
 export interface GenerationBindingAttributes extends Sails.WaterlineAttributes {
   brandId: string; key: string; name: string; nameLower: string; description?: string; enabled: boolean;
-  profileId: string; sourceRecordType: string; sourceWorkflowStages?: string[]; sourceModes?: string[];
+  profileId: string; sourceRecordType?: string; sourceWorkflowStages?: string[]; sourceModes?: string[];
   targetRecordType: string; targetFormName?: string; targetStartingWorkflowStage: string; targetMode: string;
-  allowedRoles: string[]; action: Record<string, unknown>; sourceRelationship: Record<string, unknown>;
+  allowedRoles: string[]; action: Record<string, unknown>; sourceRelationship?: Record<string, unknown>;
   sourceValueMappings?: Array<{ sourceMetadataPointer: string; targetMetadataPointer: string }>;
   allowMultipleTargetsPerSource: boolean; maxSuccessfulRunsPerIntent: number; createdBy: string; updatedBy: string;
 }

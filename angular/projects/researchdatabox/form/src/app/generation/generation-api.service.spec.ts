@@ -6,6 +6,8 @@ import {
   getStubConfigService,
   LoggerService,
   UtilityService,
+  RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE,
+  RB_HTTP_INTERCEPTOR_AUTH_CSRF,
 } from '@researchdatabox/portal-ng-common';
 import { provideHttpClient } from '@angular/common/http';
 import { GenerationApiService } from './generation-api.service';
@@ -118,5 +120,30 @@ describe('GenerationApiService', () => {
     }, { status: 503, statusText: 'Unavailable' });
 
     await expectAsync(promise).toBeRejectedWithError('generation-error-generation-provider-unavailable');
+  });
+
+  it('uploads multipart documents with CSRF and keeps later requests as JSON', async () => {
+    const file = new File(['Synthetic grant'], 'grant.txt', { type: 'text/plain' });
+    const upload = service.addDocument('run /1', file);
+    await settleRequest();
+    const request = http.expectOne(`${service.brandingAndPortalUrl}/generation/runs/run%20%2F1/documents`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body.get('document')).toBe(file);
+    expect(request.request.context.get(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE)).toBeTrue();
+    expect(request.request.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF)).toBe('testCsrfValue');
+    request.flush({ data: { runId: 'run /1', documents: [{ id: 'document-1' }] } });
+    expect((await upload).documents?.[0].id).toBe('document-1');
+
+    const execute = service.execute('run /1', { answers: [], targetForm: { recordType: 'rdmp', mode: 'create' }, targetDraft: {} });
+    await settleRequest();
+    const jsonRequest = http.expectOne(`${service.brandingAndPortalUrl}/generation/runs/run%20%2F1/execute`);
+    expect(jsonRequest.request.context.get(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE)).toBeFalse();
+    jsonRequest.flush({ data: { runId: 'run /1' } });
+    await execute;
+
+    const removal = service.removeDocument('run /1', 'document /1');
+    await settleRequest();
+    expectRequest('/generation/runs/run%20%2F1/documents/document%20%2F1', 'DELETE', undefined, { runId: 'run /1', documents: [] });
+    expect((await removal).documents).toEqual([]);
   });
 });

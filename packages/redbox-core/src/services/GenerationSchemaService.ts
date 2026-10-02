@@ -229,6 +229,10 @@ export namespace Services {
         reviewReasonCode = field.fallback.reasonCode;
       }
       this.validateValue(field, value);
+      if (evidence.some((item) => item.id.startsWith('document:'))) {
+        reviewRequired = true;
+        reviewReasonCode ??= 'DOCUMENT_EVIDENCE_REQUIRES_REVIEW';
+      }
       const groundingState: GenerationGroundingState = reviewRequired
         ? 'requiresReview'
         : hasSource && hasGuidance ? 'sourceAndGuidance'

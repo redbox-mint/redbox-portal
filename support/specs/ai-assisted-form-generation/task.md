@@ -10,6 +10,7 @@ Legend:
 
 - `[POC]` is required for the customer-facing Milestone A.
 - `[FULL]` belongs to the complete configurable Milestone B unless pulled forward deliberately.
+- `[SOURCE]` is the confirmed record/document source-input capability extension. The core extension is implemented; verification status is recorded below and in README.md.
 - Tests are interleaved immediately after the implementation they protect.
 - Do not proceed past an integration gate until it passes or an existing unrelated failure is documented and accepted by the team.
 
@@ -295,3 +296,21 @@ The current skills cover ReDBox models/services/controllers/form configuration/e
 2. **Suggested skill: `redbox-secure-transient-artifacts`.** Define application-level envelope encryption, key references/rotation, TTL/native Mongo index verification, diagnostic retention/purge, content-safe logs, and threat-model tests.
 
 These gaps do not block implementation, but the corresponding work should receive explicit security review rather than relying only on general service guidance.
+
+## 11. Required source-input capability
+
+Requirements: [FR-SRC-001–008](requirements.md#631-source-input-capability). Acceptance: [AC-SRC-001–007](requirements.md#91-source-input-capability-acceptance-criteria). These tasks extend the shared engine independently of form entry points and approved-knowledge management.
+
+- [x] **SRC-01 [SOURCE] Extend source contracts and authorization.** Support permitted record/document inputs and zero-record runs across profile publication, binding resolution, launch, queue execution, and provenance commit. Preserve published record-only profiles; initialize and verify source relationships only when supplied. Skills: Redbox Services, Redbox Controllers, Redbox Form Config.
+- [x] **SRC-01T [SOURCE] Verify all source combinations.** Exercise records alone, documents alone, and both, including document-only save/commit without a source relationship or placeholder Research Activity. Skills: Redbox Testing.
+
+- [x] **SRC-02 [SOURCE] Define and implement document ingestion.** Set supported formats, OCR boundaries, extraction limits, and original-file retention/attachment policy. Authorise uploads and extract evidence with stable references, hashes, and available page/section locations. Skills: Redbox Services, Redbox Controllers.
+- [x] **SRC-02T [SOURCE] Verify ingestion boundaries.** Cover supported/unsupported/unreadable/oversized files, extraction failure, cross-brand and unauthorized references, retention/cleanup, and no automatic publication into shared knowledge. Skills: Redbox Testing.
+
+- [x] **SRC-03 [SOURCE] Integrate evidence and context review.** Combine records and document passages in the shared context/prompt pipeline; allow reviewed corrections and expose missing/conflicting claims. Use the same target form and candidate application for every combination. Skills: Redbox Services, Redbox Angular Apps, Redbox Angular Services.
+- [x] **SRC-03T [SOURCE] Verify evidence handling.** Include conflicting grant/record facts, a proposal that does not prove approval, context limits, document-embedded instructions, and preserved researcher edits. Skills: Redbox Testing.
+
+- [x] **SRC-04 [SOURCE] Preserve document provenance through save and expiry.** Retain useful source identities and available locations without implicitly retaining raw content or exposing documents beyond the user's access. Skills: Redbox Services, Redbox Angular Apps.
+- [ ] **SRC-04T [SOURCE] Verify capability end to end.** Demonstrate generation/review/save/reload for all source combinations against one target form, reuse with a second target-form profile, and record evidence for AC-SRC-001–007. Skills: Redbox Testing, Web Interface Verification.
+
+Source verification on 2026-10-02: backend, Angular, and Docker integration checks pass; authenticated browser checks confirm document upload/extraction/review and combined source selection on the common RDMP form. Refreshed Bedrock credentials and a matching region resolved the reported failure, and the supplied 21-page PDF generated all twelve configured fields. See [README.md](README.md#verification-2026-10-02). SRC-04T remains open for full live review/save/reload across every source combination; the generated example remains unsaved for researcher review. Administrator login works at the Tailscale `sails_appUrl`.

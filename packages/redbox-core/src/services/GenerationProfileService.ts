@@ -3,6 +3,7 @@ import { canonicalHash, GenerationError, GenerationOutputType, GenerationProfile
 import type { GenerationProfileAttributes } from '../waterline-models/GenerationProfile';
 import type { GenerationProfileVersionAttributes } from '../waterline-models/GenerationProfileVersion';
 import { requireWaterlineRows } from './generation/require-service';
+import { GENERATION_DOCUMENT_FORMATS } from '@researchdatabox/sails-ng-common';
 
 const SUPPORTED_OUTPUTS = new Set(['string', 'richText', 'boolean', 'date', 'enum', 'enumArray', 'object', 'objectArray']);
 const EXCLUDED_COMPONENT_PARTS = ['attachment', 'file', 'map', 'recordselector', 'workspace', 'button', 'integration', 'identifier'];
@@ -20,12 +21,23 @@ export namespace Services {
       'validateDefinition', 'create', 'createDraft', 'updateDraft', 'publish', 'retire', 'resolvePublished',
     ];
 
-    public validateDefinition(definition: GenerationProfileDefinitionV1, poc = true): GenerationProfileDefinitionV1 {
+    public validateDefinition(definition: GenerationProfileDefinitionV1, poc = false): GenerationProfileDefinitionV1 {
       if (!definition || !definition.purpose?.trim() || !definition.systemInstructions?.trim()) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Profile purpose and system instructions are required');
       }
-      if (!Array.isArray(definition.sourceSlots) || !definition.sourceSlots.length) {
+      if (!Array.isArray(definition.sourceSlots) || (!definition.sourceSlots.length && !definition.documentSources)) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'At least one source slot is required');
+      }
+      const documents = definition.documentSources;
+      if (documents) {
+        const limits = sails.config.generation.documents;
+        if (!Array.isArray(documents.formats) || !documents.formats.length ||
+          new Set(documents.formats).size !== documents.formats.length ||
+          documents.formats.some((format) => !GENERATION_DOCUMENT_FORMATS.includes(format)) ||
+          (['maxFiles', 'maxFileBytes', 'maxTextBytes'] as const).some((key) =>
+            !Number.isSafeInteger(documents[key]) || documents[key] <= 0 || documents[key] > limits[key])) {
+          throw new GenerationError('GENERATION_PROFILE_INVALID', 'Document source limits or formats are invalid');
+        }
       }
       assertUnique(definition.sourceSlots.map((slot) => slot.id), 'Source slot');
       assertUnique(definition.questions.map((question) => question.id), 'Question');
@@ -37,6 +49,9 @@ export namespace Services {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'At least one target field is required');
       }
       for (const slot of definition.sourceSlots) {
+        if (slot.required !== undefined && typeof slot.required !== 'boolean') {
+          throw new GenerationError('GENERATION_PROFILE_INVALID', 'Source required flag must be boolean');
+        }
         if (!slot.recordType?.trim() || slot.maxBytes <= 0 || slot.maxBytes > sails.config.generation.context.maxFieldBytes ||
           !slot.allowedPaths.length || new Set(slot.allowedPaths).size !== slot.allowedPaths.length) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Source slot '${slot.id}' is incomplete`);

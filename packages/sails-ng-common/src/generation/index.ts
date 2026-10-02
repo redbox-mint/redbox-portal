@@ -4,3 +4,4 @@ export * from './candidate-patch';
 export * from './provenance';
 export * from './run';
 export * from './form-runtime-meta';
+export * from './document';
