@@ -13,6 +13,8 @@ import {
 
 const sectionAttribute = 'data-translation-section';
 const sectionClassAttribute = 'data-translation-section-class';
+const sectionIndexAttribute = 'data-translation-section-index';
+const tableSectionTags = ['THEAD', 'TBODY', 'TFOOT'];
 
 // Tiptap's default colgroup fallback uses the sibling index, which is incorrect after merged
 // cells or rowspans. Read the logical column slice from the sanitized numeric column widths.
@@ -110,6 +112,18 @@ export function translationPresentationExtensions(policy: TranslationHtmlClasses
                 },
                 renderHTML: attributes => attributes['translationSectionClass']
                   ? { [sectionClassAttribute]: attributes['translationSectionClass'] } : {}
+              },
+              // Distinguishes adjacent sections that share a tag and classes, such as two divided tbody groups.
+              translationSectionIndex: {
+                default: null,
+                parseHTML: element => {
+                  const parent = element.parentElement;
+                  const sections = Array.from(parent?.parentElement?.children ?? [])
+                    .filter(child => tableSectionTags.includes(child.tagName));
+                  return parent ? sections.indexOf(parent) : null;
+                },
+                renderHTML: attributes => attributes['translationSectionIndex'] != null
+                  ? { [sectionIndexAttribute]: attributes['translationSectionIndex'] } : {}
               }
             }
           }
@@ -125,30 +139,35 @@ export function restoreTranslationTableSections(html: string): string {
   document.querySelectorAll('table').forEach(table => {
     const rows = Array.from(table.rows).filter(row => row.closest('table') === table);
     if (!rows.some(row => row.hasAttribute(sectionAttribute))) return;
-    type Section = { tag: 'thead' | 'tbody' | 'tfoot'; classes: string };
+    type Section = { tag: 'thead' | 'tbody' | 'tfoot'; classes: string; key: string };
     const explicit = rows.map((row): Section | null => {
       if (!row.hasAttribute(sectionAttribute)) return null;
-      const tag = row.getAttribute(sectionAttribute);
-      return { tag: tag === 'thead' || tag === 'tfoot' ? tag : 'tbody', classes: row.getAttribute(sectionClassAttribute) ?? '' };
+      const attribute = row.getAttribute(sectionAttribute);
+      const tag = attribute === 'thead' || attribute === 'tfoot' ? attribute : 'tbody';
+      const classes = row.getAttribute(sectionClassAttribute) ?? '';
+      return { tag, classes, key: `${tag}|${row.getAttribute(sectionIndexAttribute) ?? ''}|${classes}` };
     });
     let section: HTMLTableSectionElement | undefined;
+    let sectionKey: string | undefined;
     rows.forEach((row, index) => {
       // A new row joins the preceding section, except that a row after the last header row starts the body.
       const previous = explicit.slice(0, index + 1).reverse().find((value): value is Section => value !== null);
       const next = explicit.slice(index).find((value): value is Section => value !== null);
       const startsBody = previous?.tag === 'thead' && next !== undefined && next.tag !== 'thead';
-      const { tag: sectionTag, classes } = (!previous || startsBody ? next : previous)!;
+      const { tag: sectionTag, classes, key } = (!previous || startsBody ? next : previous)!;
       row.removeAttribute(sectionAttribute);
       row.removeAttribute(sectionClassAttribute);
-      if (!section || section.tagName.toLowerCase() !== sectionTag || section.className !== classes) {
+      row.removeAttribute(sectionIndexAttribute);
+      if (!section || sectionKey !== key) {
         section = document.createElement(sectionTag);
+        sectionKey = key;
         if (classes) section.className = classes;
         table.appendChild(section);
       }
       section.appendChild(row);
     });
     Array.from(table.children).filter(element =>
-      ['THEAD', 'TBODY', 'TFOOT'].includes(element.tagName) && !element.children.length
+      tableSectionTags.includes(element.tagName) && !element.children.length
     ).forEach(element => element.remove());
   });
   return document.body.innerHTML;

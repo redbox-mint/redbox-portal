@@ -87,6 +87,22 @@ describe('HTML translation presentation', () => {
     expect(output).not.toContain('data-translation-');
   });
 
+  it('keeps separate row groups with the same classes apart', () => {
+    roundTrip('<table class="table table-striped"><tbody class="table-group-divider"><tr><td>First</td></tr></tbody>'
+      + '<tbody class="table-group-divider"><tr><td>Second</td></tr></tbody></table>');
+    let position = -1;
+    editor.state.doc.descendants((node, nodePosition) => {
+      if (node.isText && node.text === 'Second') position = nodePosition;
+    });
+    editor.chain().setTextSelection(position + 1).addRowAfter().run();
+
+    const output = sanitizeTranslationEditorHtml(restoreTranslationTableSections(editor.getHTML()), sanitizer, policy);
+    const sections = Array.from(new DOMParser().parseFromString(output, 'text/html').querySelectorAll('tbody'));
+    expect(sections.map(section => section.className)).toEqual(['table-group-divider', 'table-group-divider']);
+    expect(sections.map(section => Array.from(section.children).map(row => row.textContent))).toEqual([['First'], ['Second', '']]);
+    expect(output).not.toContain('data-translation-');
+  });
+
   it('preserves alert wrappers and permitted span marks', () => {
     const doc = roundTrip('<div class="alert alert-warning"><p>Care <span class="approved-emphasis">needed</span></p></div>');
     expect(doc.querySelector('div')?.className).toBe('alert alert-warning');

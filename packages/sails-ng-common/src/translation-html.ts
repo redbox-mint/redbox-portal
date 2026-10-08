@@ -45,23 +45,45 @@ function parseCellWidths(cell: HTMLTableCellElement): number[] | null {
   return widths.every(width => Number.isSafeInteger(width) && width >= 0) ? widths : null;
 }
 
+/** Pair each cell with its logical column, accounting for colspans and rowspans within each row group. */
+function tableCellColumns(table: HTMLTableElement): Array<{ cell: HTMLTableCellElement; column: number }> {
+  const rows = Array.from(table.rows);
+  const occupiedUntil: number[] = [];
+  const cells: Array<{ cell: HTMLTableCellElement; column: number }> = [];
+  rows.forEach((row, rowIndex) => {
+    let column = 0;
+    for (const cell of Array.from(row.cells)) {
+      while ((occupiedUntil[column] ?? 0) > rowIndex) column++;
+      cells.push({ cell, column });
+      let groupEnd = rowIndex + 1;
+      while (groupEnd < rows.length && rows[groupEnd].parentElement === row.parentElement) groupEnd++;
+      const spanEnd = cell.rowSpan === 0 ? groupEnd : Math.min(groupEnd, rowIndex + cell.rowSpan);
+      for (let offset = 0; offset < cell.colSpan; offset++) occupiedUntil[column + offset] = spanEnd;
+      column += cell.colSpan;
+    }
+  });
+  return cells;
+}
+
 /** Convert editor-only colwidth arrays to numeric HTML widths in an already sanitized DOM. */
 export function normalizeTranslationTableWidths(root: Document | HTMLElement): void {
   const document = 'createElement' in root ? root : root.ownerDocument;
   root.querySelectorAll('table').forEach(table => {
     const columns = tableColumns(table);
     const widths: Array<string | null> = columns.map(col => filterTranslationColumnWidth(col.getAttribute('width')));
-    const cells = Array.from(table.rows[0]?.cells ?? []);
-    const columnCount = cells.reduce((count, cell) => count + cell.colSpan, 0);
+    const cells = tableCellColumns(table);
+    const columnCount = Math.max(0, ...cells.map(({ cell, column }) => column + cell.colSpan));
     while (widths.length < columnCount) widths.push(null);
-    let index = 0;
-    for (const cell of cells) {
-      const cellWidths = parseCellWidths(cell);
-      if (cellWidths) cellWidths.forEach((width, offset) => {
-        widths[index + offset] = width > 0 ? String(width) : null;
+    // The first measured width in each logical column wins; zero marks a column the editor left unmeasured.
+    const cellWidths: number[] = [];
+    for (const { cell, column } of cells) {
+      parseCellWidths(cell)?.forEach((width, offset) => {
+        if (!cellWidths[column + offset]) cellWidths[column + offset] = width;
       });
-      index += cell.colSpan;
     }
+    cellWidths.forEach((width, index) => {
+      widths[index] = width > 0 ? String(width) : null;
+    });
     if (!widths.some(width => width !== null)) return;
     let group = Array.from(table.children).filter(child => child.tagName === 'COLGROUP').at(-1);
     if (!group) {
@@ -92,25 +114,11 @@ export function normalizeTranslationTableWidths(root: Document | HTMLElement): v
 export function readTranslationCellWidths(element: HTMLElement): number[] | null {
   const table = element.closest('table');
   if (!table) return null;
+  const match = tableCellColumns(table).find(({ cell }) => cell === element);
+  if (!match) return null;
   const widths = tableColumns(table).map(col => Number(filterTranslationColumnWidth(col.getAttribute('width'))) || 0);
-  const rows = Array.from(table.rows);
-  const occupiedUntil: number[] = [];
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-    let columnIndex = 0;
-    for (const cell of Array.from(rows[rowIndex].cells)) {
-      while ((occupiedUntil[columnIndex] ?? 0) > rowIndex) columnIndex++;
-      if (cell === element) {
-        const slice = Array.from({ length: cell.colSpan }, (_, offset) => widths[columnIndex + offset] ?? 0);
-        return slice.some(width => width > 0) ? slice : null;
-      }
-      let groupEnd = rowIndex + 1;
-      while (groupEnd < rows.length && rows[groupEnd].parentElement === rows[rowIndex].parentElement) groupEnd++;
-      const spanEnd = cell.rowSpan === 0 ? groupEnd : Math.min(groupEnd, rowIndex + cell.rowSpan);
-      for (let offset = 0; offset < cell.colSpan; offset++) occupiedUntil[columnIndex + offset] = spanEnd;
-      columnIndex += cell.colSpan;
-    }
-  }
-  return null;
+  const slice = Array.from({ length: match.cell.colSpan }, (_, offset) => widths[match.column + offset] ?? 0);
+  return slice.some(width => width > 0) ? slice : null;
 }
 
 const alertClasses = ['alert', 'alert-primary', 'alert-secondary', 'alert-success',

@@ -71,6 +71,18 @@ describe('HTML translation policy', () => {
     assert.deepEqual(Array.from(document.querySelectorAll('col')).map(col => col.getAttribute('width')), [null, '400']);
   });
 
+  it('reads editor widths from later rows using their logical columns', () => {
+    const later = new JSDOM(sanitizeTranslationHtml('<table><tr><td>A</td></tr><tr><td colwidth="220">B</td></tr></table>'))
+      .window.document;
+    assert.deepEqual(Array.from(later.querySelectorAll('col')).map(col => col.getAttribute('width')), ['220']);
+
+    // C sits in the second logical column because A spans both rows; the first measured width wins.
+    const spanned = new JSDOM(sanitizeTranslationHtml('<table><tr><td rowspan="2">A</td><td>B</td><td colwidth="0">D</td></tr>'
+      + '<tr><td colwidth="300">C</td><td colwidth="150">E</td></tr><tr><td colwidth="90">F</td><td colwidth="400">G</td>'
+      + '<td colwidth="500">H</td></tr></table>')).window.document;
+    assert.deepEqual(Array.from(spanned.querySelectorAll('col')).map(col => col.getAttribute('width')), ['90', '300', '150']);
+  });
+
   it('keeps encoded markup as text while removing executable HTML across saves', () => {
     const payload = '<p>&lt;img src=x onerror="alert(1)"&gt;</p>'
       + '<table><tr><td colwidth="220" onclick="alert(1)">Text</td></tr></table>'
