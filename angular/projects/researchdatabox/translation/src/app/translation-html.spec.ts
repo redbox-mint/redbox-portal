@@ -128,6 +128,23 @@ describe('HTML translation presentation', () => {
     expect(saved).not.toMatch(/style=|colwidth=|200px|50%/);
   });
 
+  it('removes executable markup before width normalization reaches Angular sanitization', () => {
+    const angularSanitize = spyOn(sanitizer, 'sanitize').and.callThrough();
+    const payload = '<p>&lt;img src=x onerror="alert(1)"&gt;</p>'
+      + '<table><tr><td colwidth="220" onclick="alert(1)">Text</td></tr></table>'
+      + '<img src="x" onerror="alert(1)"><script>alert(1)</script><svg onload="alert(1)"></svg>';
+    const saved = sanitizeTranslationEditorHtml(payload, sanitizer, policy);
+    const normalized = String(angularSanitize.calls.first().args[1]);
+    const document = new DOMParser().parseFromString(normalized, 'text/html');
+
+    expect(document.querySelector('img, script, svg, [onclick], [onerror], [onload]')).toBeNull();
+    expect(document.querySelector('col')?.getAttribute('width')).toBe('220');
+    expect(document.querySelector('p')?.textContent).toBe('<img src=x onerror="alert(1)">');
+    const reopened = new DOMParser().parseFromString(sanitizeTranslationEditorHtml(saved, sanitizer, policy), 'text/html');
+    expect(reopened.querySelector('img, script, svg, [onclick], [onerror], [onload]')).toBeNull();
+    expect(reopened.querySelector('p')?.textContent).toBe('<img src=x onerror="alert(1)">');
+  });
+
   it('removes CSS, executable HTML and unapproved or misplaced classes in both source and rich mode', () => {
     const html = '<style>body{display:none}</style><script>alert(1)</script>'
       + '<p class="table d-none" style="position:fixed" onclick="alert(1)">Safe</p>'

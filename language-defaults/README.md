@@ -64,6 +64,10 @@ The same policy is sent to the editor and enforced by the entry/bundle save
 service for HTML entries. Unknown classes, inline `style` attributes,
 `<style>` blocks, scripts, event handlers and unsafe links are removed.
 Angular's HTML sanitisation remains enabled; no trusted-HTML bypass is used.
+Editor HTML is first processed by DOMPurify using the shared HTML policy, before
+any application-owned DOM parsing or width normalization. Angular sanitisation
+then checks the normalized HTML. The editor pins DOMPurify to the same version
+used by core.
 Plain text entries remain unchanged. Bundle imports use entry or `_meta`
 content-format metadata to identify HTML values.
 When an import retains existing entries (`splitToEntries: false` or

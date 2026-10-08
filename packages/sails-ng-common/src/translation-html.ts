@@ -12,6 +12,16 @@ export const translationHtmlAttributes = [
   'class', 'href', 'target', 'rel', 'title', 'scope', 'colspan', 'rowspan', 'width', 'role'
 ];
 
+/** Shared DOMPurify policy; the temporary colwidth input is removed during width normalization. */
+export const translationHtmlSanitizerConfig = {
+  ALLOWED_TAGS: translationHtmlTags,
+  ALLOWED_ATTR: translationHtmlAttributes,
+  ALLOW_DATA_ATTR: false,
+  ALLOW_ARIA_ATTR: false,
+  FORBID_ATTR: ['style'],
+  FORBID_TAGS: ['style', 'script', 'link', 'iframe', 'object', 'embed', 'svg', 'math']
+};
+
 /** Only pixel counts on table columns are supported; percentages and CSS are not width metadata. */
 export function filterTranslationColumnWidth(value: string | null, tag = 'col'): string | null {
   if (tag.toLowerCase() !== 'col' || !value || !/^[1-9]\d*$/.test(value)) return null;
@@ -35,9 +45,10 @@ function parseCellWidths(cell: HTMLTableCellElement): number[] | null {
   return widths.every(width => Number.isSafeInteger(width) && width >= 0) ? widths : null;
 }
 
-/** Convert editor-only colwidth arrays into numeric HTML widths before either sanitizer runs. */
-export function normalizeTranslationTableWidths(document: Document): void {
-  document.querySelectorAll('table').forEach(table => {
+/** Convert editor-only colwidth arrays to numeric HTML widths in an already sanitized DOM. */
+export function normalizeTranslationTableWidths(root: Document | HTMLElement): void {
+  const document = 'createElement' in root ? root : root.ownerDocument;
+  root.querySelectorAll('table').forEach(table => {
     const columns = tableColumns(table);
     const widths: Array<string | null> = columns.map(col => filterTranslationColumnWidth(col.getAttribute('width')));
     const cells = Array.from(table.rows[0]?.cells ?? []);
@@ -67,7 +78,7 @@ export function normalizeTranslationTableWidths(document: Document): void {
       else col.removeAttribute('width');
     });
   });
-  document.querySelectorAll('*').forEach(element => {
+  root.querySelectorAll('*').forEach(element => {
     // Angular strips colwidth and inline styles. Persist only validated standard column widths,
     // which survive sanitization and can reconstruct the editor's sizing without trusting HTML.
     element.removeAttribute('colwidth');

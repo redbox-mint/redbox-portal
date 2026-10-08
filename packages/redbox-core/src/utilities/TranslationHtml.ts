@@ -1,8 +1,8 @@
 import domPurify = require('dompurify');
 import { JSDOM } from 'jsdom';
 import {
-  filterTranslationHtmlClasses, getTranslationHtmlClasses, translationHtmlTags, translationHtmlAttributes,
-  filterTranslationColumnWidth, normalizeTranslationTableWidths
+  filterTranslationHtmlClasses, getTranslationHtmlClasses, translationHtmlAttributes,
+  filterTranslationColumnWidth, normalizeTranslationTableWidths, translationHtmlSanitizerConfig
 } from '@researchdatabox/sails-ng-common';
 
 const translationWindow = new JSDOM('').window;
@@ -11,8 +11,6 @@ const purifier = domPurify(translationWindow);
 /** Enforce the same presentation policy for editor, REST and bundle writes. */
 export function sanitizeTranslationHtml(content: string, allowedClasses?: unknown): string {
   const policy = getTranslationHtmlClasses(allowedClasses);
-  const document = new translationWindow.DOMParser().parseFromString(content, 'text/html');
-  normalizeTranslationTableWidths(document);
   purifier.addHook('afterSanitizeAttributes', node => {
     if (!('tagName' in node) || typeof node.getAttribute !== 'function') return;
     const classes = filterTranslationHtmlClasses(node.getAttribute('class'), node.tagName, policy);
@@ -26,14 +24,16 @@ export function sanitizeTranslationHtml(content: string, allowedClasses?: unknow
     }
   });
   try {
-    return purifier.sanitize(document.body.innerHTML, {
-      ALLOWED_TAGS: translationHtmlTags,
-      ALLOWED_ATTR: translationHtmlAttributes,
-      ALLOW_DATA_ATTR: false,
-      ALLOW_ARIA_ATTR: false,
-      FORBID_ATTR: ['style'],
-      FORBID_TAGS: ['style', 'script', 'link', 'iframe', 'object', 'embed', 'svg', 'math'],
+    // Work on DOMPurify's sanitized DOM, never a raw parse of caller-provided HTML.
+    // Reapply the full policy after normalization so editor-only colwidth never reaches storage.
+    const source = purifier.sanitize(content, {
+      ...translationHtmlSanitizerConfig,
+      ALLOWED_ATTR: [...translationHtmlAttributes, 'colwidth'],
+      RETURN_DOM: true
     });
+    if (!(source instanceof translationWindow.HTMLElement)) throw new Error('HTML sanitization did not return an element');
+    normalizeTranslationTableWidths(source);
+    return purifier.sanitize(source.innerHTML, translationHtmlSanitizerConfig);
   } finally {
     purifier.removeHook('afterSanitizeAttributes');
   }

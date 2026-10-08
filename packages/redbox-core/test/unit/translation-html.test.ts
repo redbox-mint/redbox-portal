@@ -70,4 +70,16 @@ describe('HTML translation policy', () => {
     const document = new JSDOM(saved).window.document;
     assert.deepEqual(Array.from(document.querySelectorAll('col')).map(col => col.getAttribute('width')), [null, '400']);
   });
+
+  it('keeps encoded markup as text while removing executable HTML across saves', () => {
+    const payload = '<p>&lt;img src=x onerror="alert(1)"&gt;</p>'
+      + '<table><tr><td colwidth="220" onclick="alert(1)">Text</td></tr></table>'
+      + '<img src="x" onerror="alert(1)"><script>alert(1)</script><svg onload="alert(1)"></svg>';
+    const saved = sanitizeTranslationHtml(payload);
+    const document = new JSDOM(saved).window.document;
+    assert.equal(document.querySelector('img, script, svg, [onclick], [onerror], [onload]'), null);
+    assert.equal(document.querySelector('p')?.textContent, '<img src=x onerror="alert(1)">');
+    assert.equal(document.querySelector('col')?.getAttribute('width'), '220');
+    assert.equal(sanitizeTranslationHtml(saved), saved);
+  });
 });

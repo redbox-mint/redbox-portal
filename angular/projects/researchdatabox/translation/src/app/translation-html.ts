@@ -3,9 +3,11 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { Extension, Mark, Node } from '@tiptap/core';
 import { TableCell, TableHeader, TableView } from '@tiptap/extension-table';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import DOMPurify from 'dompurify';
 import {
   filterTranslationHtmlClasses, translationHtmlTags, translationHtmlAttributes,
   filterTranslationColumnWidth, normalizeTranslationTableWidths, readTranslationCellWidths,
+  translationHtmlSanitizerConfig,
   type TranslationHtmlClasses
 } from '@researchdatabox/sails-ng-common';
 
@@ -144,9 +146,16 @@ export function restoreTranslationTableSections(html: string): string {
 
 /** Keep Angular's HTML sanitisation; never turn a translation into trusted HTML. */
 export function sanitizeTranslationEditorHtml(html: string, sanitizer: DomSanitizer, policy: TranslationHtmlClasses): string {
-  const source = new DOMParser().parseFromString(html, 'text/html');
+  // Editor source comes from DOM-bound inputs. Sanitize it before application-owned DOM
+  // parsing or mutation; retain only colwidth metadata for the numeric conversion below.
+  const source = DOMPurify.sanitize(html, {
+    ...translationHtmlSanitizerConfig,
+    ALLOWED_ATTR: [...translationHtmlAttributes, 'colwidth'],
+    RETURN_DOM: true
+  });
+  if (!(source instanceof HTMLElement)) throw new Error('HTML sanitization did not return an element');
   normalizeTranslationTableWidths(source);
-  const document = new DOMParser().parseFromString(sanitizer.sanitize(SecurityContext.HTML, source.body.innerHTML) ?? '', 'text/html');
+  const document = new DOMParser().parseFromString(sanitizer.sanitize(SecurityContext.HTML, source.innerHTML) ?? '', 'text/html');
   document.body.querySelectorAll('*').forEach(element => {
     if (!translationHtmlTags.includes(element.tagName.toLowerCase())) {
       element.replaceWith(...Array.from(element.childNodes));
