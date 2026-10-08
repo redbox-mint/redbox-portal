@@ -37,19 +37,21 @@ Resized column widths are stored as validated numeric `width` attributes on
 permitting arbitrary inline CSS. Invalid widths and widths on other elements
 are removed.
 
-Developers can extend the policy in site/hook configuration. For JCU's existing
-classification table, the additions would be:
+Developers can extend the policy in site/hook configuration. Additions are exact
+class names keyed by element. For example, to permit site-specific
+classification colours on table header cells and an emphasis style on spans:
 
 ```js
 i18n: {
   editor: {
     allowedClasses: {
       th: [
-        'sensitivity-table-official-public',
-        'sensitivity-table-official-internal',
-        'sensitivity-table-official-sensitive',
-        'sensitivity-table-official-protected'
-      ]
+        'classification-public',
+        'classification-internal',
+        'classification-sensitive',
+        'classification-protected'
+      ],
+      span: ['site-emphasis']
     }
   }
 }

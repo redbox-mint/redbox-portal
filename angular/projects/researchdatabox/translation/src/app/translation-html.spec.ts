@@ -58,6 +58,35 @@ describe('HTML translation presentation', () => {
     expect(reopened.querySelector('thead')?.className).toBe('table-light');
   });
 
+  it('keeps rows added in the editor within the surrounding table section', () => {
+    roundTrip('<table class="table table-striped"><thead class="table-light"><tr><th>Level</th></tr><tr><th>Detail</th></tr></thead>'
+      + '<tbody class="table-group-divider"><tr><td>Public</td></tr><tr><td>Protected</td></tr></tbody>'
+      + '<tfoot class="table-light"><tr><td>Notes</td></tr></tfoot></table>');
+    const addRow = (text: string, command: 'addRowBefore' | 'addRowAfter') => {
+      let position = -1;
+      editor.state.doc.descendants((node, nodePosition) => {
+        if (node.isText && node.text === text) position = nodePosition;
+      });
+      editor.chain().setTextSelection(position + 1)[command]().run();
+    };
+    addRow('Level', 'addRowBefore');
+    addRow('Level', 'addRowAfter');
+    addRow('Detail', 'addRowAfter');
+    addRow('Public', 'addRowAfter');
+    addRow('Protected', 'addRowAfter');
+    addRow('Notes', 'addRowAfter');
+
+    const output = sanitizeTranslationEditorHtml(restoreTranslationTableSections(editor.getHTML()), sanitizer, policy);
+    const table = new DOMParser().parseFromString(output, 'text/html').querySelector('table')!;
+    const sections = Array.from(table.children).filter(element => element.tagName !== 'COLGROUP');
+    expect(sections.map(section => `${section.tagName.toLowerCase()}.${section.className}`))
+      .toEqual(['thead.table-light', 'tbody.table-group-divider', 'tfoot.table-light']);
+    // Rows inside a section stay there; a row after the last header row starts the body.
+    expect(sections.map(section => Array.from(section.children).map(row => row.textContent)))
+      .toEqual([['', 'Level', '', 'Detail'], ['', 'Public', '', 'Protected', ''], ['Notes', '']]);
+    expect(output).not.toContain('data-translation-');
+  });
+
   it('preserves alert wrappers and permitted span marks', () => {
     const doc = roundTrip('<div class="alert alert-warning"><p>Care <span class="approved-emphasis">needed</span></p></div>');
     expect(doc.querySelector('div')?.className).toBe('alert alert-warning');

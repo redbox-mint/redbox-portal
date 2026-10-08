@@ -92,13 +92,15 @@ export function translationPresentationExtensions(policy: TranslationHtmlClasses
           {
             types: ['tableRow'],
             attributes: {
+              // Rows added by table commands have no section; export places them with their neighbours.
               translationSection: {
-                default: 'tbody',
+                default: null,
                 parseHTML: element => {
                   const tag = element.parentElement?.tagName.toLowerCase();
                   return tag === 'thead' || tag === 'tfoot' ? tag : 'tbody';
                 },
-                renderHTML: attributes => ({ [sectionAttribute]: attributes['translationSection'] })
+                renderHTML: attributes => attributes['translationSection']
+                  ? { [sectionAttribute]: attributes['translationSection'] } : {}
               },
               translationSectionClass: {
                 default: null,
@@ -123,11 +125,19 @@ export function restoreTranslationTableSections(html: string): string {
   document.querySelectorAll('table').forEach(table => {
     const rows = Array.from(table.rows).filter(row => row.closest('table') === table);
     if (!rows.some(row => row.hasAttribute(sectionAttribute))) return;
+    type Section = { tag: 'thead' | 'tbody' | 'tfoot'; classes: string };
+    const explicit = rows.map((row): Section | null => {
+      if (!row.hasAttribute(sectionAttribute)) return null;
+      const tag = row.getAttribute(sectionAttribute);
+      return { tag: tag === 'thead' || tag === 'tfoot' ? tag : 'tbody', classes: row.getAttribute(sectionClassAttribute) ?? '' };
+    });
     let section: HTMLTableSectionElement | undefined;
-    for (const row of rows) {
-      const tag = row.getAttribute(sectionAttribute) ?? 'tbody';
-      const sectionTag = tag === 'thead' || tag === 'tfoot' ? tag : 'tbody';
-      const classes = row.getAttribute(sectionClassAttribute) ?? '';
+    rows.forEach((row, index) => {
+      // A new row joins the preceding section, except that a row after the last header row starts the body.
+      const previous = explicit.slice(0, index + 1).reverse().find((value): value is Section => value !== null);
+      const next = explicit.slice(index).find((value): value is Section => value !== null);
+      const startsBody = previous?.tag === 'thead' && next !== undefined && next.tag !== 'thead';
+      const { tag: sectionTag, classes } = (!previous || startsBody ? next : previous)!;
       row.removeAttribute(sectionAttribute);
       row.removeAttribute(sectionClassAttribute);
       if (!section || section.tagName.toLowerCase() !== sectionTag || section.className !== classes) {
@@ -136,7 +146,7 @@ export function restoreTranslationTableSections(html: string): string {
         table.appendChild(section);
       }
       section.appendChild(row);
-    }
+    });
     Array.from(table.children).filter(element =>
       ['THEAD', 'TBODY', 'TFOOT'].includes(element.tagName) && !element.children.length
     ).forEach(element => element.remove());
