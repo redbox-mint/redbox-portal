@@ -233,3 +233,6 @@ packages/redbox-dev-tools/.nyc_output/
 packages/redbox-dev-tools/support/junit/
 
 *.tsbuildinfo
+
+# Local Figshare E2E verification reports
+/support/figshare/E2E*.md
