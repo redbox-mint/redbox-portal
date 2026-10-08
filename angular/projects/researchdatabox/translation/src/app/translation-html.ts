@@ -1,15 +1,29 @@
 import { SecurityContext } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Extension, Mark, Node } from '@tiptap/core';
-import { TableView } from '@tiptap/extension-table';
+import { TableCell, TableHeader, TableView } from '@tiptap/extension-table';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import {
   filterTranslationHtmlClasses, translationHtmlTags, translationHtmlAttributes,
+  filterTranslationColumnWidth, normalizeTranslationTableWidths, readTranslationCellWidths,
   type TranslationHtmlClasses
 } from '@researchdatabox/sails-ng-common';
 
 const sectionAttribute = 'data-translation-section';
 const sectionClassAttribute = 'data-translation-section-class';
+
+// Tiptap's default colgroup fallback uses the sibling index, which is incorrect after merged
+// cells or rowspans. Read the logical column slice from the sanitized numeric column widths.
+export const TranslationTableCell = TableCell.extend({
+  addAttributes() {
+    return { ...this.parent?.(), colwidth: { default: null, parseHTML: readTranslationCellWidths } };
+  }
+});
+export const TranslationTableHeader = TableHeader.extend({
+  addAttributes() {
+    return { ...this.parent?.(), colwidth: { default: null, parseHTML: readTranslationCellWidths } };
+  }
+});
 
 /** The resizing plugin's table view does not apply document class attributes itself. */
 export function translationTableView(policy: TranslationHtmlClasses) {
@@ -130,7 +144,9 @@ export function restoreTranslationTableSections(html: string): string {
 
 /** Keep Angular's HTML sanitisation; never turn a translation into trusted HTML. */
 export function sanitizeTranslationEditorHtml(html: string, sanitizer: DomSanitizer, policy: TranslationHtmlClasses): string {
-  const document = new DOMParser().parseFromString(sanitizer.sanitize(SecurityContext.HTML, html) ?? '', 'text/html');
+  const source = new DOMParser().parseFromString(html, 'text/html');
+  normalizeTranslationTableWidths(source);
+  const document = new DOMParser().parseFromString(sanitizer.sanitize(SecurityContext.HTML, source.body.innerHTML) ?? '', 'text/html');
   document.body.querySelectorAll('*').forEach(element => {
     if (!translationHtmlTags.includes(element.tagName.toLowerCase())) {
       element.replaceWith(...Array.from(element.childNodes));
@@ -142,6 +158,9 @@ export function sanitizeTranslationEditorHtml(html: string, sanitizer: DomSaniti
     const classes = filterTranslationHtmlClasses(element.getAttribute('class'), element.tagName, policy);
     if (classes) element.setAttribute('class', classes);
     else element.removeAttribute('class');
+    const width = filterTranslationColumnWidth(element.getAttribute('width'), element.tagName);
+    if (width) element.setAttribute('width', width);
+    else element.removeAttribute('width');
     if (element.tagName === 'A' && element.getAttribute('target') === '_blank') {
       element.setAttribute('rel', 'noopener noreferrer');
     }

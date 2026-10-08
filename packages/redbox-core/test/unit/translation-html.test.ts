@@ -40,4 +40,34 @@ describe('HTML translation policy', () => {
     assert.match(sanitizeTranslationHtml(html, { p: ['site-specific'] }), /class="site-specific"/);
     assert.equal(sanitizeTranslationHtml(html), '<p>Wording</p>');
   });
+
+  it('converts editor widths to numeric columns and preserves them across repeated server saves', () => {
+    const html = '<table class="table" style="width:620px"><tbody><tr>'
+      + '<th colwidth="220">Level</th><td colwidth="400">Description</td></tr></tbody></table>';
+    const saved = sanitizeTranslationHtml(html);
+    const document = new JSDOM(saved).window.document;
+    assert.deepEqual(Array.from(document.querySelectorAll('col')).map(col => col.getAttribute('width')), ['220', '400']);
+    assert.doesNotMatch(saved, /style=|colwidth=/);
+    assert.equal(sanitizeTranslationHtml(saved), saved);
+  });
+
+  it('allows only numeric width attributes on columns and rejects malformed editor width arrays', () => {
+    const html = '<p width="220">Text</p><table width="620"><colgroup>'
+      + '<col width="220"><col width="50%"><col width="-1"><col width="1e3">'
+      + '<col width="9007199254740992"><col width="expression(alert(1))"></colgroup><tbody><tr>'
+      + '<td colwidth="200px">A</td><td colwidth="-5">B</td><td colwidth="220,400">C</td>'
+      + '<td colspan="2" colwidth="220">D</td><td width="100">E</td></tr></tbody></table>';
+    const saved = sanitizeTranslationHtml(html);
+    const document = new JSDOM(saved).window.document;
+    assert.equal(document.querySelectorAll('[width]').length, 1);
+    assert.equal(document.querySelector('[width]')?.tagName, 'COL');
+    assert.equal(document.querySelector('[width]')?.getAttribute('width'), '220');
+    assert.doesNotMatch(saved, /colwidth=|expression|200px/);
+  });
+
+  it('keeps unmeasured columns in place when only a later column has an editor width', () => {
+    const saved = sanitizeTranslationHtml('<table><tr><td>Automatic</td><td colwidth="400">Sized</td></tr></table>');
+    const document = new JSDOM(saved).window.document;
+    assert.deepEqual(Array.from(document.querySelectorAll('col')).map(col => col.getAttribute('width')), [null, '400']);
+  });
 });

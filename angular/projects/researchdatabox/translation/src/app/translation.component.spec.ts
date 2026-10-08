@@ -369,6 +369,31 @@ describe('AppComponent (translation)', () => {
     expect(comp.entries()[0].value).toBe('<p>After</p>');
   });
 
+  it('retains table widths through rich/source switches, saving and reopening', async () => {
+    const { comp } = create();
+    comp.selectedLang = 'en';
+    comp.entries.set([{ key: 'intro', contentFormat: 'html',
+      value: '<table><tr><th colwidth="220">Level</th><th colwidth="400">Description</th></tr></table>' }]);
+    comp.openEdit(comp.entries()[0]);
+    comp.setEditorMode('html');
+    comp.onHtmlSourceChange(comp.htmlSourceValue.replace('Level', 'Classification'));
+    comp.setEditorMode('rich');
+    await comp.saveEdit();
+
+    const saved = translationService.setEntryCalls[0].payload.value;
+    expect(saved).toContain('width="220"');
+    expect(saved).toContain('width="400"');
+    expect(saved).not.toMatch(/style=|colwidth=/);
+    comp.openEdit(comp.entries()[0]);
+    const widths: number[][] = [];
+    comp.richTextEditor!.state.doc.descendants(node => {
+      if (node.type.name === 'tableHeader') widths.push(node.attrs['colwidth']);
+    });
+    expect(widths).toEqual([[220], [400]]);
+    expect(comp.richTextEditor!.getText()).toContain('Classification');
+    comp.closeModal();
+  });
+
   it('saveEdit uses the active rich text editor HTML when rich text mode is active', async () => {
     const { comp } = create();
     comp.selectedLang = 'en';

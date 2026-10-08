@@ -414,7 +414,9 @@ export namespace Services {
       const fileMeta: MetaMap = data && typeof data._meta === 'object' ? data._meta as MetaMap : {};
       const meta = { ...centralizedMeta, ...fileMeta };
       const existingEntries = await this.listEntries(branding, locale, namespace);
-      const formats = new Map(existingEntries.map(entry => [entry.key, entry.contentFormat]));
+      const entriesByKey = new Map(existingEntries.map(entry => [entry.key, entry]));
+      const shouldSplitToEntries = options?.splitToEntries ?? true;
+      const shouldOverwriteEntries = options?.overwriteEntries ?? true;
       data = _.cloneDeep(data);
       const sanitizeValues = (object: I18nData, prefix = ''): void => {
         for (const [part, value] of Object.entries(object)) {
@@ -423,7 +425,8 @@ export namespace Services {
           if (value && typeof value === 'object' && !Array.isArray(value)) {
             sanitizeValues(value as I18nData, key);
           } else {
-            const format = this.normalizeContentFormat(meta[key]?.contentFormat) ?? formats.get(key);
+            const format = this.resolveBundleContentFormat(entriesByKey.get(key), meta[key]?.contentFormat,
+              shouldSplitToEntries && shouldOverwriteEntries);
             object[part] = this.sanitizeHtmlValue(value, format);
           }
         }
@@ -452,9 +455,6 @@ export namespace Services {
           displayName: finalDisplayName
         }) as unknown as I18nBundleAttributes;
       }
-      const shouldSplitToEntries = options?.splitToEntries ?? true;
-      const shouldOverwriteEntries = options?.overwriteEntries ?? true;
-
       // Keep full-update behaviour by default, but allow bootstrap to seed without overwriting.
       try {
         if (bundle && shouldSplitToEntries) {
@@ -550,7 +550,7 @@ export namespace Services {
         await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, {
           bundleId: bundleId != null ? String(bundleId) : undefined,
           category: meta?.[key]?.category,
-          contentFormat: meta?.[key]?.contentFormat,
+          contentFormat: this.resolveBundleContentFormat(existing, meta?.[key]?.contentFormat, overwrite),
           description: meta?.[key]?.description,
           noReload: true
         });
@@ -568,6 +568,15 @@ export namespace Services {
       } catch (_e) {
         // ignore reload failures after the write has completed
       }
+    }
+
+    private resolveBundleContentFormat(
+      existing: I18nTranslationAttributes | null | undefined, metadataFormat: unknown, overwrite: boolean
+    ): TranslationContentFormat | undefined {
+      // Bundle-only imports and non-overwriting syncs retain entry metadata. Defaults must not
+      // bypass HTML validation (or rewrite literal plain text) when that format stays unchanged.
+      const storedFormat = this.normalizeContentFormat(existing?.contentFormat);
+      return existing && !overwrite ? storedFormat : this.normalizeContentFormat(metadataFormat) ?? storedFormat;
     }
 
     private sanitizeHtmlValue(value: unknown, format?: TranslationContentFormat): unknown {

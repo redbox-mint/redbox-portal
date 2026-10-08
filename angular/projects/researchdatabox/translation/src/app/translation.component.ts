@@ -6,14 +6,13 @@ import { Editor, type AnyExtension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
-import TableHeader from '@tiptap/extension-table-header';
-import TableCell from '@tiptap/extension-table-cell';
 import Link from '@tiptap/extension-link';
 import { TiptapEditorDirective } from 'ngx-tiptap';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ConfigService, TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
 import { getTranslationHtmlClasses } from '@researchdatabox/sails-ng-common';
-import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions, translationTableView } from './translation-html';
+import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions, translationTableView,
+  TranslationTableHeader, TranslationTableCell } from './translation-html';
 
 type TranslationContentFormat = 'plain' | 'html';
 
@@ -1070,8 +1069,8 @@ export class AppComponent implements OnInit, OnDestroy {
       Link.configure({ openOnClick: false, autolink: false }),
       Table.configure({ resizable: true, View: translationTableView(this.allowedClasses) }),
       TableRow,
-      TableHeader,
-      TableCell,
+      TranslationTableHeader,
+      TranslationTableCell,
       ...translationPresentationExtensions(this.allowedClasses),
     ];
   }

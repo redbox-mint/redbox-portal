@@ -32,6 +32,10 @@ For entries marked `contentFormat: "html"`, the translation editor preserves
 permitted CSS classes through rich text edits and HTML source edits. Core permits
 Bootstrap table and alert classes on their corresponding elements. Table section
 classes and header `scope` attributes survive the rich text conversion too.
+Resized column widths are stored as validated numeric `width` attributes on
+`<col>` elements, preserving sizing through source edits and reopening without
+permitting arbitrary inline CSS. Invalid widths and widths on other elements
+are removed.
 
 Developers can extend the policy in site/hook configuration. For JCU's existing
 classification table, the additions would be:
@@ -62,6 +66,10 @@ service for HTML entries. Unknown classes, inline `style` attributes,
 Angular's HTML sanitisation remains enabled; no trusted-HTML bypass is used.
 Plain text entries remain unchanged. Bundle imports use entry or `_meta`
 content-format metadata to identify HTML values.
+When an import retains existing entries (`splitToEntries: false` or
+`overwriteEntries: false`), their stored content formats take precedence over
+default or imported metadata for save-time validation. Imports that overwrite
+entries use the incoming metadata to apply deliberate format changes.
 
 Check existing HTML translations before rollout: classes outside the core defaults
 must be added to the site policy before editors save those entries. Unsupported

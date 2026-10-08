@@ -313,6 +313,58 @@ describe('I18nEntriesService', function() {
   });
 
   describe('setBundle', function() {
+    for (const options of [{ splitToEntries: false }, { overwriteEntries: false }]) {
+      for (const metadataSource of ['centralized', 'imported']) {
+        it(`should use retained entry formats despite conflicting ${metadataSource} metadata (${JSON.stringify(options)})`, async function() {
+          sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+          sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
+          sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({
+            intro: { contentFormat: 'plain' },
+            literal: { contentFormat: 'html' }
+          });
+          mockI18nTranslation.find.returns({ sort: sinon.stub().resolves([
+            { key: 'intro', contentFormat: 'html' },
+            { key: 'literal', contentFormat: 'plain' }
+          ]) });
+          const literal = '<p style="color:red">Literal markup</p>';
+          const data: Record<string, unknown> = {
+            intro: '<p class="alert alert-info evil" style="color:red" onclick="alert(1)">Intro</p>',
+            literal
+          };
+          if (metadataSource === 'imported') {
+            data._meta = { intro: { contentFormat: 'plain' }, literal: { contentFormat: 'html' } };
+          }
+
+          await I18nEntriesService.setBundle('brand-1', 'en', 'ns', data, undefined, options);
+
+          const saved = mockI18nBundle.create.firstCall.args[0].data;
+          expect(saved.intro).to.equal('<p class="alert alert-info">Intro</p>');
+          expect(saved.literal).to.equal(literal);
+          expect(data.intro).to.contain('onclick=');
+        });
+      }
+    }
+
+    it('should use imported formats when existing entries will be overwritten', async function() {
+      sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+      sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
+      mockI18nTranslation.find.returns({ sort: sinon.stub().resolves([
+        { key: 'intro', contentFormat: 'plain' },
+        { key: 'literal', contentFormat: 'html' }
+      ]) });
+      const literal = '<p style="color:red">Literal markup</p>';
+
+      await I18nEntriesService.setBundle('brand-1', 'en', 'ns', {
+        intro: '<p onclick="alert(1)">Intro</p>', literal,
+        _meta: { intro: { contentFormat: 'html' }, literal: { contentFormat: 'plain' } }
+      });
+
+      const saved = mockI18nBundle.create.firstCall.args[0].data;
+      expect(saved.intro).to.equal('<p>Intro</p>');
+      expect(saved.literal).to.equal(literal);
+      expect(I18nEntriesService.syncEntriesFromBundle.calledWith(sinon.match.any, true)).to.be.true;
+    });
+
     it('should sanitise HTML imports even when splitting into entries is disabled', async function() {
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       mockI18nTranslation.find.returns({ sort: sinon.stub().resolves([{ key: 'intro', contentFormat: 'html' }]) });
@@ -410,6 +462,21 @@ describe('I18nEntriesService', function() {
   });
 
   describe('syncEntriesFromBundle', function() {
+    it('should persist the same imported format used to sanitize an overwrite', async function() {
+      const bundle = { id: 'bundle-1', branding: 'brand-1', locale: 'en', namespace: 'ns',
+        data: { intro: '<p onclick="alert(1)">Intro</p>', _meta: { intro: { contentFormat: 'html' } } } };
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({ intro: { contentFormat: 'plain' } });
+      mockI18nTranslation.find.resolves([{ key: 'intro', contentFormat: 'plain' }]);
+      mockI18nTranslation.findOne.resolves({ id: 'entry-1', contentFormat: 'plain' });
+
+      await I18nEntriesService.syncEntriesFromBundle(bundle, true);
+
+      const saved = mockI18nTranslation.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.contentFormat).to.equal('html');
+      expect(saved.value).to.equal('<p>Intro</p>');
+      expect(mockI18nBundle.create.firstCall.args[0].data.intro).to.equal(saved.value);
+    });
+
     it('should sync entries', async function() {
       const bundle = { 
         id: 'bundle-1', 
