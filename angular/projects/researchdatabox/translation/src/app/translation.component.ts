@@ -10,7 +10,10 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import Link from '@tiptap/extension-link';
 import { TiptapEditorDirective } from 'ngx-tiptap';
-import { TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
+import { DomSanitizer } from '@angular/platform-browser';
+import { ConfigService, TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
+import { getTranslationHtmlClasses } from '@researchdatabox/sails-ng-common';
+import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions } from './translation-html';
 
 type TranslationContentFormat = 'plain' | 'html';
 
@@ -438,7 +441,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
       padding: 0.45rem 0.55rem;
       vertical-align: top;
     }
-    :host ::ng-deep .tx-rich .ProseMirror th {
+    :host ::ng-deep .tx-rich .ProseMirror th:not([class]) {
       background: #f1f3f5;
       font-weight: 600;
       text-align: left;
@@ -486,6 +489,9 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private svc = inject(PortalTranslationService);
+  private configService = inject(ConfigService);
+  private sanitizer = inject(DomSanitizer);
+  private allowedClasses = getTranslationHtmlClasses();
 
   // Simple state
   languages = signal<any[]>([]);
@@ -547,6 +553,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     await this.svc.waitForInit();
+    const config = await this.configService.getConfig();
+    this.allowedClasses = getTranslationHtmlClasses(config?.translationEditor?.allowedClasses);
     await this.loadLanguages();
     // Load the enabled state from bundles instead of showing all by default
     await this.loadAvailableLanguagesFromBundles();
@@ -698,7 +706,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.editKey = entry.key;
     this.editContentFormat = this.normalizeContentFormat(entry.contentFormat);
     const rawValue = String(entry.value ?? '');
-    const value = this.editContentFormat === 'html' ? this.normalizeHtmlValue(rawValue) : rawValue;
+    const value = this.editContentFormat === 'html' ? this.normalizeHtmlValue(this.sanitizeHtml(rawValue)) : rawValue;
     this.editValue = value;
     this.editDescription = entry.description;
     this.htmlSourceValue = value;
@@ -717,7 +725,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.editorMode = mode;
     this.editContentFormat = mode === 'text' ? 'plain' : 'html';
     if (mode === 'rich' && this.richTextEditor) {
-      const source = previousMode === 'text' ? this.escapeHtml(this.editValue) : this.editValue;
+      const source = previousMode === 'text' ? this.escapeHtml(this.editValue) : this.sanitizeHtml(this.editValue);
       this.richTextEditor.commands.setContent(source);
     }
   }
@@ -771,9 +779,10 @@ export class AppComponent implements OnInit, OnDestroy {
       this.saveError.set(false);
       const value = this.getEditorValueForSave();
       const contentFormat = this.editContentFormat;
-      await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value, contentFormat });
+      const saved: unknown = await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value, contentFormat });
+      const savedValue = saved && typeof saved === 'object' && 'value' in saved ? saved.value : value;
       // Update local state
-      const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value, contentFormat } : e);
+      const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value: savedValue, contentFormat } : e);
       this.entries.set(updated);
       this.refreshDerived();
       this.destroyRichTextEditor();
@@ -1025,14 +1034,14 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private onRichTextUpdateFromEditor(editor: Editor) {
-    this.htmlSourceValue = this.normalizeHtmlValue(editor.getHTML());
+    this.htmlSourceValue = this.normalizeHtmlValue(this.exportEditorHtml(editor));
     this.plainTextValue = editor.getText();
     this.editValue = this.htmlSourceValue;
   }
 
   private syncValueFromCurrentEditor() {
     if (this.editorMode === 'rich' && this.richTextEditor) {
-      this.htmlSourceValue = this.normalizeHtmlValue(this.richTextEditor.getHTML());
+      this.htmlSourceValue = this.normalizeHtmlValue(this.exportEditorHtml(this.richTextEditor));
       this.plainTextValue = this.richTextEditor.getText();
       this.editValue = this.htmlSourceValue;
       return;
@@ -1047,10 +1056,10 @@ export class AppComponent implements OnInit, OnDestroy {
   private getEditorValueForSave() {
     this.syncValueFromCurrentEditor();
     if (this.editorMode === 'rich') {
-      return this.normalizeHtmlValue(this.richTextEditor?.getHTML() ?? this.editValue);
+      return this.normalizeHtmlValue(this.richTextEditor ? this.exportEditorHtml(this.richTextEditor) : this.sanitizeHtml(this.editValue));
     }
     if (this.editorMode === 'html') {
-      return this.htmlSourceValue;
+      return this.sanitizeHtml(this.htmlSourceValue);
     }
     return this.plainTextValue;
   }
@@ -1063,7 +1072,16 @@ export class AppComponent implements OnInit, OnDestroy {
       TableRow,
       TableHeader,
       TableCell,
+      ...translationPresentationExtensions(this.allowedClasses),
     ];
+  }
+
+  private sanitizeHtml(value: string): string {
+    return sanitizeTranslationEditorHtml(value, this.sanitizer, this.allowedClasses);
+  }
+
+  private exportEditorHtml(editor: Editor): string {
+    return this.sanitizeHtml(restoreTranslationTableSections(editor.getHTML()));
   }
 
   private destroyRichTextEditor() {

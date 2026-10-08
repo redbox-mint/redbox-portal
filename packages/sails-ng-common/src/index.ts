@@ -126,3 +126,4 @@ export * from './validation/helpers';
 export * from './validation/form.model';
 export * from './validation/validators';
 export * from './validation/validators-support';
+export * from './translation-html';

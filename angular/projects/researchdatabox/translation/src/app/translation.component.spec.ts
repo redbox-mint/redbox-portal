@@ -334,6 +334,41 @@ describe('AppComponent (translation)', () => {
     expect(translationService.setEntryCalls[0].payload.contentFormat).toBe('plain');
   });
 
+  it('uses developer class configuration through rich/source switches and the save API', async () => {
+    configService.getConfig().translationEditor = { allowedClasses: { th: ['classification-public'] } };
+    const { comp } = create();
+    await comp.ngOnInit();
+    comp.openEdit({ key: 'intro', contentFormat: 'html',
+      value: '<table class="table table-bordered"><thead class="table-light"><tr><th>Level</th></tr></thead>'
+        + '<tbody class="table-group-divider"><tr><th class="classification-public">Public</th></tr></tbody></table>' });
+    expect(comp.richTextEditor).not.toBeNull();
+    comp.setEditorMode('html');
+    comp.onHtmlSourceChange(comp.htmlSourceValue.replace('Public', 'Official (Public)'));
+    comp.setEditorMode('rich');
+    comp.setEditorMode('html');
+    await comp.saveEdit();
+    const saved = translationService.setEntryCalls[0].payload;
+    const doc = new DOMParser().parseFromString(saved.value, 'text/html');
+    expect(saved.contentFormat).toBe('html');
+    expect(doc.querySelector('table')?.className).toBe('table table-bordered');
+    expect(doc.querySelector('thead')?.className).toBe('table-light');
+    expect(doc.querySelector('tbody')?.className).toBe('table-group-divider');
+    expect(doc.querySelector('tbody th')?.className).toBe('classification-public');
+    expect(doc.querySelector('tbody th')?.textContent).toBe('Official (Public)');
+  });
+
+  it('uses the server value when save sanitisation changes the submitted HTML', async () => {
+    const { comp } = create();
+    comp.selectedLang = 'en';
+    comp.entries.set([{ key: 'intro', value: '<p>Before</p>', contentFormat: 'html' }]);
+    comp.openEdit(comp.entries()[0]);
+    comp.setEditorMode('html');
+    comp.onHtmlSourceChange('<p class="alert alert-info">After</p>');
+    spyOn(translationService, 'setEntry').and.resolveTo({ value: '<p>After</p>' });
+    await comp.saveEdit();
+    expect(comp.entries()[0].value).toBe('<p>After</p>');
+  });
+
   it('saveEdit uses the active rich text editor HTML when rich text mode is active', async () => {
     const { comp } = create();
     comp.selectedLang = 'en';
