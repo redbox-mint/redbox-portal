@@ -7,7 +7,7 @@ import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import { getTranslationHtmlClasses } from '@researchdatabox/sails-ng-common';
-import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions } from './translation-html';
+import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions, translationTableView } from './translation-html';
 
 describe('HTML translation presentation', () => {
   const policy = getTranslationHtmlClasses({ th: ['classification-public'], span: ['approved-emphasis'] });
@@ -22,7 +22,8 @@ describe('HTML translation presentation', () => {
 
   function roundTrip(html: string): Document {
     editor = new Editor({
-      extensions: [StarterKit, Table, TableRow, TableHeader, TableCell, ...translationPresentationExtensions(policy)],
+      extensions: [StarterKit, Table.configure({ resizable: true, View: translationTableView(policy) }),
+        TableRow, TableHeader, TableCell, ...translationPresentationExtensions(policy)],
       content: sanitizeTranslationEditorHtml(html, sanitizer, policy)
     });
     const output = sanitizeTranslationEditorHtml(restoreTranslationTableSections(editor.getHTML()), sanitizer, policy);
@@ -34,11 +35,13 @@ describe('HTML translation presentation', () => {
       + '<tbody class="table-group-divider"><tr><th class="classification-public" scope="row">Public</th></tr></tbody>'
       + '<tfoot class="table-light"><tr><td>Notes</td></tr></tfoot></table>';
     roundTrip(html);
+    expect(editor.view.dom.querySelector('table')?.className).toBe('table table-bordered');
     const textPosition: number[] = [];
     editor.state.doc.descendants((node, position) => {
       if (node.isText && node.text === 'Public') textPosition.push(position);
     });
     editor.commands.insertContentAt({ from: textPosition[0], to: textPosition[0] + 6 }, 'Official (Public)');
+    expect(editor.view.dom.querySelector('table')?.className).toBe('table table-bordered');
     const output = sanitizeTranslationEditorHtml(restoreTranslationTableSections(editor.getHTML()), sanitizer, policy);
     const doc = new DOMParser().parseFromString(output, 'text/html');
     expect(doc.querySelector('table')?.className).toBe('table table-bordered');

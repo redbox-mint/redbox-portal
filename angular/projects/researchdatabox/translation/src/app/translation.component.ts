@@ -13,7 +13,7 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ConfigService, TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
 import { getTranslationHtmlClasses } from '@researchdatabox/sails-ng-common';
-import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions } from './translation-html';
+import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions, translationTableView } from './translation-html';
 
 type TranslationContentFormat = 'plain' | 'html';
 
@@ -1068,7 +1068,7 @@ export class AppComponent implements OnInit, OnDestroy {
     return [
       StarterKit,
       Link.configure({ openOnClick: false, autolink: false }),
-      Table.configure({ resizable: true }),
+      Table.configure({ resizable: true, View: translationTableView(this.allowedClasses) }),
       TableRow,
       TableHeader,
       TableCell,

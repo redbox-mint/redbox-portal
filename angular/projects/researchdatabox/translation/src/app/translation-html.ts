@@ -1,6 +1,8 @@
 import { SecurityContext } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Extension, Mark, Node } from '@tiptap/core';
+import { TableView } from '@tiptap/extension-table';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import {
   filterTranslationHtmlClasses, translationHtmlTags, translationHtmlAttributes,
   type TranslationHtmlClasses
@@ -8,6 +10,29 @@ import {
 
 const sectionAttribute = 'data-translation-section';
 const sectionClassAttribute = 'data-translation-section-class';
+
+/** The resizing plugin's table view does not apply document class attributes itself. */
+export function translationTableView(policy: TranslationHtmlClasses) {
+  return class extends TableView {
+    constructor(...args: ConstructorParameters<typeof TableView>) {
+      super(...args);
+      this.applyPresentation(args[0]);
+    }
+
+    override update(node: ProseMirrorNode): boolean {
+      const updated = super.update(node);
+      if (updated) this.applyPresentation(node);
+      return updated;
+    }
+
+    private applyPresentation(node: ProseMirrorNode): void {
+      const value: unknown = node.attrs['class'];
+      const classes = filterTranslationHtmlClasses(typeof value === 'string' ? value : '', 'table', policy);
+      if (classes) this.table.setAttribute('class', classes);
+      else this.table.removeAttribute('class');
+    }
+  };
+}
 
 /** Preserve presentation attributes in the schema, without enabling arbitrary attributes or CSS. */
 export function translationPresentationExtensions(policy: TranslationHtmlClasses) {
