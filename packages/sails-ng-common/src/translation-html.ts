@@ -74,15 +74,16 @@ export function normalizeTranslationTableWidths(root: Document | HTMLElement): v
     const cells = tableCellColumns(table);
     const columnCount = Math.max(0, ...cells.map(({ cell, column }) => column + cell.colSpan));
     while (widths.length < columnCount) widths.push(null);
-    // The first measured width in each logical column wins; zero marks a column the editor left unmeasured.
+    // The first measured width in each logical column wins. Zero marks a column the editor left
+    // unmeasured, so it never clears a saved column width.
     const cellWidths: number[] = [];
     for (const { cell, column } of cells) {
       parseCellWidths(cell)?.forEach((width, offset) => {
-        if (!cellWidths[column + offset]) cellWidths[column + offset] = width;
+        if (width > 0 && !cellWidths[column + offset]) cellWidths[column + offset] = width;
       });
     }
     cellWidths.forEach((width, index) => {
-      widths[index] = width > 0 ? String(width) : null;
+      widths[index] = String(width);
     });
     if (!widths.some(width => width !== null)) return;
     let group = Array.from(table.children).filter(child => child.tagName === 'COLGROUP').at(-1);

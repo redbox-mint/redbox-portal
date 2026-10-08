@@ -83,6 +83,13 @@ describe('HTML translation policy', () => {
     assert.deepEqual(Array.from(spanned.querySelectorAll('col')).map(col => col.getAttribute('width')), ['90', '300', '150']);
   });
 
+  it('does not let unmeasured editor widths clear saved column widths', () => {
+    const saved = sanitizeTranslationHtml('<table><colgroup><col width="220"><col width="400"></colgroup><tbody>'
+      + '<tr><td>A</td><td>B</td></tr><tr><td colspan="2" colwidth="0,400">C</td></tr></tbody></table>');
+    const document = new JSDOM(saved).window.document;
+    assert.deepEqual(Array.from(document.querySelectorAll('col')).map(col => col.getAttribute('width')), ['220', '400']);
+  });
+
   it('keeps encoded markup as text while removing executable HTML across saves', () => {
     const payload = '<p>&lt;img src=x onerror="alert(1)"&gt;</p>'
       + '<table><tr><td colwidth="220" onclick="alert(1)">Text</td></tr></table>'
