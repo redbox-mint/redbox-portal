@@ -29,7 +29,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@aws-sdk/client-sqs": "3.1141.0",
+    "@aws-sdk/client-sqs": "3.1144.0",
     "debug": "4.4.3"
   },
   "peerDependencies": {
@@ -39,8 +39,8 @@
     "@tsconfig/node24": "24.0.5",
     "@types/debug": "4.1.13",
     "@types/node": "26.6.3",
-    "@vitest/coverage-v8": "5.0.2",
+    "@vitest/coverage-v8": "5.0.3",
     "typescript": "5.9.3",
-    "vitest": "5.0.2"
+    "vitest": "5.0.3"
   }
 }
