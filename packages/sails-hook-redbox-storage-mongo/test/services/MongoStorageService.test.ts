@@ -684,6 +684,68 @@ describe('MongoStorageService', function () {
     expect(artifactCollection.createIndexes.called).to.equal(false);
   });
 
+  it('accepts the explicit simple collation reported by MongoDB 9 without recreating schema indexes', async function () {
+    const { RECORD_SCHEMA_REFERENCE_INDEXES } = require('../../src/services/MongoStorageService');
+    const standardCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const artifactCollection = {
+      indexes: sandbox.stub().resolves([
+        { name: '_id_', key: { _id: 1 }, v: 2, collation: { locale: 'simple' } },
+        { name: 'digest_1', key: { digest: 1 }, unique: true, v: 2, collation: { locale: 'simple' } },
+      ]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const referenceCollection = {
+      indexes: sandbox
+        .stub()
+        .resolves(RECORD_SCHEMA_REFERENCE_INDEXES.map(index => ({ ...index, v: 2, collation: { locale: 'simple' } }))),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) => {
+      if (name === 'recordschemaartifact') return artifactCollection;
+      if (name === 'recordschemareference') return referenceCollection;
+      return standardCollection;
+    });
+
+    await service.performInit();
+
+    expect(artifactCollection.createIndexes.called).to.equal(false);
+    expect(referenceCollection.createIndexes.called).to.equal(false);
+    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
+  });
+
+  for (const { description, options } of [
+    { description: 'a non-default collation', options: { unique: true, collation: { locale: 'en', strength: 2 } } },
+    {
+      description: 'a non-unique index with simple collation',
+      options: { unique: false, collation: { locale: 'simple' } },
+    },
+  ]) {
+    it(`fails initialization when an existing record-schema index has ${description}`, async function () {
+      const standardCollection = {
+        indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+        createIndexes: sandbox.stub().resolves([]),
+      };
+      const artifactCollection = {
+        indexes: sandbox.stub().resolves([{ name: 'digest_1', key: { digest: 1 }, ...options }]),
+        createIndexes: sandbox.stub().resolves([]),
+      };
+      mockDb.collection.callsFake((name: string) =>
+        name === 'recordschemaartifact' ? artifactCollection : standardCollection
+      );
+
+      await expectRejects(
+        () => service.performInit(),
+        'Existing index digest_1 has options that do not match required index digest_1'
+      );
+
+      expect(artifactCollection.createIndexes.called).to.equal(false);
+      expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
+    });
+  }
+
   it('fails initialization when an existing record-schema index has mismatched options', async function () {
     const standardCollection = {
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),

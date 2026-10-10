@@ -250,7 +250,13 @@ function indexOptionsEqual(existing: IndexDescriptionInfo, required: mongodb.Ind
   for (const option of PERSISTENT_INDEX_BOOLEAN_OPTIONS) {
     if (Boolean(existing[option]) !== Boolean(required[option])) return false;
   }
-  return PERSISTENT_INDEX_VALUE_OPTIONS.every(option => isDeepStrictEqual(existing[option], required[option]));
+  return PERSISTENT_INDEX_VALUE_OPTIONS.every(option => {
+    if (option === 'collation') {
+      // MongoDB 9 reports the default simple collation explicitly; earlier versions omit it.
+      return isDeepStrictEqual(existing.collation ?? { locale: 'simple' }, required.collation ?? { locale: 'simple' });
+    }
+    return isDeepStrictEqual(existing[option], required[option]);
+  });
 }
 
 function indexDisplayName(index: mongodb.IndexDescription | IndexDescriptionInfo): string {
