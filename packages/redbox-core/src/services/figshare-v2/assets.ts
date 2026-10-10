@@ -50,7 +50,7 @@ interface DatastreamResponse {
   size?: number;
 }
 
-async function getAttachmentStream(oid: string, fileId: string): Promise<DatastreamResponse> {
+export async function getAttachmentStream(oid: string, fileId: string): Promise<DatastreamResponse> {
   const datastreamService = getDatastreamService();
   if (datastreamService == null) {
     throw new Error('Datastream service is not configured');
@@ -63,6 +63,16 @@ async function getAttachmentStream(oid: string, fileId: string): Promise<Datastr
     throw new Error(`Unable to read datastream '${fileId}' for record '${oid}'`);
   }
   return response;
+}
+
+/** Identify stored attachment bytes without reading them, when the datastream service supports it. */
+export async function getAttachmentFingerprint(oid: string, fileId: string): Promise<string | undefined> {
+  const datastreamService = getDatastreamService();
+  const fingerprint = datastreamService?.getDatastreamFingerprint;
+  if (typeof fingerprint !== 'function') {
+    return undefined;
+  }
+  return (await (fingerprint as (oid: string, fileId: string) => Promise<string | undefined>).call(datastreamService, oid, fileId)) || undefined;
 }
 
 async function ensureAttachmentDatastream(oid: string, fileId: string): Promise<void> {
@@ -92,7 +102,7 @@ function sanitizePathComponent(value: string): string {
   );
 }
 
-function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
+export function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
   const diskName = config.assets.staging.disk?.trim();
   if (!diskName) {
     return StorageManagerService.stagingDisk();
@@ -114,7 +124,7 @@ function getStagingDisk(config: FigsharePublishingConfigData): IDisk {
   }
 }
 
-function buildStagingKey(
+export function buildStagingKey(
   config: FigsharePublishingConfigData,
   articleId: string,
   oid: string,
@@ -145,14 +155,14 @@ function buildStagingKey(
   return `${prefix}/${dir}/${storageFileName}`;
 }
 
-async function stageAttachmentToDisk(disk: IDisk, key: string, response: DatastreamResponse): Promise<number> {
+export async function stageAttachmentToDisk(disk: IDisk, key: string, response: DatastreamResponse): Promise<number> {
   const expectedSize = Number(response.size ?? 0);
   await disk.putStream(key, response.readstream as Readable, expectedSize > 0 ? { contentLength: expectedSize } : {});
   const meta = await disk.getMetaData(key);
   return meta.contentLength;
 }
 
-async function* readPartsSequentially(
+export async function* readPartsSequentially(
   source: Readable,
   parts: FigshareUploadPart[]
 ): AsyncGenerator<{ partNo: number; stream: Readable }> {

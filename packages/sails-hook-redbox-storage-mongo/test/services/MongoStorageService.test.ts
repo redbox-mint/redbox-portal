@@ -155,6 +155,7 @@ describe('MongoStorageService', function () {
   it('initializes collections and indices when they already exist', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([{ name: '_id_' }]),
+      createIndex: sandbox.stub().resolves(),
       createIndexes: sandbox.stub().resolves([]),
     };
     const deletedCollection = {};
@@ -179,6 +180,7 @@ describe('MongoStorageService', function () {
   it('creates the collection through a seed record when strict lookup fails', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([]),
+      createIndex: sandbox.stub().resolves(),
       createIndexes: sandbox.stub().resolves([]),
     };
     mockDb.collection.callsFake((name: string, options?: any) => {
@@ -200,6 +202,7 @@ describe('MongoStorageService', function () {
   it('logs index creation failures without throwing', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([]),
+      createIndex: sandbox.stub().resolves(),
       createIndexes: sandbox.stub().rejects(new Error('boom')),
     };
     mockDb.collection.returns(recordCollection);
@@ -229,21 +232,21 @@ describe('MongoStorageService', function () {
     expect(response.message).to.equal('create failed');
   });
 
-  it('strips immutable fields before updateMeta persists', async function () {
-    const setStub = sandbox.stub().resolves({});
-    Record.updateOne.returns({ set: setStub });
-    const record = { id: 'a', _id: 'b', dateCreated: 'c', lastSaveDate: 'd', keep: true };
-
+  it('strips immutable and protected snapshot fields before atomic updateMeta', async function () {
+    service.recordCol = { findOneAndUpdate: sandbox.stub().resolves({ recordVersion: 2 }) };
+    const record = { id: 'id', _id: 'mongo', dateCreated: 'date', lastSaveDate: 'date', keep: true, figshareSyncIntent: { pending: false }, recordVersion: 999 };
     const response = await service.updateMeta(null, 'oid-1', record);
-
     expect(response.success).to.equal(true);
-    expect(setStub.calledOnceWith({ keep: true })).to.be.true;
+    const update = service.recordCol.findOneAndUpdate.firstCall.args[1][0].$set;
+    expect(update.keep).to.deep.equal({ $literal: true });
+    expect(update).not.to.have.property('figshareSyncIntent');
+    expect(update.recordVersion).to.deep.equal({ $add: [{ $ifNull: ['$recordVersion', 0] }, 1] });
+    expect(update).not.to.have.property('_id');
   });
 
   it('returns an unsuccessful response when updateMeta fails', async function () {
-    const setStub = sandbox.stub().rejects(new Error('update failed'));
-    Record.updateOne.returns({ set: setStub });
 
+    service.recordCol = { findOneAndUpdate: sandbox.stub().rejects(new Error('update failed')) };
     const response = await service.updateMeta('brand', 'oid-1', { keep: true }, 'user');
 
     expect(response.success).to.equal(false);

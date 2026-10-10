@@ -1,4 +1,8 @@
+import type { FigshareSourceIntent } from './FigshareSyncModel';
+
 export interface RecordModel {
+    figshareSyncIntent?: FigshareSourceIntent;
+    recordVersion?: number;
     [key: string]: unknown;
     redboxOid: string;
     harvestId: string;

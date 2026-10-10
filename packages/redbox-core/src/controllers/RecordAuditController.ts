@@ -1,3 +1,4 @@
+import { figshareLiveSummary } from '../services/figshare-v2/status';
 import { Controllers as controllers } from '../CoreController';
 import { RecordsService } from '../RecordsService';
 import { firstValueFrom, Observable, of } from 'rxjs';
@@ -509,6 +510,14 @@ export namespace Controllers {
         };
 
         const integrations = await IntegrationAuditService.getStatusSummaryWithOutcomes(params, recordContext);
+        if (!integrationName || integrationName.split(',').map(name => name.trim().toLowerCase()).includes('figshare')) {
+          const live = await figshareLiveSummary(oid, record);
+          if (live) {
+            const index = integrations.findIndex(item => item.integrationName.toLowerCase() === 'figshare');
+            if (index >= 0) integrations[index] = live;
+            else integrations.push(live);
+          }
+        }
         return this.sendResp(req, res, { data: { integrations } });
       } catch (error) {
         return this.sendResp(req, res, {

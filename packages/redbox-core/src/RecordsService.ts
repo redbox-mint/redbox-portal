@@ -1,3 +1,4 @@
+import type { RecordWriteOptions, RecordFieldWriteResult } from './RecordWriteOptions';
 import StorageServiceResponse from "./StorageServiceResponse";
 import { DatastreamRequestContext } from './DatastreamService';
 import { RecordModel, UserModel } from "./model";
@@ -76,9 +77,10 @@ export interface RecordsService {
   getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
   getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
   create(brand: unknown, record: RecordInput, recordType: unknown, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown): Promise<StorageServiceResponse>;
-  updateMeta(brand: unknown, oid: string, record: RecordInput, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, metadata?: AnyRecord): Promise<StorageServiceResponse>;
+  updateMeta(brand: unknown, oid: string, record: RecordInput, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, metadata?: AnyRecord, options?: RecordWriteOptions): Promise<StorageServiceResponse>;
   delete(oid: string, permanentlyDelete: boolean, record: RecordInput, recordType: unknown, user: UserInput): Promise<StorageServiceResponse>;
   destroyDeletedRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
+  setRecordFields(oid: string, fields: AnyRecord, expectedVersion: number, allowedPaths: string[], user: AnyRecord): Promise<RecordFieldWriteResult>;
   getMeta(oid: string): Promise<RecordModel>;
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
   restoreRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
