@@ -7,6 +7,7 @@ export function getResolutionPaths(): string[] {
     const redboxCorePackageJson = require.resolve('@researchdatabox/redbox-core/package.json');
     paths.push(path.dirname(redboxCorePackageJson));
   } catch (_error) {
+    // ignore error
   }
 
   paths.push(__dirname);
