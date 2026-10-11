@@ -22,6 +22,7 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { I18nBundleAttributes } from '../waterline-models/I18nBundle';
 import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
+import { sanitizeTranslationHtml } from '../utilities/TranslationHtml';
 
 
 export namespace Services {
@@ -250,6 +251,8 @@ export namespace Services {
     ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
+      const contentFormat = this.normalizeContentFormat(options?.contentFormat);
+      value = this.sanitizeHtmlValue(value, contentFormat ?? existing?.contentFormat);
       const updates: Partial<I18nTranslationAttributes> = {
         value,
         branding: brandingId,
@@ -260,7 +263,6 @@ export namespace Services {
       if (options?.bundleId) updates.bundle = options.bundleId;
       if (options?.category !== undefined) updates.category = options.category;
       if (options?.description !== undefined) updates.description = options.description;
-      const contentFormat = this.normalizeContentFormat(options?.contentFormat);
       if (contentFormat !== undefined) updates.contentFormat = contentFormat;
 
       const saved = (existing
@@ -407,6 +409,29 @@ export namespace Services {
       options?: BundleSetOptions
     ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
+      // Validate before writing the bundle, including imports that do not split to entries.
+      const centralizedMeta = await this.loadCentralizedMeta();
+      const fileMeta: MetaMap = data && typeof data._meta === 'object' ? data._meta as MetaMap : {};
+      const meta = { ...centralizedMeta, ...fileMeta };
+      const existingEntries = await this.listEntries(branding, locale, namespace);
+      const entriesByKey = new Map(existingEntries.map(entry => [entry.key, entry]));
+      const shouldSplitToEntries = options?.splitToEntries ?? true;
+      const shouldOverwriteEntries = options?.overwriteEntries ?? true;
+      data = _.cloneDeep(data);
+      const sanitizeValues = (object: I18nData, prefix = ''): void => {
+        for (const [part, value] of Object.entries(object)) {
+          const key = prefix ? `${prefix}.${part}` : part;
+          if (key === '_meta' || key.startsWith('_meta.')) continue;
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            sanitizeValues(value as I18nData, key);
+          } else {
+            const format = this.resolveBundleContentFormat(entriesByKey.get(key), meta[key]?.contentFormat,
+              shouldSplitToEntries && shouldOverwriteEntries);
+            object[part] = this.sanitizeHtmlValue(value, format);
+          }
+        }
+      };
+      sanitizeValues(data);
 
       // Use provided display name or get default for the language
       const finalDisplayName = displayName || await this.getLanguageDisplayName(locale);
@@ -430,9 +455,6 @@ export namespace Services {
           displayName: finalDisplayName
         }) as unknown as I18nBundleAttributes;
       }
-      const shouldSplitToEntries = options?.splitToEntries ?? true;
-      const shouldOverwriteEntries = options?.overwriteEntries ?? true;
-
       // Keep full-update behaviour by default, but allow bootstrap to seed without overwriting.
       try {
         if (bundle && shouldSplitToEntries) {
@@ -528,7 +550,7 @@ export namespace Services {
         await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, {
           bundleId: bundleId != null ? String(bundleId) : undefined,
           category: meta?.[key]?.category,
-          contentFormat: meta?.[key]?.contentFormat,
+          contentFormat: this.resolveBundleContentFormat(existing, meta?.[key]?.contentFormat, overwrite),
           description: meta?.[key]?.description,
           noReload: true
         });
@@ -546,6 +568,20 @@ export namespace Services {
       } catch (_e) {
         // ignore reload failures after the write has completed
       }
+    }
+
+    private resolveBundleContentFormat(
+      existing: I18nTranslationAttributes | null | undefined, metadataFormat: unknown, overwrite: boolean
+    ): TranslationContentFormat | undefined {
+      // Bundle-only imports and non-overwriting syncs retain entry metadata. Defaults must not
+      // bypass HTML validation (or rewrite literal plain text) when that format stays unchanged.
+      const storedFormat = this.normalizeContentFormat(existing?.contentFormat);
+      return existing && !overwrite ? storedFormat : this.normalizeContentFormat(metadataFormat) ?? storedFormat;
+    }
+
+    private sanitizeHtmlValue(value: unknown, format?: TranslationContentFormat): unknown {
+      if (format !== 'html' || typeof value !== 'string') return value;
+      return sanitizeTranslationHtml(value, sails.config.i18n?.editor?.allowedClasses);
     }
 
     private normalizeContentFormat(value: unknown): TranslationContentFormat | undefined {

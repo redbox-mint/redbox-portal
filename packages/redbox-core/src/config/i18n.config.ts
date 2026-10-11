@@ -37,6 +37,8 @@ export interface I18nConfig {
     updateFiles?: boolean;
     localesDirectory?: string;
     next: I18nNextConfig;
+    /** Exact CSS classes permitted per HTML tag. Hooks may extend core's presentation classes. */
+    editor?: { allowedClasses?: Record<string, string[]> };
 }
 
 export const i18n: I18nConfig = {
