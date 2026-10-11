@@ -196,3 +196,6 @@ export * from './visitor/vocab-inline.visitor';
 export * from './utilities/ContextVariableUtils';
 export * from './visitor/visitor-helpers';
 export * from './api-routes';
+
+export * from './RecordWriteOptions';
+export * from './model/storage/FigshareSyncModel';

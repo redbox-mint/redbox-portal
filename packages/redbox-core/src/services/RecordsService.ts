@@ -1,3 +1,5 @@
+import { prepareSourceIntent } from './figshare-v2/source-intent';
+import { RecordWriteOptions, RecordWriteConflict, assertRecordFieldPaths } from '../RecordWriteOptions';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -313,6 +315,8 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'create',
       'updateMeta',
+      'setRecordFields',
+      'getFigshareIntentStorage',
       'getMeta',
       'getRecordAudit',
       'getResolvedPermissionsSummary',
@@ -522,130 +526,166 @@ export namespace Services {
 
       // save the record ...
       sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
-      createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj);
-      if (createResponse.isSuccessful()) {
-        const oid = createResponse.oid;
-        sails.log.verbose(`RecordsService - create - oid ${oid}`);
-        const recordMetadata = recordObj.metadata as AnyRecord;
-        const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
-        if (!_.isEmpty(attachmentFields)) {
-          this.bindPendingAttachmentOids(recordMetadata, attachmentFields, oid);
+      const figshareIntent = prepareSourceIntent(recordObj, recordTypeObj, ['onCreate', ...(targetStep ? ['onTransitionWorkflow'] : [])], userObj, true);
+      if (figshareIntent && !this.storageService.readyFigshareIntent) throw new Error('Storage adapter does not support durable Figshare intents');
+      createResponse = await this.storageService.create(brandObj, recordObj, recordTypeObj, userObj, { figshareIntent });
+      const createdOid = createResponse.isSuccessful() ? String(createResponse.oid) : '';
+      // A failed save abandons its initialising intent, so stale recovery only promotes interrupted saves.
+      let figshareFinalised = !figshareIntent || !createdOid;
+      try {
+        if (createResponse.isSuccessful()) {
+          const oid = createResponse.oid;
+          sails.log.verbose(`RecordsService - create - oid ${oid}`);
+          const recordMetadata = recordObj.metadata as AnyRecord;
+          const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
+          if (!_.isEmpty(attachmentFields)) {
+            this.bindPendingAttachmentOids(recordMetadata, attachmentFields, oid);
 
-          try {
-            // handle datastream update
-            // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
-            const emptyDatastreamRecord = _.cloneDeep(recordObj);
-            const emptyMetadata = emptyDatastreamRecord.metadata as AnyRecord;
-            _.each(attachmentFields, (attFieldName: unknown) => {
-              const attFieldKey = String(attFieldName ?? '');
-              _.set(emptyMetadata, attFieldKey, []);
-            });
-            // update the datastreams in RB, this is a terminal call
-            sails.log.verbose(`RecordsService - create - before handleUpdateDataStream`);
-            await firstValueFrom(this.handleUpdateDataStream(oid, emptyDatastreamRecord, recordMetadata));
-          } catch (error) {
-            sails.log.error(`RecordsService - create - Failed to save record: ${error}`);
-            throw new RBValidationError({
-              message: `Failed to save record oid ${oid}`,
-              options: { cause: error },
-              displayErrors: [{ title: 'Failed to save record', meta: { oid } }],
-            });
-          }
-
-          // update the metadata ...
-          createResponse = await this.updateMeta(brandObj, oid, recordObj, userObj, false, false);
-        }
-
-        if (triggerPostSaveTriggers) {
-          // post-save sync
-          try {
-            createResponse = (await this.triggerPostSaveSyncTriggers(
-              createResponse['oid'],
-              recordObj,
-              recordTypeObj,
-              'onCreate',
-              userObj,
-              createResponse as unknown as AnyRecord
-            )) as unknown as StorageServiceResponse;
-            if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
-              await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
-            }
-          } catch (err) {
-            sails.log.error(
-              `${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`
-            );
-            sails.log.error(JSON.stringify(err));
-            createResponse.success = false;
-            createResponse.message = RBValidationError.displayMessage({
-              t: TranslationService,
-              errors: [this.asError(err)],
-              defaultMessage: failedMessage,
-            });
-            const metadata = { postSaveSyncWarning: 'true' };
-            createResponse.metadata = metadata;
-            sails.log.error('RecordsService create - error - createResponse ' + JSON.stringify(createResponse));
-            return createResponse;
-          }
-          // Fire Post-save hooks async ...
-          this.triggerPostSaveTriggers(createResponse['oid'], recordObj, recordTypeObj, 'onCreate', userObj);
-
-          if (!_.isEmpty(targetStep)) {
             try {
-              createResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
+              // handle datastream update
+              // we emtpy the data locations in cloned record so we can reuse the same `handleUpdateDataStream` method call
+              const emptyDatastreamRecord = _.cloneDeep(recordObj);
+              const emptyMetadata = emptyDatastreamRecord.metadata as AnyRecord;
+              _.each(attachmentFields, (attFieldName: unknown) => {
+                const attFieldKey = String(attFieldName ?? '');
+                _.set(emptyMetadata, attFieldKey, []);
+              });
+              // update the datastreams in RB, this is a terminal call
+              sails.log.verbose(`RecordsService - create - before handleUpdateDataStream`);
+              await firstValueFrom(this.handleUpdateDataStream(oid, emptyDatastreamRecord, recordMetadata));
+            } catch (error) {
+              sails.log.error(`RecordsService - create - Failed to save record: ${error}`);
+              throw new RBValidationError({
+                message: `Failed to save record oid ${oid}`,
+                options: { cause: error },
+                displayErrors: [{ title: 'Failed to save record', meta: { oid } }],
+              });
+            }
+
+            // update the metadata ...
+            createResponse = await this.updateMeta(brandObj, oid, recordObj, userObj, false, false, {}, {}, { maintenance: true });
+          }
+
+          if (triggerPostSaveTriggers) {
+            // post-save sync
+            try {
+              createResponse = (await this.triggerPostSaveSyncTriggers(
                 createResponse['oid'],
                 recordObj,
                 recordTypeObj,
-                wfStep,
+                'onCreate',
                 userObj,
-                createResponse
+                createResponse as unknown as AnyRecord
               )) as unknown as StorageServiceResponse;
-              if (createResponse && createResponse.isSuccessful()) {
-                if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
-                  await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
-                }
-              } else {
-                return createResponse;
+              if (!createResponse.isSuccessful()) return createResponse;
+              if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
+                const persisted = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { maintenance: true });
+                if (!persisted.isSuccessful()) throw new Error('Failed to persist synchronous post-save changes');
               }
-            } catch (tErr) {
+            } catch (err) {
               sails.log.error(
-                'RecordsService - create - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
+                `${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`
               );
-              sails.log.error(tErr);
+              sails.log.error(JSON.stringify(err));
               createResponse.success = false;
               createResponse.message = RBValidationError.displayMessage({
                 t: TranslationService,
-                errors: [this.asError(tErr)],
+                errors: [this.asError(err)],
                 defaultMessage: failedMessage,
               });
+              const metadata = { postSaveSyncWarning: 'true' };
+              createResponse.metadata = metadata;
+              sails.log.error('RecordsService create - error - createResponse ' + JSON.stringify(createResponse));
               return createResponse;
             }
-          }
-        }
+            // Fire Post-save hooks async ...
+            this.triggerPostSaveTriggers(createResponse['oid'], recordObj, recordTypeObj, 'onCreate', userObj);
 
-        const recordOid = String(_.get(recordObj, 'redboxOid', ''));
-        if (_.isEmpty(recordOid)) {
-          sails.log.warn(
-            `recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`
-          );
-          if (recordTypeObj.searchable !== false) {
-            this.searchService.index(createResponse['oid'], recordObj);
+            if (!_.isEmpty(targetStep)) {
+              try {
+                createResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
+                  createResponse['oid'],
+                  recordObj,
+                  recordTypeObj,
+                  wfStep,
+                  userObj,
+                  createResponse
+                )) as unknown as StorageServiceResponse;
+                if (createResponse && createResponse.isSuccessful()) {
+                  if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
+                    const persisted = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { maintenance: true });
+                    if (!persisted.isSuccessful()) throw new Error('Failed to persist synchronous workflow changes');
+                  }
+                } else {
+                  return createResponse;
+                }
+              } catch (tErr) {
+                sails.log.error(
+                  'RecordsService - create - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
+                );
+                sails.log.error(tErr);
+                createResponse.success = false;
+                createResponse.message = RBValidationError.displayMessage({
+                  t: TranslationService,
+                  errors: [this.asError(tErr)],
+                  defaultMessage: failedMessage,
+                });
+                return createResponse;
+              }
+            }
           }
+
+          if (figshareIntent && createResponse.isSuccessful()) {
+            await this.storageService.readyFigshareIntent!(oid, figshareIntent.saveToken);
+            figshareFinalised = true;
+            void FigshareService.wakeFigshareRecord(oid).catch(error => sails.log.error('Figshare wake-up failed; dispatcher will recover', error));
+          }
+          const recordOid = String(_.get(recordObj, 'redboxOid', ''));
+          if (_.isEmpty(recordOid)) {
+            sails.log.warn(
+              `recordOid: '${recordOid}' is empty! Using response oid: ${createResponse['oid']} for solr index.`
+            );
+            if (recordTypeObj.searchable !== false) {
+              this.searchService.index(createResponse['oid'], recordObj);
+            }
+          } else {
+            if (createResponse['oid'] !== recordOid) {
+              sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`);
+            }
+            if (recordTypeObj.searchable !== false) {
+              this.searchService.index(recordOid, recordObj);
+            }
+          }
+
+          await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
         } else {
-          if (createResponse['oid'] !== recordOid) {
-            sails.log.warn(`response oid: ${createResponse['oid']} is not the same as recordOid: ${recordOid}.`);
-          }
-          if (recordTypeObj.searchable !== false) {
-            this.searchService.index(recordOid, recordObj);
-          }
+          sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
+          sails.log.error(JSON.stringify(createResponse));
+          createResponse.message = failedMessage;
         }
-
-        await this.auditRecord(createResponse['oid'], recordObj, userObj, RecordAuditActionType.created);
-      } else {
-        sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
-        sails.log.error(JSON.stringify(createResponse));
-        createResponse.message = failedMessage;
+        return createResponse;
+      } finally {
+        if (!figshareFinalised) await this.abandonFigshareIntent(createdOid, figshareIntent!.saveToken);
       }
-      return createResponse;
+    }
+
+    getFigshareIntentStorage() { return this.storageService; }
+
+    private async abandonFigshareIntent(oid: string, saveToken: string): Promise<void> {
+      try { await this.storageService.abandonFigshareIntent?.(oid, saveToken); }
+      catch (error) { sails.log.error(`Failed to abandon Figshare intent for ${oid}; it remains initialising`, error); }
+    }
+
+    async setRecordFields(oid: string, fields: AnyRecord, expectedVersion: number, allowedPaths: string[], user: AnyRecord) {
+      assertRecordFieldPaths(fields, allowedPaths);
+      if (!this.storageService.setRecordFields) throw new Error('Storage adapter does not support conditional partial writes');
+      const result = await this.storageService.setRecordFields(oid, fields, expectedVersion, allowedPaths);
+      if (result.updated) {
+        const current = await this.storageService.getMeta(oid);
+        await this.searchService.index(oid, current);
+        await this.auditRecord(oid, current, user, RecordAuditActionType.updated);
+      }
+      return result;
     }
 
     async updateMeta(
@@ -656,7 +696,8 @@ export namespace Services {
       triggerPreSaveTriggers: boolean = true,
       triggerPostSaveTriggers: boolean = true,
       nextStep: unknown = {},
-      metadata: AnyRecord = {}
+      metadata: AnyRecord = {},
+      writeOptions: RecordWriteOptions = {}
     ): Promise<StorageServiceResponse> {
       const brandObj = brand as BrandingModel;
       let recordObj = this.normalizeRecord(record);
@@ -668,6 +709,7 @@ export namespace Services {
       updateResponse.oid = oid;
       const failedMessage = 'Failed to update record, please check server logs.';
       let hasPermissionToTransition = true;
+      let transitionApplied = false;
       const origRecord = _.cloneDeep(recordObj);
       const origRecordObj = this.normalizeRecord(origRecord as AnyRecord);
       sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
@@ -718,7 +760,9 @@ export namespace Services {
               userObj
             );
             this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
+            transitionApplied = true;
           } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
             sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
             sails.log.error(JSON.stringify(err));
             preTriggerResponse.success = false;
@@ -743,6 +787,7 @@ export namespace Services {
           recordType = await firstValueFrom(RecordTypesService.get(brandObj, recordMeta.type as string));
           recordObj = await this.triggerPreSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj);
         } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           sails.log.error(err);
           updateResponse.success = false;
@@ -763,9 +808,15 @@ export namespace Services {
         `RecordService - updateMeta - record.metadata.dataLocations ` +
         JSON.stringify(recordObj.metadata?.dataLocations)
       );
-      updateResponse = (await firstValueFrom(
-        this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {})
-      )) as StorageServiceResponse;
+      if (writeOptions.expectedVersion != null) {
+        for (const field of (recordMeta.attachmentFields ?? []) as string[]) {
+          if (!_.isEqual(_.get(origRecordObj.metadata, field), _.get(recordObj.metadata, field))) {
+            throw new Error('Conditional background workflow cannot change attachments; apply the attachment change in a source save');
+          }
+        }
+      } else {
+        updateResponse = (await firstValueFrom(this.handleUpdateDataStream(oid, origRecordObj, recordObj.metadata ?? {}))) as StorageServiceResponse;
+      }
       sails.log.verbose(`RecordService - updateMeta - Done with updating streams...`);
 
       if (!_.isEmpty(recordMeta.attachmentFields)) {
@@ -784,100 +835,127 @@ export namespace Services {
       }
       recordMeta.lastSaveDate = DateTime.local().toISO();
       // update
-      updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
-      sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
-      if (updateResponse.isSuccessful()) {
-        //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
-        //therefore try to set recordType if triggerPostSaveTriggers is true
-        if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
-          recordType = await firstValueFrom(RecordTypesService.get(brandObj, recordMeta.type as string));
-        }
-        // post-save async
-        if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
-          // Trigger Post-save sync hooks ...
-          try {
-            sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
-            updateResponse = (await this.triggerPostSaveSyncTriggers(
-              updateResponse['oid'],
-              recordObj,
-              recordType,
-              'onUpdate',
-              userObj,
-              updateResponse as unknown as AnyRecord
-            )) as unknown as StorageServiceResponse;
-            if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
-              await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
-            }
-          } catch (err) {
-            sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
-            sails.log.error(JSON.stringify(err));
-            updateResponse.success = false;
-            updateResponse.message = RBValidationError.displayMessage({
-              t: TranslationService,
-              errors: [this.asError(err)],
-              defaultMessage: failedMessage,
-            });
-            const metadataRes = { postSaveSyncWarning: 'true' };
-            updateResponse.metadata = metadataRes;
-            sails.log.error('RecordsService - updateMeta - error - updateResponse ' + JSON.stringify(updateResponse));
-            return updateResponse;
+      const initialising = triggerPostSaveTriggers && (this.hasPostSaveSyncHooks(recordType, 'onUpdate') || (transitionApplied && this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')));
+      const figshareIntent = prepareSourceIntent({ ...recordObj, redboxOid: oid }, recordType, ['onUpdate', ...(transitionApplied ? ['onTransitionWorkflow'] : [])], userObj, initialising, writeOptions.maintenance);
+      if (figshareIntent && !this.storageService.readyFigshareIntent) throw new Error('Storage adapter does not support durable Figshare intents');
+      updateResponse = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, { ...writeOptions, figshareIntent });
+      // A failed save abandons its initialising intent, so stale recovery only promotes interrupted saves.
+      let figshareFinalised = !figshareIntent || !initialising || !updateResponse.isSuccessful();
+      try {
+        let expectedVersion = Number(updateResponse.metadata?.recordVersion ?? 0);
+        const persistSecondary = async () => {
+          const result = await this.storageService.updateMeta(brandObj, oid, recordObj, userObj, {
+            maintenance: true, ...(writeOptions.expectedVersion != null ? { expectedVersion } : {})
+          });
+          if (!result.isSuccessful()) throw new Error('Failed to persist synchronous post-save changes');
+          expectedVersion = Number(result.metadata?.recordVersion ?? expectedVersion);
+        };
+        sails.log.verbose('RecordService - updateMeta - updateResponse.isSuccessful ' + updateResponse.isSuccessful());
+        if (updateResponse.isSuccessful()) {
+          //if triggerPreSaveTriggers is false recordType will be empty even if triggerPostSaveTriggers is true
+          //therefore try to set recordType if triggerPostSaveTriggers is true
+          if (_.isEmpty(recordType) && !_.isEmpty(brand) && triggerPostSaveTriggers === true) {
+            recordType = await firstValueFrom(RecordTypesService.get(brandObj, recordMeta.type as string));
           }
-          sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
-          // Fire Post-save hooks async ...
-          this.triggerPostSaveTriggers(updateResponse['oid'], recordObj, recordType, 'onUpdate', userObj);
-
-          if (hasPermissionToTransition && !_.isEmpty(nextStepObj)) {
+          // post-save async
+          if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
+            // Trigger Post-save sync hooks ...
             try {
-              updateResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
+              sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
+              updateResponse = (await this.triggerPostSaveSyncTriggers(
                 updateResponse['oid'],
                 recordObj,
                 recordType,
-                nextStepObj,
+                'onUpdate',
                 userObj,
-                updateResponse
+                updateResponse as unknown as AnyRecord
               )) as unknown as StorageServiceResponse;
-
-              sails.log.verbose(
-                `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`
-              );
-              sails.log.verbose(JSON.stringify(updateResponse));
-              if (updateResponse && updateResponse.isSuccessful()) {
-                sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
-                if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
-                  await this.storageService.updateMeta(brandObj, oid, recordObj, userObj);
-                }
-              } else {
-                sails.log.verbose(
-                  `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook not successful`
-                );
-                return updateResponse;
+              if (!updateResponse.isSuccessful()) return updateResponse;
+              if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
+                await persistSecondary();
               }
-            } catch (tErr) {
-              sails.log.error(
-                'RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
-              );
-              sails.log.error(tErr);
+            } catch (err) {
+              if (err instanceof RecordWriteConflict) throw err;
+              sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
+              sails.log.error(JSON.stringify(err));
               updateResponse.success = false;
               updateResponse.message = RBValidationError.displayMessage({
                 t: TranslationService,
-                errors: [this.asError(tErr)],
+                errors: [this.asError(err)],
                 defaultMessage: failedMessage,
               });
+              const metadataRes = { postSaveSyncWarning: 'true' };
+              updateResponse.metadata = metadataRes;
+              sails.log.error('RecordsService - updateMeta - error - updateResponse ' + JSON.stringify(updateResponse));
               return updateResponse;
             }
+            sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
+            // Fire Post-save hooks async ...
+            this.triggerPostSaveTriggers(updateResponse['oid'], recordObj, recordType, 'onUpdate', userObj);
+
+            if (hasPermissionToTransition && !_.isEmpty(nextStepObj)) {
+              try {
+                updateResponse = (await this.triggerPostSaveTransitionWorkflowTriggers(
+                  updateResponse['oid'],
+                  recordObj,
+                  recordType,
+                  nextStepObj,
+                  userObj,
+                  updateResponse
+                )) as unknown as StorageServiceResponse;
+
+                sails.log.verbose(
+                  `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`
+                );
+                sails.log.verbose(JSON.stringify(updateResponse));
+                if (updateResponse && updateResponse.isSuccessful()) {
+                  sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
+                  if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
+                    await persistSecondary();
+                  }
+                } else {
+                  sails.log.verbose(
+                    `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook not successful`
+                  );
+                  return updateResponse;
+                }
+              } catch (tErr) {
+                if (tErr instanceof RecordWriteConflict) throw tErr;
+                sails.log.error(
+                  'RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
+                );
+                sails.log.error(tErr);
+                updateResponse.success = false;
+                updateResponse.message = RBValidationError.displayMessage({
+                  t: TranslationService,
+                  errors: [this.asError(tErr)],
+                  defaultMessage: failedMessage,
+                });
+                return updateResponse;
+              }
+            }
           }
+          if (figshareIntent) {
+            if (initialising) {
+              await this.storageService.readyFigshareIntent!(oid, figshareIntent.saveToken);
+              figshareFinalised = true;
+            }
+            void FigshareService.wakeFigshareRecord(oid).catch(error => sails.log.error('Figshare wake-up failed; dispatcher will recover', error));
+          }
+          if (recordType?.searchable !== false) {
+            this.searchService.index(oid, recordObj);
+          }
+          await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated);
+        } else {
+          sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
+          sails.log.error(JSON.stringify(updateResponse));
+          updateResponse.success = false;
+          updateResponse.message = failedMessage;
         }
-        if (recordType?.searchable !== false) {
-          this.searchService.index(oid, recordObj);
-        }
-        await this.auditRecord(updateResponse['oid'], record, user, RecordAuditActionType.updated);
-      } else {
-        sails.log.error(`${this.logHeader} Failed to update record, storage service response:`);
-        sails.log.error(JSON.stringify(updateResponse));
-        updateResponse.success = false;
-        updateResponse.message = failedMessage;
+        return updateResponse;
+      } finally {
+        if (!figshareFinalised) await this.abandonFigshareIntent(oid, figshareIntent!.saveToken);
       }
-      return updateResponse;
     }
 
     hasPostSaveSyncHooks(recordType: unknown, mode: string): boolean {
@@ -905,6 +983,7 @@ export namespace Services {
               return refreshed;
             }
           } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
             sails.log.error(`${this.logHeader} Failed to create fallback record audit:`);
             sails.log.error(JSON.stringify(err));
           }
@@ -1030,6 +1109,7 @@ export namespace Services {
         preTriggerResponse.oid = oid;
         currentRecObj = await this.triggerPreSaveTriggers(oid, currentRecObj, recordTypeObj, 'onDelete', user);
       } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
         sails.log.verbose('RecordsService - delete - triggerPreSaveTriggers onDelete error');
         sails.log.error(JSON.stringify(err));
         preTriggerResponse.success = false;
@@ -1060,6 +1140,7 @@ export namespace Services {
             response as unknown as AnyRecord
           )) as unknown as StorageServiceResponse;
         } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
           sails.log.error(`RecordsService - delete - Exception while running post delate sync hooks when updating:`);
           sails.log.error(JSON.stringify(err));
           response.success = false;
@@ -1215,6 +1296,7 @@ export namespace Services {
         try {
           await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(data);
         } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
           sails.log.error(`${this.logHeader} Failed to create record audit in integrationtest:`);
           sails.log.error(JSON.stringify(err));
         }
@@ -1779,6 +1861,7 @@ export namespace Services {
           )) as AnyRecord;
         }
       } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
         sails.log.error(
           `${this.logHeader} Exception while running post save sync hooks when transitioning workflow: ${JSON.stringify(err)}`
         );
@@ -1830,6 +1913,7 @@ export namespace Services {
               sails.log.verbose(JSON.stringify(record));
               sails.log.debug(`pre-save sync trigger ${preSaveUpdateHookFunctionString} completed for ${oid}`);
             } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
               sails.log.error(
                 `pre-save trigger ${preSaveUpdateHookFunctionString} failed to complete for oid ${oid} mode ${mode} user ${user}`
               );
@@ -1881,6 +1965,7 @@ export namespace Services {
                 sails.log.verbose(JSON.stringify(response));
                 sails.log.debug(`post-save sync trigger ${postSaveSyncHooksFunctionString} completed for ${oid}`);
               } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
                 sails.log.error(
                   `post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete for oid ${oid} mode ${mode} user ${user}`
                 );
@@ -1938,6 +2023,7 @@ export namespace Services {
                     sails.log.error(error);
                   });
               } catch (err) {
+            if (err instanceof RecordWriteConflict) throw err;
                 sails.log.error(
                   `post-save trigger external catch ${postSaveCreateHookFunctionString} failed to complete`
                 );

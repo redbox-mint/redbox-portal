@@ -526,10 +526,23 @@ jobs:
     machine:
       image: ubuntu-2404:current
     resource_class: large
+    environment:
+      FIGSHARE_TEST_MONGO_URI: mongodb://127.0.0.1:27028
     steps:
       - checkout
       - attach_workspace:
           at: /tmp
+      - run:
+          name: Start MongoDB for Figshare worker tests
+          command: |
+            docker run -d --name figshare-test-mongo -p 127.0.0.1:27028:27017 mongo:7.0
+            for attempt in $(seq 1 30); do
+              if docker exec figshare-test-mongo mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)'; then
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 1
       - run:
           <<: *installCodecov
       - run:
@@ -697,7 +710,10 @@ jobs:
   test-storage-mongo:
     docker:
       - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: mongo:7.0
     resource_class: medium
+    environment:
+      MONGO_TEST_URL: mongodb://127.0.0.1:27017
     steps:
       - checkout
       - restore_cache:

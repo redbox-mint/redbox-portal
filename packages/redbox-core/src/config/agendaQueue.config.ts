@@ -162,6 +162,15 @@ export const agendaQueue: AgendaQueueConfig = {
                 intervalOrSchedule: '5 minutes'
             }
         },
+        'Figshare-SyncRecord': {
+            fnName: 'figshareservice.syncRecordJob',
+            options: { concurrency: 4, lockLimit: 4, lockLifetime: 120000 }
+        },
+        'Figshare-Dispatch': {
+            fnName: 'figshareservice.dispatchSyncJob', backend: 'mongodb',
+            schedule: { method: 'every', intervalOrSchedule: '30 seconds' },
+            options: { concurrency: 1, lockLimit: 1, lockLifetime: 120000 }
+        },
         'Figshare-PublishAfterUpload-Service': {
             fnName: 'figshareservice.publishAfterUploadFilesJob',
             options: {

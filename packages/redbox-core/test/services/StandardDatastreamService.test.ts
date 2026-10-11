@@ -119,6 +119,27 @@ describe('StandardDatastreamService', function () {
       expect(exported).to.have.property('addAndRemoveDatastreams');
       expect(exported).to.have.property('getDatastream');
       expect(exported).to.have.property('listDatastreams');
+      expect(exported).to.have.property('getDatastreamFingerprint');
+    });
+  });
+
+  describe('getDatastreamFingerprint', function () {
+    it('identifies stored bytes from primary disk metadata without reading them', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      mockPrimaryDisk.getMetaData.resolves({ contentLength: 9, etag: 'etag-1', lastModified: new Date('2026-01-01T00:00:00.000Z') });
+      expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal('etag-1:9:2026-01-01T00:00:00.000Z');
+      expect(mockPrimaryDisk.getMetaData.calledWith('attachments/oid-123/file-1')).to.be.true;
+      expect(mockPrimaryDisk.getStream.called).to.be.false;
+    });
+
+    it('reports no fingerprint without an ETag or before the attachment reaches the primary disk', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      mockPrimaryDisk.getMetaData.resolves({ contentLength: 9, etag: '', lastModified: new Date() });
+      expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal(undefined);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal(undefined);
     });
   });
 

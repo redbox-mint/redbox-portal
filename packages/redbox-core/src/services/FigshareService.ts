@@ -1,5 +1,8 @@
+import { dispatchFigshare, runFigshareWorker, getSyncStore, importRecordIntent } from './figshare-v2/worker';
+import { workerClient } from './figshare-v2/execution';
+import { buildMetadataPayload as buildLocalMetadataPayload } from './figshare-v2/metadata';
 import { Services as services } from '../CoreService';
-import { resolveFigsharePublishingConfig, getSyncState, setSyncState, getBrandName } from './figshare-v2/config';
+import { resolveFigsharePublishingConfig, getBrandName, getSyncState, setSyncState } from './figshare-v2/config';
 import { createRunContext } from './figshare-v2/context';
 import { preparePublication as preparePublicationPlan } from './figshare-v2/plan';
 import { validateHandlebarsTemplate } from './figshare-v2/bindings';
@@ -7,7 +10,6 @@ import { syncAssetsPhase } from './figshare-v2/assets';
 import { syncEmbargoPhase } from './figshare-v2/embargo';
 import { publishIfNeededPhase } from './figshare-v2/publish';
 import { writeBackPhase } from './figshare-v2/writeback';
-import { completeFigshareAudit, failFigshareAudit, startFigshareAudit } from './figshare-v2/audit';
 import {
   runBuildMetadataPayload,
   runSyncMetadataProgram,
@@ -15,12 +17,8 @@ import {
   listArticleFiles as listAllArticleFiles,
   ensureNoFileUploadInProgress as ensureNoUploadsInProgress,
 } from './figshare-v2/runtime';
-import { buildDeleteFilesMessage, buildPublishAfterUploadsMessage } from './figshare-v2/queue';
-import { shouldRunWorkflowTransitionJob } from './figshare-v2/workflow';
 import { FigshareClient, makeFixtureClient, makeLiveClient } from './figshare-v2/http';
 import { RBValidationError } from '../model/RBValidationError';
-import { QueueService } from '../QueueService';
-import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import {
   RecordModel,
   UserModel,
@@ -30,14 +28,9 @@ import {
   FigsharePublishResult,
   FigshareSyncState,
   FigshareJob,
-  DataLocationEntry,
-  WorkflowTransitionJobConfig,
   AssetSyncResult,
-  getRecordField,
-  setRecordField,
 } from './figshare-v2/types';
 
-declare const AgendaQueueService: QueueService;
 
 export namespace Services {
   export class FigshareService extends services.Core.Service {
@@ -58,6 +51,11 @@ export namespace Services {
       'writeBack',
       'syncRecordWithFigshare',
       'init',
+      'validateFigshareRecord',
+      'wakeFigshareRecord',
+      'requestFigshareCleanup',
+      'dispatchSyncJob',
+      'syncRecordJob',
     ];
 
     private _msgPrefix!: string;
@@ -187,7 +185,7 @@ export namespace Services {
 
     public makeClient(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, jobId?: string, triggerSource: string = 'manual') {
       const runContext = createRunContext(record, config, jobId, triggerSource);
-      return config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
+      return workerClient(config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext));
     }
 
     public preparePublication(record: RecordModel, jobId?: string): FigsharePublicationPlan {
@@ -265,593 +263,91 @@ export namespace Services {
       await ensureNoUploadsInProgress(client, articleId);
     }
 
-    private async cleanupUploadedFiles(record: RecordModel, articleId: string): Promise<RecordModel> {
-      const config = this.getConfig(record);
-      if (config == null) {
-        return record;
-      }
+    private readonly warnedDisabledBrands = new Set<string>();
+    private warnDisabledProcessing(record: RecordModel): void {
+      const config = resolveFigsharePublishingConfig(record, { requireToken: false });
+      const brand = getBrandName(record);
+      if (!config || config.processing?.enabled || this.warnedDisabledBrands.has(brand)) return;
+      this.warnedDisabledBrands.add(brand);
+      sails.log.warn(`Figshare legacy hook for brand ${brand} cannot synchronise articles while figsharePublishing.processing.enabled is false; enable queued processing after completing the migration checks.`);
+    }
 
-      const client = this.makeClient(config, record, undefined, 'cleanupUploadedFiles');
-      const articleFiles = await this.getArticleFiles(client, articleId);
-      const dataLocations = (getRecordField(record, config.record.dataLocationsPath) ?? []) as DataLocationEntry[];
-      const recordConfig = (sails.config as Record<string, unknown>).record as Record<string, unknown> | undefined;
-      const datastreamServiceName = String(recordConfig?.datastreamService ?? '');
-      const datastreamService = datastreamServiceName ? (sails.services as Record<string, unknown>)?.[datastreamServiceName] as Record<string, unknown> | undefined : undefined;
+    private readonly warnedAliases = new Set<string>();
+    private deprecate(name: string, replacement: string): void {
+      if (this.warnedAliases.has(name)) return;
+      this.warnedAliases.add(name);
+      sails.log.warn(`Figshare ${name} is deprecated; configure ${replacement}.`);
+    }
 
-      for (const entry of [...dataLocations]) {
-        if (entry.type !== 'attachment' || entry.fileId == null) {
-          continue;
-        }
-
-        const uploaded = articleFiles.find((file) => file.name === (entry.name ?? ''));
-        if (uploaded == null) {
-          continue;
-        }
-
-        const removeDatastream = datastreamService?.removeDatastream as ((oid: string, entry: DataLocationEntry) => Promise<unknown>) | undefined;
-        if (removeDatastream != null) {
-          try {
-            await removeDatastream(record.redboxOid ?? record.id ?? '', entry);
-          } catch (error) {
-            sails.log.warn(`FigService - failed to remove datastream for record '${record.redboxOid ?? record.id ?? ''}'`, {
-              entry,
-              error: error instanceof Error ? error.message : String(error)
-            });
-          }
-        }
-
-        const idx = dataLocations.indexOf(entry);
-        if (idx >= 0) {
-          dataLocations.splice(idx, 1);
-        }
-        const downloadUrl = typeof uploaded.download_url === 'string' ? uploaded.download_url.trim() : '';
-        if (downloadUrl === '') {
-          sails.log.warn(`FigService - uploaded file '${uploaded.name}' for entry '${String(entry.selected ?? '')}' has no download URL; skipping write-back URL replacement`);
-          continue;
-        }
-        dataLocations.push({
-          type: 'url',
-          location: downloadUrl,
-          notes: `File name: ${uploaded.name}`,
-          originalFileName: uploaded.name,
-          ignore: true,
-          selected: entry.selected ?? false
-        });
-      }
-
-      setRecordField(record, config.record.dataLocationsPath, dataLocations);
-      const uploadedFlagPath = config.record.allFilesUploadedPath;
-      if (typeof uploadedFlagPath === 'string' && uploadedFlagPath !== '') {
-        setRecordField(record, uploadedFlagPath, 'yes');
-      }
+    public async validateFigshareRecord(oid: string | null, record: RecordModel, options: Record<string, unknown> = {}, user?: unknown): Promise<RecordModel> {
+      if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) return record;
+      const config = resolveFigsharePublishingConfig(record, { requireToken: false });
+      if (!config) return record;
+      // Bindings and local validation only. Account/license network lookup belongs to the worker.
+      await buildLocalMetadataPayload(config, record);
       return record;
     }
 
-    private async isArticleReadyForWorkflowTransition(
-      config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>,
-      record: RecordModel,
-      articleId: string,
-      figshareTargetFieldKey: string,
-      figshareTargetFieldValue: string
-    ): Promise<boolean> {
-      if (!articleId.trim()) {
-        sails.log.error(`FigService - the article id '${articleId}' is not valid`);
-        return false;
+    public async wakeFigshareRecord(oid: string, record?: RecordModel): Promise<RecordModel | undefined> {
+      const fresh = await RecordsService.getMeta(oid);
+      const config = fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false });
+      if (!fresh || !config?.processing?.enabled || config.processingError || fresh.figshareSyncIntent?.readiness === 'initialising') return record;
+      const store = getSyncStore();
+      await store.ensureIndexes();
+      await importRecordIntent(store, fresh);
+      const state = await store.get(oid);
+      if (state?.nextActionAt != null) {
+        await AgendaQueueService.schedule('Figshare-SyncRecord', `in ${Math.min(config.processing.coalesceMs, 900000)} milliseconds`, { oid, brandId: fresh.metaMetadata.brandId });
       }
-
-      const client = this.makeClient(config, record, `${articleId}:workflow-transition`, 'transitionRecordWorkflowFromFigshareArticlePropertiesJob');
-      const article = await client.getArticle(articleId);
-      const figshareFieldValue = (article as Record<string, unknown>)[figshareTargetFieldKey] ?? null;
-      if (figshareFieldValue == null || figshareFieldValue !== figshareTargetFieldValue) {
-        sails.log.warn(`FigService - the article id '${articleId}' item property '${figshareTargetFieldKey}' value '${JSON.stringify(figshareFieldValue)}' is not '${JSON.stringify(figshareTargetFieldValue)}'`);
-        return false;
-      }
-
-      const files = await this.getArticleFiles(client, articleId);
-      const uploadInProgress = files.some((entry) => String(entry.status ?? '').toLowerCase() === 'created');
-      if (uploadInProgress) {
-        sails.log.warn(`FigService - the article id '${articleId}' has an upload in progress`);
-        return false;
-      }
-
-      return true;
+      return record;
     }
-
-    private async transitionWorkflowForRecord(
-      record: RecordModel,
-      user: UserModel,
-      oid: string,
-      articleId: string,
-      targetStep: string,
-      figshareTargetFieldKey: string,
-      figshareTargetFieldValue: string
-    ): Promise<void> {
-      const config = this.getConfig(record);
-      if (config == null) {
-        return;
-      }
-
-      const msgPartial = `record oid '${oid}' with figshare article id '${articleId}' to step '${targetStep}'`;
-      if (!(await this.isArticleReadyForWorkflowTransition(config, record, articleId, figshareTargetFieldKey, figshareTargetFieldValue))) {
-        throw new Error(`Cannot transition ${msgPartial} because the linked article is not in the required state`);
-      }
-
-      const currentRec = await RecordsService.getMeta(oid) as RecordModel;
-      const brandId = currentRec.metaMetadata?.brandId;
-      const brand = (brandId ? (BrandingService.getBrandById(brandId) ?? BrandingService.getBrand(brandId)) : null) ?? BrandingService.getDefault();
-      const userRoles = user.roles ?? [];
-      const hasEditAccess = await RecordsService.hasEditAccess(brand, user, userRoles as unknown as Record<string, unknown>[], currentRec as unknown as Record<string, unknown>);
-      if (!hasEditAccess) {
-        throw new Error(`Cannot transition ${msgPartial} because user '${user.username}' does not have edit permission`);
-      }
-
-      const recordTypeName = currentRec.metaMetadata?.type ?? '';
-      const recordType = await RecordTypesService.get(brand, recordTypeName).toPromise();
-      if (!recordType) {
-        throw new Error(`Cannot transition ${msgPartial} because record type is missing`);
-      }
-
-      const nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
-      const metadata = currentRec.metadata;
-      const recordUpdateResult = await RecordsService.updateMeta(brand, oid, currentRec as Record<string, unknown>, user, true, true, nextStepResp, metadata as Record<string, unknown>);
-      const isSuccessful = recordUpdateResult.isSuccessful();
-      if (isSuccessful) {
-        sails.log.info(`FigService - updated ${msgPartial}`);
-      } else {
-        throw new Error(`Failed to update ${msgPartial}: ${JSON.stringify(recordUpdateResult)}`);
-      }
-    }
-
-    public async syncRecordWithFigshare(record: RecordModel, jobId?: string, triggerSource: string = 'manual'): Promise<RecordModel> {
-      const config = this.getConfig(record);
-      const rm = record as RecordModel;
-      if (config == null) {
-        return record;
-      }
-
-      const plan = this.preparePublication(rm, jobId);
-      if (plan.action === 'skip') {
-        return record;
-      }
-
-      const runContext = createRunContext(rm, config, jobId, triggerSource);
-      const auditCtx = startFigshareAudit(runContext.recordOid, IntegrationAuditAction.syncRecordWithFigshare, runContext, {
-        triggerSource,
-        jobId,
-        correlationId: plan.syncState.correlationId,
-        articleId: plan.articleId,
-        phase: 'sync-start',
-      });
-
-      try {
-        let article = await this.syncMetadata(rm, plan);
-        const assetSyncResult = await this.syncAssets(rm, article);
-        await this.syncEmbargo(rm, String(article?.id ?? plan.articleId ?? ''));
-        const publishResult = await this.publishIfNeeded(rm, String(article?.id ?? plan.articleId ?? ''));
-        if (Object.keys(publishResult).length > 0) {
-          article = await this.makeClient(config, rm, plan.syncState.correlationId, triggerSource).getArticle(String(article?.id ?? plan.articleId ?? ''));
-        }
-        const updatedRecord = this.writeBack(rm, article, publishResult, assetSyncResult);
-        completeFigshareAudit(auditCtx, {
-          message: 'Figshare sync completed successfully.',
-          responseSummary: {
-            triggerSource,
-            jobId,
-            correlationId: plan.syncState.correlationId,
-            articleId: String(article?.id ?? plan.articleId ?? ''),
-            phases: ['metadata sync', 'asset sync', 'embargo sync', 'publish', 'write-back'],
-            publishResult,
-            partialProgress: this.getSyncState(config, rm).partialProgress,
-          },
-        });
-        return updatedRecord;
-      } catch (error) {
-        const syncState = this.getSyncState(config, rm);
-        syncState.status = 'failed';
-        syncState.lastError = error instanceof Error ? error.message : String(error);
-        this.setSyncState(config, rm, syncState);
-        const errorSummary = this.summarizeError(error);
-        failFigshareAudit(auditCtx, error, {
-          message: 'Figshare sync failed.',
-          errorDetail: error instanceof Error ? error.message : String(error),
-          httpStatusCode: errorSummary.statusCode,
-          responseSummary: {
-            triggerSource,
-            jobId,
-            correlationId: plan.syncState.correlationId,
-            articleId: plan.articleId,
-            phase: 'syncRecordWithFigshare',
-            partialProgress: syncState.partialProgress,
-            ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
-          },
-        });
-        this.wrapHttpError(error, TranslationService.t('figshare-error-syncing-record'));
-      }
-    }
-
-    public async persistSyncRecord(oid: string, record: RecordModel, user: UserModel): Promise<boolean> {
-      try {
-        const brandName = getBrandName(record);
-        const brand = BrandingService.getBrand(brandName);
-        const response = await RecordsService.updateMeta(brand, oid, record as Record<string, unknown>, user, false, false);
-        if (response != null && typeof response.isSuccessful === 'function' && !response.isSuccessful()) {
-          sails.log.error(`FigService - failed to persist Figshare sync state for ${oid}: ${JSON.stringify(response)}`);
-          return false;
-        }
-        return true;
-      } catch (error) {
-        sails.log.error(`FigService - failed to persist Figshare sync state for ${oid}`, error);
-        return false;
-      }
-    }
+    public async dispatchSyncJob(): Promise<void> { await dispatchFigshare(); }
+    public async syncRecordJob(job: FigshareJob): Promise<void> { await runFigshareWorker(this, job); }
 
     public createUpdateFigshareArticle(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown) {
-      if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
-        sails.log.debug(`FigService - createUpdateFigshareArticle trigger condition not met for ${oid}`);
-        return record;
-      }
-      if (this.getConfig(record) == null) {
-        return record;
-      }
-      return this.syncRecordWithFigshare(record, `${oid}:pre`, 'pre-save');
+      this.deprecate('createUpdateFigshareArticle', 'validateFigshareRecord');
+      this.warnDisabledProcessing(record);
+      return this.validateFigshareRecord(oid, record, options, user);
     }
-
-    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
-      if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
-        sails.log.debug(`FigService - uploadFilesToFigshareArticle trigger condition not met for ${oid}`);
-        return record;
-      }
-      if (this.getConfig(record) == null) {
-        return record;
-      }
-      void this.syncRecordWithFigshare(record, `${oid}:post`, 'post-save')
-        .then(async (updatedRecord: RecordModel) => {
-          const persisted = await this.persistSyncRecord(oid, updatedRecord, user);
-          if (persisted === false) {
-            const config = this.getConfig(updatedRecord);
-            if (config != null) {
-              const runContext = createRunContext(updatedRecord, config, `${oid}:post-persist`, 'post-save');
-              const auditCtx = startFigshareAudit(oid, IntegrationAuditAction.syncRecordWithFigshare, runContext, {
-                triggerSource: 'post-save',
-                jobId: `${oid}:post-persist`,
-                correlationId: `${oid}:post-persist`,
-                phase: 'persist-sync-record',
-              });
-              failFigshareAudit(auditCtx, new Error(`Failed to persist Figshare sync state for record '${oid}'.`), {
-                message: 'Figshare sync failed while persisting Redbox state.',
-                responseSummary: { oid, phase: 'persist-sync-record' },
-              });
-            }
-            return;
-          }
-          const config = this.getConfig(updatedRecord);
-          if (config != null) {
-            const rm = updatedRecord as RecordModel;
-            const syncState = this.getSyncState(config, rm);
-            const articleId = String(getRecordField(rm, config.record.articleIdPath) ?? '');
-            const brandId = rm.metaMetadata?.brandId ?? '';
-            const attachmentCount = Number(syncState.partialProgress?.attachmentCount ?? 0);
-            const uploadsComplete = syncState.partialProgress?.uploadsComplete === true;
-            if (attachmentCount > 0 && articleId !== '') {
-              if (config.article.publishMode === 'afterUploadsComplete') {
-                this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
-              } else if (config.article.publishMode === 'immediate' && uploadsComplete) {
-                this.queueDeleteFiles(oid, user, brandId, articleId);
-              }
-            }
-          }
-        })
-        .catch(async (error: unknown) => {
-          await this.persistSyncRecord(oid, record, user);
-          sails.log.error(`FigService - uploadFilesToFigshareArticle sync failed for ${oid}`, error);
-        });
+    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, _options?: Record<string, unknown>, _user?: UserModel) {
+      this.deprecate('uploadFilesToFigshareArticle', 'wakeFigshareRecord');
+      this.warnDisabledProcessing(record);
+      return this.wakeFigshareRecord(oid, record);
     }
-
-    public async deleteFilesFromRedboxTrigger(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
-      const config = this.getConfig(record);
-      const rm = record as RecordModel;
-      if (config == null) {
-        return record;
-      }
-      if (this.metTriggerCondition(oid, rm as Record<string, unknown>, options, user) === 'true') {
-        const articleId = String(getRecordField(rm, config.record.articleIdPath) ?? '');
-        if (articleId === '') {
-          return record;
-        }
-        const runContext = createRunContext(rm, config, `${oid}:cleanup-trigger`, 'deleteFilesFromRedboxTrigger');
-        const auditCtx = startFigshareAudit(oid, IntegrationAuditAction.cleanupUploadedFilesJob, runContext, {
-          triggerSource: 'deleteFilesFromRedboxTrigger',
-          jobId: `${oid}:cleanup-trigger`,
-          articleId,
-          phase: 'cleanup-uploaded-files',
-        });
-        try {
-          const updatedRecord = await this.cleanupUploadedFiles(rm, articleId);
-          completeFigshareAudit(auditCtx, {
-            message: 'Figshare uploaded file cleanup trigger completed successfully.',
-            responseSummary: { articleId, phase: 'cleanup-uploaded-files' },
-          });
-          return updatedRecord;
-        } catch (error) {
-          failFigshareAudit(auditCtx, error, {
-            message: 'Figshare uploaded file cleanup trigger failed.',
-            errorDetail: error instanceof Error ? error.message : String(error),
-            responseSummary: { articleId, phase: 'cleanup-uploaded-files' },
-          });
-          throw error;
-        }
-      }
+    public requestFigshareCleanup(_oid: string, record: RecordModel, _options?: Record<string, unknown>, _user?: UserModel) {
+      // RecordsService recognises this configured hook and commits cleanup-only intent.
       return record;
     }
-
-    public async publishAfterUploadFilesJob(job: FigshareJob) {
-      const data = job?.attrs?.data;
-      if (data == null || (data.oid == null && data.articleId == null)) {
-        sails.log.warn('FigService - publish-after-uploads job received no usable payload');
-        return;
-      }
-
-      const oid = data.oid ?? '';
-      const articleId = data.articleId ?? '';
-      const brandId = data.brandId ?? '';
-      const user = data.user as UserModel;
-      if (!oid.trim()) {
-        sails.log.error(`FigService - cannot publish uploaded files because the record oid is empty before calling RecordsService.getMeta`);
-        return;
-      }
-      const record = await RecordsService.getMeta(oid) as RecordModel;
-      const config = this.getConfig(record);
-      if (config == null) {
-        return;
-      }
-      const runContext = createRunContext(record, config, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
-      const auditCtx = startFigshareAudit(oid, IntegrationAuditAction.publishAfterUploadFilesJob, runContext, {
-        triggerSource: 'publishAfterUploadFilesJob',
-        jobId: `${oid}:publish-job`,
-        correlationId: `${oid}:publish-job`,
-        articleId,
-        phase: 'publish',
-      });
-      if (!articleId.trim()) {
-        const error = new Error(`Cannot publish uploaded files for record '${oid}' because the Figshare article id is empty`);
-        sails.log.error(`FigService - ${error.message}`);
-        failFigshareAudit(auditCtx, error, {
-          message: 'Figshare publish-after-uploads job failed.',
-          errorDetail: error.message,
-          responseSummary: {
-            articleId,
-            correlationId: `${oid}:publish-job`,
-            phase: 'publish',
-          },
-        });
-        return;
-      }
-
-      const client = this.makeClient(config, record, `${oid}:publish-job`, 'publishAfterUploadFilesJob');
-      try {
-        await this.ensureNoFileUploadInProgress(config, record, articleId);
-      } catch (error) {
-        if (!(error instanceof RBValidationError)) {
-          const errorSummary = this.summarizeError(error);
-          failFigshareAudit(auditCtx, error, {
-            message: 'Figshare publish-after-uploads job failed while checking upload status.',
-            errorDetail: error instanceof Error ? error.message : String(error),
-            httpStatusCode: errorSummary.statusCode,
-            responseSummary: {
-              articleId,
-              correlationId: `${oid}:publish-job`,
-              phase: 'verify-upload-status',
-              ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
-            },
-          });
-          this.wrapHttpError(error, TranslationService.t('figshare-error-verifying-upload'));
-        }
-
-        sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
-        try {
-          this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
-          return;
-        } catch (queueError) {
-          failFigshareAudit(auditCtx, queueError, {
-            message: 'Figshare publish-after-uploads job could not be rescheduled while uploads were still in progress.',
-            errorDetail: queueError instanceof Error ? queueError.message : String(queueError),
-            responseSummary: {
-              articleId,
-              correlationId: `${oid}:publish-job`,
-              phase: 'publish',
-              rescheduled: false,
-            },
-          });
-          throw queueError;
-        }
-      }
-
-      try {
-        const publishResult = await client.publishArticle(articleId, {});
-        const article = await client.getArticle(articleId);
-        const updatedRecord = this.writeBack(record, article, publishResult);
-        const persisted = await this.persistSyncRecord(oid, updatedRecord, user);
-        if (persisted === false) {
-          throw new Error(`Failed to persist Figshare publish state for record '${oid}'.`);
-        }
-        this.queueDeleteFiles(oid, user, brandId, articleId);
-        completeFigshareAudit(auditCtx, {
-          message: 'Figshare publish-after-uploads job completed successfully.',
-          responseSummary: {
-            articleId,
-            correlationId: `${oid}:publish-job`,
-            publishResult,
-            cleanupQueued: true,
-          },
-        });
-      } catch (error) {
-        const errorSummary = this.summarizeError(error);
-        failFigshareAudit(auditCtx, error, {
-          message: 'Figshare publish-after-uploads job failed.',
-          errorDetail: error instanceof Error ? error.message : String(error),
-          httpStatusCode: errorSummary.statusCode,
-          responseSummary: {
-            articleId,
-            correlationId: `${oid}:publish-job`,
-            phase: 'publish',
-            ...(errorSummary.responseSummary != null ? { error: errorSummary.responseSummary } : {}),
-          },
-        });
-        this.wrapHttpError(error, TranslationService.t('figshare-error-publishing-article'));
-      }
+    public deleteFilesFromRedboxTrigger(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
+      this.deprecate('deleteFilesFromRedboxTrigger', 'requestFigshareCleanup');
+      this.warnDisabledProcessing(record);
+      return this.requestFigshareCleanup(oid, record, options, user);
     }
-
-    public async deleteFilesFromRedbox(job: FigshareJob) {
-      const data = job?.attrs?.data;
-      if (data == null || (data.oid == null && data.articleId == null)) {
-        sails.log.warn('FigService - uploaded file cleanup job received no usable payload');
-        return;
-      }
-
-      const oid = data.oid ?? '';
-      const articleId = data.articleId ?? '';
-      const brandId = data.brandId ?? '';
-      const user = data.user as UserModel;
-      if (!oid.trim()) {
-        return;
-      }
-      let record = await RecordsService.getMeta(oid) as RecordModel;
-      const config = this.getConfig(record);
-      if (config == null) {
-        return;
-      }
-      const runContext = createRunContext(record, config, `${oid}:cleanup-job`, 'deleteFilesFromRedbox');
-      const auditCtx = startFigshareAudit(oid, IntegrationAuditAction.cleanupUploadedFilesJob, runContext, {
-        triggerSource: 'deleteFilesFromRedbox',
-        jobId: `${oid}:cleanup-job`,
-        correlationId: `${oid}:cleanup-job`,
-        articleId,
-        phase: 'cleanup-uploaded-files',
-      });
-      try {
-        record = await this.cleanupUploadedFiles(record, articleId) as RecordModel;
-        const persisted = await this.persistSyncRecord(oid, record, user);
-        if (persisted === false) {
-          throw new Error(`Failed to persist Figshare cleanup state for record '${oid}'.`);
-        }
-        completeFigshareAudit(auditCtx, {
-          message: 'Figshare uploaded file cleanup job completed successfully.',
-          responseSummary: { articleId, brandId, phase: 'cleanup-uploaded-files' },
-        });
-      } catch (error) {
-        failFigshareAudit(auditCtx, error, {
-          message: 'Figshare uploaded file cleanup job failed.',
-          errorDetail: error instanceof Error ? error.message : String(error),
-          responseSummary: { articleId, brandId, phase: 'cleanup-uploaded-files' },
-        });
-        throw error;
-      }
+    public async syncRecordWithFigshare(record: RecordModel, _jobId?: string, _triggerSource?: string): Promise<RecordModel> {
+      this.deprecate('syncRecordWithFigshare', 'wakeFigshareRecord');
+      this.warnDisabledProcessing(record);
+      await this.wakeFigshareRecord(record.redboxOid ?? record.id, record);
+      return record;
     }
-
-    public queuePublishAfterUploadFiles(oid: string, articleId: string, user: UserModel, brandId: string) {
-      const queueMessage = buildPublishAfterUploadsMessage(oid, articleId, user, brandId);
-      const jobName = 'Figshare-PublishAfterUpload-Service';
-      const record = {
-        metaMetadata: { brandId }
-      } as RecordModel;
-      const config = this.getConfig(record);
-      const scheduleIn = String(config?.queue.publishAfterUploadDelay ?? 'in 2 minutes');
-      if (scheduleIn === 'immediate') {
-        AgendaQueueService.now(jobName, queueMessage);
-      } else {
-        AgendaQueueService.schedule(jobName, scheduleIn, queueMessage);
-      }
+    public async publishAfterUploadFilesJob(job: FigshareJob): Promise<void> {
+      this.deprecate('publishAfterUploadFilesJob', 'syncRecordJob');
+      if (job.attrs?.data?.oid) await this.wakeFigshareRecord(job.attrs.data.oid);
     }
-
-    public queueDeleteFiles(oid: string, user: UserModel, brandId: string, articleId: string) {
-      const queueMessage = buildDeleteFilesMessage(oid, user, brandId, articleId);
-      const jobName = 'Figshare-UploadedFilesCleanup-Service';
-      const record = {
-        metaMetadata: { brandId }
-      } as RecordModel;
-      const config = this.getConfig(record);
-      const scheduleIn = String(config?.queue.uploadedFilesCleanupDelay ?? 'in 5 minutes');
-      if (scheduleIn === 'immediate') {
-        AgendaQueueService.now(jobName, queueMessage);
-      } else {
-        AgendaQueueService.schedule(jobName, scheduleIn, queueMessage);
-      }
+    public async deleteFilesFromRedbox(job: FigshareJob): Promise<void> {
+      this.deprecate('deleteFilesFromRedbox', 'syncRecordJob');
+      if (job.attrs?.data?.oid) await this.wakeFigshareRecord(job.attrs.data.oid);
     }
-
+    public queuePublishAfterUploadFiles(oid: string, _articleId: string, _user: UserModel, _brandId: string) {
+      return this.wakeFigshareRecord(oid);
+    }
+    public queueDeleteFiles(oid: string, _user: UserModel, _brandId: string, _articleId: string) {
+      return this.wakeFigshareRecord(oid);
+    }
     public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(_job: Record<string, unknown>): Promise<void> {
-      const defaultConfig = this.getConfig({ metaMetadata: { brandId: 'default' } } as RecordModel);
-      const jobConfig = (defaultConfig?.workflow.transitionJob ?? {}) as WorkflowTransitionJobConfig;
-      if (!shouldRunWorkflowTransitionJob(jobConfig)) {
-        sails.log.info('FigService - transitionRecordWorkflowFromFigshareArticlePropertiesJob is disabled by config');
-        return;
-      }
-
-      try {
-        const brand = BrandingService.getBrand('default');
-        const start = 0;
-        const rows = 30;
-        const maxRecords = 100;
-        const namedQuery = jobConfig.namedQuery ?? '';
-        const targetStep = jobConfig.targetStep ?? '';
-        const paramMap = jobConfig.paramMap ?? {};
-        const figshareTargetFieldKey = jobConfig.figshareTargetFieldKey ?? '';
-        const figshareTargetFieldValue = jobConfig.figshareTargetFieldValue ?? '';
-        const username = jobConfig.username ?? '';
-        const userType = jobConfig.userType ?? '';
-        const user = await UsersService.getUserWithUsername(username).toPromise();
-
-        if (!user || !user?.username || user?.type !== userType) {
-          sails.log.error(`FigService - cannot run job because could not find user with username '${username}' and type '${userType}'`, { type: user?.type });
-          return;
-        }
-
-        const namedQueryConfig = await NamedQueryService.getNamedQueryConfig(brand, namedQuery);
-        if (!namedQueryConfig) {
-          sails.log.error(`FigService - named query '${namedQuery}' was not found for workflow transition job`);
-          return;
-        }
-        const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, namedQuery, start, rows, maxRecords, user);
-
-        for (const queryResult of queryResults) {
-          const oid = String(queryResult.oid ?? '');
-          if (oid === '') {
-            continue;
-          }
-          let auditCtx: ReturnType<typeof startFigshareAudit> = null;
-          try {
-            const record = await RecordsService.getMeta(oid) as RecordModel;
-            const config = this.getConfig(record);
-            if (config == null) {
-              continue;
-            }
-            const articleId = String(getRecordField(record, config.record.articleIdPath) ?? '');
-            const runContext = createRunContext(record, config, `${oid}:workflow-transition`, 'transitionRecordWorkflowFromFigshareArticlePropertiesJob');
-            auditCtx = startFigshareAudit(oid, IntegrationAuditAction.transitionRecordWorkflowFromFigshareArticlePropertiesJob, runContext, {
-              triggerSource: 'transitionRecordWorkflowFromFigshareArticlePropertiesJob',
-              jobId: `${oid}:workflow-transition`,
-              correlationId: `${oid}:workflow-transition`,
-              articleId,
-              targetStep,
-              phase: 'workflow-transition',
-            });
-            await this.transitionWorkflowForRecord(record, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
-            completeFigshareAudit(auditCtx, {
-              message: 'Figshare workflow transition job completed successfully for record.',
-              responseSummary: { articleId, targetStep, phase: 'workflow-transition' },
-            });
-          } catch (error) {
-            sails.log.warn(`FigService - transitionRecordWorkflowFromFigshareArticlePropertiesJob unable to process oid ${oid}`, error);
-            failFigshareAudit(auditCtx, error, {
-              message: 'Figshare workflow transition job failed for record.',
-              errorDetail: error instanceof Error ? error.message : String(error),
-              responseSummary: { oid, targetStep, phase: 'workflow-transition' },
-            });
-          }
-        }
-      } catch (error) {
-        sails.log.error('FigService - error in transitionRecordWorkflowFromFigshareArticlePropertiesJob', error);
-      }
+      // Observation is durable and scheduled by the worker. Legacy scanners only redeliver it.
+      await this.dispatchSyncJob();
     }
+
   }
 }
 

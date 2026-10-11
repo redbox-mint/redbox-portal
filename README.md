@@ -48,3 +48,7 @@ For detailed testing instructions, see [support/wiki/ReDBox-Automated-Tests.md](
 ## Support
 
 For more information, visit the [Redbox Portal Wiki](https://github.com/redbox-mint/redbox-portal/wiki).
+
+## Queued Figshare synchronisation
+
+See the [configuration and operator runbook](support/wiki/Figshare-Queued-Synchronisation.md) and [verification record](support/figshare/VERIFICATION.md). New processing is disabled until migration and institutional staging checks are complete.

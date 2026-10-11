@@ -25,6 +25,12 @@ export class RecordClass {
   @Attr({ type: 'json' })
   public authorization?: JsonMap;
 
+  @Attr({ type: 'json' })
+  public figshareSyncIntent?: JsonMap;
+
+  @Attr({ type: 'number', defaultsTo: 0 })
+  public recordVersion?: number;
+
   @Attr({ type: 'string', autoCreatedAt: true })
   public dateCreated!: string;
 
