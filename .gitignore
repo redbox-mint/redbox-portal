@@ -236,3 +236,5 @@ packages/redbox-dev-tools/support/junit/
 
 # Bind-mount destination populated by the disposable Playwright runner.
 /playwright-application-bundles.json
+# Local Figshare E2E verification reports
+/support/figshare/E2E*.md

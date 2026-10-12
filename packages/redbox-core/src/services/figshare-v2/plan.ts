@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RecordModel, FigsharePublicationPlan, FigshareSyncState, DataLocationEntry, getRecordField } from './types';
-import { setSyncState } from './config';
 
 export function getSelectedDataLocations(config: FigsharePublishingConfigData, record: RecordModel): DataLocationEntry[] {
   const dataLocations = (getRecordField(record, config.record.dataLocationsPath) ?? []) as DataLocationEntry[];
@@ -10,7 +9,7 @@ export function getSelectedDataLocations(config: FigsharePublishingConfigData, r
       return false;
     }
 
-    if (entry.type === 'attachment') {
+    if (entry.type === 'attachment' || typeof entry.figshareReceipt === 'string') {
       return config.selection.attachmentMode === 'all' || entry[config.selection.selectedFlagPath] === true;
     }
 
@@ -25,11 +24,6 @@ export function getSelectedDataLocations(config: FigsharePublishingConfigData, r
 export function preparePublication(config: FigsharePublishingConfigData, record: RecordModel, existingState: FigshareSyncState, correlationId: string): FigsharePublicationPlan {
   const sameJob = existingState.lockOwner === correlationId;
   const existingArticleId = getRecordField(record, config.record.articleIdPath);
-  if (!sameJob && (existingState.status === 'syncing' || existingState.status === 'awaiting_upload_completion')) {
-    sails.log.warn(`FigService v2 - skipping duplicate sync for record ${record.redboxOid ?? record.id}`);
-    return { action: 'skip', articleId: existingArticleId ? String(existingArticleId) : undefined, sameJob: false, syncState: existingState };
-  }
-
   const hasArticleId = existingArticleId != null && existingArticleId !== '';
   const action = !hasArticleId
     ? 'create'
@@ -40,12 +34,12 @@ export function preparePublication(config: FigsharePublishingConfigData, record:
   const syncState: FigshareSyncState = {
     ...existingState,
     status: 'syncing',
-    lockOwner: correlationId,
+
     correlationId,
     lastError: '',
     lastSyncAt: new Date().toISOString()
   };
-  setSyncState(config, record, syncState);
+
 
   return {
     action,
