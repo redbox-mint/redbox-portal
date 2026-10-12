@@ -1,6 +1,10 @@
+import type { FigshareSourceIntent } from './FigshareSyncModel';
+
 export interface RecordModel {
   [key: string]: unknown;
   redboxOid: string;
+  figshareSyncIntent?: FigshareSourceIntent;
+  recordVersion?: number;
   /** Server-owned monotonic aggregate revision. */
   revision?: number;
   /** Durable server-owned identity for this OID's lifecycle incarnation. */

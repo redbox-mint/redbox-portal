@@ -1,3 +1,5 @@
+import { figshareExecution, workerClient, transportGuardedMethods } from './execution';
+import type { FigshareOperation } from '../../configmodels/FigsharePublishing';
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 import { Context, Layer } from 'effect';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
@@ -32,6 +34,23 @@ export class FigshareHttpError extends Error {
       (this as Error & { cause?: unknown }).cause = options.cause;
     }
   }
+}
+
+/** Keep Axios request/config internals out of logs while retaining validation errors. */
+export function describeFigshareHttpFailure(error: AxiosError, token: string): Record<string, string | undefined> {
+  const body = error.response?.data;
+  const details = body != null && typeof body === 'object' ? body as Record<string, unknown> : {};
+  const safeText = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return undefined;
+    const withoutToken = token ? value.replaceAll(token, '[REDACTED]') : value;
+    return withoutToken.slice(0, 500);
+  };
+  return {
+    errorName: safeText(error.name),
+    errorCode: safeText(error.code),
+    responseCode: safeText(details.code),
+    responseMessage: safeText(details.message)
+  };
 }
 
 function isReadablePayload(payload: unknown): payload is { pipe: (...args: unknown[]) => unknown } {
@@ -73,6 +92,9 @@ function assertNumericPathId(label: string, value: string): string {
 }
 
 export interface FigshareClient {
+  getAccount?(): Promise<FigshareInstitutionAccount>;
+  listArticles?(page?: number, pageSize?: number): Promise<FigshareArticle[]>;
+  getPublicArticle?(articleId: string): Promise<FigshareArticle>;
   createArticle(payload: FigshareArticlePayload): Promise<FigshareArticle>;
   updateArticle(articleId: string, payload: FigshareArticlePayload): Promise<FigshareArticle>;
   getArticle(articleId: string): Promise<FigshareArticle>;
@@ -111,6 +133,7 @@ type RequestOptions = {
   responseMapper?: <T>(response: AxiosResponse) => T;
   /** Public Figshare endpoints reject nothing but must not receive the account token. */
   anonymous?: boolean;
+  operation?: FigshareOperation;
 };
 
 type FigshareResponseHeaders = Record<string, unknown> | AxiosResponse['headers'];
@@ -120,6 +143,7 @@ type FigshareResponseLike = {
 };
 
 async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePublishingConfigData, runContext: FigshareRunContext, options: RequestOptions): Promise<T> {
+  const execution = figshareExecution.getStore();
   const retryConfig = config.connection.retry;
   const method = options.method;
   const methodLower = method.toLowerCase();
@@ -128,7 +152,24 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
     : ['get', 'put', 'delete']).map((entry: string) => entry.toLowerCase());
   const path = options.path ?? '';
   const url = options.url ?? `${config.connection.baseUrl.replace(/\/+$/, '')}${path}`;
-  for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
+  const accountApi = (url === `${config.connection.baseUrl.replace(/\/+$/, '')}/account` || url.startsWith(`${config.connection.baseUrl.replace(/\/+$/, '')}/account/`));
+  const operation = options.operation ?? (/\/files(?:[/?]|$)/.test(url) ? 'assets' : /\/embargo$/.test(url) ? 'embargo' : /\/publish$/.test(url) ? 'publish' : methodLower === 'get' ? 'read' : 'metadata');
+  const discovery = options.path === '/account' || options.path?.startsWith('/account/institution/') || options.path === '/account/licenses' || options.path === '/account/categories';
+  const actor = discovery ? 'token' : execution?.recovery ? 'owner' : config.impersonation?.operations[operation];
+  const owner = accountApi && options.anonymous !== true && (execution?.recovery || config.impersonation?.enabled) && actor === 'owner' && execution?.binding?.ownerId !== execution?.binding?.accountId ? execution?.binding?.ownerId : undefined;
+  if (accountApi && config.impersonation?.enabled && actor === 'owner' && !execution?.binding?.ownerId) throw new Error('Figshare operation requires a resolved owner');
+  if (config.processing?.enabled && !execution && methodLower !== 'get' && !discovery) throw new Error('Figshare mutations require the queued worker context');
+  let payload = options.payload;
+  let params = options.params;
+  if (owner) {
+    if (['get', 'delete'].includes(methodLower)) params = { ...params, impersonate: owner };
+    else payload = { ...(payload as Record<string, unknown> ?? {}), impersonate: owner };
+  }
+  // Queue retries reconcile mutations first; transport must never replay a POST.
+  const attempts = execution && methodLower !== 'get' ? 1 : retryConfig.maxAttempts;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    if (execution?.signal.aborted) throw new Error('Figshare request cancelled after lease loss');
+    if (execution && methodLower !== 'get' && !url.includes('/institution/accounts/search')) await execution.guard(operation);
     try {
       return await withSpan(`figshare.http.${method.toLowerCase()}`, runContext, {
         'http.method': method,
@@ -141,12 +182,13 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
           url,
           headers: {
             'Content-Type': 'application/json',
-            ...(options.anonymous === true ? {} : { 'Authorization': `token ${config.connection.token}` }),
+            ...(options.anonymous === true || !accountApi ? {} : { 'Authorization': `token ${config.connection.token}` }),
             ...(options.headers || {})
           },
           timeout: options.timeoutMs ?? config.connection.timeoutMs,
-          data: options.payload,
-          params: options.params,
+          data: payload,
+          params,
+          signal: execution?.signal,
           maxContentLength: options.maxContentLength,
           maxBodyLength: options.maxBodyLength
         });
@@ -158,12 +200,12 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
       const retryableStatus = status == null || retryConfig.retryOnStatusCodes.includes(Number(status));
       const retryableMethod = retryOnMethods.includes(methodLower);
       const retryable = retryableStatus && retryableMethod;
-      logEvent(retryable && attempt < retryConfig.maxAttempts ? 'warn' : 'error', `Figshare V2 request failed ${method} ${path}`, runContext, {
+      logEvent(retryable && attempt < attempts ? 'warn' : 'error', `Figshare V2 request failed ${method} ${path}`, runContext, {
         attempt,
         status,
-        error: redactObject(error)
+        ...describeFigshareHttpFailure(axiosErr, config.connection.token)
       });
-      if (!retryable || attempt === retryConfig.maxAttempts) {
+      if (!retryable || attempt === attempts) {
         // Wrap instead of rethrowing the raw AxiosError: axios errors carry the full
         // request config (including the Authorization header) and must not propagate.
         throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path || url}`, {
@@ -199,8 +241,8 @@ export function mapCreateArticleResponse<T>(response: FigshareResponseLike): T {
   if (article.id != null && String(article.id).trim() !== '') {
     return article as T;
   }
-  const location = getResponseHeader(response, 'Location');
-  const articleId = location == null ? undefined : getFigshareIdFromLocation(location);
+  const location = typeof article.location === 'string' ? article.location : getResponseHeader(response, 'Location');
+  const articleId = article.entity_id != null ? String(article.entity_id) : location == null ? undefined : getFigshareIdFromLocation(location);
   return {
     ...article,
     ...(articleId != null ? { id: articleId } : {}),
@@ -211,6 +253,9 @@ export function mapCreateArticleResponse<T>(response: FigshareResponseLike): T {
 export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData): FigshareClient {
   const fixtures = config.runtime.fixtures;
   return {
+    async getAccount() { return { id: 101, user_id: 201 }; },
+    async listArticles(page = 1) { return page === 1 && fixtures?.article ? [fixtures.article as FigshareArticle] : []; },
+    async getPublicArticle(articleId) { return { ...fixtures?.article, id: articleId } as FigshareArticle; },
     async createArticle(payload: FigshareArticlePayload): Promise<FigshareArticle> {
       return {
         id: fixtures?.article?.id ?? 'fixture-article-id',
@@ -302,11 +347,15 @@ export function makeFixtureClient(config: ResolvedFigsharePublishingConfigData):
 }
 
 export function makeLiveClient(config: FigsharePublishingConfigData, runContext: FigshareRunContext): FigshareClient {
-  return {
+  const client: FigshareClient = {
+    getAccount() { return requestWithRetry<FigshareInstitutionAccount>(config, runContext, { method: 'get', path: '/account', operation: 'metadata' }); },
+    listArticles(page = 1, pageSize = 100) { return requestWithRetry<FigshareArticle[]>(config, runContext, { method: 'get', path: '/account/articles', params: { page, page_size: pageSize }, operation: 'recovery' }); },
+    getPublicArticle(articleId) { return requestWithRetry<FigshareArticle>(config, runContext, { method: 'get', path: `/articles/${assertNumericPathId('articleId', articleId)}`, anonymous: true }); },
     createArticle(payload: FigshareArticlePayload) {
       return requestWithRetry<FigshareArticle>(config, runContext, {
         method: 'post',
         path: '/account/articles',
+        operation: 'create',
         payload,
         timeoutMs: config.connection.operationTimeouts.metadataMs,
         responseMapper: mapCreateArticleResponse
@@ -335,6 +384,7 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
       return requestWithRetry(config, runContext, {
         method: 'put',
         url: `${uploadUrl}/${partNo}`,
+        operation: 'assets',
         payload: data,
         headers: { 'Content-Type': 'application/octet-stream' },
         timeoutMs: config.connection.operationTimeouts.uploadPartMs,
@@ -396,9 +446,14 @@ export function makeLiveClient(config: FigsharePublishingConfigData, runContext:
       });
     }
   };
+  for (const method of [client.createArticle, client.updateArticle, client.createArticleFile, client.uploadFilePart,
+    client.completeFileUpload, client.deleteArticleFile, client.setEmbargo, client.clearEmbargo, client.publishArticle]) {
+    transportGuardedMethods.add(method);
+  }
+  return client;
 }
 
 export function makeClientLayer(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext) {
   const client = config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
-  return Layer.succeed(FigshareClientTag, client);
+  return Layer.succeed(FigshareClientTag, workerClient(client));
 }
