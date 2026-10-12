@@ -198,7 +198,7 @@ describe('RecordAuditController', () => {
     assert.equal(payload?.data?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
   });
 
-  it('passes audit filters through to the records service', async () => {
+  it('passes action and workflow filters through without insertion date bounds', async () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');
     param.withArgs('branding').returns('default');
@@ -221,9 +221,33 @@ describe('RecordAuditController', () => {
     assert.equal((global as any).sails.services.recordsservice.getRecordAudit.calledOnce, true);
     assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.action, 'updated');
     assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.workflowState, 'Draft');
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom?.toISOString(), new Date(2026, 2, 1, 0, 0, 0, 0).toISOString());
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom, undefined);
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo, undefined);
     assert.equal(sendResp.calledOnce, true);
+  });
+
+  it('displays, sorts and filters by event time when queue insertion is delayed', async () => {
+    const audit = (global as any).sails.services.recordsservice.getRecordAudit;
+    audit.resolves([
+      { id: 'old', action: 'created', occurredAt: '2026-02-28T12:00:00Z', createdAt: '2026-03-03T00:00:00Z', record: { metadata: { title: 'Old' } } },
+      { id: 'legacy', action: 'updated', createdAt: '2026-03-05T00:00:00Z', record: { metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' }, metadata: { title: 'Legacy' } } },
+      { id: 'new', action: 'updated', occurredAt: '2026-03-02T12:00:00Z', createdAt: '2026-03-04T00:00:00Z', record: { metadata: { title: 'New' } } },
+    ]);
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    param.withArgs('dateFrom').returns('2026-03-01');
+    param.withArgs('dateTo').returns('2026-03-02');
+    const req = { param, options: { locals: {} }, session: {}, user: { roles: [] } } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getAuditData(req, {} as Sails.Res);
+
+    const records = sendResp.firstCall.args[2].data.records;
+    assert.deepEqual(records.map((row: { id: string }) => row.id), ['new', 'legacy']);
+    assert.equal(records[0].timestamp, '2026-03-02T12:00:00Z');
+    assert.equal(records[1].timestamp, '2026-03-01T12:00:00Z');
+    assert.equal(records[1].changeSummary.available, true);
+    assert.equal((global as any).FormRecordConsistencyService.compareRecords.firstCall.args[0].title, 'Old');
   });
 
   it('rejects invalid audit date filters', async () => {

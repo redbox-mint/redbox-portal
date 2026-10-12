@@ -627,13 +627,14 @@ describe('RecordsService', function () {
 
   describe('auditRecord', function () {
     it('should queue audit job when enabled', function () {
-      const record = { metadata: { title: 'Test' } };
+      const record = { metadata: { title: 'Test' }, metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' } };
       const user = { username: 'testuser' };
 
       RecordsService.auditRecord('record-123', record, user, 'updated');
 
       expect(mockQueueService.now.called).to.be.true;
       expect(mockQueueService.now.firstCall.args[0]).to.equal('RecordAudit');
+      expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-01T12:00:00Z');
     });
 
     it('should not queue when auditing is disabled', function () {

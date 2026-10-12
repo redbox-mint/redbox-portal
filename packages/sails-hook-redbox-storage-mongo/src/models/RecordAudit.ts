@@ -6,6 +6,9 @@ export class RecordAuditClass {
   @Attr({ type: 'string' })
   public redboxOid?: string;
 
+  @Attr({ type: 'string' })
+  public occurredAt?: string;
+
   @Attr({ type: 'json' })
   public user?: Record<string, unknown>;
 
