@@ -264,6 +264,12 @@ export namespace Services {
         sails.log.error(`Failed to create indices:`);
         sails.log.error(JSON.stringify(err));
       }
+      try {
+        await db.collection(RecordAudit.tableName).createIndex({ redboxOid: 1, createdAt: 1 });
+      } catch (err) {
+        sails.log.error(`Failed to create record audit index:`);
+        sails.log.error(JSON.stringify(err));
+      }
     }
 
     public async create(
