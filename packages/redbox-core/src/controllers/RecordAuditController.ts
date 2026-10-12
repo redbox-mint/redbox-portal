@@ -411,6 +411,9 @@ export namespace Controllers {
 
         const records = Array.from(rowMap.values())
           .filter(row => {
+            if ((dateFrom != null || dateTo != null) && row['timestamp'] == null) {
+              return false;
+            }
             const timestamp = Number(row['_sortValue']);
             return (dateFrom == null || timestamp >= dateFrom.getTime()) &&
               (dateTo == null || timestamp <= dateTo.getTime());
