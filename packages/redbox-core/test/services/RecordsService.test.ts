@@ -2792,12 +2792,16 @@ describe('RecordsService', function () {
 
     it('refuses to fingerprint a delivered form outside the authoritative stored form identity', async function () {
       const stored = record();
-      const fingerprint = await RecordsService.getRecordFormFingerprint(stored, { name: 'rdmp' }, {
-        id: 'other-id',
-        name: 'other-form',
-        branding: 'brand-1',
-        configuration: {},
-      });
+      const fingerprint = await RecordsService.getRecordFormFingerprint(
+        stored,
+        { name: 'rdmp' },
+        {
+          id: 'other-id',
+          name: 'other-form',
+          branding: 'brand-1',
+          configuration: {},
+        }
+      );
 
       expect(fingerprint).to.equal(undefined);
       expect((global as any).FormsService.getFormByName.notCalled).to.equal(true);
@@ -3472,6 +3476,91 @@ describe('RecordsService', function () {
       ).to.equal(true);
       expect(journal.findUnresolvedByStagingFileId.calledOnce).to.equal(true);
       expect(mockDatastreamService.removeStagedDatastream.notCalled).to.equal(true);
+    });
+  });
+
+  describe('queued Figshare with typed save outcomes', function () {
+    let previousConfig: unknown;
+    let previousFigshare: unknown;
+    const recordType = {
+      name: 'rdmp',
+      searchable: false,
+      hooks: { onCreate: { pre: [{ function: 'FigshareService.validateFigshareRecord' }] } },
+    };
+    beforeEach(function () {
+      previousConfig = Reflect.get(globalThis, 'AppConfigService');
+      previousFigshare = Reflect.get(globalThis, 'FigshareService');
+      const { FigsharePublishing } = require('../../src/configmodels/FigsharePublishing');
+      const config = new FigsharePublishing();
+      config.enabled = true;
+      config.processing.enabled = true;
+      Reflect.set(globalThis, 'AppConfigService', {
+        getAppConfigurationForBrand: () => ({ figsharePublishing: config }),
+      });
+      Reflect.set(globalThis, 'FigshareService', {
+        wakeFigshareRecord: sinon.stub().resolves(),
+        validateFigshareRecord: (_oid: unknown, record: unknown) => record,
+      });
+      mockStorageService.readyFigshareIntent = sinon.stub().resolves(true);
+      mockStorageService.abandonFigshareIntent = sinon.stub().resolves(true);
+    });
+    afterEach(function () {
+      Reflect.set(globalThis, 'AppConfigService', previousConfig);
+      Reflect.set(globalThis, 'FigshareService', previousFigshare);
+    });
+    it('commits an initialising intent with the primary create and readies only after save phases finish', async function () {
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Source' } },
+        recordType,
+        { username: 'user-1' },
+        false,
+        false
+      );
+      expect(result.isComplete(), JSON.stringify(result)).to.equal(true);
+      const options = mockStorageService.create.firstCall.args[4];
+      expect(options.figshareIntent.readiness).to.equal('initialising');
+      expect(options.figshareIntent.intents[0].policyId).to.equal('onCreate.pre.validateFigshareRecord');
+      sinon.assert.calledOnceWithExactly(
+        mockStorageService.readyFigshareIntent,
+        result.oid,
+        options.figshareIntent.saveToken
+      );
+      sinon.assert.notCalled(mockStorageService.abandonFigshareIntent);
+      sinon.assert.callOrder(mockStorageService.create, mockStorageService.readyFigshareIntent);
+    });
+    it('abandons a persisted intent when synchronous follow-up processing fails', async function () {
+      sinon.stub(RecordsService, 'runPostSaveSyncTriggers').rejects(new Error('post-save failure'));
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Source' } },
+        recordType,
+        { username: 'user-1' },
+        false,
+        true
+      );
+      expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+      expect(result.isComplete(), JSON.stringify(result)).to.equal(false);
+      sinon.assert.notCalled(mockStorageService.readyFigshareIntent);
+      sinon.assert.calledOnceWithExactly(
+        mockStorageService.abandonFigshareIntent,
+        result.oid,
+        mockStorageService.create.firstCall.args[4].figshareIntent.saveToken
+      );
+    });
+    it('does not ready or abandon an obligation when primary persistence was rejected', async function () {
+      mockStorageService.create.resolves({ success: false, applicationState: 'not-applied' });
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Source' } },
+        recordType,
+        { username: 'user-1' },
+        false,
+        false
+      );
+      expect(result.wasPersisted(), JSON.stringify(result)).to.equal(false);
+      sinon.assert.notCalled(mockStorageService.readyFigshareIntent);
+      sinon.assert.notCalled(mockStorageService.abandonFigshareIntent);
     });
   });
 

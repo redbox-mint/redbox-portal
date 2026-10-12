@@ -80,6 +80,48 @@ describe('IntegrationStatusComponent', () => {
     };
   });
 
+  it('keeps pending Figshare visible to researchers after reload without changing other integrations', async () => {
+    Reflect.set(TestBed.inject(UserService), 'getInfo', () => Promise.resolve({ user: { roles: [{ name: 'Researcher' }] } }));
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance;
+    component.componentDefinition = componentConfig.component;
+    component['oid'].set('record-1');
+    fixture.detectChanges(); await fixture.whenStable();
+    component['integrations'].set([
+      { integrationName: 'figshare', status: 'pending', startedAt: '', traceId: 'live', outcome: { state: 'review', severity: 'pending', labelKey: '@figshare-live-review' }, keyResult: { publication: 'published', embargoed: true } },
+      { integrationName: 'doi', status: 'pending', startedAt: '', traceId: 'other', outcome: { state: 'reserved', severity: 'pending', labelKey: 'reserved' } }
+    ]);
+    fixture.detectChanges();
+    expect(component['displayIntegrations']().map(item => item.integrationName)).toEqual(['figshare']);
+    expect(component['shouldRender']()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('figshare');
+    fixture.destroy();
+  });
+
+  it('keeps Figshare completion visible after observing pending status without a started poll', fakeAsync(() => {
+    spyOn(TestBed.inject(UserService), 'getInfo').and.returnValue(Promise.resolve({ user: { roles: [{ name: 'Researcher' }] } } as any));
+    const fixture = TestBed.createComponent(IntegrationStatusComponent);
+    const component = fixture.componentInstance as any;
+    component.componentDefinition = componentConfig.component;
+    component.oid.set('record-1');
+    fixture.detectChanges();
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({ integrations: [
+      { integrationName: 'figshare', status: 'pending', startedAt: '', traceId: 'live', outcome: { state: 'review', severity: 'pending', labelKey: '@figshare-live-review' } },
+      { integrationName: 'doi', status: 'pending', startedAt: '', traceId: 'other', outcome: { state: 'reserved', severity: 'pending', labelKey: 'reserved' } }
+    ] }));
+    component.fetchStatus(); tick(0);
+    expect(component.displayIntegrations().map((item: any) => item.integrationName)).toEqual(['figshare']);
+    mockRecordService.getRecordIntegrationStatus.and.returnValue(Promise.resolve({ integrations: [
+      { integrationName: 'figshare', status: 'success', startedAt: '', traceId: 'live', outcome: { state: 'synced', severity: 'success', labelKey: '@figshare-live-synced' } },
+      { integrationName: 'doi', status: 'success', startedAt: '', traceId: 'other', outcome: { state: 'published', severity: 'success', labelKey: 'published' } }
+    ] }));
+    component.fetchStatus(); tick(0);
+    expect(component.seenInProgress().has('figshare')).toBeTrue();
+    expect(component.seenInProgress().has('doi')).toBeFalse();
+    expect(component.displayIntegrations().map((item: any) => item.integrationName)).toEqual(['figshare']);
+    component.stopPolling(); fixture.destroy();
+  }));
+
   it('should create IntegrationStatusComponent', () => {
     const fixture = TestBed.createComponent(IntegrationStatusComponent);
     expect(fixture.componentInstance).toBeDefined();

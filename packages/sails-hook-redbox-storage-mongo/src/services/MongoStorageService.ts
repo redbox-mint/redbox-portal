@@ -39,6 +39,9 @@ import {
   IntegrationAuditParams,
   RecordModel,
   type DeletedRecordModel,
+  RecordWriteConflict,
+  type RecordFieldWriteResult,
+  assertRecordFieldPaths,
   BrandingModel,
   UserModel,
   RoleModel,
@@ -285,6 +288,65 @@ type RelatedRecordsContext = {
   visitedRelatedObjectKeys: Set<string>;
 };
 
+// Unimported saves merged into a pending intent. An intent written before per-save tracking counts as one save.
+const priorFigshareSaves = {
+  $cond: [
+    { $eq: ['$figshareSyncIntent.pending', true] },
+    {
+      $ifNull: [
+        '$figshareSyncIntent.saves',
+        {
+          $cond: [
+            { $in: ['$figshareSyncIntent.readiness', ['ready', 'initialising']] },
+            [
+              {
+                saveToken: '$figshareSyncIntent.saveToken',
+                readiness: '$figshareSyncIntent.readiness',
+                requestedAt: '$figshareSyncIntent.requestedAt',
+                intents: { $ifNull: ['$figshareSyncIntent.intents', []] },
+              },
+            ],
+            [],
+          ],
+        },
+      ],
+    },
+    [],
+  ],
+};
+// The intent carries the union of its saves' policies, and is ready only once no save is still initialising.
+// Once every merged save is abandoned nothing remains to import, so the intent is no longer pending.
+const deriveFigshareIntent = {
+  $set: {
+    'figshareSyncIntent.intents': {
+      $reduce: {
+        input: '$figshareSyncIntent.saves',
+        initialValue: [],
+        in: { $setUnion: ['$$value', '$$this.intents'] },
+      },
+    },
+    'figshareSyncIntent.readiness': {
+      $cond: [
+        { $eq: [{ $size: '$figshareSyncIntent.saves' }, 0] },
+        'abandoned',
+        { $cond: [{ $in: ['initialising', '$figshareSyncIntent.saves.readiness'] }, 'initialising', 'ready'] },
+      ],
+    },
+    'figshareSyncIntent.pending': { $gt: [{ $size: '$figshareSyncIntent.saves' }, 0] },
+  },
+};
+const figshareSaveFilter = (saveToken: string, readiness?: 'initialising') => ({
+  'figshareSyncIntent.pending': true,
+  $or: [
+    { 'figshareSyncIntent.saves': { $elemMatch: { saveToken, ...(readiness ? { readiness } : {}) } } },
+    {
+      'figshareSyncIntent.saves': { $exists: false },
+      'figshareSyncIntent.saveToken': saveToken,
+      ...(readiness ? { 'figshareSyncIntent.readiness': readiness } : {}),
+    },
+  ],
+});
+
 export namespace Services {
   export class MongoStorageService extends services.Core.Service implements StorageService, DatastreamService {
     gridFsBucket!: mongodb.GridFSBucket;
@@ -311,6 +373,14 @@ export namespace Services {
       'getTombstone',
       'getLifecycleTombstones',
       'getMeta',
+      'setRecordFields',
+      'scanFigshareRecords',
+      'findFigshareArticleRecords',
+      'readyFigshareIntent',
+      'pendingFigshareIntents',
+      'recoverStaleFigshareIntents',
+      'abandonFigshareIntent',
+      'acknowledgeFigshareIntent',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
       'getRelatedRecords',
@@ -886,8 +956,6 @@ export namespace Services {
         this.recordCol &&
         this.deletedRecordCol &&
         this.recordIdentityCol &&
-        this.recordCol &&
-        this.deletedRecordCol &&
         this.recordSchemaArtifactCol &&
         this.recordSchemaReferenceCol &&
         this.gridFsBucket
@@ -904,6 +972,11 @@ export namespace Services {
       }
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
       this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      await this.recordCol.createIndex({
+        'figshareSyncIntent.pending': 1,
+        'figshareSyncIntent.readiness': 1,
+        'figshareSyncIntent.requestedAt': 1,
+      });
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
       this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
@@ -1505,6 +1578,19 @@ export namespace Services {
       // The storage boundary owns creation revision regardless of anything a
       // request candidate supplied.
       serverRecord.revision = INITIAL_RECORD_REVISION;
+      serverRecord.recordVersion = 1;
+      delete serverRecord.figshareSyncIntent;
+      if (options?.figshareIntent) {
+        const { saveToken, readiness, intents } = options.figshareIntent;
+        const requestedAt = new Date().toISOString();
+        serverRecord.figshareSyncIntent = {
+          ...options.figshareIntent,
+          generation: 1,
+          pending: true,
+          requestedAt,
+          saves: [{ saveToken, readiness, requestedAt, intents }],
+        };
+      }
       _.unset(serverRecord, '_id');
       _.unset(serverRecord, 'id');
       _.unset(serverRecord, 'incarnationId');
@@ -1599,6 +1685,8 @@ export namespace Services {
         'id',
         'redboxOid',
         'revision',
+        'recordVersion',
+        'figshareSyncIntent',
         'incarnationId',
         'lifecycleOperationId',
         'dateCreated',
@@ -1619,18 +1707,46 @@ export namespace Services {
         return this.notApplied(response, 'brand-mismatch', 'Record was not found');
       }
 
-      return this.commitConditionalMutation({
+      const update: JsonMap | JsonMap[] = options?.figshareIntent
+        ? (() => {
+            const intent = options.figshareIntent;
+            const requestedAt = new Date().toISOString();
+            const save = {
+              saveToken: intent.saveToken,
+              readiness: intent.readiness,
+              requestedAt,
+              intents: intent.intents,
+            };
+            const assignments: JsonMap = Object.fromEntries(
+              Object.entries(candidate).map(([key, value]) => [key, { $literal: value }])
+            );
+            assignments.lastSaveDate = { $literal: requestedAt };
+            assignments.revision = { $add: [{ $ifNull: ['$revision', INITIAL_RECORD_REVISION] }, 1] };
+            assignments.recordVersion = { $add: [{ $ifNull: ['$recordVersion', 0] }, 1] };
+            assignments.figshareSyncIntent = {
+              $mergeObjects: [
+                { $literal: { ...intent, pending: true, requestedAt } },
+                {
+                  generation: { $add: [{ $ifNull: ['$figshareSyncIntent.generation', 0] }, 1] },
+                  saves: { $concatArrays: [priorFigshareSaves, [{ $literal: save }]] },
+                },
+              ],
+            };
+            return [{ $set: assignments }, deriveFigshareIntent];
+          })()
+        : {
+            $set: { ...candidate, lastSaveDate: new Date().toISOString() },
+            $inc: { revision: 1, recordVersion: 1 },
+          };
+
+      const selector: JsonMap = this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision);
+      if (options?.expectedVersion != null)
+        selector.recordVersion = options.expectedVersion === 0 ? { $in: [0, null] } : options.expectedVersion;
+      const result = await this.commitConditionalMutation({
         response,
         kind: 'updated',
         dispatch: () =>
-          collection.findOneAndUpdate(
-            this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision),
-            {
-              $set: { ...candidate, lastSaveDate: new Date().toISOString() },
-              $inc: { revision: 1 },
-            },
-            { returnDocument: 'after', includeResultMetadata: false }
-          ),
+          collection.findOneAndUpdate(selector, update, { returnDocument: 'after', includeResultMetadata: false }),
         classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
         expectedRevision,
         onDispatchError: err => {
@@ -1646,6 +1762,9 @@ export namespace Services {
           );
         },
       });
+      if (options?.expectedVersion != null && result.applicationState === 'not-applied')
+        throw new RecordWriteConflict();
+      return result;
     }
 
     /**
@@ -2143,6 +2262,142 @@ export namespace Services {
         .toArray()) as unknown as DeletedRecordModel[];
     }
 
+    public async scanFigshareRecords(afterOid: string, limit: number): Promise<RecordModel[]> {
+      return this.recordCol
+        .find<RecordModel>({ redboxOid: { $gt: afterOid } })
+        .sort({ redboxOid: 1 })
+        .limit(limit)
+        .toArray();
+    }
+    public async findFigshareArticleRecords(path: string, articleId: string): Promise<RecordModel[]> {
+      assertRecordFieldPaths({ [path]: articleId }, [path]);
+      return this.recordCol.find<RecordModel>({ [path]: { $in: [articleId, Number(articleId)] } }).toArray();
+    }
+    public async setRecordFields(
+      oid: string,
+      fields: JsonMap,
+      expectedVersion: number,
+      allowedPaths: string[]
+    ): Promise<RecordFieldWriteResult> {
+      assertRecordFieldPaths(fields, allowedPaths);
+      const result = await this.recordCol.findOneAndUpdate(
+        {
+          ...this.mutationSelector({ redboxOid: oid }, undefined),
+          recordVersion: expectedVersion === 0 ? { $in: [0, null] } : expectedVersion,
+        },
+        {
+          $set: { ...fields, lastSaveDate: new Date().toISOString() },
+          $inc: { recordVersion: 1, revision: 1 },
+        },
+        { returnDocument: 'after', includeResultMetadata: false }
+      );
+      return { updated: result != null, recordVersion: result?.recordVersion };
+    }
+    public async readyFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
+      const result = await this.recordCol.updateOne({ redboxOid: oid, ...figshareSaveFilter(saveToken) }, [
+        {
+          $set: {
+            'figshareSyncIntent.saves': {
+              $map: {
+                input: priorFigshareSaves,
+                as: 'save',
+                in: {
+                  $cond: [
+                    { $eq: ['$$save.saveToken', { $literal: saveToken }] },
+                    { $mergeObjects: ['$$save', { readiness: 'ready' }] },
+                    '$$save',
+                  ],
+                },
+              },
+            },
+          },
+        },
+        deriveFigshareIntent,
+      ]);
+      return result.matchedCount === 1;
+    }
+    public async pendingFigshareIntents(limit: number, afterOid = ''): Promise<RecordModel[]> {
+      return this.recordCol
+        .find<RecordModel>({
+          redboxOid: { $gt: afterOid },
+          'figshareSyncIntent.pending': true,
+          'figshareSyncIntent.readiness': 'ready',
+        })
+        .sort({ redboxOid: 1 })
+        .limit(limit)
+        .toArray();
+    }
+    public async abandonFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
+      // Drop only this save. Other merged saves keep their own policies and readiness.
+      const result = await this.recordCol.updateOne(
+        { redboxOid: oid, ...figshareSaveFilter(saveToken, 'initialising') },
+        [
+          {
+            $set: {
+              'figshareSyncIntent.saves': {
+                $filter: {
+                  input: priorFigshareSaves,
+                  as: 'save',
+                  cond: { $ne: ['$$save.saveToken', { $literal: saveToken }] },
+                },
+              },
+            },
+          },
+          deriveFigshareIntent,
+        ]
+      );
+      return result.matchedCount === 1;
+    }
+    public async recoverStaleFigshareIntents(staleBefore: string): Promise<number> {
+      const result = await this.recordCol.updateMany(
+        {
+          'figshareSyncIntent.pending': true,
+          'figshareSyncIntent.readiness': 'initialising',
+          $or: [
+            {
+              'figshareSyncIntent.saves': {
+                $elemMatch: { readiness: 'initialising', requestedAt: { $lt: staleBefore } },
+              },
+            },
+            { 'figshareSyncIntent.saves': { $exists: false }, 'figshareSyncIntent.requestedAt': { $lt: staleBefore } },
+          ],
+        },
+        [
+          {
+            $set: {
+              'figshareSyncIntent.saves': {
+                $map: {
+                  input: priorFigshareSaves,
+                  as: 'save',
+                  in: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $eq: ['$$save.readiness', 'initialising'] },
+                          { $lt: ['$$save.requestedAt', { $literal: staleBefore }] },
+                        ],
+                      },
+                      { $mergeObjects: ['$$save', { readiness: 'ready' }] },
+                      '$$save',
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          deriveFigshareIntent,
+        ]
+      );
+      return result.modifiedCount;
+    }
+    public async acknowledgeFigshareIntent(oid: string, generation: number): Promise<boolean> {
+      const result = await this.recordCol.updateOne(
+        { redboxOid: oid, 'figshareSyncIntent.generation': generation, 'figshareSyncIntent.readiness': 'ready' },
+        { $set: { 'figshareSyncIntent.pending': false } }
+      );
+      return result.matchedCount === 1;
+    }
+
     public async getMeta(oid: string): Promise<RecordModel> {
       if (_.isEmpty(oid)) {
         const msg = `${this.logHeader} getMeta() -> refusing to search using an empty OID`;
@@ -2526,13 +2781,23 @@ export namespace Services {
           case 'descending':
             return -1;
         }
-      } else if (direction !== null && typeof direction === 'object' && !Array.isArray(direction) &&
-        '$meta' in direction && typeof direction.$meta === 'string') {
+      } else if (
+        direction !== null &&
+        typeof direction === 'object' &&
+        !Array.isArray(direction) &&
+        '$meta' in direction &&
+        typeof direction.$meta === 'string'
+      ) {
         return { $meta: direction.$meta };
       }
       throw new RBValidationError({
         message: 'Invalid record sort direction',
-        displayErrors: [{ status: '400', detail: 'Sort direction must be 1, -1, asc, desc, ascending, descending, or a $meta expression.' }],
+        displayErrors: [
+          {
+            status: '400',
+            detail: 'Sort direction must be 1, -1, asc, desc, ascending, descending, or a $meta expression.',
+          },
+        ],
       });
     }
 
@@ -2552,25 +2817,33 @@ export namespace Services {
         const [field, direction = '-1'] = parts;
         parsed = { [field]: direction };
       }
-      if (parsed === null || typeof parsed !== 'object' ||
-        (Array.isArray(parsed) && !parsed.every(entry =>
-          Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[0].length > 0
-        ))) {
+      if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        (Array.isArray(parsed) &&
+          !parsed.every(
+            entry => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[0].length > 0
+          ))
+      ) {
         throw new RBValidationError({
           message: 'Invalid record sort expression',
           displayErrors: [{ status: '400', detail: 'Sort must be an object or an array of [field, direction] pairs.' }],
         });
       }
       const fields: Record<string, SortDirection> = Object.fromEntries(
-        (Array.isArray(parsed) ? parsed : Object.entries(parsed))
-          .map(([field, direction]) => [field, this.getSortDirection(direction)])
+        (Array.isArray(parsed) ? parsed : Object.entries(parsed)).map(([field, direction]) => [
+          field,
+          this.getSortDirection(direction),
+        ])
       );
       if (!_.isEmpty(secondarySort)) {
         const parts = secondarySort.split(':');
         if (parts.length !== 2 || parts.some(part => part.length === 0)) {
           throw new RBValidationError({
             message: 'Invalid secondary record sort expression',
-            displayErrors: [{ status: '400', detail: 'Secondary sort must be field:direction with no empty segments.' }],
+            displayErrors: [
+              { status: '400', detail: 'Secondary sort must be field:direction with no empty segments.' },
+            ],
           });
         }
         const [field, direction] = parts;
@@ -2613,11 +2886,15 @@ export namespace Services {
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
-        sort: Object.fromEntries(Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
-          sortAliases.get(field) ?? (directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
-            ? field : `deletedRecordMetadata.${field}`),
-          direction,
-        ])),
+        sort: Object.fromEntries(
+          Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
+            sortAliases.get(field) ??
+              (directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
+                ? field
+                : `deletedRecordMetadata.${field}`),
+            direction,
+          ])
+        ),
       };
 
       const roleNames = this.getRoleNames(roles, brand);

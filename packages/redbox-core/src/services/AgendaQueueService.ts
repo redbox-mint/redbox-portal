@@ -120,6 +120,7 @@ export namespace Services {
     }
 
     private async handleReadyInternal() {
+      if (process.env.REDBOX_FIGSHARE_ADMIN === 'true') return;
       this.queueInitialized = false;
       const queueConfig = sails.config.agendaQueue;
       const queueOptions = queueConfig.options ?? {};
@@ -254,11 +255,12 @@ export namespace Services {
       const collectionName = String(_.get(sails.config.agendaQueue, 'options.collection', 'agendaJobs'));
       const jobsCollection = dbManager.collection(collectionName);
       const historyCollection = dbManager.collection(`${collectionName}History`);
-      const completedJobs = await jobsCollection.find({ nextRunAt: null }).toArray();
+      const finishedFilter = { nextRunAt: null, lockedAt: null, lastFinishedAt: { $type: 'date' } };
+      const completedJobs = await jobsCollection.find(finishedFilter).toArray();
 
       for (const doc of completedJobs) {
         await historyCollection.replaceOne({ _id: (doc as { _id?: unknown })._id }, doc, { upsert: true });
-        await jobsCollection.deleteOne({ _id: (doc as { _id?: unknown })._id });
+        await jobsCollection.deleteOne({ ...finishedFilter, _id: (doc as { _id?: unknown })._id, lastFinishedAt: doc['lastFinishedAt'] });
       }
 
       const historyCutoff = new Date(Date.now() - historyRetentionMs);
@@ -532,7 +534,7 @@ export namespace Services {
 
     public schedule(jobName: string, schedule: string, data: unknown = undefined) {
       this.ensureScheduleSupported(jobName, schedule, data);
-      void this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
+      return this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
     }
 
     public async now(jobName: string, data: unknown = undefined) {
