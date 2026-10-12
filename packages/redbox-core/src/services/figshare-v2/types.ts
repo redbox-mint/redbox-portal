@@ -59,6 +59,7 @@ export interface FigshareUploadDescriptor {
 
 export interface FigshareUploadPart {
   partNo: number;
+  status?: string;
   startOffset: number;
   endOffset: number;
 }
@@ -119,6 +120,7 @@ export interface FigshareArticlePayload {
 }
 
 export interface FigshareCreateFilePayload {
+  md5?: string;
   name?: string;
   size?: number;
   link?: string;
@@ -176,6 +178,7 @@ export interface FigshareJobData {
 }
 
 export interface FigshareJob {
+  touch?: () => Promise<unknown>;
   attrs?: {
     data?: FigshareJobData;
   };

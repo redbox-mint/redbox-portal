@@ -148,7 +148,41 @@ export function resolveFigshareConnectionToken(token: string, options: { allowEm
   return value;
 }
 
+export type FigshareActor = 'token' | 'owner';
+export type FigshareOperation = 'create' | 'recovery' | 'metadata' | 'assets' | 'embargo' | 'publish' | 'read';
+export interface FigshareImpersonationConfig {
+  enabled: boolean;
+  institutionalIdPath: string;
+  emailPath: string;
+  allowEmailFallback: boolean;
+  operations: Record<FigshareOperation, FigshareActor>;
+}
+export interface FigshareProcessingConfig {
+  enabled: boolean;
+  coalesceMs: number;
+  leaseMs: number;
+  heartbeatMs: number;
+  maxAttempts: number;
+  retryBaseMs: number;
+  observationMs: number;
+  cleanupMs: number;
+  serviceUsername: string;
+  serviceUserType: string;
+}
+export const DEFAULT_FIGSHARE_PROCESSING: FigshareProcessingConfig = {
+  enabled: false, coalesceMs: 5000, leaseMs: 120000, heartbeatMs: 20000,
+  maxAttempts: 5, retryBaseMs: 60000, observationMs: 120000, cleanupMs: 300000,
+  serviceUsername: '', serviceUserType: ''
+};
+export const DEFAULT_FIGSHARE_IMPERSONATION: FigshareImpersonationConfig = {
+  enabled: false, institutionalIdPath: 'metadata.contributor_ci.dc_identifier',
+  emailPath: 'metadata.contributor_ci.email', allowEmailFallback: false,
+  operations: { create: 'owner', recovery: 'owner', metadata: 'token', assets: 'token', embargo: 'token', publish: 'token', read: 'token' }
+};
+
 export interface FigsharePublishingConfigData {
+  processing?: FigshareProcessingConfig;
+  impersonation?: FigshareImpersonationConfig;
   enabled: boolean;
   connection: FigshareConnectionConfig;
   article: {
@@ -254,6 +288,8 @@ function createDefaultBinding(path: string, defaultValue?: unknown): ValueBindin
 
 export class FigsharePublishing extends AppConfig implements FigsharePublishingConfigData {
   enabled = false;
+  processing = { ...DEFAULT_FIGSHARE_PROCESSING };
+  impersonation = { ...DEFAULT_FIGSHARE_IMPERSONATION, operations: { ...DEFAULT_FIGSHARE_IMPERSONATION.operations } };
 
   connection: FigshareConnectionConfig = {
     baseUrl: '',
@@ -399,6 +435,8 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   public static getFieldOrder(): string[] {
     return [
       'enabled',
+      'processing',
+      'impersonation',
       'connection',
       'article',
       'record',
@@ -506,6 +544,26 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'boolean',
       title: 'Enabled',
       default: false,
+    },
+    processing: {
+      type: 'object', title: 'Background Processing',
+      description: 'Enable only after migration, indexes and worker cutover. Local attachment bytes are retained.',
+      properties: {
+        enabled: { type: 'boolean', default: false },
+        ...Object.fromEntries((['coalesceMs', 'leaseMs', 'heartbeatMs', 'maxAttempts', 'retryBaseMs', 'observationMs', 'cleanupMs'] as const).map(key => [key, { type: 'integer', minimum: 1, default: DEFAULT_FIGSHARE_PROCESSING[key] }])),
+        serviceUsername: { type: 'string', title: 'Local Service Username' },
+        serviceUserType: { type: 'string', title: 'Local Service User Type' }
+      }
+    },
+    impersonation: {
+      type: 'object', title: 'Figshare Ownership',
+      properties: {
+        enabled: { type: 'boolean', default: false },
+        institutionalIdPath: { type: 'string', default: DEFAULT_FIGSHARE_IMPERSONATION.institutionalIdPath },
+        emailPath: { type: 'string', default: DEFAULT_FIGSHARE_IMPERSONATION.emailPath },
+        allowEmailFallback: { type: 'boolean', default: false },
+        operations: { type: 'object', properties: Object.fromEntries(Object.entries(DEFAULT_FIGSHARE_IMPERSONATION.operations).map(([key, value]) => [key, { type: 'string', enum: ['token', 'owner'], default: value }])) }
+      }
     },
     connection: {
       type: 'object',

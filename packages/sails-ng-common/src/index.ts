@@ -135,3 +135,4 @@ export * from './validation/record-validation.model';
 export * from './validation/validation-groups';
 export * from './validation/validators';
 export * from './validation/validators-support';
+export * from './translation-html';

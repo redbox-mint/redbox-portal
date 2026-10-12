@@ -39,4 +39,6 @@ export interface DatastreamService {
     fileId: string,
     requestContext?: DatastreamRequestContext
   ): Promise<Record<string, unknown>[]>;
+  /** Identifies stored bytes without reading them; changes whenever they are rewritten. */
+  getDatastreamFingerprint?(oid: string, fileId: string): Promise<string | undefined>;
 }

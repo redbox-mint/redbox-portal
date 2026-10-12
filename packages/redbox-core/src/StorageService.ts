@@ -1,3 +1,4 @@
+import type { RecordFieldWriteResult } from './RecordWriteOptions';
 import { Readable } from 'node:stream';
 import { DeletedRecordModel, RecordModel } from './model';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
@@ -85,6 +86,22 @@ export interface StorageService {
   getTombstone?(brand: unknown, oid: unknown): Promise<DeletedRecordModel | null>;
   /** Bounded recovery scan; callers still condition every mutation by operation identity. */
   getLifecycleTombstones?(states: readonly string[], limit?: number): Promise<DeletedRecordModel[]>;
+  scanFigshareRecords?(afterOid: string, limit: number): Promise<RecordModel[]>;
+  findFigshareArticleRecords?(path: string, articleId: string): Promise<RecordModel[]>;
+  setRecordFields?(
+    oid: string,
+    fields: Record<string, unknown>,
+    expectedVersion: number,
+    allowedPaths: string[]
+  ): Promise<RecordFieldWriteResult>;
+  readyFigshareIntent?(oid: string, saveToken: string): Promise<boolean>;
+  /** Ready pending records ordered by OID, strictly after the optional cursor. Skipped records remain pending. */
+  pendingFigshareIntents?(limit: number, afterOid?: string): Promise<RecordModel[]>;
+  /** Mark an initialising intent from a failed save so stale recovery never promotes it. */
+  abandonFigshareIntent?(oid: string, saveToken: string): Promise<boolean>;
+  /** Promote pending intents whose save stopped before readiness finalisation, so the dispatcher can recover them. */
+  recoverStaleFigshareIntents?(staleBefore: string): Promise<number>;
+  acknowledgeFigshareIntent?(oid: string, generation: number): Promise<boolean>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
   /** @deprecated Whole-record permission rewrites must use RecordsService.mutateMetaInternal(). */

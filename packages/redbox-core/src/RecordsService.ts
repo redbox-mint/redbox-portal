@@ -1,3 +1,4 @@
+import type { RecordFieldWriteResult } from './RecordWriteOptions';
 import StorageServiceResponse from './StorageServiceResponse';
 import { cloneDeep, isEqual } from 'lodash';
 import { DatastreamRequestContext } from './DatastreamService';
@@ -31,6 +32,8 @@ export interface InternalRecordSnapshotSaveOptions {
   readonly triggerPreSaveTriggers?: boolean;
   readonly triggerPostSaveTriggers?: boolean;
   readonly targetStep?: unknown;
+  /** Internal integration write-back must not schedule a fresh source intent. */
+  readonly maintenance?: boolean;
   readonly metadata?: AnyRecord;
   readonly metadataMode?: 'merge' | 'replace' | 'pre-applied';
   readonly operation?: 'update' | 'transition';
@@ -327,6 +330,14 @@ export interface RecordsService {
     brand?: unknown,
     context?: RecordSaveContext
   ): Promise<RecordSaveResponse>;
+  getFigshareIntentStorage(): import('./StorageService').StorageService;
+  setRecordFields(
+    oid: string,
+    fields: AnyRecord,
+    expectedVersion: number,
+    allowedPaths: string[],
+    user: AnyRecord
+  ): Promise<RecordFieldWriteResult>;
   getMeta(oid: string): Promise<RecordModel>;
   /** The sole authoritative form-contract fingerprint used by form delivery and every save. */
   getRecordFormFingerprint(

@@ -1,3 +1,5 @@
+import { prepareSourceIntent } from './figshare-v2/source-intent';
+import { assertRecordFieldPaths } from '../RecordWriteOptions';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -2766,6 +2768,50 @@ export namespace Services {
       }
     }
 
+    private readonly figshareSaveIntents = new WeakMap<
+      RecordSaveTracker,
+      NonNullable<RecordStorageMutationOptions['figshareIntent']>
+    >();
+
+    private prepareFigshareSaveIntent(
+      tracker: RecordSaveTracker,
+      record: AnyRecord,
+      recordType: unknown,
+      events: string[],
+      user: AnyRecord
+    ): RecordStorageMutationOptions {
+      const intent = prepareSourceIntent(record, recordType, events, user, true);
+      if (!intent) return {};
+      if (!this.storageService.readyFigshareIntent || !this.storageService.abandonFigshareIntent) {
+        throw new Error('Storage adapter does not support durable Figshare intents');
+      }
+      this.figshareSaveIntents.set(tracker, intent);
+      return { figshareIntent: intent };
+    }
+
+    getFigshareIntentStorage() {
+      return this.storageService;
+    }
+
+    async setRecordFields(
+      oid: string,
+      fields: AnyRecord,
+      expectedVersion: number,
+      allowedPaths: string[],
+      user: AnyRecord
+    ) {
+      assertRecordFieldPaths(fields, allowedPaths);
+      if (!this.storageService.setRecordFields)
+        throw new Error('Storage adapter does not support conditional partial writes');
+      const result = await this.storageService.setRecordFields(oid, fields, expectedVersion, allowedPaths);
+      if (result.updated) {
+        const current = await this.storageService.getMeta(oid);
+        await this.searchService.index(oid, current);
+        await this.auditRecord(oid, current, user, RecordAuditActionType.updated);
+      }
+      return result;
+    }
+
     private async finishSave(
       tracker: RecordSaveTracker,
       user: AnyRecord,
@@ -2774,6 +2820,22 @@ export namespace Services {
     ): Promise<RecordSaveResponse> {
       const operation = this.saveHookOperations.get(tracker);
       const oid = String(tracker.result.oid ?? '').trim();
+      const intent = this.figshareSaveIntents.get(tracker);
+      if (intent && tracker.result.wasPersisted() && oid) {
+        this.figshareSaveIntents.delete(tracker);
+        try {
+          if (tracker.result.isComplete()) {
+            await this.storageService.readyFigshareIntent!(oid, intent.saveToken);
+            void FigshareService.wakeFigshareRecord(oid).catch(error =>
+              sails.log.error('Figshare wake-up failed; dispatcher will recover', error)
+            );
+          } else {
+            await this.storageService.abandonFigshareIntent!(oid, intent.saveToken);
+          }
+        } catch (error) {
+          sails.log.error('Figshare intent finalisation failed; dispatcher will recover', error);
+        }
+      }
       if (!tracker.result.wasPersisted() || !oid) {
         if (operation) {
           this.deferredSavePostHookDispatches.delete(operation);
@@ -3725,6 +3787,8 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'create',
       'updateMeta',
+      'getFigshareIntentStorage',
+      'setRecordFields',
       'updateMetaInternal',
       'mutateMetaInternal',
       'getMeta',
@@ -4325,14 +4389,16 @@ export namespace Services {
       // save the record ...
       sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
       try {
-        createResponse = await this.createStorageCandidate(
-          brandObj,
-          createOid,
-          recordObj,
-          recordTypeObj,
-          userObj,
-          this.recordMutationOptions(tracker.context)
-        );
+        createResponse = await this.createStorageCandidate(brandObj, createOid, recordObj, recordTypeObj, userObj, {
+          ...this.recordMutationOptions(tracker.context),
+          ...this.prepareFigshareSaveIntent(
+            tracker,
+            recordObj,
+            recordTypeObj,
+            ['onCreate', ...(targetStepName ? ['onTransitionWorkflow'] : [])],
+            userObj
+          ),
+        });
       } catch (error) {
         await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'unknown', 'primary-persistence-unknown');
         tracker.recordPrimaryUnknown(
@@ -4829,7 +4895,8 @@ export namespace Services {
             ...(options.causedByRequestId ? { resolutionOfRequestId: options.causedByRequestId } : {}),
           },
         }),
-        authorization === 'service' ? issueInternalRecordSchemaAuthorizationCapability() : undefined
+        authorization === 'service' ? issueInternalRecordSchemaAuthorizationCapability() : undefined,
+        options.maintenance === true
       );
     }
 
@@ -4977,7 +5044,8 @@ export namespace Services {
       nextStep: unknown = {},
       submission?: RecordMetadataSubmission,
       context?: RecordSaveContext,
-      internalAuthorizationCapability?: unknown
+      internalAuthorizationCapability?: unknown,
+      maintenance = false
     ): Promise<RecordSaveResponse> {
       const suppliedContext = requireRecordSaveContext(context);
       const transitionRequested =
@@ -5494,13 +5562,18 @@ export namespace Services {
       // Primary metadata is the commit boundary.  Physical attachment work
       // must not run until this mutation is explicitly confirmed applied.
       try {
-        const adapterResponse = await this.updateStorageCandidate(
-          brandObj,
-          oid,
-          recordObj,
-          userObj,
-          this.recordMutationOptions(tracker.context, expectedRevision, expectedRevision !== undefined)
-        );
+        const adapterResponse = await this.updateStorageCandidate(brandObj, oid, recordObj, userObj, {
+          ...this.recordMutationOptions(tracker.context, expectedRevision, expectedRevision !== undefined),
+          ...(maintenance
+            ? {}
+            : this.prepareFigshareSaveIntent(
+                tracker,
+                recordObj,
+                recordType,
+                ['onUpdate', ...(transitionRequested ? ['onTransitionWorkflow'] : [])],
+                userObj
+              )),
+        });
         updateResponse = this.routeBoundStorageResponse(adapterResponse, oid);
       } catch (error) {
         await this.markAttachmentPlanState(oid, updateAttachmentPlan, 'unknown', 'primary-persistence-unknown');
