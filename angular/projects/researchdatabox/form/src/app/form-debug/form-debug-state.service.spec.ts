@@ -5,8 +5,8 @@ import { FormComponentEventType } from '../form-state/events/form-component-even
 
 describe('FormDebugStateService', () => {
   let service: FormDebugStateService;
+  let testDocument: { location: { href: string } };
   let originalBroadcastChannel: typeof BroadcastChannel | undefined;
-  let mockDocumentLocation: { href: string };
   const createFieldValueChangedEvent = (fieldId: string, sourceId: string, value: string) => ({
     type: FormComponentEventType.FIELD_VALUE_CHANGED,
     timestamp: Date.now(),
@@ -16,7 +16,7 @@ describe('FormDebugStateService', () => {
   }) as const;
 
   const setFormDebugUrl = (value?: string, popout = false) => {
-    const url = new URL(mockDocumentLocation.href);
+    const url = new URL(testDocument.location.href);
     url.searchParams.delete('formDebug');
     url.searchParams.delete('formDebugPopout');
     if (value) {
@@ -25,7 +25,7 @@ describe('FormDebugStateService', () => {
     if (popout) {
       url.searchParams.set('formDebugPopout', '1');
     }
-    mockDocumentLocation.href = url.toString();
+    testDocument.location.href = url.toString();
   };
 
   const initService = () => {
@@ -34,18 +34,15 @@ describe('FormDebugStateService', () => {
   };
 
   beforeEach(() => {
-    mockDocumentLocation = { href: window.location.href };
+    // Keep URL state local to each test; Chrome can throttle repeated history updates.
+    testDocument = { location: { href: 'http://localhost/default/rdmp/record/edit/test-record' } };
     TestBed.configureTestingModule({
       providers: [
         FormDebugStateService,
-        {
-          provide: DOCUMENT,
-          useValue: { location: mockDocumentLocation } as unknown as Document
-        }
+        { provide: DOCUMENT, useValue: testDocument }
       ]
     });
     originalBroadcastChannel = (window as any).BroadcastChannel;
-    setFormDebugUrl();
   });
 
   afterEach(() => {
@@ -53,7 +50,6 @@ describe('FormDebugStateService', () => {
     TestBed.resetTestingModule();
     (window as any).BroadcastChannel = originalBroadcastChannel;
     (globalThis as any).BroadcastChannel = originalBroadcastChannel;
-    setFormDebugUrl();
   });
 
   it('enables debug mode for true-like formDebug URL params', () => {
@@ -195,7 +191,9 @@ describe('FormDebugStateService', () => {
     initService();
     service.refreshFromUrl();
 
-    const scopeUrl = new URL(mockDocumentLocation.href);
+    expect(service.isDebugPopoutWindow()).toBeTrue();
+
+    const scopeUrl = new URL(testDocument.location.href);
     scopeUrl.searchParams.delete('formDebugPopout');
     const matchingScope = `${scopeUrl.pathname}?${scopeUrl.searchParams.toString()}`;
     const nonMatchingScope = `${matchingScope}&x=1`;
@@ -206,6 +204,8 @@ describe('FormDebugStateService', () => {
         event: createFieldValueChangedEvent('ignored_field', 'source', 'ignored')
       }
     } as MessageEvent<any>);
+
+    expect(service.debugEvents()).toEqual([]);
 
     channels[0].onmessage?.({
       data: {

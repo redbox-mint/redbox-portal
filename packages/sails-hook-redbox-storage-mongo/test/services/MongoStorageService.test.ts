@@ -130,6 +130,7 @@ describe('MongoStorageService', function () {
       destroyOne: sandbox.stub().resolves({}),
     };
     RecordAudit = {
+      tableName: 'recordaudit',
       create: sandbox.stub().resolves({}),
       find: sandbox.stub().resolves([]),
     };
@@ -257,6 +258,7 @@ describe('MongoStorageService', function () {
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
       createIndexes: sandbox.stub().resolves([]),
     };
+    const auditCollection = { createIndex: sandbox.stub().resolves('redboxOid_1_createdAt_1') };
     mockDb.collection.callsFake((name: string, options?: any) => {
       if (options?.strict) {
         return { ok: 1 };
@@ -272,6 +274,9 @@ describe('MongoStorageService', function () {
       if (name === 'recordschemareference') {
         return referenceCollection;
       }
+      if (name === 'recordaudit') {
+        return auditCollection;
+      }
       return deletedCollection;
     });
 
@@ -281,6 +286,7 @@ describe('MongoStorageService', function () {
     expect(service.recordCol).to.equal(recordCollection);
     expect(service.deletedRecordCol).to.equal(deletedCollection);
     expect(service.recordIdentityCol).to.equal(identityCollection);
+    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
     expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
     expect(deletedCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.deletedRecordIndices)).to.be
       .true;
@@ -551,7 +557,7 @@ describe('MongoStorageService', function () {
         return recordCollection;
       }
       if (name === 'recordidentity') {
-        return { createIndexes: sandbox.stub().resolves([]) };
+        return { createIndex: sandbox.stub().resolves(), createIndexes: sandbox.stub().resolves([]) };
       }
       if (name === 'recordschemaartifact') {
         return artifactCollection;
@@ -559,7 +565,7 @@ describe('MongoStorageService', function () {
       if (name === 'recordschemareference') {
         return referenceCollection;
       }
-      return { createIndexes: sandbox.stub().resolves([]) };
+      return { createIndex: sandbox.stub().resolves(), createIndexes: sandbox.stub().resolves([]) };
     });
 
     await service.performInit();
@@ -785,6 +791,39 @@ describe('MongoStorageService', function () {
 
     expect(artifactCollection.createIndexes.called).to.equal(false);
     expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
+  });
+
+  it('creates the audit index even when no record indices are configured', async function () {
+    mockSails.config.storage.mongodb.indices = [];
+    const recordCollection = {
+      indexes: sandbox.stub().resolves([]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const auditCollection = { createIndex: sandbox.stub().resolves('redboxOid_1_createdAt_1') };
+    mockDb.collection.withArgs('record').returns(recordCollection);
+    mockDb.collection.withArgs('recordaudit').returns(auditCollection);
+    mockDb.collection.withArgs('deletedrecord').returns({ createIndexes: sandbox.stub().resolves([]) });
+
+    await service.createIndices(mockDb);
+
+    expect(recordCollection.createIndexes.called).to.be.false;
+    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
+  });
+
+  it('logs audit index creation failures without throwing', async function () {
+    const recordCollection = {
+      indexes: sandbox.stub().resolves([]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const auditCollection = { createIndex: sandbox.stub().rejects(new Error('audit index failed')) };
+    mockDb.collection.withArgs('record').returns(recordCollection);
+    mockDb.collection.withArgs('recordaudit').returns(auditCollection);
+    mockDb.collection.withArgs('deletedrecord').returns({ createIndexes: sandbox.stub().resolves([]) });
+
+    await service.createIndices(mockDb);
+
+    expect(mockSails.log.error.calledWith('Failed to create record audit index:')).to.be.true;
+    expect(recordCollection.createIndexes.calledOnce).to.be.true;
   });
 
   it('creates a record and assigns a generated oid', async function () {
@@ -2837,6 +2876,12 @@ describe('MongoStorageService', function () {
     expect(response.success).to.equal(true);
     expect(RecordAudit.create.calledOnceWith({ redboxOid: 'oid-1', action: 'save', record: { safe: true } })).to.be
       .true;
+  });
+
+  it('preserves event time when the queue persists an audit later', async function () {
+    const occurredAt = '2026-03-01T12:00:00Z';
+    await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', occurredAt, record: {} });
+    expect(RecordAudit.create.firstCall.args[0].occurredAt).to.equal(occurredAt);
   });
 
   it('drops unserializable audit values and handles record-audit persistence failures', async function () {

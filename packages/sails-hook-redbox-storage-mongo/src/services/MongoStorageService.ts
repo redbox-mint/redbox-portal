@@ -1004,6 +1004,12 @@ export namespace Services {
       if (_.size(indices) > 0) {
         await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
       }
+      try {
+        await db.collection(RecordAudit.tableName).createIndex({ redboxOid: 1, createdAt: 1 });
+      } catch (err) {
+        sails.log.error(`Failed to create record audit index:`);
+        sails.log.error(JSON.stringify(err));
+      }
       const deletedRecordIndices = storageConfig.mongodb?.deletedRecordIndices ?? [];
       if (_.size(deletedRecordIndices) > 0) {
         await db.collection<MongoRecordDocument>(DeletedRecord.tableName).createIndexes(deletedRecordIndices);
@@ -3508,6 +3514,7 @@ export namespace Services {
       const payload: RecordAuditModel = {
         redboxOid: recordAudit.redboxOid,
         action: recordAudit.action,
+        ...(recordAudit.occurredAt ? { occurredAt: recordAudit.occurredAt } : {}),
         user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
         record: this.toJsonSafe(recordAudit.record) as Record<string, unknown> | undefined,
         executionSummary: this.sanitizeRecordHookExecutionSummary(
