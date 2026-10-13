@@ -78,6 +78,7 @@ describe('BrandingAdminComponent', () => {
       branding: {
         variables: {
           primary: '#123456',
+          'admin-sidebar-text-color': '#654321',
           'branding-font-family': 'Arial, sans-serif',
         },
         version: 1
@@ -86,6 +87,7 @@ describe('BrandingAdminComponent', () => {
     await loadPromise;
 
     expect(component.draftConfig['primary']).toBe('#123456');
+    expect(component.draftConfig['admin-sidebar-text-color']).toBe('#654321');
     expect(component.draftConfig['branding-font-family']).toBeUndefined();
     httpMock.verify();
   });
@@ -167,6 +169,7 @@ describe('BrandingAdminComponent', () => {
     expect(allKeys).toContain('main-menu-active-dropdown-item-background-color');
     expect(allKeys).toContain('footer-bottom-area-branding-background-color');
     expect(allKeys).toContain('logo-heading-text-color');
+    expect(allKeys).toContain('admin-sidebar-text-color');
   });
 
   it('publish saves draft before publishing and reloads config', async () => {
