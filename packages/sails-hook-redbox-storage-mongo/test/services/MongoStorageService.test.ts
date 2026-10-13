@@ -1200,6 +1200,12 @@ describe('MongoStorageService', function () {
       .true;
   });
 
+  it('preserves event time when the queue persists an audit later', async function () {
+    const occurredAt = '2026-03-01T12:00:00Z';
+    await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', occurredAt, record: {} });
+    expect(RecordAudit.create.firstCall.args[0].occurredAt).to.equal(occurredAt);
+  });
+
   it('drops unserializable audit values and handles record-audit persistence failures', async function () {
     const circular: any = {};
     circular.self = circular;

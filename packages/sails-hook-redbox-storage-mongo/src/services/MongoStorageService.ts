@@ -1399,6 +1399,7 @@ export namespace Services {
       const payload: RecordAuditModel = {
         redboxOid: recordAudit.redboxOid,
         action: recordAudit.action,
+        ...(recordAudit.occurredAt ? { occurredAt: recordAudit.occurredAt } : {}),
         user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
         record: this.toJsonSafe(recordAudit.record) as Record<string, unknown> | undefined,
       };
