@@ -33,7 +33,11 @@ export function getRecordAuditTimestamp(audit: Record<string, unknown>): string 
     const meta = metadata && typeof metadata === 'object' ? metadata as Record<string, unknown> : {};
     const candidates: unknown[] = [audit['occurredAt']];
     if (audit['action'] === RecordAuditActionType.updated) {
-        candidates.push(meta['lastSaveDate'], record['lastSaveDate']);
+        // Partial writes update only the top-level date; full-save snapshots may carry a newer metadata date.
+        const saveDates = [meta['lastSaveDate'], record['lastSaveDate']]
+            .filter((value): value is string => typeof value === 'string' && value.trim() !== '' && Number.isFinite(Date.parse(value)))
+            .sort((a, b) => Date.parse(b) - Date.parse(a));
+        candidates.push(...saveDates);
     } else if (audit['action'] === RecordAuditActionType.created) {
         candidates.push(meta['createdOn'], record['dateCreated']);
     }

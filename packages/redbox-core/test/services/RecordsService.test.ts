@@ -663,6 +663,21 @@ describe('RecordsService', function () {
     });
   });
 
+  it('queues partial-write audits with the newer top-level save time', async function () {
+    mockStorageService.setRecordFields = sinon.stub().resolves({ updated: true, recordVersion: 2 });
+    mockStorageService.getMeta.resolves({
+      redboxOid: 'record-123',
+      metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' },
+      lastSaveDate: '2026-03-02T12:00:00Z',
+      metadata: { title: 'Updated by Figshare' },
+    });
+
+    await RecordsService.setRecordFields('record-123', { 'metadata.title': 'Updated by Figshare' }, 1, ['metadata.title'], {});
+
+    expect(mockQueueService.now.calledOnce).to.be.true;
+    expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-02T12:00:00Z');
+  });
+
   describe('storeRecordAudit', function () {
     it('should store audit via storage service', function () {
       const job = {

@@ -233,7 +233,7 @@ describe('RecordAuditController', () => {
     const audit = (global as any).sails.services.recordsservice.getRecordAudit;
     audit.resolves([
       { id: 'old', action: 'created', occurredAt: oldTime, createdAt: '2026-03-03T00:00:00Z', record: { metadata: { title: 'Old' } } },
-      { id: 'legacy', action: 'updated', createdAt: '2026-03-05T00:00:00Z', record: { metaMetadata: { lastSaveDate: legacyTime }, metadata: { title: 'Legacy' } } },
+      { id: 'legacy', action: 'updated', createdAt: '2026-03-05T00:00:00Z', record: { lastSaveDate: legacyTime, metaMetadata: { lastSaveDate: oldTime }, metadata: { title: 'Legacy' } } },
       { id: 'new', action: 'updated', occurredAt: newTime, createdAt: '2026-03-04T00:00:00Z', record: { metadata: { title: 'New' } } },
     ]);
     const param = sinon.stub();
