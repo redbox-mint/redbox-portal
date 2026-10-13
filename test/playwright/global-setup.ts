@@ -27,9 +27,7 @@ async function globalSetup(config: FullConfig): Promise<void> {
   const page = await context.newPage();
 
   try {
-    await page.goto('/default/rdmp/user/login', { waitUntil: 'domcontentloaded' });
-    await page.locator('#adminLoginShow').waitFor({ state: 'visible', timeout: 30_000 });
-
+    // Authenticate before navigating so anonymous requests cannot replace the new session cookie.
     const loginResponse = await context.request.post('/user/login_local', {
       form: {
         username: 'admin',
