@@ -1730,9 +1730,7 @@
               "base": "../assets/angular/siem-admin"
             },
             "index": "projects/researchdatabox/siem-admin/src/index.html",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": [],
             "tsConfig": "projects/researchdatabox/siem-admin/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [

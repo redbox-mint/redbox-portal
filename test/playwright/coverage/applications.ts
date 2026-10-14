@@ -54,6 +54,7 @@ export const applicationManifest: readonly ApplicationManifestEntry[] = [
   app('A17', '@researchdatabox/branding', '/default/rdmp/admin/branding', ['branding-admin-root #header-branding-background-color', 'branding-admin-root button:has-text("Generate Preview")'], 'portal-settings.spec.ts'),
   app('A18', '@researchdatabox/translation', '/default/rdmp/admin/translation', ['app-root #tx-search:enabled', 'app-root #lang-en'], 'portal-settings.spec.ts'),
   app('A19', '@researchdatabox/record-search', '/default/rdmp/record/search', ['record-search #basic-search-input', 'record-search button:has-text("Search Plans")'], 'dashboard-and-search.spec.ts'),
+  app('A20', '@researchdatabox/siem-admin', '/default/rdmp/admin/siem', ['siem-admin #siem-event-category', 'siem-admin button:has-text("Save changes")'], 'siem.spec.ts'),
 ];
 
 export function workspaceApplications(workspacePath = path.resolve('angular/angular.json')): string[] {
@@ -70,7 +71,7 @@ export function validateApplicationManifest(projects = workspaceApplications()):
   const unknown = manifestProjects.filter(project => !projects.includes(project));
   const invalidEntries = applicationManifest
     .filter(entry =>
-      !/^A(?:0[1-9]|1[0-9])$/.test(entry.id) ||
+      !/^A(?:0[1-9]|1[0-9]|20)$/.test(entry.id) ||
       !entry.route.startsWith('/') ||
       entry.usefulSelectors.length < 2 ||
       !entry.delayedDependency.startsWith('/') ||
@@ -92,7 +93,7 @@ export function validateApplicationManifest(projects = workspaceApplications()):
     unknown.length ||
     invalidEntries.length ||
     invalidPaths.length ||
-    applicationManifest.length !== 19
+    applicationManifest.length !== 20
   ) {
     throw new Error(
       `Playwright application manifest mismatch (duplicates=${duplicates.join(',')}; duplicateIds=${duplicateIds.join(',')}; missing=${missing.join(',')}; unknown=${unknown.join(',')}; invalidEntries=${invalidEntries.join(',')}; invalidPaths=${invalidPaths.join(',')}; count=${applicationManifest.length}).`

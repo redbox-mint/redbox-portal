@@ -66,15 +66,17 @@
         <!-- Tabs -->
         <ul class="nav nav-tabs siem-tabs">
           <li [class.active]="activeTab === 'overview'">
-            <a href="javascript:void(0)" (click)="setActiveTab('overview')">{{ 'siem-tab-overview' | i18next }}</a>
+            <a href="#" (click)="$event.preventDefault(); setActiveTab('overview')">{{
+              'siem-tab-overview' | i18next
+            }}</a>
           </li>
           <li [class.active]="activeTab === 'destinations'">
-            <a href="javascript:void(0)" (click)="setActiveTab('destinations')">{{
+            <a href="#" (click)="$event.preventDefault(); setActiveTab('destinations')">{{
               'siem-tab-destinations' | i18next
             }}</a>
           </li>
           <li [class.active]="activeTab === 'policy'">
-            <a href="javascript:void(0)" (click)="setActiveTab('policy')">{{ 'siem-tab-policy' | i18next }}</a>
+            <a href="#" (click)="$event.preventDefault(); setActiveTab('policy')">{{ 'siem-tab-policy' | i18next }}</a>
           </li>
         </ul>
 

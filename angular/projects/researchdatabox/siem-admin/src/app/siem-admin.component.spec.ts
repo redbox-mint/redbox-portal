@@ -1,5 +1,5 @@
 import { APP_BASE_HREF } from '@angular/common';
-import { provideZoneChangeDetection } from '@angular/core';
+import { ChangeDetectorRef, provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import {
@@ -71,7 +71,7 @@ describe('SiemAdminComponent', () => {
       declarations: [SiemAdminComponent],
       imports: [FormsModule, RedboxPortalCoreModule],
       providers: [
-        provideZoneChangeDetection(),
+        provideZonelessChangeDetection(),
         LoggerService,
         { provide: APP_BASE_HREF, useValue: 'base' },
         {
@@ -91,6 +91,11 @@ describe('SiemAdminComponent', () => {
     fixture = TestBed.createComponent(SiemAdminComponent);
     component = fixture.componentInstance;
   });
+
+  function render(): void {
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+  }
 
   async function init(): Promise<void> {
     fixture.autoDetectChanges(true);
@@ -132,7 +137,7 @@ describe('SiemAdminComponent', () => {
     component.draft.enabled = true;
     expect(component.loadError).toBeTruthy();
     expect(component.canSave()).toBeFalse();
-    fixture.detectChanges();
+    render();
     const saveButton: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-primary');
     expect(saveButton.disabled).toBeTrue();
     await component.save();
@@ -191,12 +196,12 @@ describe('SiemAdminComponent', () => {
 
   async function changeAdapter(adapter: SiemAdapterType): Promise<void> {
     component.setActiveTab('destinations');
-    fixture.detectChanges();
+    render();
     await fixture.whenStable();
     const select: HTMLSelectElement = fixture.nativeElement.querySelector('#siem-dest-adapter');
     select.value = adapter;
     select.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+    render();
     await fixture.whenStable();
   }
 
@@ -204,7 +209,7 @@ describe('SiemAdminComponent', () => {
     const input: HTMLInputElement = fixture.nativeElement.querySelector(`#siem-dest-${field}`);
     input.value = value;
     input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    render();
     await fixture.whenStable();
   }
 
@@ -325,7 +330,7 @@ describe('SiemAdminComponent', () => {
     expect(headerInput).withContext(fixture.nativeElement.innerHTML).toBeDefined();
     headerInput.value = '';
     headerInput.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    render();
     await fixture.whenStable();
     apiService.saveSiemConfig.and.callFake(config => Promise.resolve(config));
     await component.save();
@@ -514,14 +519,14 @@ describe('SiemAdminComponent', () => {
     );
     const pendingSave = component.save();
     expect(component.saving).toBeTrue();
-    fixture.detectChanges();
+    render();
     expect(fixture.nativeElement.querySelector('input[name="enabled"]').matches(':disabled')).toBeTrue();
     expect(fixture.nativeElement.querySelector('button.btn-primary').disabled).toBeTrue();
     await component.save();
     expect(apiService.saveSiemConfig).toHaveBeenCalledTimes(1);
     rejectSave({ error: { message: 'Collector target changed: enter a new token' } });
     await pendingSave;
-    fixture.detectChanges();
+    render();
     expect(component.saving).toBeFalse();
     expect(fixture.nativeElement.querySelector('input[name="enabled"]').matches(':disabled')).toBeFalse();
     expect(component.draft.enabled).toBeTrue();
@@ -552,7 +557,7 @@ describe('SiemAdminComponent', () => {
       })
     );
     const pendingSave = component.save();
-    fixture.detectChanges();
+    render();
     const controls: NodeListOf<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> =
       fixture.nativeElement.querySelectorAll('input, select, textarea');
     expect(controls.length).toBeGreaterThan(2);
@@ -560,7 +565,7 @@ describe('SiemAdminComponent', () => {
     const submitted = apiService.saveSiemConfig.calls.mostRecent().args[0];
     finishSave(submitted);
     await pendingSave;
-    fixture.detectChanges();
+    render();
     expect(component.draft.destinations[0].endpointUrl).toBe(submitted.destinations[0].endpointUrl);
     expect(component.isDirty()).toBeFalse();
     expect(fixture.nativeElement.querySelector('input[name="enabled"]').matches(':disabled')).toBeFalse();
@@ -626,7 +631,7 @@ describe('SiemAdminComponent', () => {
     await component.refresh();
     expect(component.selectedDestinationId).toBe(second.id);
     component.setActiveTab('overview');
-    fixture.detectChanges();
+    render();
     fixture.nativeElement.querySelector('.siem-dest-list__item').click();
     expect(component.selectedDestinationId).toBe(first.id);
     expect(component.activeTab).toBe('destinations');
@@ -678,7 +683,7 @@ describe('SiemAdminComponent', () => {
     const pendingTest = component.testDestination(id);
     expect(component.testingById[id]).toBeTrue();
     expect(component.testStateById[id]).toBeUndefined();
-    fixture.detectChanges();
+    render();
     expect(fixture.nativeElement.querySelector('.siem-dest-editor button.btn-default').disabled).toBeTrue();
     const input = apiService.testDestination.calls.mostRecent().args[0];
     expect(input.destination.headers).toEqual({ 'X-Tenant': 'team-a' });
@@ -758,7 +763,7 @@ describe('SiemAdminComponent', () => {
     apiService.getEvents.and.rejectWith({ error: { detail: 'Event query unavailable' } });
     apiService.getDeliveryStatus.and.rejectWith(new Error('Delivery query unavailable'));
     await component.refresh();
-    fixture.detectChanges();
+    render();
     expect(fixture.nativeElement.textContent).toContain('Event query unavailable');
     expect(fixture.nativeElement.textContent).toContain('Delivery query unavailable');
     expect(component.eventResponse).toEqual({ rows: [], total: 0 });
@@ -815,7 +820,7 @@ describe('SiemAdminComponent', () => {
     expect(fixture.nativeElement.querySelector('.siem-status--muted')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.siem-status--neutral')).not.toBeNull();
     component.setActiveTab('policy');
-    fixture.detectChanges();
+    render();
     expect(fixture.nativeElement.textContent).toContain('Splunk HEC JSON');
     expect(fixture.nativeElement.textContent).toContain('CEF');
   });

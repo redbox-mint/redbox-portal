@@ -1,5 +1,5 @@
 import { normalizeSiemConfiguration } from '@researchdatabox/sails-ng-common';
-import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { DateTime } from 'luxon';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
@@ -44,7 +44,6 @@ interface TestState {
   selector: 'siem-admin',
   templateUrl: './siem-admin.component.html',
   styleUrls: ['./siem-admin.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class SiemAdminComponent extends BaseComponent {
