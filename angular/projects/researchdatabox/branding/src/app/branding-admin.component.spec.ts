@@ -293,6 +293,52 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.draftConfig).toEqual({ primary: '#112233' });
   });
 
+  it('retains the sidebar colour while filtering legacy typography variables', async () => {
+    const state = adminState();
+    state.draft.variables = {
+      primary: '#123456',
+      'admin-sidebar-text-color': '#654321',
+      'branding-font-family': 'Arial, sans-serif',
+    };
+    await initWith(state);
+    expect(component.draftConfig['admin-sidebar-text-color']).toBe('#654321');
+    expect(component.draftConfig['branding-font-family']).toBeUndefined();
+    expect(component.colourGroups.flatMap(group => group.variables.map(variable => variable.key))).toContain(
+      'admin-sidebar-text-color'
+    );
+  });
+
+  it('displays the inherited sidebar colour in both inputs after clearing the setting', async () => {
+    await initWith(adminState());
+
+    const picker: HTMLInputElement = fixture.nativeElement.querySelector('#admin-sidebar-text-color');
+    const text: HTMLInputElement = picker.parentElement!.querySelector('input[type="text"]')!;
+    expect(picker.value).toBe('#b1101a');
+    expect(text.value).toBe('#b1101a');
+
+    component.draftConfig = {
+      'panel-branding-background-color': '#123456',
+      'admin-sidebar-text-color': '#abcdef',
+    };
+    fixture.detectChanges();
+    expect(picker.value).toBe('#abcdef');
+    expect(text.value).toBe('#abcdef');
+
+    text.value = '';
+    text.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(component.draftConfig['admin-sidebar-text-color']).toBeUndefined();
+    expect(picker.value).toBe('#123456');
+    expect(text.value).toBe('#123456');
+
+    const panelPicker = fixture.nativeElement.querySelector('#panel-branding-background-color') as HTMLInputElement;
+    panelPicker.value = '#654321';
+    panelPicker.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(picker.value).toBe('#654321');
+    expect(text.value).toBe('#654321');
+  });
+
   it('renders default, complete custom, incomplete, and warning states', async () => {
     await initWith(adminState());
     let text = fixture.nativeElement.textContent;
