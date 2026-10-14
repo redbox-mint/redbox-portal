@@ -284,6 +284,65 @@ describe('RequestChronicleHelper', () => {
   });
 
   describe('capture safeguards on every logging path', () => {
+    it('redacts embedded credentials in error messages, stacks, and arbitrary details', () => {
+      const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwcml2YXRlIn0.privateSignature';
+      const text = `Upstream rejected Authorization: Bearer private-token; JWT ${jwt}; key sk_live_privateKey`;
+      const error = new Error(text);
+      const { rc } = startedHelper();
+      rc.addError(error);
+      rc.addInfo({ upstreamMessage: text });
+      const recorded = JSON.stringify(rc.data);
+      for (const credential of ['private-token', jwt, 'sk_live_privateKey']) {
+        expect(recorded).to.not.include(credential);
+      }
+      expect(recorded).to.include('Upstream rejected Authorization: Bearer REDACTED');
+      expect(rc.data.errors?.[0].stack).to.include('RequestChronicle.test.ts');
+    });
+
+    it('redacts a JWT before truncation even when its signature lies beyond the processed text', () => {
+      const jwt = `eyJhbGciOiJIUzI1NiJ9.${'privatePayload'.repeat(500)}.privateSignature`;
+      const recorded = sanitizeChronicleValue(`Provider returned ${jwt}`);
+      expect(recorded).to.be.a('string').and.include('REDACTED');
+      expect(recorded).to.not.include('privatePayload');
+      expect(recorded).to.not.include('privateSignature');
+    });
+
+    it('does not re-enter error normalization through an object wrapped cause', () => {
+      const error = new Error('outer failure');
+      let reads = 0;
+      error.cause = {
+        get wrapped() {
+          if (++reads > 10) throw new Error('Repeated traversal');
+          return error;
+        },
+      };
+      const recorded = toChronicleError(error);
+      expect(reads).to.equal(1);
+      expect(recorded.message).to.equal('outer failure');
+      expect(recorded.details?.[0].message).to.include('[Circular]');
+      expect(JSON.stringify(recorded).length).to.be.at.most(RequestChronicleLimits.maxErrorJsonLength);
+    });
+
+    it('bounds the serialized error even when control characters expand during JSON escaping', () => {
+      const error = new Error('\u0000'.repeat(RequestChronicleLimits.maxErrorMessageLength));
+      error.name = '\u0000'.repeat(RequestChronicleLimits.maxStringLength);
+      (error as Error & { code: string }).code = error.name;
+      error.stack = '\u0000'.repeat(RequestChronicleLimits.maxStackLength);
+      const recorded = toChronicleError(error);
+      expect(JSON.stringify(recorded).length).to.be.at.most(RequestChronicleLimits.maxErrorJsonLength);
+      expect(recorded.message).to.be.a('string').and.not.equal('');
+    });
+
+    it('drops an oversized stack while retaining a bounded error message', () => {
+      const error = new Error('\u0000'.repeat(950));
+      error.stack = '\u0000'.repeat(RequestChronicleLimits.maxStackLength);
+      const recorded = toChronicleError(error);
+      expect(recorded.message).to.equal(error.message);
+      expect(recorded.stack).to.equal(undefined);
+      expect(recorded.details?.[0].message).to.include('Stack and nested errors omitted');
+      expect(JSON.stringify(recorded).length).to.be.at.most(RequestChronicleLimits.maxErrorJsonLength);
+    });
+
     it('redacts sensitive top-level details before and after completion', () => {
       const { rc } = startedHelper();
       rc.addInfo({ password: 'private-password', accessToken: 'private-token', safe: 'ok' });

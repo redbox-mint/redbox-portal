@@ -7,6 +7,8 @@ import { Controllers as VocabularyControllers } from '../../src/controllers/Voca
 import { Controllers as ReportControllers } from '../../src/controllers/ReportController';
 import { Controllers as EmailControllers } from '../../src/controllers/EmailController';
 import { Controllers as BrandingAppControllers } from '../../src/controllers/BrandingAppController';
+import { Controllers as TranslationControllers } from '../../src/controllers/TranslationController';
+import { serverError } from '../../src/responses/serverError';
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 import { createSinonStubLogger } from '../logger.test';
 
@@ -24,6 +26,7 @@ describe('Request chronicle controller integration', function () {
     'RvaImportService',
     'ReportsService',
     'TranslationService',
+    'I18nEntriesService',
   ];
   let originals: Record<string, unknown>;
   let logger: StubLogger;
@@ -37,6 +40,8 @@ describe('Request chronicle controller integration', function () {
         http: { rootContext: '' },
         appUrl: 'http://localhost',
         log: {},
+        environment: 'production',
+        hooks: { views: true },
       },
       log: logger,
       services: {},
@@ -70,6 +75,8 @@ describe('Request chronicle controller integration', function () {
       param: (name: string) => params[name],
       isAuthenticated: () => true,
       user: { id: 'user-1', username: 'user1', type: 'local' },
+      _sails: (global as any).sails,
+      wantsJSON: true,
       ...values,
     } as unknown as Sails.Req;
     if (startChronicle) {
@@ -80,13 +87,15 @@ describe('Request chronicle controller integration', function () {
     return req;
   }
 
-  function createRes() {
+  function createRes(req?: Sails.Req) {
     const res = {
       statusCode: 200,
       body: undefined as unknown,
       location: undefined as string | undefined,
       writableEnded: false,
-      set() {
+      headers: {} as Record<string, unknown>,
+      set(name: string, value: unknown) {
+        res.headers[name] = value;
         return res;
       },
       status(code: number) {
@@ -109,6 +118,19 @@ describe('Request chronicle controller integration', function () {
         res.location = url;
         return res;
       },
+      badRequest(body: unknown) {
+        return res.status(400).json(body);
+      },
+      notFound(body: unknown) {
+        return res.status(404).json(body);
+      },
+      serverError(error?: unknown) {
+        return req ? serverError.call({ req, res: res as unknown as Sails.Res }, error) : res.status(500).json(error);
+      },
+      attachment(filename: string) {
+        res.headers['Content-Disposition'] = filename;
+        return res;
+      },
     };
     return res;
   }
@@ -116,7 +138,143 @@ describe('Request chronicle controller integration', function () {
   const chronicle = (req: Sails.Req) => RequestChronicleHelper.existing(req)!.data;
   const flush = () => new Promise(resolve => setImmediate(resolve));
 
+  describe('translation responses and capture', function () {
+    const methods = {
+      getNamespace: ['getBundle', 'translationGetNamespaceFailed'],
+      getLanguages: ['listBundles', 'translationGetLanguagesFailed'],
+      listEntriesApp: ['listEntries', 'translationListEntriesFailed'],
+      setEntryApp: ['setEntry', 'translationSetEntryFailed'],
+      getBundleApp: ['getBundle', 'translationGetBundleFailed'],
+      setBundleApp: ['setBundle', 'translationSetBundleFailed'],
+    } as const;
+
+    for (const method of Object.keys(methods) as (keyof typeof methods)[]) {
+      it(`preserves the unknown-brand response for ${method}`, async function () {
+        (global as any).BrandingService.getBrand.returns(undefined);
+        const req = createReq({ params: { branding: 'unknown' } });
+        const res = createRes(req);
+        await new TranslationControllers.Translation()[method](req, res as unknown as Sails.Res);
+        expect(res.statusCode).to.equal(400);
+        expect(res.body).to.deep.equal({ message: 'Unknown branding: unknown' });
+        expect(chronicle(req)).to.include({ translationBrandingUnknown: true });
+        expect(chronicle(req).errors).to.equal(undefined);
+      });
+
+      it(`captures a ${method} service failure once through the configured server error response`, async function () {
+        const [serviceMethod, failureKey] = methods[method];
+        (global as any).I18nEntriesService = {
+          [serviceMethod]: sinon.stub().rejects(new Error('Translation database unavailable')),
+        };
+        const req = createReq({ params: { branding: 'default', lng: 'en' } });
+        const res = createRes(req);
+        await new TranslationControllers.Translation()[method](req, res as unknown as Sails.Res);
+        expect(res.statusCode).to.equal(500);
+        expect(res.body).to.equal(undefined);
+        expect(chronicle(req)).to.include({ [failureKey]: true, responseHandler: 'serverError' });
+        expect(chronicle(req).errors).to.have.length(1);
+        expect(chronicle(req).errors?.[0].message).to.equal('Translation database unavailable');
+        expect(logger.error.called).to.equal(false);
+      });
+    }
+
+    it('serves namespace JSON without metadata and only captures identifiers', async function () {
+      (global as any).I18nEntriesService = {
+        getBundle: sinon.stub().resolves({ data: { _meta: { revision: 3 }, title: 'Private translation content' } }),
+      };
+      const req = createReq({ params: { branding: 'default', lng: 'en', ns: 'translation' } });
+      const res = createRes(req);
+      await new TranslationControllers.Translation().getNamespace(req, res as unknown as Sails.Res);
+      expect(res.body).to.deep.equal({ title: 'Private translation content' });
+      expect(chronicle(req)).to.include({ translationRemoveMetaSuccess: true, translationLng: 'en' });
+      expect(JSON.stringify(chronicle(req))).to.not.include('Private translation content');
+    });
+
+    for (const method of ['setEntryApp', 'setBundleApp'] as const) {
+      it(`preserves a successful ${method} response when resource reload fails`, async function () {
+        const saved = { id: 'entry-1', data: { title: 'Private translation content' } };
+        (global as any).I18nEntriesService = {
+          setEntry: sinon.stub().resolves(saved),
+          setBundle: sinon.stub().resolves(saved),
+        };
+        (global as any).TranslationService.reloadResources = sinon.stub().rejects(new Error('reload failed'));
+        const req = createReq({
+          params: { branding: 'default', locale: 'en', key: 'title' },
+          body: { value: 'Private translation content', data: saved.data, description: 'Private description' },
+        });
+        const res = createRes(req);
+        await new TranslationControllers.Translation()[method](req, res as unknown as Sails.Res);
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.equal(saved);
+        expect(chronicle(req)).to.include({ translationReloadFailed: true });
+        expect(chronicle(req).errors?.[0].message).to.equal('reload failed');
+        expect(JSON.stringify(chronicle(req))).to.not.include('Private translation content');
+        expect(JSON.stringify(chronicle(req))).to.not.include('Private description');
+      });
+    }
+  });
+
+  describe('authentication callbacks', function () {
+    function authenticate(error: Error | null, user: unknown, info: unknown) {
+      (global as any).sails.config.passport = {
+        authenticate: (_strategy: string, callback: (...args: unknown[]) => void) => () => callback(error, user, info),
+      };
+      (global as any).UsersService = { addUserAuditEvent: sinon.stub().resolves() };
+    }
+
+    it('keeps the failed local-login response and captures no password or provider claims', function () {
+      authenticate(new Error('Authentication backend unavailable'), false, {
+        message: 'Login failed',
+        token: 'private-token',
+      });
+      const req = createReq({ body: { password: 'private-password' } });
+      const res = createRes(req);
+      new UserControllers.User().localLogin(req, res as unknown as Sails.Res);
+      expect(res.statusCode).to.equal(200);
+      expect(res.body).to.deep.equal({ message: 'Login failed', user: false });
+      expect(chronicle(req)).to.include({
+        userLoginType: 'local',
+        userLoginSuccess: false,
+        userLoginMessage: 'Login failed',
+      });
+      expect(chronicle(req).errors?.[0].message).to.equal('Authentication backend unavailable');
+      expect(JSON.stringify(chronicle(req))).to.not.include('private-password');
+      expect(JSON.stringify(chronicle(req))).to.not.include('private-token');
+    });
+
+    for (const method of ['localLogin', 'openidConnectLogin', 'aafLogin'] as const) {
+      it(`does not redirect after a ${method} session callback failure`, async function () {
+        const user = { id: 'user-1', username: 'user1', token: 'private-token' };
+        const error = new Error('Session store unavailable');
+        authenticate(null, user, { message: 'Authenticated', claims: { private: true } });
+        const redirect = sinon.stub();
+        (global as any).sails.getActions = () => ({ 'user/redirpostlogin': redirect });
+        const req = createReq({ logIn: (_user: unknown, callback: (error: Error) => void) => callback(error) });
+        const res = createRes(req);
+        new UserControllers.User()[method](req, res as unknown as Sails.Res);
+        await flush();
+        expect(res.body).to.equal(error);
+        expect(redirect.called).to.equal(false);
+        expect(chronicle(req)).to.include({ userLoginSuccess: false });
+        expect(chronicle(req).errors?.[0].message).to.equal('Session store unavailable');
+        expect(JSON.stringify(chronicle(req))).to.not.include('private-token');
+      });
+    }
+  });
+
   describe('response contracts', function () {
+    it('returns the vocabulary failure response even when the service error has a cyclic cause', async function () {
+      const error = new Error('Cyclic service failure');
+      error.cause = error;
+      (global as any).RvaImportService = { importRvaVocabulary: sinon.stub().rejects(error) };
+      const req = createReq({ body: { rvaId: 'rva-1' } });
+      const res = createRes();
+      await new VocabularyControllers.Vocabulary().import(req, res as unknown as Sails.Res);
+      expect(res.statusCode).to.equal(400);
+      expect(res.body).to.include({ message: 'Cyclic service failure' });
+      expect(chronicle(req).errors).to.have.length(1);
+      expect(chronicle(req).errors?.[0].details).to.deep.equal([{ message: '[Circular]' }]);
+    });
+
     for (const method of ['import', 'sync'] as const) {
       it(`returns 400 with the failure detail when vocabulary ${method} fails`, async function () {
         (global as any).RvaImportService = {
@@ -177,6 +335,46 @@ describe('Request chronicle controller integration', function () {
       expect(res.body).to.deep.equal({ status: false, message: 'report query failed' });
       expect(chronicle(req)).to.deep.include({ reportName: 'report-1', reportPagingStart: 0, reportPagingRows: 5 });
       expect(chronicle(req).errors?.[0]).to.include({ message: 'report query failed' });
+    });
+
+    it('keeps the CSV failure response and records its error without recording exported data', async function () {
+      (global as any).ReportsService = { getCSVResult: sinon.stub().rejects(new Error('CSV query failed')) };
+      const req = createReq({ params: { name: 'report-1' } });
+      const res = createRes();
+      await new ReportControllers.Report().downloadCSV(req, res as unknown as Sails.Res);
+      expect(res.statusCode).to.equal(200);
+      expect(res.body).to.deep.equal({ status: false, message: 'CSV query failed' });
+      expect(chronicle(req)).to.include({ reportName: 'report-1' });
+      expect(chronicle(req).errors?.[0].message).to.equal('CSV query failed');
+    });
+
+    it('returns full report results but only records paging and record counts', async function () {
+      const result = { total: 17, pageNum: 2, recordPerPage: 5, records: [{ value: 'Private report data' }] };
+      (global as any).ReportsService = { getResults: sinon.stub().resolves(result) };
+      const req = createReq({ params: { name: 'report-1', start: '5', rows: '5' } });
+      const res = createRes();
+      new ReportControllers.Report().getResults(req, res as unknown as Sails.Res);
+      await flush();
+      expect(res.statusCode).to.equal(200);
+      expect(res.body).to.deep.equal({ ...result, success: true });
+      expect(chronicle(req).reportResultPage).to.deep.equal({
+        total: 17,
+        pageNum: 2,
+        recordPerPage: 5,
+        recordCount: 1,
+        success: true,
+      });
+      expect(JSON.stringify(chronicle(req))).to.not.include('Private report data');
+    });
+
+    it('retains the empty report response with finite default paging', async function () {
+      (global as any).ReportsService = { getResults: sinon.stub().resolves(undefined) };
+      const req = createReq({ params: { name: 'report-1', start: 'invalid', rows: '' } });
+      const res = createRes();
+      new ReportControllers.Report().getResults(req, res as unknown as Sails.Res);
+      await flush();
+      expect(res.body).to.deep.equal({ status: false, message: null });
+      expect(chronicle(req)).to.include({ reportPagingStart: 0, reportPagingRows: 10 });
     });
   });
 

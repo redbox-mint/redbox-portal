@@ -87,7 +87,7 @@ export namespace Controllers {
         this.updateChronicle(req, {translationGetNamespaceSuccess: true});
         return res.json(payload);
       } catch (err) {
-        this.updateChronicle(req, {translationGetNamespaceFailed: true}, [err]);
+        this.updateChronicle(req, {translationGetNamespaceFailed: true});
         return res.serverError(err);
       }
     }
@@ -131,7 +131,7 @@ export namespace Controllers {
         this.updateChronicle(req, {translationGetLanguagesSuccess: true, translationLanguageCount: list.length});
         return res.json(list);
       } catch (err) {
-        this.updateChronicle(req, {translationGetLanguagesFailed: true}, [err]);
+        this.updateChronicle(req, {translationGetLanguagesFailed: true});
         return res.serverError(err);
       }
     }
@@ -160,7 +160,7 @@ export namespace Controllers {
         this.updateChronicle(req, {translationListEntriesSuccess: true});
         return res.json(entries);
       } catch (err) {
-        this.updateChronicle(req, {translationListEntriesFailed: true}, [err]);
+        this.updateChronicle(req, {translationListEntriesFailed: true});
         return res.serverError(err);
       }
     }
@@ -196,7 +196,7 @@ export namespace Controllers {
         this.updateChronicle(req, {translationSetEntrySuccess: true});
         return res.json(saved);
       } catch (err) {
-        this.updateChronicle(req, {translationSetEntryFailed: true}, [err]);
+        this.updateChronicle(req, {translationSetEntryFailed: true});
         return res.serverError(err);
       }
     }
@@ -221,7 +221,7 @@ export namespace Controllers {
         this.updateChronicle(req, {translationGetBundleSuccess: true});
         return res.json(bundle);
       } catch (err) {
-        this.updateChronicle(req, {translationGetBundleFailed: true}, [err]);
+        this.updateChronicle(req, {translationGetBundleFailed: true});
         return res.serverError(err);
       }
     }
@@ -249,7 +249,7 @@ export namespace Controllers {
         this.updateChronicle(req, {translationSetBundleSuccess: true});
         return res.json(bundle);
       } catch (err) {
-        this.updateChronicle(req, {translationSetBundleFailed: true}, [err]);
+        this.updateChronicle(req, {translationSetBundleFailed: true});
         return res.serverError(err);
       }
     }
