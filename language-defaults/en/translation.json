@@ -2019,5 +2019,9 @@
   "figshare-publication-private": "Private draft in Figshare",
   "figshare-publication-pending": "Publication pending in Figshare",
   "figshare-publication-published": "Published in Figshare",
-  "figshare-embargoed": "Files are under embargo; local copies are retained."
+  "figshare-embargoed": "Files are under embargo; local copies are retained.",
+  "branding-admin-sidebar-name": "Admin Sidebar",
+  "branding-admin-sidebar-help": "Controls text colours in the admin sidebar.",
+  "branding-admin-sidebar-text-color-label": "Sidebar Text Colour",
+  "branding-admin-sidebar-text-color-help": "Sets the colour of section headings, hovered links, and footer links on the sidebar's light backgrounds."
 }

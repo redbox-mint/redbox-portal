@@ -478,6 +478,18 @@ export class BrandingAdminComponent extends BaseComponent {
         ],
       },
       {
+        name: this.i18n.t('branding-admin-sidebar-name'),
+        help: this.i18n.t('branding-admin-sidebar-help'),
+        variables: [
+          {
+            key: 'admin-sidebar-text-color',
+            label: this.i18n.t('branding-admin-sidebar-text-color-label'),
+            default: '#b1101a',
+            help: this.i18n.t('branding-admin-sidebar-text-color-help'),
+          },
+        ],
+      },
+      {
         name: this.i18n.t('branding-footer-name'),
         help: this.i18n.t('branding-footer-help'),
         variables: [
@@ -718,6 +730,13 @@ export class BrandingAdminComponent extends BaseComponent {
       await this.brandingService.uploadFavicon(formData);
       this.message = this.i18n.t('branding-favicon-uploaded');
     });
+  }
+
+  getColourValue(variable: ColourVariable): string {
+    if (variable.key === 'admin-sidebar-text-color') {
+      return this.draftConfig[variable.key] || this.draftConfig['panel-branding-background-color'] || variable.default;
+    }
+    return this.draftConfig[variable.key] || variable.default;
   }
 
   updateVariable(key: string, event: Event) {

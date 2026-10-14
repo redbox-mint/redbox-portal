@@ -297,6 +297,60 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.draftConfig).toEqual({ primary: '#112233' });
   });
 
+  it('retains the sidebar colour while filtering legacy typography variables', async () => {
+    const state = adminState();
+    state.draft.variables = {
+      primary: '#123456',
+      'admin-sidebar-text-color': '#654321',
+      'branding-font-family': 'Arial, sans-serif',
+    };
+    await initWith(state);
+    expect(component.draftConfig['admin-sidebar-text-color']).toBe('#654321');
+    expect(component.draftConfig['branding-font-family']).toBeUndefined();
+    expect(component.colourGroups.flatMap(group => group.variables.map(variable => variable.key))).toContain(
+      'admin-sidebar-text-color'
+    );
+  });
+
+  it('displays the inherited sidebar colour in both inputs after clearing the setting', async () => {
+    await initWith(adminState());
+    await settled();
+
+    const sidebarInputs = () => {
+      const picker = fixture.nativeElement.querySelector('#admin-sidebar-text-color') as HTMLInputElement;
+      const text = picker.parentElement!.querySelector('input[type="text"]') as HTMLInputElement;
+      return { picker, text };
+    };
+    const changePanelColour = async (value: string) => {
+      const input = fixture.nativeElement.querySelector('#panel-branding-background-color') as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      await settled();
+    };
+    expect(sidebarInputs().picker.value).toBe('#b1101a');
+    expect(sidebarInputs().text.value).toBe('#b1101a');
+
+    await changePanelColour('#123456');
+    const explicit = sidebarInputs().text;
+    explicit.value = '#abcdef';
+    explicit.dispatchEvent(new Event('input'));
+    await settled();
+    expect(sidebarInputs().picker.value).toBe('#abcdef');
+    expect(sidebarInputs().text.value).toBe('#abcdef');
+
+    const cleared = sidebarInputs().text;
+    cleared.value = '';
+    cleared.dispatchEvent(new Event('input'));
+    await settled();
+    expect(component.draftConfig['admin-sidebar-text-color']).toBeUndefined();
+    expect(sidebarInputs().picker.value).toBe('#123456');
+    expect(sidebarInputs().text.value).toBe('#123456');
+
+    await changePanelColour('#654321');
+    expect(sidebarInputs().picker.value).toBe('#654321');
+    expect(sidebarInputs().text.value).toBe('#654321');
+  });
+
   it('renders default, complete custom, incomplete, and warning states', async () => {
     await initWith(adminState());
     let text = fixture.nativeElement.textContent;

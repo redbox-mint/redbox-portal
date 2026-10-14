@@ -13,6 +13,7 @@ export const brandingThemeTokens: BrandingThemeToken[] = [
   { key: 'panel-branding-background-color', cssVar: '--rb-panel-branding-background-color', defaultValue: '#b1101a', aliases: ['panel-branding-background-colour'], exposed: true },
   { key: 'panel-branding-color', cssVar: '--rb-panel-branding-color', defaultValue: '#ffffff', aliases: ['panel-branding-colour'], exposed: true },
   { key: 'panel-branding-border-color', cssVar: '--rb-panel-branding-border-color', defaultValue: '#dddddd', aliases: ['panel-branding-border-colour'], exposed: true },
+  { key: 'admin-sidebar-text-color', cssVar: '--rb-admin-sidebar-text-color', defaultValue: '#b1101a', aliases: ['admin-sidebar-text-colour'], exposed: true },
   { key: 'main-menu-branding-background-color', cssVar: '--rb-main-menu-branding-background-color', defaultValue: '#500005', aliases: ['main-menu-branding-background-colour'], exposed: true },
   { key: 'header-branding-link-color', cssVar: '--rb-header-branding-link-color', defaultValue: '#222222', aliases: ['header-branding-link-colour'], exposed: true },
   { key: 'header-branding-background-color', cssVar: '--rb-header-branding-background-color', defaultValue: '#f4f4f4', aliases: ['header-branding-background-colour'], exposed: true },
