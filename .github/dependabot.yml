@@ -116,3 +116,9 @@ updates:
           - 'major'
     cooldown:
       default-days: 7
+    # ngx-tiptap 15.0 requires Angular 22 and is already included on next.
+    # develop remains on Angular 20; skip only this minor version line.
+    ignore:
+      - dependency-name: 'ngx-tiptap'
+        versions:
+          - '>=15.0.0 <15.1.0'
