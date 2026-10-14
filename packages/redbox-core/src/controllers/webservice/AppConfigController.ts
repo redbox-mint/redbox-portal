@@ -6,6 +6,7 @@ import {
   getAppConfigByIdRoute,
   saveAppConfigByIdRoute,
 } from '../../index';
+import { SiemConfigurationError } from '../../configmodels/SiemConfiguration';
 
 export namespace Controllers {
   /**
@@ -33,7 +34,7 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     public async resetAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
@@ -65,7 +66,7 @@ export namespace Controllers {
         sails.log.error(error);
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
-          status: 500,
+          status: error instanceof SiemConfigurationError ? 400 : 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),
         });

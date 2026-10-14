@@ -164,6 +164,19 @@ export const agendaQueue: AgendaQueueConfig = {
             fnName: 'integrationnotificationservice.dispatch',
             options: { lockLifetime: 30000, lockLimit: 1, concurrency: 1 }
         },
+        'SecurityEventService-StoreSecurityEvent': {
+            fnName: 'securityeventservice.storeSecurityEvent',
+            options: { lockLifetime: 30000, lockLimit: 1, concurrency: 1 }
+        },
+        'SiemForwardingService-ForwardSecurityEvents': {
+            fnName: 'siemforwardingservice.forwardSecurityEvents',
+            options: { lockLifetime: 120000, lockLimit: 1, concurrency: 1 }
+        },
+        'SiemForwardingService-RetryFailedDeliveries': {
+            fnName: 'siemforwardingservice.retryFailedDeliveries',
+            options: { lockLifetime: 120000, lockLimit: 1, concurrency: 1 },
+            schedule: { method: 'every', intervalOrSchedule: '1 minute' }
+        },
         'RaidMintRetryJob': {
             fnName: 'raidservice.mintRetryJob',
 

@@ -10,8 +10,13 @@ describe('IntegrationAuditService', function () {
   let service: InstanceType<typeof Services.IntegrationAuditService>;
   let mockStorageService: Record<string, sinon.SinonStub>;
   let mockQueueService: Record<string, sinon.SinonStub>;
+  let securityEventEmitter: sinon.SinonStub;
+  let originalSecurityEventService: unknown;
 
   beforeEach(function () {
+    originalSecurityEventService = Reflect.get(globalThis, 'SecurityEventService');
+    securityEventEmitter = sinon.stub().resolves();
+    Reflect.set(globalThis, 'SecurityEventService', { emitFromIntegrationAudit: securityEventEmitter });
     mockStorageService = {
       createIntegrationAudit: sinon.stub().resolves({ success: true, isSuccessful: () => true }),
       getIntegrationAudit: sinon.stub().resolves([{ redboxOid: 'oid-1' }]),
@@ -46,6 +51,8 @@ describe('IntegrationAuditService', function () {
   });
 
   afterEach(function () {
+    if (originalSecurityEventService === undefined) Reflect.deleteProperty(globalThis, 'SecurityEventService');
+    else Reflect.set(globalThis, 'SecurityEventService', originalSecurityEventService);
     cleanupServiceTestGlobals();
     delete (global as any).AgendaQueueService;
     sinon.restore();
@@ -300,6 +307,78 @@ describe('IntegrationAuditService', function () {
 
     expect((global as any).sails.log.error.calledWithMatch(sinon.match('Storage response message: Invalid new record.'))).to.be.true;
     expect((global as any).sails.log.error.calledWithMatch(sinon.match('Storage response details: "message cannot be null"'))).to.be.true;
+  });
+
+  for (const response of [null, undefined, {}, { success: false }, { success: true, isSuccessful: () => false }]) {
+    it(`does not notify or emit security events without confirmed persistence (${JSON.stringify(response)})`, async function () {
+      mockStorageService.createIntegrationAudit.resolves(response);
+      const logError = sinon.stub();
+      Reflect.set(sails.log, 'error', logError);
+      service.storeIntegrationAudit({
+        attrs: {
+          data: {
+            redboxOid: 'oid-1',
+            integrationName: 'doi',
+            integrationAction: 'createDoiRequest',
+            status: 'success',
+            traceId: 'a'.repeat(32),
+            spanId: 'b'.repeat(16),
+            startedAt: new Date().toISOString(),
+          },
+        },
+      });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(mockStorageService.createIntegrationAudit.calledOnce).to.be.true;
+      expect(mockQueueService.now.called).to.be.false;
+      expect(securityEventEmitter.called).to.be.false;
+      expect(logError.calledWithMatch('Failed to persist integration audit.')).to.be.true;
+      expect(logError.calledWithMatch('Failed to persist integration audit entry.')).to.be.false;
+    });
+  }
+
+  for (const response of [{ success: true }, { success: false, isSuccessful: () => true }]) {
+    it('notifies and emits only after a successful storage acknowledgement', async function () {
+      mockStorageService.createIntegrationAudit.resolves(response);
+      service.storeIntegrationAudit({
+        attrs: {
+          data: {
+            redboxOid: 'oid-1',
+            integrationName: 'doi',
+            integrationAction: 'createDoiRequest',
+            status: 'success',
+            traceId: 'a'.repeat(32),
+            spanId: 'b'.repeat(16),
+            startedAt: new Date().toISOString(),
+          },
+        },
+      });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(mockQueueService.now.calledOnce).to.be.true;
+      expect(securityEventEmitter.calledOnce).to.be.true;
+    });
+  }
+
+  it('retains stored audits and notifications when the optional security event service is absent', async function () {
+    Reflect.deleteProperty(globalThis, 'SecurityEventService');
+    const logError = sinon.stub();
+    Reflect.set(sails.log, 'error', logError);
+    service.storeIntegrationAudit({
+      attrs: {
+        data: {
+          redboxOid: 'oid-1',
+          integrationName: 'doi',
+          integrationAction: 'createDoiRequest',
+          status: 'success',
+          traceId: 'a'.repeat(32),
+          spanId: 'b'.repeat(16),
+          startedAt: new Date().toISOString(),
+        },
+      },
+    });
+    await new Promise<void>(resolve => setImmediate(resolve));
+    expect(mockStorageService.createIntegrationAudit.calledOnce).to.be.true;
+    expect(mockQueueService.now.calledOnce).to.be.true;
+    expect(logError.called).to.be.false;
   });
 
   it('delegates audit-log retrieval to storage', async function () {

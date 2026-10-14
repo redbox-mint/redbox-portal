@@ -1,0 +1,29 @@
+meta {
+  name: Get SIEM Config
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/siem/config
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns SIEM config payload", function () {
+    var jsonData = res.getBody();
+    var payload = jsonData.data || jsonData;
+    expect(payload).to.have.property("enabled");
+    expect(payload).to.have.property("destinations");
+  });
+}

@@ -10,6 +10,7 @@
  */
 
 import { lastValueFrom, Observable } from 'rxjs';
+import { ensureSiemDeliveryStorage } from './services/siem/SiemDeliveryStore';
 import type { BrandingAwareFunction } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
@@ -42,6 +43,9 @@ export async function bootstrapRecordSchema(): Promise<void> {
  * in the correct order. Hook bootstraps run after this completes.
  */
 export async function coreBootstrap(): Promise<void> {
+  // migrate:safe does not apply Waterline index declarations. Finish native DDL
+  // before bootstrap can start capture jobs or delivery workers.
+  await ensureSiemDeliveryStorage();
   const schedule = require('node-schedule');
 
   const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);

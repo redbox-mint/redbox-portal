@@ -6,10 +6,10 @@ import { applicationManifest, validateApplicationManifest } from './applications
 import { playwrightScenarioIds } from '../../../packages/redbox-hook-dev/src/playwright/catalogue';
 
 const requiredIds = [
-  ...Array.from({ length: 19 }, (_, index) => `A${String(index + 1).padStart(2, '0')}`),
+  ...Array.from({ length: 20 }, (_, index) => `A${String(index + 1).padStart(2, '0')}`),
   ...Array.from({ length: 30 }, (_, index) => `F${String(index + 1).padStart(2, '0')}`),
 ];
-const idsIn = (test: TestCase): string[] => test.title.match(/\b(?:A(?:0[1-9]|1[0-9])|F(?:0[1-9]|[12][0-9]|30))\b/g) ?? [];
+const idsIn = (test: TestCase): string[] => test.title.match(/\b(?:A(?:0[1-9]|1[0-9]|20)|F(?:0[1-9]|[12][0-9]|30))\b/g) ?? [];
 
 function specFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
@@ -90,7 +90,7 @@ export default class CoverageReporter implements Reporter {
     };
     if (this.collection) {
       if (process.env.PLAYWRIGHT_COVERAGE_JSON === 'true') process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
-      else if (!this.errors.length) process.stdout.write(`Playwright collection valid: 19 applications, 30 form scenarios, ${this.tests.length} tests.\n`);
+      else if (!this.errors.length) process.stdout.write(`Playwright collection valid: 20 applications, 30 form scenarios, ${this.tests.length} tests.\n`);
     } else {
       fs.mkdirSync('.tmp/playwright/coverage', { recursive: true });
       fs.writeFileSync('.tmp/playwright/coverage/required-ids.json', JSON.stringify(evidence, null, 2));

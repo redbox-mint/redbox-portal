@@ -21,7 +21,8 @@ export interface DatastreamService {
     stagingDisk: StorageManagerServices.IDisk,
     fileIdsAdded: Datastream[]
   ): Observable<Promise<unknown>[]>;
-  removeDatastream(oid: string, datastream: Datastream): Promise<unknown>;
+  /** Remove a file; lifecycle purges supply its known brand after the active record is gone. */
+  removeDatastream(oid: string, datastream: Datastream, brandId?: string): Promise<unknown>;
   /** Delete an abandoned upload from staging without touching primary data. */
   removeStagedDatastream?(fileId: string): Promise<void>;
   /** Probe all final/TUS objects for one normalized staging identity. */

@@ -1937,9 +1937,16 @@ export namespace Services {
         return firstValueFrom(of(null));
       }
       const auditEvent: Record<string, unknown> = {};
-      const userObj = user as AnyRecord;
+      const userObj: Record<string, unknown> = typeof user === 'object' && user !== null
+        ? Object.fromEntries(Object.entries(user))
+        : {};
+      const securityActor: Record<string, unknown> = {
+        id: userObj.id, username: userObj.username, email: userObj.email,
+        additionalAttributes: userObj.additionalAttributes,
+      };
       if (!_.isEmpty(userObj.password)) {
         delete userObj.password;
+        _.unset(user, 'password');
       }
       userObj.additionalAttributes = this.stringifyObject(userObj.additionalAttributes);
       auditEvent['user'] = userObj;
@@ -1947,7 +1954,23 @@ export namespace Services {
       auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
       sails.log.verbose('Adding user audit event');
       sails.log.verbose(auditEvent);
-      return firstValueFrom(super.getObservable<Record<string, unknown>>(UserAudit.create(auditEvent)));
+      return firstValueFrom(super.getObservable<Record<string, unknown>>(UserAudit.create(auditEvent))).then(result => {
+        // Capture structured attributes before the legacy audit JSON serialization.
+        // Class instances (RequestDetails) are valid context, but only selected fields leave the portal.
+        try {
+          if (typeof SecurityEventService !== 'undefined') {
+            const context: Record<string, unknown> = {};
+            for (const key of ['brandId', 'portalId', 'branding', 'method', 'path', 'ip', 'userAgent', 'userId', 'primaryUserId', 'primaryUsername', 'secondaryUserId', 'secondaryUsername', 'rolesMerged', 'recordsRewritten']) {
+              const value: unknown = _.get(additionalContext, key);
+              if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') context[key] = value;
+            }
+            void SecurityEventService.emitFromUserAudit(securityActor, action, context).catch(() => {
+              sails.log.error('Failed to emit user audit security event');
+            });
+          }
+        } catch { sails.log.error('Failed to emit user audit security event'); }
+        return result;
+      });
     };
 
     stringifyObject(object: unknown): unknown {

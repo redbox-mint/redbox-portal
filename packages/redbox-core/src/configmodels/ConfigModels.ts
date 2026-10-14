@@ -11,6 +11,7 @@ import {
   fromDoiPublishingFormModel,
   toDoiPublishingFormModel
 } from './DoiPublishing';
+import { SIEM_CONFIGURATION_SCHEMA, SiemConfiguration, normalizeSiemConfiguration } from './SiemConfiguration';
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from './RaidPublishing';
 import { WebAnalytics, WEB_ANALYTICS_SCHEMA } from './WebAnalytics';
@@ -42,7 +43,8 @@ export type ConfigModelKey =
     | 'doiPublishing'
     | 'integrationNotification'
     | 'raidPublishing'
-    | 'webAnalytics';
+    | 'webAnalytics'
+    | 'siem';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -107,6 +109,18 @@ export class ConfigModels {
                 toForm: toDoiPublishingFormModel,
                 fromForm: fromDoiPublishingFormModel
             }
+        }],
+        ['siem', {
+            modelName: 'SiemConfiguration',
+            title: 'SIEM Configuration',
+            class: SiemConfiguration,
+            schema: SIEM_CONFIGURATION_SCHEMA,
+            formAdapter: { fromForm: normalizeSiemConfiguration },
+            tsGlob: path.join(__dirname, '../../src/configmodels/SiemConfiguration.ts'),
+            secretFields: [
+                'destinations[].token',
+                'destinations[].password'
+            ]
         }],
         ['integrationNotification', {
             modelName: 'IntegrationNotificationConfig',

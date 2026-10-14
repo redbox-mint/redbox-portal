@@ -1,6 +1,10 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { Services as SecurityServices } from '../../src/services/SecurityEventService';
+import { Services as DatastreamServices } from '../../src/services/StandardDatastreamService';
+import { Services as AttachmentServices } from '../../src/services/AttachmentMetadataService';
+import { Datastream } from '../../src/Datastream';
 import { Settings } from 'luxon';
 import _ from 'lodash';
 import { of, firstValueFrom } from 'rxjs';
@@ -313,6 +317,9 @@ describe('RecordsService', function () {
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
+    (global as any).SecurityEventService = {
+      emitFromRecordAudit: sinon.stub().resolves(undefined)
+    };
     (global as any).RedboxJavaStorageService = mockStorageService;
     (global as any).SolrSearchService = mockSearchService;
 
@@ -339,6 +346,7 @@ describe('RecordsService', function () {
     delete (global as any).RecordValidationService;
     delete (global as any).DomSanitizerService;
     delete (global as any).TranslationService;
+    delete (global as any).SecurityEventService;
     delete (global as any).RedboxJavaStorageService;
     delete (global as any).SolrSearchService;
     delete (globalThis as any).__w05Hooks;
@@ -1031,6 +1039,32 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('createRecordAudit', function () {
+    it('should emit a record audit security event after successful storage', async function () {
+      const recordAudit = { id: 'record-123', action: 'updated' };
+
+      const response = await RecordsService.createRecordAudit(recordAudit);
+
+      expect((response as any).success).to.equal(true);
+      expect((global as any).SecurityEventService.emitFromRecordAudit.calledOnceWith(recordAudit)).to.be.true;
+    });
+
+    it('should not emit a record audit security event after soft-failed storage', async function () {
+      const failedResponse = {
+        success: false,
+        message: 'storage failed',
+        isSuccessful: () => false
+      };
+      mockStorageService.createRecordAudit.resolves(failedResponse);
+      const recordAudit = { id: 'record-123', action: 'updated' };
+
+      const response = await RecordsService.createRecordAudit(recordAudit);
+
+      expect(response).to.equal(failedResponse);
+      expect((global as any).SecurityEventService.emitFromRecordAudit.called).to.be.false;
+    });
+  });
+
   describe('hasPostSaveSyncHooks', function () {
     it('should return true when hooks are configured', function () {
       const recordType = {
@@ -1580,6 +1614,151 @@ describe('RecordsService', function () {
         of({ name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode } })
       );
     };
+
+    for (const operation of ['soft-delete', 'permanent-delete', 'destroy-deleted'] as const) {
+      it(`captures ${operation} ownership through the production worker after record removal`, async function () {
+        setMode('observe');
+        sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+        mockSails.config.environment = 'production';
+        const active = lifecycleRecord(7);
+        mockStorageService.getMeta.resolves(active);
+        mockStorageService.getTombstone.resolves({
+          redboxOid: 'record-123', revision: 9, brandId: 'brand-1',
+          lifecycleState: 'deleted', deletedRecordMetadata: active,
+        });
+        mockStorageService.removeActiveRecord.callsFake(async () => {
+          mockStorageService.getMeta.resolves(null);
+          return { success: true, oid: 'record-123', applicationState: 'applied', committedRevision: 8, removedRecord: active };
+        });
+        mockStorageService.removeTombstone.callsFake(async () => {
+          mockStorageService.getTombstone.resolves(null);
+          return { success: true, oid: 'record-123', applicationState: 'applied' };
+        });
+        const originalGlobals = new Map([
+          'SecurityEventService', 'AppConfigService', 'AgendaQueueService',
+          'StorageManagerService', 'AttachmentMetadata', 'AttachmentAccessAudit',
+        ].map(key => [key, Reflect.get(globalThis, key)]));
+        const emitted: Array<{ event: Record<string, unknown> }> = [];
+        const attachmentAudits: Record<string, unknown>[] = [];
+        const deleteFile = sinon.stub().callsFake(async () => {
+          expect(await mockStorageService.getMeta('record-123')).to.equal(null);
+        });
+        Object.assign(globalThis, {
+          SecurityEventService: new SecurityServices.SecurityEventService(),
+          AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },
+          AgendaQueueService: { now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); } },
+          StorageManagerService: {
+            primaryDisk: () => ({ delete: deleteFile }),
+            getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
+          },
+          AttachmentMetadata: { findOne: async () => null, destroy: async () => [] },
+          AttachmentAccessAudit: {
+            create: (data: Record<string, unknown>) => ({
+              fetch: async () => {
+                attachmentAudits.push(data);
+                return data;
+              },
+            }),
+          },
+        });
+        if (operation !== 'soft-delete') {
+          if (operation === 'destroy-deleted') mockStorageService.getMeta.resolves(null);
+          mockRecord.findOne.returns(createQueryObject(null));
+          mockSails.services.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService();
+          const datastreams = new DatastreamServices.StandardDatastream();
+          mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'file-1' }]);
+          mockDatastreamService.listDatastreams.onSecondCall().resolves([]);
+          mockDatastreamService.removeDatastream.callsFake(
+            (oid: string, stream: Datastream, brandId?: string) => datastreams.removeDatastream(oid, stream, brandId)
+          );
+        }
+        try {
+          const result = operation === 'destroy-deleted'
+            ? await RecordsService.destroyDeletedRecord('record-123', { username: 'user-1' }, { id: 'brand-1' }, publicContext('purge', 9))
+            : await RecordsService.delete('record-123', operation === 'permanent-delete', active, undefined, { username: 'user-1' }, publicContext(operation === 'permanent-delete' ? 'purge' : 'delete', 7));
+          expect(result.outcome).to.equal('saved');
+          mockStorageService.getMeta.resolves(null);
+          mockRecord.findOne.returns(createQueryObject(null));
+          if (operation !== 'soft-delete') expect(await mockStorageService.getTombstone()).to.equal(null);
+          expect(mockQueueService.now.calledOnce).to.equal(true);
+          const audit = mockQueueService.now.firstCall.args[1];
+          expect(audit.record.metaMetadata).to.deep.equal({ brandId: 'brand-1' });
+          await RecordsService.storeRecordAudit({ attrs: { data: audit } });
+          await new Promise<void>(resolve => setImmediate(resolve));
+          expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+          expect(emitted.map(row => row.event.eventType)).to.deep.equal(
+            operation === 'soft-delete' ? ['record.deleted'] : ['attachment.remove', 'record.destroyed']
+          );
+          expect(emitted.every(row => row.event.brandId === 'brand-1')).to.equal(true);
+          expect(attachmentAudits).to.have.length(operation === 'soft-delete' ? 0 : 1);
+          expect(deleteFile.callCount).to.equal(operation === 'soft-delete' ? 0 : 1);
+        } finally {
+          originalGlobals.forEach((value, key) => value === undefined ? Reflect.deleteProperty(globalThis, key) : Reflect.set(globalThis, key, value));
+        }
+      });
+    }
+
+    it('captures restore ownership through the production worker after record removal', async function () {
+      setMode('observe');
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      sinon.stub(RecordsService, 'hasViewAccess').returns(true);
+      mockSails.config.environment = 'production';
+      const restored = lifecycleRecord(10);
+      mockStorageService.getTombstone.resolves({
+        redboxOid: 'record-123',
+        revision: 9,
+        brandId: 'brand-1',
+        lifecycleState: 'deleted',
+        deletedRecordMetadata: lifecycleRecord(7),
+      });
+      mockStorageService.getMeta.resolves(restored);
+      mockStorageService.removeTombstone.callsFake(async () => {
+        mockStorageService.getTombstone.resolves(null);
+        return { success: true, oid: 'record-123', applicationState: 'applied' };
+      });
+      const originalGlobals = new Map(
+        ['SecurityEventService', 'AppConfigService', 'AgendaQueueService'].map(key => [key, Reflect.get(globalThis, key)])
+      );
+      const emitted: Array<{ event: Record<string, unknown> }> = [];
+      Object.assign(globalThis, {
+        SecurityEventService: new SecurityServices.SecurityEventService(),
+        AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },
+        AgendaQueueService: {
+          now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); },
+        },
+      });
+      try {
+        const result = await RecordsService.restoreRecord(
+          'record-123', { username: 'user-1' }, { id: 'brand-1' }, publicContext('restore', 9)
+        );
+        expect(result.outcome).to.equal('saved');
+        expect(mockStorageService.createActiveRecordFromTombstone.calledOnce).to.equal(true);
+        expect(mockStorageService.removeTombstone.calledOnce).to.equal(true);
+        expect(mockQueueService.now.calledOnce).to.equal(true);
+        const audit = mockQueueService.now.firstCall.args[1];
+        expect(audit.record).to.deep.equal({
+          metaMetadata: { brandId: 'brand-1' }, revision: 10, resolution: result.concurrency.resolution,
+        });
+
+        // A subsequent delete removes the active record before the queued restore audit runs.
+        mockStorageService.getMeta.resolves(null);
+        mockRecord.findOne.returns(createQueryObject(null));
+        expect(await mockStorageService.getTombstone()).to.equal(null);
+        await RecordsService.storeRecordAudit({ attrs: { data: audit } });
+        await new Promise<void>(resolve => setImmediate(resolve));
+        expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+        expect(mockStorageService.createRecordAudit.firstCall.args[0]).to.deep.equal({ ...audit });
+        const storageResult = await mockStorageService.createRecordAudit.firstCall.returnValue;
+        expect(storageResult.isSuccessful()).to.equal(true);
+        expect(emitted).to.have.length(1);
+        expect(emitted[0].event.brandId).to.equal('brand-1');
+        expect(emitted[0].event.eventType).to.equal('record.restored');
+      } finally {
+        originalGlobals.forEach((value, key) =>
+          value === undefined ? Reflect.deleteProperty(globalThis, key) : Reflect.set(globalThis, key, value)
+        );
+      }
+    });
 
     it('requires strict lifecycle tags while tokenless observe and last-write-wins derive an authoritative CAS', async function () {
       mockStorageService.getMeta.resolves(lifecycleRecord());

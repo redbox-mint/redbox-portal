@@ -1,0 +1,30 @@
+meta {
+  name: Get Saved SIEM Config
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/api/siem/config
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Preserves masked SIEM config on read", function () {
+    var jsonData = res.getBody();
+    var payload = jsonData.data || jsonData;
+    expect(payload.enabled).to.equal(true);
+    expect(payload.destinations[0].token).to.equal("__REDACTED__");
+    expect(payload.destinations[0].headers["X-Splunk-Token"]).to.equal("__REDACTED__");
+  });
+}

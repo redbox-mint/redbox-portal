@@ -153,6 +153,7 @@ describe('record schema bootstrap lifecycle', function () {
   let originalSails: unknown;
   let originalLodash: unknown;
   let originalAppConfigService: unknown;
+  const originalSiemModels = new Map<string, unknown>();
 
   before(async function () {
     const chai = await import('chai');
@@ -163,6 +164,13 @@ describe('record schema bootstrap lifecycle', function () {
     originalSails = (global as Record<string, unknown>).sails;
     originalLodash = (global as Record<string, unknown>)._;
     originalAppConfigService = (global as Record<string, unknown>).AppConfigService;
+    for (const key of ['SecurityEvent', 'SiemDeliveryAttempt']) {
+      originalSiemModels.set(key, Reflect.get(globalThis, key));
+      Reflect.set(globalThis, key, {
+        tableName: key.toLowerCase(),
+        getDatastore: () => ({ manager: { collection: () => ({ createIndex: async () => 'index' }) } }),
+      });
+    }
   });
 
   afterEach(function () {
@@ -170,6 +178,10 @@ describe('record schema bootstrap lifecycle', function () {
     (global as Record<string, unknown>).sails = originalSails;
     (global as Record<string, unknown>)._ = originalLodash;
     (global as Record<string, unknown>).AppConfigService = originalAppConfigService;
+    for (const [key, value] of originalSiemModels) {
+      if (value === undefined) Reflect.deleteProperty(globalThis, key);
+      else Reflect.set(globalThis, key, value);
+    }
   });
 
   function enabledRecordSchemaConfig(overrides: Record<string, unknown> = {}): Record<string, unknown> {

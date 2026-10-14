@@ -15,6 +15,8 @@ export namespace Services {
   export type AttachmentAccessAuditInput = Omit<AttachmentAccessAuditAttributes, 'id' | 'createdAt' | 'updatedAt'>;
   export type AttachmentAccessEvent = {
     oid: string;
+    /** Trusted lifecycle context for captures after active-record removal. */
+    brandId?: string;
     fileId?: string;
     storageKey?: string;
     action: AttachmentAccessAction;
@@ -630,6 +632,17 @@ export namespace Services {
         }
 
         await AttachmentAccessAudit.create(normalizedEvent as AttachmentAccessAuditAttributes).fetch();
+        try {
+          if (typeof SecurityEventService !== 'undefined') {
+            void SecurityEventService.emitFromAttachmentAudit({
+              ...normalizedEvent,
+              brandId: this.optionalString(event.brandId),
+            }).catch(() => {
+              this.logger.error(`${this.logHeader} SIEM attachment audit emit failed`);
+            });
+          }
+        } catch { this.logger.error(`${this.logHeader} SIEM attachment audit emit failed`); }
+
       } catch (err) {
         this.logger.error(`${this.logHeader} recordAccess() failed`, err);
         throw err;
