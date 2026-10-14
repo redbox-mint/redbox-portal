@@ -22,6 +22,9 @@ export class SiemDeliveryAttemptClass {
   @Attr({ type: 'number', required: true })
   public attemptNumber!: number;
 
+  @Attr({ type: 'string' })
+  public leaseToken?: string;
+
   @Attr({ type: 'string', required: true })
   public status!: string;
 
@@ -52,6 +55,7 @@ export interface SiemDeliveryAttemptAttributes extends Sails.WaterlineAttributes
   destinationId: string;
   adapterType: string;
   attemptNumber: number;
+  leaseToken?: string;
   status: string;
   startedAt: string;
   completedAt?: string;

@@ -29,6 +29,8 @@ body:json {
         "token": "bruno-secret-token",
         "headers": {
           "X-Splunk-Token": "bruno-header-token",
+          "authorization": "Bearer bruno-auth",
+          "X-Api-Key": "bruno-api-key",
           "X-Test": "visible"
         }
       }
@@ -78,6 +80,8 @@ tests {
     expect(payload.destinations[0].id).to.equal("bruno-splunk");
     expect(payload.destinations[0].token).to.equal("__REDACTED__");
     expect(payload.destinations[0].headers["X-Splunk-Token"]).to.equal("__REDACTED__");
+    expect(payload.destinations[0].headers["authorization"]).to.equal("__REDACTED__");
+    expect(payload.destinations[0].headers["X-Api-Key"]).to.equal("__REDACTED__");
     expect(payload.destinations[0].headers["X-Test"]).to.equal("visible");
   });
 }

@@ -1,7 +1,7 @@
 import * as crypto from 'node:crypto';
 import { Services as services } from '../CoreService';
-import type { SiemConfiguration, SiemSeverity } from '../configmodels/SiemConfiguration';
-import { DEFAULT_SIEM_DELIVERY, DEFAULT_SIEM_EVENT_SELECTION, DEFAULT_SIEM_REDACTION } from '../configmodels/SiemConfiguration';
+import type { SiemConfigDto, SiemSeverity } from '../configmodels/SiemConfiguration';
+import { normalizeSiemConfiguration, DEFAULT_SIEM_REDACTION } from '../configmodels/SiemConfiguration';
 import type { SecurityEventAttributes } from '../waterline-models/SecurityEvent';
 import { redactForSiem } from './siem/SiemPayloadRedactor';
 import type { SecurityEventInput } from './siem/SiemTypes';
@@ -12,6 +12,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isSecurityEvent(value: unknown): value is SecurityEventAttributes {
+  return (
+    isRecord(value) &&
+    ['id', 'eventId', 'brandId', 'eventType', 'category', 'severity', 'occurredAt', 'source', 'deliveryState'].every(
+      key => typeof value[key] === 'string'
+    )
+  );
+}
+
 export namespace Services {
   export class SecurityEventService extends services.Core.Service {
     private readonly storeJobName = 'SecurityEventService-StoreSecurityEvent';
@@ -19,6 +28,8 @@ export namespace Services {
 
     protected override _exportedMethods: string[] = [
       'emitSecurityEvent',
+      'requestContext',
+      'emitRequestFailure',
       'emitFromUserAudit',
       'emitFromRecordAudit',
       'emitFromIntegrationAudit',
@@ -32,31 +43,24 @@ export namespace Services {
       this.logHeader = 'SecurityEventService::';
     }
 
-    private getConfig(brandId: string): SiemConfiguration {
+    private getConfig(brandId: string): SiemConfigDto {
       const brand = BrandingService.getBrandById(brandId) ?? BrandingService.getBrand(brandId);
-      const brandConfig = AppConfigService.getAppConfigurationForBrand(brand?.name ?? brandId) as unknown as Record<string, unknown>;
-      return ({
-        enabled: false,
-        destinations: [],
-        events: DEFAULT_SIEM_EVENT_SELECTION,
-        redaction: DEFAULT_SIEM_REDACTION,
-        delivery: DEFAULT_SIEM_DELIVERY,
-        ...(isRecord(brandConfig.siem) ? brandConfig.siem : {}),
-      } as unknown) as SiemConfiguration;
+      if (!brand) return normalizeSiemConfiguration({});
+      const brandConfig = AppConfigService.getAppConfigurationForBrand(brand.name);
+      return normalizeSiemConfiguration(_.get(brandConfig, 'siem', {}));
     }
 
-    private severityFor(config: SiemConfiguration, input: SecurityEventInput): SiemSeverity {
-      return input.severity ?? config.events?.severity?.[input.eventType] ?? 'info';
+    private severityFor(config: SiemConfigDto, input: SecurityEventInput): SiemSeverity {
+      return config.events?.severity?.[input.eventType] ?? input.severity ?? 'info';
     }
 
-    private shouldEmit(config: SiemConfiguration, input: SecurityEventInput): boolean {
+    private shouldEmit(config: SiemConfigDto, input: SecurityEventInput): boolean {
       return config.enabled === true && config.events?.categories?.[input.category] !== false;
     }
 
-    private buildEvent(config: SiemConfiguration, input: SecurityEventInput): SecurityEventAttributes {
+    private buildEvent(config: SiemConfigDto, input: SecurityEventInput): Omit<SecurityEventAttributes, 'id'> {
       const redaction = { ...DEFAULT_SIEM_REDACTION, ...(config.redaction ?? {}) };
-      const sanitized = redactForSiem(input, redaction);
-      return {
+      const event: Omit<SecurityEventAttributes, 'id'> = {
         eventId: crypto.randomUUID(),
         brandId: input.brandId,
         portalId: input.portalId,
@@ -65,65 +69,122 @@ export namespace Services {
         severity: this.severityFor(config, input),
         occurredAt: input.occurredAt ?? new Date().toISOString(),
         source: input.source,
-        actor: sanitized.actor,
-        subject: sanitized.subject,
-        resource: sanitized.resource,
-        requestContext: sanitized.requestContext,
-        payload: sanitized.payload,
+        actor: input.actor,
+        subject: input.subject,
+        resource: input.resource,
+        requestContext: input.requestContext,
+        payload: input.payload,
         correlationId: input.correlationId,
         traceId: input.traceId,
         deliveryState: 'pending',
         destinationStates: {},
-      } as SecurityEventAttributes;
+      };
+      const sanitized = redactForSiem(event, redaction);
+      return {
+        ...event,
+        actor: isRecord(sanitized.actor) ? sanitized.actor : undefined,
+        subject: isRecord(sanitized.subject) ? sanitized.subject : undefined,
+        resource: isRecord(sanitized.resource) ? sanitized.resource : undefined,
+        requestContext: isRecord(sanitized.requestContext) ? sanitized.requestContext : undefined,
+        payload: isRecord(sanitized.payload) ? sanitized.payload : undefined,
+      };
     }
 
     public async emitSecurityEvent(input: SecurityEventInput): Promise<void> {
       try {
+        if (typeof input.brandId !== 'string' || !input.brandId.trim()) return;
         const config = this.getConfig(input.brandId);
         if (!this.shouldEmit(config, input)) {
           return;
         }
         const event = this.buildEvent(config, input);
         await AgendaQueueService.now(this.storeJobName, { event });
-      } catch (error) {
+      } catch {
         sails.log.error(`${this.logHeader} Failed to enqueue security event`);
-        sails.log.error(error);
       }
     }
 
-    public async emitFromUserAudit(user: unknown, action: string, context: Record<string, unknown> = {}): Promise<void> {
-      const brandValue = context.brandId ?? context.branding ?? 'default';
-      const brand = typeof brandValue === 'string'
-        ? BrandingService.getBrandById(brandValue) ?? BrandingService.getBrand(brandValue)
-        : undefined;
+    /** Selected request fields only: never include body, cookies, headers or session. */
+    public requestContext(req: Sails.Req): Record<string, unknown> {
+      const brand = BrandingService.getBrandFromReq(req);
+      return {
+        brandId: brand?.id,
+        portalId: BrandingService.getPortalFromReq(req),
+        method: req.method,
+        path: req.path,
+        ip: req.ip,
+        userAgent: req.headers?.['user-agent'],
+      };
+    }
+
+    public async emitRequestFailure(
+      req: Sails.Req,
+      eventType: 'authentication.login.failure' | 'authorization.failure',
+      source: string
+    ): Promise<void> {
+      try {
+        const context = this.requestContext(req);
+        if (typeof context.brandId !== 'string' || !context.brandId) return;
+        await this.emitSecurityEvent({
+          brandId: context.brandId,
+          portalId: typeof context.portalId === 'string' ? context.portalId : undefined,
+          eventType,
+          category: eventType === 'authorization.failure' ? 'authorization' : 'authentication',
+          severity: 'warning',
+          source,
+          actor: isRecord(req.user)
+            ? { id: req.user.id, username: req.user.username, email: req.user.email }
+            : undefined,
+          requestContext: context,
+        });
+      } catch {
+        sails.log.error(`${this.logHeader} Failed to capture request security event`);
+      }
+    }
+
+    public async emitFromUserAudit(
+      user: unknown,
+      action: string,
+      context: Record<string, unknown> = {}
+    ): Promise<void> {
+      const brandValue = context.brandId ?? context.branding;
+      if (typeof brandValue !== 'string' || brandValue.trim() === '') return;
+      const brand =
+        typeof brandValue === 'string'
+          ? (BrandingService.getBrandById(brandValue) ?? BrandingService.getBrand(brandValue))
+          : undefined;
       const brandId = String(brand?.id ?? brandValue);
       await this.emitSecurityEvent({
         brandId,
         portalId: typeof context.portalId === 'string' ? context.portalId : undefined,
-        eventType: `user.${action}`,
+        eventType: action === 'login' || action === 'logout' ? `authentication.${action}.success` : `user.${action}`,
         category: action.includes('login') || action.includes('logout') ? 'authentication' : 'userManagement',
         source: 'UsersService',
         actor: isRecord(user) ? user : undefined,
-        payload: context,
+        requestContext: context,
       });
     }
 
     public async emitFromRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
       const brandId = await this.resolveBrandId(recordAudit);
+      if (!brandId) return;
       await this.emitSecurityEvent({
         brandId,
         eventType: `record.${String(recordAudit.action ?? 'audit')}`,
         category: 'recordLifecycle',
         source: 'RecordsService',
+        occurredAt: typeof recordAudit.occurredAt === 'string' ? recordAudit.occurredAt : undefined,
+        actor: isRecord(recordAudit.user) ? recordAudit.user : undefined,
         resource: recordAudit,
         payload: recordAudit,
       });
     }
 
     public async emitFromIntegrationAudit(integrationAudit: Record<string, unknown>): Promise<void> {
+      if (typeof integrationAudit.brandId !== 'string' || !integrationAudit.brandId) return;
       await this.emitSecurityEvent({
-        brandId: String(integrationAudit.brandId ?? 'default'),
-        eventType: `integration.${String(integrationAudit.status ?? 'audit')}`,
+        brandId: String(integrationAudit.brandId),
+        eventType: `integration.${String(integrationAudit.status).toLowerCase() === 'failed' ? 'failure' : String(integrationAudit.status ?? 'audit')}`,
         category: 'integrationAudit',
         severity: String(integrationAudit.status).toLowerCase() === 'failed' ? 'error' : 'info',
         source: 'IntegrationAuditService',
@@ -135,6 +196,7 @@ export namespace Services {
 
     public async emitFromAttachmentAudit(attachmentAudit: Record<string, unknown>): Promise<void> {
       const brandId = await this.resolveBrandId(attachmentAudit);
+      if (!brandId) return;
       await this.emitSecurityEvent({
         brandId,
         eventType: `attachment.${String(attachmentAudit.action ?? 'audit')}`,
@@ -146,21 +208,23 @@ export namespace Services {
     }
 
     public async storeSecurityEvent(job: AgendaJobLike): Promise<void> {
-      const event = (job.attrs?.data as { event?: SecurityEventAttributes } | undefined)?.event;
-      if (!event) {
-        return;
-      }
-      await SecurityEvent.create(event as unknown as Record<string, unknown>);
+      const data = job.attrs?.data;
+      if (!isRecord(data) || !isRecord(data.event)) return;
+      const event = data.event;
+      if (typeof event.brandId !== 'string') return;
+      await SecurityEvent.create(event);
       await AgendaQueueService.now(this.forwardJobName, { brandId: event.brandId });
     }
 
-    public async queryEvents(params: Record<string, unknown> = {}): Promise<{ rows: SecurityEventAttributes[]; total: number }> {
+    public async queryEvents(
+      params: Record<string, unknown> = {}
+    ): Promise<{ rows: SecurityEventAttributes[]; total: number }> {
       const requestedLimit = Number.parseInt(String(params.limit ?? 50), 10);
       const requestedSkip = Number.parseInt(String(params.skip ?? params.offset ?? 0), 10);
       const limit = Math.min(Number.isFinite(requestedLimit) ? Math.max(requestedLimit, 0) : 50, 500);
       const skip = Math.max(Number.isFinite(requestedSkip) ? requestedSkip : 0, 0);
       const where: Record<string, unknown> = {};
-      ['brandId', 'eventType', 'category', 'severity', 'deliveryState'].forEach((key) => {
+      ['brandId', 'eventType', 'category', 'severity', 'deliveryState'].forEach(key => {
         if (typeof params[key] === 'string' && params[key] !== '') {
           where[key] = params[key];
         }
@@ -176,13 +240,19 @@ export namespace Services {
         where.occurredAt = occurredAt;
       }
       const query = SecurityEvent.find(where).sort('occurredAt DESC').skip(skip).limit(limit);
-      const rows = await query as unknown as SecurityEventAttributes[];
+      const result = await query;
+      const rows: SecurityEventAttributes[] = Array.isArray(result) ? result.filter(isSecurityEvent) : [];
       const total = await SecurityEvent.count(where);
       return { rows, total };
     }
 
-    private async resolveBrandId(payload: Record<string, unknown>): Promise<string> {
-      const directBrand = payload.brandId ?? payload.branding ?? _.get(payload, 'record.metaMetadata.brandId') ?? _.get(payload, 'metaMetadata.brandId');
+    private async resolveBrandId(payload: Record<string, unknown>): Promise<string | undefined> {
+      const directBrand =
+        payload.brandId ??
+        payload.branding ??
+        _.get(payload, 'record.metaMetadata.brandId') ??
+        _.get(payload, 'metaMetadata.brandId') ??
+        _.get(payload, 'record.validationBypass.recordContext.brand');
       if (typeof directBrand === 'string' && directBrand.trim() !== '') {
         const brand = BrandingService.getBrandById(directBrand) ?? BrandingService.getBrand(directBrand);
         return String(brand?.id ?? directBrand);
@@ -190,15 +260,15 @@ export namespace Services {
 
       const oid = String(payload.redboxOid ?? payload.oid ?? '').trim();
       if (oid) {
-        const record = await Record.findOne({ redboxOid: oid }) as unknown as Record<string, unknown> | undefined;
+        const record = await Record.findOne({ redboxOid: oid });
         const recordBrandId = _.get(record, 'metaMetadata.brandId');
         if (typeof recordBrandId === 'string' && recordBrandId.trim() !== '') {
           return recordBrandId;
         }
       }
 
-      const defaultBrand = BrandingService.getDefault();
-      return String(defaultBrand?.id ?? 'default');
+      // Unknown ownership cannot safely be forwarded to the default brand.
+      return undefined;
     }
   }
 }

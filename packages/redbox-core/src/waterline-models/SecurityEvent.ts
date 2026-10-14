@@ -3,7 +3,7 @@ import { Attr, Entity, toWaterlineModelDef } from '../decorators';
 
 @Entity('securityevent', {
   indexes: [
-    { attributes: { brandId: 1, deliveryState: 1, occurredAt: 1 } },
+    { attributes: { brandId: 1, deliveryState: 1, nextEligibleAt: 1, occurredAt: 1 } },
   ],
 })
 export class SecurityEventClass {
@@ -55,6 +55,18 @@ export class SecurityEventClass {
   @Attr({ type: 'string', required: true })
   public deliveryState!: string;
 
+  @Attr({ type: 'string', allowNull: true })
+  public leaseToken?: string | null;
+
+  @Attr({ type: 'string', allowNull: true })
+  public leaseExpiresAt?: string | null;
+
+  @Attr({ type: 'string', allowNull: true })
+  public nextEligibleAt?: string | null;
+
+  @Attr({ type: 'string', allowNull: true })
+  public terminalAt?: string | null;
+
   @Attr({ type: 'json' })
   public destinationStates?: Record<string, unknown>;
 }
@@ -78,6 +90,10 @@ export interface SecurityEventAttributes extends Sails.WaterlineAttributes {
   correlationId?: string;
   traceId?: string;
   deliveryState: string;
+  leaseToken?: string | null;
+  leaseExpiresAt?: string | null;
+  nextEligibleAt?: string | null;
+  terminalAt?: string | null;
   destinationStates?: Record<string, unknown>;
 }
 

@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { ConfigModels } from '../configmodels/ConfigModels';
+import { SiemConfigurationError } from '../configmodels/SiemConfiguration';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as AppConfigServiceModule } from '../services/AppConfigService';
 import { Services as BrandingServiceModule } from '../services/BrandingService';
@@ -72,6 +73,9 @@ export namespace Controllers {
         const savedConfig = await this.appConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
         return res.json(savedConfig);
       } catch (error) {
+        if (error instanceof SiemConfigurationError) {
+          return res.badRequest(error.message);
+        }
         if ((error as { status?: number })?.status === 410) {
           return res.status(410).json({ message: (error as Error).message });
         }

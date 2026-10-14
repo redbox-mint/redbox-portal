@@ -2368,7 +2368,7 @@ export namespace Services {
         { service: bypass.actor.id.trim() },
         RecordAuditActionType.validationBypassed
       );
-      const auditResponse = await createAudit.call(this.storageService, audit);
+      const auditResponse = await this.createRecordAudit({ ...audit });
       if (!this.auditPersistenceSucceeded(auditResponse)) {
         throw new Error('Durable record audit storage rejected the bypass audit.');
       }
@@ -2749,7 +2749,7 @@ export namespace Services {
             ...(revision !== undefined ? { revision } : {}),
             resolution: data.resolution,
           });
-          const response = await createAudit.call(this.storageService, audit);
+          const response = await this.createRecordAudit({ ...audit });
           if (!this.auditPersistenceSucceeded(response)) {
             throw new Error('Durable record audit storage rejected the reconciliation audit.');
           }
@@ -6236,7 +6236,7 @@ export namespace Services {
         if (typeof storageServiceAny.createRecordAudit === 'function') {
           try {
             const data = new RecordAuditModel(params.oid, {}, {}, RecordAuditActionType.created);
-            await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(data);
+            await this.createRecordAudit({ ...data });
             const refreshed = (await this.storageService.getRecordAudit(params)) as Record<string, unknown>[];
             if (Array.isArray(refreshed) && refreshed.length > 0) {
               return refreshed;
@@ -6346,8 +6346,7 @@ export namespace Services {
       }
       let auditResponse: StorageServiceResponse;
       try {
-        auditResponse = await createAudit.call(
-          this.storageService,
+        auditResponse = await this.createRecordAudit(
           new RecordAuditModel(
             `batch-validation-bypass:${requestId}`,
             {
@@ -6491,6 +6490,7 @@ export namespace Services {
       tracker: RecordSaveTracker,
       oid: string,
       user: AnyRecord,
+      brand: BrandingModel,
       recordType: RecordTypeLike,
       hookRecord: AnyRecord,
       hookOperation: ActionExecutionOperation,
@@ -6502,6 +6502,7 @@ export namespace Services {
       await this.auditRecord(
         oid,
         {
+          metaMetadata: { brandId: brand.id },
           revision: tracker.result.concurrency?.revision,
           resolution: tracker.result.concurrency?.resolution,
         },
@@ -6772,6 +6773,7 @@ export namespace Services {
           tracker,
           oid,
           userObj,
+          authority.brand,
           authority.recordType,
           hookRecord,
           hookOperation,
@@ -6812,6 +6814,7 @@ export namespace Services {
           tracker,
           oid,
           userObj,
+          authority.brand,
           authority.recordType,
           hookRecord,
           hookOperation,
@@ -6864,6 +6867,7 @@ export namespace Services {
         tracker,
         oid,
         userObj,
+        authority.brand,
         authority.recordType,
         hookRecord,
         hookOperation,
@@ -7047,9 +7051,8 @@ export namespace Services {
       sails.log.verbose(JSON.stringify(data));
       const envName = String((sails.config as AnyRecord).environment ?? process.env.NODE_ENV ?? '');
       if (envName === 'integrationtest') {
-        const storageServiceAny = this.storageService as unknown as AnyRecord;
         try {
-          await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(data);
+          await this.createRecordAudit({ ...data });
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to create record audit in integrationtest:`);
           sails.log.error(JSON.stringify(err));
@@ -7063,14 +7066,13 @@ export namespace Services {
       await this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
     }
 
-    public storeRecordAudit(job: AnyRecord) {
+    public storeRecordAudit(job: AnyRecord): Promise<void> {
       const jobObj = job as AnyRecord;
       const jobAttrs = (jobObj.attrs ?? {}) as AnyRecord;
       const data = ((jobAttrs as AnyRecord).data ?? jobAttrs) as AnyRecord;
       sails.log.verbose(`${this.logHeader} Storing record Audit entry: `);
       sails.log.verbose(JSON.stringify(data));
-      const storageServiceAny = this.storageService as unknown as AnyRecord;
-      (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(data)
+      return this.createRecordAudit({ ...data })
         .then((response: unknown) => {
           const responseObj = response as StorageServiceResponse;
           if (responseObj.isSuccessful()) {
@@ -7640,7 +7642,11 @@ export namespace Services {
       }
       await this.auditRecord(
         oid,
-        { revision: finalRevision, resolution: tracker.result.concurrency?.resolution },
+        {
+          metaMetadata: { brandId: authority.brand.id },
+          revision: finalRevision,
+          resolution: tracker.result.concurrency?.resolution,
+        },
         userObj,
         RecordAuditActionType.restored,
         undefined,
@@ -7770,7 +7776,7 @@ export namespace Services {
       tracker.confirmPrimaryPersistence(oid, removalResponse);
       await this.auditRecord(
         oid,
-        { resolution: tracker.result.concurrency?.resolution },
+        { metaMetadata: { brandId: authority.brand.id }, resolution: tracker.result.concurrency?.resolution },
         userObj,
         RecordAuditActionType.destroyed,
         undefined,
@@ -8155,11 +8161,11 @@ export namespace Services {
       );
     }
 
-    async createRecordAudit(record: AnyRecord): Promise<unknown> {
-      const storageServiceAny = this.storageService as unknown as AnyRecord;
-      const response = await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(record);
-      const responseObj = response as { isSuccessful?: () => boolean; message?: unknown; details?: unknown } | null | undefined;
-      const persisted = responseObj?.isSuccessful == null || typeof responseObj.isSuccessful !== 'function' || responseObj.isSuccessful();
+    async createRecordAudit(record: AnyRecord | RecordAuditModel): Promise<StorageServiceResponse> {
+      if (!this.storageService?.createRecordAudit) throw new Error('Durable record audit storage is unavailable.');
+      const response = await this.storageService.createRecordAudit(record);
+      const responseObj = response;
+      const persisted = this.auditPersistenceSucceeded(response);
       if (!persisted) {
         sails.log.error(`${this.logHeader} Failed to persist record audit.`);
         if (!_.isEmpty(responseObj?.message)) {
@@ -8170,10 +8176,14 @@ export namespace Services {
         }
         return response;
       }
-      void SecurityEventService.emitFromRecordAudit(record).catch((error) => {
-        sails.log.error('Failed to emit record audit security event');
-        sails.log.error(error);
-      });
+      // SIEM is optional and must never change an already persisted audit outcome.
+      try {
+        if (typeof SecurityEventService !== 'undefined') {
+          void SecurityEventService.emitFromRecordAudit({ ...record }).catch(() => {
+            sails.log.error('Failed to emit record audit security event');
+          });
+        }
+      } catch { sails.log.error('Failed to emit record audit security event'); }
       return response;
     }
 

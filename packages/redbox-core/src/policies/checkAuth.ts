@@ -70,6 +70,8 @@ function applyCheckAuth(
       brand.name
     );
     if (!canRead) {
+      if (typeof SecurityEventService !== 'undefined')
+        void SecurityEventService.emitRequestFailure(req, 'authorization.failure', 'AuthorizationPolicy');
       if (recordSchemaProblemResponse) {
         sendRecordSchemaForbidden(req, res);
         return;

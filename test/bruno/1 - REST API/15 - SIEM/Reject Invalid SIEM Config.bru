@@ -1,0 +1,27 @@
+meta {
+  name: Reject Invalid SIEM Config
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{host}}/default/rdmp/api/siem/config
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  { "delivery": { "batchSize": -1 }, "redaction": { "denylistedPaths": null } }
+}
+
+tests {
+  test("Rejects invalid configuration", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

@@ -51,7 +51,8 @@ describe('SIEM services and helpers', function () {
       payload: { token: 'secret-token', tokenCount: 2, safe: 'visible' },
     }, DEFAULT_SIEM_REDACTION);
 
-    expect(redacted.actor.email).to.equal('hidden@example.edu');
+    expect(redacted.actor).not.to.have.property('email');
+    expect(redacted.requestContext).not.to.have.property('ipAddress');
     expect(redacted.payload.token).to.equal('[REDACTED]');
     expect(redacted.payload.tokenCount).to.equal(2);
     expect(redacted.requestContext.headers.Authorization).to.equal('[REDACTED]');
@@ -147,7 +148,7 @@ describe('SIEM services and helpers', function () {
       endpointUrl: 'https://leef.example/logs',
     }));
 
-    expect(leefPayload.body).to.contain('record.create\\|injected\\tattribute\\\\tail');
+    expect(leefPayload.body).to.contain('record.create%7Cinjected%09attribute%5Ctail');
     expect(leefPayload.body).to.not.contain('injected\tattribute');
   });
 
@@ -234,66 +235,4 @@ describe('SIEM services and helpers', function () {
     expect(queue.now.called).to.equal(false);
   });
 
-  it('does not dead-letter multi-destination events until one destination exhausts its own failed attempts', async function () {
-    setupServiceTestGlobals(createMockSails());
-    const securityEventUpdateSet = sinon.stub().resolves(undefined);
-    global['SecurityEvent'] = {
-      update: sinon.stub().returns({ set: securityEventUpdateSet }),
-    };
-    global['SiemDeliveryAttempt'] = {
-      count: sinon.stub().callsFake((criteria: any) => {
-        if (criteria.destinationId === 'splunk' || criteria.destinationId === 'otlp') {
-          return Promise.resolve(2);
-        }
-        return Promise.resolve(0);
-      }),
-    };
-
-    const service = new SiemForwardingServices.SiemForwardingService();
-    await (service as any).updateEventState(
-      { eventId: 'event-1' },
-      [
-        { id: 'splunk', enabled: true, adapterType: 'splunk-hec-json' },
-        { id: 'otlp', enabled: true, adapterType: 'otel-otlp-logs' },
-      ],
-      { splunk: 'failed', otlp: 'failed' },
-      { ...DEFAULT_SIEM_DELIVERY, maxAttempts: 3 }
-    );
-
-    expect(securityEventUpdateSet.calledOnce).to.equal(true);
-    expect(securityEventUpdateSet.firstCall.args[0].deliveryState).to.equal('failed');
-  });
-
-  it('dead-letters multi-destination events when a destination exhausts its own failed attempts', async function () {
-    setupServiceTestGlobals(createMockSails());
-    const securityEventUpdateSet = sinon.stub().resolves(undefined);
-    global['SecurityEvent'] = {
-      update: sinon.stub().returns({ set: securityEventUpdateSet }),
-    };
-    global['SiemDeliveryAttempt'] = {
-      count: sinon.stub().callsFake((criteria: any) => {
-        if (criteria.destinationId === 'splunk') {
-          return Promise.resolve(3);
-        }
-        if (criteria.destinationId === 'otlp') {
-          return Promise.resolve(2);
-        }
-        return Promise.resolve(0);
-      }),
-    };
-
-    const service = new SiemForwardingServices.SiemForwardingService();
-    await (service as any).updateEventState(
-      { eventId: 'event-1' },
-      [
-        { id: 'splunk', enabled: true, adapterType: 'splunk-hec-json' },
-        { id: 'otlp', enabled: true, adapterType: 'otel-otlp-logs' },
-      ],
-      { splunk: 'failed', otlp: 'failed' },
-      { ...DEFAULT_SIEM_DELIVERY, maxAttempts: 3 }
-    );
-
-    expect(securityEventUpdateSet.calledOnce).to.equal(true);
-    expect(securityEventUpdateSet.firstCall.args[0].deliveryState).to.equal('deadLetter');
-  });
 });

@@ -1,4 +1,5 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
+import { STATUS_CODES } from 'node:http';
 import { Effect } from 'effect';
 import type { SiemDestinationConfig } from '../../configmodels/SiemConfiguration';
 import type { SecurityEventAttributes } from '../../waterline-models/SecurityEvent';
@@ -63,7 +64,7 @@ function flattenEvent(event: SecurityEventAttributes): Record<string, unknown> {
 }
 
 function escapeCefHeaderField(value: unknown): string {
-  return String(value ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
 function escapeLeefHeaderField(value: unknown): string {
@@ -73,6 +74,29 @@ function escapeLeefHeaderField(value: unknown): string {
     .replace(/\t/g, '\\t')
     .replace(/\r/g, '\\r')
     .replace(/\n/g, '\\n');
+}
+
+function escapeCefExtension(value: unknown): string {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/=/g, '\\=').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+}
+function otlpValue(value: unknown): object {
+  if (typeof value === 'string') return { stringValue: value };
+  if (typeof value === 'boolean') return { boolValue: value };
+  if (typeof value === 'number' && Number.isFinite(value)) return Number.isSafeInteger(value) ? { intValue: String(value) } : { doubleValue: value };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(otlpValue) } };
+  if (typeof value === 'object' && value !== null) return { kvlistValue: { values: Object.entries(value).filter(([, item]) => item != null).map(([key, item]) => ({ key, value: otlpValue(item) })) } };
+  return {};
+}
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+function responseDetails(status: number, data: unknown): Record<string, unknown> {
+  // Collector bodies can echo credentials or event data. Persist only allowlisted numeric diagnostics.
+  const partial = isRecord(data) && isRecord(data.partialSuccess) ? data.partialSuccess : {};
+  return { statusText: STATUS_CODES[status] ?? 'HTTP response',
+    ...(isRecord(data) && typeof data.code === 'number' ? { collectorCode: data.code } : {}),
+    ...(partial.rejectedLogRecords != null ? { rejectedLogRecords: String(partial.rejectedLogRecords).replace(/[^0-9]/g, '').slice(0, 20) } : {}),
+  };
 }
 
 function buildBody(events: SecurityEventAttributes[], destination: SiemDestinationConfig): unknown {
@@ -89,19 +113,19 @@ function buildBody(events: SecurityEventAttributes[], destination: SiemDestinati
         resourceLogs: [{
           scopeLogs: [{
             logRecords: events.map((event) => ({
-              timeUnixNano: String(eventTime(event) * 1_000_000),
+              timeUnixNano: String(BigInt(eventTime(event)) * 1000000n),
               severityText: event.severity,
-              body: { kvlistValue: { values: Object.entries(flattenEvent(event)).map(([key, value]) => ({ key, value: { stringValue: JSON.stringify(value) } })) } },
+              body: otlpValue(flattenEvent(event)),
             })),
           }],
         }],
       };
     case 'syslog-rfc5424-json':
-      return events.map((event) => `<${1 * 8 + syslogSeverity(event.severity)}>1 ${event.occurredAt} redbox redbox-portal - ${event.eventId} - ${JSON.stringify(flattenEvent(event))}`).join('\n');
+      return events.map((event) => `<${1 * 8 + syslogSeverity(event.severity)}>1 ${event.occurredAt} redbox redbox-portal - redbox.security - ${JSON.stringify(flattenEvent(event))}`).join('\n');
     case 'cef':
-      return events.map((event) => `CEF:0|ReDBox|Portal|1|${escapeCefHeaderField(event.eventType)}|${escapeCefHeaderField(event.category)}|${cefSeverity(event.severity)}|eventId=${event.eventId} msg=${JSON.stringify(flattenEvent(event))}`).join('\n');
+      return events.map((event) => `CEF:0|ReDBox|Portal|1|${escapeCefHeaderField(event.eventType)}|${escapeCefHeaderField(event.category)}|${cefSeverity(event.severity)}|eventId=${escapeCefExtension(event.eventId)} msg=${escapeCefExtension(JSON.stringify(flattenEvent(event)))}`).join('\n');
     case 'leef':
-      return events.map((event) => `LEEF:2.0|ReDBox|Portal|1|${escapeLeefHeaderField(event.eventType)}|\teventId=${event.eventId}\tseverity=${event.severity}\tmsg=${JSON.stringify(flattenEvent(event))}`).join('\n');
+      return events.map((event) => `LEEF:2.0|ReDBox|Portal|1|${encodeURIComponent(event.eventType)}|0x09|eventId=${escapeLeefHeaderField(event.eventId)}\tseverity=${escapeLeefHeaderField(event.severity)}\tmsg=${escapeLeefHeaderField(JSON.stringify(flattenEvent(event)))}`).join('\n');
     default:
       throw new SiemAdapterError(`Unsupported SIEM adapter '${String(destination.adapterType)}'`);
   }
@@ -112,7 +136,7 @@ function buildHeaders(destination: SiemDestinationConfig, body: unknown): Record
     'Content-Type': typeof body === 'string' ? 'text/plain' : 'application/json',
     ...(destination.headers ?? {}),
   };
-  if (destination.token && !headers.Authorization) {
+  if (destination.token && !Object.keys(headers).some(key => key.toLowerCase() === 'authorization')) {
     headers.Authorization = destination.adapterType === 'splunk-hec-json' ? `Splunk ${destination.token}` : `Bearer ${destination.token}`;
   }
   return headers;
@@ -130,30 +154,38 @@ export function buildSiemPayload(events: SecurityEventAttributes[], destination:
 
 export function deliverSiemPayload(payload: SiemPayload, destination: SiemDestinationConfig): Effect.Effect<SiemDeliveryResult, SiemHttpError> {
   return Effect.tryPromise({
-    try: async () => {
+    try: async (signal) => {
       const response = await axios.post(destination.endpointUrl, payload.body, {
         headers: payload.headers,
+        // Axios socket inactivity timeout alone does not bound a trickling response.
+        signal: AbortSignal.any([signal, AbortSignal.timeout(destination.timeoutMs ?? 10000)]),
+        maxRedirects: 0,
+        maxContentLength: 65536,
         timeout: destination.timeoutMs ?? 10_000,
         auth: destination.username && destination.password ? { username: destination.username, password: destination.password } : undefined,
         validateStatus: (status) => status >= 200 && status < 300,
       });
+      const details = responseDetails(response.status, response.data);
+      if (destination.adapterType === 'otel-otlp-logs' && isRecord(response.data) && isRecord(response.data.partialSuccess) &&
+          (Number(response.data.partialSuccess.rejectedLogRecords ?? 0) > 0 || Boolean(response.data.partialSuccess.errorMessage))) {
+        throw new SiemHttpError('OTLP collector reported partial success', response.status, details);
+      }
+      if (destination.adapterType === 'splunk-hec-json' && isRecord(response.data) && typeof response.data.code === 'number' && response.data.code !== 0) {
+        throw new SiemHttpError('Splunk collector rejected event', response.status, details);
+      }
       return {
         status: 'success' as const,
         httpStatusCode: response.status,
-        responseSummary: { statusText: response.statusText },
+        responseSummary: details,
       };
     },
     catch: (error) => {
+      if (error instanceof SiemHttpError) return error;
       if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        return new SiemHttpError(axiosError.message, axiosError.response?.status, {
-          statusText: axiosError.response?.statusText,
-          data: typeof axiosError.response?.data === 'string'
-            ? axiosError.response.data.slice(0, 1000)
-            : axiosError.response?.data as Record<string, unknown> | undefined,
-        });
+        return new SiemHttpError(error.response ? `HTTP ${error.response.status} delivery failed` : (error.code === 'ECONNABORTED' || error.code === 'ERR_CANCELED') ? 'SIEM request timed out' : 'SIEM transport failed', error.response?.status,
+          error.response ? responseDetails(error.response.status, error.response.data) : { code: error.code?.replace(/[^A-Z0-9_]/g, '').slice(0, 40) });
       }
-      return new SiemHttpError(String(error));
+      return new SiemHttpError('SIEM transport failed');
     },
   });
 }

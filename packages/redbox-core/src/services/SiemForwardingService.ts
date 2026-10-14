@@ -1,15 +1,16 @@
 import { Effect } from 'effect';
 import { Services as services } from '../CoreService';
-import type { SiemConfiguration, SiemDeliveryConfig, SiemDestinationConfig, SiemRedactionConfig } from '../configmodels/SiemConfiguration';
-import { DEFAULT_SIEM_DELIVERY, DEFAULT_SIEM_REDACTION } from '../configmodels/SiemConfiguration';
+import type { SiemDeliveryConfig, SiemDestinationConfig, SiemRedactionConfig } from '../configmodels/SiemConfiguration';
+import { DEFAULT_SIEM_DELIVERY, DEFAULT_SIEM_REDACTION, SiemConfiguration, normalizeSiemConfiguration } from '../configmodels/SiemConfiguration';
 import type { SecurityEventAttributes } from '../waterline-models/SecurityEvent';
-import { buildSiemPayload, deliverSiemPayload, SiemHttpError } from './siem/SiemAdapters';
+import { buildSiemPayload, deliverSiemPayload, SiemHttpError, SiemAdapterError } from './siem/SiemAdapters';
 import { redactForSiem } from './siem/SiemPayloadRedactor';
 import type { SiemDeliveryResult, SiemTestInput } from './siem/SiemTypes';
 
-type AgendaJobLike = { attrs?: { data?: unknown } };
+import { claimDelivery, deliveryCollection, readProgress, readyEventsFilter, saveDelivery } from './siem/SiemDeliveryStore';
+import type { DestinationProgress } from './siem/SiemDeliveryStore';
 
-const PROCESSING_EVENT_STALE_MS = 120 * 1000;
+type AgendaJobLike = { attrs?: { data?: unknown } };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -31,15 +32,9 @@ export namespace Services {
 
     private getConfig(brandId: string): SiemConfiguration {
       const brand = BrandingService.getBrandById(brandId) ?? BrandingService.getBrand(brandId);
-      const brandConfig = AppConfigService.getAppConfigurationForBrand(brand?.name ?? brandId) as unknown as Record<string, unknown>;
-      return ({
-        enabled: false,
-        destinations: [],
-        events: { categories: {}, severity: {} },
-        delivery: DEFAULT_SIEM_DELIVERY,
-        redaction: DEFAULT_SIEM_REDACTION,
-        ...(isRecord(brandConfig.siem) ? brandConfig.siem : {}),
-      } as unknown) as SiemConfiguration;
+      if (!brand) return new SiemConfiguration();
+      const brandConfig = AppConfigService.getAppConfigurationForBrand(brand.name);
+      return Object.assign(new SiemConfiguration(), normalizeSiemConfiguration(brandConfig && 'siem' in brandConfig ? brandConfig.siem : {}));
     }
 
     private deliveryConfig(config: SiemConfiguration): SiemDeliveryConfig {
@@ -63,14 +58,6 @@ export namespace Services {
       return destination.retry?.maxAttempts ?? delivery.maxAttempts;
     }
 
-    private async claimEvent(eventId: string): Promise<boolean> {
-      const claimed = await SecurityEvent.updateOne({
-        eventId,
-        deliveryState: ['pending', 'failed', 'partial'],
-      }).set({ deliveryState: 'processing' });
-      return claimed != null;
-    }
-
     private async recordAttempt(
       event: SecurityEventAttributes,
       destination: SiemDestinationConfig,
@@ -85,6 +72,7 @@ export namespace Services {
         destinationId: destination.id,
         adapterType: destination.adapterType,
         attemptNumber,
+        leaseToken: event.leaseToken,
         status: result.status,
         startedAt,
         completedAt,
@@ -96,47 +84,27 @@ export namespace Services {
     }
 
     private async deliverEvent(event: SecurityEventAttributes, destination: SiemDestinationConfig, redaction: SiemRedactionConfig): Promise<SiemDeliveryResult> {
-      const redactedEvent = redactForSiem(event, redaction);
-      const program = buildSiemPayload([redactedEvent], destination).pipe(
-        Effect.flatMap((payload) => deliverSiemPayload(payload, destination))
-      );
-      return Effect.runPromise(program).catch((error) => {
-        if (error instanceof SiemHttpError) {
-          return {
-            status: 'failed' as const,
-            httpStatusCode: error.statusCode,
-            errorSummary: { message: error.message, response: error.responseSummary },
+      const program = Effect.try({
+        try: () => {
+          // Delivery bookkeeping is neither collector content nor part of its byte budget.
+          const envelope: SecurityEventAttributes = {
+            id: event.id, eventId: event.eventId, brandId: event.brandId, portalId: event.portalId,
+            eventType: event.eventType, category: event.category, severity: event.severity,
+            occurredAt: event.occurredAt, source: event.source, deliveryState: event.deliveryState,
+            actor: event.actor, subject: event.subject, resource: event.resource, requestContext: event.requestContext,
+            payload: event.payload, correlationId: event.correlationId, traceId: event.traceId,
           };
-        }
-        return { status: 'failed' as const, errorSummary: { message: String(error) } };
-      });
-    }
-
-    private async hasExceededAnyDestinationFailures(eventId: string, destinations: SiemDestinationConfig[], delivery: SiemDeliveryConfig): Promise<boolean> {
-      for (const destination of destinations) {
-        const failedAttempts = await SiemDeliveryAttempt.count({
-          eventId,
-          destinationId: destination.id,
-          status: 'failed',
-        });
-        if (failedAttempts >= this.maxAttemptsForDestination(destination, delivery)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    private async updateEventState(event: SecurityEventAttributes, destinations: SiemDestinationConfig[], destinationResults: Record<string, string>, delivery: SiemDeliveryConfig): Promise<void> {
-      const statuses = Object.values(destinationResults);
-      const hasFailure = statuses.includes('failed');
-      const delivered = statuses.length > 0 && statuses.every((status) => status === 'success');
-      const exceededDestinationFailures = await this.hasExceededAnyDestinationFailures(event.eventId, destinations, delivery);
-      const allDeadLetter = statuses.length > 0 && statuses.every((status) => status === 'deadLetter');
-      const deliveryState = allDeadLetter ? 'deadLetter' : delivered ? 'delivered' : exceededDestinationFailures ? 'deadLetter' : hasFailure ? 'failed' : 'partial';
-      await SecurityEvent.update({ eventId: event.eventId }).set({
-        deliveryState,
-        destinationStates: destinationResults,
-      });
+          return redactForSiem(envelope, redaction);
+        },
+        catch: () => new SiemAdapterError('SIEM event could not be safely serialized'),
+      }).pipe(Effect.flatMap((redactedEvent) => buildSiemPayload([redactedEvent], destination)),
+        Effect.flatMap((payload) => deliverSiemPayload(payload, destination)));
+      return Effect.runPromise(program.pipe(Effect.catchAll((error) => Effect.succeed<SiemDeliveryResult>({
+        status: 'failed',
+        httpStatusCode: error instanceof SiemHttpError ? error.statusCode : undefined,
+        responseSummary: error instanceof SiemHttpError ? error.responseSummary : undefined,
+        errorSummary: { message: error.message.slice(0, 500) },
+      }))));
     }
 
     private getKnownBrandIds(): string[] {
@@ -146,57 +114,88 @@ export namespace Services {
         .filter((id: unknown): id is string => typeof id === 'string' && id.trim() !== '');
     }
 
-    private async resetStaleProcessingEvents(brandId: string): Promise<void> {
-      const staleBefore = new Date(Date.now() - PROCESSING_EVENT_STALE_MS).toISOString();
-      await SecurityEvent.update({
-        brandId,
-        deliveryState: 'processing',
-        updatedAt: { '<=': staleBefore },
-      } as unknown as Record<string, unknown>).set({ deliveryState: 'failed' });
+    private async cleanupDeadLetters(brandId: string, delivery: SiemDeliveryConfig): Promise<void> {
+      const cutoff = new Date(Date.now() - delivery.deadLetterRetentionDays * 86400000).toISOString();
+      const collection = deliveryCollection(SecurityEvent);
+      const filter = { brandId, deliveryState: 'deadLetter', $or: [
+        { terminalAt: { $lte: cutoff, $type: 'string' } },
+        { terminalAt: { $exists: false }, updatedAt: { $lte: cutoff } },
+      ] };
+      const expired = await collection.find(filter).sort({ occurredAt: 1 }).limit(delivery.batchSize).toArray();
+      for (const event of expired) {
+        // Delete attempts first: a crash leaves an event to clean up on the next poll.
+        await deliveryCollection(SiemDeliveryAttempt).deleteMany({ eventId: event.eventId, brandId });
+        await collection.deleteMany({ ...filter, eventId: event.eventId });
+      }
     }
 
     private async findEventsForBrand(brandId: string): Promise<SecurityEventAttributes[]> {
-      const config = this.getConfig(brandId);
-      const delivery = this.deliveryConfig(config);
-      await this.resetStaleProcessingEvents(brandId);
-      return SecurityEvent.find({
-        brandId,
-        deliveryState: ['pending', 'failed', 'partial'],
-      }).sort('occurredAt ASC').limit(delivery.batchSize) as unknown as Promise<SecurityEventAttributes[]>;
+      const delivery = this.deliveryConfig(this.getConfig(brandId));
+      await this.cleanupDeadLetters(brandId, delivery);
+      return deliveryCollection(SecurityEvent).find(readyEventsFilter(brandId, new Date().toISOString()))
+        .sort({ occurredAt: 1 }).limit(delivery.batchSize).toArray();
     }
 
-    private async processEvent(event: SecurityEventAttributes): Promise<void> {
-      const config = this.getConfig(event.brandId);
-      if (!(await this.claimEvent(event.eventId))) {
-        return;
-      }
-      if (config.enabled !== true) {
-        await SecurityEvent.update({ eventId: event.eventId }).set({ deliveryState: 'ignored' });
-        return;
-      }
+    private async processEvent(candidate: SecurityEventAttributes): Promise<void> {
+      const config = this.getConfig(candidate.brandId);
       const destinations = this.enabledDestinations(config);
-      if (destinations.length === 0) {
-        await SecurityEvent.update({ eventId: event.eventId }).set({ deliveryState: 'ignored', destinationStates: {} });
+      // Each HTTP operation is bounded; renew before each operation for its complete timeout plus margin.
+      const leaseMs = Math.max(30000, ...destinations.map(destination => (destination.timeoutMs ?? 10000) + 30000));
+      const event = await claimDelivery(candidate, leaseMs);
+      if (!event) return;
+      if (config.enabled !== true || destinations.length === 0) {
+        await saveDelivery(event, { deliveryState: 'ignored', leaseToken: null, leaseExpiresAt: null });
         return;
       }
-      const destinationResults: Record<string, string> = {};
+      const states: Record<string, DestinationProgress> = {};
+      Object.setPrototypeOf(states, null);
+      for (const [id, value] of Object.entries(event.destinationStates ?? {})) {
+        const progress = readProgress(value);
+        if (progress) states[id] = progress;
+      }
       const delivery = this.deliveryConfig(config);
       for (const destination of destinations) {
-        const attemptNumber = await this.nextAttemptNumber(event.eventId, destination.id);
-        if (attemptNumber > this.maxAttemptsForDestination(destination, delivery)) {
-          destinationResults[destination.id] = 'deadLetter';
+        let progress = readProgress(event.destinationStates?.[destination.id]);
+        if (!progress) {
+          // Recover pre-upgrade attempts too: an acknowledged success is terminal forever.
+          const successes = await SiemDeliveryAttempt.count({ eventId: event.eventId, destinationId: destination.id, status: 'success' });
+          progress = { status: successes > 0 ? 'success' : 'failed', attempts: (await this.nextAttemptNumber(event.eventId, destination.id)) - 1 };
+        }
+        states[destination.id] = progress;
+      }
+      for (const destination of destinations) {
+        const progress = states[destination.id];
+        if (progress.status === 'success' || progress.status === 'deadLetter') continue;
+        if (progress.attempts >= this.maxAttemptsForDestination(destination, delivery)) {
+          progress.status = 'deadLetter';
           continue;
         }
+        if (progress.nextEligibleAt && Date.parse(progress.nextEligibleAt) > Date.now()) continue;
+        progress.attempts++;
+        progress.status = 'processing';
+        const delay = (destination.retry?.retryDelayMs ?? delivery.retryDelayMs) * Math.pow(destination.retry?.retryBackoffMultiplier ?? delivery.retryBackoffMultiplier, progress.attempts - 1);
+        progress.nextEligibleAt = new Date(Date.now() + Math.min(delay, 2147483647)).toISOString();
+        // Reserve the attempt before sending, so process death cannot reset retry budgets.
+        if (!(await saveDelivery(event, { destinationStates: states, leaseExpiresAt: new Date(Date.now() + leaseMs).toISOString() }))) return;
         const startedAt = new Date().toISOString();
         const result = await this.deliverEvent(event, destination, this.redactionConfig(config));
-        destinationResults[destination.id] = result.status;
-        await this.recordAttempt(event, destination, startedAt, result, attemptNumber);
+        progress.status = result.status === 'success' ? 'success' : progress.attempts >= this.maxAttemptsForDestination(destination, delivery) ? 'deadLetter' : 'failed';
+        progress.nextEligibleAt = progress.status === 'failed' ? new Date(Date.now() + Math.min(delay, 2147483647)).toISOString() : undefined;
+        // Save acknowledgement before auxiliary attempt history or another destination is processed.
+        if (!(await saveDelivery(event, { destinationStates: states }))) return;
+        await this.recordAttempt(event, destination, startedAt, result, progress.attempts);
       }
-      await this.updateEventState(event, destinations, destinationResults, delivery);
+      const activeStates = destinations.map(destination => states[destination.id]);
+      const unfinished = activeStates.filter(state => state.status !== 'success' && state.status !== 'deadLetter');
+      const deliveryState = unfinished.length ? 'failed' : activeStates.every(state => state.status === 'success') ? 'delivered' : 'deadLetter';
+      const nextTimes = unfinished.map(state => state.nextEligibleAt ?? new Date().toISOString()).sort();
+      await saveDelivery(event, { destinationStates: states, deliveryState, nextEligibleAt: nextTimes[0] ?? null,
+        terminalAt: unfinished.length ? null : new Date().toISOString(), leaseToken: null, leaseExpiresAt: null });
     }
 
     public async forwardSecurityEvents(job: AgendaJobLike): Promise<void> {
-      const brandId = (job.attrs?.data as { brandId?: string } | undefined)?.brandId;
+      const data = job.attrs?.data;
+      const brandId = isRecord(data) && typeof data.brandId === 'string' ? data.brandId : undefined;
       if (brandId) {
         const events = await this.findEventsForBrand(brandId);
         for (const event of events) {
@@ -217,7 +216,8 @@ export namespace Services {
     }
 
     public async testDestination(input: SiemTestInput): Promise<SiemDeliveryResult> {
-      const sampleEvent = {
+      const sampleEvent: SecurityEventAttributes = {
+        id: 'siem-test',
         eventId: 'siem-test',
         brandId: 'test',
         eventType: 'siem.test',
@@ -228,7 +228,7 @@ export namespace Services {
         deliveryState: 'pending',
         payload: { message: 'SIEM destination test' },
         ...(input.sampleEvent ?? {}),
-      } as SecurityEventAttributes;
+      };
       return this.deliverEvent(sampleEvent, input.destination, { ...DEFAULT_SIEM_REDACTION, ...(input.redaction ?? {}) });
     }
 
@@ -253,9 +253,9 @@ export namespace Services {
       if (Object.keys(startedAt).length > 0) {
         where.startedAt = startedAt;
       }
-      const rows = await SiemDeliveryAttempt.find(where).sort('startedAt DESC').skip(skip).limit(limit) as unknown as Record<string, unknown>[];
+      const rows = await SiemDeliveryAttempt.find(where).sort('startedAt DESC').skip(skip).limit(limit);
       const total = await SiemDeliveryAttempt.count(where);
-      return { rows, total };
+      return { rows: Array.isArray(rows) ? rows.filter(isRecord) : [], total };
     }
   }
 }

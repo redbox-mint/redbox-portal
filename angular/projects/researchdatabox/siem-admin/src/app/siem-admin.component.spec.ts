@@ -88,6 +88,45 @@ describe('SiemAdminComponent', () => {
     expect(component.isDirty()).toBeFalse();
   });
 
+  it('blocks the save button and public save after an initial config load failure', async () => {
+    apiService.getSiemConfig.and.rejectWith(new Error('config unavailable'));
+    await init();
+    component.draft.enabled = true;
+    expect(component.loadError).toBeTruthy();
+    expect(component.canSave()).toBeFalse();
+    fixture.detectChanges();
+    const saveButton: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-primary');
+    expect(saveButton.disabled).toBeTrue();
+    await component.save();
+    expect(apiService.saveSiemConfig).not.toHaveBeenCalled();
+
+    apiService.getSiemConfig.and.resolveTo(buildConfig());
+    await component.refresh();
+    component.draft.enabled = true;
+    expect(component.canSave()).toBeTrue();
+    await component.save();
+    expect(apiService.saveSiemConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains the loaded draft but blocks saves after a failed refresh', async () => {
+    apiService.getSiemConfig.and.resolveTo(buildConfig({ enabled: true }));
+    await init();
+    component.draft.delivery.batchSize = 20;
+    apiService.getSiemConfig.and.rejectWith(new Error('refresh unavailable'));
+    await component.refresh();
+    expect(component.draft.enabled).toBeTrue();
+    expect(component.draft.delivery.batchSize).toBe(20);
+    expect(component.canSave()).toBeFalse();
+    await component.save();
+    expect(apiService.saveSiemConfig).not.toHaveBeenCalled();
+  });
+
+  it('blocks public save before config loading completes', async () => {
+    component.draft.enabled = true;
+    await component.save();
+    expect(apiService.saveSiemConfig).not.toHaveBeenCalled();
+  });
+
   it('keeps masked secret values unchanged unless the user edits them', async () => {
     apiService.getSiemConfig.and.resolveTo(buildConfig({
       destinations: [{ id: 'dest-1', name: 'Splunk', enabled: true, adapterType: 'splunk-hec-json', endpointUrl: 'https://splunk.example', token: '__REDACTED__' }]
@@ -140,8 +179,6 @@ describe('SiemAdminComponent', () => {
     expect(component.showsUsernamePasswordFields('syslog-rfc5424-json')).toBeTrue();
     expect(component.showsUsernamePasswordFields('splunk-hec-json')).toBeFalse();
 
-    expect(component.showsFormatOptionsField('leef')).toBeTrue();
-    expect(component.showsFormatOptionsField('splunk-hec-json')).toBeFalse();
   });
 
   it('tests the selected unsaved destination draft and stores the result', async () => {
@@ -206,7 +243,7 @@ describe('SiemAdminComponent', () => {
       category: 'authentication',
       deliveryState: 'failed',
       limit: 25,
-      skip: 0
+      offset: 0
     });
   });
 
@@ -222,23 +259,15 @@ describe('SiemAdminComponent', () => {
       destinationId: 'dest-1',
       status: 'failed',
       limit: 25,
-      skip: 0
+      offset: 0
     });
   });
 
-  it('flags invalid formatOptions JSON and blocks saving', async () => {
-    apiService.getSiemConfig.and.resolveTo(buildConfig({
-      destinations: [{ id: 'dest-1', name: 'Syslog', enabled: true, adapterType: 'cef', endpointUrl: 'https://syslog.example' }]
-    }));
-
+  it('fetches subsequent event and delivery pages using offset', async () => {
     await init();
-
-    component.updateFormatOptionsText('dest-1', '{ not valid');
-    expect(component.hasFormatOptionsError()).toBeTrue();
-    expect(component.canSave()).toBeFalse();
-
-    component.updateFormatOptionsText('dest-1', '{ "facility": 1 }');
-    expect(component.hasFormatOptionsError()).toBeFalse();
-    expect(component.buildConfig().destinations[0].formatOptions).toEqual({ facility: 1 });
+    await component.loadEvents(25);
+    await component.loadDelivery(50);
+    expect(apiService.getEvents.calls.mostRecent().args[0]?.offset).toBe(25);
+    expect(apiService.getDeliveryStatus.calls.mostRecent().args[0]?.offset).toBe(50);
   });
 });

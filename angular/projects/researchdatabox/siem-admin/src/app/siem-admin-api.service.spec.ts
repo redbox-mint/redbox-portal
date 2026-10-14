@@ -64,7 +64,7 @@ describe('SiemAdminApiService', () => {
   });
 
   it('builds event requests using the supported params', async () => {
-    const responsePromise = service.getEvents({ category: 'authentication', deliveryState: 'failed', eventType: 'authentication.login.failure', limit: 25, skip: 50 });
+    const responsePromise = service.getEvents({ category: 'authentication', deliveryState: 'failed', eventType: 'authentication.login.failure', limit: 25, offset: 50 });
     await Promise.resolve();
 
     const request = httpTestingController.expectOne(req =>
@@ -74,7 +74,7 @@ describe('SiemAdminApiService', () => {
       && req.params.get('deliveryState') === 'failed'
       && req.params.get('eventType') === 'authentication.login.failure'
       && req.params.get('limit') === '25'
-      && req.params.get('skip') === '50'
+      && req.params.get('offset') === '50'
     );
     request.flush({ data: { rows: [{ eventId: 'e1' }], total: 1 } });
 
@@ -82,7 +82,7 @@ describe('SiemAdminApiService', () => {
   });
 
   it('builds delivery status requests using the supported params', async () => {
-    const responsePromise = service.getDeliveryStatus({ destinationId: 'dest-1', status: 'failed', limit: 25, skip: 0 });
+    const responsePromise = service.getDeliveryStatus({ destinationId: 'dest-1', status: 'failed', limit: 25, offset: 0 });
     await Promise.resolve();
 
     const request = httpTestingController.expectOne(req =>

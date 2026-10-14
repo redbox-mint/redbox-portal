@@ -11,10 +11,10 @@ import {
   fromDoiPublishingFormModel,
   toDoiPublishingFormModel
 } from './DoiPublishing';
+import { SIEM_CONFIGURATION_SCHEMA, SiemConfiguration, normalizeSiemConfiguration } from './SiemConfiguration';
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from './RaidPublishing';
 import { WebAnalytics, WEB_ANALYTICS_SCHEMA } from './WebAnalytics';
-import { SIEM_CONFIGURATION_SCHEMA, SiemConfiguration } from './SiemConfiguration';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -110,6 +110,18 @@ export class ConfigModels {
                 fromForm: fromDoiPublishingFormModel
             }
         }],
+        ['siem', {
+            modelName: 'SiemConfiguration',
+            title: 'SIEM Configuration',
+            class: SiemConfiguration,
+            schema: SIEM_CONFIGURATION_SCHEMA,
+            formAdapter: { fromForm: normalizeSiemConfiguration },
+            tsGlob: path.join(__dirname, '../../src/configmodels/SiemConfiguration.ts'),
+            secretFields: [
+                'destinations[].token',
+                'destinations[].password'
+            ]
+        }],
         ['integrationNotification', {
             modelName: 'IntegrationNotificationConfig',
             title: 'Integration Notification',
@@ -131,19 +143,6 @@ export class ConfigModels {
             class: WebAnalytics,
             schema: WEB_ANALYTICS_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/WebAnalytics.ts')
-        }],
-        ['siem', {
-            modelName: 'SiemConfiguration',
-            title: 'SIEM Configuration',
-            class: SiemConfiguration,
-            schema: SIEM_CONFIGURATION_SCHEMA,
-            tsGlob: path.join(__dirname, '../../src/configmodels/SiemConfiguration.ts'),
-            secretFields: [
-                'destinations[].token',
-                'destinations[].password',
-                'destinations[].headers.Authorization',
-                'destinations[].headers.X-Splunk-Token'
-            ]
         }],
     ]);
 

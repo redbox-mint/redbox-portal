@@ -294,7 +294,7 @@ export namespace Services {
           return;
         }
         this.enqueueNotification(entry);
-        void SecurityEventService.emitFromIntegrationAudit(entry as unknown as Record<string, unknown>).catch((error) => {
+        void SecurityEventService.emitFromIntegrationAudit({ ...entry }).catch(error => {
           sails.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
           sails.log.error(error);
         });

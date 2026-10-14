@@ -1,3 +1,4 @@
+import { normalizeSiemConfiguration } from '@researchdatabox/sails-ng-common';
 import { Component, Inject } from '@angular/core';
 import { DateTime } from 'luxon';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
@@ -39,35 +40,6 @@ interface TestState {
   errorSummary?: string;
 }
 
-const DEFAULT_EVENT_SELECTION = (): SiemConfiguration['events'] => ({
-  categories: {
-    authentication: true,
-    authorization: true,
-    userManagement: true,
-    recordLifecycle: true,
-    integrationAudit: true,
-    attachmentAccess: true,
-  },
-  severity: {},
-});
-
-const DEFAULT_REDACTION = (): SiemConfiguration['redaction'] => ({
-  denylistedPaths: [],
-  maxPayloadBytes: 64 * 1024,
-  includeActorEmail: false,
-  includeIpAddress: false,
-  includeUserAgent: false,
-});
-
-const DEFAULT_DELIVERY = (): SiemConfiguration['delivery'] => ({
-  batchSize: 50,
-  maxAttempts: 3,
-  retryDelayMs: 60 * 1000,
-  retryBackoffMultiplier: 2,
-  deadLetterRetentionDays: 30,
-  nonBlocking: true,
-});
-
 @Component({
   selector: 'siem-admin',
   templateUrl: './siem-admin.component.html',
@@ -100,6 +72,7 @@ export class SiemAdminComponent extends BaseComponent {
 
   draft: SiemConfiguration = this.createDefaultConfig();
   private savedSnapshot = '';
+  private configLoaded = false;
 
   loading = false;
   saving = false;
@@ -110,8 +83,6 @@ export class SiemAdminComponent extends BaseComponent {
 
   selectedDestinationId = '';
   private headerEntriesById: Record<string, HeaderEntry[]> = {};
-  private formatOptionsTextById: Record<string, string> = {};
-  formatOptionsErrorById: Record<string, string> = {};
 
   testStateById: Record<string, TestState> = {};
   testErrorById: Record<string, string> = {};
@@ -158,10 +129,12 @@ export class SiemAdminComponent extends BaseComponent {
 
   private async loadConfig(): Promise<void> {
     this.loading = true;
+    this.configLoaded = false;
     this.loadError = '';
     try {
       const config = await this.siemApiService.getSiemConfig();
       this.applyConfig(this.normalizeConfig(config));
+      this.configLoaded = true;
     } catch (error) {
       this.loadError = this.getErrorMessage(error, 'siem-load-error');
       this.loggerService.error(this.loadError);
@@ -173,11 +146,8 @@ export class SiemAdminComponent extends BaseComponent {
   private applyConfig(config: SiemConfiguration): void {
     this.draft = config;
     this.headerEntriesById = {};
-    this.formatOptionsTextById = {};
-    this.formatOptionsErrorById = {};
     for (const destination of this.draft.destinations) {
       this.headerEntriesById[destination.id] = this.objectToEntries(destination.headers);
-      this.formatOptionsTextById[destination.id] = this.stringifyFormatOptions(destination.formatOptions);
     }
     if (this.draft.destinations.length > 0) {
       const stillSelected = this.draft.destinations.some(d => d.id === this.selectedDestinationId);
@@ -194,16 +164,12 @@ export class SiemAdminComponent extends BaseComponent {
     return JSON.stringify(this.buildConfig()) !== this.savedSnapshot;
   }
 
-  public hasFormatOptionsError(): boolean {
-    return Object.values(this.formatOptionsErrorById).some(error => !!error);
-  }
-
   public canSave(): boolean {
-    return !this.loading && !this.saving && this.isDirty() && !this.hasFormatOptionsError();
+    return this.configLoaded && !this.loading && !this.saving && this.isDirty();
   }
 
   public async save(): Promise<void> {
-    if (this.saving || this.hasFormatOptionsError()) {
+    if (!this.canSave()) {
       return;
     }
     this.saving = true;
@@ -225,7 +191,7 @@ export class SiemAdminComponent extends BaseComponent {
 
   /**
    * Builds the canonical configuration, merging the per-destination header and
-   * formatOptions editing models back into each destination.
+   * editing models back into each destination.
    */
   public buildConfig(): SiemConfiguration {
     return {
@@ -244,12 +210,6 @@ export class SiemAdminComponent extends BaseComponent {
       built.headers = headers;
     } else {
       delete built.headers;
-    }
-    const formatOptions = this.parseFormatOptions(destination.id);
-    if (formatOptions) {
-      built.formatOptions = formatOptions;
-    } else {
-      delete built.formatOptions;
     }
     return built;
   }
@@ -277,7 +237,6 @@ export class SiemAdminComponent extends BaseComponent {
     };
     this.draft.destinations = [...this.draft.destinations, destination];
     this.headerEntriesById[id] = [];
-    this.formatOptionsTextById[id] = '';
     this.selectedDestinationId = id;
     this.activeTab = 'destinations';
   }
@@ -291,8 +250,6 @@ export class SiemAdminComponent extends BaseComponent {
     }
     this.draft.destinations = this.draft.destinations.filter(d => d.id !== id);
     delete this.headerEntriesById[id];
-    delete this.formatOptionsTextById[id];
-    delete this.formatOptionsErrorById[id];
     delete this.testStateById[id];
     delete this.testErrorById[id];
     delete this.testingById[id];
@@ -321,10 +278,6 @@ export class SiemAdminComponent extends BaseComponent {
     return adapter === 'syslog-rfc5424-json' || adapter === 'cef' || adapter === 'leef';
   }
 
-  public showsFormatOptionsField(adapter: SiemAdapterType): boolean {
-    return adapter === 'syslog-rfc5424-json' || adapter === 'cef' || adapter === 'leef';
-  }
-
   public getAdapterLabel(adapter?: string): string {
     return this.adapterOptions.find(option => option.value === adapter)?.label ?? String(adapter ?? '');
   }
@@ -345,37 +298,6 @@ export class SiemAdminComponent extends BaseComponent {
   public removeHeader(id: string, index: number): void {
     const entries = this.getHeaderEntries(id);
     entries.splice(index, 1);
-  }
-
-  // ─── formatOptions editing ───
-
-  public getFormatOptionsText(id: string): string {
-    return this.formatOptionsTextById[id] ?? '';
-  }
-
-  public updateFormatOptionsText(id: string, value: string): void {
-    this.formatOptionsTextById[id] = value;
-    this.parseFormatOptions(id);
-  }
-
-  private parseFormatOptions(id: string): Record<string, unknown> | undefined {
-    const text = (this.formatOptionsTextById[id] ?? '').trim();
-    if (!text) {
-      this.formatOptionsErrorById[id] = '';
-      return undefined;
-    }
-    try {
-      const parsed = JSON.parse(text);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        this.formatOptionsErrorById[id] = '';
-        return parsed as Record<string, unknown>;
-      }
-      this.formatOptionsErrorById[id] = this.translationService.t('siem-format-options-error');
-      return undefined;
-    } catch {
-      this.formatOptionsErrorById[id] = this.translationService.t('siem-format-options-error');
-      return undefined;
-    }
   }
 
   // ─── Redaction denylist editing ───
@@ -444,7 +366,7 @@ export class SiemAdminComponent extends BaseComponent {
         category: this.eventFilters.category,
         deliveryState: this.eventFilters.deliveryState,
         limit: this.eventPageSize,
-        skip: this.eventSkip,
+        offset: this.eventSkip,
       });
     } catch (error) {
       this.eventsError = this.getErrorMessage(error, 'siem-events-error');
@@ -474,7 +396,7 @@ export class SiemAdminComponent extends BaseComponent {
         destinationId: this.deliveryFilters.destinationId,
         status: this.deliveryFilters.status,
         limit: this.deliveryPageSize,
-        skip: this.deliverySkip,
+        offset: this.deliverySkip,
       });
     } catch (error) {
       this.deliveryError = this.getErrorMessage(error, 'siem-delivery-error');
@@ -590,46 +512,11 @@ export class SiemAdminComponent extends BaseComponent {
   // ─── Internal helpers ───
 
   private normalizeConfig(config: SiemConfiguration | null | undefined): SiemConfiguration {
-    const base = this.createDefaultConfig();
-    if (!config || typeof config !== 'object') {
-      return base;
-    }
-    const events = config.events ?? base.events;
-    const redaction = config.redaction ?? base.redaction;
-    const delivery = config.delivery ?? base.delivery;
-    return {
-      enabled: !!config.enabled,
-      destinations: Array.isArray(config.destinations) ? config.destinations.map(d => ({ ...d })) : [],
-      events: {
-        categories: { ...base.events.categories, ...(events.categories ?? {}) },
-        severity: { ...(events.severity ?? {}) },
-      },
-      redaction: {
-        denylistedPaths: Array.isArray(redaction.denylistedPaths) ? [...redaction.denylistedPaths] : [],
-        maxPayloadBytes: Number(redaction.maxPayloadBytes ?? base.redaction.maxPayloadBytes),
-        includeActorEmail: !!redaction.includeActorEmail,
-        includeIpAddress: !!redaction.includeIpAddress,
-        includeUserAgent: !!redaction.includeUserAgent,
-      },
-      delivery: {
-        batchSize: Number(delivery.batchSize ?? base.delivery.batchSize),
-        maxAttempts: Number(delivery.maxAttempts ?? base.delivery.maxAttempts),
-        retryDelayMs: Number(delivery.retryDelayMs ?? base.delivery.retryDelayMs),
-        retryBackoffMultiplier: Number(delivery.retryBackoffMultiplier ?? base.delivery.retryBackoffMultiplier),
-        deadLetterRetentionDays: Number(delivery.deadLetterRetentionDays ?? base.delivery.deadLetterRetentionDays),
-        nonBlocking: delivery.nonBlocking !== false,
-      },
-    };
+    return normalizeSiemConfiguration(config ?? {});
   }
 
   private createDefaultConfig(): SiemConfiguration {
-    return {
-      enabled: false,
-      destinations: [],
-      events: DEFAULT_EVENT_SELECTION(),
-      redaction: DEFAULT_REDACTION(),
-      delivery: DEFAULT_DELIVERY(),
-    };
+    return normalizeSiemConfiguration({});
   }
 
   private objectToEntries(headers?: Record<string, string>): HeaderEntry[] {
@@ -654,12 +541,6 @@ export class SiemAdminComponent extends BaseComponent {
     return Object.keys(result).length > 0 ? result : undefined;
   }
 
-  private stringifyFormatOptions(formatOptions?: Record<string, unknown>): string {
-    if (!formatOptions || typeof formatOptions !== 'object' || Object.keys(formatOptions).length === 0) {
-      return '';
-    }
-    return JSON.stringify(formatOptions, null, 2);
-  }
 
   private summarize(value?: Record<string, unknown>): string | undefined {
     if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
@@ -721,10 +602,9 @@ export class SiemAdminComponent extends BaseComponent {
 
   private getErrorMessage(error: unknown, fallbackKey: string): string {
     if (error && typeof error === 'object') {
-      const errorRecord = error as Record<string, unknown>;
-      const nestedError = errorRecord['error'] as Record<string, unknown> | undefined;
-      const detail = nestedError?.['detail'];
-      const message = nestedError?.['message'] ?? errorRecord['message'];
+      const nestedError: unknown = Reflect.get(error, 'error');
+      const detail: unknown = nestedError && typeof nestedError === 'object' ? Reflect.get(nestedError, 'detail') : undefined;
+      const message: unknown = (nestedError && typeof nestedError === 'object' ? Reflect.get(nestedError, 'message') : undefined) ?? Reflect.get(error, 'message');
       if (typeof detail === 'string' && detail.trim()) {
         return detail;
       }

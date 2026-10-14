@@ -26,7 +26,7 @@ describe('The SecurityEventService', function () {
               attachmentAccess: true,
             },
             severity: {
-              'integration.failed': 'error',
+              'integration.failure': 'error',
             },
           },
           redaction: {
@@ -65,7 +65,7 @@ describe('The SecurityEventService', function () {
 
     await securityEventService.emitSecurityEvent({
       brandId: 'default',
-      eventType: 'integration.failed',
+      eventType: 'integration.failure',
       category: 'integrationAudit',
       source: 'IntegrationAuditService',
       occurredAt: '2026-01-01T00:00:00.000Z',
@@ -149,5 +149,39 @@ describe('The SecurityEventService', function () {
     });
 
     expect(queuedJobs).to.have.length(0);
+  });
+  it('captures the real record audit worker after persistence without losing brand or oversized markers', async function () {
+    const queuedJobs: Array<{ name: string; data: { event?: Record<string, unknown> } }> = [];
+    AgendaQueueService.now = async (name, data) => {
+      queuedJobs.push({ name, data });
+    };
+    const records = sails.services.recordsservice;
+    const originalStorage = Reflect.get(records, 'storageService');
+    Reflect.set(records, 'storageService', {
+      createRecordAudit: async () => ({ isSuccessful: () => true }),
+    });
+    try {
+      await records.storeRecordAudit({
+        attrs: {
+          data: {
+            action: 'updated',
+            redboxOid: 'siem-capture-regression',
+            record: { metaMetadata: { brandId: 'default' }, text: '😀'.repeat(30000) },
+            user: { email: 'private@example.test', additionalAttributes: { token: 'private-token' } },
+          },
+        },
+      });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(queuedJobs).to.have.length(1);
+      const event = queuedJobs[0].data.event;
+      expect(event).to.have.property('eventType', 'record.updated');
+      expect(event).to.have.property('brandId', 'default');
+      expect(event?.payload).to.have.property('truncated', true);
+      expect(JSON.stringify(event)).not.to.include('private@example.test');
+      expect(JSON.stringify(event)).not.to.include('private-token');
+      expect(Buffer.byteLength(JSON.stringify(event))).to.be.at.most(65536);
+    } finally {
+      Reflect.set(records, 'storageService', originalStorage);
+    }
   });
 });

@@ -243,23 +243,28 @@ export namespace Controllers {
       const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord) => void) => (req: Sails.Req, res: Sails.Res) => void };
       passport.authenticate('local', function (err: Error | null, user: AnyRecord | false, info: AnyRecord) {
         if ((err) || (!user)) {
+          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
           return res.send({
             message: info.message,
             user: user
           });
         }
-        const requestDetails = new RequestDetails(req);
-        // We don't want to store the password!
-        delete (requestDetails.body as Record<string, unknown>).password;
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          sails.log.debug(`User login audit event created for local login: ${_.isEmpty(user) ? '' : user.id}`)
-        }).catch(err => {
-          sails.log.error(`User login audit event created for local login failed`)
-          sails.log.error(err)
-        });
+
         const isAjax = req.headers && req.headers['x-source'] == 'jsclient';
         return req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
+          if (err) {
+            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+            return res.send(err);
+          }
+          const requestDetails = new RequestDetails(req);
+          // We don't want to store the password!
+          _.unset(requestDetails.body, 'password');
+          UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
+            sails.log.debug(`User login audit event created for local login: ${_.isEmpty(user) ? '' : user.id}`)
+          }).catch(err => {
+            sails.log.error(`User login audit event created for local login failed`)
+            sails.log.error(err)
+          });
           // login success
           // redir if api header call is not found
           if (isAjax) {
@@ -295,6 +300,7 @@ export namespace Controllers {
         sails.log.verbose(user);
 
         if (!_.isEmpty(err) || _.isUndefined(user) || _.isEmpty(user) || user == false) {
+          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
           sails.log.error(`OpenId Connect Login failed!`);
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
           if (!_.isEmpty(info) && !_.isString(info) && _.isObject(info)) {
@@ -349,16 +355,19 @@ export namespace Controllers {
           const url = `${BrandingService.getFullPath(req)}/home`;
           return res.redirect(url);
         }
-        const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
-        }).catch(err => {
-          sails.log.error(`User login audit event created for OIDC login failed`)
-          sails.log.error(err)
-        });
 
         req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
+          if (err) {
+            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+            return res.send(err);
+          }
+          const requestDetails = new RequestDetails(req);
+          UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
+            sails.log.debug(`User login audit event created for OIDC login: ${_.isEmpty(user) ? '' : _.get(user, 'id')}`)
+          }).catch(err => {
+            sails.log.error(`User login audit event created for OIDC login failed`)
+            sails.log.error(err)
+          });
           sails.log.debug("OpenId Connect Login OK, redirecting...");
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
@@ -497,6 +506,7 @@ export namespace Controllers {
         sails.log.verbose("User:");
         sails.log.verbose(user);
         if ((err) || (!user)) {
+          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
           sails.log.error(err)
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
 
@@ -521,16 +531,20 @@ export namespace Controllers {
           return res.serverError();
         }
 
-        const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`)
-        }).catch(err => {
-          sails.log.error(`User login audit event created for AAF login failed`)
-          sails.log.error(err)
-        });
+
 
         req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
+          if (err) {
+            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+            return res.send(err);
+          }
+          const requestDetails = new RequestDetails(req);
+          UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
+            sails.log.debug(`User login audit event created for AAF login: ${_.isEmpty(user) ? '' : _.get(user, 'id')}`)
+          }).catch(err => {
+            sails.log.error(`User login audit event created for AAF login failed`)
+            sails.log.error(err)
+          });
           sails.log.debug("AAF Login OK, redirecting...");
           return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
         });
