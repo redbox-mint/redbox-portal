@@ -131,6 +131,13 @@ describe('requestChronicle middleware', function () {
     expect(uncaught.called).to.equal(false);
   });
 
+  it('isolates both a completion failure and a failing fallback logger', async function () {
+    sinon.stub(RequestChronicleHelper.prototype, 'finish').throws(new Error('finish failed'));
+    logger.warn.throws(new Error('warning transport failed'));
+    await visit('/200');
+    expect(uncaught.called).to.equal(false);
+  });
+
   it('still processes the request when the chronicle cannot start', async function () {
     sinon.stub(RequestChronicleHelper, 'fromReq').throws(new Error('broken'));
     await visit('/200');

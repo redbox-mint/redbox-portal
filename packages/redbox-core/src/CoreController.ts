@@ -14,7 +14,13 @@ import {
   RBValidationError,
   ErrorResponseItemV2,
 } from './model';
-import { RequestChronicleHelper, toChronicleError } from './utilities/RequestChronicle';
+import {
+  RequestChronicleHelper,
+  RequestChronicleLimits,
+  safeChronicleText,
+  toChronicleError,
+  toChronicleLogRecord,
+} from './utilities/RequestChronicle';
 import { CoreBase } from './CoreBase';
 
 export namespace Controllers.Core {
@@ -574,12 +580,16 @@ export namespace Controllers.Core {
           ...chronicle,
           ...(collectedDisplayErrors.length > 0
             ? {
-                displayErrors: collectedDisplayErrors.map(({ status, code, title, detail }) => ({
-                  status,
-                  code,
-                  title,
-                  detail,
-                })),
+                // Slice before mapping, as the array may be large; the count is kept.
+                displayErrorCount: collectedDisplayErrors.length,
+                displayErrors: collectedDisplayErrors
+                  .slice(0, RequestChronicleLimits.maxArrayItems)
+                  .map(({ status, code, title, detail }) => ({
+                    status,
+                    code,
+                    title,
+                    detail,
+                  })),
               }
             : {}),
         },
@@ -648,14 +658,21 @@ export namespace Controllers.Core {
         if (rc === undefined) {
           // No request chronicle (e.g. socket or virtual requests): ignore the details, but don't lose errors.
           for (const error of errors ?? []) {
-            sails.log.error({ error: toChronicleError(error) }, 'Error recorded without a request chronicle.');
+            sails.log.error(
+              toChronicleLogRecord({ error: toChronicleError(error) }),
+              'Error recorded without a request chronicle.'
+            );
           }
           return;
         }
         rc.addInfo(info ?? {});
         (errors ?? []).forEach(error => rc.addError(error));
-      } catch (error) {
-        sails.log.warn('Could not update the request chronicle.', error);
+      } catch {
+        try {
+          sails.log.warn('Could not update the request chronicle.');
+        } catch {
+          // Recording details must never break the request.
+        }
       }
     }
 
@@ -676,16 +693,28 @@ export namespace Controllers.Core {
           if (rc !== undefined) {
             rc.addOperationResult(operation, error);
           } else if (error !== undefined) {
-            sails.log.error({ operation, error: toChronicleError(error) }, `Operation '${operation}' failed.`);
+            const name = safeChronicleText(operation, 100);
+            sails.log.error(
+              toChronicleLogRecord({ operation: name, error: toChronicleError(error) }),
+              `Operation '${name}' failed.`
+            );
           }
-        } catch (logError) {
-          sails.log.warn(`Could not record the result of operation '${operation}'.`, logError);
+        } catch {
+          try {
+            sails.log.warn('Could not record the result of a background operation.');
+          } catch {
+            // Recording the result must never cause an unhandled rejection.
+          }
         }
       };
-      Promise.resolve(work).then(
-        () => onResult(),
-        (error: unknown) => onResult(error ?? new Error(`${operation} failed`))
-      );
+      try {
+        Promise.resolve(work).then(
+          () => onResult(),
+          (error: unknown) => onResult(error ?? new Error('Background operation failed'))
+        );
+      } catch (error) {
+        onResult(error);
+      }
     }
 
     private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[], logErrors: boolean) {

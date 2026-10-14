@@ -138,7 +138,10 @@ export const RequestChronicleLimits = Object.freeze({
   maxErrorDepth: 3,
   maxErrorDetails: 10,
   maxErrorMessageLength: 1000,
+  maxErrorJsonLength: 8192,
+  maxStackLength: 4000,
   maxStackLines: 12,
+  maxKeyLength: 100,
 });
 
 const reservedKeys = [
@@ -181,11 +184,62 @@ export function sanitizeChroniclePath(value: string): string {
   return result;
 }
 
-function truncate(value: string, maxLength: number): string {
-  if (value.length <= maxLength) {
-    return value;
+/**
+ * Convert a value to a string that is safe to log: secrets and token-bearing paths are redacted,
+ * and the length is bounded. Only the start of a very long string is processed.
+ * @param value The value.
+ * @param maxLength The maximum length, excluding the truncation marker.
+ */
+export function safeChronicleText(value: unknown, maxLength: number): string {
+  let text: string;
+  try {
+    text = typeof value === 'string' ? value : String(value);
+  } catch {
+    return '[Unprintable]';
   }
-  return `${value.substring(0, maxLength)}…[truncated ${value.length - maxLength} chars]`;
+  // Process a little more than the limit, so tokens near the limit can still be recognised.
+  const head = text.length > maxLength + 200 ? text.substring(0, maxLength + 200) : text;
+  const redacted = sanitizeChroniclePath(String(redactSecret(head)));
+  if (redacted.length <= maxLength && head.length === text.length) {
+    return redacted;
+  }
+  // Redact a token path that is cut off by the truncation.
+  const truncated = redacted.substring(0, maxLength).replace(/(\/preview\/)[^/?#\s]*$/i, '$1REDACTED');
+  return `${truncated}…[truncated ${Math.max(text.length - maxLength, 0)} chars]`;
+}
+
+function isSensitiveKey(key: string): boolean {
+  return sensitiveKeyPattern.test(key);
+}
+
+/**
+ * Sanitise the top-level entries of a details object: bound the number and length of keys,
+ * redact sensitive keys, and sanitise the values.
+ */
+function sanitizeChronicleEntries(info: Record<string, unknown>): { entries: [string, unknown][]; omitted: number } {
+  const entries: [string, unknown][] = [];
+  let omitted = 0;
+  for (const rawKey in info) {
+    if (!Object.prototype.hasOwnProperty.call(info, rawKey)) {
+      continue;
+    }
+    if (entries.length >= RequestChronicleLimits.maxInfoKeys) {
+      omitted += 1;
+      break;
+    }
+    const key = safeChronicleText(rawKey, RequestChronicleLimits.maxKeyLength);
+    entries.push([key, isSensitiveKey(rawKey) ? 'REDACTED' : sanitizeChronicleValue(info[rawKey])]);
+  }
+  return { entries, omitted };
+}
+
+/**
+ * Make an operation name safe to use as a key and in log messages.
+ */
+function safeOperationName(operation: unknown): string {
+  return (
+    safeChronicleText(operation, RequestChronicleLimits.maxKeyLength).replace(/[^A-Za-z0-9._:-]/g, '_') || 'operation'
+  );
 }
 
 /**
@@ -211,7 +265,7 @@ function sanitizeInner(value: unknown, depth: number, seen: WeakSet<object>): un
     return value;
   }
   if (typeof value === 'string') {
-    return truncate(sanitizeChroniclePath(String(redactSecret(value))), RequestChronicleLimits.maxStringLength);
+    return safeChronicleText(value, RequestChronicleLimits.maxStringLength);
   }
   if (typeof value === 'bigint') {
     return value.toString();
@@ -253,14 +307,19 @@ function sanitizeInner(value: unknown, depth: number, seen: WeakSet<object>): un
   }
   seen.add(value);
   const result: Record<string, unknown> = {};
-  const keys = Object.keys(value);
-  for (const key of keys.slice(0, RequestChronicleLimits.maxObjectKeys)) {
-    result[key] = sensitiveKeyPattern.test(key)
+  let count = 0;
+  for (const key in value) {
+    if (!Object.prototype.hasOwnProperty.call(value, key)) {
+      continue;
+    }
+    if (count >= RequestChronicleLimits.maxObjectKeys) {
+      result['…'] = 'more keys omitted';
+      break;
+    }
+    count += 1;
+    result[safeChronicleText(key, RequestChronicleLimits.maxKeyLength)] = isSensitiveKey(key)
       ? 'REDACTED'
       : sanitizeInner((value as Record<string, unknown>)[key], depth + 1, seen);
-  }
-  if (keys.length > RequestChronicleLimits.maxObjectKeys) {
-    result['…'] = `${keys.length - RequestChronicleLimits.maxObjectKeys} more keys`;
   }
   seen.delete(value);
   return result;
@@ -291,14 +350,33 @@ function isRBValidationErrorLike(item: Error): item is Error & { displayErrors: 
   return item.name === 'RBValidationError' && Array.isArray((item as { displayErrors?: unknown }).displayErrors);
 }
 
+/** A summary of a display error, which is already a plain, safe object. */
+class DisplayErrorSummary {
+  constructor(
+    readonly name: string | undefined,
+    readonly message: string
+  ) {}
+}
+
 /**
  * Convert a possible error to a consistent, size-bounded plain object representation.
  * Handles causes, aggregate and suppressed errors, and cycles, without throwing.
+ * Names, messages, codes, and stacks are redacted and bounded, as is the whole result.
  * @param item This might be an error, or a string, or something else.
  */
 export function toChronicleError(item: unknown): RequestChronicleError {
   try {
-    return toChronicleErrorInner(item, 0, new WeakSet<object>());
+    const result = toChronicleErrorInner(item, 0, new WeakSet<object>());
+    if (JSON.stringify(result).length <= RequestChronicleLimits.maxErrorJsonLength) {
+      return result;
+    }
+    // Too large: keep the most useful parts.
+    const { details: _details, ...withoutDetails } = result;
+    if (JSON.stringify(withoutDetails).length <= RequestChronicleLimits.maxErrorJsonLength) {
+      return { ...withoutDetails, details: [{ message: 'Nested errors omitted due to size.' }] };
+    }
+    const { stack: _stack, ...summary } = withoutDetails;
+    return { ...summary, details: [{ message: 'Stack and nested errors omitted due to size.' }] };
   } catch {
     return { message: 'Unable to record the error.' };
   }
@@ -314,87 +392,96 @@ function toChronicleErrorInner(item: unknown, depth: number, seen: WeakSet<objec
   }
 
   const result: RequestChronicleError = {};
+  // Only the first few nested errors are processed; the total is counted.
+  const maxDetails = limits.maxErrorDetails;
   const details: unknown[] = [];
+  let detailsTotal = 0;
+  const addDetails = (items: readonly unknown[]) => {
+    detailsTotal += items.length;
+    const remaining = maxDetails - details.length;
+    if (remaining > 0) {
+      details.push(...items.slice(0, remaining));
+    }
+  };
 
   if (item instanceof Error) {
     if (item.name) {
-      result.name = truncate(String(item.name), limits.maxStringLength);
+      result.name = safeChronicleText(item.name, limits.maxStringLength);
     }
     if (item.message) {
-      result.message = truncate(String(redactSecret(item.message)), limits.maxErrorMessageLength);
+      result.message = safeChronicleText(item.message, limits.maxErrorMessageLength);
     }
     const code = (item as { code?: unknown }).code;
     if (typeof code === 'string' || typeof code === 'number') {
-      result.code = truncate(String(code), limits.maxStringLength);
+      result.code = safeChronicleText(code, limits.maxStringLength);
     }
     if (isRBValidationErrorLike(item)) {
+      const displayErrors = item.displayErrors;
+      detailsTotal += displayErrors.length;
       details.push(
-        ...item.displayErrors.map(displayError => ({
-          name: displayError?.title,
-          message: Object.entries({
-            id: displayError?.id,
-            status: displayError?.status,
-            code: displayError?.code,
-            detail: displayError?.detail,
-          })
-            .filter(([_key, value]) => value !== undefined && value !== null)
-            .map(([key, value]) => `${key}: ${String(value)}`)
-            .join(', '),
-        }))
+        ...displayErrors.slice(0, maxDetails).map(
+          displayError =>
+            new DisplayErrorSummary(
+              displayError?.title !== undefined && displayError?.title !== null
+                ? safeChronicleText(displayError.title, limits.maxStringLength)
+                : undefined,
+              safeChronicleText(
+                Object.entries({
+                  id: displayError?.id,
+                  status: displayError?.status,
+                  code: displayError?.code,
+                  detail: displayError?.detail,
+                })
+                  .filter(([_key, value]) => value !== undefined && value !== null)
+                  .map(([key, value]) => `${key}: ${safeChronicleText(value, limits.maxStringLength)}`)
+                  .join(', '),
+                limits.maxErrorMessageLength
+              )
+            )
+        )
       );
     } else if (depth === 0 && typeof item.stack === 'string') {
       // Keep the location of unexpected errors.
-      result.stack = item.stack.split('\n').slice(0, limits.maxStackLines).join('\n');
+      result.stack = safeChronicleText(item.stack, limits.maxStackLength)
+        .split('\n')
+        .slice(0, limits.maxStackLines)
+        .join('\n');
     }
     if (item.cause !== undefined && item.cause !== null) {
-      details.push(item.cause);
+      addDetails([item.cause]);
     }
     if (typeof SuppressedError !== 'undefined' && item instanceof SuppressedError) {
-      details.push(item.error, item.suppressed);
+      addDetails([item.error, item.suppressed]);
     }
     if (item instanceof AggregateError && Array.isArray(item.errors)) {
-      details.push(...item.errors);
+      addDetails(item.errors);
     }
   } else if (Array.isArray(item)) {
-    details.push(...item);
+    addDetails(item);
   } else if (typeof item === 'string') {
-    result.message = truncate(String(redactSecret(item)), limits.maxErrorMessageLength);
+    result.message = safeChronicleText(item, limits.maxErrorMessageLength);
   } else if (item !== null && typeof item === 'object' && typeof (item as { message?: unknown }).message === 'string') {
-    result.message = truncate(
-      String(redactSecret((item as { message: string }).message)),
-      limits.maxErrorMessageLength
-    );
+    result.message = safeChronicleText((item as { message: string }).message, limits.maxErrorMessageLength);
   } else {
     const sanitized = sanitizeInner(item, 0, new WeakSet<object>());
-    result.message = truncate(
+    result.message = safeChronicleText(
       typeof sanitized === 'string' ? sanitized : (JSON.stringify(sanitized) ?? String(item)),
       limits.maxErrorMessageLength
     );
   }
 
-  if (details.length > 0) {
+  if (detailsTotal > 0) {
     if (depth >= limits.maxErrorDepth) {
-      result.details = [{ message: `${details.length} nested errors omitted` }];
+      result.details = [{ message: `${detailsTotal} nested errors omitted` }];
     } else {
-      result.details = details.slice(0, limits.maxErrorDetails).map(detail => {
-        // Display error summaries are already plain objects.
-        if (
-          detail !== null &&
-          typeof detail === 'object' &&
-          !(detail instanceof Error) &&
-          'name' in detail &&
-          !Array.isArray(detail)
-        ) {
-          const summary = detail as { name?: unknown; message?: unknown };
-          return {
-            ...(summary.name !== undefined ? { name: truncate(String(summary.name), limits.maxStringLength) } : {}),
-            message: truncate(String(summary.message ?? ''), limits.maxErrorMessageLength),
-          };
+      result.details = details.map(detail => {
+        if (detail instanceof DisplayErrorSummary) {
+          return { ...(detail.name !== undefined ? { name: detail.name } : {}), message: detail.message };
         }
         return toChronicleErrorInner(detail, depth + 1, seen);
       });
-      if (details.length > limits.maxErrorDetails) {
-        result.details.push({ message: `${details.length - limits.maxErrorDetails} more errors omitted` });
+      if (detailsTotal > details.length) {
+        result.details.push({ message: `${detailsTotal - details.length} more errors omitted` });
       }
     }
   }
@@ -475,8 +562,12 @@ export class RequestChronicleHelper {
    * Requests that did not pass through the HTTP middleware (e.g. socket and virtual requests) have no helper.
    */
   public static existing(req: Sails.Req | Request | undefined | null): RequestChronicleHelper | undefined {
-    const helper = (req as { options?: Sails.ReqOptions } | undefined | null)?.options?.requestChronicleHelper;
-    return helper instanceof RequestChronicleHelper ? helper : undefined;
+    try {
+      const helper = (req as { options?: Sails.ReqOptions } | undefined | null)?.options?.requestChronicleHelper;
+      return helper instanceof RequestChronicleHelper ? helper : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -533,12 +624,15 @@ export class RequestChronicleHelper {
       const path = req.path ?? req.url?.split('?')[0];
       const upstreamRequestId = req.headers?.['x-request-id'];
       this.#data.req = {
-        method: req.method,
-        path:
-          typeof path === 'string'
-            ? truncate(sanitizeChroniclePath(path), RequestChronicleLimits.maxStringLength)
+        method:
+          typeof req.method === 'string'
+            ? safeChronicleText(req.method, RequestChronicleLimits.maxKeyLength)
             : undefined,
-        hostname: req.hostname,
+        path: typeof path === 'string' ? safeChronicleText(path, RequestChronicleLimits.maxStringLength) : undefined,
+        hostname:
+          typeof req.hostname === 'string'
+            ? safeChronicleText(req.hostname, RequestChronicleLimits.maxStringLength)
+            : undefined,
         ...(typeof upstreamRequestId === 'string' && upstreamRequestIdPattern.test(upstreamRequestId)
           ? { upstreamRequestId }
           : {}),
@@ -613,7 +707,7 @@ export class RequestChronicleHelper {
       const chronicleError = toChronicleError(error);
       if (!this.isRunning) {
         this.logger.error(
-          { requestId: this.#requestId, error: chronicleError },
+          toChronicleLogRecord({ requestId: this.#requestId, error: chronicleError }),
           this.isFinished
             ? 'Request chronicle: error recorded after the request finished.'
             : 'Request chronicle: error recorded without an active request chronicle.'
@@ -640,23 +734,30 @@ export class RequestChronicleHelper {
    */
   public addInfo(info: Record<string, unknown>): void {
     this.#safely('addInfo', () => {
-      const entries = Object.entries(info ?? {});
+      if (info === null || info === undefined || typeof info !== 'object') {
+        return;
+      }
+      if (!this.isRunning && !this.isFinished) {
+        // There is no request chronicle (e.g. socket requests), so there is nothing to relate the details to.
+        return;
+      }
+      const { entries, omitted } = sanitizeChronicleEntries(info);
       if (entries.length === 0) {
         return;
       }
       if (this.isFinished) {
         this.logger.debug(
-          {
+          toChronicleLogRecord({
             requestId: this.#requestId,
-            info: Object.fromEntries(entries.map(([key, value]) => [key, sanitizeChronicleValue(value)])),
-          },
+            info: Object.fromEntries(entries),
+            ...(omitted > 0 ? { infoOmitted: true } : {}),
+          }),
           'Request chronicle: details recorded after the request finished.'
         );
         return;
       }
-      if (!this.isRunning) {
-        // There is no request chronicle (e.g. socket requests), so there is nothing to relate the details to.
-        return;
+      if (omitted > 0) {
+        this.logger.warn('Request Chronicle Helper: Too many request chronicle details, some were ignored.');
       }
       for (const [key, value] of entries) {
         if (reservedKeys.includes(key)) {
@@ -668,7 +769,7 @@ export class RequestChronicleHelper {
           continue;
         }
         // Later values replace earlier values for the same key.
-        this.#data[key] = sanitizeChronicleValue(value);
+        this.#data[key] = value;
       }
     });
   }
@@ -682,22 +783,23 @@ export class RequestChronicleHelper {
    */
   public addOperationResult(operation: string, error?: unknown): void {
     this.#safely('addOperationResult', () => {
+      const name = safeOperationName(operation);
       const failed = error !== undefined;
       if (this.isRunning) {
-        this.addInfo({ [operation]: failed ? 'failure' : 'success' });
+        this.addInfo({ [name]: failed ? 'failure' : 'success' });
         if (failed) {
           this.addError(error);
         }
         return;
       }
-      const details = { requestId: this.#requestId, operation, outcome: failed ? 'failure' : 'success' };
+      const details = { requestId: this.#requestId, operation: name, outcome: failed ? 'failure' : 'success' };
       if (failed) {
         this.logger.error(
-          { ...details, error: toChronicleError(error) },
-          `Request chronicle: operation '${operation}' failed after the request finished.`
+          toChronicleLogRecord({ ...details, error: toChronicleError(error) }),
+          `Request chronicle: operation '${name}' failed after the request finished.`
         );
       } else {
-        this.logger.debug(details, `Request chronicle: operation '${operation}' succeeded after the request finished.`);
+        this.logger.debug(details, `Request chronicle: operation '${name}' succeeded after the request finished.`);
       }
     });
   }
@@ -757,11 +859,10 @@ export class RequestChronicleHelper {
   #safely(name: string, func: () => void): void {
     try {
       func();
-    } catch (error) {
+    } catch {
       try {
-        this.logger.warn(
-          `Request Chronicle Helper: '${name}' failed: ${error instanceof Error ? error.message : 'unknown error'}`
-        );
+        // Don't include the error: it may come from hostile or unprintable input.
+        this.logger.warn(`Request Chronicle Helper: '${name}' failed.`);
       } catch {
         // Ignore logging failures.
       }

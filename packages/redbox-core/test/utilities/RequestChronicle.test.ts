@@ -267,6 +267,54 @@ describe('RequestChronicleHelper', () => {
     });
   });
 
+  describe('capture safeguards on every logging path', () => {
+    it('redacts sensitive top-level details before and after completion', () => {
+      const { rc } = startedHelper();
+      rc.addInfo({ password: 'private-password', accessToken: 'private-token', safe: 'ok' });
+      expect(rc.data.password).to.equal('REDACTED');
+      expect(rc.data.accessToken).to.equal('REDACTED');
+      rc.finish(completed(200));
+      rc.addInfo({ password: 'late-password', nested: { secret: 'late-secret' } });
+      const rendered = JSON.stringify(logger.debug.firstCall.args);
+      expect(rendered).to.not.include('late-password');
+      expect(rendered).to.not.include('late-secret');
+      expect(rendered).to.include('REDACTED');
+    });
+
+    it('bounds single-line stacks and sanitises error text and validation details', () => {
+      const tokenPath = '/default/rdmp/preview/private-preview-token.css';
+      const error = new Error(`Request failed at ${tokenPath}`);
+      error.name = `Failure ${tokenPath}`;
+      (error as Error & { code: string }).code = tokenPath;
+      error.stack = `${tokenPath} ${'x'.repeat(1_000_000)}`;
+      const recorded = toChronicleError(error);
+      expect(JSON.stringify(recorded)).to.not.include('private-preview-token');
+      expect(recorded.stack!.length).to.be.lessThan(RequestChronicleLimits.maxStackLength + 100);
+      expect(JSON.stringify(recorded).length).to.be.lessThan(RequestChronicleLimits.maxErrorJsonLength);
+      const validation = new RBValidationError({ displayErrors: [{ title: tokenPath, detail: tokenPath }] });
+      expect(JSON.stringify(toChronicleError(validation))).to.not.include('private-preview-token');
+    });
+
+    it('retains readable bounded details for very large aggregate errors', () => {
+      const errors = Array.from({ length: 200_000 }, () => 'same error');
+      const recorded = toChronicleError(new AggregateError(errors, 'batch failed'));
+      expect(recorded.message).to.equal('batch failed');
+      expect(recorded.details).to.have.length.at.most(RequestChronicleLimits.maxErrorDetails + 1);
+      expect(JSON.stringify(recorded)).to.include('more errors omitted');
+      expect(JSON.stringify(recorded).length).to.be.lessThan(RequestChronicleLimits.maxErrorJsonLength);
+    });
+
+    it('keeps late error chains readable by the default flattened transport', () => {
+      const { rc } = startedHelper();
+      rc.finish(completed(200));
+      rc.addOperationResult('audit.login', new Error('audit failed', { cause: new Error('database unavailable') }));
+      const record = logger.error.firstCall.args[0] as any;
+      expect(record.requestId).to.equal('request-1');
+      expect(record.error.details).to.not.be.an('array');
+      expect(record.error.details['0'].message).to.equal('database unavailable');
+    });
+  });
+
   describe('details', () => {
     it('rejects reserved and pino core keys without logging their values', () => {
       const { rc } = startedHelper();

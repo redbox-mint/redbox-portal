@@ -22,15 +22,19 @@ export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.Nex
         if (item.finish(res)) {
           item.log(sails.log);
         }
-      } catch (error) {
-        sails.log.warn('Request chronicle: could not conclude the request chronicle.', error);
+      } catch {
+        try {
+          sails.log.warn('Request chronicle: could not conclude the request chronicle.');
+        } catch {
+          // Ignore logging failures.
+        }
       }
     };
     res.once('finish', conclude);
     res.once('close', conclude);
-  } catch (error) {
+  } catch {
     try {
-      sails.log.warn('Request chronicle: could not start the request chronicle.', error);
+      sails.log.warn('Request chronicle: could not start the request chronicle.');
     } catch {
       // Ignore logging failures.
     }

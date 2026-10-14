@@ -125,8 +125,8 @@ As a safeguard, every value is sanitised and bounded:
 - keys containing `token`, `authorization`, `secret`, `apikey`, `api_key`, `password`, `credential`, or `cookie` are redacted;
 - JWTs, bearer tokens, URI credentials, preview stylesheet tokens, and token-like query parameters are redacted from strings;
 - strings are truncated to 500 characters, arrays to 20 items, objects to 30 keys, nesting to 4 levels, and each value to 4 KB of JSON;
-- at most 100 detail keys and 20 errors are recorded;
-- errors are limited to 3 levels of causes, 10 nested errors per level, 1000-character messages, and 12 stack lines. Stacks are only recorded for unexpected errors at the top level, not for validation errors. Cycles are detected.
+- at most 100 detail keys (100 characters each) and 20 errors are recorded; sensitive keys and bounds also apply to details logged after completion;
+- errors are limited to 3 levels of causes, 10 nested errors per level, 1000-character messages, and stacks capped at 4000 characters and 12 lines. Each normalized error is capped at 8 KB of JSON. Stacks are only recorded for unexpected errors at the top level, not for validation errors. Cycles are detected.
 
 These limits are a safeguard, not a replacement for choosing safe, concise details.
 
