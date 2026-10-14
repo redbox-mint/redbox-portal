@@ -627,13 +627,14 @@ describe('RecordsService', function () {
 
   describe('auditRecord', function () {
     it('should queue audit job when enabled', function () {
-      const record = { metadata: { title: 'Test' } };
+      const record = { metadata: { title: 'Test' }, metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' } };
       const user = { username: 'testuser' };
 
       RecordsService.auditRecord('record-123', record, user, 'updated');
 
       expect(mockQueueService.now.called).to.be.true;
       expect(mockQueueService.now.firstCall.args[0]).to.equal('RecordAudit');
+      expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-01T12:00:00Z');
     });
 
     it('should not queue when auditing is disabled', function () {
@@ -660,6 +661,21 @@ describe('RecordsService', function () {
       expect(user.password).to.be.undefined;
       expect(user.token).to.be.undefined;
     });
+  });
+
+  it('queues partial-write audits with the newer top-level save time', async function () {
+    mockStorageService.setRecordFields = sinon.stub().resolves({ updated: true, recordVersion: 2 });
+    mockStorageService.getMeta.resolves({
+      redboxOid: 'record-123',
+      metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' },
+      lastSaveDate: '2026-03-02T12:00:00Z',
+      metadata: { title: 'Updated by Figshare' },
+    });
+
+    await RecordsService.setRecordFields('record-123', { 'metadata.title': 'Updated by Figshare' }, 1, ['metadata.title'], {});
+
+    expect(mockQueueService.now.calledOnce).to.be.true;
+    expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-02T12:00:00Z');
   });
 
   describe('storeRecordAudit', function () {
