@@ -20,6 +20,7 @@ describe('Request chronicle in lifted Sails', function () {
   this.timeout(60_000);
 
   const virtualPath = '/request-chronicle-virtual-test';
+  const translationFailurePath = '/request-chronicle-translation-failure-test';
   const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
   let captured: CapturedLog[] = [];
   let originalLog: Partial<Record<LogLevel, (...args: unknown[]) => void>> = {};
@@ -37,6 +38,13 @@ describe('Request chronicle in lifted Sails', function () {
     router.bind(virtualPath, (req, res) => {
       req.user = { username: 'virtual-test' } as Sails.Req['user'];
       userController.info(req, res);
+    });
+    const translationController = ControllerExports.TranslationController as {
+      getBundleApp(req: Sails.Req, res: Sails.Res): Promise<unknown>;
+    };
+    router.bind(translationFailurePath, (req, res) => {
+      req.params.branding = 'default';
+      return translationController.getBundleApp(req, res);
     });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
@@ -64,6 +72,7 @@ describe('Request chronicle in lifted Sails', function () {
 
   after(() => {
     (sails.router as unknown as { unbind(path: string): void }).unbind(virtualPath);
+    (sails.router as unknown as { unbind(path: string): void }).unbind(translationFailurePath);
     (sails.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
     const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
     for (const level of levels) {
@@ -153,6 +162,28 @@ describe('Request chronicle in lifted Sails', function () {
     assert.equal(logged[0].event.res?.statusCode, response.status);
     if (response.status >= 500) {
       assert.ok(logged[0].event.errors, 'server errors are recorded in the event');
+    }
+  });
+
+  it('records a migrated translation failure once and redacts credentials in its message and stack', async () => {
+    const original = I18nEntriesService.getBundle;
+    I18nEntriesService.getBundle = async () => {
+      throw new Error('Upstream rejected Authorization: Bearer private-runtime-token');
+    };
+    try {
+      await admin.get(translationFailurePath).set('X-Source', 'jsclient').expect(500);
+      await settle();
+      const logged = events(translationFailurePath);
+      assert.equal(logged.length, 1);
+      assert.equal(logged[0].level, 'error');
+      assert.equal(logged[0].event.translationGetBundleFailed, true);
+      const errors = Object.values(logged[0].event.errors ?? {});
+      assert.equal(errors.length, 1);
+      assert.match(errors[0].message ?? '', /Authorization: Bearer REDACTED/);
+      assert.ok(!JSON.stringify(logged[0].event).includes('private-runtime-token'));
+      assert.deepEqual(chronicleWarnings(), []);
+    } finally {
+      I18nEntriesService.getBundle = original;
     }
   });
 

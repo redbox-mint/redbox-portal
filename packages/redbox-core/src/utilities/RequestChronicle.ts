@@ -199,7 +199,11 @@ export function safeChronicleText(value: unknown, maxLength: number): string {
   }
   // Process a little more than the limit, so tokens near the limit can still be recognised.
   const head = text.length > maxLength + 200 ? text.substring(0, maxLength + 200) : text;
-  const redacted = sanitizeChroniclePath(String(redactSecret(head)));
+  const redacted = sanitizeChroniclePath(String(redactSecret(head)))
+    // Credentials can be embedded in diagnostic text, including an Error's stack.
+    .replace(/(\bBearer\s+)[A-Za-z0-9._~+/-]+=*/gi, '$1REDACTED')
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]*)?/g, 'REDACTED')
+    .replace(/\bsk_(?:live|test)_[A-Za-z0-9]+\b/g, 'REDACTED');
   if (redacted.length <= maxLength && head.length === text.length) {
     return redacted;
   }
@@ -280,7 +284,7 @@ function sanitizeInner(value: unknown, depth: number, seen: WeakSet<object>): un
     return Number.isNaN(value.getTime()) ? 'Invalid Date' : value.toISOString();
   }
   if (value instanceof Error) {
-    return toChronicleError(value);
+    return toChronicleErrorInner(value, depth, seen);
   }
   if (Buffer.isBuffer(value)) {
     return `[Buffer ${value.length} bytes]`;
@@ -367,16 +371,19 @@ class DisplayErrorSummary {
 export function toChronicleError(item: unknown): RequestChronicleError {
   try {
     const result = toChronicleErrorInner(item, 0, new WeakSet<object>());
-    if (JSON.stringify(result).length <= RequestChronicleLimits.maxErrorJsonLength) {
-      return result;
-    }
-    // Too large: keep the most useful parts.
+    // Check each complete candidate, including omission markers and JSON escaping.
     const { details: _details, ...withoutDetails } = result;
-    if (JSON.stringify(withoutDetails).length <= RequestChronicleLimits.maxErrorJsonLength) {
-      return { ...withoutDetails, details: [{ message: 'Nested errors omitted due to size.' }] };
-    }
     const { stack: _stack, ...summary } = withoutDetails;
-    return { ...summary, details: [{ message: 'Stack and nested errors omitted due to size.' }] };
+    const candidates = [
+      result,
+      { ...withoutDetails, details: [{ message: 'Nested errors omitted due to size.' }] },
+      { ...summary, details: [{ message: 'Stack and nested errors omitted due to size.' }] },
+    ];
+    return (
+      candidates.find(candidate => JSON.stringify(candidate).length <= RequestChronicleLimits.maxErrorJsonLength) ?? {
+        message: 'Error details omitted due to size.',
+      }
+    );
   } catch {
     return { message: 'Unable to record the error.' };
   }
@@ -384,7 +391,7 @@ export function toChronicleError(item: unknown): RequestChronicleError {
 
 function toChronicleErrorInner(item: unknown, depth: number, seen: WeakSet<object>): RequestChronicleError {
   const limits = RequestChronicleLimits;
-  if (item !== null && typeof item === 'object') {
+  if (item instanceof Error || Array.isArray(item)) {
     if (seen.has(item)) {
       return { message: '[Circular]' };
     }
@@ -463,7 +470,7 @@ function toChronicleErrorInner(item: unknown, depth: number, seen: WeakSet<objec
   } else if (item !== null && typeof item === 'object' && typeof (item as { message?: unknown }).message === 'string') {
     result.message = safeChronicleText((item as { message: string }).message, limits.maxErrorMessageLength);
   } else {
-    const sanitized = sanitizeInner(item, 0, new WeakSet<object>());
+    const sanitized = sanitizeInner(item, depth, seen);
     result.message = safeChronicleText(
       typeof sanitized === 'string' ? sanitized : (JSON.stringify(sanitized) ?? String(item)),
       limits.maxErrorMessageLength

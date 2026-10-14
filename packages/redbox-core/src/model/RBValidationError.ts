@@ -125,6 +125,7 @@ export class RBValidationError extends Error {
     const collectedDisplayErrors: ErrorResponseItemV2[] = [...(displayErrors ?? [])];
 
     const errorsToProcess = [...(errors ?? [])];
+    const seen = new Set<Error>();
     while (errorsToProcess.length > 0) {
       // remove the first error in the array and process it
       const error = errorsToProcess.shift();
@@ -133,6 +134,10 @@ export class RBValidationError extends Error {
       }
 
       if (RBValidationError.isError(error)) {
+        if (seen.has(error)) {
+          continue;
+        }
+        seen.add(error);
         collectedErrors.push(error);
       } else {
         collectedErrors.push(RBValidationError.asError(error));
