@@ -66,6 +66,9 @@ export namespace Services {
     }
 
     private getVariableValue(normalized: Record<string, string>, token: BrandingThemeToken): string {
+      if (token.key === 'admin-sidebar-text-color' && !normalized[token.key]) {
+        return normalized['panel-branding-background-color'] || token.defaultValue;
+      }
       return normalized[token.key] || token.defaultValue;
     }
 

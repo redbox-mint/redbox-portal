@@ -92,6 +92,20 @@ describe('BrandingThemeCssService', function () {
     expect(result.css).to.contain('--rb-panel-branding-background-color: #445566;');
   });
 
+  for (const key of ['panel-branding-background-color', '$panel-branding-background-colour']) {
+    it(`preserves sidebar colour when a legacy draft supplies ${key} without a sidebar setting`, function () {
+      const { Services } = require('../../src/services/BrandingThemeCssService');
+      const service = new Services.BrandingThemeCss();
+      const variables = service.validateVariables({ [key]: '#123' });
+      const result = service.generate(variables);
+
+      expect(variables).to.not.have.property('admin-sidebar-text-color');
+      expect(result.css).to.contain('--rb-admin-sidebar-text-color: #112233;');
+      expect(result.css).to.contain('--rb-panel-branding-background-color: #112233;');
+      expect(result.css).to.contain('--rb-panel-branding-color: #ffffff;');
+    });
+  }
+
   it('falls back to the default when a stored known token has a non-hex value', function () {
     const { Services } = require('../../src/services/BrandingThemeCssService');
     const service = new Services.BrandingThemeCss();
