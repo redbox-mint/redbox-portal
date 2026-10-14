@@ -122,7 +122,7 @@ export namespace Services {
               sails.log.verbose(initFiles);
               _.each(initFiles, (file_path: string) => {
                 const config_file = require(file_path);
-                const configKey = basename(file_path)
+                const configKey = basename(file_path).replace(/\.(?:js|json|ts)$/, '')
                 AppConfigService.createConfig(brandName, configKey, config_file).then((config: unknown) => { sails.log.verbose(hook_log_header + "::Configuration created:"); sails.log.verbose(config) })
                   .catch((error: unknown) => { sails.log.verbose(hook_log_header + "::Skipping creation of config as it already exists:"); sails.log.verbose(error) });
               });
@@ -135,11 +135,14 @@ export namespace Services {
               sails.log.verbose(overrideFiles);
               _.each(overrideFiles, (file_path: string) => {
                 const config_file = require(file_path);
-                const configKey = basename(file_path)
+                const configKey = basename(file_path).replace(/\.(?:js|json|ts)$/, '')
                 const brand: BrandingModel = BrandingService.getBrand(brandName);
                 AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then((config: unknown) => {
                   sails.log.verbose(hook_log_header + "::Configuration created or updated:");
                   sails.log.verbose(config);
+                }).catch((error: unknown) => {
+                  const category = error instanceof Error && /^[A-Za-z]+Error$/.test(error.name) ? error.name : 'Error';
+                  sails.log.error(`${hook_log_header}::Failed to apply branded AppConfig override '${configKey}' (${category}).`);
                 });
 
 
