@@ -14,7 +14,7 @@ import {
   RBValidationError,
   ErrorResponseItemV2,
 } from './model';
-import { RequestChronicleHelper } from './utilities/RequestChronicle';
+import { RequestChronicleHelper, toChronicleError } from './utilities/RequestChronicle';
 import { CoreBase } from './CoreBase';
 
 export namespace Controllers.Core {
@@ -337,13 +337,8 @@ export namespace Controllers.Core {
         ])
       );
 
-      // this.logger.debug("resolvedView");
-      // this.logger.debug(sailsViewPath);
-      // this.logger.debug("mergedLocal");
-      // this.logger.debug(mergedLocal);
-
-      // TODO: there is too much data in these view details - are individual properties interesting?
-      // this.updateChronicle(req, {viewResolvedDetail: resolvedView, viewMergedLocalDetail: mergedLocal});
+      // The merged locals are too large to record; the view path identifies what was rendered.
+      this.updateChronicle(req, { view: sailsViewPath });
 
       res.view(this.getRenderViewPath(resolvedView), mergedLocal);
     }
@@ -560,13 +555,36 @@ export namespace Controllers.Core {
       let { status = 200 } = buildResponse ?? {};
 
       // Collect and process the errors recursively
-      const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);
+      const chronicleRunning = RequestChronicleHelper.existing(req)?.isRunning === true;
+      const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(
+        errors,
+        displayErrors,
+        !chronicleRunning
+      );
+      this.ensureDisplayErrors(collectedErrors, collectedDisplayErrors);
       status = this.resolveResponseStatus(status, collectedDisplayErrors);
 
       this.applyResponseHeaders(res, headers);
       this.applyResponseStatus(res, status);
 
-      this.updateChronicle(req, chronicle, collectedErrors);
+      // Record the errors in the request chronicle, which is logged when the request finishes.
+      this.updateChronicle(
+        req,
+        {
+          ...chronicle,
+          ...(collectedDisplayErrors.length > 0
+            ? {
+                displayErrors: collectedDisplayErrors.map(({ status, code, title, detail }) => ({
+                  status,
+                  code,
+                  title,
+                  detail,
+                })),
+              }
+            : {}),
+        },
+        chronicleRunning ? collectedErrors : []
+      );
       if (status === 304) {
         sails.log.verbose('Send bodyless 304 response.');
         return res.end();
@@ -616,25 +634,72 @@ export namespace Controllers.Core {
       return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: {} });
     }
 
+    /**
+     * Add details and errors to the request chronicle, which is logged when the request finishes.
+     * Values are sanitised and size-bounded, but prefer identifiers, counts, and codes over whole objects.
+     * @param req The sails request.
+     * @param info The details to add.
+     * @param errors The errors to add.
+     * @protected
+     */
     protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
-      const rc = RequestChronicleHelper.fromReq(sails.log, req);
-      rc?.addInfo(info ?? {});
-      (errors ?? []).forEach(error => rc?.addError(error));
+      try {
+        const rc = RequestChronicleHelper.existing(req);
+        if (rc === undefined) {
+          // No request chronicle (e.g. socket or virtual requests): ignore the details, but don't lose errors.
+          for (const error of errors ?? []) {
+            sails.log.error({ error: toChronicleError(error) }, 'Error recorded without a request chronicle.');
+          }
+          return;
+        }
+        rc.addInfo(info ?? {});
+        (errors ?? []).forEach(error => rc.addError(error));
+      } catch (error) {
+        sails.log.warn('Could not update the request chronicle.', error);
+      }
     }
 
-    private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]) {
+    /**
+     * Record the result of work that is not awaited before the response is sent, such as an audit event.
+     * If the work finishes after the response, its result is logged separately with the request id,
+     * so failures are never discarded.
+     * @param req The sails request.
+     * @param operation A short name for the operation, used as the request chronicle key.
+     * @param work The work.
+     * @protected
+     */
+    protected recordBackgroundOperation(req: Sails.Req, operation: string, work: PromiseLike<unknown>): void {
+      // Capture the helper now, in case the request options change before the work finishes.
+      const rc = RequestChronicleHelper.existing(req);
+      const onResult = (error?: unknown) => {
+        try {
+          if (rc !== undefined) {
+            rc.addOperationResult(operation, error);
+          } else if (error !== undefined) {
+            sails.log.error({ operation, error: toChronicleError(error) }, `Operation '${operation}' failed.`);
+          }
+        } catch (logError) {
+          sails.log.warn(`Could not record the result of operation '${operation}'.`, logError);
+        }
+      };
+      Promise.resolve(work).then(
+        () => onResult(),
+        (error: unknown) => onResult(error ?? new Error(`${operation} failed`))
+      );
+    }
+
+    private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[], logErrors: boolean) {
       const { errors: collectedErrors, displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(
         errors,
         displayErrors
       );
 
-      for (const error of collectedErrors) {
-        sails.log.error(`Collected error in sendResp:`, error);
+      if (logErrors) {
+        // Without a running request chronicle, log the errors immediately so they are not lost.
+        for (const error of collectedErrors) {
+          sails.log.error(`Collected error in sendResp:`, error);
+        }
       }
-
-      const errorsMsg = `${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'}`;
-      const displayErrorsMsg = `display ${collectedDisplayErrors.length} ${collectedDisplayErrors.length === 1 ? 'error' : 'errors'}`;
-      sails.log.verbose(`Collected ${errorsMsg} and ${displayErrorsMsg} in sendResp.`);
       return { collectedErrors, collectedDisplayErrors };
     }
 
@@ -996,55 +1061,6 @@ export namespace Controllers.Core {
 
     private setNoCacheHeaders(_req: Sails.Req, res: Sails.Res): void {
       res.set(this.getNoCacheHeaders());
-    }
-
-    /**
-     * Parse a floating point number from a value.
-     * @param value The value to parse.
-     * @param defaultValue The default if the value cannot be parsed.
-     * @param min The optional minimum value.
-     * @param max The optional maximum value.
-     * @return The parsed number, or default if parsing failed, constrained between min and max if supplied.
-     * @protected
-     */
-    protected getNumber(value?: unknown, defaultValue?: number, min?: number, max?: number): number | undefined {
-      let result: number | null = null;
-      if (value !== null && value !== undefined && typeof value === 'number' && Number.isFinite(value)) {
-        result = value;
-      }
-
-      const parsed = Number.parseFloat(value?.toString() ?? '');
-      if (
-        result === null &&
-        parsed !== null &&
-        parsed !== undefined &&
-        typeof parsed === 'number' &&
-        Number.isFinite(parsed)
-      ) {
-        result = parsed;
-      }
-
-      if (
-        result === null &&
-        defaultValue !== null &&
-        defaultValue !== undefined &&
-        typeof defaultValue === 'number' &&
-        Number.isFinite(defaultValue)
-      ) {
-        result = defaultValue;
-      }
-
-      if (result === null || result === undefined || typeof result !== 'number' || !Number.isFinite(result)) {
-        return undefined;
-      }
-
-      if (min !== null && min !== undefined && Number.isFinite(min)) {
-        result = Math.max(result, min);
-      }
-      if (max !== null && max !== undefined && Number.isFinite(max)) {
-        result = Math.min(result, max);
-      }
-      return Number.isFinite(result) ? result : undefined;
     }
   }
 }

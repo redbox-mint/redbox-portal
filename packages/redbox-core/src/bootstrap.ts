@@ -215,6 +215,14 @@ export async function preLiftSetup(): Promise<void> {
     sails.config.log.customLogger.level = sails.config.log.level;
   }
 
+  const middlewareOrder = (sails.config.http as { middleware?: { order?: unknown } } | undefined)?.middleware?.order;
+  if (Array.isArray(middlewareOrder) && middlewareOrder[0] !== 'requestChronicle') {
+    sails.log.warn(
+      "The 'requestChronicle' middleware should be first in sails.config.http.middleware.order, " +
+        'otherwise requests are not fully recorded in request chronicle logs.'
+    );
+  }
+
   sails.log.debug('Starting bootstrap process with bootstrapAlways set to: ' + sails.config.appmode.bootstrapAlways);
   void getMergedApiRoutes();
 

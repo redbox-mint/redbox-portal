@@ -1,301 +1,770 @@
-import {Request} from 'express';
-import {guessType, ILogger} from "@researchdatabox/sails-ng-common";
-import {RBValidationError} from "../model";
+import { randomUUID } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
+import { isSpanContextValid, trace } from '@opentelemetry/api';
+import { Request } from 'express';
+import { ILogger } from '@researchdatabox/sails-ng-common';
+import { redactSecret } from './RedactionUtils';
+import { RequestChronicleSettings, resolveRequestChronicleSettings } from './RequestChronicleSettings';
 
-const RequestChronicleOutcome = ["success", "error"] as const;
-type RequestChronicleOutcomeType = typeof RequestChronicleOutcome[number];
+export { defaultRequestChronicleSettings, type RequestChronicleSettings } from './RequestChronicleSettings';
 
-const RequestChronicleClassifications = ["error", "slow", "flagged", "sample", "discard"] as const;
-type RequestChronicleClassificationsType = typeof RequestChronicleClassifications[number];
+/**
+ * What happened to the request.
+ * - success: the response was sent with a status below 400, and no errors were recorded.
+ * - failure: the response was sent with a 4xx or 5xx status, or errors were recorded.
+ * - aborted: the connection closed before the response was completely sent.
+ */
+export const RequestChronicleOutcomes = ['success', 'failure', 'aborted'] as const;
+export type RequestChronicleOutcomeType = (typeof RequestChronicleOutcomes)[number];
 
+/**
+ * Why the request chronicle was retained (or discarded), which also determines the log level.
+ */
+export const RequestChronicleClassifications = [
+  'error',
+  'client-error',
+  'aborted',
+  'slow',
+  'sample',
+  'discard',
+] as const;
+export type RequestChronicleClassificationsType = (typeof RequestChronicleClassifications)[number];
+
+/**
+ * The log level used for each classification.
+ * Client errors are logged at 'warn' instead of 'info' when errors were recorded.
+ */
+const classificationLevels: Record<RequestChronicleClassificationsType, 'error' | 'warn' | 'info' | null> = {
+  error: 'error',
+  'client-error': 'info',
+  aborted: 'info',
+  slow: 'warn',
+  sample: 'info',
+  discard: null,
+};
 
 export type RequestChronicleError = {
-  name?: string,
-  message?: string,
-  details?: RequestChronicleError[],
+  name?: string;
+  message?: string;
+  code?: string;
+  /** The first lines of the stack trace, only for unexpected errors (not validation errors). */
+  stack?: string;
+  details?: RequestChronicleError[];
 };
 
 /**
  * A holder for attributes of one request and response,
  * which chronicles what happened over the whole request.
  *
- * See also https://loggingsucks.com/.
+ * See the 'Request Chronicle Logging' wiki page for the fields and how they are captured.
  */
 export interface RequestChronicle {
+  /** A unique identifier generated for this request. Use it to relate other logs to this request. */
+  requestId?: string;
+  /** The OpenTelemetry trace id, when there is an active trace. */
+  traceId?: string;
   /**
    * Details of the result of the request chronicle.
    */
   result?: {
-    timestamp?: string,
-    outcome?: RequestChronicleOutcomeType,
-    durationMs?: number,
-    classification?: RequestChronicleClassificationsType,
-  },
+    /** When the request started. */
+    timestamp?: string;
+    outcome?: RequestChronicleOutcomeType;
+    durationMs?: number;
+    classification?: RequestChronicleClassificationsType;
+    /** The log level used for this event. */
+    severity?: string;
+  };
   /**
    * Details of the original request.
    */
   req?: {
-    method?: string,
-    path?: string,
-    hostname?: string,
-  },
+    method?: string;
+    path?: string;
+    hostname?: string;
+    /** A valid 'X-Request-Id' header supplied by a proxy or client. */
+    upstreamRequestId?: string;
+  };
   /**
    * Details of the response generated from the request.
    */
   res?: {
-    statusCode?: string | number,
-  },
+    statusCode?: number;
+    /** Whether the response was completely sent before the connection closed. */
+    completed?: boolean;
+  };
   /**
    * Any errors encountered during the request processing.
    */
-  errors?: RequestChronicleError[],
+  errors?: RequestChronicleError[];
+  /** The number of errors not included in 'errors' due to the limit. */
+  errorsOmitted?: number;
 
   /**
    * Arbitrary data added during the request processing.
    */
-  [key: string]: unknown,
+  [key: string]: unknown;
 }
+
+export interface RequestChronicleOptions {
+  /** Retention settings. Defaults to `sails.config.log.requestChronicle`. */
+  settings?: Partial<Record<keyof RequestChronicleSettings, unknown>>;
+  /** Random number source between 0 and 1, used for sampling. */
+  random?: () => number;
+  /** Monotonic clock in milliseconds, used for the duration. */
+  now?: () => number;
+  /** Generates the request id. */
+  generateRequestId?: () => string;
+}
+
+/** The response properties used to conclude the request chronicle. */
+export type RequestChronicleResponse = {
+  statusCode?: number;
+  headersSent?: boolean;
+  writableFinished?: boolean;
+};
+
+/**
+ * Limits on the size of the captured data.
+ */
+export const RequestChronicleLimits = Object.freeze({
+  maxDepth: 4,
+  maxStringLength: 500,
+  maxArrayItems: 20,
+  maxObjectKeys: 30,
+  maxValueJsonLength: 4096,
+  maxInfoKeys: 100,
+  maxErrors: 20,
+  maxErrorDepth: 3,
+  maxErrorDetails: 10,
+  maxErrorMessageLength: 1000,
+  maxStackLines: 12,
+});
+
+const reservedKeys = [
+  // Request chronicle fields.
+  'requestId',
+  'traceId',
+  'result',
+  'req',
+  'res',
+  'errors',
+  'errorsOmitted',
+  // Fields set by pino, which must not be overwritten by request details.
+  'level',
+  'time',
+  'pid',
+  'hostname',
+  'name',
+  'msg',
+  'err',
+  'v',
+];
+const sensitiveKeyPattern = /token|authorization|secret|apikey|api_key|password|credential|cookie/i;
+const upstreamRequestIdPattern = /^[A-Za-z0-9._:-]{1,128}$/;
+const tokenPathPatterns: [RegExp, string][] = [
+  // Branding preview stylesheets: /:branding/:portal/preview/:token.css
+  [/(\/preview\/)[^/?#\s]+(\.css)/gi, '$1REDACTED$2'],
+  // Token-like query parameters.
+  [/([?&](?:token|access_token|id_token|code|key|apiKey|api_key)=)[^&#\s]*/gi, '$1REDACTED'],
+];
+
+/**
+ * Remove tokens from request paths and URLs.
+ * @param value The path or URL.
+ */
+export function sanitizeChroniclePath(value: string): string {
+  let result = value;
+  for (const [pattern, replacement] of tokenPathPatterns) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+function truncate(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.substring(0, maxLength)}…[truncated ${value.length - maxLength} chars]`;
+}
+
+/**
+ * Convert a value to a plain, size-bounded representation that is safe to log.
+ * Redacts sensitive keys and token-bearing paths, and limits depth, items, keys, and string length.
+ * @param value The value to sanitise.
+ */
+export function sanitizeChronicleValue(value: unknown): unknown {
+  const sanitized = sanitizeInner(value, 0, new WeakSet<object>());
+  try {
+    const json = JSON.stringify(sanitized);
+    if (json !== undefined && json.length > RequestChronicleLimits.maxValueJsonLength) {
+      return { truncated: true, jsonLength: json.length };
+    }
+  } catch {
+    return '[Unserialisable]';
+  }
+  return sanitized;
+}
+
+function sanitizeInner(value: unknown, depth: number, seen: WeakSet<object>): unknown {
+  if (value === null || value === undefined || typeof value === 'boolean' || typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return truncate(sanitizeChroniclePath(String(redactSecret(value))), RequestChronicleLimits.maxStringLength);
+  }
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+  if (typeof value === 'function') {
+    return '[Function]';
+  }
+  if (typeof value !== 'object') {
+    return String(value);
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? 'Invalid Date' : value.toISOString();
+  }
+  if (value instanceof Error) {
+    return toChronicleError(value);
+  }
+  if (Buffer.isBuffer(value)) {
+    return `[Buffer ${value.length} bytes]`;
+  }
+  if (seen.has(value)) {
+    return '[Circular]';
+  }
+  if (Array.isArray(value)) {
+    if (depth >= RequestChronicleLimits.maxDepth) {
+      return `[Array(${value.length})]`;
+    }
+    seen.add(value);
+    const items = value
+      .slice(0, RequestChronicleLimits.maxArrayItems)
+      .map(item => sanitizeInner(item, depth + 1, seen));
+    if (value.length > RequestChronicleLimits.maxArrayItems) {
+      items.push(`…${value.length - RequestChronicleLimits.maxArrayItems} more items`);
+    }
+    seen.delete(value);
+    return items;
+  }
+  if (depth >= RequestChronicleLimits.maxDepth) {
+    return '[Object]';
+  }
+  seen.add(value);
+  const result: Record<string, unknown> = {};
+  const keys = Object.keys(value);
+  for (const key of keys.slice(0, RequestChronicleLimits.maxObjectKeys)) {
+    result[key] = sensitiveKeyPattern.test(key)
+      ? 'REDACTED'
+      : sanitizeInner((value as Record<string, unknown>)[key], depth + 1, seen);
+  }
+  if (keys.length > RequestChronicleLimits.maxObjectKeys) {
+    result['…'] = `${keys.length - RequestChronicleLimits.maxObjectKeys} more keys`;
+  }
+  seen.delete(value);
+  return result;
+}
+
+/**
+ * Describe the shape of a value without including its content.
+ * Use this for results that may be large or contain personal or sensitive data.
+ * @param value The value to describe.
+ */
+export function summarizeChronicleValue(value: unknown): { type: string; length?: number; keyCount?: number } {
+  if (value === null) {
+    return { type: 'null' };
+  }
+  if (Array.isArray(value)) {
+    return { type: 'array', length: value.length };
+  }
+  if (typeof value === 'string') {
+    return { type: 'string', length: value.length };
+  }
+  if (typeof value === 'object') {
+    return { type: 'object', keyCount: Object.keys(value).length };
+  }
+  return { type: typeof value };
+}
+
+function isRBValidationErrorLike(item: Error): item is Error & { displayErrors: Record<string, unknown>[] } {
+  return item.name === 'RBValidationError' && Array.isArray((item as { displayErrors?: unknown }).displayErrors);
+}
+
+/**
+ * Convert a possible error to a consistent, size-bounded plain object representation.
+ * Handles causes, aggregate and suppressed errors, and cycles, without throwing.
+ * @param item This might be an error, or a string, or something else.
+ */
+export function toChronicleError(item: unknown): RequestChronicleError {
+  try {
+    return toChronicleErrorInner(item, 0, new WeakSet<object>());
+  } catch {
+    return { message: 'Unable to record the error.' };
+  }
+}
+
+function toChronicleErrorInner(item: unknown, depth: number, seen: WeakSet<object>): RequestChronicleError {
+  const limits = RequestChronicleLimits;
+  if (item !== null && typeof item === 'object') {
+    if (seen.has(item)) {
+      return { message: '[Circular]' };
+    }
+    seen.add(item);
+  }
+
+  const result: RequestChronicleError = {};
+  const details: unknown[] = [];
+
+  if (item instanceof Error) {
+    if (item.name) {
+      result.name = truncate(String(item.name), limits.maxStringLength);
+    }
+    if (item.message) {
+      result.message = truncate(String(redactSecret(item.message)), limits.maxErrorMessageLength);
+    }
+    const code = (item as { code?: unknown }).code;
+    if (typeof code === 'string' || typeof code === 'number') {
+      result.code = truncate(String(code), limits.maxStringLength);
+    }
+    if (isRBValidationErrorLike(item)) {
+      details.push(
+        ...item.displayErrors.map(displayError => ({
+          name: displayError?.title,
+          message: Object.entries({
+            id: displayError?.id,
+            status: displayError?.status,
+            code: displayError?.code,
+            detail: displayError?.detail,
+          })
+            .filter(([_key, value]) => value !== undefined && value !== null)
+            .map(([key, value]) => `${key}: ${String(value)}`)
+            .join(', '),
+        }))
+      );
+    } else if (depth === 0 && typeof item.stack === 'string') {
+      // Keep the location of unexpected errors.
+      result.stack = item.stack.split('\n').slice(0, limits.maxStackLines).join('\n');
+    }
+    if (item.cause !== undefined && item.cause !== null) {
+      details.push(item.cause);
+    }
+    if (typeof SuppressedError !== 'undefined' && item instanceof SuppressedError) {
+      details.push(item.error, item.suppressed);
+    }
+    if (item instanceof AggregateError && Array.isArray(item.errors)) {
+      details.push(...item.errors);
+    }
+  } else if (Array.isArray(item)) {
+    details.push(...item);
+  } else if (typeof item === 'string') {
+    result.message = truncate(String(redactSecret(item)), limits.maxErrorMessageLength);
+  } else if (item !== null && typeof item === 'object' && typeof (item as { message?: unknown }).message === 'string') {
+    result.message = truncate(
+      String(redactSecret((item as { message: string }).message)),
+      limits.maxErrorMessageLength
+    );
+  } else {
+    const sanitized = sanitizeInner(item, 0, new WeakSet<object>());
+    result.message = truncate(
+      typeof sanitized === 'string' ? sanitized : (JSON.stringify(sanitized) ?? String(item)),
+      limits.maxErrorMessageLength
+    );
+  }
+
+  if (details.length > 0) {
+    if (depth >= limits.maxErrorDepth) {
+      result.details = [{ message: `${details.length} nested errors omitted` }];
+    } else {
+      result.details = details.slice(0, limits.maxErrorDetails).map(detail => {
+        // Display error summaries are already plain objects.
+        if (
+          detail !== null &&
+          typeof detail === 'object' &&
+          !(detail instanceof Error) &&
+          'name' in detail &&
+          !Array.isArray(detail)
+        ) {
+          const summary = detail as { name?: unknown; message?: unknown };
+          return {
+            ...(summary.name !== undefined ? { name: truncate(String(summary.name), limits.maxStringLength) } : {}),
+            message: truncate(String(summary.message ?? ''), limits.maxErrorMessageLength),
+          };
+        }
+        return toChronicleErrorInner(detail, depth + 1, seen);
+      });
+      if (details.length > limits.maxErrorDetails) {
+        result.details.push({ message: `${details.length - limits.maxErrorDetails} more errors omitted` });
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Convert arrays to objects keyed by index, so that the structure survives
+ * log formats that flatten nested objects but not arrays (e.g. pino-logfmt: `errors_0_message`).
+ * @param value The value to convert.
+ */
+export function toChronicleLogRecord(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return Object.fromEntries(value.map((item, index) => [String(index), toChronicleLogRecord(item)]));
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toChronicleLogRecord(item)]));
+  }
+  return value;
+}
+
+type ChronicleState = 'pending' | 'running' | 'finished';
 
 export class RequestChronicleHelper {
   #data: RequestChronicle = {};
+  #state: ChronicleState = 'pending';
+  #startedAt = 0;
+  #logged = false;
+  #requestId?: string;
+  readonly #settings: RequestChronicleSettings;
+  readonly #random: () => number;
+  readonly #now: () => number;
+  readonly #generateRequestId: () => string;
+  readonly #successSampleExclude: RegExp | null = null;
 
-  private constructor(private logger: ILogger) {
+  private constructor(
+    private logger: ILogger,
+    options: RequestChronicleOptions = {}
+  ) {
+    const configured = typeof sails !== 'undefined' ? sails?.config?.log?.requestChronicle : undefined;
+    this.#settings = resolveRequestChronicleSettings(options.settings ?? configured);
+    this.#random = options.random ?? Math.random;
+    this.#now = options.now ?? (() => performance.now());
+    this.#generateRequestId = options.generateRequestId ?? randomUUID;
+    if (this.#settings.successSampleExcludePattern) {
+      try {
+        this.#successSampleExclude = new RegExp(this.#settings.successSampleExcludePattern, 'i');
+      } catch {
+        // An invalid pattern excludes nothing.
+      }
+    }
   }
 
-  public static fromReq(logger: ILogger, req: Sails.Req | Request): RequestChronicleHelper {
-    const request = 'options' in req ? req : (req as { options?: Sails.ReqOptions });
-    if (!('options' in req) || request?.options === undefined || request?.options === null) {
+  /**
+   * Get the request chronicle helper for a request, creating it if needed.
+   * The logger and options are only used when the helper is created.
+   */
+  public static fromReq(
+    logger: ILogger,
+    req: Sails.Req | Request,
+    options?: RequestChronicleOptions
+  ): RequestChronicleHelper {
+    const request = req as { options?: Sails.ReqOptions };
+    if (request.options === undefined || request.options === null) {
       request.options = {};
     }
 
-    if (request?.options?.requestChronicleHelper === undefined || request?.options?.requestChronicleHelper === null) {
+    if (request.options.requestChronicleHelper === undefined || request.options.requestChronicleHelper === null) {
       // Make the event accessible to other middleware, plus anywhere that can access the req.
-      request.options.requestChronicleHelper = new RequestChronicleHelper(logger);
+      request.options.requestChronicleHelper = new RequestChronicleHelper(logger, options);
     }
 
     return request.options.requestChronicleHelper;
   }
 
   /**
+   * Get the request chronicle helper for a request, without creating it.
+   * Requests that did not pass through the HTTP middleware (e.g. socket and virtual requests) have no helper.
+   */
+  public static existing(req: Sails.Req | Request | undefined | null): RequestChronicleHelper | undefined {
+    const helper = (req as { options?: Sails.ReqOptions } | undefined | null)?.options?.requestChronicleHelper;
+    return helper instanceof RequestChronicleHelper ? helper : undefined;
+  }
+
+  /**
    * Get the current request chronicle data.
    * Do not use this for logging - use the `log` method.
    */
-  get data() {
+  get data(): RequestChronicle {
     return structuredClone(this.#data);
   }
 
+  /** The request id, generated when the chronicle starts. */
+  get requestId(): string | undefined {
+    return this.#requestId;
+  }
+
+  get settings(): RequestChronicleSettings {
+    return { ...this.#settings };
+  }
+
+  get isRunning(): boolean {
+    return this.#state === 'running';
+  }
+
+  get isFinished(): boolean {
+    return this.#state === 'finished';
+  }
+
   start(): void {
-    if (this.#data.result === undefined) {
-      this.#data.result = {};
-    }
-    if (this.isRunning || this.isFinished) {
-      this.logger.warn(`Request Chronicle Helper: Cannot start request chronicle that is running or finished.`);
-      return;
-    }
-    this.#data.result.timestamp = (new Date()).toISOString();
+    this.#safely('start', () => {
+      if (this.#state !== 'pending') {
+        this.logger.warn('Request Chronicle Helper: Cannot start request chronicle that is running or finished.');
+        return;
+      }
+      this.#state = 'running';
+      this.#startedAt = this.#now();
+      this.#requestId = this.#generateRequestId();
+      this.#data.requestId = this.#requestId;
+      const spanContext = trace.getActiveSpan()?.spanContext();
+      if (spanContext && isSpanContextValid(spanContext)) {
+        this.#data.traceId = spanContext.traceId;
+      }
+      this.#data.result = { timestamp: new Date().toISOString() };
+    });
   }
 
-  finish(): void {
-    if (this.#data.result === undefined) {
-      this.#data.result = {};
-    }
-    if (!this.isRunning || this.isFinished) {
-      this.logger.warn(`Request Chronicle Helper: Cannot finish request chronicle that is not running or already finished.`);
-      return;
-    }
-    const dateNow = Date.now();
-    const startDate = this.#data.result.timestamp ? Date.parse(this.#data.result.timestamp) : dateNow;
-    this.#data.result.durationMs = dateNow - startDate;
-
-    this.#data.result.outcome = this.hasErrors ? "error" : "success";
-    this.#data.result.classification = this.classify();
+  updateReq(req: Sails.Req | Request): void {
+    this.#safely('updateReq', () => {
+      if (!this.isRunning || this.#data.req !== undefined) {
+        this.logger.warn(
+          'Request Chronicle Helper: Cannot update request chronicle that is not running or has existing req.'
+        );
+        return;
+      }
+      const path = req.path ?? req.url?.split('?')[0];
+      const upstreamRequestId = req.headers?.['x-request-id'];
+      this.#data.req = {
+        method: req.method,
+        path:
+          typeof path === 'string'
+            ? truncate(sanitizeChroniclePath(path), RequestChronicleLimits.maxStringLength)
+            : undefined,
+        hostname: req.hostname,
+        ...(typeof upstreamRequestId === 'string' && upstreamRequestIdPattern.test(upstreamRequestId)
+          ? { upstreamRequestId }
+          : {}),
+      };
+    });
   }
 
-  get isRunning() {
-    return !!this.#data?.result?.timestamp && this.#data?.result?.durationMs === undefined;
+  /**
+   * Conclude the request chronicle.
+   * Only the first call has an effect.
+   * @param res The response. A response that has not finished writing is recorded as aborted.
+   * @return True if this call concluded the chronicle, otherwise false.
+   */
+  finish(res?: RequestChronicleResponse): boolean {
+    let concluded = false;
+    this.#safely('finish', () => {
+      if (!this.isRunning) {
+        return;
+      }
+      const durationMs = Math.max(0, Math.round(this.#now() - this.#startedAt));
+      const completed = res === undefined ? true : res.writableFinished === true;
+      const statusCode =
+        res !== undefined && (res.headersSent || res.writableFinished) && Number.isFinite(res.statusCode)
+          ? res.statusCode
+          : undefined;
+      this.#state = 'finished';
+      this.#data.res = { ...(statusCode !== undefined ? { statusCode } : {}), completed };
+
+      const outcome = this.#outcome(completed, statusCode);
+      const classification = this.#classify(completed, statusCode, durationMs);
+      this.#data.result = {
+        ...this.#data.result,
+        durationMs,
+        outcome,
+        classification,
+        severity: this.#level(classification) ?? 'none',
+      };
+      concluded = true;
+    });
+    return concluded;
   }
 
-  get isFinished() {
-    return !!this.#data?.result?.timestamp && Number.isFinite(this.#data?.result?.durationMs);
+  /**
+   * Log the finished request chronicle once, at the level for its classification.
+   * @param logger The logger to use.
+   */
+  public log(logger: ILogger = this.logger): void {
+    this.#safely('log', () => {
+      if (!this.isFinished || this.#logged) {
+        return;
+      }
+      this.#logged = true;
+      const classification = this.#data.result?.classification;
+      const level = classification ? this.#level(classification) : null;
+      if (level !== null) {
+        logger[level](toChronicleLogRecord(this.#data), 'Request chronicle');
+      }
+    });
   }
 
-  updateReq(req: Sails.Req): void {
-    if (!this.isRunning || this.isFinished || this.#data.req !== undefined) {
-      this.logger.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing req.`);
-      return;
-    }
-
-    this.#data.req = {
-      method: req.method,
-      path: req.path,
-      hostname: req.hostname,
-    };
+  get hasErrors(): boolean {
+    return (this.#data.errors?.length ?? 0) > 0 || (this.#data.errorsOmitted ?? 0) > 0;
   }
 
-  updateRes(res: Sails.Res): void {
-    if (!this.isRunning || this.isFinished || this.#data.res !== undefined) {
-      this.logger.warn(`Request Chronicle Helper: Cannot update request chronicle that is not running or finished or has existing res.`);
-      return;
-    }
-
-    this.#data.res = {
-      statusCode: res.statusCode,
-    };
-  }
-
-  public log(logger: ILogger) {
-    if (!this.isFinished) {
-      this.logger.warn(`Request Chronicle Helper: Cannot log request chronicle that is not finished`);
-      return;
-    }
-    const data = this.#data;
-    const classification = data.result?.classification;
-    switch (classification) {
-      case "error":
-        logger.error(data);
-        break;
-      case "slow":
-      case "flagged":
-        logger.warn(data);
-        break;
-      case "sample":
-        logger.info(data);
-        break;
-      case "discard":
-      case undefined:
-      case null:
-        // Don't log discarded request chronicles.
-        break;
-      default:
-        // Use TypeScript types to confirm all classification options are catered for.
-        const _check: never = classification;
-    }
-  }
-
-  get hasErrors() {
-    return (this.#data.errors?.length ?? 0) > 0;
-  }
-
+  /**
+   * Record an error.
+   * Errors recorded when the chronicle is not running are logged immediately, with the request id.
+   * @param error The error.
+   */
   public addError(error?: unknown): void {
-    if (!this.isRunning || this.isFinished) {
-      this.logger.warn(`Request Chronicle Helper: Cannot add error to request chronicle that is not running or finished.`);
-      return;
-    }
-    if (!Array.isArray(this.#data.errors)) {
-      this.#data.errors = [];
-    }
-
-    this.#data.errors.push(this.toChronicleError(error));
+    this.#safely('addError', () => {
+      const chronicleError = toChronicleError(error);
+      if (!this.isRunning) {
+        this.logger.error(
+          { requestId: this.#requestId, error: chronicleError },
+          this.isFinished
+            ? 'Request chronicle: error recorded after the request finished.'
+            : 'Request chronicle: error recorded without an active request chronicle.'
+        );
+        return;
+      }
+      if (!Array.isArray(this.#data.errors)) {
+        this.#data.errors = [];
+      }
+      if (this.#data.errors.length >= RequestChronicleLimits.maxErrors) {
+        this.#data.errorsOmitted = (this.#data.errorsOmitted ?? 0) + 1;
+        return;
+      }
+      this.#data.errors.push(chronicleError);
+    });
   }
 
-  public addInfo(info: Record<string, unknown>) {
-    if (!this.isRunning || this.isFinished) {
-      this.logger.warn(`Request Chronicle Helper: Cannot add info to request chronicle that is not running or finished.`);
-      return;
-    }
-    const notAllowedKeys = ['result', 'req', 'res', 'errors'];
-    for (const [key, value] of Object.entries(info ?? {})) {
-      if (notAllowedKeys.includes(key)) {
-        this.logger.warn(`Request Chronicle Helper: Cannot overwrite request chronicle key '${key}' value '${value}'.`);
-        continue;
+  /**
+   * Add arbitrary details to the request chronicle.
+   * Values are sanitised and size-bounded.
+   * Details added after the chronicle finished are logged at debug level, with the request id.
+   * Details added when there is no running chronicle (e.g. socket requests) are ignored.
+   * @param info The details to add.
+   */
+  public addInfo(info: Record<string, unknown>): void {
+    this.#safely('addInfo', () => {
+      const entries = Object.entries(info ?? {});
+      if (entries.length === 0) {
+        return;
       }
-
-      // TODO: Expecting only top-level properties, not nested props.
-      //  If nested props are wanted, this might need to merge instead of replace.
-      const currentValue = this.#data[key];
-
-      if (currentValue !== null && currentValue !== undefined && currentValue !== value) {
-        // TODO: should it be allowed to replace an existing arbitrary property?
-        this.logger.warn(`Request Chronicle Helper: Replaced existing request chronicle key '${key}' value '${currentValue}' with new value '${value}'.`);
+      if (this.isFinished) {
+        this.logger.debug(
+          {
+            requestId: this.#requestId,
+            info: Object.fromEntries(entries.map(([key, value]) => [key, sanitizeChronicleValue(value)])),
+          },
+          'Request chronicle: details recorded after the request finished.'
+        );
+        return;
       }
-      this.#data[key] = value;
+      if (!this.isRunning) {
+        // There is no request chronicle (e.g. socket requests), so there is nothing to relate the details to.
+        return;
+      }
+      for (const [key, value] of entries) {
+        if (reservedKeys.includes(key)) {
+          this.logger.warn(`Request Chronicle Helper: Cannot overwrite reserved request chronicle key '${key}'.`);
+          continue;
+        }
+        if (!(key in this.#data) && Object.keys(this.#data).length >= RequestChronicleLimits.maxInfoKeys) {
+          this.logger.warn(`Request Chronicle Helper: Too many request chronicle keys, ignoring key '${key}'.`);
+          continue;
+        }
+        // Later values replace earlier values for the same key.
+        this.#data[key] = sanitizeChronicleValue(value);
+      }
+    });
+  }
+
+  /**
+   * Record the result of work that may continue after the response is sent, such as an audit event.
+   * While the request is running, the result is added to the request chronicle.
+   * After the request finishes, the result is logged separately, with the request id.
+   * @param operation A short name for the operation.
+   * @param error The error if the operation failed, otherwise undefined.
+   */
+  public addOperationResult(operation: string, error?: unknown): void {
+    this.#safely('addOperationResult', () => {
+      const failed = error !== undefined;
+      if (this.isRunning) {
+        this.addInfo({ [operation]: failed ? 'failure' : 'success' });
+        if (failed) {
+          this.addError(error);
+        }
+        return;
+      }
+      const details = { requestId: this.#requestId, operation, outcome: failed ? 'failure' : 'success' };
+      if (failed) {
+        this.logger.error(
+          { ...details, error: toChronicleError(error) },
+          `Request chronicle: operation '${operation}' failed after the request finished.`
+        );
+      } else {
+        this.logger.debug(details, `Request chronicle: operation '${operation}' succeeded after the request finished.`);
+      }
+    });
+  }
+
+  #outcome(completed: boolean, statusCode: number | undefined): RequestChronicleOutcomeType {
+    if (!completed) {
+      return 'aborted';
     }
+    if ((statusCode ?? 0) >= 400 || this.hasErrors) {
+      return 'failure';
+    }
+    return 'success';
   }
 
   /**
    * Classify this request chronicle.
-   * Only keep a sample of the standard successful request chronicle logs.
-   * @return The classification.
+   * Keep all failed, aborted, and slow requests, and a sample of the successful requests.
    */
-  private classify(): RequestChronicleClassificationsType | undefined {
-    if (this.isRunning || !this.isFinished) {
-      this.logger.warn(`Request Chronicle Helper: Cannot classify request chronicle that is running or not finished.`);
-      return undefined;
+  #classify(
+    completed: boolean,
+    statusCode: number | undefined,
+    durationMs: number
+  ): RequestChronicleClassificationsType {
+    const status = statusCode ?? 0;
+    if (status >= 500) {
+      return 'error';
     }
-    const item = this.#data;
-
-    // Classify as error
-    if (item?.result?.outcome === "error") {
-      return "error";
-    }
-    if (item?.res?.statusCode?.toString()?.startsWith('5')) {
-      return "error";
-    }
-    if (item?.res?.statusCode?.toString()?.startsWith('4')) {
-      return "error";
+    if (status >= 400) {
+      return 'client-error';
     }
     if (this.hasErrors) {
-      return "error";
+      return 'error';
     }
-
-    // Classify as slow
-    if ((item?.result?.durationMs ?? 0) > 2000) {
-      return "slow";
+    if (!completed) {
+      return 'aborted';
     }
+    if (durationMs > this.#settings.slowThresholdMs) {
+      return 'slow';
+    }
+    const path = this.#data.req?.path;
+    if (this.#successSampleExclude !== null && typeof path === 'string' && this.#successSampleExclude.test(path)) {
+      return 'discard';
+    }
+    return this.#random() < this.#settings.successSampleRate ? 'sample' : 'discard';
+  }
 
-    // Classify a 10% random selection of the remaining 'standard' and 'success' items as samples.
-    // Discard the rest.
-    return Math.random() <= 0.1 ? "sample" : "discard";
+  #level(classification: RequestChronicleClassificationsType): 'error' | 'warn' | 'info' | null {
+    if (classification === 'client-error' && this.hasErrors) {
+      return 'warn';
+    }
+    return classificationLevels[classification];
   }
 
   /**
-   * Convert a possible error to a consistent plain object representation.
-   * @param item This might be an error, or a string, or something else.
+   * Run a function, logging instead of throwing any error, so that recording never breaks the request.
    */
-  private toChronicleError(item: unknown): RequestChronicleError {
-    const result: RequestChronicleError = {};
-    result.details = [];
-    const guessedType = guessType(item);
-    if (RBValidationError.isError(item)) {
-      if (item.name) {
-        result.name = item.name;
+  #safely(name: string, func: () => void): void {
+    try {
+      func();
+    } catch (error) {
+      try {
+        this.logger.warn(
+          `Request Chronicle Helper: '${name}' failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
+      } catch {
+        // Ignore logging failures.
       }
-      if (item.message) {
-        result.message = item.message;
-      }
-      if (item.cause) {
-        result.details.push(this.toChronicleError(item.cause));
-      }
-      if (item instanceof SuppressedError && item.error) {
-        result.details.push(this.toChronicleError(item.error));
-      }
-      if (item instanceof SuppressedError && item.suppressed) {
-        result.details.push(this.toChronicleError(item.suppressed));
-      }
-      if (item instanceof AggregateError && item.errors) {
-        result.details.push(...item.errors.map(i => this.toChronicleError(i)));
-      }
-      if (RBValidationError.isRBValidationError(item)) {
-        result.details.push(...item.displayErrors.map(i => {
-          return {
-            name: i.title,
-            message: Object.entries({id: i.id, status: i.status, code: i.code, detail: i.detail})
-              .filter(([_key, value]) => value !== undefined)
-              .map(([key, value]) => `${key}: ${value}`)
-              .join(', '),
-          }
-        }));
-      }
-    } else if (Array.isArray(item) || guessedType === "array") {
-      result.details.push(...(item as unknown[]).map(i => this.toChronicleError(i)));
-    } else {
-      result.message = String(item);
     }
-
-    if (result.details.length === 0) {
-      delete result.details;
-    }
-    return result;
   }
-
 }

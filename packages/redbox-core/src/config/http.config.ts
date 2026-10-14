@@ -18,9 +18,8 @@ import type { CustomConfig } from './custom.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
 import { resolveHookAssetFile } from '../hooks/hookResources';
-import {requestChronicle} from "../middleware/requestChronicle";
-import {RequestChronicleHelper} from "../utilities/RequestChronicle";
-import {consoleLogger} from "@researchdatabox/sails-ng-common";
+import { requestChronicle } from '../middleware/requestChronicle';
+import { RequestChronicleHelper } from '../utilities/RequestChronicle';
 
 // Declare Sails and its config structure
 declare const sails: Sails.Application;
@@ -656,10 +655,10 @@ export const http: HttpConfig = {
                     req.url = resolvedPath;
                 }
 
-              RequestChronicleHelper.fromReq(consoleLogger, req).addInfo({
-                branding: branding ?? extendedReq.options.locals.branding,
-                portal: portal ?? extendedReq.options.locals.portal,
-              });
+                RequestChronicleHelper.fromReq(sails.log, req).addInfo({
+                    branding: branding ?? extendedReq.options.locals.branding,
+                    portal: portal ?? extendedReq.options.locals.portal,
+                });
             }
             next();
         },

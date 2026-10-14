@@ -80,26 +80,6 @@ export class RBValidationError extends Error {
   }
 
   /**
-   * Convert item to an RBValidationError.
-   * @param item The item to convert.
-   * @return An RBValidation instance representing item.
-   */
-  public static asRBValidationError(item: unknown): RBValidationError {
-    if (RBValidationError.isRBValidationError(item)) {
-      return item;
-    }
-    if (RBValidationError.isError(item)) {
-      return new RBValidationError({
-        message: item.message,
-        displayErrors: [{ title: item.name, detail: item.message }],
-        options: { cause: item.cause },
-      });
-    }
-
-    return new RBValidationError({ message: String(item) });
-  }
-
-  /**
    * Check if item is an instance of Error.
    * @param item The item to check.
    * @param name The expected error name. Returns false if the name is provided and does not match.
@@ -168,16 +148,6 @@ export class RBValidationError extends Error {
       if (error instanceof Error && error?.cause !== undefined) {
         errorsToProcess.push(error.cause instanceof Error ? error.cause : new Error(error.cause?.toString()));
       }
-    }
-
-    // If there are any errors, there must be at least one display error to show the user.
-    if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
-      collectedDisplayErrors.push({ code: 'server-error', status: '500' });
-    }
-
-    // If there are any display errors, there must be at least one error to record the error.
-    if (collectedErrors.length === 0 && collectedDisplayErrors.length > 0) {
-      collectedErrors.push(new Error(JSON.stringify(collectedDisplayErrors)));
     }
 
     return { errors: collectedErrors, displayErrors: collectedDisplayErrors };
