@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import supertest from 'supertest';
+import { ControllerExports } from '@researchdatabox/redbox-core';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 type CapturedLog = { level: LogLevel; args: unknown[] };
@@ -18,6 +19,7 @@ type ChronicleEvent = {
 describe('Request chronicle in lifted Sails', function () {
   this.timeout(60_000);
 
+  const virtualPath = '/request-chronicle-virtual-test';
   const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
   let captured: CapturedLog[] = [];
   let originalLog: Partial<Record<LogLevel, (...args: unknown[]) => void>> = {};
@@ -27,6 +29,15 @@ describe('Request chronicle in lifted Sails', function () {
 
   before(async () => {
     const app = (sails.hooks.http as { app: Parameters<typeof supertest.agent>[0] }).app;
+    const router = sails.router as unknown as {
+      bind(path: string, handler: (req: Sails.Req, res: Sails.Res) => void): void;
+    };
+    const userController = ControllerExports.UserController as { info(req: Sails.Req, res: Sails.Res): void };
+    // Call the migrated action through the virtual router without HTTP-only authentication/language policies.
+    router.bind(virtualPath, (req, res) => {
+      req.user = { username: 'virtual-test' } as Sails.Req['user'];
+      userController.info(req, res);
+    });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
     await admin
@@ -52,6 +63,7 @@ describe('Request chronicle in lifted Sails', function () {
   });
 
   after(() => {
+    (sails.router as unknown as { unbind(path: string): void }).unbind(virtualPath);
     (sails.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
     const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
     for (const level of levels) {
@@ -146,9 +158,7 @@ describe('Request chronicle in lifted Sails', function () {
 
   it('does not warn for virtual requests, which have no request chronicle', async () => {
     await new Promise<void>((resolve, reject) => {
-      sails.request({ url: '/default/rdmp/locales/en/translation.json', method: 'get' }, (err: unknown) =>
-        err ? reject(err) : resolve()
-      );
+      sails.request({ url: virtualPath, method: 'get' }, (err: unknown) => (err ? reject(err) : resolve()));
     });
     await settle();
 

@@ -70,6 +70,22 @@ describe('RequestChronicleHelper', () => {
       expect(RequestChronicleHelper.existing(req)).to.equal(rc);
     });
 
+    it('recognises a helper created by another loaded copy of the module', () => {
+      const { rc, req } = startedHelper();
+      const moduleId = require.resolve('../../src/utilities/RequestChronicle');
+      const cached = require.cache[moduleId];
+      try {
+        delete require.cache[moduleId];
+        const second = require(moduleId) as typeof import('../../src/utilities/RequestChronicle');
+        expect(rc instanceof second.RequestChronicleHelper).to.equal(false);
+        expect(second.RequestChronicleHelper.existing(req)).to.equal(rc);
+        second.RequestChronicleHelper.existing(req)?.addInfo({ fromSecondModule: true });
+        expect(rc.data.fromSecondModule).to.equal(true);
+      } finally {
+        require.cache[moduleId] = cached;
+      }
+    });
+
     it('does not create a helper when looking up an existing helper', () => {
       const req = {} as Sails.Req;
       expect(RequestChronicleHelper.existing(req)).to.equal(undefined);

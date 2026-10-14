@@ -12,11 +12,11 @@ The approach follows the "wide event" or "canonical log line" pattern.
 | Retention settings and defaults | `packages/redbox-core/src/utilities/RequestChronicleSettings.ts` |
 | HTTP middleware | `packages/redbox-core/src/middleware/requestChronicle.ts` (first in `sails.config.http.middleware.order`) |
 | Controller helpers | `updateChronicle`, `recordBackgroundOperation`, and the `chronicle` option of `sendResp` in `packages/redbox-core/src/CoreController.ts` |
-| 500 response | `packages/redbox-core/src/responses/serverError.ts` records the error in the event |
+| 500 response | `packages/redbox-core/src/responses/serverError.ts` records the error in the event; the bootstrap registers a Sails error listener for failures before response helpers are bound |
 
 ## Lifecycle
 
-1. The `requestChronicle` middleware creates the helper, generates a request id, and records the request method, path, and host. The helper is stored on `req.options.requestChronicleHelper`. It is a class instance, so it survives the Sails route options merge; do not replace it with a plain object.
+1. The `requestChronicle` middleware creates the helper, generates a request id, and records the request method, path, and host. The helper is stored on `req.options.requestChronicleHelper`. It is a class instance, so it survives the Sails route options merge; do not replace it with a plain object. A shared symbol identifies the helper across source and compiled module copies in development.
 2. Controllers, policies, and responses add details and errors while the request is running.
 3. The event is concluded exactly once, when the response finishes (`finish`), or when the connection closes first (`close`), which records an aborted request.
 4. The event is classified, then logged at the level for its classification, or discarded.
