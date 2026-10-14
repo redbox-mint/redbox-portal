@@ -1,7 +1,12 @@
 import { APP_BASE_HREF } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import {
+  LoggerService,
+  RedboxPortalCoreModule,
+  TranslationService,
+  getStubTranslationService,
+} from '@researchdatabox/portal-ng-common';
 import { SiemAdminApiService, SiemConfiguration } from './siem-admin-api.service';
 import { SiemAdminComponent } from './siem-admin.component';
 
@@ -9,10 +14,33 @@ function buildConfig(overrides: Partial<SiemConfiguration> = {}): SiemConfigurat
   return {
     enabled: false,
     destinations: [],
-    events: { categories: { authentication: true, authorization: true, userManagement: true, recordLifecycle: true, integrationAudit: true, attachmentAccess: true }, severity: {} },
-    redaction: { denylistedPaths: ['password'], maxPayloadBytes: 65536, includeActorEmail: false, includeIpAddress: false, includeUserAgent: false },
-    delivery: { batchSize: 50, maxAttempts: 3, retryDelayMs: 60000, retryBackoffMultiplier: 2, deadLetterRetentionDays: 30, nonBlocking: true },
-    ...overrides
+    events: {
+      categories: {
+        authentication: true,
+        authorization: true,
+        userManagement: true,
+        recordLifecycle: true,
+        integrationAudit: true,
+        attachmentAccess: true,
+      },
+      severity: {},
+    },
+    redaction: {
+      denylistedPaths: ['password'],
+      maxPayloadBytes: 65536,
+      includeActorEmail: false,
+      includeIpAddress: false,
+      includeUserAgent: false,
+    },
+    delivery: {
+      batchSize: 50,
+      maxAttempts: 3,
+      retryDelayMs: 60000,
+      retryBackoffMultiplier: 2,
+      deadLetterRetentionDays: 30,
+      nonBlocking: true,
+    },
+    ...overrides,
   };
 }
 
@@ -22,11 +50,19 @@ describe('SiemAdminComponent', () => {
   let apiService: jasmine.SpyObj<SiemAdminApiService>;
 
   beforeEach(async () => {
-    apiService = jasmine.createSpyObj<SiemAdminApiService>('SiemAdminApiService', ['waitForInit', 'getSiemConfig', 'saveSiemConfig', 'getEvents', 'getDeliveryStatus', 'testDestination', 'getBrandingAndPortalUrl']);
+    apiService = jasmine.createSpyObj<SiemAdminApiService>('SiemAdminApiService', [
+      'waitForInit',
+      'getSiemConfig',
+      'saveSiemConfig',
+      'getEvents',
+      'getDeliveryStatus',
+      'testDestination',
+      'getBrandingAndPortalUrl',
+    ]);
     apiService.waitForInit.and.resolveTo(apiService);
     apiService.getBrandingAndPortalUrl.and.returnValue('base/default/rdmp');
     apiService.getSiemConfig.and.resolveTo(buildConfig());
-    apiService.saveSiemConfig.and.callFake((config) => Promise.resolve(config));
+    apiService.saveSiemConfig.and.callFake(config => Promise.resolve(config));
     apiService.getEvents.and.resolveTo({ rows: [], total: 0 });
     apiService.getDeliveryStatus.and.resolveTo({ rows: [], total: 0 });
 
@@ -43,11 +79,11 @@ describe('SiemAdminComponent', () => {
             'siem-loading': 'Loading',
             'siem-no-destinations': 'No destinations configured.',
             'siem-destination-default-name': 'New destination',
-            'siem-destination-remove-confirm': 'Remove destination "{name}"?'
-          })
+            'siem-destination-remove-confirm': 'Remove destination "{name}"?',
+          }),
         },
-        { provide: SiemAdminApiService, useValue: apiService }
-      ]
+        { provide: SiemAdminApiService, useValue: apiService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SiemAdminComponent);
@@ -128,9 +164,20 @@ describe('SiemAdminComponent', () => {
   });
 
   it('keeps masked secret values unchanged unless the user edits them', async () => {
-    apiService.getSiemConfig.and.resolveTo(buildConfig({
-      destinations: [{ id: 'dest-1', name: 'Splunk', enabled: true, adapterType: 'splunk-hec-json', endpointUrl: 'https://splunk.example', token: '__REDACTED__' }]
-    }));
+    apiService.getSiemConfig.and.resolveTo(
+      buildConfig({
+        destinations: [
+          {
+            id: 'dest-1',
+            name: 'Splunk',
+            enabled: true,
+            adapterType: 'splunk-hec-json',
+            endpointUrl: 'https://splunk.example',
+            token: '__REDACTED__',
+          },
+        ],
+      })
+    );
 
     await init();
 
@@ -178,14 +225,28 @@ describe('SiemAdminComponent', () => {
 
     expect(component.showsUsernamePasswordFields('syslog-rfc5424-json')).toBeTrue();
     expect(component.showsUsernamePasswordFields('splunk-hec-json')).toBeFalse();
-
   });
 
   it('tests the selected unsaved destination draft and stores the result', async () => {
-    apiService.getSiemConfig.and.resolveTo(buildConfig({
-      destinations: [{ id: 'dest-1', name: 'Splunk', enabled: true, adapterType: 'splunk-hec-json', endpointUrl: 'https://splunk.example' }]
-    }));
-    apiService.testDestination.and.resolveTo({ status: 'success', httpStatusCode: 200, durationMs: 120, responseSummary: { code: 0 } });
+    apiService.getSiemConfig.and.resolveTo(
+      buildConfig({
+        destinations: [
+          {
+            id: 'dest-1',
+            name: 'Splunk',
+            enabled: true,
+            adapterType: 'splunk-hec-json',
+            endpointUrl: 'https://splunk.example',
+          },
+        ],
+      })
+    );
+    apiService.testDestination.and.resolveTo({
+      status: 'success',
+      httpStatusCode: 200,
+      durationMs: 120,
+      responseSummary: { code: 0 },
+    });
 
     await init();
 
@@ -199,12 +260,25 @@ describe('SiemAdminComponent', () => {
   });
 
   it('strips the stack trace from a failed test error summary', async () => {
-    apiService.getSiemConfig.and.resolveTo(buildConfig({
-      destinations: [{ id: 'dest-1', name: 'Splunk', enabled: true, adapterType: 'splunk-hec-json', endpointUrl: 'https://bad.example' }]
-    }));
+    apiService.getSiemConfig.and.resolveTo(
+      buildConfig({
+        destinations: [
+          {
+            id: 'dest-1',
+            name: 'Splunk',
+            enabled: true,
+            adapterType: 'splunk-hec-json',
+            endpointUrl: 'https://bad.example',
+          },
+        ],
+      })
+    );
     apiService.testDestination.and.resolveTo({
       status: 'failed',
-      errorSummary: { message: '(FiberFailure) Error: getaddrinfo ENOTFOUND bad.example\n    at catch (/opt/redbox/x.ts:110:16)\n    at body (/opt/redbox/y.ts:786:14)' }
+      errorSummary: {
+        message:
+          '(FiberFailure) Error: getaddrinfo ENOTFOUND bad.example\n    at catch (/opt/redbox/x.ts:110:16)\n    at body (/opt/redbox/y.ts:786:14)',
+      },
     });
 
     await init();
@@ -217,9 +291,19 @@ describe('SiemAdminComponent', () => {
   });
 
   it('records a test error when testing fails', async () => {
-    apiService.getSiemConfig.and.resolveTo(buildConfig({
-      destinations: [{ id: 'dest-1', name: 'Splunk', enabled: true, adapterType: 'splunk-hec-json', endpointUrl: 'https://splunk.example' }]
-    }));
+    apiService.getSiemConfig.and.resolveTo(
+      buildConfig({
+        destinations: [
+          {
+            id: 'dest-1',
+            name: 'Splunk',
+            enabled: true,
+            adapterType: 'splunk-hec-json',
+            endpointUrl: 'https://splunk.example',
+          },
+        ],
+      })
+    );
     apiService.testDestination.and.rejectWith({ error: { detail: 'boom' } });
 
     await init();
@@ -243,7 +327,7 @@ describe('SiemAdminComponent', () => {
       category: 'authentication',
       deliveryState: 'failed',
       limit: 25,
-      offset: 0
+      offset: 0,
     });
   });
 
@@ -259,7 +343,7 @@ describe('SiemAdminComponent', () => {
       destinationId: 'dest-1',
       status: 'failed',
       limit: 25,
-      offset: 0
+      offset: 0,
     });
   });
 
@@ -269,5 +353,294 @@ describe('SiemAdminComponent', () => {
     await component.loadDelivery(50);
     expect(apiService.getEvents.calls.mostRecent().args[0]?.offset).toBe(25);
     expect(apiService.getDeliveryStatus.calls.mostRecent().args[0]?.offset).toBe(50);
+  });
+
+  it('retains edits after a rejected save, prevents duplicate saves and permits a successful retry', async () => {
+    await init();
+    component.draft.enabled = true;
+    let rejectSave!: (error: unknown) => void;
+    apiService.saveSiemConfig.and.returnValue(
+      new Promise((_, reject) => {
+        rejectSave = reject;
+      })
+    );
+    const pendingSave = component.save();
+    expect(component.saving).toBeTrue();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button.btn-primary').disabled).toBeTrue();
+    await component.save();
+    expect(apiService.saveSiemConfig).toHaveBeenCalledTimes(1);
+    rejectSave({ error: { message: 'Collector target changed: enter a new token' } });
+    await pendingSave;
+    fixture.detectChanges();
+    expect(component.saving).toBeFalse();
+    expect(component.draft.enabled).toBeTrue();
+    expect(component.isDirty()).toBeTrue();
+    expect(component.canSave()).toBeTrue();
+    expect(component.saveSuccess).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Collector target changed: enter a new token');
+
+    apiService.saveSiemConfig.and.callFake(config => Promise.resolve(config));
+    await component.save();
+    expect(component.saveError).toBe('');
+    expect(component.saveSuccess).toBeTrue();
+    expect(component.lastSavedAt).toMatch(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
+    expect(component.isDirty()).toBeFalse();
+    await component.save();
+    expect(apiService.saveSiemConfig).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a translated save error when the rejection has no usable message', async () => {
+    await init();
+    component.draft.enabled = true;
+    apiService.saveSiemConfig.and.rejectWith({ error: { detail: ' ', message: '' } });
+    await component.save();
+    expect(component.saveError).toBe(TestBed.inject(TranslationService).t('siem-save-error'));
+    expect(component.canSave()).toBeTrue();
+  });
+
+  it('saves edited headers and redaction policy without blank header names or removed entries', async () => {
+    apiService.getSiemConfig.and.resolveTo(
+      buildConfig({
+        destinations: [
+          {
+            id: 'dest-1',
+            name: 'Collector',
+            enabled: true,
+            adapterType: 'otel-otlp-logs',
+            endpointUrl: 'https://collector.example',
+            headers: { Authorization: '__REDACTED__', 'X-Old': 'remove' },
+          },
+        ],
+      })
+    );
+    await init();
+    component.selectDestination('dest-1');
+    component.removeHeader('dest-1', 1);
+    component.addHeader('dest-1');
+    Object.assign(component.getHeaderEntries('dest-1')[1], { key: ' X-Tenant ', value: 'team-a' });
+    component.addHeader('dest-1');
+    Object.assign(component.getHeaderEntries('dest-1')[2], { key: '   ', value: 'ignored' });
+    component.setActiveTab('policy');
+    component.addDenylistPath();
+    component.draft.redaction.denylistedPaths[1] = 'actor.apiKey';
+    component.removeDenylistPath(0);
+    component.draft.redaction.includeIpAddress = true;
+    await component.save();
+    const payload = apiService.saveSiemConfig.calls.mostRecent().args[0];
+    expect(payload.destinations[0].headers).toEqual({ Authorization: '__REDACTED__', 'X-Tenant': 'team-a' });
+    expect(payload.redaction.denylistedPaths).toEqual(['actor.apiKey']);
+    expect(payload.redaction.includeIpAddress).toBeTrue();
+    expect(component.isDirty()).toBeFalse();
+
+    component.removeHeader('dest-1', 1);
+    component.removeHeader('dest-1', 0);
+    await component.save();
+    expect(apiService.saveSiemConfig.calls.mostRecent().args[0].destinations[0].headers).toBeUndefined();
+  });
+
+  it('preserves the selected destination on refresh and chooses a valid replacement when it disappears', async () => {
+    await init();
+    component.addDestination();
+    component.addDestination();
+    const [first, second] = component.draft.destinations;
+    first.endpointUrl = 'https://first.example';
+    second.endpointUrl = 'https://second.example';
+    apiService.getSiemConfig.and.resolveTo(component.buildConfig());
+    await component.refresh();
+    expect(component.selectedDestinationId).toBe(second.id);
+    component.setActiveTab('overview');
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('.siem-dest-list__item').click();
+    expect(component.selectedDestinationId).toBe(first.id);
+    expect(component.activeTab).toBe('destinations');
+    apiService.getSiemConfig.and.resolveTo(buildConfig({ destinations: [second] }));
+    await component.refresh();
+    expect(component.selectedDestinationId).toBe(second.id);
+    apiService.getSiemConfig.and.resolveTo(buildConfig());
+    await component.refresh();
+    expect(component.selectedDestination).toBeNull();
+    expect(component.selectedDestinationId).toBe('');
+  });
+
+  it('ignores moves outside the destination list and cleans up test results when the last destination is removed', async () => {
+    await init();
+    component.addDestination();
+    const id = component.selectedDestinationId;
+    component.moveDestination(id, -1);
+    component.moveDestination(id, 1);
+    component.moveDestination('missing', 1);
+    expect(component.draft.destinations.map(d => d.id)).toEqual([id]);
+    apiService.testDestination.and.resolveTo({ status: 'success' });
+    await component.testDestination(id);
+    spyOn(window, 'confirm').and.returnValue(true);
+    component.removeDestination(id);
+    expect(component.selectedDestination).toBeNull();
+    expect(component.testStateById[id]).toBeUndefined();
+    expect(component.testErrorById[id]).toBeUndefined();
+    expect(component.testingById[id]).toBeUndefined();
+    await component.testDestination(id);
+    expect(apiService.testDestination).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a previous test result while retrying and sends edited headers and redaction with the test', async () => {
+    await init();
+    component.addDestination();
+    const id = component.selectedDestinationId;
+    apiService.testDestination.and.resolveTo({ status: 'failed', errorSummary: { code: 'TIMEOUT' } });
+    await component.testDestination(id);
+    expect(component.testStateById[id].errorSummary).toBe('{"code":"TIMEOUT"}');
+    component.addHeader(id);
+    Object.assign(component.getHeaderEntries(id)[0], { key: 'X-Tenant', value: 'team-a' });
+    component.draft.redaction.includeActorEmail = true;
+    let resolveTest!: (result: { status: 'success' }) => void;
+    apiService.testDestination.and.returnValue(
+      new Promise(resolve => {
+        resolveTest = resolve;
+      })
+    );
+    const pendingTest = component.testDestination(id);
+    expect(component.testingById[id]).toBeTrue();
+    expect(component.testStateById[id]).toBeUndefined();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.siem-dest-editor button.btn-default').disabled).toBeTrue();
+    const input = apiService.testDestination.calls.mostRecent().args[0];
+    expect(input.destination.headers).toEqual({ 'X-Tenant': 'team-a' });
+    expect(input.redaction?.includeActorEmail).toBeTrue();
+    resolveTest({ status: 'success' });
+    await pendingTest;
+    expect(component.testingById[id]).toBeFalse();
+    expect(component.testErrorById[id]).toBe('');
+    expect(component.testStateById[id].status).toBe('success');
+    expect(component.testStateById[id].responseSummary).toBeUndefined();
+    expect(component.testStateById[id].errorSummary).toBeUndefined();
+  });
+
+  it('navigates event pages to the last partial page and prevents requests beyond either boundary', async () => {
+    apiService.getEvents.and.resolveTo({
+      rows: [{ eventId: 'event-1', eventType: 'authentication.login.success' }],
+      total: 51,
+    });
+    await init();
+    apiService.getEvents.calls.reset();
+    await component.onEventPagePrev();
+    expect(apiService.getEvents).not.toHaveBeenCalled();
+    await component.onEventPageNext();
+    expect(component.eventSkip).toBe(25);
+    await component.onEventPageNext();
+    expect(component.eventSkip).toBe(50);
+    await component.onEventPageNext();
+    expect(apiService.getEvents).toHaveBeenCalledTimes(2);
+    await component.onEventPagePrev();
+    expect(apiService.getEvents.calls.mostRecent().args[0]?.offset).toBe(25);
+    component.eventFilters = { eventType: 'login', category: 'authentication', deliveryState: 'failed' };
+    const submit = new Event('submit', { cancelable: true });
+    await component.applyEventFilters(submit);
+    expect(submit.defaultPrevented).toBeTrue();
+    expect(component.eventSkip).toBe(0);
+    await component.clearEventFilters();
+    expect(apiService.getEvents.calls.mostRecent().args[0]).toEqual({
+      eventType: '',
+      category: '',
+      deliveryState: '',
+      limit: 25,
+      offset: 0,
+    });
+  });
+
+  it('navigates delivery pages and resets pagination when filters are submitted or cleared', async () => {
+    apiService.getDeliveryStatus.and.resolveTo({ rows: [{ eventId: 'event-1', status: 'success' }], total: 26 });
+    await init();
+    apiService.getDeliveryStatus.calls.reset();
+    await component.onDeliveryPagePrev();
+    expect(apiService.getDeliveryStatus).not.toHaveBeenCalled();
+    await component.onDeliveryPageNext();
+    expect(component.deliverySkip).toBe(25);
+    await component.onDeliveryPageNext();
+    expect(apiService.getDeliveryStatus).toHaveBeenCalledTimes(1);
+    await component.onDeliveryPagePrev();
+    expect(apiService.getDeliveryStatus.calls.mostRecent().args[0]?.offset).toBe(0);
+    component.deliveryFilters = { destinationId: 'dest-1', status: 'failed' };
+    await component.loadDelivery(25);
+    const submit = new Event('submit', { cancelable: true });
+    await component.applyDeliveryFilters(submit);
+    expect(submit.defaultPrevented).toBeTrue();
+    expect(component.deliverySkip).toBe(0);
+    await component.clearDeliveryFilters();
+    expect(apiService.getDeliveryStatus.calls.mostRecent().args[0]).toEqual({
+      destinationId: '',
+      status: '',
+      limit: 25,
+      offset: 0,
+    });
+  });
+
+  it('clears stale monitoring rows on failure, displays errors independently, and recovers on refresh', async () => {
+    apiService.getEvents.and.resolveTo({ rows: [{ eventId: 'stale', deliveryState: 'deadLetter' }], total: 1 });
+    apiService.getDeliveryStatus.and.resolveTo({ rows: [{ eventId: 'stale', status: 'failed' }], total: 1 });
+    await init();
+    apiService.getEvents.and.rejectWith({ error: { detail: 'Event query unavailable' } });
+    apiService.getDeliveryStatus.and.rejectWith(new Error('Delivery query unavailable'));
+    await component.refresh();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Event query unavailable');
+    expect(fixture.nativeElement.textContent).toContain('Delivery query unavailable');
+    expect(component.eventResponse).toEqual({ rows: [], total: 0 });
+    expect(component.deliveryResponse).toEqual({ rows: [], total: 0 });
+    expect(component.loadingEvents).toBeFalse();
+    expect(component.loadingDelivery).toBeFalse();
+    expect(component.loadError).toBe('');
+    apiService.getEvents.and.resolveTo({ rows: [{ eventId: 'new' }], total: 1 });
+    apiService.getDeliveryStatus.and.resolveTo({ rows: [], total: 0 });
+    await component.refresh();
+    expect(component.eventsError).toBe('');
+    expect(component.deliveryError).toBe('');
+    expect(component.eventResponse.rows[0].eventId).toBe('new');
+  });
+
+  it('renders monitoring severity and delivery badges, counts and valid or unparseable timestamps', async () => {
+    apiService.getEvents.and.resolveTo({
+      rows: [
+        {
+          eventId: 'e1',
+          eventType: 'login',
+          severity: 'critical',
+          deliveryState: 'deadLetter',
+          occurredAt: '2026-10-14T10:15:00',
+        },
+        { eventId: 'e2', severity: 'error', deliveryState: 'failed', occurredAt: 'invalid-date' },
+        { eventId: 'e3', severity: 'warning', deliveryState: 'partial' },
+        { eventId: 'e4', severity: 'info', deliveryState: 'pending' },
+        { eventId: 'e5', deliveryState: 'ignored' },
+        { eventId: 'e6', deliveryState: 'delivered' },
+        { eventId: 'e7' },
+      ],
+      total: 7,
+    });
+    apiService.getDeliveryStatus.and.resolveTo({
+      rows: [
+        { eventId: 'e1', status: 'success', adapterType: 'splunk-hec-json', startedAt: '2026-10-14T10:15:00' },
+        { eventId: 'e2', status: 'failed', adapterType: 'cef' },
+        { eventId: 'e3' },
+      ],
+      total: 3,
+    });
+    await init();
+    expect(component.deliveredCount).toBe(1);
+    expect(component.failedCount).toBe(1);
+    expect(component.deadLetterCount).toBe(1);
+    const rows: NodeListOf<HTMLTableRowElement> = fixture.nativeElement.querySelectorAll('table:last-of-type tbody tr');
+    const loginRow = Array.from(rows).find(row => row.textContent.includes('login'))!;
+    expect(loginRow.textContent).toContain('14/10/2026 10:15');
+    expect(loginRow.querySelectorAll('.siem-status--danger').length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('invalid-date');
+    expect(fixture.nativeElement.querySelector('.siem-status--warning')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.siem-status--info')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.siem-status--muted')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.siem-status--neutral')).not.toBeNull();
+    component.setActiveTab('policy');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Splunk HEC JSON');
+    expect(fixture.nativeElement.textContent).toContain('CEF');
   });
 });

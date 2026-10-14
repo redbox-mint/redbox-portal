@@ -8,11 +8,41 @@ import { SiemAdminApiService, SiemConfiguration } from './siem-admin-api.service
 const sampleConfig: SiemConfiguration = {
   enabled: true,
   destinations: [
-    { id: 'dest-1', name: 'Splunk', enabled: true, adapterType: 'splunk-hec-json', endpointUrl: 'https://splunk.example', token: '__REDACTED__' }
+    {
+      id: 'dest-1',
+      name: 'Splunk',
+      enabled: true,
+      adapterType: 'splunk-hec-json',
+      endpointUrl: 'https://splunk.example',
+      token: '__REDACTED__',
+    },
   ],
-  events: { categories: { authentication: true, authorization: true, userManagement: true, recordLifecycle: true, integrationAudit: true, attachmentAccess: true }, severity: {} },
-  redaction: { denylistedPaths: ['password'], maxPayloadBytes: 65536, includeActorEmail: false, includeIpAddress: false, includeUserAgent: false },
-  delivery: { batchSize: 50, maxAttempts: 3, retryDelayMs: 60000, retryBackoffMultiplier: 2, deadLetterRetentionDays: 30, nonBlocking: true }
+  events: {
+    categories: {
+      authentication: true,
+      authorization: true,
+      userManagement: true,
+      recordLifecycle: true,
+      integrationAudit: true,
+      attachmentAccess: true,
+    },
+    severity: {},
+  },
+  redaction: {
+    denylistedPaths: ['password'],
+    maxPayloadBytes: 65536,
+    includeActorEmail: false,
+    includeIpAddress: false,
+    includeUserAgent: false,
+  },
+  delivery: {
+    batchSize: 50,
+    maxAttempts: 3,
+    retryDelayMs: 60000,
+    retryBackoffMultiplier: 2,
+    deadLetterRetentionDays: 30,
+    nonBlocking: true,
+  },
 };
 
 describe('SiemAdminApiService', () => {
@@ -27,8 +57,8 @@ describe('SiemAdminApiService', () => {
         { provide: ConfigService, useValue: getStubConfigService() },
         LoggerService,
         UtilityService,
-        SiemAdminApiService
-      ]
+        SiemAdminApiService,
+      ],
     });
 
     httpTestingController = TestBed.inject(HttpTestingController);
@@ -46,7 +76,9 @@ describe('SiemAdminApiService', () => {
     const responsePromise = service.getSiemConfig();
     await Promise.resolve();
 
-    const request = httpTestingController.expectOne(req => req.method === 'GET' && req.url === 'http://localhost/default/rdmp/api/siem/config');
+    const request = httpTestingController.expectOne(
+      req => req.method === 'GET' && req.url === 'http://localhost/default/rdmp/api/siem/config'
+    );
     request.flush({ data: sampleConfig });
 
     await expectAsync(responsePromise).toBeResolvedTo(sampleConfig);
@@ -56,7 +88,9 @@ describe('SiemAdminApiService', () => {
     const responsePromise = service.saveSiemConfig(sampleConfig);
     await Promise.resolve();
 
-    const request = httpTestingController.expectOne(req => req.method === 'PUT' && req.url === 'http://localhost/default/rdmp/api/siem/config');
+    const request = httpTestingController.expectOne(
+      req => req.method === 'PUT' && req.url === 'http://localhost/default/rdmp/api/siem/config'
+    );
     expect(request.request.body).toEqual(sampleConfig);
     request.flush({ data: sampleConfig });
 
@@ -64,17 +98,24 @@ describe('SiemAdminApiService', () => {
   });
 
   it('builds event requests using the supported params', async () => {
-    const responsePromise = service.getEvents({ category: 'authentication', deliveryState: 'failed', eventType: 'authentication.login.failure', limit: 25, offset: 50 });
+    const responsePromise = service.getEvents({
+      category: 'authentication',
+      deliveryState: 'failed',
+      eventType: 'authentication.login.failure',
+      limit: 25,
+      offset: 50,
+    });
     await Promise.resolve();
 
-    const request = httpTestingController.expectOne(req =>
-      req.method === 'GET'
-      && req.url === 'http://localhost/default/rdmp/api/siem/events'
-      && req.params.get('category') === 'authentication'
-      && req.params.get('deliveryState') === 'failed'
-      && req.params.get('eventType') === 'authentication.login.failure'
-      && req.params.get('limit') === '25'
-      && req.params.get('offset') === '50'
+    const request = httpTestingController.expectOne(
+      req =>
+        req.method === 'GET' &&
+        req.url === 'http://localhost/default/rdmp/api/siem/events' &&
+        req.params.get('category') === 'authentication' &&
+        req.params.get('deliveryState') === 'failed' &&
+        req.params.get('eventType') === 'authentication.login.failure' &&
+        req.params.get('limit') === '25' &&
+        req.params.get('offset') === '50'
     );
     request.flush({ data: { rows: [{ eventId: 'e1' }], total: 1 } });
 
@@ -82,15 +123,21 @@ describe('SiemAdminApiService', () => {
   });
 
   it('builds delivery status requests using the supported params', async () => {
-    const responsePromise = service.getDeliveryStatus({ destinationId: 'dest-1', status: 'failed', limit: 25, offset: 0 });
+    const responsePromise = service.getDeliveryStatus({
+      destinationId: 'dest-1',
+      status: 'failed',
+      limit: 25,
+      offset: 0,
+    });
     await Promise.resolve();
 
-    const request = httpTestingController.expectOne(req =>
-      req.method === 'GET'
-      && req.url === 'http://localhost/default/rdmp/api/siem/delivery-status'
-      && req.params.get('destinationId') === 'dest-1'
-      && req.params.get('status') === 'failed'
-      && req.params.get('limit') === '25'
+    const request = httpTestingController.expectOne(
+      req =>
+        req.method === 'GET' &&
+        req.url === 'http://localhost/default/rdmp/api/siem/delivery-status' &&
+        req.params.get('destinationId') === 'dest-1' &&
+        req.params.get('status') === 'failed' &&
+        req.params.get('limit') === '25'
     );
     request.flush({ data: { rows: [], total: 0 } });
 
@@ -102,10 +149,70 @@ describe('SiemAdminApiService', () => {
     const responsePromise = service.testDestination({ destination, redaction: sampleConfig.redaction });
     await Promise.resolve();
 
-    const request = httpTestingController.expectOne(req => req.method === 'POST' && req.url === 'http://localhost/default/rdmp/api/siem/test');
+    const request = httpTestingController.expectOne(
+      req => req.method === 'POST' && req.url === 'http://localhost/default/rdmp/api/siem/test'
+    );
     expect(request.request.body).toEqual({ destination, redaction: sampleConfig.redaction });
     request.flush({ data: { status: 'success', httpStatusCode: 200, durationMs: 120 } });
 
     await expectAsync(responsePromise).toBeResolvedTo({ status: 'success', httpStatusCode: 200, durationMs: 120 });
+  });
+
+  it('accepts an unwrapped config response and a null saved config', async () => {
+    const loaded = service.getSiemConfig();
+    await Promise.resolve();
+    httpTestingController.expectOne('http://localhost/default/rdmp/api/siem/config').flush(sampleConfig);
+    await expectAsync(loaded).toBeResolvedTo(sampleConfig);
+    const saved = service.saveSiemConfig(sampleConfig);
+    await Promise.resolve();
+    httpTestingController.expectOne('http://localhost/default/rdmp/api/siem/config').flush({ data: null });
+    await expectAsync(saved).toBeResolvedTo(null);
+  });
+
+  it('omits empty filters, trims search text and preserves a zero offset', async () => {
+    const response = service.getEvents({
+      category: ' ',
+      eventType: ' login.failure ',
+      deliveryState: undefined,
+      brandId: undefined,
+      offset: 0,
+    });
+    await Promise.resolve();
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/api/siem/events'));
+    expect(request.request.params.keys().sort()).toEqual(['eventType', 'offset']);
+    expect(request.request.params.get('eventType')).toBe('login.failure');
+    expect(request.request.params.get('offset')).toBe('0');
+    request.flush({ rows: [{ eventId: 'e1' }] });
+    await expectAsync(response).toBeResolvedTo({ rows: [{ eventId: 'e1' }], total: 1 });
+  });
+
+  it('returns an empty monitoring list for a null response', async () => {
+    const response = service.getEvents();
+    await Promise.resolve();
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/api/siem/events'));
+    expect(request.request.params.keys()).toEqual([]);
+    request.flush({ data: null });
+    await expectAsync(response).toBeResolvedTo({ rows: [], total: 0 });
+  });
+
+  it('normalizes missing delivery rows and numeric string totals', async () => {
+    const response = service.getDeliveryStatus();
+    await Promise.resolve();
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/api/siem/delivery-status'));
+    expect(request.request.params.keys()).toEqual([]);
+    request.flush({ data: { total: '12' } });
+    await expectAsync(response).toBeResolvedTo({ rows: [], total: 12 });
+  });
+
+  it('propagates validation details from a rejected save to the caller', async () => {
+    const response = service.saveSiemConfig(sampleConfig);
+    const assertion = expectAsync(response).toBeRejectedWith(
+      jasmine.objectContaining({ status: 400, error: { detail: 'A new token is required' } })
+    );
+    await Promise.resolve();
+    httpTestingController
+      .expectOne('http://localhost/default/rdmp/api/siem/config')
+      .flush({ detail: 'A new token is required' }, { status: 400, statusText: 'Bad Request' });
+    await assertion;
   });
 });

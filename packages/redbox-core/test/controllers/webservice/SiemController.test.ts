@@ -105,7 +105,9 @@ describe('SIEM configuration and request boundary', () => {
   });
   it('accepts and extracts failed event state through the actual route boundary', () => {
     const req = Object.assign(createMockSails(), {
-      query: { deliveryState: 'failed', limit: '25', offset: '25' }, params: {}, headers: {},
+      query: { deliveryState: 'failed', limit: '25', offset: '25' },
+      params: {},
+      headers: {},
     });
     const result = validateApiRouteRequest(req, getSiemEventsRoute);
     assert.equal(result.valid, true);
@@ -120,6 +122,9 @@ describe('SIEM controller', () => {
   let mockSails: ReturnType<typeof createMockSails>;
   const brand = { id: 'brand-other', name: 'other' };
   const persist = sinon.stub().resolves();
+  const readConfig = sinon.stub();
+  const brandConfig = sinon.stub();
+  const getBrand = sinon.stub();
   const queryEvents = sinon.stub().resolves({ rows: [], total: 100 });
   const deliveryStatus = sinon.stub().resolves({ rows: [], total: 100 });
   const testDestination = sinon.stub().resolves({ status: 'success' });
@@ -137,11 +142,18 @@ describe('SIEM controller', () => {
       },
     });
     setupServiceTestGlobals(mockSails);
-    Reflect.set(global, 'BrandingService', { getBrand: () => brand });
+    getBrand.reset();
+    getBrand.returns(brand);
+    readConfig.reset();
+    readConfig.resolves(config);
+    brandConfig.reset();
+    brandConfig.returns({ siem: config });
+    response = undefined;
+    Reflect.set(global, 'BrandingService', { getBrand });
     Reflect.set(global, 'AppConfigService', {
       createOrUpdateConfig: persist,
-      getAppConfigByBrandAndKey: async () => config,
-      getAppConfigurationForBrand: () => ({ siem: config }),
+      getAppConfigByBrandAndKey: readConfig,
+      getAppConfigurationForBrand: brandConfig,
     });
     controller = new TestSiemController();
     sinon.stub(controller, 'sendResp').callsFake((_req, _res, value) => {
@@ -150,8 +162,10 @@ describe('SIEM controller', () => {
     });
     persist.resetHistory();
     persist.resolves();
-    queryEvents.resetHistory();
-    deliveryStatus.resetHistory();
+    queryEvents.reset();
+    queryEvents.resolves({ rows: [], total: 100 });
+    deliveryStatus.reset();
+    deliveryStatus.resolves({ rows: [], total: 100 });
     testDestination.resetHistory();
     testDestination.resolves({ status: 'success' });
   });
@@ -183,9 +197,12 @@ describe('SIEM controller', () => {
   });
   it('returns actionable 400 when persistence rejects masks for an edited credential target', async () => {
     persist.rejects(new SiemConfigurationError('Replace or explicitly clear every masked credential'));
-    await controller.saveConfig(request({ destinations: [{ ...destination(),
-      endpointUrl: 'https://edited.example/ingest', token: '__REDACTED__',
-    }] }), mockSails);
+    await controller.saveConfig(
+      request({
+        destinations: [{ ...destination(), endpointUrl: 'https://edited.example/ingest', token: '__REDACTED__' }],
+      }),
+      mockSails
+    );
     assert.equal(Reflect.get(Object(response), 'status'), 400);
     assert.match(JSON.stringify(response), /Replace or explicitly clear/);
   });
@@ -203,10 +220,17 @@ describe('SIEM controller', () => {
   });
   for (const changed of [{ endpointUrl: 'https://edited.example/ingest' }, { adapterType: 'leef' }]) {
     it(`rejects masked destination tests after target change ${JSON.stringify(changed)}`, async () => {
-      await controller.testDestination(request({ destination: {
-        ...destination(), ...changed, token: '__REDACTED__',
-        headers: { 'X-Private': '__REDACTED__' },
-      } }), mockSails);
+      await controller.testDestination(
+        request({
+          destination: {
+            ...destination(),
+            ...changed,
+            token: '__REDACTED__',
+            headers: { 'X-Private': '__REDACTED__' },
+          },
+        }),
+        mockSails
+      );
       assert.equal(testDestination.called, false);
       assert.equal(Reflect.get(Object(response), 'status'), 400);
     });
@@ -256,5 +280,170 @@ describe('SIEM controller', () => {
       mockSails
     );
     assert.equal(testDestination.called, false);
+  });
+
+  for (const session of [undefined, {}, { branding: '   ' }, { branding: 42 }]) {
+    for (const action of ['getConfig', 'saveConfig', 'getEvents', 'getDeliveryStatus', 'testDestination'] as const) {
+      it(`rejects ${action} with invalid branding session ${JSON.stringify(session)} before service access`, async () => {
+        const req = Object.assign(request({ destination: destination() }), { session });
+        await controller[action](req, mockSails);
+        assert.equal(Reflect.get(Object(response), 'status'), action === 'testDestination' ? 400 : 500);
+        assert.match(JSON.stringify(response), /Missing or invalid request branding session/);
+        for (const stub of [getBrand, readConfig, brandConfig, persist, queryEvents, deliveryStatus, testDestination]) {
+          assert.equal(stub.called, false);
+        }
+      });
+    }
+  }
+  it('reads configuration for the request brand and defaults absent configuration', async () => {
+    readConfig.resolves(null);
+    await controller.getConfig(request(), mockSails);
+    assert.deepEqual(getBrand.firstCall.args, ['other']);
+    assert.deepEqual(readConfig.firstCall.args, [brand.id, 'siem']);
+    assert.equal(Reflect.get(Object(response), 'status'), 200);
+    assert.deepEqual(Reflect.get(Object(response), 'data'), normalizeSiemConfiguration({}));
+  });
+  it('returns the persisted configuration after a successful save', async () => {
+    const saved = normalizeSiemConfiguration({ enabled: true });
+    readConfig.resolves(saved);
+    await controller.saveConfig(request({ enabled: true }), mockSails);
+    assert.equal(persist.calledOnce, true);
+    assert.equal(persist.firstCall.args[1], 'siem');
+    assert.deepEqual(readConfig.firstCall.args, [brand.id, 'siem']);
+    assert.equal(Reflect.get(Object(response), 'status'), 200);
+    assert.deepEqual(Reflect.get(Object(response), 'data'), saved);
+  });
+  for (const action of ['getConfig', 'saveConfig'] as const) {
+    it(`returns 500 when ${action} cannot read configuration`, async () => {
+      readConfig.rejects(new Error('Configuration storage unavailable'));
+      await controller[action](request({ enabled: true }), mockSails);
+      assert.equal(Reflect.get(Object(response), 'status'), 500);
+      assert.match(JSON.stringify(response), /Configuration storage unavailable/);
+      assert.equal(readConfig.calledOnce, true);
+      assert.equal(persist.called, action === 'saveConfig');
+    });
+  }
+  it('returns 500 for a persistence outage without reading back configuration', async () => {
+    persist.rejects(new Error('Configuration write unavailable'));
+    await controller.saveConfig(request({ enabled: true }), mockSails);
+    assert.equal(Reflect.get(Object(response), 'status'), 500);
+    assert.match(JSON.stringify(response), /Configuration write unavailable/);
+    assert.equal(readConfig.called, false);
+  });
+  const monitoring = [
+    {
+      action: 'getEvents' as const,
+      service: queryEvents,
+      filters: { eventType: ' login ', category: ' authentication ', severity: ' warning ', deliveryState: ' failed ' },
+      expected: { eventType: 'login', category: 'authentication', severity: 'warning', deliveryState: 'failed' },
+      dateField: 'occurredAt',
+    },
+    {
+      action: 'getDeliveryStatus' as const,
+      service: deliveryStatus,
+      filters: { eventId: ' event-1 ', destinationId: ' one ', status: ' failed ' },
+      expected: { eventId: 'event-1', destinationId: 'one', status: 'failed' },
+      dateField: 'startedAt',
+    },
+  ];
+  for (const { action, service, filters, expected, dateField } of monitoring) {
+    it(`maps ${action} filters and date range and returns the service result`, async () => {
+      const result = { rows: [{ id: 'result-1' }], total: 1 };
+      service.resolves(result);
+      const startDate = '2026-10-01T00:00:00Z';
+      const endDate = '2026-10-14T00:00:00Z';
+      await controller[action](
+        request(
+          {},
+          {
+            ...filters,
+            startDate,
+            endDate,
+            limit: '10',
+            offset: '20',
+            brandId: 'foreign',
+            unsupported: 'ignored',
+          }
+        ),
+        mockSails
+      );
+      assert.deepEqual(service.firstCall.args, [
+        {
+          ...expected,
+          limit: 10,
+          skip: 20,
+          brandId: brand.id,
+          [`${dateField}Start`]: startDate,
+          [`${dateField}End`]: endDate,
+        },
+      ]);
+      assert.equal(Reflect.get(Object(response), 'status'), 200);
+      assert.deepEqual(Reflect.get(Object(response), 'data'), result);
+    });
+    it(`defaults ${action} pagination and omits blank or non-string filters`, async () => {
+      await controller[action](
+        request(
+          {},
+          {
+            ...Object.fromEntries(Object.keys(filters).map((key, index) => [key, index === 0 ? '   ' : 42])),
+            limit: '',
+            offset: '',
+            startDate: '',
+            endDate: null,
+          }
+        ),
+        mockSails
+      );
+      assert.deepEqual(service.firstCall.args, [{ limit: 50, skip: 0, brandId: brand.id }]);
+      assert.equal(Reflect.get(Object(response), 'status'), 200);
+    });
+    for (const query of [
+      { startDate: '2026-10-14T00:00:00Z', endDate: '2026-10-01T00:00:00Z' },
+      { startDate: 'invalid-date' },
+      { endDate: 42 },
+      { limit: 0 },
+      { limit: 501 },
+      { offset: -1 },
+      { offset: 1.5 },
+    ]) {
+      it(`returns 400 for ${action} query ${JSON.stringify(query)} before querying the service`, async () => {
+        await controller[action](request({}, query), mockSails);
+        assert.equal(Reflect.get(Object(response), 'status'), 400);
+        assert.match(
+          JSON.stringify(response),
+          /startDate must precede endDate|valid ISO date string|Invalid pagination parameter/
+        );
+        assert.equal(service.called, false);
+      });
+    }
+    it(`returns 500 for ${action} service failures`, async () => {
+      service.rejects(new Error('Monitoring storage unavailable'));
+      await controller[action](request(), mockSails);
+      assert.equal(service.calledOnce, true);
+      assert.equal(Reflect.get(Object(response), 'status'), 500);
+      assert.match(JSON.stringify(response), /Monitoring storage unavailable/);
+    });
+  }
+  it('restores a masked password and removes a masked header absent from stored credentials before dispatch', async () => {
+    brandConfig.returns({
+      siem: normalizeSiemConfiguration({
+        destinations: [{ ...destination(), password: 'stored-password' }],
+      }),
+    });
+    await controller.testDestination(
+      request({
+        destination: {
+          ...destination(),
+          password: '__REDACTED__',
+          headers: { 'X-Missing': '__REDACTED__', 'X-Trace': 'trace-1' },
+        },
+      }),
+      mockSails
+    );
+    assert.equal(testDestination.calledOnce, true);
+    assert.equal(testDestination.firstCall.args[0].destination.password, 'stored-password');
+    assert.deepEqual(testDestination.firstCall.args[0].destination.headers, { 'X-Trace': 'trace-1' });
+    assert.deepEqual(brandConfig.firstCall.args, [brand.name]);
+    assert.equal(Reflect.get(Object(response), 'status'), 200);
   });
 });
