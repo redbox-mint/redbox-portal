@@ -508,6 +508,56 @@ describe('SiemAdminComponent', () => {
     expect(apiService.getDeliveryStatus.calls.mostRecent().args[0]?.offset).toBe(50);
   });
 
+  for (const kind of ['events', 'delivery'] as const) {
+    for (const outcome of ['late success', 'late failure', 'older completes first'] as const) {
+      it(`keeps the latest ${kind} query authoritative after ${outcome}`, async () => {
+        await init();
+        type Result = { rows: { eventId: string }[]; total: number };
+        let finishOlder!: (result: Result) => void;
+        let rejectOlder!: (error: unknown) => void;
+        let finishLatest!: (result: Result) => void;
+        const olderResponse = new Promise<Result>((resolve, reject) => {
+          finishOlder = resolve;
+          rejectOlder = reject;
+        });
+        const latestResponse = new Promise<Result>(resolve => {
+          finishLatest = resolve;
+        });
+        const api = kind === 'events' ? apiService.getEvents : apiService.getDeliveryStatus;
+        api.and.returnValues(olderResponse, latestResponse);
+        const load = (skip: number) => (kind === 'events' ? component.loadEvents(skip) : component.loadDelivery(skip));
+        const response = () => (kind === 'events' ? component.eventResponse : component.deliveryResponse);
+        const loading = () => (kind === 'events' ? component.loadingEvents : component.loadingDelivery);
+        const error = () => (kind === 'events' ? component.eventsError : component.deliveryError);
+        const older = load(25);
+        if (kind === 'events') component.eventFilters.eventType = 'new-filter';
+        else component.deliveryFilters.destinationId = 'new-filter';
+        const latest = load(0);
+        const newest = { rows: [{ eventId: 'newest' }], total: 1 };
+        const stale = { rows: [{ eventId: 'obsolete' }], total: 50 };
+        if (outcome === 'older completes first') {
+          finishOlder(stale);
+          await older;
+          expect(loading()).toBeTrue();
+          expect(response()).toEqual({ rows: [], total: 0 });
+        }
+        finishLatest(newest);
+        await latest;
+        if (outcome !== 'older completes first') {
+          if (outcome === 'late failure') rejectOlder(new Error('Obsolete query failed'));
+          else finishOlder(stale);
+          await older;
+        }
+        expect(response()).toEqual(newest);
+        expect(loading()).toBeFalse();
+        expect(error()).toBe('');
+        expect(kind === 'events' ? component.eventSkip : component.deliverySkip).toBe(0);
+        if (kind === 'events') expect(apiService.getEvents.calls.mostRecent().args[0]?.eventType).toBe('new-filter');
+        else expect(apiService.getDeliveryStatus.calls.mostRecent().args[0]?.destinationId).toBe('new-filter');
+      });
+    }
+  }
+
   it('retains edits after a rejected save, prevents duplicate saves and permits a successful retry', async () => {
     await init();
     component.draft.enabled = true;

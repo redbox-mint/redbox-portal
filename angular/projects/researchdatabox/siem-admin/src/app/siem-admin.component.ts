@@ -93,12 +93,14 @@ export class SiemAdminComponent extends BaseComponent {
   eventSkip = 0;
   loadingEvents = false;
   eventsError = '';
+  private eventRequestId = 0;
 
   deliveryFilters: SiemDeliveryStatusQuery = this.createEmptyDeliveryFilters();
   deliveryResponse: SiemListResponse<SiemDeliveryAttemptRow> = { rows: [], total: 0 };
   deliverySkip = 0;
   loadingDelivery = false;
   deliveryError = '';
+  private deliveryRequestId = 0;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -365,23 +367,26 @@ export class SiemAdminComponent extends BaseComponent {
   }
 
   public async loadEvents(skip: number): Promise<void> {
+    const requestId = ++this.eventRequestId;
     this.loadingEvents = true;
     this.eventsError = '';
     this.eventSkip = Math.max(skip, 0);
     try {
-      this.eventResponse = await this.siemApiService.getEvents({
+      const response = await this.siemApiService.getEvents({
         eventType: this.eventFilters.eventType,
         category: this.eventFilters.category,
         deliveryState: this.eventFilters.deliveryState,
         limit: this.eventPageSize,
         offset: this.eventSkip,
       });
+      if (requestId === this.eventRequestId) this.eventResponse = response;
     } catch (error) {
+      if (requestId !== this.eventRequestId) return;
       this.eventsError = this.getErrorMessage(error, 'siem-events-error');
       this.eventResponse = { rows: [], total: 0 };
       this.loggerService.error(this.eventsError);
     } finally {
-      this.loadingEvents = false;
+      if (requestId === this.eventRequestId) this.loadingEvents = false;
     }
   }
 
@@ -396,22 +401,25 @@ export class SiemAdminComponent extends BaseComponent {
   }
 
   public async loadDelivery(skip: number): Promise<void> {
+    const requestId = ++this.deliveryRequestId;
     this.loadingDelivery = true;
     this.deliveryError = '';
     this.deliverySkip = Math.max(skip, 0);
     try {
-      this.deliveryResponse = await this.siemApiService.getDeliveryStatus({
+      const response = await this.siemApiService.getDeliveryStatus({
         destinationId: this.deliveryFilters.destinationId,
         status: this.deliveryFilters.status,
         limit: this.deliveryPageSize,
         offset: this.deliverySkip,
       });
+      if (requestId === this.deliveryRequestId) this.deliveryResponse = response;
     } catch (error) {
+      if (requestId !== this.deliveryRequestId) return;
       this.deliveryError = this.getErrorMessage(error, 'siem-delivery-error');
       this.deliveryResponse = { rows: [], total: 0 };
       this.loggerService.error(this.deliveryError);
     } finally {
-      this.loadingDelivery = false;
+      if (requestId === this.deliveryRequestId) this.loadingDelivery = false;
     }
   }
 
