@@ -49,7 +49,7 @@ export namespace Controllers {
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id, translationLng: lng, translationNs: ns});
         if (!branding) {
-          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          this.updateChronicle(req, {translationBrandingUnknown: true});
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
 
@@ -69,7 +69,7 @@ export namespace Controllers {
             this.updateChronicle(req, {translationBundleFromDisk: true, translationFile: filepath});
             return res.json(json);
           }
-          this.updateChronicle(req, {translationNamespaceNotFound: true}, ['namespace-not-found']);
+          this.updateChronicle(req, {translationNamespaceNotFound: true});
           return res.notFound({ message: 'Namespace not found' });
         }
 
@@ -103,7 +103,7 @@ export namespace Controllers {
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
-          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          this.updateChronicle(req, {translationBrandingUnknown: true});
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
 
@@ -128,7 +128,7 @@ export namespace Controllers {
         }));
 
         list.sort((a, b) => a.displayName.localeCompare(b.displayName));
-        this.updateChronicle(req, {translationGetLanguagesSuccess: true, translationLanguages: list});
+        this.updateChronicle(req, {translationGetLanguagesSuccess: true, translationLanguageCount: list.length});
         return res.json(list);
       } catch (err) {
         this.updateChronicle(req, {translationGetLanguagesFailed: true}, [err]);
@@ -145,7 +145,7 @@ export namespace Controllers {
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
-          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          this.updateChronicle(req, {translationBrandingUnknown: true});
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
         const locale = req.param('locale');
@@ -171,7 +171,7 @@ export namespace Controllers {
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
-          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          this.updateChronicle(req, {translationBrandingUnknown: true});
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
         const locale = req.param('locale');
@@ -185,9 +185,7 @@ export namespace Controllers {
           translationLocale: locale,
           translationNamespace: namespace,
           translationKey: key,
-          translationValue: value,
           translationCategory: category,
-          translationDescription: description,
         });
         const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat,description });
         try {
@@ -209,7 +207,7 @@ export namespace Controllers {
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
-          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          this.updateChronicle(req, {translationBrandingUnknown: true});
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
         const locale = req.param('locale');
@@ -217,7 +215,7 @@ export namespace Controllers {
         this.updateChronicle(req, {translationLocale: locale, translationNamespace: namespace});
         const bundle = await I18nEntriesService.getBundle(branding, locale, namespace);
         if (!bundle) {
-          this.updateChronicle(req, {translationBundleNotFound: true}, ['bundle-not-found']);
+          this.updateChronicle(req, {translationBundleNotFound: true});
           return res.notFound({ message: 'Bundle not found' });
         }
         this.updateChronicle(req, {translationGetBundleSuccess: true});
@@ -234,7 +232,7 @@ export namespace Controllers {
         const branding = BrandingService.getBrand(brandingName);
         this.updateChronicle(req, {translationBranding: brandingName, translationBrandingId: branding?.id});
         if (!branding) {
-          this.updateChronicle(req, {translationBrandingUnknown: true}, ['unknown-branding']);
+          this.updateChronicle(req, {translationBrandingUnknown: true});
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
         const locale = req.param('locale');

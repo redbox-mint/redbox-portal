@@ -327,7 +327,14 @@ export namespace Controllers {
         const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [error], headers: this.getNoCacheHeaders() });
+        // Report the failure detail to the client, and record the error in the request chronicle.
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail }],
+          errors: [error],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
@@ -345,7 +352,14 @@ export namespace Controllers {
         const result = await RvaImportService.syncRvaVocabulary(id, versionId);
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 400, errors: [error], headers: this.getNoCacheHeaders() });
+        // Report the failure detail to the client, and record the error in the request chronicle.
+        const detail = this.asError(error).message;
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail }],
+          errors: [error],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
   }

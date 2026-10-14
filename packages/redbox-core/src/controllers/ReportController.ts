@@ -55,8 +55,8 @@ export namespace Controllers {
     public getResults(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       const name = req.param('name');
-      const start = this.getNumber(req.param('start'), 0);
-      const rows = this.getNumber(req.param('rows'), 10);
+      const start = this.parseNumberParam(req.param('start'), 0);
+      const rows = this.parseNumberParam(req.param('rows'), 10);
 
       this.updateChronicle(req, {reportName: name, reportPagingStart: start, reportPagingRows: rows});
 
@@ -89,7 +89,9 @@ export namespace Controllers {
         }
       }, (error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
-        this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders(), errors: [error]});
+        // Keep the existing response; the error is only recorded in the request chronicle.
+        this.updateChronicle(req, {}, [error]);
+        this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
       });
     }
 
@@ -111,7 +113,9 @@ export namespace Controllers {
         return res
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        return this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders(), errors: [error] });
+        // Keep the existing response; the error is only recorded in the request chronicle.
+        this.updateChronicle(req, {}, [error]);
+        return this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -174,6 +178,11 @@ export namespace Controllers {
       } catch (error: unknown) {
         return this.sendReportConfigError(req, res, error);
       }
+    }
+
+    private parseNumberParam(value: unknown, defaultValue: number): number {
+      const parsed = Number.parseFloat(String(value ?? ''));
+      return Number.isFinite(parsed) ? parsed : defaultValue;
     }
 
     private sendReportConfigError(req: Sails.Req, res: Sails.Res, error: unknown) {

@@ -6,6 +6,7 @@ import {
   executeNamedQueryRoute,
 } from '../../index';
 import type { ReportConfigDto } from '../../services/ReportsService';
+import { summarizeChronicleValue } from '../../utilities/RequestChronicle';
 
 export namespace Controllers {
   /**
@@ -46,7 +47,7 @@ export namespace Controllers {
         if (!namedQuery) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: "Named query not found" }],
+            displayErrors: [{ title: 'Named query not found' }],
             headers: this.getNoCacheHeaders(),
           });
         }
@@ -63,13 +64,13 @@ export namespace Controllers {
         if (rows > 100) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: "Rows must not be greater than 100" }],
+            displayErrors: [{ title: 'Rows must not be greater than 100' }],
             headers: this.getNoCacheHeaders(),
           });
         }
         const paramMap = _.clone(query);
         const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows);
-        this.updateChronicle(req, {namedQueryResponse: response});
+        this.updateChronicle(req, { namedQueryResponse: summarizeChronicleValue(response) });
         return this.sendResp(req, res, {
           data: response,
           status: 200,
@@ -78,6 +79,8 @@ export namespace Controllers {
       } catch (error: unknown) {
         return this.sendResp(req, res, {
           status: 500,
+          // Retain the existing client-facing message; the full error is recorded in the request chronicle.
+          displayErrors: [{ title: error instanceof Error ? error.message : String(error) }],
           errors: [error],
           headers: this.getNoCacheHeaders(),
         });

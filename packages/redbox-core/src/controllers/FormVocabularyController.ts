@@ -68,7 +68,7 @@ export namespace Controllers {
           slug: vocabulary.slug
         },
         headers: this.getNoCacheHeaders(),
-        chronicle: {formVocabularyDetails: vocabulary},
+        chronicle: {formVocabularyDetails: {id: vocabulary.id, slug: vocabulary.slug}},
       });
     }
 
@@ -181,7 +181,6 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ code: 'invalid-parent-id' }],
-            errors: [error],
             headers: this.getNoCacheHeaders(),
             chronicle: {formVocabularyInvalidParentId: true},
           });

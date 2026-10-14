@@ -257,9 +257,9 @@ export namespace Controllers {
 
     private sendAssetView(req: Sails.Req, res: Sails.Res, assetId: string, viewContext: Record<string, unknown>) {
       const dynamicAssetInfo = sails.config.dynamicasset[assetId];
-      this.updateChronicle(req, { assetDynamicInfo: dynamicAssetInfo });
+      this.updateChronicle(req, { assetDynamicType: dynamicAssetInfo?.type, assetDynamicView: dynamicAssetInfo?.view });
       if (!dynamicAssetInfo || !dynamicAssetInfo.type || !dynamicAssetInfo.view) {
-        this.updateChronicle(req, { assetDynamicMissing: true }, ['Dynamic asset missing.']);
+        this.updateChronicle(req, { assetDynamicMissing: true });
         return res.notFound();
       }
       res.set('Content-Type', dynamicAssetInfo.type);

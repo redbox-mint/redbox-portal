@@ -80,9 +80,9 @@ export namespace Controllers {
       const variablesInput = body.variables;
       if (variablesInput !== undefined && variablesInput !== null) {
         if (typeof variablesInput !== 'object' || Array.isArray(variablesInput)) {
-          this.updateChronicle(req, { brandingAppInvalidVariables: variablesInput }, [
-            'Invalid variables in request body',
-          ]);
+          this.updateChronicle(req, {
+            brandingAppInvalidVariablesType: Array.isArray(variablesInput) ? 'array' : typeof variablesInput,
+          });
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ code: 'invalid-variable', detail: 'Invalid variables in request body' }],
@@ -214,7 +214,7 @@ export namespace Controllers {
         );
         return this.sendResp(req, res, {
           data: { ...preview, previewToken: preview.token, previewUrl: preview.url },
-          chronicle: { brandingAppPreviewUrl: preview.url, brandingAppRetrieveSuccess: true },
+          chronicle: { brandingAppPreviewCreated: true },
           headers: this.getNoCacheHeaders(),
         });
       } catch (e: unknown) {
@@ -242,7 +242,7 @@ export namespace Controllers {
         const preview = await BrandingService.previewVersion({ branding, portal, versionId });
         return this.sendResp(req, res, {
           data: { ...preview, previewToken: preview.token, previewUrl: preview.url },
-          chronicle: { brandingAppPreviewUrl: preview.url, brandingAppRetrieveSuccess: true },
+          chronicle: { brandingAppPreviewCreated: true },
           headers: this.getNoCacheHeaders(),
         });
       } catch (e: unknown) {
@@ -325,7 +325,7 @@ export namespace Controllers {
       this.updateChronicle(req, { brandingAppBranding: branding, brandingAppPortal: portal });
       try {
         if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {
-          this.updateChronicle(req, { brandingAppErrorCode: 'no-file' }, ['no-file']);
+          this.updateChronicle(req, { brandingAppErrorCode: 'no-file' });
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<globalThis.Record<string, unknown>[]>((resolve, reject) => {
@@ -341,9 +341,11 @@ export namespace Controllers {
             resolve([]);
           }
         });
-        this.updateChronicle(req, { brandingAppLogsFiles: files });
+        this.updateChronicle(req, {
+          brandingAppLogoFiles: (files ?? []).map(file => ({ size: file.size, type: file.type })),
+        });
         if (!files || !files.length) {
-          this.updateChronicle(req, { brandingAppErrorCode: 'no-file' }, ['no-file']);
+          this.updateChronicle(req, { brandingAppErrorCode: 'no-file' });
           return res.badRequest({ error: 'no-file' });
         }
         const f = files[0];

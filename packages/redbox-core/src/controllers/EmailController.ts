@@ -1,4 +1,5 @@
 import { Controllers as controllers } from '../CoreController';
+import { APIActionResponse } from '../model/APIActionResponse';
 import { Services } from '../services/EmailService';
 import { getValidatedApiRequest } from '../api-routes/validation';
 
@@ -119,10 +120,10 @@ export namespace Controllers {
                         status: 500,
                         displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
                         headers: this.getNoCacheHeaders(),
-                        chronicle: {emailProcessStepFailed: 'build template', emailProcessStepResult: buildResult},
+                        chronicle: {emailProcessStepFailed: 'build template', emailBuildStatus: buildResult['status']},
                     });
                 } else {
-                    this.updateChronicle(req, {emailSendOptionFormat: formatRendered, emailSendOptionSubject: subjectRendered});
+                    this.updateChronicle(req, {emailSendOptionFormat: formatRendered});
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
                         buildResult['body'] as string,
@@ -139,14 +140,14 @@ export namespace Controllers {
                                 status: 500,
                                 displayErrors: [{ title: "An error has occurred", detail: "Failed to send email notification." }],
                                 headers: this.getNoCacheHeaders(),
-                                chronicle: {emailProcessStepFailed: 'send', emailProcessStepResult: buildResult},
+                                chronicle: {emailProcessStepFailed: 'send', emailSendMessage: sendResult['msg']},
                             });
                         } else {
                             return this.sendResp(req, res, {
-                              data: {message: sendResult['msg']},
-                              status: 200,
-                              headers: this.getNoCacheHeaders(),
-                              chronicle: {emailSent: true},
+                                data: new APIActionResponse(String(sendResult['msg'] ?? '')),
+                                status: 200,
+                                headers: this.getNoCacheHeaders(),
+                                chronicle: {emailSent: true},
                             });
                         }
                     });

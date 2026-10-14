@@ -150,11 +150,8 @@ export namespace Controllers {
           return res.status(500).send('Logout failed');
         }
         that.updateChronicle(req, {userLogoutSuccess: true});
-        UsersService.addUserAuditEvent(user, "logout", requestDetails).then(_response => {
-          that.updateChronicle(req, {userLogoutAuditEventCreateSuccess: true});
-        }).catch(err => {
-          that.updateChronicle(req, {userLogoutAuditEventCreateSuccess: false}, [err]);
-        });
+        // The audit event is not awaited; a failure after the response is logged separately with the request id.
+        that.recordBackgroundOperation(req, 'userAuditEventLogout', UsersService.addUserAuditEvent(user, "logout", requestDetails));
         // instead of destroying the session, as per M$ directions, we only unset the user, so branding, etc. is retained in the session
         _.unset(req.session, 'user');
 
@@ -215,10 +212,11 @@ export namespace Controllers {
             chronicle: {userDetailsUpdateSuccess: true}
           });
         }, error => {
+          // Keep the existing response; the error is only recorded in the request chronicle.
+          this.updateChronicle(req, {}, [error]);
           this.sendResp(req, res, {
             data: {status: false, message: (error as Error).message},
             headers: this.getNoCacheHeaders(),
-            errors: [error],
             chronicle: {userDetailsUpdateSuccess: false},
           });
         });
@@ -254,10 +252,11 @@ export namespace Controllers {
             chronicle: {userKeyUpdateSuccess: true}
           });
         }, error => {
+          // Keep the existing response; the error is only recorded in the request chronicle.
+          this.updateChronicle(req, {}, [error]);
           this.sendResp(req, res, {
             data: { status: false, message: (error as Error).message },
             headers: this.getNoCacheHeaders(),
-            errors: [error],
             chronicle: {userKeyUpdateSuccess: false},
           });
         });
@@ -293,10 +292,11 @@ export namespace Controllers {
             chronicle: {userKeyRevokeSuccess: true},
           });
         }, error => {
+          // Keep the existing response; the error is only recorded in the request chronicle.
+          this.updateChronicle(req, {}, [error]);
           this.sendResp(req, res, {
             data: { status: false, message: (error as Error).message },
             headers: this.getNoCacheHeaders(),
-            errors: [error],
             chronicle: {userKeyRevokeSuccess: false},
           });
         });
@@ -317,7 +317,7 @@ export namespace Controllers {
       passport.authenticate('local', function (err: Error | null, user: AnyRecord | false, info: AnyRecord) {
         that.updateChronicle(req, {
           ...(user === false ? {} : that.extractUserDetailsForChronicle(user)),
-          userLoginDetails: info,
+          userLoginMessage: that.extractLoginMessage(info),
         }, err ? [err] : []);
         if ((err) || (!user)) {
           that.updateChronicle(req, {userLoginSuccess: false});
@@ -329,11 +329,8 @@ export namespace Controllers {
         const requestDetails = new RequestDetails(req);
         // We don't want to store the password!
         delete (requestDetails.body as Record<string, unknown>).password;
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: true});
-        }).catch(err => {
-          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
-        });
+        // The audit event is not awaited; a failure after the response is logged separately with the request id.
+        that.recordBackgroundOperation(req, 'userAuditEventLogin', UsersService.addUserAuditEvent(user, "login", requestDetails));
         const isAjax = req.headers && req.headers['x-source'] == 'jsclient';
 
         if (typeof req.logIn !== 'function'){
@@ -378,7 +375,7 @@ export namespace Controllers {
       passport.authenticate(passportIdentifier, function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
         that.updateChronicle(req, {
           ...(user === false ? {} : that.extractUserDetailsForChronicle(user)),
-          userLoginDetails: info,
+          userLoginMessage: that.extractLoginMessage(info),
         }, err ? [err] : []);
 
         if (!_.isEmpty(err) || _.isUndefined(user) || _.isEmpty(user) || user == false) {
@@ -441,11 +438,8 @@ export namespace Controllers {
           return res.redirect(url);
         }
         const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: true});
-        }).catch(err => {
-          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
-        });
+        // The audit event is not awaited; a failure after the response is logged separately with the request id.
+        that.recordBackgroundOperation(req, 'userAuditEventLogin', UsersService.addUserAuditEvent(user, "login", requestDetails));
 
         if (typeof req.logIn !== 'function'){
           return res.serverError();
@@ -560,9 +554,9 @@ export namespace Controllers {
     private validateRegex(errorMessage: string, regexPattern: string | RegExp) {
       if (_.isRegExp(regexPattern)) {
         const re = new RegExp(regexPattern);
-        // sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
+        sails.log.verbose('decodeErrorMappings errorMessage.toString() ' + errorMessage.toString());
         const reTestResult = re.test(errorMessage.toString());
-        // sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
+        sails.log.verbose('decodeErrorMappings reTestResult ' + reTestResult);
         return reTestResult;
       } else {
         return false;
@@ -590,7 +584,7 @@ export namespace Controllers {
       passport.authenticate('aaf-jwt', function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
         that.updateChronicle(req, {
           ...(user === false ? {} : that.extractUserDetailsForChronicle(user)),
-          userLoginDetails: info
+          userLoginMessage: that.extractLoginMessage(info),
         }, err ? [err] : []);
         if ((err) || (!user)) {
           that.updateChronicle(req, {userLoginSuccess: false});
@@ -620,11 +614,8 @@ export namespace Controllers {
         }
 
         const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, "login", requestDetails).then(_response => {
-          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: true});
-        }).catch(err => {
-          that.updateChronicle(req, {userLoginAuditEventCreateSuccess: false}, [err]);
-        });
+        // The audit event is not awaited; a failure after the response is logged separately with the request id.
+        that.recordBackgroundOperation(req, 'userAuditEventLogin', UsersService.addUserAuditEvent(user, "login", requestDetails));
 
         if (typeof req.logIn !== 'function'){
           return res.serverError();
@@ -660,13 +651,19 @@ export namespace Controllers {
           chronicle: {userFindSource: searchSource, userFindName: searchName},
         });
       }, error => {
+        // Keep the existing response; the error is only recorded in the request chronicle.
+        this.updateChronicle(req, {}, [error]);
         this.sendResp(req, res, {
           data: error,
           headers: this.getNoCacheHeaders(),
-          errors: [error],
           chronicle: {userFindSource: searchSource, userFindName: searchName},
         });
       });
+    }
+
+    private extractLoginMessage(info: unknown): unknown {
+      // Only the message is recorded, as the authentication info may include provider tokens or claims.
+      return _.isString(info) ? info : (info as AnyRecord | null | undefined)?.message;
     }
 
     private extractUserDetailsForChronicle(user: AnyRecord | null | undefined): Record<string, unknown> {
