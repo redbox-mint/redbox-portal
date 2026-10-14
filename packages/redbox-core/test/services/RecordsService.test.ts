@@ -2,6 +2,9 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { Services as SecurityServices } from '../../src/services/SecurityEventService';
+import { Services as DatastreamServices } from '../../src/services/StandardDatastreamService';
+import { Services as AttachmentServices } from '../../src/services/AttachmentMetadataService';
+import { Datastream } from '../../src/Datastream';
 import { Settings } from 'luxon';
 import _ from 'lodash';
 import { of, firstValueFrom } from 'rxjs';
@@ -1631,13 +1634,44 @@ describe('RecordsService', function () {
           mockStorageService.getTombstone.resolves(null);
           return { success: true, oid: 'record-123', applicationState: 'applied' };
         });
-        const originalGlobals = new Map(['SecurityEventService', 'AppConfigService', 'AgendaQueueService'].map(key => [key, Reflect.get(globalThis, key)]));
+        const originalGlobals = new Map([
+          'SecurityEventService', 'AppConfigService', 'AgendaQueueService',
+          'StorageManagerService', 'AttachmentMetadata', 'AttachmentAccessAudit',
+        ].map(key => [key, Reflect.get(globalThis, key)]));
         const emitted: Array<{ event: Record<string, unknown> }> = [];
+        const attachmentAudits: Record<string, unknown>[] = [];
+        const deleteFile = sinon.stub().callsFake(async () => {
+          expect(await mockStorageService.getMeta('record-123')).to.equal(null);
+        });
         Object.assign(globalThis, {
           SecurityEventService: new SecurityServices.SecurityEventService(),
           AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },
           AgendaQueueService: { now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); } },
+          StorageManagerService: {
+            primaryDisk: () => ({ delete: deleteFile }),
+            getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
+          },
+          AttachmentMetadata: { findOne: async () => null, destroy: async () => [] },
+          AttachmentAccessAudit: {
+            create: (data: Record<string, unknown>) => ({
+              fetch: async () => {
+                attachmentAudits.push(data);
+                return data;
+              },
+            }),
+          },
         });
+        if (operation !== 'soft-delete') {
+          if (operation === 'destroy-deleted') mockStorageService.getMeta.resolves(null);
+          mockRecord.findOne.returns(createQueryObject(null));
+          mockSails.services.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService();
+          const datastreams = new DatastreamServices.StandardDatastream();
+          mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'file-1' }]);
+          mockDatastreamService.listDatastreams.onSecondCall().resolves([]);
+          mockDatastreamService.removeDatastream.callsFake(
+            (oid: string, stream: Datastream, brandId?: string) => datastreams.removeDatastream(oid, stream, brandId)
+          );
+        }
         try {
           const result = operation === 'destroy-deleted'
             ? await RecordsService.destroyDeletedRecord('record-123', { username: 'user-1' }, { id: 'brand-1' }, publicContext('purge', 9))
@@ -1652,9 +1686,12 @@ describe('RecordsService', function () {
           await RecordsService.storeRecordAudit({ attrs: { data: audit } });
           await new Promise<void>(resolve => setImmediate(resolve));
           expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
-          expect(emitted).to.have.length(1);
-          expect(emitted[0].event.brandId).to.equal('brand-1');
-          expect(emitted[0].event.eventType).to.equal(operation === 'soft-delete' ? 'record.deleted' : 'record.destroyed');
+          expect(emitted.map(row => row.event.eventType)).to.deep.equal(
+            operation === 'soft-delete' ? ['record.deleted'] : ['attachment.remove', 'record.destroyed']
+          );
+          expect(emitted.every(row => row.event.brandId === 'brand-1')).to.equal(true);
+          expect(attachmentAudits).to.have.length(operation === 'soft-delete' ? 0 : 1);
+          expect(deleteFile.callCount).to.equal(operation === 'soft-delete' ? 0 : 1);
         } finally {
           originalGlobals.forEach((value, key) => value === undefined ? Reflect.deleteProperty(globalThis, key) : Reflect.set(globalThis, key, value));
         }

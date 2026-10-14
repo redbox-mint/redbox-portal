@@ -513,6 +513,7 @@ describe('SiemAdminComponent', () => {
     const pendingSave = component.save();
     expect(component.saving).toBeTrue();
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('input[name="enabled"]').matches(':disabled')).toBeTrue();
     expect(fixture.nativeElement.querySelector('button.btn-primary').disabled).toBeTrue();
     await component.save();
     expect(apiService.saveSiemConfig).toHaveBeenCalledTimes(1);
@@ -520,6 +521,7 @@ describe('SiemAdminComponent', () => {
     await pendingSave;
     fixture.detectChanges();
     expect(component.saving).toBeFalse();
+    expect(fixture.nativeElement.querySelector('input[name="enabled"]').matches(':disabled')).toBeFalse();
     expect(component.draft.enabled).toBeTrue();
     expect(component.isDirty()).toBeTrue();
     expect(component.canSave()).toBeTrue();
@@ -534,6 +536,32 @@ describe('SiemAdminComponent', () => {
     expect(component.isDirty()).toBeFalse();
     await component.save();
     expect(apiService.saveSiemConfig).toHaveBeenCalledTimes(2);
+  });
+
+  it('disables configuration editing until a pending save succeeds', async () => {
+    await init();
+    component.addDestination();
+    component.setActiveTab('destinations');
+    component.draft.destinations[0].endpointUrl = 'https://collector.example.test/logs';
+    let finishSave!: (value: SiemConfiguration) => void;
+    apiService.saveSiemConfig.and.returnValue(
+      new Promise(resolve => {
+        finishSave = resolve;
+      })
+    );
+    const pendingSave = component.save();
+    fixture.detectChanges();
+    const controls: NodeListOf<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> =
+      fixture.nativeElement.querySelectorAll('input, select, textarea');
+    expect(controls.length).toBeGreaterThan(2);
+    controls.forEach(control => expect(control.matches(':disabled')).toBeTrue());
+    const submitted = apiService.saveSiemConfig.calls.mostRecent().args[0];
+    finishSave(submitted);
+    await pendingSave;
+    fixture.detectChanges();
+    expect(component.draft.destinations[0].endpointUrl).toBe(submitted.destinations[0].endpointUrl);
+    expect(component.isDirty()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('input[name="enabled"]').matches(':disabled')).toBeFalse();
   });
 
   it('shows a translated save error when the rejection has no usable message', async () => {

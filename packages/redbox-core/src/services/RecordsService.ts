@@ -1718,7 +1718,7 @@ export namespace Services {
       );
     }
 
-    private async purgePhysicalDatastreams(oid: string): Promise<LifecyclePhysicalPurgeResult> {
+    private async purgePhysicalDatastreams(oid: string, brandId: string): Promise<LifecyclePhysicalPurgeResult> {
       let datastreams: AnyRecord[];
       try {
         datastreams = (await this.datastreamService.listDatastreams(oid, '')) as AnyRecord[];
@@ -1726,7 +1726,9 @@ export namespace Services {
         return { status: 'unknown' };
       }
       const deletions = await Promise.allSettled(
-        datastreams.map(datastream => this.datastreamService.removeDatastream(oid, new Datastream(datastream)))
+        datastreams.map(datastream =>
+          this.datastreamService.removeDatastream(oid, new Datastream(datastream), brandId)
+        )
       );
       let remaining: AnyRecord[];
       try {
@@ -6823,7 +6825,7 @@ export namespace Services {
         );
       }
 
-      const physical = await this.purgePhysicalDatastreams(oid);
+      const physical = await this.purgePhysicalDatastreams(oid, String(authority.brand.id));
       let purgeRevision = pendingRevision;
       let purgeCompleted = false;
       if (physical.status === 'complete') {
@@ -7724,7 +7726,7 @@ export namespace Services {
         lifecycleState: 'purge-pending',
         lifecycleOperation: operation,
       };
-      const physical = await this.purgePhysicalDatastreams(oid);
+      const physical = await this.purgePhysicalDatastreams(oid, String(authority.brand.id));
       if (physical.status !== 'complete') {
         const recovery = await this.markLifecycleRecoveryRequired(
           authority.brand,
@@ -8056,7 +8058,7 @@ export namespace Services {
         await this.retainLifecycleRecovery(authority, tombstone, 'lifecycle-operation-invalid', context);
         return 'retained';
       }
-      const physical = await this.purgePhysicalDatastreams(tombstone.redboxOid);
+      const physical = await this.purgePhysicalDatastreams(tombstone.redboxOid, String(authority.brand.id));
       if (physical.status !== 'complete') {
         await this.retainLifecycleRecovery(
           authority,

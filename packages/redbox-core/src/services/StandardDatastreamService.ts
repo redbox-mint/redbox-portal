@@ -189,6 +189,7 @@ export namespace Services {
 
     private async safelyRecordAccess(event: {
       oid: string;
+      brandId?: string;
       fileId?: string;
       storageKey?: string;
       action: AttachmentAccessAction;
@@ -850,7 +851,7 @@ export namespace Services {
     /**
      * Remove a single datastream from the primary disk.
      */
-    public async removeDatastream(oid: string, datastream: Datastream): Promise<unknown> {
+    public async removeDatastream(oid: string, datastream: Datastream, brandId?: string): Promise<unknown> {
       const fileId = datastream.fileId;
       const destKey = this.storageKey(oid, fileId);
       this.logger.verbose(`${this.logHeader} removeDatastream() -> Deleting: ${destKey}`);
@@ -887,7 +888,7 @@ export namespace Services {
       } else {
         await this.safelyDeleteMetadata(destKey);
       }
-      await this.safelyRecordAccess({ oid, fileId, storageKey: destKey, action: 'remove' });
+      await this.safelyRecordAccess({ oid, brandId, fileId, storageKey: destKey, action: 'remove' });
       return { success: true };
     }
 

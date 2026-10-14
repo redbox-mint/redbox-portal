@@ -4,7 +4,7 @@
     <span>{{ 'siem-loading' | i18next }}</span>
   </div>
 } @else {
-  <div class="col-xs-12">
+  <fieldset class="col-xs-12 siem-editor" [disabled]="saving">
     <div class="panel panel-default siem-panel">
       <div class="panel-heading siem-panel__heading">
         <span class="panel-title">
@@ -846,5 +846,5 @@
         }
       </div>
     </div>
-  </div>
+  </fieldset>
 }
