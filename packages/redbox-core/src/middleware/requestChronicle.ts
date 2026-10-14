@@ -42,3 +42,24 @@ export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.Nex
 
   return next();
 }
+
+const errorCaptureRegistered = Symbol.for('@researchdatabox/redbox-core/requestChronicleErrorCapture');
+
+/** Capture errors raised before Sails binds custom response helpers, such as malformed JSON. */
+export function registerRequestChronicleErrorCapture(app: Sails.Application): void {
+  const state = app as Sails.Application & { [errorCaptureRegistered]?: boolean };
+  if (state[errorCaptureRegistered] || typeof app.on !== 'function') {
+    return;
+  }
+  app.on('router:request:500', (error: unknown, request: unknown, response: unknown) => {
+    const req = request as Sails.Req;
+    const res = response as Sails.Res;
+    // Bound custom responses record errors themselves.
+    if (typeof res.serverError !== 'function') {
+      const helper = RequestChronicleHelper.existing(req);
+      helper?.addInfo({ responseHandler: 'sailsHttpError' });
+      helper?.addError(error);
+    }
+  });
+  state[errorCaptureRegistered] = true;
+}

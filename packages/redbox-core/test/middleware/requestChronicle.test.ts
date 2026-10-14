@@ -1,11 +1,12 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as fs from 'fs';
+import { EventEmitter } from 'node:events';
 import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
 import * as sinon from 'sinon';
-import { requestChronicle } from '../../src/middleware/requestChronicle';
+import { registerRequestChronicleErrorCapture, requestChronicle } from '../../src/middleware/requestChronicle';
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 import { createSinonStubLogger } from '../logger.test';
 
@@ -198,5 +199,25 @@ describe('request chronicle default log output', function () {
       delete (global as any).sails;
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('request chronicle pre-routing error capture', () => {
+  it('registers once and records errors before custom response helpers are bound', () => {
+    const emitter = new EventEmitter();
+    const app = emitter as unknown as Sails.Application;
+    registerRequestChronicleErrorCapture(app);
+    registerRequestChronicleErrorCapture(app);
+    expect(emitter.listenerCount('router:request:500')).to.equal(1);
+    const logger = createSinonStubLogger(sinon);
+    const req = { options: {} } as Sails.Req;
+    const helper = RequestChronicleHelper.fromReq(logger, req);
+    helper.start();
+    emitter.emit('router:request:500', new SyntaxError('Malformed JSON'), req, {});
+    expect(helper.data.errors?.[0].message).to.equal('Malformed JSON');
+    expect(helper.data.responseHandler).to.equal('sailsHttpError');
+    emitter.emit('router:request:500', new Error('Handled by custom response'), req, { serverError: () => undefined });
+    expect(helper.data.errors).to.have.length(1);
+    expect(() => emitter.emit('router:request:500', new Error('Virtual'), {}, {})).not.to.throw();
   });
 });

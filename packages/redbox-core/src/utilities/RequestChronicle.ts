@@ -505,7 +505,11 @@ export function toChronicleLogRecord(value: unknown): unknown {
 
 type ChronicleState = 'pending' | 'running' | 'finished';
 
+// Source and compiled modules can coexist in the development loader.
+const helperBrand = Symbol.for('@researchdatabox/redbox-core/RequestChronicleHelper');
+
 export class RequestChronicleHelper {
+  private readonly [helperBrand] = true;
   #data: RequestChronicle = {};
   #state: ChronicleState = 'pending';
   #startedAt = 0;
@@ -564,7 +568,7 @@ export class RequestChronicleHelper {
   public static existing(req: Sails.Req | Request | undefined | null): RequestChronicleHelper | undefined {
     try {
       const helper = (req as { options?: Sails.ReqOptions } | undefined | null)?.options?.requestChronicleHelper;
-      return helper instanceof RequestChronicleHelper ? helper : undefined;
+      return helper?.[helperBrand] === true ? helper : undefined;
     } catch {
       return undefined;
     }

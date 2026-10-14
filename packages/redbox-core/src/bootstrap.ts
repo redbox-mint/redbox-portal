@@ -10,6 +10,7 @@
  */
 
 import { lastValueFrom, Observable } from 'rxjs';
+import { registerRequestChronicleErrorCapture } from './middleware/requestChronicle';
 import { BrandingAwareFunction, isPinoLogger } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
@@ -193,6 +194,7 @@ export async function coreBootstrap(): Promise<void> {
  * that need to be in place before services bootstrap.
  */
 export async function preLiftSetup(): Promise<void> {
+  registerRequestChronicleErrorCapture(sails);
   const csrfSetting = sails.config.security.csrf as boolean | string;
   if (csrfSetting === 'false') {
     sails.config.security.csrf = false;
