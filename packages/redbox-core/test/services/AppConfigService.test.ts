@@ -334,6 +334,46 @@ describe('AppConfigService', function () {
       }
     });
 
+    it('rejects duplicate normalized hook keys per tree before loading files while allowing keys across trees', async function () {
+      const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'appconfig-duplicates-'));
+      const root = path.join(temporary, 'node_modules/test-hook/branded-config/default');
+      const globals = globalThis as unknown as Record<string, unknown>;
+      const original = globals.AppConfigService;
+      const create = sinon.stub().resolves({});
+      const update = sinon.stub().resolves({});
+      globals.AppConfigService = { createConfig: create, createOrUpdateConfig: update };
+      const files: string[] = [];
+      try {
+        for (const tree of ['init-only', 'override']) {
+          const directory = path.join(root, tree);
+          fs.mkdirSync(path.join(directory, 'nested'), { recursive: true });
+          const duplicateJs = path.join(directory, 'duplicate.js');
+          const duplicateJson = path.join(directory, 'nested/duplicate.json');
+          const shared = path.join(directory, 'shared.json');
+          files.push(duplicateJs, duplicateJson, shared);
+          // Collision detection must run before either conflicting module is required.
+          fs.writeFileSync(duplicateJs, 'throw new Error("conflicting module must not load");');
+          fs.writeFileSync(duplicateJson, '{"value":"duplicate"}');
+          fs.writeFileSync(shared, '{"value":"shared"}');
+        }
+        mockSails.config.appPath = temporary;
+        new ConfigServices.Config().mergeHookConfig('test-hook', {}, []);
+        await new Promise(resolve => setImmediate(resolve));
+        expect(create.calledOnce).to.equal(true);
+        expect(update.calledOnce).to.equal(true);
+        expect(create.firstCall.args.slice(0, 2)).to.deep.equal(['default', 'shared']);
+        expect(update.firstCall.args[1]).to.equal('shared');
+        expect(mockSails.log.error.callCount).to.equal(2);
+        expect(mockSails.log.error.firstCall.args[0]).to.contain("Duplicate branded AppConfig key 'duplicate'");
+        expect(mockSails.log.error.firstCall.args[0]).to.contain('init-only');
+        expect(mockSails.log.error.secondCall.args[0]).to.contain('override');
+      } finally {
+        globals.AppConfigService = original;
+        for (const file of files) delete require.cache[file];
+        fs.rmSync(temporary, { recursive: true, force: true });
+      }
+    });
+
     it('masks webservice single/all responses without mutating the cache and accepts masked round trips', async function () {
       await service.createConfig('default', 'test', { connection: { token: 'aws-secret' }, visible: true });
       (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference }, visible: true } }]);
