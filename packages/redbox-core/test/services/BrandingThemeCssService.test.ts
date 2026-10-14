@@ -21,6 +21,8 @@ describe('BrandingThemeCssService', function () {
     expect(result.css).to.contain(':host {');
     expect(result.css).to.contain('--rb-site-branding-area-background-color: #b1101a;');
     expect(result.css).to.contain('--rb-logo-heading-text-color: #ffffff;');
+    expect(result.css).to.contain('--rb-admin-sidebar-text-color: #b1101a;');
+    expect(result.css).to.contain('--rb-panel-branding-color: #ffffff;');
     expect(result.css).to.contain('--mu-panel-bg: var(--rb-panel-branding-background-color, #b1101a);');
     expect(result.css).to.contain('--bs-btn-hover-bg: var(--rb-primary);');
     expect(result.css).to.not.contain('background-color: var(--rb-primary) !important;\n  border-color: var(--rb-primary) !important;');
@@ -72,6 +74,37 @@ describe('BrandingThemeCssService', function () {
     expect(result.css).to.not.contain('branding-font-family');
     expect(result.hash).to.match(/^[0-9a-f]{32}$/);
   });
+
+  it('allows sidebar text to be customized independently of panel text and backgrounds', function () {
+    const { Services } = require('../../src/services/BrandingThemeCssService');
+    const service = new Services.BrandingThemeCss();
+    const variables = service.validateVariables({
+      'admin-sidebar-text-colour': '#123',
+      'panel-branding-color': '#fff',
+      'panel-branding-background-color': '#456',
+    });
+    const result = service.generate(variables);
+
+    expect(service.getAllowedVariableKeys()).to.include('admin-sidebar-text-color');
+    expect(variables['admin-sidebar-text-color']).to.equal('#112233');
+    expect(result.css).to.contain('--rb-admin-sidebar-text-color: #112233;');
+    expect(result.css).to.contain('--rb-panel-branding-color: #ffffff;');
+    expect(result.css).to.contain('--rb-panel-branding-background-color: #445566;');
+  });
+
+  for (const key of ['panel-branding-background-color', '$panel-branding-background-colour']) {
+    it(`preserves sidebar colour when a legacy draft supplies ${key} without a sidebar setting`, function () {
+      const { Services } = require('../../src/services/BrandingThemeCssService');
+      const service = new Services.BrandingThemeCss();
+      const variables = service.validateVariables({ [key]: '#123' });
+      const result = service.generate(variables);
+
+      expect(variables).to.not.have.property('admin-sidebar-text-color');
+      expect(result.css).to.contain('--rb-admin-sidebar-text-color: #112233;');
+      expect(result.css).to.contain('--rb-panel-branding-background-color: #112233;');
+      expect(result.css).to.contain('--rb-panel-branding-color: #ffffff;');
+    });
+  }
 
   it('falls back to the default when a stored known token has a non-hex value', function () {
     const { Services } = require('../../src/services/BrandingThemeCssService');

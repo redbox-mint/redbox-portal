@@ -78,6 +78,7 @@ describe('BrandingAdminComponent', () => {
       branding: {
         variables: {
           primary: '#123456',
+          'admin-sidebar-text-color': '#654321',
           'branding-font-family': 'Arial, sans-serif',
         },
         version: 1
@@ -86,6 +87,7 @@ describe('BrandingAdminComponent', () => {
     await loadPromise;
 
     expect(component.draftConfig['primary']).toBe('#123456');
+    expect(component.draftConfig['admin-sidebar-text-color']).toBe('#654321');
     expect(component.draftConfig['branding-font-family']).toBeUndefined();
     httpMock.verify();
   });
@@ -167,6 +169,43 @@ describe('BrandingAdminComponent', () => {
     expect(allKeys).toContain('main-menu-active-dropdown-item-background-color');
     expect(allKeys).toContain('footer-bottom-area-branding-background-color');
     expect(allKeys).toContain('logo-heading-text-color');
+    expect(allKeys).toContain('admin-sidebar-text-color');
+  });
+
+  it('displays the inherited sidebar colour in both inputs after clearing the setting', async () => {
+    // Keep BaseComponent's method wrappers from replacing the initialization stub.
+    spyOn<any>(component, 'wrapAsyncComponentMethodsForRender').and.stub();
+    spyOn<any>(component, 'initComponent').and.resolveTo();
+    spyOnProperty(component, 'initialized', 'get').and.returnValue(true);
+    (component as any).initializeColourGroups();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const picker: HTMLInputElement = fixture.nativeElement.querySelector('#admin-sidebar-text-color');
+    const text: HTMLInputElement = picker.parentElement!.querySelector('input[type="text"]')!;
+    expect(picker.value).toBe('#b1101a');
+    expect(text.value).toBe('#b1101a');
+
+    component.draftConfig = {
+      'panel-branding-background-color': '#123456',
+      'admin-sidebar-text-color': '#abcdef',
+    };
+    fixture.detectChanges();
+    expect(picker.value).toBe('#abcdef');
+    expect(text.value).toBe('#abcdef');
+
+    text.value = '';
+    text.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(component.draftConfig['admin-sidebar-text-color']).toBeUndefined();
+    expect(picker.value).toBe('#123456');
+    expect(text.value).toBe('#123456');
+
+    component.updateVariable('panel-branding-background-color', { target: { value: '#654321' } });
+    fixture.detectChanges();
+    expect(picker.value).toBe('#654321');
+    expect(text.value).toBe('#654321');
+    httpMock.verify();
   });
 
   it('publish saves draft before publishing and reloads config', async () => {
