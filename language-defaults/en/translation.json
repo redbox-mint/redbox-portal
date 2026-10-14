@@ -1413,6 +1413,7 @@
   "menu-menuconfiguration": "Menu Configuration",
   "menu-homepanelsconfiguration": "Home Panels Configuration",
   "menu-adminsidebarconfiguration": "Admin Sidebar Configuration",
+  "menu-siemconfiguration": "SIEM Configuration",
   "menu-figsharepublishingconfiguration": "Figshare publishing configuration",
   "authorized-email-denied": "Email is not authorized to login.",
   "admin-welcome-heading": "Administration",

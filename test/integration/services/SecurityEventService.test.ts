@@ -1,11 +1,13 @@
 describe('The SecurityEventService', function () {
   let securityEventService: any;
+  let brandId: string;
   let originalQueueNow: any;
   let originalGetAppConfigurationForBrand: any;
   const createdEventIds: string[] = [];
 
   before(function () {
     securityEventService = sails.services.securityeventservice;
+    brandId = BrandingService.getDefault().id;
   });
 
   beforeEach(function () {
@@ -64,7 +66,7 @@ describe('The SecurityEventService', function () {
     };
 
     await securityEventService.emitSecurityEvent({
-      brandId: 'default',
+      brandId,
       eventType: 'integration.failure',
       category: 'integrationAudit',
       source: 'IntegrationAuditService',
@@ -85,7 +87,7 @@ describe('The SecurityEventService', function () {
 
     await securityEventService.storeSecurityEvent({ attrs: { data: { event } } });
     expect(queuedJobs[1].name).to.equal('SiemForwardingService-ForwardSecurityEvents');
-    expect(queuedJobs[1].data.brandId).to.equal('default');
+    expect(queuedJobs[1].data.brandId).to.equal(brandId);
 
     const stored = await SecurityEvent.findOne({ eventId: event.eventId });
     expect(stored).to.not.equal(undefined);
@@ -93,7 +95,7 @@ describe('The SecurityEventService', function () {
     expect(stored.payload.safe).to.equal('visible');
 
     const result = await securityEventService.queryEvents({
-      brandId: 'default',
+      brandId,
       category: 'integrationAudit',
       deliveryState: 'pending',
       limit: 10,
@@ -143,7 +145,7 @@ describe('The SecurityEventService', function () {
     };
 
     await securityEventService.emitFromIntegrationAudit({
-      brandId: 'default',
+      brandId,
       status: 'failed',
       token: 'secret-token',
     });
@@ -175,7 +177,7 @@ describe('The SecurityEventService', function () {
       expect(queuedJobs).to.have.length(1);
       const event = queuedJobs[0].data.event;
       expect(event).to.have.property('eventType', 'record.updated');
-      expect(event).to.have.property('brandId', 'default');
+      expect(event).to.have.property('brandId', brandId);
       expect(event?.payload).to.have.property('truncated', true);
       expect(JSON.stringify(event)).not.to.include('private@example.test');
       expect(JSON.stringify(event)).not.to.include('private-token');

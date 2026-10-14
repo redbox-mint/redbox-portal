@@ -564,6 +564,7 @@ jobs:
     resource_class: large
     environment:
       FIGSHARE_TEST_MONGO_URI: mongodb://127.0.0.1:27028
+      SIEM_TEST_MONGO_URL: mongodb://127.0.0.1:27028
     steps:
       - checkout
       - attach_workspace:
@@ -1213,6 +1214,7 @@ workflows:
                 - manage-roles
                 - form
                 - app-config
+                - siem-admin
                 - deleted-records
                 - harvest-runs
                 - branding
@@ -1380,6 +1382,7 @@ workflows:
                 - manage-roles
                 - form
                 - app-config
+                - siem-admin
                 - deleted-records
                 - harvest-runs
                 - branding
@@ -1515,6 +1518,7 @@ workflows:
                 - manage-roles
                 - form
                 - app-config
+                - siem-admin
                 - deleted-records
                 - harvest-runs
                 - branding

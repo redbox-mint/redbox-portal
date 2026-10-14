@@ -7218,5 +7218,10 @@
     "category": "figshare",
     "description": "Error detail shown when publishing a Figshare article fails",
     "contentFormat": "plain"
+  },
+  "menu-siemconfiguration": {
+    "category": "siem",
+    "description": "Admin navigation label and page title for SIEM configuration",
+    "contentFormat": "plain"
   }
 }

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect } from 'chai';
+import { firstValueFrom } from 'rxjs';
 import { normalizeSiemConfiguration } from '@researchdatabox/sails-ng-common';
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -14,9 +15,13 @@ function object(value: unknown): Record<string, unknown> {
 describe('SIEM authenticated HTTP API', function () {
   const prefix = `siem-api-${randomUUID()}`;
   const eventIds = Array.from({ length: 4 }, (_, index) => `${prefix}-${index}`);
+  // Keep failed monitoring fixtures out of the live retry worker's eligible set.
+  const nextEligibleAt = new Date(Date.now() + 86400000).toISOString();
   let token: string;
   let brand: ReturnType<typeof BrandingService.getDefault>;
   let originalConfig: ReturnType<typeof normalizeSiemConfiguration>;
+  let adminId: string;
+  let originalAdminToken: string | null;
 
   async function request(path: string, method = 'GET', body?: unknown) {
     const response = await fetch(`http://127.0.0.1:${sails.config.port}/default/rdmp/api/siem/${path}`, {
@@ -32,10 +37,19 @@ describe('SIEM authenticated HTTP API', function () {
   before(async function () {
     brand = BrandingService.getDefault();
     const config = AppConfigService.getAppConfigurationForBrand(brand.name);
-    const configuredToken: unknown = _.get(config, 'auth.local.default.token');
-    if (typeof configuredToken !== 'string' || !configuredToken) throw new Error('Missing integration admin token');
-    token = configuredToken;
     originalConfig = normalizeSiemConfiguration(Reflect.get(config, 'siem') ?? {});
+    // Integration bootstrap supplies its token in legacy auth, which the modern
+    // branding auth defaults shadow. Install it using the real bearer-key service.
+    const configuredToken: unknown = _.get(sails.config.auth, [brand.name, 'local', 'default', 'token']);
+    if (typeof configuredToken !== 'string' || !configuredToken) throw new Error('Missing integration admin token');
+    const adminUsername: unknown = _.get(ConfigService.getBrand(brand.name, 'auth'), 'local.default.adminUser');
+    if (typeof adminUsername !== 'string' || !adminUsername) throw new Error('Missing configured admin username');
+    const admin = await User.findOne({ username: adminUsername });
+    if (!admin) throw new Error('Missing bootstrapped integration admin');
+    adminId = admin.id;
+    originalAdminToken = admin.token;
+    await firstValueFrom(UsersService.setUserKey(adminId, configuredToken));
+    token = configuredToken;
     for (const [index, eventId] of eventIds.entries()) {
       await SecurityEvent.create({
         eventId,
@@ -46,6 +60,7 @@ describe('SIEM authenticated HTTP API', function () {
         occurredAt: `2026-01-01T00:00:0${index}.000Z`,
         source: 'SiemApi.test',
         deliveryState: 'failed',
+        nextEligibleAt,
       });
       await SiemDeliveryAttempt.create({
         eventId: eventIds[0],
@@ -66,13 +81,29 @@ describe('SIEM authenticated HTTP API', function () {
       occurredAt: '2026-01-01T00:00:09.000Z',
       source: 'SiemApi.test',
       deliveryState: 'failed',
+      nextEligibleAt,
     });
   });
 
   after(async function () {
-    await SecurityEvent.destroy({ eventId: [...eventIds, `${prefix}-foreign`] });
-    await SiemDeliveryAttempt.destroy({ eventId: eventIds[0] });
-    await AppConfigService.createOrUpdateConfig(brand, 'siem', { ...originalConfig });
+    try {
+      await SecurityEvent.destroy({ eventId: [...eventIds, `${prefix}-foreign`] });
+      await SiemDeliveryAttempt.destroy({ eventId: eventIds[0] });
+      await AppConfigService.createOrUpdateConfig(brand, 'siem', { ...originalConfig });
+    } finally {
+      if (adminId !== undefined) {
+        // The stored value is already hashed; restore it without hashing it again.
+        await User.update({ id: adminId }).set({ token: originalAdminToken });
+      }
+    }
+  });
+
+  it('denies HTTP API access without a bearer token', async function () {
+    const response = await fetch(`http://127.0.0.1:${sails.config.port}/default/rdmp/api/siem/config`, {
+      headers: { 'X-ReDBox-Api-Version': '2.0', 'Content-Type': 'application/json' },
+    });
+    expect(response.status).to.equal(403);
+    expect(await response.json()).to.deep.equal({ message: 'Access Denied' });
   });
 
   it('returns disjoint event pages for the failed filter and enforces request brand', async function () {
