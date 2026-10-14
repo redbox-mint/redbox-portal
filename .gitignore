@@ -221,6 +221,8 @@ api/form-config/*.js
 
 attachments/
 docs/
+# Agent planning exports
+*.md.resolved
 test/integration/**/*.test.js
 
 packages/redbox-core/.nyc_output/*
