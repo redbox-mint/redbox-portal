@@ -2,7 +2,7 @@ networks:
   main:
 
 x-playwright-service: &playwright-service
-  image: mcr.microsoft.com/playwright:v1.64.0-noble
+  image: mcr.microsoft.com/playwright:v1.64.1-noble
   pull_policy: missing
   working_dir: /opt/redbox-portal
   stop_grace_period: 30m
@@ -184,7 +184,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.0-1
+    image: quay.io/keycloak/keycloak:26.8.1-0
     pull_policy: missing
     expose:
       - '8080'
