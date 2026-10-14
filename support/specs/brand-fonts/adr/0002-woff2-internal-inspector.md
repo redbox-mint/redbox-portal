@@ -37,7 +37,7 @@ and [OS/2 specification](https://learn.microsoft.com/en-us/typography/opentype/s
 
 Replace synthetic successful-upload fixtures with Fontsource Roboto 5.3.0 static
 and variable WOFF2 files, with SIL OFL licensing and provenance in
-`test/resources/fonts/README.md`. Chrome tests must check successful `FontFace.load`
+[the font fixture README](../../../../test/resources/fonts/README.md). Chrome tests must check successful `FontFace.load`
 and rendered text metrics, not merely computed family names. Corrupt and empty
 payloads remain rejection fixtures.
 

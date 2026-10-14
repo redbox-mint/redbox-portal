@@ -3,7 +3,7 @@
 Status: implementation-ready design
 Last updated: 2026-09-04
 
-This document is the source of truth for adding administrator-supplied brand typefaces to ReDBox Portal. Implementation sequencing is in [implementation_plan.md](implementation_plan.md), and independently assignable work is in [tasklist.md](tasklist.md). Domain language is defined in [CONTEXT.md](CONTEXT.md), and the lifecycle decision is recorded in [ADR 0001](docs/adr/0001-version-brand-typefaces-with-colour-branding.md).
+This document is the source of truth for adding administrator-supplied brand typefaces to ReDBox Portal. Implementation sequencing is in [implementation_plan.md](implementation_plan.md), and independently assignable work is in [tasklist.md](tasklist.md). The WOFF2 validation decision is recorded in [ADR 0002](adr/0002-woff2-internal-inspector.md).
 
 ## 1. Goal
 

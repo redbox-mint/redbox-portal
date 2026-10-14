@@ -65,7 +65,7 @@ Exclusive ownership:
 
 - `package.json` and lockfile, if a dependency is selected
 - new WOFF2 validation fixtures and spike tests
-- new implementation-decision note under `docs/adr/`
+- implementation-decision notes under `adr/`
 
 Checklist:
 

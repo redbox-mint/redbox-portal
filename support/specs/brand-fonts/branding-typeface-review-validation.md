@@ -101,4 +101,4 @@ crash recovery or uncertain non-applied history remnants.
 The decoder performs genuine WOFF2 reconstruction and structural checks; it is
 not a replacement for every browser OpenType sanitizer. Worker resource budgets
 must be reviewed when upgrading its pinned WebAssembly build. Fonts and decoder
-licensing/provenance are recorded in the fixture README and ADR 0002.
+licensing/provenance are recorded in the [fixture README](../../../test/resources/fonts/README.md) and [ADR 0002](adr/0002-woff2-internal-inspector.md).

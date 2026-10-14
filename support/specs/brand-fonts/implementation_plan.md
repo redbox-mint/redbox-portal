@@ -1,6 +1,6 @@
 # Custom Brand Typeface Implementation Plan
 
-Status: implementation under review; see docs/branding-typeface-review-validation.md
+Status: implementation under review; see [review validation](branding-typeface-review-validation.md)
 Depends on: [design.md](design.md)
 Executable work items: [tasklist.md](tasklist.md)
 
@@ -41,7 +41,7 @@ Work:
 2. Evaluate maintained Node-compatible candidates and, if necessary, a minimal internal WOFF2/OpenType directory inspector.
 3. Prove Buffer-based parsing, WOFF2 structural failure, `fvar` detection, metadata extraction, and bounded failure behaviour on the repository's Node 24 CI and Node 26 runtime images.
 4. Review package licence, transitive dependency footprint, active security reports, and crafted-input failure modes. Explicitly investigate the open `fontkit` denial-of-service report identified in the design.
-5. Write a short decision record under `docs/adr/` or append a superseding implementation note to ADR 0001. Include why rejected candidates failed.
+5. Record the decision under `adr/`, alongside [ADR 0002](adr/0002-woff2-internal-inspector.md). Include why rejected candidates failed.
 6. If a dependency is selected, pin its exact version in `package.json` and lockfile, following the repository's dependency-pinning policy. Do not use a semver range.
 
 Exit criteria:
