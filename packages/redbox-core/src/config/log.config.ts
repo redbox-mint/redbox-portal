@@ -9,77 +9,61 @@
 
 import * as _ from 'lodash';
 const pino = require('pino');
-import type {Logger, LoggerOptions, DestinationStream, LevelWithSilent} from 'pino';
-import {availableLogLevels, AvailableLogLevels, ILogger, isLogger} from '@researchdatabox/sails-ng-common';
-import {isPlainObject as _isPlainObject} from "lodash-es";
+import type { Logger, LoggerOptions, DestinationStream } from 'pino';
+import { AvailableLogLevels, ILogger, isLogger } from '@researchdatabox/sails-ng-common';
+import { isPinoLogger } from '../utilities/PinoLoggerUtils';
+import { defaultRequestChronicleSettings, RequestChronicleSettings } from '../utilities/RequestChronicleSettings';
+
+export { isPinoLogger } from '../utilities/PinoLoggerUtils';
 
 // Declare global sails type for namespace logger
 declare const sails: Sails.Application;
 
+/**
+ * The sails log levels.
+ * Retained for compatibility; equivalent to {@link AvailableLogLevels}.
+ */
+export type SailsLogLevel = AvailableLogLevels;
+
 const initialLogLevel = 'verbose' as const;
 
-const pinoLevels: LevelWithSilent[] = ["fatal", "error", "warn", "info", "debug", "trace", "silent"] as const;
-
-type CustomLevels = Exclude<AvailableLogLevels, LevelWithSilent>;
-const customLevels = availableLogLevels.filter(i => !(pinoLevels as readonly string[]).includes(i));
-type CustomLogLevelValues = Record<CustomLevels, number>;
-
+/**
+ * Pino level values for the application log levels that pino does not provide.
+ * Pino provides fatal (60), error (50), warn (40), info (30), debug (20), trace (10), and silent.
+ */
 const customLevelBlank = 69;
-const customLevelMap: CustomLogLevelValues = {
-  // silent: ,
+const customLevelMap: Record<'blank' | 'crit' | 'log' | 'verbose' | 'silly', number> = {
   blank: customLevelBlank,
-  // fatal: 60,
   crit: 59,
-  emerg: 58,
-  // error: 50,
-  alert: 49,
-  // warn: 40,
-  warning: 39,
-  // info: 30,
   log: 29,
-  notice: 28,
-  // debug: 20,
   verbose: 19,
-  // trace: 10,
   silly: 9,
 };
-
 
 export interface LogConfig {
   custom: ILogger; // Use ILogger instead of custom interface
   inspect: boolean;
-  level: AvailableLogLevels;
+  level: SailsLogLevel;
   customLogger: ILogger;
   createNamespaceLogger: typeof createNamespaceLogger;
   createPinoLogger: typeof createPinoLogger;
-  lognamespace: Record<string, string>;
+  /**
+   * Retention settings for the request chronicle event logged at the end of each HTTP request.
+   * See the 'Request Chronicle Logging' wiki page.
+   */
+  requestChronicle?: Partial<RequestChronicleSettings>;
 }
 
-export function isPinoLogger(value: unknown): value is Logger {
-  if (value === undefined || value === null || typeof value !== 'object') {
-    return false;
-  }
-  if (!('level' in value) || typeof value.level !== 'string' || !availableLogLevels.some(i => i === value.level)) {
-    return false;
-  }
-
-  if (
-    'customLevels' in value && (
-      value.customLevels === null ||
-      typeof value.customLevels !== 'object' ||
-      !_isPlainObject(value.customLevels) ||
-      !Object.keys(value.customLevels).every(i => (customLevels as readonly string[]).includes(i))
-    )
-  ) {
-    return false;
-  }
-
-  if ('child' in value && typeof value.child !== 'function') {
-    return false;
-  }
-
-  return true;
-}
+/**
+ * The options for the default pino-logfmt transport.
+ */
+export const logfmtTransportOptions = Object.freeze({
+  formatTime: true,
+  flattenNestedObjects: true,
+  convertToSnakeCase: true,
+  // Keep multi-line values, such as stack traces, on one log line.
+  escapeMultilineStrings: true,
+});
 
 /**
  * Create a pino logger, using an optional log level and an optional destination.
@@ -87,7 +71,7 @@ export function isPinoLogger(value: unknown): value is Logger {
 function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationStream): ILogger & Logger {
   const options: LoggerOptions = {
     formatters: {
-      level: (label: string) => ({level: label})
+      level: (label: string) => ({ level: label }),
     },
     customLevels: customLevelMap,
     level: level ?? initialLogLevel,
@@ -108,8 +92,8 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
         } else {
           return method.apply(this, inputArgs);
         }
-      }
-    }
+      },
+    },
   };
 
   let logger: Logger;
@@ -118,11 +102,7 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
   } else {
     options.transport = {
       target: 'pino-logfmt',
-      options: {
-        formatTime: true,
-        flattenNestedObjects: true,
-        convertToSnakeCase: true,
-      }
+      options: { ...logfmtTransportOptions },
     };
     logger = pino(options);
   }
@@ -136,20 +116,27 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
 /**
  * Create a namespaced logger using the pino 'childlogger' feature.
  */
-function createNamespaceLogger(name: string, parentLogger: ILogger, prefix?: string, level?: AvailableLogLevels): ILogger & Logger {
+function createNamespaceLogger(
+  name: string,
+  parentLogger: ILogger,
+  prefix?: string,
+  level?: AvailableLogLevels
+): ILogger & Logger {
   if (!name) {
     throw new Error('Must provide a logger name.');
   }
   if (!isPinoLogger(parentLogger)) {
-    throw new Error(`Expected parentLogger to be a pino logger, but got ${parentLogger}`);
+    throw new Error(
+      `Expected parentLogger to be a pino logger with a 'child' function, but got ${typeof parentLogger}.`
+    );
   }
 
   let calcLevel: string | null = level ?? null;
   if (!calcLevel && typeof sails !== 'undefined') {
-    calcLevel = sails.config.lognamespace[name] ?? calcLevel;
+    calcLevel = sails.config?.lognamespace?.[name] ?? calcLevel;
   }
 
-  const bindings = {name: name};
+  const bindings = { name: name };
   const options: Record<string, unknown> = {};
 
   if (calcLevel !== null) {
@@ -176,5 +163,5 @@ export const log: LogConfig = {
   customLogger: customLogger,
   createNamespaceLogger: createNamespaceLogger,
   createPinoLogger: createPinoLogger,
-  lognamespace: {},
+  requestChronicle: { ...defaultRequestChronicleSettings },
 };

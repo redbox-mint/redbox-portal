@@ -1,4 +1,5 @@
-import { consoleLogger, ILogger, isAvailableLogLevel } from '@researchdatabox/sails-ng-common';
+import { consoleLogger, ILogger, logAtLevel } from '@researchdatabox/sails-ng-common';
+import { isPinoLogger } from './utilities/PinoLoggerUtils';
 
 export abstract class CoreBase {
   /**
@@ -7,6 +8,8 @@ export abstract class CoreBase {
   protected _exportedMethods: string[] = [];
 
   private _logger?: ILogger = undefined;
+
+  private _namespaceLoggerFailed = false;
 
   protected abstract _loggerNamespaceSuffix: string;
 
@@ -92,18 +95,22 @@ export abstract class CoreBase {
       return this._logger;
     }
 
+    const logConfig = typeof sails !== 'undefined' ? sails?.config?.log : undefined;
     if (
-      typeof sails !== 'undefined' &&
-      sails?.config?.log !== undefined &&
-      'createNamespaceLogger' in sails?.config?.log &&
-      typeof sails.config.log.createNamespaceLogger === 'function' &&
-      'customLogger' in sails?.config?.log &&
-      typeof sails.config.log.customLogger === 'function'
+      !this._namespaceLoggerFailed &&
+      typeof logConfig?.createNamespaceLogger === 'function' &&
+      isPinoLogger(logConfig?.customLogger)
     ) {
       // Create and store a pino namespace logger.
       const serviceName = this.constructor.name + this._loggerNamespaceSuffix;
-      this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
-      return this._logger;
+      try {
+        this._logger = logConfig.createNamespaceLogger(serviceName, logConfig.customLogger);
+        return this._logger;
+      } catch (error) {
+        // Don't let a misconfigured logger break the class; use the fallback logger instead.
+        this._namespaceLoggerFailed = true;
+        sails?.log?.warn(`Could not create namespace logger '${serviceName}', using the default logger.`, error);
+      }
     }
 
     if (typeof sails !== 'undefined' && sails?.log !== undefined) {
@@ -124,16 +131,6 @@ export abstract class CoreBase {
    * @protected
    */
   protected logAtLevel(level: string, ...args: unknown[]): void {
-    const log = this.logger;
-    if (!isAvailableLogLevel(level)) {
-      log.warn(`Unknown log level '${level}' in logAtLevel, using 'info' instead.`);
-      level = 'info';
-    }
-
-    if (isAvailableLogLevel(level)) {
-      if (level in log && typeof log[level] === 'function') {
-        log[level](...args);
-      }
-    }
+    logAtLevel(this.logger, level, ...args);
   }
 }

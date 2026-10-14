@@ -1,4 +1,3 @@
-import { consoleLogger } from '@researchdatabox/sails-ng-common';
 import sails from 'sails';
 import _ from 'lodash';
 import { DateTime } from 'luxon';
@@ -90,7 +89,6 @@ before(function (this: Mocha.Context, done) {
           },
           (err: Error | undefined, _server: unknown) => {
             if (err) return done(err);
-            (sails as any).log = consoleLogger;
             done(err, sails as any);
           }
         );

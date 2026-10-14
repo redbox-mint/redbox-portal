@@ -46,6 +46,9 @@ declare global {
       [key: string]: unknown;
     }
 
+    // Log interface based on https://github.com/balderdashy/captains-log
+    export type Log = ILogger;
+
     // Represents a dynamically-loaded Sails service with callable methods
     export interface DynamicService {
       [method: string]: (...args: unknown[]) => unknown;
@@ -53,7 +56,7 @@ declare global {
 
     export interface Application {
       config: ConfigObject;
-      log: ILogger;
+      log: Log;
       services: {
         [key: string]: DynamicService;
       };

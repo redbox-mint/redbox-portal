@@ -1,27 +1,22 @@
 /**
- * Define an array of the known log levels.
+ * The application log levels, ordered from most to least severe.
  *
- * Combines the log levels from a number of log libraries.
- * Each library then needs a defined logger that maps to its own log levels.
+ * These are the levels provided by sails (captains-log) and the custom logger in `config/log.js`.
+ * Other log libraries use different level names (e.g. pino, winston, console).
+ * Map those provider levels in an adapter, instead of adding them to this list,
+ * so that existing logger implementations remain compatible with {@link ILogger}.
  *
  * sails: https://github.com/balderdashy/captains-log/blob/28fb8e0ce903e23d2eabf881bc4020223847ac54/lib/captains.js
- * winston: https://github.com/winstonjs/winston#logging-levels
- * pino: https://github.com/pinojs/pino/blob/98d8fa4d95f1c759eb0dd6e4aca496a0eee31e25/lib/constants.js
- * console: https://developer.mozilla.org/en-US/docs/Web/API/console#outputting_text_to_the_console
  */
 export const availableLogLevels = [
   'silent',
   'blank',
   'fatal',
   'crit',
-  'emerg',
   'error',
-  'alert',
   'warn',
-  'warning',
   'info',
   'log',
-  'notice',
   'debug',
   'verbose',
   'trace',
@@ -31,19 +26,25 @@ export const availableLogLevels = [
 /**
  * Log levels as a union type.
  */
-export type AvailableLogLevels = typeof availableLogLevels[number];
+export type AvailableLogLevels = (typeof availableLogLevels)[number];
 
 /**
- * Log levels as a map of name to function signature.
+ * Logger interface based on the sails logger and the custom logger in `config/log.js`.
  */
-type AvailableLogFuncs = {
-  [K in AvailableLogLevels]: (...args: unknown[]) => void;
-}
-
-/**
- * Log levels as an interface.
- */
-export interface ILogger extends AvailableLogFuncs {
+export interface ILogger {
+  level?: string;
+  silly: (...args: unknown[]) => void;
+  verbose: (...args: unknown[]) => void;
+  trace: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+  log: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  crit: (...args: unknown[]) => void;
+  fatal: (...args: unknown[]) => void;
+  silent: (...args: unknown[]) => void;
+  blank: (...args: unknown[]) => void;
 }
 
 /**
@@ -80,6 +81,26 @@ export function isAvailableLogLevel(value: unknown): value is AvailableLogLevels
 }
 
 /**
+ * Log at a level that is only known at runtime, such as a level from config.
+ * Unknown levels are logged at 'info', with a warning.
+ * @param logger The logger to use.
+ * @param level The log level.
+ * @param args The log arguments.
+ */
+export function logAtLevel(logger: ILogger, level: unknown, ...args: unknown[]): void {
+  let resolvedLevel: AvailableLogLevels = 'info';
+  if (isAvailableLogLevel(level)) {
+    resolvedLevel = level;
+  } else {
+    logger.warn(`Unknown log level '${String(level)}', using 'info' instead.`);
+  }
+  const logFunc = logger[resolvedLevel];
+  if (typeof logFunc === 'function') {
+    logFunc.apply(logger, args);
+  }
+}
+
+/**
  * Logger implementation that uses the console.
  */
 export const consoleLogger: ILogger = {
@@ -87,14 +108,10 @@ export const consoleLogger: ILogger = {
   blank: () => console.log(''),
   fatal: (...args: unknown[]) => console.error(...args),
   crit: (...args: unknown[]) => console.error(...args),
-  emerg: (...args: unknown[]) => console.error(...args),
   error: (...args: unknown[]) => console.error(...args),
-  alert: (...args: unknown[]) => console.error(...args),
   warn: (...args: unknown[]) => console.warn(...args),
-  warning: (...args: unknown[]) => console.warn(...args),
   info: (...args: unknown[]) => console.info(...args),
   log: (...args: unknown[]) => console.log(...args),
-  notice: (...args: unknown[]) => console.info(...args),
   debug: (...args: unknown[]) => console.debug(...args),
   verbose: (...args: unknown[]) => console.debug(...args),
   silly: (...args: unknown[]) => console.debug(...args),
@@ -109,16 +126,12 @@ export const nothingLogger: ILogger = {
   blank: noOpLogFunc,
   fatal: noOpLogFunc,
   crit: noOpLogFunc,
-  emerg: noOpLogFunc,
   error: noOpLogFunc,
-  alert: noOpLogFunc,
   warn: noOpLogFunc,
-  warning: noOpLogFunc,
   info: noOpLogFunc,
   log: noOpLogFunc,
-  notice: noOpLogFunc,
   debug: noOpLogFunc,
   verbose: noOpLogFunc,
   silly: noOpLogFunc,
   trace: noOpLogFunc,
-}
+};

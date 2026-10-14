@@ -182,7 +182,6 @@ export interface PassportConfig {
     ) => (req: Request, res: Response, next?: NextFunction) => void;
     [strategyName: string]: unknown;
 }
-// passport: PassportStatic; // The passport instance configured by UsersService
 
 /**
  * Aggregate interface for sails.config
@@ -361,3 +360,6 @@ export const Config = {
     recordSchema,
     harvestRuns,
 } as const;
+
+// Type for the Config object
+export type ConfigType = typeof Config;

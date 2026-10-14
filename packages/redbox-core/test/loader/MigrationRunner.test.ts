@@ -97,6 +97,20 @@ describe('MigrationRunner', function () {
         expect(created[0].executedBy).to.be.a('string').and.to.not.be.empty;
     });
 
+    it('should send Umzug progress logs to the configured sails logger', async function () {
+        setMigrationModel();
+        const consoleInfo = sinon.stub(console, 'info');
+        try {
+            await runPendingMigrations([{ name: '2026.06.08T09.00.00-first', up: sinon.stub().resolves() }]);
+        } finally {
+            consoleInfo.restore();
+        }
+
+        const info = (global as any).sails.log.info as sinon.SinonStub;
+        expect(info.args.some(args => (args[0] as { event?: string })?.event === 'migrated')).to.equal(true);
+        expect(consoleInfo.called).to.equal(false);
+    });
+
     it('should log the pending migration names before executing', async function () {
         setMigrationModel(['2026.06.08T09.00.00-first']);
 

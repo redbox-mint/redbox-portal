@@ -1,6 +1,4 @@
 // top
-export * from './handlebars-helpers';
-export * from './logger.model';
 export * from './record.model';
 export * from './record-concurrency.model';
 export * from './record-diff';
