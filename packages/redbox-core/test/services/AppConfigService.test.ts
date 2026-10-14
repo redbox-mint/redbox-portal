@@ -244,6 +244,69 @@ describe('AppConfigService', function () {
       expect([...Reflect.get(service.getAppConfigurationForBrand('default'), Symbol.for('redbox.appConfig.presentKeys'))]).to.have.members(['first', 'second']);
     });
 
+    it('serializes same-key updates through DB replies and cache publication', async function () {
+      mockSails.config.appConfigSecrets.provider = 'database';
+      let persisted = { configKey: 'test', configData: { connection: { token: 'original-secret' }, value: 0 } };
+      (AppConfig.find as unknown as sinon.SinonStub).callsFake(async () => [persisted]);
+      let releaseFirst!: () => void;
+      const firstReply = new Promise<void>(resolve => { releaseFirst = resolve; });
+      const set = sinon.stub().callsFake(async data => {
+        persisted = { configKey: 'test', configData: data.configData };
+        if (data.configData.value === 1) await firstReply;
+        return persisted;
+      });
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      const brand = BrandingService.getBrand('default');
+      const first = service.createOrUpdateConfig(brand, 'test', { connection: { token: 'new-secret' }, value: 1 });
+      await new Promise(resolve => setImmediate(resolve));
+      const second = service.createOrUpdateConfig(brand, 'test', { connection: { token: APP_CONFIG_SECRET_MASK }, value: 2 });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(set.callCount).to.equal(1);
+      expect((AppConfig.find as unknown as sinon.SinonStub).callCount).to.equal(1);
+      releaseFirst();
+      await Promise.all([first, second]);
+      expect(set.callCount).to.equal(2);
+      expect(persisted.configData).to.deep.equal({ connection: { token: 'new-secret' }, value: 2 });
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test')).to.deep.equal(persisted.configData);
+    });
+
+    it('uses the same write gate for creation and updates of one key', async function () {
+      let persisted: Record<string, unknown> | undefined;
+      (AppConfig.find as unknown as sinon.SinonStub).callsFake(async () => persisted ? [persisted] : []);
+      let releaseCreate!: () => void;
+      const createReply = new Promise<void>(resolve => { releaseCreate = resolve; });
+      (AppConfig.create as unknown as sinon.SinonStub).callsFake(async data => {
+        persisted = data;
+        await createReply;
+        return data;
+      });
+      const set = sinon.stub().callsFake(async data => {
+        persisted = { configKey: 'test', configData: data.configData };
+        return persisted;
+      });
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      const create = service.createConfig('default', 'test', { value: 1 });
+      await new Promise(resolve => setImmediate(resolve));
+      const update = service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { value: 2 });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(set.called).to.equal(false);
+      releaseCreate();
+      await Promise.all([create, update]);
+      expect((AppConfig.create as unknown as sinon.SinonStub).callCount).to.equal(1);
+      expect(set.calledOnce).to.equal(true);
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test.value')).to.equal(2);
+    });
+
+    it('releases the same-key write gate after failures', async function () {
+      (AppConfig.create as unknown as sinon.SinonStub).onFirstCall().rejects(new Error('database failed'));
+      const first = service.createConfig('default', 'test', { value: 1 });
+      const failed = first.then(() => expect.fail('Expected rejection'), error => expect(error.message).to.equal('database failed'));
+      const second = service.createConfig('default', 'test', { value: 2 });
+      await Promise.all([failed, second]);
+      expect((AppConfig.create as unknown as sinon.SinonStub).callCount).to.equal(2);
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test.value')).to.equal(2);
+    });
+
     it('does not persist or update the cache when hydration of a newly created reference fails', async function () {
       const cache = service.brandingAppConfigMap;
       send.withArgs(sinon.match.instanceOf(GetSecretValueCommand)).rejects(new Error('KMS AccessDenied arn:private'));

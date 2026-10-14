@@ -47,6 +47,7 @@ export namespace Services {
     modelSchemaMap: Record<string, unknown> = {};
     private extraTsGlobs: Set<string> = new Set();
     private secretStore?: AppConfigSecrets;
+    private configWriteGates = new Map<string, Promise<void>>();
 
     protected override _exportedMethods: string[] = [
       'bootstrap',
@@ -429,44 +430,64 @@ export namespace Services {
       }
     }
 
+    /** Keep same-key persistence and cache publication in order within this process. */
+    private async withConfigWriteLock<T>(brandId: string, configKey: string, write: () => Promise<T>): Promise<T> {
+      const key = JSON.stringify([brandId, configKey]);
+      const previous = this.configWriteGates.get(key) ?? Promise.resolve();
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      this.configWriteGates.set(key, gate);
+      await previous;
+      try {
+        return await write();
+      } finally {
+        release();
+        if (this.configWriteGates.get(key) === gate) this.configWriteGates.delete(key);
+      }
+    }
+
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
-      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
-      const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
-      const mergedConfigData = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, dbConfig?.configData ?? _.get(this.createDefaultConfiguration(), [configKey]));
+      return this.withConfigWriteLock(String(branding.id), configKey, async () => {
+        const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
+        const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
+        const mergedConfigData = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, dbConfig?.configData ?? _.get(this.createDefaultConfiguration(), [configKey]));
 
-      const hydrated = await this.hydrateSecretFields(configKey, mergedConfigData);
-      const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
-      // Hydrate and prepare defaults before persistence; cache publication needs no AWS reads.
-      let record;
-      if (dbConfig == null) {
-        record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: mergedConfigData });
-      } else {
-        record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: mergedConfigData });
-      }
+        const hydrated = await this.hydrateSecretFields(configKey, mergedConfigData);
+        const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
+        // Hydrate and prepare defaults before persistence; cache publication needs no AWS reads.
+        let record;
+        if (dbConfig == null) {
+          record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: mergedConfigData });
+        } else {
+          record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: mergedConfigData });
+        }
 
-      // Rebase on the current cache in case a different key was saved while the DB write awaited.
-      this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
-      return this.maskSecretFields(configKey, (record as unknown as AppConfigAttributes).configData);
+        // Rebase on the current cache in case a different key was saved while the DB write awaited.
+        this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
+        return this.maskSecretFields(configKey, (record as unknown as AppConfigAttributes).configData);
+      });
     }
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
       const branding: BrandingModel = BrandingService.getBrand(brandName);
-      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
-      const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
+      return this.withConfigWriteLock(String(branding.id), configKey, async () => {
+        const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
+        const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
 
-      // Create if no config exists
-      if (dbConfig == null) {
-        const stored = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, _.get(this.createDefaultConfiguration(), [configKey]));
-        const hydrated = await this.hydrateSecretFields(configKey, stored);
-        const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
-        const createdRecord = await AppConfig.create({ branding: branding.id, configKey, configData: stored });
-        this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
-        return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);
-      }
+        // Create if no config exists
+        if (dbConfig == null) {
+          const stored = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, _.get(this.createDefaultConfiguration(), [configKey]));
+          const hydrated = await this.hydrateSecretFields(configKey, stored);
+          const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
+          const createdRecord = await AppConfig.create({ branding: branding.id, configKey, configData: stored });
+          this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
+          return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);
+        }
 
-      throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
+        throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
+      });
     }
 
     public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[] }> {
