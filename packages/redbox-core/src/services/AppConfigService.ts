@@ -175,6 +175,11 @@ export namespace Services {
       if (provider !== 'database' && provider !== 'aws-secrets-manager') {
         throw new Error('Unsupported appConfigSecrets.provider');
       }
+      const layout = sails.config.appConfigSecrets?.layout ?? 'per-field';
+      if (layout !== 'per-field' && layout !== 'brand-json') throw new Error('Unsupported appConfigSecrets.layout');
+      const bundle = provider === 'aws-secrets-manager' && layout === 'brand-json';
+      const changes = new Map<string, string | null>();
+      const bundledFields: Array<{ field: string[]; key: string }> = [];
       // References are backend-owned. Forms submit only values, masks, or clear markers.
       for (const field of this.getSecretPaths(configKey, incoming, true)) {
         const value: unknown = _.get(incoming, field);
@@ -185,7 +190,15 @@ export namespace Services {
       const stored = this.mergeSecretFields(configKey, incoming, existing) as AppConfigData;
       for (const field of this.getSecretPaths(configKey, stored, true)) {
         const value: unknown = _.get(stored, field);
-        if (isAppConfigSecretReference(value) || !this.shouldMaskSecretValue(value)) continue;
+        if (isAppConfigSecretReference(value)) {
+          if (bundle && value.$appConfigSecret.key === undefined) {
+            const key = JSON.stringify([configKey, ...field]);
+            changes.set(key, await this.getSecretStore().resolve(value));
+            bundledFields.push({ field, key });
+          }
+          continue;
+        }
+        if (!this.shouldMaskSecretValue(value)) continue;
         const previous: unknown = _.get(existing, field);
         if (isAppConfigSecretReference(previous)) {
           let previousValue: string | undefined;
@@ -196,15 +209,37 @@ export namespace Services {
             // Database mode must never turn an AWS reference into plaintext.
             if (provider !== 'aws-secrets-manager') throw error;
           }
-          if (value === previousValue) {
+          if (value === previousValue && (!bundle || previous.$appConfigSecret.key !== undefined)) {
             _.set(stored, field, previous);
             continue;
           }
         }
         if (provider === 'aws-secrets-manager') {
-          _.set(stored, field, await this.getSecretStore().store(brandId, configKey, JSON.stringify(field), String(value)));
+          if (bundle) {
+            const key = JSON.stringify([configKey, ...field]);
+            changes.set(key, String(value));
+            bundledFields.push({ field, key });
+          } else {
+            _.set(stored, field, await this.getSecretStore().store(brandId, configKey, JSON.stringify(field), String(value)));
+          }
         } else if (isAppConfigSecretReference(_.get(existing, field))) {
           throw new Error('Enable AWS Secrets Manager to replace an externally stored AppConfig secret');
+        }
+      }
+      if (bundle) {
+        // Remove cleared/omitted bundled fields without rewriting any other configuration key.
+        for (const field of this.getSecretPaths(configKey, existing)) {
+          const previous: unknown = _.get(existing, field);
+          if (isAppConfigSecretReference(previous) && previous.$appConfigSecret.key !== undefined && !this.shouldMaskSecretValue(_.get(stored, field))) {
+            changes.set(previous.$appConfigSecret.key, null);
+          }
+        }
+        if (changes.size > 0) {
+          const arn = await this.getSecretStore().storeBundle(brandId, changes);
+          if (bundledFields.length > 0 && !arn) throw new Error('AWS Secrets Manager did not return a bundle ARN');
+          for (const { field, key } of bundledFields) {
+            _.set(stored, field, { $appConfigSecret: { provider: 'aws-secrets-manager', arn: arn!, key } });
+          }
         }
       }
       return stored;
@@ -374,6 +409,16 @@ export namespace Services {
       if (this.reduceToLatestConfigRecords(appConfigItems).length !== appConfigItems.length) {
         sails.log.warn(`Duplicate appconfig records detected for branding '${brandId}'. Using the most recently updated record for each config key.`);
       }
+      // An explicit reload refreshes each distinct ARN once; all fields in a brand
+      // bundle share that request. Routine reads and saves reuse the resolved values.
+      const references = new Set<string>();
+      for (const item of latestAppConfigItems) {
+        for (const field of this.getSecretPaths(item.configKey, item.configData)) {
+          const value: unknown = _.get(item.configData, field);
+          if (isAppConfigSecretReference(value)) references.add(value.$appConfigSecret.arn);
+        }
+      }
+      for (const arn of references) this.secretStore?.invalidate(arn);
       for (const appConfigItem of latestAppConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, await this.hydrateSecretFields(appConfigItem.configKey, appConfigItem.configData));
       }
@@ -430,9 +475,10 @@ export namespace Services {
       }
     }
 
-    /** Keep same-key persistence and cache publication in order within this process. */
+    /** Order persistence/cache publication per key, or per brand for shared JSON bundles. */
     private async withConfigWriteLock<T>(brandId: string, configKey: string, write: () => Promise<T>): Promise<T> {
-      const key = JSON.stringify([brandId, configKey]);
+      const bundle = sails.config.appConfigSecrets?.provider === 'aws-secrets-manager' && sails.config.appConfigSecrets.layout === 'brand-json';
+      const key = JSON.stringify([brandId, bundle ? null : configKey]);
       const previous = this.configWriteGates.get(key) ?? Promise.resolve();
       let release!: () => void;
       const gate = new Promise<void>(resolve => { release = resolve; });

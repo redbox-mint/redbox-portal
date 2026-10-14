@@ -201,9 +201,22 @@ describe('AppConfigService', function () {
         expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
         expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK } });
         expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+        expect(send.callCount).to.equal(1); // Reuse the comparison for hydration.
         expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
       });
     }
+
+    it('makes zero AWS calls when a cached field secret is preserved or resubmitted unchanged', async function () {
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      service.brandingAppConfigMap.default = await service.loadAppConfigurationModel('brand1');
+      send.resetHistory();
+      for (const token of [APP_CONFIG_SECRET_MASK, 'aws-secret']) {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token }, label: 'edited' });
+      }
+      expect(send.called).to.equal(false);
+    });
 
     it('updates only the saved cache key and preserves defaults and present-key metadata', async function () {
       const symbol = Symbol.for('redbox.appConfig.presentKeys');
@@ -307,18 +320,13 @@ describe('AppConfigService', function () {
       expect(_.get(service.getAppConfigurationForBrand('default'), 'test.value')).to.equal(2);
     });
 
-    it('does not persist or update the cache when hydration of a newly created reference fails', async function () {
-      const cache = service.brandingAppConfigMap;
+    it('hydrates a newly created reference from the submitted value without an AWS read-back', async function () {
       send.withArgs(sinon.match.instanceOf(GetSecretValueCommand)).rejects(new Error('KMS AccessDenied arn:private'));
-      try {
-        await service.createConfig('default', 'test', { connection: { token: 'aws-secret' } });
-        expect.fail('Expected rejection');
-      } catch (error) {
-        expect(String(error)).to.equal('Error: Unable to resolve AppConfig secret in AWS Secrets Manager');
-      }
-      expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
-      expect(service.brandingAppConfigMap).to.equal(cache);
-      expect(JSON.stringify(mockSails.log.error.args)).not.to.contain('arn:private');
+      await service.createConfig('default', 'test', { connection: { token: 'aws-secret' } });
+      expect((AppConfig.create as unknown as sinon.SinonStub).calledOnce).to.equal(true);
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
+      expect(send.calledOnce).to.equal(true);
+      expect(send.firstCall.args[0]).to.be.instanceOf(CreateSecretCommand);
     });
 
     it('handles nested wildcard secrets with literal dynamic keys through their full lifecycle', async function () {
@@ -385,11 +393,12 @@ describe('AppConfigService', function () {
         expect(set.callCount).to.equal(2);
         expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
         expect(set.secondCall.args[0].configData.connection.token).to.deep.equal(reference);
-        send.rejects(new Error('AccessDenied private ARN'));
+        expect(send.callCount).to.equal(1); // Both later comparisons and hydration reuse this value.
+        set.rejects(new Error('Database unavailable'));
         configService.mergeHookConfig('test-hook', {}, []);
         await new Promise(resolve => setImmediate(resolve));
         expect(mockSails.log.error.calledWithMatch('Failed to apply branded AppConfig override')).to.equal(true);
-        expect(set.callCount).to.equal(2);
+        expect(set.callCount).to.equal(3); // Two successes, followed by the failed database attempt.
       } finally {
         globals.AppConfigService = original;
         delete require.cache[file];
