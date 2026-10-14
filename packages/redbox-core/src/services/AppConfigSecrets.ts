@@ -23,15 +23,17 @@ export function isAppConfigSecretReference(value: unknown): value is AppConfigSe
 
 interface SecretValue { arn: string; name?: string; value: string }
 interface BrandSecrets { format: 'redbox-appconfig-v1'; values: Record<string, string> }
+interface BundleLock { owner?: string; expiresAt: Date; cacheToken?: string }
 interface BundleLockCollection {
-  updateOne(filter: object, update: object, options?: object): Promise<unknown>;
-  deleteOne(filter: object): Promise<unknown>;
+  findOne(filter: object): Promise<BundleLock | null>;
+  updateOne(filter: object, update: object, options?: object): Promise<{ matchedCount: number }>;
 }
 
 /** Cached reads for both immutable field secrets and mutable brand bundles. */
 export class AppConfigSecrets {
   private client: SecretsManagerClient;
   private values = new Map<string, Promise<SecretValue>>();
+  private bundleTokens = new Map<string, string>();
 
   constructor(private config: AppConfigSecretsConfig) {
     this.client = new SecretsManagerClient({ region: config.region });
@@ -102,11 +104,38 @@ export class AppConfigSecrets {
     return parsed as BrandSecrets;
   }
 
-  /** A lease covers all portal nodes, since Secrets Manager has no conditional JSON update. */
-  private async withBundleLock<T>(name: string, write: (signal: AbortSignal, deadline: number) => Promise<T>): Promise<T> {
+  private bundleName(brandId: string): string {
+    const scope = createHash('sha256').update(brandId).digest('hex');
+    return `${this.getPrefix()}/brands/${scope}`;
+  }
+
+  private lockCollection(): BundleLockCollection {
     const model = AppConfig as unknown as { getDatastore?: () => { manager?: { collection?: (name: string) => BundleLockCollection } } };
     const collection = model.getDatastore?.().manager?.collection?.('appconfigsecretlocks');
     if (!collection) throw new Error('Bundled AppConfig secrets require MongoDB write coordination');
+    return collection;
+  }
+
+  private synchronizeBundleCache(name: string, token: string): void {
+    if (this.bundleTokens.get(name) !== token) this.invalidate(name);
+    this.bundleTokens.set(name, token);
+  }
+
+  /** Mongo-only freshness check before comparisons or hydration during saves/reloads. */
+  async synchronizeBundle(brandId: string): Promise<void> {
+    const name = this.bundleName(brandId);
+    let lock: BundleLock | null;
+    try { lock = await this.lockCollection().findOne({ _id: name }); }
+    catch { throw new Error('Unable to coordinate AppConfig secret update'); }
+    if (lock?.owner && lock.expiresAt.getTime() > Date.now()) {
+      throw new Error('Another AppConfig secret update is in progress for this brand. Retry shortly.');
+    }
+    this.synchronizeBundleCache(name, lock?.cacheToken ?? '');
+  }
+
+  /** A lease covers all portal nodes, since Secrets Manager has no conditional JSON update. */
+  private async withBundleLock<T>(name: string, write: (signal: AbortSignal, deadline: number, collection: BundleLockCollection, owner: string, token: string) => Promise<T>): Promise<T> {
+    const collection = this.lockCollection();
     const owner = randomUUID();
     const now = Date.now();
     try {
@@ -125,13 +154,19 @@ export class AppConfigSecrets {
     const timeout = setTimeout(() => controller.abort(), Math.max(remaining, 0));
     try {
       if (remaining <= 0) throw new Error('AppConfig secret write lease acquisition timed out');
-      return await write(controller.signal, now + 30_000);
+      let lock: BundleLock | null;
+      try { lock = await collection.findOne({ _id: name, owner }); }
+      catch { throw new Error('Unable to coordinate AppConfig secret update'); }
+      if (!lock) throw new Error('Unable to coordinate AppConfig secret update');
+      return await write(controller.signal, now + 30_000, collection, owner, lock.cacheToken ?? '');
     } finally {
       clearTimeout(timeout);
       if (Date.now() >= now + 30_000) controller.abort();
       // An aborted request may still finish at AWS. Leave its lease until expiry.
       if (!controller.signal.aborted) {
-        try { await collection.deleteOne({ _id: name, owner }); }
+        // Keep the freshness token after release; it is cache invalidation metadata,
+        // not a stored secret version or rollback history.
+        try { await collection.updateOne({ _id: name, owner }, { $set: { expiresAt: new Date(0) }, $unset: { owner: '' } }); }
         catch { sails.log.error('Unable to release AppConfig secret write lease; it will expire automatically.'); }
       }
     }
@@ -139,18 +174,22 @@ export class AppConfigSecrets {
 
   /** Merge only explicitly changed fields into the current brand JSON; never send cached snapshots. */
   async storeBundle(brandId: string, changes: ReadonlyMap<string, string | null>): Promise<string | undefined> {
-    const scope = createHash('sha256').update(brandId).digest('hex');
-    const name = `${this.getPrefix()}/brands/${scope}`;
-    const cached = this.values.get(name);
-    if (cached) {
-      const secret = await cached;
-      const bundle = this.parseBundle(secret.value);
-      const unchanged = [...changes].every(([key, value]) => value === null
-        ? !Object.prototype.hasOwnProperty.call(bundle.values, key)
-        : Object.prototype.hasOwnProperty.call(bundle.values, key) && bundle.values[key] === value);
-      if (unchanged) return secret.arn;
-    }
-    return this.withBundleLock(name, (signal, deadline) => this.safeAwsCall('store', async () => {
+    const name = this.bundleName(brandId);
+    return this.withBundleLock(name, (signal, deadline, collection, owner, token) => this.safeAwsCall('store', async () => {
+      this.synchronizeBundleCache(name, token);
+      const cached = this.values.get(name);
+      if (cached) {
+        try {
+          const secret = await cached;
+          const bundle = this.parseBundle(secret.value);
+          const unchanged = [...changes].every(([key, value]) => value === null
+            ? !Object.prototype.hasOwnProperty.call(bundle.values, key)
+            : Object.prototype.hasOwnProperty.call(bundle.values, key) && bundle.values[key] === value);
+          if (unchanged) return secret.arn;
+        } catch {
+          // An in-flight read can fail. Retry under the lease with normal redaction.
+        }
+      }
       let current: SecretValue | undefined;
       try { current = await this.fetch(name, signal); }
       catch (error: unknown) {
@@ -172,6 +211,11 @@ export class AppConfigSecrets {
       }
       const value = JSON.stringify(bundle);
       if (Buffer.byteLength(value, 'utf8') > 65_536) throw new Error('AppConfig secret bundle exceeds the AWS 64 KiB limit');
+      // Invalidate other nodes BEFORE dispatch: a failed/aborted AWS request may
+      // still commit. Never leave their old caches marked as current in that case.
+      const nextToken = randomUUID();
+      const marked = await collection.updateOne({ _id: name, owner }, { $set: { cacheToken: nextToken } });
+      if (marked.matchedCount !== 1) throw new Error('AppConfig secret write lease was lost');
       if (signal.aborted || Date.now() >= deadline) throw new Error('AppConfig secret write timed out');
       const result = current
         ? await this.client.send(new PutSecretValueCommand({ SecretId: current.arn, SecretString: value }), { abortSignal: signal })
@@ -182,6 +226,7 @@ export class AppConfigSecrets {
       const arn = result.ARN ?? current?.arn;
       if (!arn) throw new Error('AWS Secrets Manager did not return a secret ARN');
       this.remember({ arn, name, value });
+      this.bundleTokens.set(name, nextToken);
       return arn;
     }));
   }

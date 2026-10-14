@@ -187,6 +187,11 @@ export namespace Services {
           throw new Error(`AppConfig secret field '${field.join('.')}' must be a string`);
         }
       }
+      const hasBundledReferences = this.getSecretPaths(configKey, existing).some(field => {
+        const value: unknown = _.get(existing, field);
+        return isAppConfigSecretReference(value) && value.$appConfigSecret.key !== undefined;
+      });
+      if (bundle || hasBundledReferences) await this.getSecretStore().synchronizeBundle(brandId);
       const stored = this.mergeSecretFields(configKey, incoming, existing) as AppConfigData;
       for (const field of this.getSecretPaths(configKey, stored, true)) {
         const value: unknown = _.get(stored, field);
@@ -200,7 +205,9 @@ export namespace Services {
         }
         if (!this.shouldMaskSecretValue(value)) continue;
         const previous: unknown = _.get(existing, field);
-        if (isAppConfigSecretReference(previous)) {
+        // Bundled plaintext comparisons run under the distributed lease in
+        // storeBundle, so a stale local value cannot suppress a requested change.
+        if (isAppConfigSecretReference(previous) && !(bundle && previous.$appConfigSecret.key !== undefined)) {
           let previousValue: string | undefined;
           try {
             previousValue = await this.getSecretStore().resolve(previous);
@@ -412,13 +419,18 @@ export namespace Services {
       // An explicit reload refreshes each distinct ARN once; all fields in a brand
       // bundle share that request. Routine reads and saves reuse the resolved values.
       const references = new Set<string>();
+      let hasBundledReferences = false;
       for (const item of latestAppConfigItems) {
         for (const field of this.getSecretPaths(item.configKey, item.configData)) {
           const value: unknown = _.get(item.configData, field);
-          if (isAppConfigSecretReference(value)) references.add(value.$appConfigSecret.arn);
+          if (isAppConfigSecretReference(value)) {
+            references.add(value.$appConfigSecret.arn);
+            hasBundledReferences ||= value.$appConfigSecret.key !== undefined;
+          }
         }
       }
       for (const arn of references) this.secretStore?.invalidate(arn);
+      if (hasBundledReferences) await this.getSecretStore().synchronizeBundle(brandId);
       for (const appConfigItem of latestAppConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, await this.hydrateSecretFields(appConfigItem.configKey, appConfigItem.configData));
       }

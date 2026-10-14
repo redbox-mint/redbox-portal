@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { AppConfigSecrets } from '../../src/services/AppConfigSecrets';
-import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals, createBundleLockCollection } from './testHelper';
 
 describe('AppConfigSecrets', function () {
   const config = { provider: 'aws-secrets-manager' as const, region: 'ap-southeast-2', namePrefix: 'test/appconfig' };
@@ -11,24 +11,14 @@ describe('AppConfigSecrets', function () {
   let send: sinon.SinonStub;
   let awsSend: (command: CreateSecretCommand | GetSecretValueCommand | PutSecretValueCommand) => Promise<unknown>;
   let secrets: Map<string, { arn: string; name: string; value: string }>;
-  let locks: Map<string, { owner: string; expiresAt: Date }>;
+  let locks: ReturnType<typeof createBundleLockCollection>;
 
   beforeEach(function () {
     setupServiceTestGlobals(createMockSails());
     secrets = new Map();
-    locks = new Map();
+    locks = createBundleLockCollection();
     (globalThis as unknown as Record<string, unknown>).AppConfig = {
-      getDatastore: () => ({ manager: { collection: () => ({
-        updateOne: async (filter: { _id: string; expiresAt: { $lte: Date } }, update: { $set: { owner: string; expiresAt: Date } }) => {
-          const lock = locks.get(filter._id);
-          if (lock && lock.expiresAt > filter.expiresAt.$lte) throw Object.assign(new Error('Duplicate key'), { code: 11000 });
-          locks.set(filter._id, update.$set);
-          return { matchedCount: lock ? 1 : 0 };
-        },
-        deleteOne: async (filter: { _id: string; owner: string }) => {
-          if (locks.get(filter._id)?.owner === filter.owner) locks.delete(filter._id);
-        }
-      }) } })
+      getDatastore: () => ({ manager: { collection: () => locks } })
     };
     awsSend = async command => {
       if (command instanceof CreateSecretCommand) {
@@ -113,6 +103,64 @@ describe('AppConfigSecrets', function () {
     expect(calls(CreateSecretCommand)).to.equal(0);
   });
 
+  it('clears a field added by another node after this node cached the bundle', async function () {
+    const arn = (await store.storeBundle('brand1', new Map([['a', 'original']])))!;
+    const otherProcess = new AppConfigSecrets(config);
+    await otherProcess.storeBundle('brand1', new Map([['token', 'new-on-other-node']]));
+    send.resetHistory();
+    await store.storeBundle('brand1', new Map([['token', null]]));
+    expect(JSON.parse(secrets.get(arn)!.value).values).to.deep.equal({ a: 'original' });
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    expect(calls(PutSecretValueCommand)).to.equal(1);
+  });
+
+  it('reapplies an explicitly submitted value even when an old cache contains it', async function () {
+    const arn = (await store.storeBundle('brand1', new Map([['token', 'original']])))!;
+    const otherProcess = new AppConfigSecrets(config);
+    await otherProcess.storeBundle('brand1', new Map([['token', 'new-on-other-node']]));
+    send.resetHistory();
+    await store.storeBundle('brand1', new Map([['token', 'original']]));
+    expect(JSON.parse(secrets.get(arn)!.value).values).to.deep.equal({ token: 'original' });
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    expect(calls(PutSecretValueCommand)).to.equal(1);
+  });
+
+  it('invalidates other nodes before a write that commits but returns an error', async function () {
+    const arn = (await store.storeBundle('brand1', new Map([['token', 'original']])))!;
+    const otherProcess = new AppConfigSecrets(config);
+    await otherProcess.storeBundle('brand1', new Map([['token', 'original']]));
+    send.callsFake(async command => {
+      const result = await awsSend(command);
+      if (command instanceof PutSecretValueCommand) throw new Error('Connection lost after commit');
+      return result;
+    });
+    try { await store.storeBundle('brand1', new Map([['token', 'changed']])); expect.fail('Expected rejection'); }
+    catch (error) { expect(String(error)).to.contain('Unable to store'); }
+    send.callsFake(awsSend);
+    send.resetHistory();
+    await otherProcess.storeBundle('brand1', new Map([['token', 'original']]));
+    expect(JSON.parse(secrets.get(arn)!.value).values).to.deep.equal({ token: 'original' });
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    expect(calls(PutSecretValueCommand)).to.equal(1);
+  });
+
+  it('retries a rejected in-flight cached read without exposing the raw AWS error', async function () {
+    const arn = (await store.storeBundle('brand1', new Map([['token', 'original']])))!;
+    const name = secrets.get(arn)!.name;
+    store.invalidate(arn);
+    let rejectRead!: (error: Error) => void;
+    send.onCall(send.callCount).callsFake(async () => new Promise((_resolve, reject) => { rejectRead = reject; }));
+    // Secrets Manager accepts names as IDs too; seed the same alias storeBundle checks.
+    const resolving = store.resolve(reference(name, 'token')).catch(error => error);
+    await new Promise(resolve => setImmediate(resolve));
+    const saving = store.storeBundle('brand1', new Map([['token', 'changed']]));
+    await new Promise(resolve => setImmediate(resolve));
+    rejectRead(Object.assign(new Error('Access denied arn:private value=secret'), { name: 'AccessDeniedException' }));
+    expect(String(await resolving)).to.equal('Error: Unable to resolve AppConfig secret in AWS Secrets Manager');
+    expect(await saving).to.equal(arn);
+    expect(await store.resolve(reference(arn, 'token'))).to.equal('changed');
+  });
+
   it('keeps separate brands in separate secrets', async function () {
     const first = await store.storeBundle('first-brand', new Map([['token', 'first']]));
     const second = await store.storeBundle('second-brand', new Map([['token', 'second']]));
@@ -132,9 +180,9 @@ describe('AppConfigSecrets', function () {
     expect(send.callCount).to.equal(1);
     release();
     await first;
-    expect(locks.size).to.equal(0);
+    expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
     await otherProcess.storeBundle('brand1', new Map([['b', 'second']]));
-    expect(locks.size).to.equal(0);
+    expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
   });
 
   it('fails closed without MongoDB write coordination', async function () {
@@ -150,7 +198,7 @@ describe('AppConfigSecrets', function () {
     catch (error) { expect(String(error)).to.contain('Unable to store'); }
     expect(calls(CreateSecretCommand)).to.equal(0);
     expect(calls(PutSecretValueCommand)).to.equal(0);
-    expect(locks.size).to.equal(0);
+    expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
   });
 
   it('sanitizes bundle update errors and leaves the previous cached value available', async function () {
@@ -162,7 +210,7 @@ describe('AppConfigSecrets', function () {
     try { await store.storeBundle('brand1', new Map([['token', 'changed']])); expect.fail('Expected rejection'); }
     catch (error) { expect(String(error)).to.equal('Error: Unable to store AppConfig secret in AWS Secrets Manager'); }
     expect(await store.resolve(reference(arn, 'token'))).to.equal('original');
-    expect(locks.size).to.equal(0);
+    expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
   });
 
   it('aborts slow requests and keeps their lease until expiry before allowing recovery', async function () {
@@ -176,12 +224,12 @@ describe('AppConfigSecrets', function () {
     await new Promise(resolve => setImmediate(resolve));
     await clock.tickAsync(30_001);
     expect(String(await result)).to.contain('Unable to store');
-    expect(locks.size).to.equal(1);
+    expect([...locks.documents.values()].filter(lock => lock.owner)).to.have.length(1);
     send.callsFake(awsSend);
     await clock.tickAsync(90_000);
     const recovered = new AppConfigSecrets(config);
     await recovered.storeBundle('brand1', new Map([['token', 'recovered']]));
-    expect(locks.size).to.equal(0);
+    expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
     clock.restore();
   });
 

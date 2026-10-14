@@ -3,14 +3,14 @@ import * as sinon from 'sinon';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
-import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
+import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals, createBundleLockCollection } from './testHelper';
 
 describe('AppConfig per-brand JSON bundles', function () {
   const brand = { id: 'brand1', name: 'default' };
   type Row = { branding: string; configKey: string; configData: Record<string, unknown> };
   let service: Services.AppConfigs;
   let rows: Row[];
-  let secrets: Map<string, { arn: string; value: string }>;
+  let secrets: Map<string, { arn: string; name?: string; value: string }>;
   let send: sinon.SinonStub;
   let persist: sinon.SinonStub;
 
@@ -26,19 +26,20 @@ describe('AppConfig per-brand JSON bundles', function () {
       return row;
     });
     const globals = globalThis as unknown as Record<string, unknown>;
+    const locks = createBundleLockCollection();
     globals.BrandingService = { getBrand: () => brand };
     globals.AppConfig = {
       find: async (criteria: { configKey?: string }) => rows.filter(row => !criteria.configKey || row.configKey === criteria.configKey),
       create: async (data: Row) => { rows.push(data); return data; },
       updateOne: (criteria: object) => ({ set: (data: object) => persist(criteria, data) }),
-      getDatastore: () => ({ manager: { collection: () => ({ updateOne: async () => ({}), deleteOne: async () => ({}) }) } })
+      getDatastore: () => ({ manager: { collection: () => locks } })
     };
     sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
     sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'BundleModel', class: class {}, schema: {}, secretFields: ['connection.token', 'connection.password', 'sites.*.ingestion.adminToken'] });
     send = sinon.stub(SecretsManagerClient.prototype, 'send').callsFake(async command => {
       if (command instanceof CreateSecretCommand) {
         const name = command.input.Name!;
-        const secret = { arn: `arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:${name}-123456`, value: command.input.SecretString! };
+        const secret = { arn: `arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:${name}-123456`, name, value: command.input.SecretString! };
         secrets.set(name, secret);
         secrets.set(secret.arn, secret);
         return { ARN: secret.arn, Name: name };
@@ -46,7 +47,7 @@ describe('AppConfig per-brand JSON bundles', function () {
       const secret = secrets.get(command.input.SecretId);
       if (!secret) throw Object.assign(new Error('Missing'), { name: 'ResourceNotFoundException' });
       if (command instanceof PutSecretValueCommand) secret.value = command.input.SecretString!;
-      return { ARN: secret.arn, SecretString: secret.value };
+      return { ARN: secret.arn, Name: secret.name, SecretString: secret.value };
     });
     service = new Services.AppConfigs();
   });
@@ -107,6 +108,54 @@ describe('AppConfig per-brand JSON bundles', function () {
     expect(calls(PutSecretValueCommand)).to.equal(1);
     expect(send.callCount).to.equal(2);
     expect(_.get(service.getAppConfigurationForBrand('default'), 'first.connection.password')).to.equal('changed-two');
+  });
+
+  it('refreshes stale bundled passwords on masked saves after another node changes them', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    const otherProcess = new Services.AppConfigs();
+    await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
+    send.resetHistory();
+    await service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK }, label: 'edited' });
+    expect(_.get(service.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('two');
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    expect(calls(PutSecretValueCommand)).to.equal(0);
+    send.resetHistory();
+    await service.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
+    expect(send.called).to.equal(false);
+  });
+
+  it('resubmits an older plaintext value after another node changes the password', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    const otherProcess = new Services.AppConfigs();
+    await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
+    send.resetHistory();
+    await service.createOrUpdateConfig(brand, 'first', { connection: { token: 'one' } });
+    expect(JSON.parse(secrets.get(stored('first').arn)!.value).values['["first","connection","token"]']).to.equal('one');
+    expect(_.get(service.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('one');
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    expect(calls(PutSecretValueCommand)).to.equal(1);
+  });
+
+  it('clears a password added by another node after this node loaded the brand', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    const arn = stored('first').arn;
+    const otherProcess = new Services.AppConfigs();
+    await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK, password: 'two' } });
+    send.resetHistory();
+    await service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK, password: APP_CONFIG_SECRET_CLEAR } });
+    expect(JSON.parse(secrets.get(arn)!.value).values).to.deep.equal({ '["first","connection","token"]': 'one' });
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    expect(calls(PutSecretValueCommand)).to.equal(1);
+  });
+
+  it('keeps unchanged saves free of AWS calls after an explicit reload', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    const otherProcess = new Services.AppConfigs();
+    otherProcess.brandingAppConfigMap.default = await otherProcess.loadAppConfigurationModel('brand1');
+    send.resetHistory();
+    await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'one' } });
+    await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } });
+    expect(send.called).to.equal(false);
   });
 
   it('removes cleared and omitted fields while preserving other configurations and literal site keys', async function () {
