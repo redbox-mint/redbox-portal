@@ -1,6 +1,10 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { provideZoneChangeDetection } from '@angular/core';
+import { platformBrowser } from '@angular/platform-browser';
 
 import { SiemAdminModule } from './app/siem-admin.module';
 
-platformBrowserDynamic().bootstrapModule(SiemAdminModule)
+platformBrowser()
+  .bootstrapModule(SiemAdminModule, {
+    applicationProviders: [provideZoneChangeDetection()],
+  })
   .catch(err => console.error(err));

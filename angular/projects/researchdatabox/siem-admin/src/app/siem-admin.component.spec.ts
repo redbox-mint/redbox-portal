@@ -1,4 +1,5 @@
 import { APP_BASE_HREF } from '@angular/common';
+import { provideZoneChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import {
@@ -70,6 +71,7 @@ describe('SiemAdminComponent', () => {
       declarations: [SiemAdminComponent],
       imports: [FormsModule, RedboxPortalCoreModule],
       providers: [
+        provideZoneChangeDetection(),
         LoggerService,
         { provide: APP_BASE_HREF, useValue: 'base' },
         {
