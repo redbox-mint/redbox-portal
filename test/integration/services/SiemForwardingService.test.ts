@@ -170,7 +170,7 @@ describe('The SiemForwardingService', function () {
       expect((await SecurityEvent.findOne({ eventId: enabledId })).deliveryState).to.equal('delivered');
       expect(await SiemDeliveryAttempt.count({ eventId: enabledId })).to.equal(1);
       expect(requests).to.have.length(1);
-      expect(JSON.parse(requests[0]).map(entry => entry.event.eventId)).to.deep.equal([enabledId]);
+      expect(JSON.parse(requests[0]).event.eventId).to.equal(enabledId);
       await assertUnrelatedRowsUnchanged();
     } finally {
       await new Promise<void>(resolve => receiver.close(() => resolve()));
@@ -257,7 +257,7 @@ describe('The SiemForwardingService', function () {
       const job = { attrs: { data: { brandId } } };
       await Promise.all(Array.from({ length: 8 }, () => siemForwardingService.forwardSecurityEvents(job)));
       expect(requests).to.have.length(1);
-      expect(JSON.parse(requests[0])[0].event.eventId).to.equal(eventId);
+      expect(JSON.parse(requests[0]).event.eventId).to.equal(eventId);
       const row = await SecurityEvent.findOne({ eventId });
       expect(row.deliveryState).to.equal('delivered');
       expect(row.destinationStates.receiver.status).to.equal('success');

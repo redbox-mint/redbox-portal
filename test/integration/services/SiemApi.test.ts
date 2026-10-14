@@ -47,7 +47,7 @@ describe('SIEM authenticated HTTP API', function () {
     const admin = await User.findOne({ username: adminUsername });
     if (!admin) throw new Error('Missing bootstrapped integration admin');
     adminId = admin.id;
-    originalAdminToken = admin.token;
+    originalAdminToken = admin.token ?? null;
     await firstValueFrom(UsersService.setUserKey(adminId, configuredToken));
     token = configuredToken;
     for (const [index, eventId] of eventIds.entries()) {
@@ -134,6 +134,26 @@ describe('SIEM authenticated HTTP API', function () {
       numbers.push(...rows.map(row => object(row).attemptNumber));
     }
     expect(numbers).to.deep.equal([4, 3, 2, 1]);
+  });
+
+  it('filters events and delivery attempts by the instants in offset date bounds', async function () {
+    const dates = new URLSearchParams({
+      startDate: '2026-01-01T10:00:01+10:00',
+      endDate: '2025-12-31T19:00:02-05:00',
+    });
+    const events = await request(`events?eventType=${prefix}&${dates}`);
+    expect(events.status).to.equal(200);
+    expect(events.data.total).to.equal(2);
+    const eventRows = events.data.rows;
+    if (!Array.isArray(eventRows)) throw new Error('Expected events');
+    expect(eventRows.map(row => object(row).eventId)).to.deep.equal([eventIds[2], eventIds[1]]);
+
+    const attempts = await request(`delivery-status?eventId=${eventIds[0]}&${dates}`);
+    expect(attempts.status).to.equal(200);
+    expect(attempts.data.total).to.equal(2);
+    const attemptRows = attempts.data.rows;
+    if (!Array.isArray(attemptRows)) throw new Error('Expected attempts');
+    expect(attemptRows.map(row => object(row).attemptNumber)).to.deep.equal([3, 2]);
   });
 
   it('masks custom credentials and leaves persisted config unchanged after invalid saves', async function () {

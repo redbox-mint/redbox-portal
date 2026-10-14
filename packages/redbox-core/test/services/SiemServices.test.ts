@@ -45,11 +45,14 @@ describe('SIEM services and helpers', function () {
   });
 
   it('redacts sensitive nested payload fields and limits oversized payloads', function () {
-    const redacted: any = redactForSiem({
-      actor: { email: 'hidden@example.edu', name: 'Visible Name' },
-      requestContext: { ipAddress: '127.0.0.1', headers: { Authorization: 'Bearer secret' } },
-      payload: { token: 'secret-token', tokenCount: 2, safe: 'visible' },
-    }, DEFAULT_SIEM_REDACTION);
+    const redacted: any = redactForSiem(
+      {
+        actor: { email: 'hidden@example.edu', name: 'Visible Name' },
+        requestContext: { ipAddress: '127.0.0.1', headers: { Authorization: 'Bearer secret' } },
+        payload: { token: 'secret-token', tokenCount: 2, safe: 'visible' },
+      },
+      DEFAULT_SIEM_REDACTION
+    );
 
     expect(redacted.actor).not.to.have.property('email');
     expect(redacted.requestContext).not.to.have.property('ipAddress');
@@ -64,13 +67,16 @@ describe('SIEM services and helpers', function () {
   });
 
   it('does not redact fields merely because their key contains a denylisted word', function () {
-    const redacted: any = redactForSiem({
-      payload: {
-        token: 'secret-token',
-        tokenCount: 2,
-        authenticationTokenExpiry: '2026-01-01T00:00:00.000Z',
+    const redacted: any = redactForSiem(
+      {
+        payload: {
+          token: 'secret-token',
+          tokenCount: 2,
+          authenticationTokenExpiry: '2026-01-01T00:00:00.000Z',
+        },
       },
-    }, DEFAULT_SIEM_REDACTION);
+      DEFAULT_SIEM_REDACTION
+    );
 
     expect(redacted.payload.token).to.equal('[REDACTED]');
     expect(redacted.payload.tokenCount).to.equal(2);
@@ -90,27 +96,32 @@ describe('SIEM services and helpers', function () {
       payload: { ok: true },
     } as any;
 
-    const splunkPayload = await Effect.runPromise(buildSiemPayload([event], {
-      id: 'splunk',
-      name: 'Splunk',
-      enabled: true,
-      adapterType: 'splunk-hec-json',
-      endpointUrl: 'https://splunk.example/services/collector',
-      token: 'token-1',
-    }));
+    const splunkPayload = await Effect.runPromise(
+      buildSiemPayload([event], {
+        id: 'splunk',
+        name: 'Splunk',
+        enabled: true,
+        adapterType: 'splunk-hec-json',
+        endpointUrl: 'https://splunk.example/services/collector',
+        token: 'token-1',
+      })
+    );
 
     expect(splunkPayload.headers.Authorization).to.equal('Splunk token-1');
-    expect(splunkPayload.body).to.be.an('array');
-    expect((splunkPayload.body as any[])[0].event.eventId).to.equal('event-1');
+    expect(splunkPayload.headers['Content-Type']).to.equal('application/json');
+    expect(splunkPayload.body).to.be.a('string');
+    expect(JSON.parse(String(splunkPayload.body)).event.eventId).to.equal('event-1');
 
-    const otlpPayload = await Effect.runPromise(buildSiemPayload([event], {
-      id: 'otlp',
-      name: 'OTLP',
-      enabled: true,
-      adapterType: 'otel-otlp-logs',
-      endpointUrl: 'https://otel.example/v1/logs',
-      token: 'token-2',
-    }));
+    const otlpPayload = await Effect.runPromise(
+      buildSiemPayload([event], {
+        id: 'otlp',
+        name: 'OTLP',
+        enabled: true,
+        adapterType: 'otel-otlp-logs',
+        endpointUrl: 'https://otel.example/v1/logs',
+        token: 'token-2',
+      })
+    );
 
     expect(otlpPayload.headers.Authorization).to.equal('Bearer token-2');
     expect((otlpPayload.body as any).resourceLogs[0].scopeLogs[0].logRecords[0].severityText).to.equal('info');
@@ -129,24 +140,28 @@ describe('SIEM services and helpers', function () {
       payload: { ok: true },
     } as any;
 
-    const cefPayload = await Effect.runPromise(buildSiemPayload([event], {
-      id: 'cef',
-      name: 'CEF',
-      enabled: true,
-      adapterType: 'cef',
-      endpointUrl: 'https://cef.example/logs',
-    }));
+    const cefPayload = await Effect.runPromise(
+      buildSiemPayload([event], {
+        id: 'cef',
+        name: 'CEF',
+        enabled: true,
+        adapterType: 'cef',
+        endpointUrl: 'https://cef.example/logs',
+      })
+    );
 
     expect(cefPayload.body).to.contain('record.create\\|injected\tattribute\\\\tail');
     expect(cefPayload.body).to.contain('recordLifecycle\\|shifted\\\\category');
 
-    const leefPayload = await Effect.runPromise(buildSiemPayload([event], {
-      id: 'leef',
-      name: 'LEEF',
-      enabled: true,
-      adapterType: 'leef',
-      endpointUrl: 'https://leef.example/logs',
-    }));
+    const leefPayload = await Effect.runPromise(
+      buildSiemPayload([event], {
+        id: 'leef',
+        name: 'LEEF',
+        enabled: true,
+        adapterType: 'leef',
+        endpointUrl: 'https://leef.example/logs',
+      })
+    );
 
     expect(leefPayload.body).to.contain('record.create%7Cinjected%09attribute%5Ctail');
     expect(leefPayload.body).to.not.contain('injected\tattribute');
@@ -154,13 +169,15 @@ describe('SIEM services and helpers', function () {
 
   it('fails payload construction for unsupported adapter types', async function () {
     try {
-      await Effect.runPromise(buildSiemPayload([], {
-        id: 'unsupported',
-        name: 'Unsupported',
-        enabled: true,
-        adapterType: 'unsupported' as any,
-        endpointUrl: 'https://example.invalid',
-      }));
+      await Effect.runPromise(
+        buildSiemPayload([], {
+          id: 'unsupported',
+          name: 'Unsupported',
+          enabled: true,
+          adapterType: 'unsupported' as any,
+          endpointUrl: 'https://example.invalid',
+        })
+      );
       expect.fail('Expected unsupported adapter to fail');
     } catch (error) {
       expect(String(error)).to.contain('Unsupported SIEM adapter');
@@ -234,5 +251,4 @@ describe('SIEM services and helpers', function () {
 
     expect(queue.now.called).to.equal(false);
   });
-
 });

@@ -81,7 +81,8 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
       'constructor.secret': 'constructor-dotted-credential',
       'prototype.secret': 'prototype-dotted-credential',
       '__proto__.secret': 'proto-dotted-credential',
-      'X-Test': 'public-value',
+      'X-Test': 'fixture-secret',
+      Accept: 'application/json',
     };
     const config = normalizeSiemConfiguration({ destinations: [{ ...target, headers }] });
     Reflect.set(global, 'AppConfig', { find: sinon.stub().resolves([{ configData: config }]), create, updateOne });
@@ -89,7 +90,7 @@ describe('SIEM shared header validation and generic AppConfig boundaries', () =>
     assert.deepEqual(
       Reflect.get(Object(masked), 'destinations')[0].headers,
       Object.fromEntries(
-        Object.keys(headers).map(name => [name, name === 'X-Test' ? 'public-value' : APP_CONFIG_SECRET_MASK])
+        Object.keys(headers).map(name => [name, name === 'Accept' ? 'application/json' : APP_CONFIG_SECRET_MASK])
       )
     );
     assert.deepEqual(config.destinations[0].headers, headers);

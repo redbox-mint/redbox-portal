@@ -171,7 +171,7 @@ export namespace Controllers {
       if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value) || Number.isNaN(Date.parse(value))) {
         throw new Error(`${fieldName} must be a valid ISO date string.`);
       }
-      return value;
+      return new Date(value).toISOString();
     }
 
     private sanitizeListQuery(query: Record<string, unknown>, options: QueryOptions): Record<string, unknown> {

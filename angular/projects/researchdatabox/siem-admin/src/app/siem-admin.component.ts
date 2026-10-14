@@ -44,7 +44,7 @@ interface TestState {
   selector: 'siem-admin',
   templateUrl: './siem-admin.component.html',
   styleUrls: ['./siem-admin.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class SiemAdminComponent extends BaseComponent {
   readonly displayDateFormat = 'dd/MM/yyyy HH:mm';
@@ -114,11 +114,7 @@ export class SiemAdminComponent extends BaseComponent {
   }
 
   public async refresh(): Promise<void> {
-    await Promise.all([
-      this.loadConfig(),
-      this.loadEvents(0),
-      this.loadDelivery(0),
-    ]);
+    await Promise.all([this.loadConfig(), this.loadEvents(0), this.loadDelivery(0)]);
   }
 
   public setActiveTab(tab: TabId): void {
@@ -268,6 +264,18 @@ export class SiemAdminComponent extends BaseComponent {
     const [moved] = destinations.splice(index, 1);
     destinations.splice(target, 0, moved);
     this.draft.destinations = destinations;
+  }
+
+  public changeAdapter(destination: SiemDestinationConfig, adapter: SiemAdapterType): void {
+    destination.adapterType = adapter;
+    // Hidden credentials cannot be replaced or cleared from the new adapter's form.
+    if (!this.showsTokenField(adapter)) {
+      delete destination.token;
+    }
+    if (!this.showsUsernamePasswordFields(adapter)) {
+      delete destination.username;
+      delete destination.password;
+    }
   }
 
   public showsTokenField(adapter: SiemAdapterType): boolean {
@@ -541,7 +549,6 @@ export class SiemAdminComponent extends BaseComponent {
     return Object.keys(result).length > 0 ? result : undefined;
   }
 
-
   private summarize(value?: Record<string, unknown>): string | undefined {
     if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
       return undefined;
@@ -603,8 +610,11 @@ export class SiemAdminComponent extends BaseComponent {
   private getErrorMessage(error: unknown, fallbackKey: string): string {
     if (error && typeof error === 'object') {
       const nestedError: unknown = Reflect.get(error, 'error');
-      const detail: unknown = nestedError && typeof nestedError === 'object' ? Reflect.get(nestedError, 'detail') : undefined;
-      const message: unknown = (nestedError && typeof nestedError === 'object' ? Reflect.get(nestedError, 'message') : undefined) ?? Reflect.get(error, 'message');
+      const detail: unknown =
+        nestedError && typeof nestedError === 'object' ? Reflect.get(nestedError, 'detail') : undefined;
+      const message: unknown =
+        (nestedError && typeof nestedError === 'object' ? Reflect.get(nestedError, 'message') : undefined) ??
+        Reflect.get(error, 'message');
       if (typeof detail === 'string' && detail.trim()) {
         return detail;
       }

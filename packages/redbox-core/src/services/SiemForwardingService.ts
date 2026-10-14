@@ -7,7 +7,7 @@ import { buildSiemPayload, deliverSiemPayload, SiemHttpError, SiemAdapterError }
 import { redactForSiem } from './siem/SiemPayloadRedactor';
 import type { SiemDeliveryResult, SiemTestInput } from './siem/SiemTypes';
 
-import { claimDelivery, deliveryCollection, readProgress, readyEventsFilter, saveDelivery } from './siem/SiemDeliveryStore';
+import { claimDelivery, deliveryCollection, ensureSiemDeliveryStorage, readProgress, readyEventsFilter, saveDelivery } from './siem/SiemDeliveryStore';
 import type { DestinationProgress } from './siem/SiemDeliveryStore';
 
 type AgendaJobLike = { attrs?: { data?: unknown } };
@@ -28,6 +28,10 @@ export namespace Services {
     constructor() {
       super();
       this.logHeader = 'SiemForwardingService::';
+    }
+
+    public async bootstrap(): Promise<void> {
+      await ensureSiemDeliveryStorage();
     }
 
     private getConfig(brandId: string): SiemConfiguration {
@@ -194,6 +198,7 @@ export namespace Services {
     }
 
     public async forwardSecurityEvents(job: AgendaJobLike): Promise<void> {
+      await ensureSiemDeliveryStorage();
       const data = job.attrs?.data;
       const brandId = isRecord(data) && typeof data.brandId === 'string' ? data.brandId : undefined;
       if (brandId) {
@@ -233,6 +238,7 @@ export namespace Services {
     }
 
     public async getDeliveryStatus(params: Record<string, unknown> = {}): Promise<{ rows: Record<string, unknown>[]; total: number }> {
+      await ensureSiemDeliveryStorage();
       const requestedLimit = Number.parseInt(String(params.limit ?? 50), 10);
       const requestedSkip = Number.parseInt(String(params.skip ?? params.offset ?? 0), 10);
       const limit = Math.min(Number.isFinite(requestedLimit) ? Math.max(requestedLimit, 0) : 50, 500);

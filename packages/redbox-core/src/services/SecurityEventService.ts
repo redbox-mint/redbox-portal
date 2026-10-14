@@ -4,6 +4,7 @@ import type { SiemConfigDto, SiemSeverity } from '../configmodels/SiemConfigurat
 import { normalizeSiemConfiguration, DEFAULT_SIEM_REDACTION } from '../configmodels/SiemConfiguration';
 import type { SecurityEventAttributes } from '../waterline-models/SecurityEvent';
 import { redactForSiem } from './siem/SiemPayloadRedactor';
+import { ensureSecurityEventStorage } from './siem/SiemDeliveryStore';
 import type { SecurityEventInput } from './siem/SiemTypes';
 
 type AgendaJobLike = { attrs?: { data?: unknown } };
@@ -60,6 +61,7 @@ export namespace Services {
 
     private buildEvent(config: SiemConfigDto, input: SecurityEventInput): Omit<SecurityEventAttributes, 'id'> {
       const redaction = { ...DEFAULT_SIEM_REDACTION, ...(config.redaction ?? {}) };
+      const timestamp = typeof input.occurredAt === 'string' ? Date.parse(input.occurredAt) : NaN;
       const event: Omit<SecurityEventAttributes, 'id'> = {
         eventId: crypto.randomUUID(),
         brandId: input.brandId,
@@ -67,7 +69,7 @@ export namespace Services {
         eventType: input.eventType,
         category: input.category,
         severity: this.severityFor(config, input),
-        occurredAt: input.occurredAt ?? new Date().toISOString(),
+        occurredAt: new Date(Number.isFinite(timestamp) ? timestamp : Date.now()).toISOString(),
         source: input.source,
         actor: input.actor,
         subject: input.subject,
@@ -120,7 +122,8 @@ export namespace Services {
     public async emitRequestFailure(
       req: Sails.Req,
       eventType: 'authentication.login.failure' | 'authorization.failure',
-      source: string
+      source: string,
+      subject?: Record<string, unknown>
     ): Promise<void> {
       try {
         const context = this.requestContext(req);
@@ -135,6 +138,7 @@ export namespace Services {
           actor: isRecord(req.user)
             ? { id: req.user.id, username: req.user.username, email: req.user.email }
             : undefined,
+          subject,
           requestContext: context,
         });
       } catch {
@@ -168,15 +172,36 @@ export namespace Services {
     public async emitFromRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
       const brandId = await this.resolveBrandId(recordAudit);
       if (!brandId) return;
+      const record = isRecord(recordAudit.record) ? recordAudit.record : {};
+      const meta = isRecord(record.metaMetadata) ? record.metaMetadata : {};
+      const user = isRecord(recordAudit.user) ? recordAudit.user : undefined;
+      const actor: Record<string, unknown> = {};
+      // Audit user objects can carry profiles and serialized attributes; select identity only.
+      for (const key of ['id', 'username', 'email', 'service']) {
+        if (user && typeof user[key] === 'string') actor[key] = user[key];
+      }
+      const concurrency = isRecord(recordAudit.concurrency) ? recordAudit.concurrency : undefined;
+      const context: Record<string, unknown> = {};
+      if (concurrency) {
+        if (typeof concurrency.revision === 'number' && Number.isFinite(concurrency.revision)) {
+          context.revision = concurrency.revision;
+        }
+        if (typeof concurrency.resolution === 'string') context.resolution = concurrency.resolution;
+      }
       await this.emitSecurityEvent({
         brandId,
         eventType: `record.${String(recordAudit.action ?? 'audit')}`,
         category: 'recordLifecycle',
         source: 'RecordsService',
         occurredAt: typeof recordAudit.occurredAt === 'string' ? recordAudit.occurredAt : undefined,
-        actor: isRecord(recordAudit.user) ? recordAudit.user : undefined,
-        resource: recordAudit,
-        payload: recordAudit,
+        actor: user ? actor : undefined,
+        resource: {
+          redboxOid: typeof recordAudit.redboxOid === 'string' ? recordAudit.redboxOid : undefined,
+          action: typeof recordAudit.action === 'string' ? recordAudit.action : undefined,
+          type: typeof meta.type === 'string' ? meta.type : undefined,
+          brandId,
+        },
+        payload: concurrency ? { concurrency: context } : undefined,
       });
     }
 
@@ -211,8 +236,17 @@ export namespace Services {
       const data = job.attrs?.data;
       if (!isRecord(data) || !isRecord(data.event)) return;
       const event = data.event;
-      if (typeof event.brandId !== 'string') return;
-      await SecurityEvent.create(event);
+      if (typeof event.brandId !== 'string' || typeof event.eventId !== 'string') return;
+      await ensureSecurityEventStorage();
+      try {
+        await SecurityEvent.create(event);
+      } catch (error) {
+        // Agenda may replay after create committed but before forwarding was queued.
+        // Only an existing event for the same tenant can make a unique error safe.
+        if (!isRecord(error) || (error.code !== 'E_UNIQUE' && error.code !== 11000)) throw error;
+        const existing = await SecurityEvent.findOne({ eventId: event.eventId, brandId: event.brandId });
+        if (!existing) throw error;
+      }
       await AgendaQueueService.now(this.forwardJobName, { brandId: event.brandId });
     }
 

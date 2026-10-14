@@ -289,7 +289,7 @@ export function normalizeSiemConfiguration(input: unknown = {}): SiemConfigDto {
 
 /** Only explicitly harmless headers are public; arbitrary extension headers may contain credentials. */
 export function isSiemSecretHeader(name: string): boolean {
-  return !['accept', 'content-type', 'user-agent', 'x-test'].includes(name.toLowerCase());
+  return !['accept', 'content-type', 'user-agent'].includes(name.toLowerCase());
 }
 
 export interface SiemListResponse<T> {

@@ -11,13 +11,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function matchesDenylist(path: string, key: string, denylist: string[]): boolean {
+  const normalizedPath = path.toLowerCase();
   return denylist.some(entry => {
     const pattern = entry.toLowerCase();
+    const wildcard = pattern.endsWith('.*');
+    const base = wildcard ? pattern.slice(0, -2) : pattern;
+    if (!base) return false;
+    // Content may live beneath any envelope field; only whole path segments match.
     return (
       key.toLowerCase() === pattern ||
-      path.toLowerCase() === pattern ||
-      (pattern.endsWith('.*') &&
-        (path.toLowerCase() === pattern.slice(0, -2) || path.toLowerCase().startsWith(`${pattern.slice(0, -2)}.`)))
+      normalizedPath === base ||
+      normalizedPath.endsWith(`.${base}`) ||
+      (wildcard && (normalizedPath.startsWith(`${base}.`) || normalizedPath.includes(`.${base}.`)))
     );
   });
 }

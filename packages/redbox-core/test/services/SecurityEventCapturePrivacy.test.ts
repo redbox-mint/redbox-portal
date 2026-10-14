@@ -81,16 +81,33 @@ describe('SIEM capture and privacy regression boundaries', () => {
     sinon.restore();
   });
   const tick = () => new Promise<void>(resolve => setImmediate(resolve));
-  const request = (brand: string) => ({
-    params: { branding: brand, portal: 'rdmp' },
-    session: { branding: brand },
-    method: 'POST',
-    path: '/login',
-    headers: { 'user-agent': 'PRIVATE-AGENT', authorization: 'PRIVATE-TOKEN' },
-    ip: 'PRIVATE-IP',
-    body: { password: 'PRIVATE-PASSWORD' },
-    cookies: { session: 'PRIVATE-COOKIE' },
-  });
+  // The fixtures provide the Express/Sails fields exercised here; socket and
+  // transport internals are intentionally absent. Check supplied fields before
+  // completing the transport type, so public calls keep their real signatures.
+  const request = (brand: string): Sails.Req => {
+    const fixture: Partial<Sails.Req> = {
+      params: { branding: brand, portal: 'rdmp' },
+      session: { branding: brand } as Sails.Req['session'],
+      method: 'POST',
+      path: '/login',
+      headers: { 'user-agent': 'PRIVATE-AGENT', authorization: 'PRIVATE-TOKEN' },
+      ip: 'PRIVATE-IP',
+      body: { username: 'alice', password: 'PRIVATE-PASSWORD' },
+      cookies: { session: 'PRIVATE-COOKIE' },
+      param: (_name, defaultValue) => defaultValue ?? '',
+    };
+    return fixture as Sails.Req;
+  };
+  const responseFixture = () => {
+    const fixture = {
+      send: sinon.stub(),
+      status: sinon.stub().returnsThis(),
+      json: sinon.stub(),
+      redirect: sinon.stub<[urlOrStatus: string | number, url?: string], void>(),
+      serverError: sinon.stub(),
+    } satisfies Partial<Sails.Res>;
+    return fixture as typeof fixture & Sails.Res;
+  };
 
   it('emits exactly once after the actual production record worker persists successfully', async () => {
     const records = new RecordServices.Records();
@@ -181,7 +198,7 @@ describe('SIEM capture and privacy regression boundaries', () => {
       ['other', 'login'],
       ['default', 'logout'],
     ]) {
-      const details = Reflect.construct(RequestDetails, [request(brand)]);
+      const details = new RequestDetails(request(brand));
       await users.addUserAuditEvent(
         { id: 'u1', email: 'PRIVATE-EMAIL', additionalAttributes: { nested: { token: 'PRIVATE-TOKEN', safe: true } } },
         action,
@@ -224,33 +241,54 @@ describe('SIEM capture and privacy regression boundaries', () => {
     });
     Reflect.set(globalThis, 'sails', mockSails);
     const req = request('other');
-    const response = {
-      send: sinon.stub(),
-      status: sinon.stub().returnsThis(),
-      json: sinon.stub(),
-      redirect: sinon.stub(),
-      serverError: sinon.stub(),
-    };
+    const response = responseFixture();
     Object.assign(globalThis, { ConfigService: { getBrand: () => ({ oidc: {} }) } });
-    Reflect.apply(controller.localLogin, controller, [req, response]);
+    controller.localLogin(req, response);
     await tick();
     expect(queued[0].event.eventType).to.equal('authentication.login.failure');
     expect(queued[0].event.brandId).to.equal('other-id');
-    Reflect.apply(controller.openidConnectLogin, controller, [{ ...req, param: () => undefined }, response]);
-    Reflect.apply(controller.aafLogin, controller, [req, response]);
+    expect(queued[0].event.subject).to.deep.equal({ username: 'alice' });
+    expect(JSON.stringify(queued[0])).not.to.include('PRIVATE-PASSWORD');
+    expect(queued[0].event).not.to.have.property('body');
+    controller.openidConnectLogin(req, response);
+    controller.aafLogin(req, response);
     await tick();
     expect(queued).to.have.length(3);
     expect(queued.every(item => item.event.eventType === 'authentication.login.failure')).to.equal(true);
     Object.assign(globalThis, { PathRulesService: { getRulesFromPath: () => ({}), canRead: () => false } });
-    Reflect.apply(checkAuth, undefined, [
-      { ...req, isAuthenticated: () => true, user: { id: 'u1' } },
-      response,
-      sinon.stub(),
-    ]);
+    checkAuth(Object.assign(req, { isAuthenticated: () => true, user: { id: 'u1' } }), response, () => undefined);
     await tick();
     expect(queued[3].event.eventType).to.equal('authorization.failure');
     expect(response.status.calledWith(403)).to.equal(true);
   });
+
+  it('accepts an explicit subject at the public request failure seam without capturing request body', async () => {
+    await service.emitRequestFailure(request('other'), 'authentication.login.failure', 'UserController', {
+      username: 'alice',
+    });
+    expect(queued[0].event.subject).to.deep.equal({ username: 'alice' });
+    expect(JSON.stringify(queued)).not.to.include('PRIVATE-PASSWORD');
+  });
+
+  for (const username of [{ password: 'PRIVATE-PASSWORD' }, ['alice'], 42, null]) {
+    it(`omits a non-string local login username (${JSON.stringify(username)})`, async () => {
+      Object.assign(sails.config, {
+        passport: {
+          authenticate:
+            (_strategy: string, callback: (error: null, user: false, info: { message: string }) => void) => () =>
+              callback(null, false, { message: 'invalid credentials' }),
+        },
+      });
+      const controller = new Controllers.User();
+      const req = request('other');
+      req.body = { username, password: 'PRIVATE-PASSWORD' };
+      controller.localLogin(req, responseFixture());
+      await tick();
+      expect(queued).to.have.length(1);
+      expect(queued[0].event.subject).to.equal(undefined);
+      expect(JSON.stringify(queued)).not.to.include('PRIVATE-PASSWORD');
+    });
+  }
 
   it('emits successful login/logout only after session success and keeps their request brands', async () => {
     const users = new UserServices.Users();
@@ -267,30 +305,28 @@ describe('SIEM capture and privacy regression boundaries', () => {
     });
     Object.assign(globalThis, { sails: mockSails, UsersService: users });
     const controller = new Controllers.User();
-    const response = { send: sinon.stub(), redirect: sinon.stub() };
-    const loginRequest = {
-      ...request('other'),
+    const response = responseFixture();
+    const loginRequest = Object.assign(request('other'), {
       logIn: (_user: unknown, callback: (error: unknown) => void) => callback(null),
-    };
-    Reflect.apply(controller.localLogin, controller, [loginRequest, response]);
+    });
+    controller.localLogin(loginRequest, response);
     await tick();
-    Reflect.apply(controller.logout, controller, [
-      { ...request('default'), user, logout: (callback: (error: unknown) => void) => callback(null) },
-      response,
-    ]);
+    controller.logout(
+      Object.assign(request('default'), { user, logout: (callback: (error: unknown) => void) => callback(null) }),
+      response
+    );
     await tick();
     expect(queued.map(item => item.event.brandId)).to.deep.equal(['other-id', 'default-id']);
     expect(queued.map(item => item.event.eventType)).to.deep.equal([
       'authentication.login.success',
       'authentication.logout.success',
     ]);
-    Reflect.apply(controller.localLogin, controller, [
-      {
-        ...loginRequest,
+    controller.localLogin(
+      Object.assign(loginRequest, {
         logIn: (_user: unknown, callback: (error: unknown) => void) => callback(new Error('session failed')),
-      },
-      response,
-    ]);
+      }),
+      response
+    );
     await tick();
     expect(queued).to.have.length(3);
     expect(queued[2].event.eventType).to.equal('authentication.login.failure');
@@ -363,6 +399,97 @@ describe('SIEM capture and privacy regression boundaries', () => {
     await service.emitFromRecordAudit({ action: 'updated' });
     expect(queued).to.have.length(1);
   });
+
+  it('matches custom dotted denylist paths in both content roots at segment boundaries', () => {
+    const content = {
+      record: { metadata: { description: 'SECRET-DESC', title: 'visible' } },
+      headers: { 'X-Session': 'S' },
+      connection: { apiSecret: 'C' },
+      nested: { private: { value: 'WILDCARD-SECRET' } },
+      prerecord: { metadata: { description: 'near-match' } },
+      nestedprivate: { value: 'near-wildcard-match' },
+    };
+    const result = redactForSiem(
+      { payload: content, resource: content },
+      {
+        ...DEFAULT_SIEM_REDACTION,
+        denylistedPaths: [
+          ...DEFAULT_SIEM_REDACTION.denylistedPaths,
+          'RECORD.metadata.description',
+          'headers.X-Session',
+          'connection.apiSecret',
+          'nested.private.*',
+        ],
+      }
+    );
+    for (const root of [result.payload, result.resource]) {
+      expect(root).to.deep.equal({
+        record: { metadata: { description: '[REDACTED]', title: 'visible' } },
+        headers: { 'X-Session': '[REDACTED]' },
+        connection: { apiSecret: '[REDACTED]' },
+        nested: { private: '[REDACTED]' },
+        prerecord: { metadata: { description: 'near-match' } },
+        nestedprivate: { value: 'near-wildcard-match' },
+      });
+    }
+  });
+
+  it('minimizes persisted record-worker capture to identity and concurrency context', async () => {
+    const records = new RecordServices.Records();
+    Reflect.set(records, 'storageService', { createRecordAudit: async () => ({ isSuccessful: () => true }) });
+    await records.storeRecordAudit({
+      attrs: {
+        data: {
+          redboxOid: 'record-1',
+          action: 'updated',
+          occurredAt: '2026-10-14T10:00:00+10:00',
+          record: { metaMetadata: { brandId: 'other-id', type: 'rdmp' }, metadata: { description: 'SECRET-DESC' } },
+          user: {
+            id: 'u1',
+            username: 'alice',
+            profile: 'PRIVATE-PROFILE',
+            additionalAttributes: { secretResearch: 'PRIVATE-USER' },
+          },
+          concurrency: { revision: 7, resolution: 'direct', extra: 'PRIVATE-CONTEXT' },
+          executionSummary: { actions: [{ message: 'PRIVATE-ACTION' }] },
+        },
+      },
+    });
+    await tick();
+    expect(queued).to.have.length(1);
+    const event = queued[0].event;
+    expect(event.resource).to.deep.equal({
+      redboxOid: 'record-1',
+      action: 'updated',
+      type: 'rdmp',
+      brandId: 'other-id',
+    });
+    expect(event.actor).to.deep.equal({ id: 'u1', username: 'alice' });
+    expect(event.payload).to.deep.equal({ concurrency: { revision: 7, resolution: 'direct' } });
+    for (const value of ['SECRET-DESC', 'PRIVATE-PROFILE', 'PRIVATE-USER', 'PRIVATE-CONTEXT', 'PRIVATE-ACTION']) {
+      expect(JSON.stringify(event)).not.to.include(value);
+      expect(JSON.stringify(redactForSiem(event, DEFAULT_SIEM_REDACTION))).not.to.include(value);
+    }
+  });
+
+  for (const [occurredAt, expected] of [
+    ['2026-10-14T10:00:00+10:00', '2026-10-14T00:00:00.000Z'],
+    ['1970-01-01T00:00:00Z', '1970-01-01T00:00:00.000Z'],
+    ['invaliddate', '2026-10-14T00:00:00.000Z'],
+  ]) {
+    it(`canonicalizes source timestamp ${occurredAt} before enqueueing`, async () => {
+      sinon.useFakeTimers({ now: Date.parse('2026-10-14T00:00:00Z'), toFake: ['Date'] });
+      await service.emitSecurityEvent({
+        brandId: 'other-id',
+        eventType: 'record.updated',
+        category: 'recordLifecycle',
+        source: 'RecordsService',
+        occurredAt,
+      });
+      expect(queued).to.have.length(1);
+      expect(queued[0].event.occurredAt).to.equal(expected);
+    });
+  }
 
   it('excludes repeated private fields, decodes only known attributes, and redacts mandatory credentials', () => {
     const result = redactForSiem(

@@ -347,6 +347,28 @@ describe('SIEM controller', () => {
     },
   ];
   for (const { action, service, filters, expected, dateField } of monitoring) {
+    it(`normalizes ${action} offset date bounds to UTC before querying`, async () => {
+      await controller[action](
+        request(
+          {},
+          {
+            startDate: '2026-10-14T10:00:00+10:00',
+            endDate: '2026-10-13T21:00:00-05:00',
+          }
+        ),
+        mockSails
+      );
+      assert.equal(Reflect.get(Object(response), 'status'), 200);
+      assert.deepEqual(service.firstCall.args, [
+        {
+          limit: 50,
+          skip: 0,
+          brandId: brand.id,
+          [`${dateField}Start`]: '2026-10-14T00:00:00.000Z',
+          [`${dateField}End`]: '2026-10-14T02:00:00.000Z',
+        },
+      ]);
+    });
     it(`maps ${action} filters and date range and returns the service result`, async () => {
       const result = { rows: [{ id: 'result-1' }], total: 1 };
       service.resolves(result);
@@ -373,8 +395,8 @@ describe('SIEM controller', () => {
           limit: 10,
           skip: 20,
           brandId: brand.id,
-          [`${dateField}Start`]: startDate,
-          [`${dateField}End`]: endDate,
+          [`${dateField}Start`]: '2026-10-01T00:00:00.000Z',
+          [`${dateField}End`]: '2026-10-14T00:00:00.000Z',
         },
       ]);
       assert.equal(Reflect.get(Object(response), 'status'), 200);

@@ -243,7 +243,8 @@ export namespace Controllers {
       const passport = sails.config.passport as unknown as { authenticate: (strategy: string, callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord) => void) => (req: Sails.Req, res: Sails.Res) => void };
       passport.authenticate('local', function (err: Error | null, user: AnyRecord | false, info: AnyRecord) {
         if ((err) || (!user)) {
-          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController',
+              typeof req.body?.username === 'string' ? { username: req.body.username } : undefined);
           return res.send({
             message: info.message,
             user: user
@@ -253,7 +254,8 @@ export namespace Controllers {
         const isAjax = req.headers && req.headers['x-source'] == 'jsclient';
         return req.logIn(user, function (err: unknown) {
           if (err) {
-            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController',
+              typeof req.body?.username === 'string' ? { username: req.body.username } : undefined);
             return res.send(err);
           }
           const requestDetails = new RequestDetails(req);

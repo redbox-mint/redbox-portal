@@ -7,7 +7,7 @@ import {
   TranslationService,
   getStubTranslationService,
 } from '@researchdatabox/portal-ng-common';
-import { SiemAdminApiService, SiemConfiguration } from './siem-admin-api.service';
+import { SiemAdapterType, SiemAdminApiService, SiemConfiguration } from './siem-admin-api.service';
 import { SiemAdminComponent } from './siem-admin.component';
 
 function buildConfig(overrides: Partial<SiemConfiguration> = {}): SiemConfiguration {
@@ -185,6 +185,152 @@ describe('SiemAdminComponent', () => {
 
     component.selectedDestination!.token = 'a-new-token';
     expect(component.buildConfig().destinations[0].token).toBe('a-new-token');
+  });
+
+  async function changeAdapter(adapter: SiemAdapterType): Promise<void> {
+    component.setActiveTab('destinations');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const select: HTMLSelectElement = fixture.nativeElement.querySelector('#siem-dest-adapter');
+    select.value = adapter;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
+
+  async function editCredential(field: string, value: string): Promise<void> {
+    const input: HTMLInputElement = fixture.nativeElement.querySelector(`#siem-dest-${field}`);
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
+
+  const adapters: SiemAdapterType[] = ['splunk-hec-json', 'otel-otlp-logs', 'syslog-rfc5424-json', 'cef', 'leef'];
+  for (const adapter of adapters) {
+    for (const credential of ['__REDACTED__', 'unsaved-secret']) {
+      it(`clears hidden ${credential} credentials through the adapter selector and saves ${adapter}`, async () => {
+        const usesToken = adapter === 'splunk-hec-json' || adapter === 'otel-otlp-logs';
+        apiService.getSiemConfig.and.resolveTo(
+          buildConfig({
+            destinations: [
+              {
+                id: 'dest-1',
+                name: 'Collector',
+                enabled: true,
+                adapterType: usesToken ? 'cef' : 'splunk-hec-json',
+                endpointUrl: 'https://collector.example',
+                token: credential,
+                username: 'retained-user',
+                password: credential,
+              },
+            ],
+          })
+        );
+        await init();
+        await changeAdapter(adapter);
+        const destination = component.buildConfig().destinations[0];
+        expect(destination.adapterType).toBe(adapter);
+        if (usesToken) {
+          expect(destination.username).toBeUndefined();
+          expect(destination.password).toBeUndefined();
+          expect(destination.token).toBe(credential);
+          expect(fixture.nativeElement.querySelector('#siem-dest-password')).toBeNull();
+          await editCredential('token', 'replacement-token');
+        } else {
+          expect(destination.token).toBeUndefined();
+          expect(destination.username).toBe('retained-user');
+          expect(destination.password).toBe(credential);
+          expect(fixture.nativeElement.querySelector('#siem-dest-token')).toBeNull();
+          await editCredential('username', 'replacement-user');
+          await editCredential('password', 'replacement-password');
+        }
+        expect(component.canSave()).toBeTrue();
+        await component.save();
+        const payload = apiService.saveSiemConfig.calls.mostRecent().args[0].destinations[0];
+        expect(payload.token).toBe(usesToken ? 'replacement-token' : undefined);
+        expect(payload.username).toBe(usesToken ? undefined : 'replacement-user');
+        expect(payload.password).toBe(usesToken ? undefined : 'replacement-password');
+        expect(component.saveSuccess).toBeTrue();
+      });
+    }
+  }
+
+  it('retains the visible username and password when switching between text adapters', async () => {
+    apiService.getSiemConfig.and.resolveTo(
+      buildConfig({
+        destinations: [
+          {
+            id: 'dest-1',
+            name: 'Collector',
+            enabled: true,
+            adapterType: 'cef',
+            endpointUrl: 'https://collector.example',
+            username: 'collector-user',
+            password: '__REDACTED__',
+          },
+        ],
+      })
+    );
+    await init();
+    await changeAdapter('leef');
+    expect(component.buildConfig().destinations[0].username).toBe('collector-user');
+    expect(component.buildConfig().destinations[0].password).toBe('__REDACTED__');
+    await editCredential('password', '');
+    const saveButton: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-primary');
+    expect(saveButton.disabled).toBeFalse();
+    saveButton.click();
+    await fixture.whenStable();
+    const payload = apiService.saveSiemConfig.calls.mostRecent().args[0].destinations[0];
+    expect(payload.username).toBe('collector-user');
+    expect(payload.password).toBe('');
+    expect(component.saveSuccess).toBeTrue();
+  });
+
+  it('retains visible masks and custom headers across adapter changes until explicitly edited', async () => {
+    apiService.getSiemConfig.and.resolveTo(
+      buildConfig({
+        destinations: [
+          {
+            id: 'dest-1',
+            name: 'Collector',
+            enabled: true,
+            adapterType: 'splunk-hec-json',
+            endpointUrl: 'https://collector.example',
+            token: '__REDACTED__',
+            headers: { 'X-Private': '__REDACTED__', Accept: 'application/json' },
+          },
+        ],
+      })
+    );
+    await init();
+    await changeAdapter('otel-otlp-logs');
+    expect(component.buildConfig().destinations[0].token).toBe('__REDACTED__');
+    expect(component.buildConfig().destinations[0].headers).toEqual({
+      'X-Private': '__REDACTED__',
+      Accept: 'application/json',
+    });
+    apiService.saveSiemConfig.and.rejectWith({
+      error: {
+        message: 'Replace or explicitly clear every masked credential',
+      },
+    });
+    await component.save();
+    expect(component.saveError).toContain('Replace or explicitly clear');
+    expect(component.isDirty()).toBeTrue();
+    await editCredential('token', '');
+    const headerInput: HTMLInputElement = fixture.nativeElement.querySelectorAll('.siem-header-row input')[1];
+    expect(headerInput).withContext(fixture.nativeElement.innerHTML).toBeDefined();
+    headerInput.value = '';
+    headerInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    apiService.saveSiemConfig.and.callFake(config => Promise.resolve(config));
+    await component.save();
+    const payload = apiService.saveSiemConfig.calls.mostRecent().args[0].destinations[0];
+    expect(payload.token).toBe('');
+    expect(payload.headers).toEqual({ 'X-Private': '', Accept: 'application/json' });
+    expect(component.saveSuccess).toBeTrue();
   });
 
   it('adds, reorders and removes destinations in the draft', async () => {

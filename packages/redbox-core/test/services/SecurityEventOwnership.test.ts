@@ -11,7 +11,16 @@ import { createMockSails } from './testHelper';
 
 describe('SIEM ownership and primitive privacy boundaries', () => {
   const originals = new Map<string, unknown>();
-  const keys = ['_', 'sails', 'BrandingService', 'AppConfigService', 'AgendaQueueService', 'Record', 'SecurityEvent'];
+  const keys = [
+    '_',
+    'sails',
+    'BrandingService',
+    'AppConfigService',
+    'AgendaQueueService',
+    'Record',
+    'SecurityEvent',
+    'SiemDeliveryAttempt',
+  ];
   let capture: Capture.SecurityEventService;
   let queued: Array<{ event: SecurityEventAttributes }>;
   let lookup: sinon.SinonStub;
@@ -126,6 +135,7 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
         deliveryState: 'pending',
       };
       const collection = {
+        createIndex: async () => 'index',
         find: (filter: { deliveryState?: string }) => ({
           sort: () => ({
             limit: () => ({ toArray: async () => (filter.deliveryState === 'deadLetter' ? [] : [stored]) }),
@@ -141,6 +151,10 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
       Reflect.set(globalThis, 'SecurityEvent', {
         tableName: 'securityevent',
         getDatastore: () => ({ manager: { collection: () => collection } }),
+      });
+      Reflect.set(globalThis, 'SiemDeliveryAttempt', {
+        tableName: 'siemdeliveryattempt',
+        getDatastore: () => ({ manager: { collection: () => ({ createIndex: async () => 'index' }) } }),
       });
       await new Forwarding.SiemForwardingService().forwardSecurityEvents({ attrs: { data: { brandId: 'unknown' } } });
       expect(lookup.called).to.equal(false);
