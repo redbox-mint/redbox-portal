@@ -270,6 +270,27 @@ describe('SIEM capture and privacy regression boundaries', () => {
     expect(JSON.stringify(queued)).not.to.include('PRIVATE-PASSWORD');
   });
 
+  it('skips routine browser login redirects while retaining unauthenticated API denials', async () => {
+    const redirect = sinon.stub();
+    Reflect.set(sails, 'getActions', () => ({ 'user/redirlogin': redirect }));
+    Object.assign(globalThis, {
+      PathRulesService: { getRulesFromPath: () => ({}), canRead: () => false },
+      RolesService: { getDefUnathenticatedRole: () => ({}) },
+    });
+    const req = Object.assign(request('other'), { isAuthenticated: () => false });
+    const response = responseFixture();
+    for (let i = 0; i < 20; i++) checkAuth(req, response, () => undefined);
+    await tick();
+    expect(redirect.callCount).to.equal(20);
+    expect(queued).to.have.length(0);
+    req.headers['content-type'] = 'application/json';
+    checkAuth(req, response, () => undefined);
+    await tick();
+    expect(response.status.calledWith(403)).to.equal(true);
+    expect(queued).to.have.length(1);
+    expect(queued[0].event.eventType).to.equal('authorization.failure');
+  });
+
   for (const username of [{ password: 'PRIVATE-PASSWORD' }, ['alice'], 42, null]) {
     it(`omits a non-string local login username (${JSON.stringify(username)})`, async () => {
       Object.assign(sails.config, {

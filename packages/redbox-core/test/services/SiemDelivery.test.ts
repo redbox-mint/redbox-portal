@@ -203,6 +203,19 @@ describe('SIEM receiver and delivery regression tests', function () {
     expect(splunk.responseSummary?.collectorCode).to.equal(4);
   });
 
+  for (const rejectedLogRecords of ['0', 0, undefined]) {
+    it(`accepts OTLP warning-only responses with rejectedLogRecords=${rejectedLogRecords}`, async function () {
+      response = { partialSuccess: { rejectedLogRecords, errorMessage: 'private collector warning' } };
+      const result = await new Services.SiemForwardingService().testDestination({
+        destination: destination(endpoint, 'otel-otlp-logs'),
+      });
+      expect(result.status).to.equal('success');
+      expect(result.httpStatusCode).to.equal(200);
+      expect(received).to.have.length(1);
+      expect(JSON.stringify(result)).not.to.contain('private collector warning');
+    });
+  }
+
   describe('native Mongo delivery claims and progress', function () {
     let client: MongoClient;
     let db: Db;

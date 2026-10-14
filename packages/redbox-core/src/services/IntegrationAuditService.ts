@@ -281,23 +281,27 @@ export namespace Services {
           sails.log.error(`${this.logHeader} Storage service does not expose createIntegrationAudit.`);
           return;
         }
-        const response = await this.storageService.createIntegrationAudit(entry) as StorageServiceResponse;
-        const persisted = response?.isSuccessful == null || typeof response.isSuccessful !== 'function' || response.isSuccessful();
+        const response = (await this.storageService.createIntegrationAudit(entry)) as StorageServiceResponse;
+        const persisted =
+          response != null &&
+          (typeof response.isSuccessful === 'function' ? response.isSuccessful() === true : response.success === true);
         if (!persisted) {
           sails.log.error(`${this.logHeader} Failed to persist integration audit.`);
-          if (!_.isEmpty(response.message)) {
+          if (!_.isEmpty(response?.message)) {
             sails.log.error(`${this.logHeader} Storage response message: ${response.message}`);
           }
-          if (!_.isNil(response.details)) {
+          if (!_.isNil(response?.details)) {
             sails.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
           }
           return;
         }
         this.enqueueNotification(entry);
-        void SecurityEventService.emitFromIntegrationAudit({ ...entry }).catch(error => {
-          sails.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
-          sails.log.error(error);
-        });
+        if (typeof SecurityEventService !== 'undefined') {
+          void SecurityEventService.emitFromIntegrationAudit({ ...entry }).catch(error => {
+            sails.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
+            sails.log.error(error);
+          });
+        }
       } catch (error) {
         sails.log.error(`${this.logHeader} Failed to persist integration audit entry.`);
         sails.log.error(error);

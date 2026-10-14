@@ -59,7 +59,11 @@ SIEM is disabled by default. Administrators configure it separately for each bra
 
 The default Admin sidebar includes SIEM Configuration. Brands with a saved or overridden sidebar must add the `/admin/siem` link to an Admin-only group through Admin Sidebar Configuration or their deployment configuration; upgrades preserve customized navigation.
 
+Routine browser redirects to login do not produce authorization-denial events. HTTP 403 responses from session, authentication and path policies remain audited.
+
 All destinations use HTTP or HTTPS. Splunk uses the HEC JSON collector endpoint; OTLP uses an HTTP JSON logs endpoint, normally `/v1/logs`. RFC5424 JSON, CEF and LEEF are text bodies sent to an HTTP receiver configured for that format. These text adapters do not open UDP/TCP syslog connections, and OTLP does not use gRPC or protobuf.
+
+Administrators approve collector targets by saving brand destinations; receiver tests require the same saved destination ID, full URL and adapter. Internal collectors are supported, and HTTP redirects are disabled. Deployment network egress controls determine which collector hosts the portal can reach.
 
 Delivery saves progress and attempt budgets separately for every destination. An acknowledged success is retained while other destinations retry. The default retry delay is 60 seconds, multiplied by 2 after each failed attempt; destination overrides are supported. The background poll runs once per minute, so delivery may occur after its earliest eligible time. `batchSize` limits events considered per poll, and `maxAttempts` includes reserved attempts interrupted by a worker crash. Once all active destinations are terminal, an event is delivered or dead-lettered. Expired dead letters and their attempt history are removed after `deadLetterRetentionDays` (default 30). Successful event history is not removed by this setting.
 

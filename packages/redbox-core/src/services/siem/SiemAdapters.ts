@@ -233,8 +233,7 @@ export function deliverSiemPayload(
         destination.adapterType === 'otel-otlp-logs' &&
         isRecord(response.data) &&
         isRecord(response.data.partialSuccess) &&
-        (Number(response.data.partialSuccess.rejectedLogRecords ?? 0) > 0 ||
-          Boolean(response.data.partialSuccess.errorMessage))
+        Number(response.data.partialSuccess.rejectedLogRecords ?? 0) > 0
       ) {
         throw new SiemHttpError('OTLP collector reported partial success', response.status, details);
       }

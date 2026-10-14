@@ -70,7 +70,14 @@ function applyCheckAuth(
       brand.name
     );
     if (!canRead) {
-      if (typeof SecurityEventService !== 'undefined')
+      const contentTypeHeader = req.headers['content-type'] == null ? '' : req.headers['content-type'];
+      // A normal browser redirect to login is not an authorization denial.
+      if (
+        (recordSchemaProblemResponse ||
+          req.isAuthenticated() ||
+          contentTypeHeader.indexOf('application/json') !== -1) &&
+        typeof SecurityEventService !== 'undefined'
+      )
         void SecurityEventService.emitRequestFailure(req, 'authorization.failure', 'AuthorizationPolicy');
       if (recordSchemaProblemResponse) {
         sendRecordSchemaForbidden(req, res);
@@ -80,7 +87,6 @@ function applyCheckAuth(
         res.status(403).send();
         return;
       } else {
-        const contentTypeHeader = req.headers['content-type'] == null ? '' : req.headers['content-type'];
         if (contentTypeHeader.indexOf('application/json') !== -1) {
           res.status(403).json({ message: 'Access Denied' });
           return;
