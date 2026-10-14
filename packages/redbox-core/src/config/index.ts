@@ -68,16 +68,18 @@ export * from './autoreload.config';
 export * from './custom.config';
 export * from './dynamicconfig.config';
 export * from './dashboardtype.config';
-export * from './datapubs.config';
 export * from './workspacetype.config';
 export * from './lognamespace.config';
 export * from './redboxToCkan.config';
 export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
+export * from './recordValidation.config';
+export * from './recordSchema.config';
 export * from './harvestRuns.config';
 
 import type { ApiRouteProvider } from '../api-routes';
+import type { RecordContractContributorDiscoveryState } from '../record-contract/contributor-registry';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -144,15 +146,17 @@ import { autoreload, AutoreloadConfig } from './autoreload.config';
 import { custom, CustomConfig } from './custom.config';
 import { dynamicconfig, DynamicConfigConfig } from './dynamicconfig.config';
 import { dashboardtype, DashboardTypeConfig } from './dashboardtype.config';
-import { datapubs, DataPubsConfig } from './datapubs.config';
 import { workspacetype, WorkspaceTypeConfig } from './workspacetype.config';
 import { lognamespace, LogNamespaceConfig } from './lognamespace.config';
 import { redboxToCkan, RedboxToCkanConfig } from './redboxToCkan.config';
 import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
+import { recordValidation, RecordValidationConfig } from './recordValidation.config';
+import { recordSchema, RecordSchemaConfig } from './recordSchema.config';
 import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
+import { WebAnalytics } from '../configmodels/WebAnalytics';
 
 /**
  * Branding-aware config function type
@@ -160,6 +164,7 @@ import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails
  */
 export type BrandingAwareFunction = (brandName?: string) => BrandingConfigurationDefaultsConfig & {
     authorizedDomainsEmails?: AuthorizedDomainsEmails;
+    webAnalytics?: WebAnalytics;
 };
 
 /**
@@ -251,13 +256,14 @@ export interface SailsConfig {
     custom: CustomConfig;
     dynamicconfig: DynamicConfigConfig;
     dashboardtype: DashboardTypeConfig;
-    datapubs: DataPubsConfig;
     workspacetype: WorkspaceTypeConfig;
     lognamespace: LogNamespaceConfig;
     redboxToCkan: RedboxToCkanConfig;
     typescript: TypeScriptHookConfig;
     custom_cache: CustomCacheConfig;
     validators: ValidatorsConfig;
+    recordValidation: RecordValidationConfig;
+    recordSchema: RecordSchemaConfig;
     harvestRuns: HarvestRunsConfig;
 
     // Auth-related configs
@@ -279,6 +285,7 @@ export interface SailsConfig {
 
     // Runtime state (can be set at runtime)
     startupMinute?: number;
+    recordContractContributorState?: RecordContractContributorDiscoveryState;
 }
 
 /**
@@ -336,7 +343,6 @@ export const Config = {
     custom,
     dynamicconfig,
     dashboardtype,
-    datapubs,
     workspacetype,
     lognamespace,
     redboxToCkan,
@@ -351,5 +357,7 @@ export const Config = {
     workflow,
     dashboardview,
     validators,
+    recordValidation,
+    recordSchema,
     harvestRuns,
 } as const;

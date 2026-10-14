@@ -4,9 +4,14 @@ import { CanVisit } from './visitor/base.outline';
 import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
 import { FormExpressionsConfigOutline } from './form-component.outline';
 import { FormBehaviourConfigFrame } from './form-behaviour.outline';
+import { ValidationOperationDefinition } from '../validation/record-validation.model';
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.
+ *
+ * @extensionPoint Hook form registrations provide objects conforming to this contract; component definitions must use registered component, model, and layout class names.
+ * @remarks The generated JSON Schema validates the serializable frame. Runtime construction also applies defaults and visitor transformations.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
  */
 export interface FormConfigFrame {
   /**
@@ -78,6 +83,15 @@ export interface FormConfigFrame {
    * These are the only validation group names that can be used in the validator config.
    */
   validationGroups?: FormValidationGroups;
+  /**
+   * Server-owned validation intents supported by this form, keyed by the
+   * case-sensitive operation name sent by save actions.
+   */
+  validationOperations?: Record<string, ValidationOperationDefinition>;
+  /**
+   * Controls how server-side metadata returned after save is applied to the form.
+   */
+  serverSyncOnSave?: 'always' | 'preserveLocalEdits' | 'never';
 
   // -- Component-related config --
 

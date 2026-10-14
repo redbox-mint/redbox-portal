@@ -51,6 +51,12 @@ export interface ValidationSummaryFormComponentDefinitionFrame extends FormCompo
 }
 
 
+/**
+ * Displays the form's current blocking validation errors.
+ *
+ * @extensionPoint Use `ValidationSummaryComponent` to provide a consolidated accessible validation summary.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface ValidationSummaryFormComponentDefinitionOutline extends ValidationSummaryFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: ValidationSummaryFieldComponentDefinitionOutline;
     model?: never;

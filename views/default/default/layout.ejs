@@ -9,16 +9,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="<%= typeof description == 'undefined' ? 'ReDBox research data management portal' : description %>">
   <link rel="apple-touch-icon" sizes="180x180" href="<%= BrandingService.getRootContext() %>/apple-touch-icon.png">
-  <link rel="icon" href="<%= BrandingService.getBrandAndPortalPath(req) %>/images/favicon" type="image/png">
+  <link rel="icon" href="<%= BrandingService.getFaviconUrl(req) %>" type="image/png">
 
   <title>
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
   </title>
 
+  <% /* Brand Typeface: preload Regular once for an active custom typeface, else current Google fonts. */ %>
+  <% var __brandTypefaceFont = BrandingService.getActiveTypefaceFontInfo(BrandingService.getBrandNameFromReq(req)); %>
+  <% if (__brandTypefaceFont) { %>
+  <link rel="preload" href="<%= __brandTypefaceFont.regularUrl %>" as="font" type="font/woff2" crossorigin>
+  <% } else { %>
   <!-- Google Fonts -->
   <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>
   <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>
   <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>
+  <% } %>
 
 
   <!-- Custom CSS -->
@@ -26,23 +32,35 @@
   <% if (req.query && req.query.previewToken) { %>
     <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/preview/<%= req.query.previewToken %>.css">
   <% } else { %>
-  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css">
+  <% /* Theme CSS is versioned by the publication hash so a republish applies immediately instead of waiting out the browser cache. */ %>
+  <% var __themeBrand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)); %>
+  <% var __themeCssVer = (__themeBrand && __themeBrand.hash) ? ('?v=' + __themeBrand.hash) : ''; %>
+  <link rel="stylesheet" href="<%= BrandingService.getBrandAndPortalPath(req) %>/styles/theme.css<%= __themeCssVer %>">
   <% } %>
+  <!-- Hook extension point: renders nothing unless a hook overrides /layout/head-extra.ejs -->
+  <%- superPartial("/layout/head-extra.ejs",
+       typeof branding !== 'undefined' && branding != null ? branding : BrandingService.getBrandNameFromReq(req),
+       typeof portal !== 'undefined' && portal != null ? portal : BrandingService.getPortalFromReq(req), true) %>
   <!-- Print stylesheet served as a static asset so it can be updated independently of the
        MongoDB-cached theme.css (which only refreshes on admin republish). -->
   <link rel="stylesheet" media="print" href="<%= BrandingService.getRootContext() %>/styles/print.css">
 
   <!-- Current latest jQuery -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js"></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/jquery.min.js" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
   <!-- Current latest Bootstrap JS  -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.bundle.min.js"></script>
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/bootstrap.bundle.min.js" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
+  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>
 
 
     <angular-bootstrap rootContext="<%= BrandingService.getRootContext() %>" ></angular-bootstrap>
+
+    <!-- Branding-aware web analytics (loader scripts) -->
+    <%- include('analytics', { position: 'head' }) %>
 </head>
 
 <body>
+  <!-- Branding-aware web analytics (noscript fallback) -->
+  <%- include('analytics', { position: 'body' }) %>
   <div class="header-area">
     <div class="container">
       <div class="row">
@@ -103,7 +121,7 @@
   <div class="site-branding-area">
     <div class="container">
       <div class="row">
-        <% if(locals.branding != null && locals.portal != null) { %>
+        <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
         <%- superPartial("/layout/logo.ejs", branding, portal, true) %>
         <% } else { %>
           <%- include('layout/logo.ejs') %>
@@ -115,7 +133,7 @@
     </div>
   </div>
   <!-- End site branding area -->
-  <% if(locals.branding != null && locals.portal != null) { %>
+  <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
   <%- superPartial("/layout/menu.ejs", branding, portal, true) %>
     <% } else { %>
     <%- include('layout/menu.ejs') %>
@@ -169,7 +187,7 @@
 
 
   <div class="footer-bottom-area navbar-bottom">
-    <% if(locals.branding != null && locals.portal != null) { %>
+    <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
       <% } else { %>
         <%- include('layout/footer.ejs') %>

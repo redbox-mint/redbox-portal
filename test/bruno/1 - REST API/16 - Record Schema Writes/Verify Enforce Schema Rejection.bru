@@ -1,0 +1,22 @@
+meta {
+  name: Verify Enforce Schema Rejection
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaEnforceOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Confirms the schema-invalid update did not mutate the record", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().title).to.equal("Bruno record schema enforce fixture");
+  });
+}

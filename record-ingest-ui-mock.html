@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReDBox · Record ingestion mock</title>
+  <style>
+    :root {
+      --ink: #26323d;
+      --muted: #687681;
+      --line: #d8dfe4;
+      --line-soft: #e9edf0;
+      --canvas: #f4f6f7;
+      --surface: #ffffff;
+      --nav: #273541;
+      --nav-muted: #b8c3ca;
+      --primary: #087bb7;
+      --primary-dark: #056493;
+      --success: #2c7a4b;
+      --success-soft: #e8f4ed;
+      --warning: #9b6509;
+      --warning-soft: #fff4dd;
+      --danger: #b64242;
+      --danger-soft: #fbeaea;
+      --info-soft: #e8f4fa;
+      --shadow: 0 16px 42px rgba(24, 39, 50, .17);
+      --radius: 4px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 14px/1.45 "Segoe UI", Tahoma, sans-serif;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .site-header {
+      height: 58px;
+      background: #fff;
+      border-bottom: 1px solid #cfd7dc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 26px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; color: #24323b; }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: var(--primary); color: white; font-weight: 800; letter-spacing: -.04em;
+    }
+    .header-meta { color: var(--muted); font-size: 13px; }
+
+    .shell { min-height: calc(100vh - 58px); display: grid; grid-template-columns: 218px minmax(0, 1fr); }
+    .sidebar { background: var(--nav); color: white; padding: 22px 0; }
+    .sidebar-label {
+      color: #91a2ad; font-size: 11px; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; padding: 5px 22px 9px;
+    }
+    .sidebar a {
+      display: flex; align-items: center; gap: 10px; color: var(--nav-muted);
+      text-decoration: none; padding: 10px 22px; border-left: 3px solid transparent;
+    }
+    .sidebar a:hover { background: rgba(255,255,255,.05); color: white; }
+    .sidebar a.active { color: white; background: rgba(255,255,255,.09); border-left-color: #4db5e7; }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid currentColor; }
+    .active .nav-dot { background: #4db5e7; border-color: #4db5e7; }
+
+    main { min-width: 0; padding: 28px 32px 50px; }
+    .page-heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 20px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 5px; font-weight: 650; letter-spacing: -.02em; }
+    .lede { margin: 0; color: var(--muted); }
+    .count-strip { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .count-chip {
+      background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      color: var(--muted); font-size: 12px; padding: 4px 9px;
+    }
+    .count-chip strong { color: var(--ink); }
+
+    .panel { background: var(--surface); border: 1px solid #ced6dc; border-radius: var(--radius); box-shadow: 0 1px 2px rgba(20,35,45,.04); }
+    .toolbar {
+      display: flex; align-items: end; justify-content: space-between; gap: 18px;
+      padding: 16px 18px; border-bottom: 1px solid var(--line-soft);
+    }
+    .filters { display: flex; align-items: end; gap: 12px; flex: 1; }
+    .field { min-width: 0; }
+    .field.search { flex: 1; max-width: 430px; }
+    label, .field-label { display: block; font-weight: 600; color: #34434e; margin: 0 0 5px; }
+    .field-label.compact { text-transform: uppercase; letter-spacing: .06em; font-size: 10px; color: var(--muted); }
+    input, select, textarea {
+      width: 100%; border: 1px solid #bfc9d0; border-radius: 3px; background: white;
+      color: var(--ink); padding: 8px 10px; min-height: 36px;
+    }
+    input:focus, select:focus, textarea:focus { outline: 2px solid rgba(8,123,183,.18); border-color: var(--primary); }
+    .search-box { position: relative; }
+    .search-box input { padding-left: 34px; }
+    .search-icon { position: absolute; left: 11px; top: 8px; color: #82909a; font-size: 17px; }
+    .select-compact { min-width: 145px; }
+
+    .btn {
+      border: 1px solid #b8c3ca; border-radius: 3px; background: #fff; color: #31404a;
+      min-height: 36px; padding: 7px 13px; display: inline-flex; align-items: center;
+      justify-content: center; gap: 7px; white-space: nowrap;
+    }
+    .btn:hover { background: #f2f5f6; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
+    .btn-danger { border-color: #d6a0a0; color: var(--danger); }
+    .btn-sm { min-height: 29px; padding: 4px 9px; font-size: 12px; }
+    .btn-link { border-color: transparent; color: var(--primary); background: transparent; padding-inline: 6px; }
+    .btn-link:hover { background: var(--info-soft); }
+    .button-row { display: flex; align-items: center; gap: 8px; }
+    .plus { font-size: 18px; line-height: 1; margin-top: -2px; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; padding: 10px 14px; background: #f5f7f8; color: #52616b;
+      border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase;
+      letter-spacing: .055em; white-space: nowrap;
+    }
+    td { padding: 13px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+    tbody tr:hover { background: #f9fbfc; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .source-name { font-weight: 650; color: #263640; }
+    .subline { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .provider { display: flex; gap: 9px; align-items: center; }
+    .provider-mark {
+      width: 29px; height: 29px; display: grid; place-items: center; border-radius: 4px;
+      background: #edf3f6; color: #49606e; font-weight: 800; font-size: 11px;
+    }
+    .badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 11px; padding: 3px 8px; font-size: 11px; font-weight: 650; }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge-enabled { color: var(--success); background: var(--success-soft); }
+    .badge-disabled { color: #687681; background: #edf0f2; }
+    .badge-running { color: var(--primary-dark); background: var(--info-soft); }
+    .badge-error { color: var(--danger); background: var(--danger-soft); }
+    .actions { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
+    .panel-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 1px solid var(--line-soft); padding: 10px 16px; color: var(--muted); font-size: 12px;
+    }
+
+    .modal-layer { display: none; position: fixed; inset: 0; z-index: 20; }
+    .modal-layer.open { display: grid; place-items: center; }
+    .backdrop { position: absolute; inset: 0; background: rgba(24, 35, 43, .56); animation: fade-in .16s ease-out; }
+    .modal {
+      position: relative; width: min(1040px, calc(100vw - 42px)); max-height: calc(100vh - 42px);
+      background: white; border-radius: 5px; box-shadow: var(--shadow); display: flex; flex-direction: column;
+      animation: lift-in .18s ease-out;
+    }
+    .modal-header { padding: 18px 22px 15px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 18px; }
+    .modal-header h2 { margin: 0 0 3px; font-size: 21px; font-weight: 650; }
+    .modal-header p { margin: 0; color: var(--muted); font-size: 13px; }
+    .close { border: 0; background: transparent; color: #687681; font-size: 26px; line-height: 1; width: 34px; height: 34px; }
+    .modal-body { overflow: auto; padding: 22px; }
+    .modal-footer {
+      padding: 13px 22px; border-top: 1px solid var(--line); background: #f8f9fa;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-footer-note { color: var(--muted); font-size: 12px; max-width: 450px; }
+
+    .section { border: 1px solid var(--line); border-radius: 4px; margin-bottom: 16px; }
+    .section:last-child { margin-bottom: 0; }
+    .section-heading { padding: 12px 15px; background: #f6f8f9; border-bottom: 1px solid var(--line); }
+    .section-heading h3 { font-size: 14px; margin: 0 0 2px; }
+    .section-heading p { color: var(--muted); font-size: 12px; margin: 0; }
+    .section-body { padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px 16px; }
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-6 { grid-column: span 6; }
+    .span-4 { grid-column: span 4; }
+    .help { display: block; color: var(--muted); font-size: 12px; margin-top: 5px; }
+    .required::after { content: " *"; color: var(--danger); }
+
+    .provider-callout {
+      display: grid; grid-template-columns: 43px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+      padding: 12px 14px; border: 1px solid #bcdbea; background: #f1f8fb; border-radius: 4px;
+    }
+    .provider-callout .provider-mark { width: 43px; height: 43px; background: white; color: var(--primary-dark); border: 1px solid #c9e0eb; }
+    .provider-callout strong { display: block; }
+    .provider-callout p { margin: 2px 0 0; font-size: 12px; color: #58717e; }
+    .version { font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; color: #667984; background: white; border: 1px solid #cbdce4; padding: 3px 6px; border-radius: 3px; }
+
+    .array-box { border: 1px solid var(--line-soft); border-radius: 3px; padding: 10px; background: #fafbfb; }
+    .array-row { display: flex; gap: 7px; margin-bottom: 7px; }
+    .array-row:last-of-type { margin-bottom: 0; }
+    .array-row input { min-height: 33px; padding-block: 6px; }
+    .remove { width: 33px; flex: 0 0 33px; border: 1px solid #d5b2b2; color: var(--danger); background: white; border-radius: 3px; }
+    .add-link { border: 0; background: transparent; color: var(--primary); padding: 7px 0 0; font-size: 12px; }
+
+    .inline-radios { display: flex; min-height: 36px; align-items: center; gap: 20px; }
+    .inline-radios label { display: flex; align-items: center; gap: 7px; margin: 0; font-weight: 400; }
+    .inline-radios input { width: auto; min-height: auto; }
+    .validation-strip {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 11px 13px; border: 1px solid #c9dfd2; background: #f2f8f4; border-radius: 4px; margin-top: 16px;
+    }
+    .validation-copy { display: flex; align-items: center; gap: 9px; color: #385c48; font-size: 12px; }
+    .check { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--success); color: white; font-size: 12px; }
+
+    details.advanced { border: 1px solid var(--line); border-radius: 4px; }
+    details.advanced summary {
+      list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      padding: 13px 15px; background: #f6f8f9; font-weight: 650;
+    }
+    details.advanced summary::-webkit-details-marker { display: none; }
+    details.advanced summary::after { content: "+"; font-size: 19px; color: var(--primary); }
+    details.advanced[open] summary::after { content: "−"; }
+    details.advanced[open] summary { border-bottom: 1px solid var(--line); }
+    .advanced-body { padding: 16px; }
+    .subsection-title { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #5c6c77; margin: 3px 0 11px; }
+    textarea.expression { min-height: 74px; resize: vertical; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+    .prototype-note {
+      position: fixed; right: 16px; bottom: 14px; z-index: 5; padding: 6px 10px;
+      color: #53636e; background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 3px;
+      box-shadow: 0 2px 10px rgba(30,45,55,.08); font-size: 11px;
+    }
+
+    @keyframes fade-in { from { opacity: 0; } }
+    @keyframes lift-in { from { opacity: 0; transform: translateY(9px) scale(.992); } }
+
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 64px minmax(0, 1fr); }
+      .sidebar-label, .sidebar a span:not(.nav-dot) { display: none; }
+      .sidebar a { justify-content: center; padding-inline: 0; }
+      main { padding: 22px 18px 45px; }
+      .page-heading, .toolbar { align-items: stretch; flex-direction: column; }
+      .count-strip { justify-content: flex-start; }
+      .filters { flex-wrap: wrap; }
+      .field.search { max-width: none; flex-basis: 100%; }
+      .span-8, .span-6, .span-4 { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand"><span class="brand-mark">R</span><span>ReDBox Portal</span></div>
+    <div class="header-meta">System administrator&nbsp;&nbsp;·&nbsp;&nbsp; Default portal</div>
+  </header>
+
+  <div class="shell">
+    <nav class="sidebar" aria-label="Administration">
+      <div class="sidebar-label">Administration</div>
+      <a href="#"><span class="nav-dot"></span><span>User management</span></a>
+      <a href="#"><span class="nav-dot"></span><span>Role management</span></a>
+      <a href="#"><span class="nav-dot"></span><span>Record types</span></a>
+      <a href="#"><span class="nav-dot"></span><span>Named queries</span></a>
+      <a href="#"><span class="nav-dot"></span><span>Harvest runs</span></a>
+      <a class="active" href="#"><span class="nav-dot"></span><span>Record ingestion</span></a>
+    </nav>
+
+    <main>
+      <div class="page-heading">
+        <div>
+          <h1>Record ingestion</h1>
+          <p class="lede">Configure and run trusted public data sources for this portal.</p>
+        </div>
+        <div class="count-strip" aria-label="Source summary">
+          <span class="count-chip"><strong>3</strong> sources</span>
+          <span class="count-chip"><strong>2</strong> enabled</span>
+          <span class="count-chip"><strong>1</strong> disabled</span>
+        </div>
+      </div>
+
+      <section class="panel" aria-labelledby="sources-heading">
+        <div class="toolbar">
+          <div class="filters">
+            <div class="field search">
+              <label class="field-label compact" for="source-search">Search sources</label>
+              <div class="search-box"><span class="search-icon">⌕</span><input id="source-search" type="search" placeholder="Search by name, provider or record type"></div>
+            </div>
+            <div class="field select-compact">
+              <label class="field-label compact" for="provider-filter">Provider</label>
+              <select id="provider-filter"><option>All providers</option><option>ROR</option><option>Crossref</option><option>ARDC</option></select>
+            </div>
+            <div class="field select-compact">
+              <label class="field-label compact" for="status-filter">Status</label>
+              <select id="status-filter"><option>All statuses</option><option>Enabled</option><option>Disabled</option><option>Running</option><option>Error</option></select>
+            </div>
+          </div>
+          <div class="button-row">
+            <button class="btn" type="button">↻ Refresh</button>
+            <button class="btn btn-primary" id="create-source" type="button"><span class="plus">+</span> Create source</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table aria-label="Configured record ingestion sources">
+            <thead><tr><th id="sources-heading">Source</th><th>Provider</th><th>Target</th><th>Schedule</th><th>Status</th><th>Last run</th><th style="text-align:right">Actions</th></tr></thead>
+            <tbody>
+              <tr data-provider="ROR" data-status="Enabled">
+                <td><span class="source-name">Australian universities</span><span class="subline">Revision 4 · priority 20</span></td>
+                <td><div class="provider"><span class="provider-mark">ROR</span><span>Research Organization Registry</span></div></td>
+                <td><strong>party</strong><span class="subline">organisation-published</span></td>
+                <td>Every 24 hours<span class="subline">Next: today, 11:30 pm</span></td>
+                <td><span class="badge badge-enabled">Enabled</span></td>
+                <td>Today, 9:42 am<span class="subline">1,284 processed</span></td>
+                <td><div class="actions"><button class="btn btn-link btn-sm edit-source">Edit</button><button class="btn btn-sm">Run now</button><button class="btn btn-danger btn-sm">Disable</button></div></td>
+              </tr>
+              <tr data-provider="Crossref" data-status="Running">
+                <td><span class="source-name">Australian funding bodies</span><span class="subline">Revision 2 · priority 30</span></td>
+                <td><div class="provider"><span class="provider-mark">CR</span><span>Crossref funders</span></div></td>
+                <td><strong>party</strong><span class="subline">funder-published</span></td>
+                <td>Every 7 days<span class="subline">Started 2 minutes ago</span></td>
+                <td><span class="badge badge-running">Running</span></td>
+                <td>In progress<span class="subline">240 processed so far</span></td>
+                <td><div class="actions"><button class="btn btn-link btn-sm edit-source">Edit</button><button class="btn btn-sm" disabled>Run now</button><button class="btn btn-danger btn-sm">Disable</button></div></td>
+              </tr>
+              <tr data-provider="ARDC" data-status="Disabled">
+                <td><span class="source-name">ARC research activities</span><span class="subline">Revision 1 · priority 50</span></td>
+                <td><div class="provider"><span class="provider-mark">ARDC</span><span>ARDC Research Activities</span></div></td>
+                <td><strong>activity</strong><span class="subline">activity-draft</span></td>
+                <td>Manual only</td>
+                <td><span class="badge badge-disabled">Disabled</span></td>
+                <td>Never</td>
+                <td><div class="actions"><button class="btn btn-link btn-sm edit-source">Edit</button><button class="btn btn-sm" disabled>Run now</button><button class="btn btn-success btn-sm">Enable</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-footer"><span>Showing 3 of 3 configured sources</span><span>Select a source to inspect or change its configuration.</span></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-layer" id="editor-layer" aria-hidden="true">
+    <div class="backdrop" data-close></div>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title">
+      <header class="modal-header">
+        <div><h2 id="editor-title">Create ingestion source</h2><p>Configure where records come from and how they are mapped into ReDBox.</p></div>
+        <button class="close" type="button" aria-label="Close editor" data-close>×</button>
+      </header>
+
+      <div class="modal-body">
+        <section class="section">
+          <div class="section-heading"><h3>Source details</h3><p>Name the source, choose its provider, and select the destination record type.</p></div>
+          <div class="section-body">
+            <div class="grid">
+              <div class="field span-6"><label class="required" for="source-name">Source name</label><input id="source-name" value="Australian universities"><small class="help">A unique, recognisable name for portal administrators.</small></div>
+              <div class="field span-6"><label class="required" for="provider-select">Provider</label><select id="provider-select"><option value="ror">Research Organization Registry (ROR)</option><option value="crossref">Crossref funders</option><option value="ardc">ARDC Research Activities</option></select><small class="help">Changing provider resets provider-specific settings.</small></div>
+              <div class="span-12 provider-callout" id="provider-callout"><span class="provider-mark" id="provider-mark">ROR</span><div><strong id="provider-name">Research Organization Registry (ROR)</strong><p id="provider-description">Imports organisations from the public ROR registry. Supports incremental paging, preview and reconciliation.</p></div><span class="version">adapter 1.0.0</span></div>
+              <div class="field span-6"><label class="required" for="record-type">Target record type</label><select id="record-type"><option>party</option><option>activity</option><option>dataRecord</option></select><small class="help">Records created by this source use this configured record type.</small></div>
+              <div class="field span-6"><label for="workflow-stage">Starting workflow stage</label><select id="workflow-stage"><option>Use record type default</option><option selected>organisation-published</option><option>organisation-draft</option></select><small class="help">Optional. Defaults to the record type's starting stage.</small></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-heading"><h3>Provider configuration</h3><p id="provider-guidance">Limit ingestion to the ROR organisations your portal needs.</p></div>
+          <div class="section-body">
+            <div class="grid" id="provider-fields">
+              <div class="field span-6"><label for="country">Country code</label><input id="country" value="AU" maxlength="2"><small class="help">Two-letter ISO country code. Example: AU.</small></div>
+              <div class="field span-6"><label for="status">Organisation status</label><select id="status"><option selected>Active</option><option>Inactive</option><option>Withdrawn</option></select><small class="help">Only retrieve organisations with this ROR status.</small></div>
+              <div class="field span-6"><label for="query">Name or keyword query</label><input id="query" placeholder="e.g. University"><small class="help">Optional text search applied in addition to filters.</small></div>
+              <div class="field span-6"><label>Organisation types</label><div class="array-box"><div class="array-row"><input value="Education"><button class="remove" aria-label="Remove organisation type">×</button></div><button class="add-link" type="button">+ Add organisation type</button></div><small class="help">Add one or more ROR organisation types.</small></div>
+              <div class="field span-12"><label>Credential references</label><div class="array-box"><div class="array-row"><input value="ROR_CLIENT_ID" placeholder="Deployment-managed reference name"><button class="remove" aria-label="Remove credential reference">×</button></div><button class="add-link" type="button">+ Add credential reference</button></div><small class="help">Optional ROR Client-Id reference. Secret values are resolved on the server and never stored here.</small></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-heading"><h3>Schedule</h3><p>Choose whether this source runs manually or at a regular interval.</p></div>
+          <div class="section-body">
+            <div class="grid">
+              <div class="field span-6"><span class="field-label required">Run mode</span><div class="inline-radios"><label><input type="radio" name="mode"> Manual only</label><label><input type="radio" name="mode" checked> Scheduled interval</label></div></div>
+              <div class="field span-6"><label class="required" for="interval">Run every</label><select id="interval"><option>6 hours</option><option selected>24 hours</option><option>7 days</option><option>30 days</option></select><small class="help">The next run is calculated from the last dispatch.</small></div>
+            </div>
+          </div>
+        </section>
+
+        <details class="advanced">
+          <summary><span>Advanced configuration <small class="help" style="display:inline;margin-left:8px">Mapping, ownership, batching and retry policy</small></span></summary>
+          <div class="advanced-body">
+            <div class="subsection-title">Processing</div>
+            <div class="grid">
+              <div class="field span-4"><label for="priority">Source priority</label><input id="priority" type="number" value="20"><small class="help">Lower values win source ownership conflicts.</small></div>
+              <div class="field span-4"><label for="batch">Batch size</label><input id="batch" type="number" value="100" max="100"><small class="help" id="batch-help">ROR maximum: 100 records.</small></div>
+              <div class="field span-4"><label for="reconcile">Reconcile every</label><input id="reconcile" type="number" value="7"><small class="help">Number of completed runs.</small></div>
+            </div>
+            <div class="subsection-title" style="margin-top:19px">Crosswalk</div>
+            <div class="grid">
+              <div class="field span-8"><label for="metadata-expression">Metadata expression</label><textarea class="expression" id="metadata-expression">{"name": item.name, "acronyms": item.acronyms, "country": item.country.country_name, "links": item.links[].value}</textarea></div>
+              <div class="field span-4"><label for="label-expression">Display label expression</label><textarea class="expression" id="label-expression">item.name</textarea></div>
+              <div class="field span-6"><label>Source-owned metadata paths</label><div class="array-box"><div class="array-row"><input value="/name"><button class="remove">×</button></div><div class="array-row"><input value="/country"><button class="remove">×</button></div><button class="add-link">+ Add owned path</button></div></div>
+              <div class="field span-6"><label>Canonical identifiers</label><div class="array-box"><div class="array-row"><input value="ror" style="max-width:120px"><input value="item.id"><button class="remove">×</button></div><button class="add-link">+ Add identifier mapping</button></div></div>
+            </div>
+          </div>
+        </details>
+
+        <div class="validation-strip">
+          <div class="validation-copy"><span class="check">✓</span><span><strong>Configuration valid.</strong> Required provider and mapping settings are complete.</span></div>
+          <div class="button-row"><button class="btn" type="button">Test connection</button><button class="btn" type="button">Preview 10 records</button></div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <div class="modal-footer-note">New sources are saved disabled. Enable the source from the list when it is ready to run.</div>
+        <div class="button-row"><button class="btn" type="button" data-close>Cancel</button><button class="btn btn-primary" type="button" id="save-source">Save source</button></div>
+      </footer>
+    </section>
+  </div>
+
+  <div class="prototype-note">Interactive HTML mock · no data will be saved</div>
+
+  <script>
+    const layer = document.getElementById('editor-layer');
+    const title = document.getElementById('editor-title');
+    const nameInput = document.getElementById('source-name');
+    const providerSelect = document.getElementById('provider-select');
+    const providerContent = {
+      ror: {
+        mark: 'ROR',
+        name: 'Research Organization Registry (ROR)',
+        description: 'Imports organisations from the public ROR registry. Supports incremental paging, preview and reconciliation.',
+        guidance: 'Limit ingestion to the ROR organisations your portal needs.',
+        batchSize: 100,
+        batchHelp: 'ROR maximum: 100 records.',
+        fields: `
+          <div class="field span-6"><label for="country">Country code</label><input id="country" value="AU" maxlength="2"><small class="help">Two-letter ISO country code. Example: AU.</small></div>
+          <div class="field span-6"><label for="status">Organisation status</label><select id="status"><option selected>Active</option><option>Inactive</option><option>Withdrawn</option></select><small class="help">Only retrieve organisations with this ROR status.</small></div>
+          <div class="field span-6"><label for="query">Name or keyword query</label><input id="query" placeholder="e.g. University"><small class="help">Optional text search applied in addition to filters.</small></div>
+          <div class="field span-6"><label>Organisation types</label><div class="array-box"><div class="array-row"><input value="Education"><button class="remove" type="button" aria-label="Remove organisation type">×</button></div><button class="add-link" type="button">+ Add organisation type</button></div><small class="help">Add one or more ROR organisation types.</small></div>
+          <div class="field span-12"><label>Credential references</label><div class="array-box"><div class="array-row"><input value="ROR_CLIENT_ID" placeholder="Deployment-managed reference name"><button class="remove" type="button" aria-label="Remove credential reference">×</button></div><button class="add-link" type="button">+ Add credential reference</button></div><small class="help">Optional ROR Client-Id reference. Secret values are resolved on the server and never stored here.</small></div>`
+      },
+      crossref: {
+        mark: 'CR',
+        name: 'Crossref funders',
+        description: 'Imports funding bodies from Crossref. Supports incremental paging, preview and reconciliation.',
+        guidance: 'Choose a bounded funder name, location or identifier filter. At least one is required.',
+        batchSize: 50,
+        batchHelp: 'Crossref maximum: 50 funders.',
+        fields: `
+          <div class="field span-6"><label class="required" for="funder-name">Funder name</label><input id="funder-name" value="Australian Research Council"><small class="help">Match funder names containing this text.</small></div>
+          <div class="field span-6"><label for="funder-location">Location</label><input id="funder-location" value="Australia"><small class="help">Limit results to funders in this location.</small></div>
+          <div class="field span-6"><label>Explicit funder IDs</label><div class="array-box"><div class="array-row"><input value="501100000923"><button class="remove" type="button" aria-label="Remove funder ID">×</button></div><button class="add-link" type="button">+ Add funder ID</button></div><small class="help">Optional Crossref funder identifiers.</small></div>
+          <div class="field span-6"><label for="contact-email">Contact email</label><input id="contact-email" type="email" value="repository@example.edu.au"><small class="help">Included in the polite API User-Agent sent to Crossref.</small></div>
+          <div class="field span-12"><label>Credential references</label><div class="array-box"><div class="array-row"><input value="CROSSREF_API_TOKEN" placeholder="Deployment-managed reference name"><button class="remove" type="button" aria-label="Remove credential reference">×</button></div><button class="add-link" type="button">+ Add credential reference</button></div><small class="help">Optional Crossref Plus token reference. The token itself is never stored here.</small></div>`
+      },
+      ardc: {
+        mark: 'ARDC',
+        name: 'ARDC Research Activities',
+        description: 'Imports grants and research activities from Research Data Australia. An API-key reference is required.',
+        guidance: 'Limit ingestion by institution, funder, type, identifier or modification date. At least one filter is required.',
+        batchSize: 100,
+        batchHelp: 'ARDC maximum: 100 activities.',
+        fields: `
+          <div class="field span-6"><label class="required" for="institution">Institution</label><input id="institution" value="The University of Adelaide"><small class="help">Retrieve activities associated with this institution.</small></div>
+          <div class="field span-6"><label for="funder">Funder</label><input id="funder" value="Australian Research Council"><small class="help">Optional funding organisation name.</small></div>
+          <div class="field span-4"><label for="activity-type">Activity type</label><select id="activity-type"><option selected>Grant</option><option>Project</option><option>Program</option></select><small class="help">Limit the kind of research activity.</small></div>
+          <div class="field span-4"><label for="activity-id">Identifier</label><input id="activity-id" placeholder="e.g. DP240100001"><small class="help">Retrieve a specific grant or activity.</small></div>
+          <div class="field span-4"><label for="modified-since">Modified since</label><input id="modified-since" type="date" value="2026-01-01"><small class="help">Only retrieve activities changed after this date.</small></div>
+          <div class="field span-12"><label class="required">API key reference</label><div class="array-box"><div class="array-row"><input value="ARDC_ACTIVITIES_API_KEY" placeholder="Deployment-managed reference name"><button class="remove" type="button" aria-label="Remove API key reference">×</button></div></div><small class="help">Required deployment-managed ARDC API-key reference. The key itself is never stored here.</small></div>`
+      }
+    };
+
+    function openEditor(isNew) {
+      title.textContent = isNew ? 'Create ingestion source' : 'Edit ingestion source';
+      nameInput.value = isNew ? '' : 'Australian universities';
+      layer.classList.add('open');
+      layer.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => nameInput.focus(), 20);
+    }
+
+    function closeEditor() {
+      if (layer.contains(document.activeElement)) document.activeElement.blur();
+      layer.classList.remove('open');
+      layer.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('create-source').addEventListener('click', () => openEditor(true));
+    document.querySelectorAll('.edit-source').forEach(button => button.addEventListener('click', () => openEditor(false)));
+    document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeEditor));
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeEditor(); });
+    document.getElementById('save-source').addEventListener('click', closeEditor);
+
+    providerSelect.addEventListener('change', () => {
+      const provider = providerContent[providerSelect.value];
+      document.getElementById('provider-mark').textContent = provider.mark;
+      document.getElementById('provider-name').textContent = provider.name;
+      document.getElementById('provider-description').textContent = provider.description;
+      document.getElementById('provider-guidance').textContent = provider.guidance;
+      document.getElementById('provider-fields').innerHTML = provider.fields;
+      document.getElementById('batch').value = provider.batchSize;
+      document.getElementById('batch').max = provider.batchSize;
+      document.getElementById('batch-help').textContent = provider.batchHelp;
+    });
+
+    const search = document.getElementById('source-search');
+    const providerFilter = document.getElementById('provider-filter');
+    const statusFilter = document.getElementById('status-filter');
+    function filterRows() {
+      const term = search.value.toLowerCase();
+      document.querySelectorAll('tbody tr').forEach(row => {
+        const providerMatches = providerFilter.value === 'All providers' || row.dataset.provider === providerFilter.value;
+        const statusMatches = statusFilter.value === 'All statuses' || row.dataset.status === statusFilter.value;
+        row.hidden = !row.textContent.toLowerCase().includes(term) || !providerMatches || !statusMatches;
+      });
+    }
+    search.addEventListener('input', filterRows);
+    providerFilter.addEventListener('change', filterRows);
+    statusFilter.addEventListener('change', filterRows);
+  </script>
+</body>
+</html>

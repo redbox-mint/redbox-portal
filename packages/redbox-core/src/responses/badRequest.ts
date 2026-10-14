@@ -1,5 +1,6 @@
 import { resolveSiteTitle } from './siteTitle';
 import { inspect } from 'node:util';
+import { renderErrorView } from './renderErrorView';
 
 declare module 'express-serve-static-core' {
     interface Response {
@@ -60,20 +61,6 @@ export function badRequest(this: { req: Sails.Req, res: Sails.Res }, data?: unkn
         }
     }
 
-    // If a view was provided in options, serve it.
-    // Otherwise try to guess an appropriate view, or if that doesn't
-    // work, just send JSON.
-    // If a view was provided in options, serve it.
-    // Otherwise try to guess an appropriate view, or if that doesn't
-    // work, just send JSON.
-    if (options.view) {
-        return res.view(options.view, { data: viewData, title: siteTitle });
-    }
-
-    // If no second argument provided, try to serve the implied view,
-    // but fall back to sending JSON(P) if no view can be inferred.
-    else return res.guessView({ data: viewData, title: siteTitle }, function couldNotGuessView() {
-        return res.json(data);
-    });
+    return renderErrorView(req, res, options.view || '400', { data: viewData, title: siteTitle });
 
 };

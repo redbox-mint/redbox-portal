@@ -1,11 +1,11 @@
 import * as sinon from 'sinon';
 import { Readable } from 'node:stream';
 import { createRequire } from 'node:module';
-import type { RecordModel } from '../../src/services/figshare-v2/types';
+import type { FigshareFile, FigshareSyncState, RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
-const testRequire = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
 const { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } = testRequire('../../src/configmodels/FigsharePublishing');
 const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
@@ -14,6 +14,7 @@ const { createRunContext } = testRequire('../../src/services/figshare-v2/context
 const { mapCreateArticleResponse } = testRequire('../../src/services/figshare-v2/http');
 const { buildMetadataPayload, syncMetadataPhase } = testRequire('../../src/services/figshare-v2/metadata');
 const { syncAssetsPhase } = testRequire('../../src/services/figshare-v2/assets');
+const { syncEmbargoPhase } = testRequire('../../src/services/figshare-v2/embargo');
 const { getRecordField, setRecordField } = testRequire('../../src/services/figshare-v2/types');
 const { RBValidationError } = testRequire('../../src/model/RBValidationError');
 const {createSinonStubLogger} = testRequire("../logger.test") as typeof import('../logger.test');
@@ -57,7 +58,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     record: {
       ...(config.record as Record<string, unknown>),
       articleIdPath: 'metadata.figshare_article_id',
-      articleUrlPaths: ['metadata.figshare_article_location'],
       dataLocationsPath: 'metadata.dataLocations',
       statusPath: 'metadata.figshareStatus',
       errorPath: 'metadata.figshareError',
@@ -87,13 +87,12 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       description: { kind: 'path', path: 'metadata.description' },
       keywords: { kind: 'path', path: 'metadata.keywords' },
       license: { source: { kind: 'path', path: 'metadata.license' }, matchBy: 'urlContains', required: true },
-      categories: { source: { kind: 'path', path: 'metadata.forCodes' }, mappingStrategy: 'for2020Mapping' },
+      categories: { source: { kind: 'path', path: 'metadata.forCodes' } },
       customFields: [],
       ...(overrides.metadata as Record<string, unknown> | undefined),
     },
     categories: {
       ...(config.categories as Record<string, unknown>),
-      strategy: 'for2020Mapping',
       mappingTable: [{ sourceCode: '0101', figshareCategoryId: 10 }],
       allowUnmapped: true,
       ...(overrides.categories as Record<string, unknown> | undefined),
@@ -102,14 +101,12 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
       ...(config.assets as Record<string, unknown>),
       enableHostedFiles: true,
       enableLinkFiles: true,
-      dedupeStrategy: 'sourceId',
       ...(overrides.assets as Record<string, unknown> | undefined),
       // Deep-merge staging last so a partial `assets` override (or a partial
       // `assets.staging` override) cannot erase defaults like disk/keyPrefix.
       staging: {
         ...((config.assets as Record<string, unknown>).staging as Record<string, unknown>),
         cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1000,
         ...((overrides.assets as Record<string, unknown> | undefined)?.staging as Record<string, unknown> | undefined),
       },
     },
@@ -128,7 +125,6 @@ function buildFigsharePublishingConfig(overrides: Record<string, unknown> = {}) 
     },
     workflow: {
       ...(config.workflow as Record<string, unknown>),
-      transitionRules: [],
       ...(overrides.workflow as Record<string, unknown> | undefined),
       // Deep-merge transitionJob last so a partial `workflow` override (or a partial
       // `workflow.transitionJob` override) cannot erase the other transitionJob settings.
@@ -232,9 +228,7 @@ function buildLiveAssetConfig(overrides: Record<string, unknown> = {}) {
       staging: {
         disk: 'figshare-staging',
         keyPrefix: 'figshare/',
-        tempDir: '',
         cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1000,
         ...(overrides as { staging?: Record<string, unknown> }).staging,
       },
     },
@@ -360,7 +354,7 @@ describe('FigshareService', function () {
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().resolves(true),
-      updateMeta: sinon.stub().resolves({ success: true }),
+      updateMetaInternal: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
     (global as any).UsersService = {
       getUserWithUsername: sinon.stub().returns({
@@ -418,6 +412,121 @@ describe('FigshareService', function () {
     expect(exports).to.have.property('syncRecordWithFigshare');
   });
 
+  it('builds the Figshare v2 embargo payload from configurable bindings', async function () {
+    const config = buildFigsharePublishingConfig({
+      embargo: {
+        mode: 'recordDriven',
+        forceSync: false,
+        accessRights: {
+          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
+          embargoType: { kind: 'path', path: 'metadata.embargoType' },
+          fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
+          reason: { kind: 'path', path: 'metadata.embargoReason' },
+        },
+      },
+    }) as unknown as FigsharePublishingConfigData;
+    const client = buildAssetClient([]);
+    client.getArticle = sinon.stub().resolves({ id: '12345', is_embargoed: false });
+    client.setEmbargo = sinon.stub().resolves({});
+
+    await syncEmbargoPhase(client, config, {
+      metadata: {
+        embargoActive: true,
+        embargoType: 'file',
+        embargoUntil: '2026-08-31T01:42:13.000Z',
+        embargoReason: 'File embargo reason',
+      },
+    } as RecordModel, '12345');
+
+    expect((client.setEmbargo as sinon.SinonStub).calledOnceWithExactly('12345', {
+      is_embargoed: true,
+      embargo_type: 'file',
+      embargo_date: '2026-08-31T01:42:13.000Z',
+      embargo_reason: 'File embargo reason',
+    })).to.equal(true);
+  });
+
+  it('clears an existing embargo when the active binding is empty', async function () {
+    const config = buildFigsharePublishingConfig({
+      embargo: {
+        mode: 'recordDriven',
+        forceSync: false,
+        accessRights: {
+          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
+          embargoType: { kind: 'path', path: 'metadata.embargoType', defaultValue: 'article' },
+        },
+      },
+    }) as unknown as FigsharePublishingConfigData;
+    const client = buildAssetClient([]);
+    client.getArticle = sinon.stub().resolves({ id: '67890', is_embargoed: true });
+    client.clearEmbargo = sinon.stub().resolves({});
+
+    await syncEmbargoPhase(client, config, { metadata: {} } as RecordModel, '67890');
+
+    expect((client.clearEmbargo as sinon.SinonStub).calledOnceWithExactly('67890')).to.equal(true);
+  });
+
+  it('does not resend an unchanged Figshare v2 embargo', async function () {
+    const config = buildFigsharePublishingConfig({
+      embargo: {
+        mode: 'recordDriven',
+        forceSync: false,
+        accessRights: {
+          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
+          embargoType: { kind: 'path', path: 'metadata.embargoType' },
+          fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
+          reason: { kind: 'path', path: 'metadata.embargoReason' },
+        },
+      },
+    }) as unknown as FigsharePublishingConfigData;
+    const client = buildAssetClient([]);
+    client.getArticle = sinon.stub().resolves({
+      id: '12345',
+      is_embargoed: true,
+      embargo_type: 'article',
+      embargo_date: '2027-01-31T00:00:00.000Z',
+      embargo_reason: 'Full embargo reason',
+    });
+    client.setEmbargo = sinon.stub().resolves({});
+
+    await syncEmbargoPhase(client, config, {
+      metadata: {
+        embargoActive: 'embargoed',
+        embargoType: 'article',
+        embargoUntil: '2027-01-31T00:00:00.000Z',
+        embargoReason: 'Full embargo reason',
+      },
+    } as RecordModel, '12345');
+
+    expect((client.setEmbargo as sinon.SinonStub).called).to.equal(false);
+  });
+
+  it('rejects an unsupported configured Figshare embargo type', async function () {
+    const config = buildFigsharePublishingConfig({
+      embargo: {
+        mode: 'recordDriven',
+        forceSync: false,
+        accessRights: {
+          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
+          embargoType: { kind: 'path', path: 'metadata.embargoType' },
+        },
+      },
+    }) as unknown as FigsharePublishingConfigData;
+    const client = buildAssetClient([]);
+    client.getArticle = sinon.stub().resolves({ id: '12345', is_embargoed: false });
+
+    let thrown: unknown;
+    try {
+      await syncEmbargoPhase(client, config, {
+        metadata: { embargoActive: true, embargoType: 'account' },
+      } as RecordModel, '12345');
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).to.be.instanceOf(Error);
+    expect((thrown as Error).message).to.contain("Figshare embargo type must be 'article' or 'file'");
+  });
+
   it('infers record oid from the full job id prefix when record fields are empty', function () {
     const context = createRunContext(
       { redboxOid: '', id: '', oid: '', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
@@ -430,7 +539,13 @@ describe('FigshareService', function () {
 
   it('keeps record oid field precedence over the job id fallback', function () {
     const context = createRunContext(
-      { redboxOid: 'record-oid', id: 'id-oid', oid: 'legacy-oid', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
+      {
+        redboxOid: 'record-oid',
+        id: 'id-oid',
+        oid: 'legacy-oid',
+        metaMetadata: { brandId: 'default' },
+        metadata: {},
+      } as RecordModel,
       buildFigsharePublishingConfig() as FigsharePublishingConfigData,
       'job-id:publish-job'
     );
@@ -438,165 +553,51 @@ describe('FigshareService', function () {
     expect(context.recordOid).to.equal('record-oid');
   });
 
-  it('honours triggerCondition before Figshare lifecycle sync', async function () {
-    const options = {
-      triggerCondition:
-        '<%= _.isEqual(record.workflow.stage, "queued") && _.isEqual(_.get(record, "metadata.dataset-will-be-published"), "yes") %>',
-    };
-    const draftRecord = {
-      redboxOid: 'oid-draft',
-      harvestId: '',
-      metaMetadata: {
-        brandId: 'default',
-        createdBy: 'admin',
-        type: 'dataPublication',
-        searchCore: 'default',
-        form: 'dataPublication-1.0-draft',
-        attachmentFields: [],
-      },
-      workflow: { stage: 'draft', stageLabel: 'Draft' },
-      authorization: {
-        view: [],
-        edit: [],
-        editRoles: [],
-        viewRoles: [],
-        editPending: [],
-        viewPending: [],
-        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
-      },
-      metadata: {
-        title: 'Draft dataset',
-        'dataset-will-be-published': 'yes',
-      },
-      dateCreated: '',
-      lastSaveDate: '',
-      id: '',
-    };
-    const queuedRecord = {
-      redboxOid: 'oid-queued',
-      harvestId: '',
-      metaMetadata: {
-        brandId: 'default',
-        createdBy: 'admin',
-        type: 'dataPublication',
-        searchCore: 'default',
-        form: 'dataPublication-1.0-review',
-        attachmentFields: [],
-      },
-      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: {
-        view: [],
-        edit: [],
-        editRoles: [],
-        viewRoles: [],
-        editPending: [],
-        viewPending: [],
-        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
-      },
-      metadata: {
-        title: 'Queued dataset',
-        'dataset-will-be-published': 'yes',
-      },
-      dateCreated: '',
-      lastSaveDate: '',
-      id: '',
-    };
-    const user = {
-      id: 'user-1',
-      username: 'user-1',
-      type: 'admin',
-      name: 'User One',
-      email: 'user-1@example.org',
-      lastLogin: new Date(),
-      additionalAttributes: {},
-      loginDisabled: false,
-      workspaceApps: [],
-      roles: [],
-    };
-    const syncStub = sinon.stub(service, 'syncRecordWithFigshare').resolves(queuedRecord);
-
-    const skipped = service.createUpdateFigshareArticle('oid-draft', draftRecord, options, user);
-    expect(skipped).to.equal(draftRecord);
-    expect(syncStub.called).to.equal(false);
-
-    const uploadSkipped = service.uploadFilesToFigshareArticle('oid-draft', draftRecord, options, user);
-    expect(uploadSkipped).to.equal(draftRecord);
-    expect(syncStub.called).to.equal(false);
-
-    const synced = await service.createUpdateFigshareArticle('oid-queued', queuedRecord, options, user);
-    expect(synced).to.equal(queuedRecord);
-    expect(syncStub.calledOnceWithExactly(queuedRecord, 'oid-queued:pre', 'pre-save')).to.equal(true);
+  it('validates locally in the deprecated pre-save alias without calling Figshare', async function () {
+    const record = { redboxOid: 'oid', metaMetadata: { brandId: 'default' }, metadata: { title: 'Dataset', description: 'Description', forCodes: ['0101'], license: 'CC-BY' }, workflow: { stage: 'draft' } };
+    const remote = sinon.stub(service, 'makeClient').throws(new Error('Must not access Figshare before commit'));
+    const result = await service.createUpdateFigshareArticle('oid', record, { triggerCondition: '<%= record.workflow.stage === "queued" %>' }, { username: 'researcher' });
+    expect(result).to.equal(record);
+    expect(remote.called).to.equal(false);
   });
 
-  it('runs Figshare lifecycle sync when no triggerCondition is configured', async function () {
-    const record = {
-      redboxOid: 'oid-no-condition',
-      harvestId: '',
-      metaMetadata: {
-        brandId: 'default',
-        createdBy: 'admin',
-        type: 'dataPublication',
-        searchCore: 'default',
-        form: 'dataPublication-1.0-review',
-        attachmentFields: [],
-      },
-      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: {
-        view: [],
-        edit: [],
-        editRoles: [],
-        viewRoles: [],
-        editPending: [],
-        viewPending: [],
-        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
-      },
-      metadata: {
-        title: 'Queued dataset',
-        'dataset-will-be-published': 'yes',
-      },
-      dateCreated: '',
-      lastSaveDate: '',
-      id: '',
-    };
-    const user = {
-      id: 'user-1',
-      username: 'user-1',
-      type: 'admin',
-      name: 'User One',
-      email: 'user-1@example.org',
-      lastLogin: new Date(),
-      additionalAttributes: {},
-      loginDisabled: false,
-      workspaceApps: [],
-      roles: [],
-    };
-    const syncStub = sinon.stub(service, 'syncRecordWithFigshare').resolves(record);
-
-    const synced = await service.createUpdateFigshareArticle('oid-no-condition', record, {}, user);
-    expect(synced).to.equal(record);
-    expect(syncStub.calledOnceWithExactly(record, 'oid-no-condition:pre', 'pre-save')).to.equal(true);
-
-    service.uploadFilesToFigshareArticle('oid-no-condition', record, {}, user);
-    expect(syncStub.calledWithExactly(record, 'oid-no-condition:post', 'post-save')).to.equal(true);
+  it('keeps disabled processing compatible with unsupported legacy delays and warns once per brand', async function () {
+    appConfigByBrandStub.returns({ figsharePublishing: buildFigsharePublishingConfig({
+      processing: { enabled: false }, queue: { publishAfterUploadDelay: 'in one minute', uploadedFilesCleanupDelay: 'tomorrow at noon' }
+    }) });
+    const record = { redboxOid: 'oid', metaMetadata: { brandId: 'default' }, metadata: {}, workflow: { stage: 'draft' } };
+    const wake = sinon.stub(service, 'wakeFigshareRecord').resolves(record);
+    await service.createUpdateFigshareArticle('oid', record, { triggerCondition: '<%= false %>' }, {});
+    await service.uploadFilesToFigshareArticle('oid', record);
+    await service.uploadFilesToFigshareArticle('oid', record);
+    const warnings = ((global as any).sails.log.warn as sinon.SinonStub).getCalls().filter(call => String(call.args[0]).includes('processing.enabled is false'));
+    expect(warnings).to.have.length(1);
+    expect(warnings[0].args[0]).to.include('default');
+    expect(wake.callCount).to.equal(2);
+  });
+  it('routes post-save and legacy poll jobs through the committed-intent wake-up', async function () {
+    const record = { redboxOid: 'oid', metadata: {} };
+    const wake = sinon.stub(service, 'wakeFigshareRecord').resolves(record);
+    await service.uploadFilesToFigshareArticle('oid', record, {}, {});
+    await service.publishAfterUploadFilesJob({ attrs: { data: { oid: 'oid', articleId: 'stale', user: { username: 'stale' } } } });
+    await service.deleteFilesFromRedbox({ attrs: { data: { oid: 'oid', articleId: 'stale' } } });
+    expect(wake.callCount).to.equal(3);
+    expect(wake.secondCall.args).to.deep.equal(['oid']);
+    expect(wake.thirdCall.args).to.deep.equal(['oid']);
   });
 
-  it('uses fixture mode to build metadata and write back article identifiers', async function () {
-    const record = {
-      metaMetadata: { brandId: 'default' },
-      metadata: {
-        title: 'Dataset title',
-        description: 'Dataset description',
-        keywords: ['one'],
-        forCodes: ['0101'],
-        license: 'CC-BY',
-      },
-    } as any;
+  it('does not enqueue or delete bytes when the legacy cleanup pre-hook is invoked', async function () {
+    const record = { redboxOid: 'oid', metadata: { dataLocations: [{ type: 'attachment', fileId: 'file' }] } };
+    const wake = sinon.stub(service, 'wakeFigshareRecord');
+    expect(service.deleteFilesFromRedboxTrigger('oid', record, { forceRun: true }, {})).to.equal(record);
+    expect(wake.called).to.equal(false);
+    expect(record.metadata.dataLocations[0].fileId).to.equal('file');
+  });
 
-    const result = await service.syncRecordWithFigshare(record, 'job-1');
-    expect(result.metadata.figshare_article_id).to.equal('fixture-123');
-    expect(result.metadata.figshare_article_location).to.equal('https://figshare.com/articles/fixture-123');
-    expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
-    expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
+  it('routes the legacy workflow scanner through the durable dispatcher', async function () {
+    const dispatch = sinon.stub(service, 'dispatchSyncJob').resolves();
+    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+    expect(dispatch.calledOnce).to.equal(true);
   });
 
   it('uses path binding defaults when metadata values are null', async function () {
@@ -662,7 +663,6 @@ describe('FigshareService', function () {
       metadata: {
         categories: {
           source: { kind: 'path', path: 'metadata.anzsrcFor', defaultValue: [] },
-          mappingStrategy: 'for2020Mapping',
         },
       },
       categories: {
@@ -719,6 +719,252 @@ describe('FigshareService', function () {
     expect(payload.categories).to.deep.equal([25508, 25509]);
   });
 
+  /**
+   * A `crosswalk` binding selects crosswalk resolution. Resolution itself belongs to
+   * FigshareVocabularyService and is stubbed here — what these tests protect is the
+   * threading of brand and codes into it, and the fail-closed handling of its result.
+   */
+  describe('crosswalk category bindings', function () {
+    let resolveCrosswalkValues: sinon.SinonStub;
+
+    const crosswalkBinding = {
+      kind: 'crosswalk',
+      source: { kind: 'path', path: 'metadata.forCodes', defaultValue: [] },
+      sourceVocabularyId: 'vocab-1',
+      crosswalkId: 'crosswalk-1',
+      outputs: 'categoryId',
+    };
+
+    beforeEach(function () {
+      resolveCrosswalkValues = sinon.stub().resolves({
+        values: [25508, 25509],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [],
+      });
+      (global as any).FigshareVocabularyService = { resolveCrosswalkValues };
+    });
+
+    afterEach(function () {
+      delete (global as any).FigshareVocabularyService;
+    });
+
+    function buildRecord(metadata: Record<string, unknown> = {}): RecordModel {
+      return {
+        redboxOid: 'oid-1',
+        harvestId: '',
+        metaMetadata: {
+          brandId: 'default',
+          createdBy: 'admin',
+          type: 'dataPublication',
+          searchCore: 'default',
+          form: 'dataPublication-1.0-review',
+          attachmentFields: [],
+        },
+        metadata: {
+          title: 'Dataset title',
+          description: 'Dataset description',
+          keywords: ['one'],
+          forCodes: ['0101', '0102'],
+          license: 'CC-BY',
+          ...metadata,
+        },
+        workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
+        authorization: {
+          view: [],
+          edit: [],
+          editRoles: [],
+          viewRoles: [],
+          editPending: [],
+          viewPending: [],
+          stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
+        },
+        dateCreated: '',
+        lastSaveDate: '',
+        id: '',
+      };
+    }
+
+    it('resolves categories through the crosswalk with the record brand threaded through', async function () {
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+      }) as unknown as FigsharePublishingConfigData;
+
+      const payload = await buildMetadataPayload(config, buildRecord());
+
+      expect(payload.categories).to.deep.equal([25508, 25509]);
+      // 'default' is a brand *name*; BrandingService maps it to its id.
+      sinon.assert.calledOnceWithExactly(resolveCrosswalkValues, {
+        brandId: 'default-id',
+        crosswalkId: 'crosswalk-1',
+        sourceVocabularyId: 'vocab-1',
+        codes: ['0101', '0102'],
+        outputs: 'categoryId',
+      });
+    });
+
+    it('rejects a categories binding that does not output category ids', async function () {
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: { ...crosswalkBinding, outputs: 'label' } } },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.match(/must use the 'categoryId' output/);
+      }
+      sinon.assert.notCalled(resolveCrosswalkValues);
+    });
+
+    /** Fail closed: an unusable crosswalk must never fall back to the mapping table. */
+    it('fails closed when crosswalk resolution throws', async function () {
+      resolveCrosswalkValues.rejects(new Error('The configured Figshare crosswalk has no approved revision'));
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { mappingTable: [{ sourceCode: '0101', figshareCategoryId: 10 }], allowUnmapped: true },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.match(
+          /Figshare crosswalk category resolution failed: .*no approved revision/
+        );
+      }
+    });
+
+    it('rejects historical crosswalk targets when unmapped categories are not allowed', async function () {
+      resolveCrosswalkValues.resolves({
+        values: [25508],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [{ code: '0102', categoryId: 99, sourceId: 'src-99' }],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { allowUnmapped: false },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.match(
+          /Figshare crosswalk maps to categories removed upstream: 0102 → src-99 \(99\)/
+        );
+      }
+    });
+
+    it('warns but keeps publishing historical targets when unmapped categories are allowed', async function () {
+      resolveCrosswalkValues.resolves({
+        values: [25508],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [{ code: '0102', categoryId: 99, sourceId: 'src-99' }],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { allowUnmapped: true },
+      }) as unknown as FigsharePublishingConfigData;
+
+      const payload = await buildMetadataPayload(config, buildRecord());
+
+      expect(payload.categories).to.deep.equal([25508]);
+      sinon.assert.calledWithMatch(
+        (global as any).sails.log.warn,
+        /omitted historical category targets: 0102 → src-99/
+      );
+    });
+
+    it('reports the shared unmapped-categories error when the crosswalk resolves nothing', async function () {
+      resolveCrosswalkValues.resolves({
+        values: [],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: ['0101', '0102'],
+        historicalTargets: [],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: { categories: { source: crosswalkBinding } },
+        categories: { allowUnmapped: false },
+      }) as unknown as FigsharePublishingConfigData;
+
+      try {
+        await buildMetadataPayload(config, buildRecord());
+        expect.fail('Expected a validation error');
+      } catch (error) {
+        expect((error as Error).message).to.equal('No Figshare categories mapped for selected record categories');
+      }
+    });
+
+    /**
+     * The headline new capability: a crosswalk is no longer confined to the categories
+     * payload, and `label` output makes it useful for free-text fields.
+     */
+    it('feeds keywords from a label-output crosswalk', async function () {
+      resolveCrosswalkValues.resolves({
+        values: ['Agricultural hydrology', 'Agronomy'],
+        normalizedCodes: ['0101', '0102'],
+        unresolvedCodes: [],
+        historicalTargets: [],
+      });
+      const config = buildFigsharePublishingConfig({
+        metadata: {
+          keywords: { ...crosswalkBinding, outputs: 'label' },
+          categories: { source: { kind: 'path', path: 'metadata.nothing', defaultValue: [] } },
+        },
+      }) as unknown as FigsharePublishingConfigData;
+
+      const payload = await buildMetadataPayload(config, buildRecord());
+
+      expect(payload.keywords).to.deep.equal(['Agricultural hydrology', 'Agronomy']);
+      expect(resolveCrosswalkValues.firstCall.args[0].outputs).to.equal('label');
+    });
+
+    /**
+     * Author lookup rules evaluate against a contributor object, which carries no
+     * brand — proving the binding context rather than the target supplies it.
+     */
+    it('resolves a crosswalk under an author lookup rule using the record brand', async function () {
+      resolveCrosswalkValues.resolves({
+        values: ['p.hayman@cqu.edu.au'],
+        normalizedCodes: ['staff-1'],
+        unresolvedCodes: [],
+        historicalTargets: [],
+      });
+      const config = buildFigsharePublishingConfig({
+        authors: {
+          lookup: [
+            {
+              matchBy: 'email',
+              value: { ...crosswalkBinding, source: { kind: 'path', path: 'staffId' }, outputs: 'sourceId' },
+            },
+          ],
+        },
+        metadata: {
+          categories: { source: { kind: 'path', path: 'metadata.nothing', defaultValue: [] } },
+        },
+      }) as unknown as FigsharePublishingConfigData;
+      const record = buildRecord({
+        contributor_ci: { name: 'Patricia Hayman', email: 'p.hayman@cqu.edu.au', staffId: 'staff-1' },
+      });
+      const client = {
+        listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
+        searchInstitutionAccounts: async () => [],
+      } as unknown as FigshareClient;
+
+      await buildMetadataPayload(config, record, client);
+
+      // The contributor supplied the code; only the context could supply the brand.
+      sinon.assert.calledWithMatch(resolveCrosswalkValues, {
+        brandId: 'default-id',
+        codes: ['staff-1'],
+        outputs: 'sourceId',
+      });
+    });
+  });
+
   it('maps multiple related data publications into Figshare related materials', async function () {
     const config = buildFigsharePublishingConfig({
       metadata: {
@@ -748,12 +994,12 @@ describe('FigshareService', function () {
         related_data: [
           {
             related_title: 'Related dataset one',
-            related_url: 'https://doi.org/10.1234/related-one',
+            related_url: '10.1234/related-one',
             related_notes: 'First related data publication',
           },
           {
             related_title: 'Related dataset two',
-            related_url: 'https://doi.org/10.1234/related-two',
+            related_url: 'https://example.org/related-two',
             related_notes: 'Second related data publication',
           },
           {
@@ -782,11 +1028,13 @@ describe('FigshareService', function () {
     expect(payload.related_materials).to.deep.equal([
       {
         title: 'Related dataset one',
-        identifier: 'https://doi.org/10.1234/related-one',
+        identifier: '10.1234/related-one',
+        identifier_type: 'DOI',
       },
       {
         title: 'Related dataset two',
-        identifier: 'https://doi.org/10.1234/related-two',
+        identifier: 'https://example.org/related-two',
+        identifier_type: 'URL',
       },
     ]);
   });
@@ -849,10 +1097,12 @@ describe('FigshareService', function () {
       {
         title: 'Related dataset one',
         identifier: 'https://doi.org/10.1234/related-one',
+        identifier_type: 'URL',
       },
       {
         title: 'Related dataset two',
         identifier: 'https://doi.org/10.1234/related-two',
+        identifier_type: 'URL',
       },
     ]);
   });
@@ -907,6 +1157,7 @@ describe('FigshareService', function () {
       {
         title: 'Related dataset',
         identifier: 'https://doi.org/10.1234/related',
+        identifier_type: 'URL',
       },
     ]);
   });
@@ -1009,244 +1260,6 @@ describe('FigshareService', function () {
     const payload = await buildMetadataPayload(config, record, client);
 
     expect(payload.authors).to.deep.equal([{ id: 2544547 }, { id: 4402702 }, { name: 'External Author' }]);
-  });
-
-  it('writes a failed integration audit when syncRecordWithFigshare throws', async function () {
-    const record: RecordModel = {
-      redboxOid: 'oid-1',
-      harvestId: '',
-      metaMetadata: {
-        brandId: 'default',
-        createdBy: 'admin',
-        type: 'dataPublication',
-        searchCore: 'default',
-        form: 'dataPublication-1.0-review',
-        attachmentFields: [],
-      },
-      metadata: {
-        title: 'Dataset title',
-        description: 'Dataset description',
-        keywords: ['one'],
-        forCodes: ['0101'],
-        license: 'CC-BY',
-      },
-      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: {
-        view: [],
-        edit: [],
-        editRoles: [],
-        viewRoles: [],
-        editPending: [],
-        viewPending: [],
-        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
-      },
-      dateCreated: '',
-      lastSaveDate: '',
-      id: '',
-    };
-    sinon.stub(service, 'syncMetadata').rejects(new Error('sync exploded'));
-
-    try {
-      await service.syncRecordWithFigshare(record, 'job-1');
-      expect.fail('Expected syncRecordWithFigshare to throw');
-    } catch (error) {
-      // Wrapped Doi-style: translated RBValidationError with the original error as cause.
-      expect((error as Error).message).to.equal('Figshare API error Error syncing record with Figshare');
-      expect(((error as Error).cause as Error)?.message).to.equal('sync exploded');
-      expect((error as { displayErrors?: Array<{ code?: string }> }).displayErrors?.[0]?.code).to.equal('server-error');
-    }
-    expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
-    expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
-    expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('sync exploded');
-  });
-
-  it('surfaces Figshare response messages for 4xx sync failures', async function () {
-    const record: RecordModel = {
-      redboxOid: 'oid-1',
-      harvestId: '',
-      metaMetadata: {
-        brandId: 'default',
-        createdBy: 'admin',
-        type: 'dataPublication',
-        searchCore: 'default',
-        form: 'dataPublication-1.0-review',
-        attachmentFields: [],
-      },
-      metadata: {
-        title: 'Dataset title',
-        description: 'Dataset description',
-        keywords: ['one'],
-        forCodes: ['0101'],
-        license: 'CC-BY',
-      },
-      workflow: { stage: 'queued', stageLabel: 'Queued For Review' },
-      authorization: {
-        view: [],
-        edit: [],
-        editRoles: [],
-        viewRoles: [],
-        editPending: [],
-        viewPending: [],
-        stored: { view: [], edit: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
-      },
-      dateCreated: '',
-      lastSaveDate: '',
-      id: '',
-    };
-    const httpError = Object.assign(new Error('Figshare HTTP request failed for post /account/articles'), {
-      statusCode: 400,
-      responseBody: {
-        message: 'Invalid identifier format',
-        code: 'BadRequest',
-      },
-    });
-    sinon.stub(service, 'syncMetadata').rejects(httpError);
-
-    try {
-      await service.syncRecordWithFigshare(record, 'job-1');
-      expect.fail('Expected syncRecordWithFigshare to throw');
-    } catch (error) {
-      expect((error as { displayErrors?: Array<{ detail?: string }> }).displayErrors?.[0]?.detail).to.equal(
-        'Invalid identifier format'
-      );
-    }
-  });
-
-  it('audits publishAfterUploadFilesJob success and failure paths', async function () {
-    (global as any).RecordsService.getMeta.resolves({
-      redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
-      metadata: {},
-    });
-    const client = {
-      publishArticle: sinon.stub().resolves({ status: 'published' }),
-      getArticle: sinon.stub().resolves({ id: 'article-1', status: 'public' }),
-    };
-    sinon.stub(service, 'makeClient').returns(client as any);
-    sinon.stub(service as any, 'ensureNoFileUploadInProgress').resolves();
-    sinon
-      .stub(service, 'writeBack')
-      .returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
-    sinon.stub(service, 'persistSyncRecord').resolves();
-    sinon.stub(service, 'queueDeleteFiles');
-
-    await service.publishAfterUploadFilesJob({
-      attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
-    } as any);
-
-    expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.be.true;
-    expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.be.true;
-
-    client.publishArticle.rejects(new Error('publish failed'));
-    try {
-      await service.publishAfterUploadFilesJob({
-        attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
-      } as any);
-      expect.fail('Expected publishAfterUploadFilesJob to throw');
-    } catch (error) {
-      // Wrapped Doi-style: translated RBValidationError with the original error as cause.
-      expect((error as Error).message).to.equal('Figshare API error Error publishing Figshare article');
-      expect(((error as Error).cause as Error)?.message).to.equal('publish failed');
-    }
-    expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.be.true;
-  });
-
-  it('fails publishAfterUploadFilesJob audit when Redbox state persistence fails', async function () {
-    (global as any).RecordsService.getMeta.resolves({
-      redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
-      metadata: {},
-    });
-    const client = {
-      publishArticle: sinon.stub().resolves({ status: 'published' }),
-      getArticle: sinon.stub().resolves({ id: 'article-1', status: 'public' }),
-    };
-    sinon.stub(service, 'makeClient').returns(client as any);
-    sinon.stub(service as any, 'ensureNoFileUploadInProgress').resolves();
-    sinon
-      .stub(service, 'writeBack')
-      .returns({ redboxOid: 'oid-1', metaMetadata: { brandId: 'default' }, metadata: {} } as any);
-    sinon.stub(service, 'persistSyncRecord').resolves(false);
-    const queueDeleteStub = sinon.stub(service, 'queueDeleteFiles');
-
-    try {
-      await service.publishAfterUploadFilesJob({
-        attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
-      } as any);
-      expect.fail('Expected publishAfterUploadFilesJob to throw');
-    } catch (error) {
-      expect((error as Error).message).to.equal('Figshare API error Error publishing Figshare article');
-    }
-
-    expect(queueDeleteStub.called).to.equal(false);
-    expect((global as any).IntegrationAuditService.completeAudit.called).to.equal(false);
-    expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.equal(true);
-    expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal(
-      "Failed to persist Figshare publish state for record 'oid-1'."
-    );
-  });
-
-  it('keeps publishAfterUploadFilesJob audit in progress when uploads are still running', async function () {
-    (global as any).RecordsService.getMeta.resolves({
-      redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
-      metadata: {},
-    });
-    sinon.stub(service, 'makeClient').returns({} as any);
-    sinon.stub(service as any, 'ensureNoFileUploadInProgress').rejects(
-      new RBValidationError({
-        message: 'uploads still running',
-        displayErrors: [{ title: 'uploads still running', detail: 'uploads still running' }],
-      })
-    );
-    const queuePublishStub = sinon.stub(service, 'queuePublishAfterUploadFiles');
-
-    await service.publishAfterUploadFilesJob({
-      attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
-    } as any);
-
-    expect(queuePublishStub.calledOnce).to.equal(true);
-    expect((global as any).IntegrationAuditService.startAudit.calledOnce).to.equal(true);
-    expect((global as any).IntegrationAuditService.completeAudit.called).to.equal(false);
-    expect((global as any).IntegrationAuditService.failAudit.called).to.equal(false);
-  });
-
-  it('audits uploaded file cleanup job success and failure paths', async function () {
-    (global as any).RecordsService.getMeta.resolves({
-      redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
-      metadata: {},
-    });
-    const cleanupStub = sinon.stub(service as any, 'cleanupUploadedFiles').resolves({
-      redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
-      metadata: {},
-    });
-    sinon.stub(service, 'persistSyncRecord').resolves(true);
-
-    await service.deleteFilesFromRedbox({
-      attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
-    } as any);
-
-    expect((global as any).IntegrationAuditService.startAudit.firstCall.args[1]).to.equal('cleanupUploadedFilesJob');
-    expect((global as any).IntegrationAuditService.completeAudit.calledOnce).to.equal(true);
-
-    (global as any).IntegrationAuditService.startAudit.resetHistory();
-    (global as any).IntegrationAuditService.completeAudit.resetHistory();
-    (global as any).IntegrationAuditService.failAudit.resetHistory();
-    cleanupStub.rejects(new Error('cleanup failed'));
-
-    try {
-      await service.deleteFilesFromRedbox({
-        attrs: { data: { oid: 'oid-1', articleId: 'article-1', brandId: 'default', user: { username: 'user-1' } } },
-      } as any);
-      expect.fail('Expected deleteFilesFromRedbox to throw');
-    } catch (error) {
-      expect((error as Error).message).to.equal('cleanup failed');
-    }
-
-    expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.equal(true);
-    expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('cleanup failed');
   });
 
   it('includes non-object HTTP response bodies in error summaries', function () {
@@ -1425,58 +1438,6 @@ describe('FigshareService', function () {
     expect(cleanupJob?.fnName).to.equal('figshareservice.deleteFilesFromRedbox');
   });
 
-  it('uses figsharePublishing queue delays when scheduling jobs', function () {
-    const scheduleStub = (global as any).sails.services.queueservice.schedule as sinon.SinonStub;
-
-    service.queuePublishAfterUploadFiles('oid-1', 'article-1', {} as any, 'default');
-    service.queueDeleteFiles('oid-1', {} as any, 'default', 'article-1');
-
-    expect(scheduleStub.firstCall.args[1]).to.equal('in 2 minutes');
-    expect(scheduleStub.secondCall.args[1]).to.equal('in 5 minutes');
-  });
-
-  it('uses immediate queue execution when configured', function () {
-    const nowStub = (global as any).sails.services.queueservice.now as sinon.SinonStub;
-
-    service.queuePublishAfterUploadFiles('oid-1', 'article-1', {} as any, 'brand-immediate');
-    service.queueDeleteFiles('oid-1', {} as any, 'brand-immediate', 'article-1');
-
-    expect(nowStub.calledTwice).to.be.true;
-  });
-
-  it('writes the all-files-uploaded flag from figsharePublishing record config', async function () {
-    getConfigStub.callsFake(
-      () =>
-        buildFigsharePublishingConfig({
-          record: {
-            articleIdPath: 'metadata.figshare_article_id',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
-            statusPath: 'metadata.figshareStatus',
-            errorPath: 'metadata.figshareError',
-            syncStatePath: 'metadata.figshareSyncState',
-            allFilesUploadedPath: 'metadata.figshare_all_files_uploaded',
-          },
-        }) as any
-    );
-
-    sinon
-      .stub(service as any, 'getArticleFiles')
-      .resolves([{ name: 'file-1.txt', download_url: 'https://files.example/file-1.txt' }]);
-    sinon.stub(service as any, 'makeClient').returns({});
-
-    const record: any = {
-      redboxOid: 'oid-1',
-      metaMetadata: { brandId: 'default' },
-      metadata: {
-        dataLocations: [{ type: 'attachment', fileId: 'file-1', name: 'file-1.txt', selected: true }],
-      },
-    };
-
-    const result = await (service as any).cleanupUploadedFiles(record, 'article-1');
-    expect(result.metadata.figshare_all_files_uploaded).to.equal('yes');
-  });
-
   it('uses only article.curationLock when checking curation lock state', function () {
     const record: any = {
       metaMetadata: { brandId: 'default' },
@@ -1502,167 +1463,203 @@ describe('FigshareService', function () {
     expect((service as any).isCurationLocked(record, { status: 'draft' })).to.equal(false);
   });
 
-  it('falls back to brand name when workflow transition brand id lookup does not resolve', async function () {
-    const namedBrand = { id: 'named-brand-id', name: 'named-brand' };
-    (global as any).BrandingService.getBrandById = sinon.stub().returns(undefined);
-    (global as any).BrandingService.getBrand = sinon.stub().withArgs('named-brand').returns(namedBrand);
-    (global as any).RecordsService.getMeta.resolves({
-      oid: 'oid-1',
-      metadata: { title: 'Dataset title' },
-      metaMetadata: { brandId: 'named-brand', type: 'dataset' },
+  describe('syncAssetsPhase (URL-only repeat sync)', function () {
+    const url = 'https://example.org/dataset?version=1';
+    const existingLink: FigshareFile = {
+      id: 123,
+      name: '', // Figshare returns an empty name for linked files.
+      download_url: url,
+      is_link_only: true,
+      status: 'available',
+    };
+
+    it('creates once across pre-save, post-save and a subsequent save', async function () {
+      const client = buildAssetClient([]);
+      const files: FigshareFile[] = [];
+      client.listArticleFiles = sinon.stub().callsFake(async () => [...files]);
+      const create = sinon.stub().callsFake(async () => {
+        if (files.length > 0) throw new Error('Cannot add a linked file to an article that already has file(s).');
+        files.push(existingLink);
+        return { location: 'https://api.figshare.test/file-123' };
+      });
+      client.createArticleFile = create;
+      client.getLocation = sinon.stub().resolves(existingLink);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'url', location: url, selected: true }]);
+
+      for (const phase of ['pre', 'post', 'next-save']) {
+        const state: FigshareSyncState = { status: 'syncing', correlationId: phase };
+        const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
+        expect(result.uploadedUrls.map((file: FigshareFile) => file.id)).to.deep.equal([123]);
+        expect(result.uploadsComplete).to.equal(true);
+        expect(state.partialProgress?.uploadedUrlCount).to.equal(1);
+      }
+      expect(create.calledOnceWithExactly('article-1', { link: url })).to.equal(true);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
     });
-    (global as any).RecordsService.updateMeta.resolves({ isSuccessful: () => true });
-    sinon.stub(service as any, 'isArticleReadyForWorkflowTransition').resolves(true);
 
-    await (service as any).transitionWorkflowForRecord(
-      { metaMetadata: { brandId: 'named-brand' } },
-      { username: 'figshare-job-user', roles: [{ name: 'admin' }] },
-      'oid-1',
-      'article-1',
-      'published',
-      'status',
-      'public'
-    );
+    it('recovers using the remote link after local sync progress has been lost', async function () {
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon.stub().resolves([existingLink]);
+      const record = buildAssetRecord([{ type: 'url', location: url, selected: true }]);
+      const result = await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      expect(result.uploadedUrls).to.deep.equal([existingLink]);
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
+    });
 
-    expect((global as any).BrandingService.getBrandById.calledWith('named-brand')).to.equal(true);
-    expect((global as any).BrandingService.getBrand.calledWith('named-brand')).to.equal(true);
-    expect((global as any).RecordsService.hasEditAccess.firstCall.args[0]).to.equal(namedBrand);
-    expect((global as any).RecordTypesService.get.firstCall.args[0]).to.equal(namedBrand);
-    expect((global as any).RecordsService.updateMeta.firstCall.args[0]).to.equal(namedBrand);
+    it('creates only one link for duplicate selected URL rows', async function () {
+      const client = buildAssetClient([]);
+      client.getLocation = sinon.stub().resolves(existingLink);
+      const record = buildAssetRecord([
+        { type: 'url', location: url, selected: true },
+        { type: 'url', location: url, selected: true },
+      ]);
+      const result = await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      expect(result.uploadedUrls).to.have.length(1);
+      expect((client.createArticleFile as sinon.SinonStub).calledOnce).to.equal(true);
+    });
+
+    it('omits ignored URLs from fixture results and progress', async function () {
+      const client = buildAssetClient([]);
+      const config = {
+        ...buildLiveAssetConfig(),
+        runtime: { mode: 'fixture' },
+      } as any;
+      const record = buildAssetRecord([
+        { type: 'url', location: url, selected: true, ignore: true },
+        { type: 'url', location: 'https://example.org/published', selected: true },
+      ]);
+      const state: FigshareSyncState = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
+
+      expect(result.urlCount).to.equal(2);
+      expect(result.uploadedUrls.map((file: FigshareFile) => file.download_url)).to.deep.equal([
+        'https://example.org/published',
+      ]);
+      expect(state.partialProgress).to.include({ urlCount: 2, uploadedUrlCount: 1 });
+    });
+
+    it('deduplicates exact URLs in fixture results and progress', async function () {
+      const client = buildAssetClient([]);
+      const config = {
+        ...buildLiveAssetConfig(),
+        runtime: { mode: 'fixture' },
+      } as any;
+      const record = buildAssetRecord([
+        { type: 'url', location: url, selected: true },
+        { type: 'url', location: url, selected: true },
+      ]);
+      const state: FigshareSyncState = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
+
+      expect(result.urlCount).to.equal(2);
+      expect(result.uploadedUrls.map((file: FigshareFile) => file.download_url)).to.deep.equal([url]);
+      expect(state.partialProgress).to.include({ urlCount: 2, uploadedUrlCount: 1 });
+    });
+
+    it('does not mistake a changed query for an unchanged link or delete the old link on failure', async function () {
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon.stub().resolves([existingLink]);
+      client.createArticleFile = sinon.stub().rejects(new Error('Figshare rejected replacement'));
+      const record = buildAssetRecord([{ type: 'url', location: url.replace('version=1', 'version=2'), selected: true }]);
+      let error: unknown;
+      try {
+        await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error).to.be.instanceOf(RBValidationError);
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(true);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('deletes only deselected links and retains the selected existing link', async function () {
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon.stub().resolves([
+        existingLink,
+        { ...existingLink, id: 456, download_url: 'https://example.org/removed' },
+      ]);
+      const record = buildAssetRecord([{ type: 'url', location: url, selected: true }]);
+      await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect((client.deleteArticleFile as sinon.SinonStub).calledOnceWithExactly('article-1', '456')).to.equal(true);
+    });
   });
 
-  it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {
-    getConfigStub.callsFake(
-      () =>
-        buildFigsharePublishingConfig({
-          record: {
-            articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
-            statusPath: 'metadata.figshareStatus',
-            errorPath: 'metadata.figshareError',
-            syncStatePath: 'metadata.figshareSyncState',
-            allFilesUploadedPath: '',
-          },
-          workflow: {
-            transitionRules: [],
-            transitionJob: {
-              enabled: true,
-              namedQuery: 'v2-transition',
-              targetStep: 'published',
-              paramMap: {},
-              figshareTargetFieldKey: 'status',
-              figshareTargetFieldValue: 'public',
-              username: 'figshare-job-user',
-              userType: 'admin',
-            },
-          },
-        }) as any
-    );
-    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
-    (global as any).RecordsService.getMeta.resolves({
-      oid: 'oid-1',
-      metadata: { v2: { articleId: 'v2-path-id' } },
-      metaMetadata: { brandId: 'default', type: 'dataset' },
+  describe('syncAssetsPhase (mixed hosted attachments and URLs)', function () {
+    const locations = [
+      { type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true },
+      { type: 'url', location: 'https://example.org/dataset', selected: true },
+    ];
+
+    it('gives hosted attachments precedence and keeps the URL as record metadata', async function () {
+      installDatastreamStub(Buffer.from('existing attachment'), 19);
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon
+        .stub()
+        .resolves([{ id: 'hosted-file-1', name: 'file.txt', size: 19, status: 'available', is_link_only: false }]);
+      const record = buildAssetRecord(locations);
+      const state: FigshareSyncState = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, state);
+
+      expect(result.uploadedAttachments.map((file: FigshareFile) => file.id)).to.deep.equal(['hosted-file-1']);
+      expect(result.uploadedUrls).to.deep.equal([]);
+      expect(result.dataLocations).to.deep.equal(locations);
+      expect(state.partialProgress).to.include({
+        attachmentCount: 1,
+        uploadedAttachmentCount: 1,
+        urlCount: 1,
+        uploadedUrlCount: 0,
+        uploadsComplete: true,
+      });
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
     });
-    const transitionStub = sinon.stub(service as any, 'transitionWorkflowForRecord').resolves();
 
-    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+    it('uses the same attachment precedence in fixture mode', async function () {
+      const client = buildAssetClient([]);
+      const config = {
+        ...buildLiveAssetConfig(),
+        runtime: { mode: 'fixture' },
+      } as any;
+      const record = buildAssetRecord(locations);
+      const state: FigshareSyncState = { status: 'syncing' };
 
-    expect(transitionStub.calledOnce).to.be.true;
-    expect(transitionStub.firstCall.args[2]).to.equal('oid-1');
-    expect(transitionStub.firstCall.args[3]).to.equal('v2-path-id');
-  });
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
 
-  it('processes workflow transition records when the publishing user has no roles', async function () {
-    getConfigStub.callsFake(
-      () =>
-        buildFigsharePublishingConfig({
-          record: {
-            articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
-            statusPath: 'metadata.figshareStatus',
-            errorPath: 'metadata.figshareError',
-            syncStatePath: 'metadata.figshareSyncState',
-            allFilesUploadedPath: '',
-          },
-          workflow: {
-            transitionRules: [],
-            transitionJob: {
-              enabled: true,
-              namedQuery: 'v2-transition',
-              targetStep: 'published',
-              paramMap: {},
-              figshareTargetFieldKey: 'status',
-              figshareTargetFieldValue: 'public',
-              username: 'figshare-job-user',
-              userType: 'admin',
-            },
-          },
-        }) as any
-    );
-    (global as any).UsersService.getUserWithUsername = sinon
-      .stub()
-      .returns({ toPromise: sinon.stub().resolves({ username: 'figshare-job-user', type: 'admin', roles: [] }) });
-    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
-    (global as any).RecordsService.getMeta.resolves({
-      oid: 'oid-1',
-      metadata: { v2: { articleId: 'v2-path-id' } },
-      metaMetadata: { brandId: 'default', type: 'dataset' },
+      expect(result.uploadedAttachments).to.have.length(1);
+      expect(result.uploadedUrls).to.deep.equal([]);
+      expect(result.dataLocations).to.deep.equal(locations);
+      expect(state.partialProgress).to.include({ urlCount: 1, uploadedUrlCount: 0 });
     });
-    const transitionStub = sinon.stub(service as any, 'transitionWorkflowForRecord').resolves();
 
-    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+    it('still creates a linked file when hosted-file publishing is disabled', async function () {
+      const client = buildAssetClient([]);
+      client.getLocation = sinon.stub().resolves({
+        id: 'linked-file-1',
+        name: '',
+        status: 'available',
+        download_url: 'https://example.org/dataset',
+        is_link_only: true,
+      });
+      const config = buildLiveAssetConfig();
+      config.assets.enableHostedFiles = false;
+      const record = buildAssetRecord(locations);
 
-    expect(transitionStub.calledOnce).to.equal(true);
-    expect(transitionStub.firstCall.args[1].roles).to.deep.equal([]);
-  });
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, {});
 
-  it('audits per-record workflow transition failures', async function () {
-    getConfigStub.callsFake(
-      () =>
-        buildFigsharePublishingConfig({
-          record: {
-            articleIdPath: 'metadata.v2.articleId',
-            articleUrlPaths: ['metadata.figshare_article_location'],
-            dataLocationsPath: 'metadata.dataLocations',
-            statusPath: 'metadata.figshareStatus',
-            errorPath: 'metadata.figshareError',
-            syncStatePath: 'metadata.figshareSyncState',
-            allFilesUploadedPath: '',
-          },
-          workflow: {
-            transitionRules: [],
-            transitionJob: {
-              enabled: true,
-              namedQuery: 'v2-transition',
-              targetStep: 'published',
-              paramMap: {},
-              figshareTargetFieldKey: 'status',
-              figshareTargetFieldValue: 'public',
-              username: 'figshare-job-user',
-              userType: 'admin',
-            },
-          },
-        }) as any
-    );
-    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
-    (global as any).RecordsService.getMeta.resolves({
-      oid: 'oid-1',
-      metadata: { v2: { articleId: 'v2-path-id' } },
-      metaMetadata: { brandId: 'default', type: 'dataset' },
+      expect(result.uploadedAttachments).to.deep.equal([]);
+      expect(result.uploadedUrls.map((file: FigshareFile) => file.id)).to.deep.equal(['linked-file-1']);
+      expect(
+        (client.createArticleFile as sinon.SinonStub).calledOnceWithExactly('article-1', {
+          link: 'https://example.org/dataset',
+        })
+      ).to.equal(true);
     });
-    sinon.stub(service as any, 'transitionWorkflowForRecord').rejects(new Error('transition failed'));
-
-    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
-
-    expect((global as any).IntegrationAuditService.startAudit.firstCall.args[1]).to.equal(
-      'transitionRecordWorkflowFromFigshareArticlePropertiesJob'
-    );
-    expect((global as any).IntegrationAuditService.completeAudit.called).to.equal(false);
-    expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.equal(true);
-    expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('transition failed');
   });
 
   describe('syncAssetsPhase (live upload)', function () {
@@ -1774,7 +1771,12 @@ describe('FigshareService', function () {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
-      const readstream = new Readable({ read() { /* intentionally empty */ }, emitClose: false });
+      const readstream = new Readable({
+        read() {
+          /* intentionally empty */
+        },
+        emitClose: false,
+      });
       (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
       (global as any).sails.services.datastreamservice = {
         getDatastream: sinon.stub().resolves({ readstream, size: 8 }),
@@ -2062,6 +2064,11 @@ describe('FigshareService', function () {
     expect(config.record.allFilesUploadedPath).to.equal('');
     expect(config.assets.staging.disk).to.equal('figshare-staging');
     expect(config.assets.staging.keyPrefix).to.equal('figshare/');
+    expect(config.embargo.accessRights.embargoType).to.deep.equal({
+      kind: 'path',
+      path: 'metadata.embargoType',
+      defaultValue: 'article',
+    });
     expect(config.workflow.transitionJob.enabled).to.equal(false);
     expect(config.workflow.transitionJob.namedQuery).to.equal('');
 
@@ -2069,6 +2076,8 @@ describe('FigshareService', function () {
     expect(schema.properties.queue.properties.publishAfterUploadDelay.default).to.equal('in 2 minutes');
     expect(schema.properties.assets.properties.staging.properties.disk.default).to.equal('figshare-staging');
     expect(schema.properties.assets.properties.staging.properties.keyPrefix.default).to.equal('figshare/');
+    expect(schema.properties.embargo.properties.accessRights.properties.embargoType.properties.kind.enum)
+      .to.include.members(['path', 'handlebars', 'jsonata']);
     expect(schema.properties.workflow.properties.transitionJob.properties.username.default).to.equal('');
     expect(schema.properties.testing).to.equal(undefined);
   });

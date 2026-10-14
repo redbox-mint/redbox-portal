@@ -1,4 +1,4 @@
-import {consoleLogger, ILogger, isAvailableLogLevel} from "@researchdatabox/sails-ng-common";
+import { consoleLogger, ILogger, isAvailableLogLevel } from '@researchdatabox/sails-ng-common';
 
 export abstract class CoreBase {
   /**
@@ -12,7 +12,7 @@ export abstract class CoreBase {
 
   constructor() {
     this.processDynamicImports().then(() => {
-      this.logger.verbose("Dynamic imports imported");
+      this.logger.verbose('Dynamic imports imported');
       this.onDynamicImportsCompleted();
     });
   }
@@ -37,23 +37,41 @@ export abstract class CoreBase {
    * Registers a Sails hook handler if Sails is available.
    * @protected
    */
-  protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
-  protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
-  protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
-    if (sails === undefined) {
-      this.logger.warn(`Sails is undefined so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
+  protected registerSailsHook(
+    action: 'on',
+    eventName: string,
+    handler: (...args: unknown[]) => void | Promise<void>
+  ): boolean;
+  protected registerSailsHook(
+    action: 'after',
+    eventName: string | string[],
+    handler: (...args: unknown[]) => void | Promise<void>
+  ): boolean;
+  protected registerSailsHook(
+    action: 'on' | 'after',
+    eventName: string | string[],
+    handler: (...args: unknown[]) => void | Promise<void>
+  ): boolean {
+    if (typeof sails === 'undefined') {
+      this.logger.warn(
+        `Sails is undefined so did not register hook action ${action} eventName ${eventName} handler ${handler}`
+      );
       return false;
     }
     if (action === 'on') {
       if (typeof sails.on !== 'function') {
-        this.logger.warn(`Sails.on is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
+        this.logger.warn(
+          `Sails.on is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`
+        );
         return false;
       }
       sails.on(eventName as string, handler);
       return true;
     }
     if (typeof sails.after !== 'function') {
-      this.logger.warn(`Sails.after is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
+      this.logger.warn(
+        `Sails.after is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`
+      );
       return false;
     }
     sails.after(eventName, handler);

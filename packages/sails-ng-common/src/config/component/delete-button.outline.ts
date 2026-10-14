@@ -77,6 +77,12 @@ export interface DeleteButtonFormComponentDefinitionFrame extends FormComponentD
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures a form action that deletes the current record.
+ *
+ * @extensionPoint Use `DeleteButtonComponent` in authorised form action areas and retain its confirmation semantics.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface DeleteButtonFormComponentDefinitionOutline
   extends DeleteButtonFormComponentDefinitionFrame, FormComponentDefinitionOutline {
   component: DeleteButtonFieldComponentDefinitionOutline;

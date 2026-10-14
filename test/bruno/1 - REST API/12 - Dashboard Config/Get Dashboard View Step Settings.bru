@@ -1,0 +1,35 @@
+meta {
+  name: Get Dashboard View Step Settings
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/default/rdmp/api/dashboard-config/views/consolidated/consolidated
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:post-response {
+  var data = res.getBody().data;
+  bru.setVar("dashboardViewConfigRevision", data.revision);
+  bru.setVar("dashboardViewSettings", JSON.stringify(data.settings));
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns independent view-step settings", function () {
+    var data = res.getBody().data;
+    expect(data.target).to.deep.equal({ kind: "view", view: "consolidated", step: "consolidated" });
+    expect(data.settings).to.have.property("searchable");
+    expect(data.settings.tableConfig).to.have.property("rowConfig");
+  });
+}

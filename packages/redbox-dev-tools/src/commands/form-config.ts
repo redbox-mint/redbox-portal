@@ -253,7 +253,6 @@ function createMigratedFigsharePublishingConfig(
     },
     record: {
       articleIdPath: mapping.recordFigArticleId ?? 'metadata.figshare_article_id',
-      articleUrlPaths: Array.isArray(mapping.recordFigArticleURL) ? mapping.recordFigArticleURL : [mapping.recordFigArticleURL ?? 'metadata.figshare_article_location'],
       dataLocationsPath: mapping.recordDataLocations ?? 'metadata.dataLocations',
       statusPath: 'metadata.figshareStatus',
       errorPath: 'metadata.figshareError',
@@ -266,7 +265,6 @@ function createMigratedFigsharePublishingConfig(
       selectedFlagPath: 'selected'
     },
     authors: {
-      source: 'defaultRedboxContributors',
       uniqueBy: mapping.recordAuthorUniqueBy ?? 'email',
       externalNameField: mapping.recordAuthorExternalName ?? 'text_full_name',
       maxInlineAuthors: 50,
@@ -279,11 +277,10 @@ function createMigratedFigsharePublishingConfig(
       keywords: { kind: 'path', path: 'metadata.finalKeywords', defaultValue: [] },
       funding: { kind: 'path', path: 'metadata.funder' },
       license: { source: { kind: 'path', path: mapping.recordLicensePath ?? 'metadata.license' }, matchBy: 'urlContains', required: true },
-      categories: { source: { kind: 'path', path: mapping.recordCategoryPath ?? 'metadata.forCodes', defaultValue: [] }, mappingStrategy: 'for2020Mapping' },
+      categories: { source: { kind: 'path', path: mapping.recordCategoryPath ?? 'metadata.forCodes', defaultValue: [] } },
       customFields: []
     },
     categories: {
-      strategy: 'for2020Mapping',
       mappingTable: (((figshareForMapping.FORMapping as Record<string, unknown>[] | undefined) ?? []).map((entry) => ({
         sourceCode: String(entry.redboxCode ?? entry.sourceCode ?? ''),
         figshareCategoryId: Number(entry.figshareCategoryId ?? entry.figCode ?? 0)
@@ -293,11 +290,8 @@ function createMigratedFigsharePublishingConfig(
     assets: {
       enableHostedFiles: true,
       enableLinkFiles: true,
-      dedupeStrategy: 'sourceId',
       staging: {
-        tempDir: String(figshareApi.attachmentsFigshareTempDir ?? ''),
-        cleanupPolicy: 'deleteAfterSuccess',
-        diskSpaceThresholdBytes: 1073741824
+        cleanupPolicy: 'deleteAfterSuccess'
       }
     },
     embargo: {
@@ -305,8 +299,8 @@ function createMigratedFigsharePublishingConfig(
       forceSync: Boolean(mapping.figshareForceEmbargoUpdateAlways),
       accessRights: {
         accessRights: { kind: 'path', path: 'metadata.accessRights' },
+        embargoType: { kind: 'path', path: 'metadata.embargoType', defaultValue: 'article' },
         fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
-        fileEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
         reason: { kind: 'path', path: 'metadata.embargoReason' }
       }
     },
@@ -315,7 +309,6 @@ function createMigratedFigsharePublishingConfig(
       uploadedFilesCleanupDelay: typeof mapping.scheduleUploadedFilesCleanupJob === 'string' ? mapping.scheduleUploadedFilesCleanupJob : 'in 5 minutes'
     },
     workflow: {
-      transitionRules: [],
       transitionJob: {
         enabled: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.enabled ?? 'false') === 'true',
         namedQuery: String((mapping.figshareScheduledTransitionRecordWorkflowFromArticlePropertiesJob as Record<string, unknown> | undefined)?.namedQuery ?? ''),
@@ -332,7 +325,12 @@ function createMigratedFigsharePublishingConfig(
     },
     writeBack: {
       articleId: 'metadata.figshare_article_id',
-      articleUrls: ['metadata.figshare_article_location'],
+      // The legacy article URL paths are write targets, so they belong to writeBack.
+      articleUrls: Array.isArray(mapping.recordFigArticleURL)
+        ? mapping.recordFigArticleURL
+        : [typeof mapping.recordFigArticleURL === 'string' && mapping.recordFigArticleURL.trim() !== ''
+          ? mapping.recordFigArticleURL
+          : 'metadata.figshare_article_location'],
       extraFields: []
     },
     migrationReport: {

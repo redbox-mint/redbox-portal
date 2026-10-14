@@ -22,12 +22,19 @@ import {
   FormValidationGroups,
   FormValidatorConfig,
   FormValidatorSummaryErrors,
-  LineagePaths
+  type JSONataEvaluate,
+  LineagePaths,
+  calculateValidationGroups as calculateSharedValidationGroups,
 } from "@researchdatabox/sails-ng-common";
+import {
+  jsonataParityFixtures,
+  validationGroupCalculationFixtures,
+} from '@researchdatabox/sails-ng-common/dist/src/testing';
 import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from "./service/vocab-tree.service";
 import { setUpDynamicAssets } from "./helpers.spec";
 import { FormControl } from "@angular/forms";
+import { parseFormLoadConcurrency } from './form-concurrency-state';
 
 
 describe('The FormService', () => {
@@ -36,6 +43,20 @@ describe('The FormService', () => {
   let service: FormService;
   let httpTesting: HttpTestingController;
   const waitForAsyncValidation = () => new Promise(resolve => setTimeout(resolve, 0));
+
+  it('rejects inconsistent form-load entity-tag coordinates', () => {
+    const result = parseFormLoadConcurrency(
+      {
+        revision: 4,
+        entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
+        formFingerprint: 'sha256:form_1',
+      },
+      `"rb-record-v1.5.${'b'.repeat(43)}"`
+    );
+
+    expect(result).toEqual({ formFingerprint: 'sha256:form_1' });
+  });
+
   beforeEach(() => {
     (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
     TestBed.configureTestingModule({
@@ -445,6 +466,47 @@ describe('The FormService', () => {
         expect(results).toEqual(expected);
       });
     });
+
+    for (const fixture of validationGroupCalculationFixtures) {
+      it(`should execute shared fixture: ${fixture.name}`, function () {
+        const sharedResult = calculateSharedValidationGroups(
+          fixture.currentValidationGroups,
+          fixture.validationGroups,
+          fixture.initial,
+          fixture.groups,
+          fixture.operationEnabledValidationGroups,
+        );
+
+        expect(sharedResult.enabledValidationGroups).toEqual(fixture.expectedGroups);
+        expect(sharedResult.diagnostics.map(diagnostic => diagnostic.code)).toEqual(
+          fixture.expectedDiagnosticCodes ?? []
+        );
+
+        if (fixture.operationEnabledValidationGroups === undefined) {
+          expect(service.calculateValidationGroups(
+            fixture.currentValidationGroups,
+            fixture.validationGroups,
+            fixture.initial,
+            fixture.groups,
+          )).toEqual(fixture.expectedGroups);
+        }
+      });
+    }
+  });
+
+  describe('JSONata browser/server parity', () => {
+    for (const fixture of jsonataParityFixtures) {
+      it(`should match shared fixture: ${fixture.name}`, async () => {
+        const [validator] = service.prepareValidatorConfigs([{
+          class: 'jsonata-expression',
+          config: { expression: fixture.expression },
+        }]);
+        const evaluator = validator.config?.['evaluator'] as JSONataEvaluate | undefined;
+
+        expect(evaluator).toEqual(jasmine.any(Function));
+        expect(await evaluator!(fixture.context)).toEqual(fixture.expected);
+      });
+    }
   });
 
   it("should download form components and form config meta", async function () {
@@ -477,6 +539,9 @@ describe('The FormService', () => {
     const meta: Record<string, unknown> = {
       workflow: { stage: 'draft', stageLabel: 'Draft' },
       contextVariables: { 'one': 1 },
+      revision: 4,
+      entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
+      formFingerprint: 'sha256:form_1',
     };
     setUpDynamicAssets();
     const oid = "oid", recordType = "auto", editMode = false, formName = "", modulePaths: string[] = [];
@@ -484,8 +549,14 @@ describe('The FormService', () => {
     const req = httpTesting.expectOne((request) =>
       request.url.startsWith(`http://localhost/default/rdmp/record/form/${recordType}/${oid}`));
     expect(req.request.method).toBe('GET');
-    req.flush({ data: basicFormConfig, meta: meta });
-    expect((await result).formConfigMeta).toEqual(meta);
+    expect(req.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
+    const headerTag = meta['entityTag'] as string;
+    req.flush({ data: basicFormConfig, meta: meta }, { headers: { ETag: headerTag } });
+    const formMap = await result;
+    expect(formMap.formConfigMeta).toEqual(meta);
+    expect(formMap.recordEntityTag).toBe(headerTag);
+    expect(formMap.recordRevision).toBe(4);
+    expect(formMap.formFingerprint).toBe('sha256:form_1');
   });
 
   it("should seed vocab-tree prehydrate payload before creating form components", async function () {

@@ -37,66 +37,41 @@ describe('HandlebarsTemplateService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('loadDashboardTemplates', () => {
-    it('should load module via utility service and register it', async () => {
-      const mockModule = {
-        evaluate: jasmine.createSpy('evaluate'),
-      };
-      utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve(mockModule));
+  describe('loadDashboardTargetTemplates', () => {
+    const workflow = { kind: 'workflow' as const, recordType: 'rdmp', stage: 'draft' };
+    const view = { kind: 'view' as const, view: 'consolidated', step: 'main' };
 
-      await service.loadDashboardTemplates('default', 'portal', 'rdmp', 'draft');
-
-      expect(utilityServiceSpy.getDynamicImport).toHaveBeenCalled();
-      // Verify registration logic by checking slightly implementation details or checking logging
-      expect(loggerServiceSpy.debug).toHaveBeenCalledWith(jasmine.stringMatching(/Loaded templates for/));
+    it('builds a key prefix that includes brand, target and settings version', () => {
+      expect(service.buildDashboardTemplateKeyPrefix('default', workflow, 'abcdef0123456789ffff')).toEqual(['default', 'workflow', 'rdmp', 'draft', 'abcdef0123456789']);
+      expect(service.buildDashboardTemplateKeyPrefix('default', view, '1234')).toEqual(['default', 'view', 'consolidated', 'main', '1234']);
     });
 
-    it('should handle load error', async () => {
-      utilityServiceSpy.getDynamicImport.and.returnValue(Promise.reject('Network error'));
+    it('requests templates pinned to the settings fingerprint and registers them once', async () => {
+      utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve({ evaluate: jasmine.createSpy('evaluate') }));
 
-      await service.loadDashboardTemplates('default', 'portal', 'rdmp', 'draft');
+      expect(await service.loadDashboardTargetTemplates('default', 'portal', workflow, 'fp1')).toBeTrue();
+      expect(await service.loadDashboardTargetTemplates('default', 'portal', workflow, 'fp1')).toBeTrue();
 
-      expect(loggerServiceSpy.error).toHaveBeenCalledWith(
-        jasmine.stringMatching(/Failed to load dashboard templates/),
-        'Network error'
-      );
-    });
-  });
-
-  describe('loadDashboardViewTemplates', () => {
-    it('should load dashboard view module via utility service and register it', async () => {
-      const mockModule = {
-        evaluate: jasmine.createSpy('evaluate'),
-      };
-      utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve(mockModule));
-
-      await service.loadDashboardViewTemplates('default', 'portal', 'consolidated', 'consolidated', 'consolidated');
-
-      expect(utilityServiceSpy.getDynamicImport).toHaveBeenCalledWith(
+      expect(utilityServiceSpy.getDynamicImport).toHaveBeenCalledOnceWith(
         jasmine.any(String),
-        ['dynamicAsset', 'dashboardViewTemplates', 'consolidated', 'consolidated'],
-        { dashboardType: 'consolidated' }
+        ['dynamicAsset', 'recordDashboardTemplates', 'rdmp', 'draft'],
+        { settingsFingerprint: 'fp1' }
       );
-      expect(loggerServiceSpy.debug).toHaveBeenCalledWith(jasmine.stringMatching(/Loaded templates for/));
+      expect(service.hasTemplate('default__workflow__rdmp__draft__fp1')).toBeTrue();
     });
 
-    it('should log an error when the loaded dashboard view module is invalid', async () => {
+    it('uses the view template endpoint for view steps', async () => {
+      utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve({ evaluate: jasmine.createSpy('evaluate') }));
+      await service.loadDashboardTargetTemplates('default', 'portal', view, 'fp2');
+      expect(utilityServiceSpy.getDynamicImport).toHaveBeenCalledWith(jasmine.any(String), ['dynamicAsset', 'dashboardViewTemplates', 'consolidated', 'main'], { settingsFingerprint: 'fp2' });
+    });
+
+    it('reports failure when settings changed (409) or the module is invalid', async () => {
+      utilityServiceSpy.getDynamicImport.and.returnValue(Promise.reject('409'));
+      expect(await service.loadDashboardTargetTemplates('default', 'portal', workflow, 'old')).toBeFalse();
       utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve({}));
-
-      await service.loadDashboardViewTemplates('default', 'portal', 'consolidated', 'consolidated', 'workspace');
-
-      expect(loggerServiceSpy.error).toHaveBeenCalledWith(jasmine.stringMatching(/Invalid module loaded/));
-    });
-
-    it('should handle load errors for dashboard view templates', async () => {
-      utilityServiceSpy.getDynamicImport.and.returnValue(Promise.reject('View error'));
-
-      await service.loadDashboardViewTemplates('default', 'portal', 'consolidated', 'consolidated', 'workspace');
-
-      expect(loggerServiceSpy.error).toHaveBeenCalledWith(
-        jasmine.stringMatching(/Failed to load dashboard view templates/),
-        'View error'
-      );
+      expect(await service.loadDashboardTargetTemplates('default', 'portal', workflow, 'other')).toBeFalse();
+      expect(loggerServiceSpy.error).toHaveBeenCalledWith(jasmine.stringMatching(/Invalid dashboard template module/));
     });
   });
 
@@ -120,10 +95,10 @@ describe('HandlebarsTemplateService', () => {
       utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve(mockModule));
 
       // Load first
-      await service.loadDashboardTemplates('default', 'portal', 'rdmp', 'draft');
+      await service.loadDashboardTargetTemplates('default', 'portal', { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, 'fp');
 
       // Run
-      const key = ['rdmp', 'draft', 'rowConfig', '0', 'title'];
+      const key = ['default', 'workflow', 'rdmp', 'draft', 'fp', 'rowConfig', '0', 'title'];
       const context = { title: 'Test Record' };
       const fallback = 'Fallback {{title}}';
 
@@ -139,9 +114,9 @@ describe('HandlebarsTemplateService', () => {
       };
       utilityServiceSpy.getDynamicImport.and.returnValue(Promise.resolve(mockModule));
 
-      await service.loadDashboardTemplates('default', 'portal', 'rdmp', 'draft');
+      await service.loadDashboardTargetTemplates('default', 'portal', { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, 'fp');
 
-      const key = ['rdmp', 'draft', 'unknown'];
+      const key = ['default', 'workflow', 'rdmp', 'draft', 'fp', 'unknown'];
       const context = { title: 'Fallback' };
       const fallback = 'Message: {{title}}';
 

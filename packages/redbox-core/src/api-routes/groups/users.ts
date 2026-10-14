@@ -218,7 +218,7 @@ export const enableUserRoute = apiRoute(
 );
 
 export const generateAPITokenRoute = apiRoute(
-  'get',
+  'post',
   '/:branding/:portal/api/users/token/generate',
   'webservice/UserManagementController',
   'generateAPIToken',
@@ -231,7 +231,7 @@ export const generateAPITokenRoute = apiRoute(
 );
 
 export const revokeAPITokenRoute = apiRoute(
-  'get',
+  'post',
   '/:branding/:portal/api/users/token/revoke',
   'webservice/UserManagementController',
   'revokeAPIToken',

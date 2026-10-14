@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { FormControl } from '@angular/forms';
+import { FormArray, FormControl, FormGroup } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus, ScopedEventBus } from './form-component-event-bus.service';
 import { FormComponentValueChangeEventProducer } from './form-component-change-event-producer';
@@ -9,6 +9,9 @@ import {
   FormComponentEventType
 } from './form-component-event.types';
 import { EMPTY } from 'rxjs';
+import { applyExpressionTarget } from '../apply-expression-target';
+import { withExpressionValueNotifications } from '../control-value-notifications';
+import { ControlSetValueOptions } from '../custom-set-value.control';
 
 describe('FormComponentChangeEventProducer', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
@@ -86,6 +89,91 @@ describe('FormComponentChangeEventProducer', () => {
     expect(secondCall.value).toBe('second-change');
   });
 
+  for (const initialValue of [[''], { person: { names: ['Ada'] } }]) {
+    it(`suppresses equivalent ${Array.isArray(initialValue) ? 'arrays' : 'objects'} on both channels and preserves the previous value`, () => {
+      const options = createOptions('field', initialValue);
+      producer.bind(options);
+
+      options.control.setValue(structuredClone(initialValue));
+      expect(eventBus.publish).not.toHaveBeenCalled();
+      expect(scopedBus.publish).not.toHaveBeenCalled();
+
+      options.control.setValue('changed');
+      expect(eventBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+        value: 'changed', previousValue: initialValue,
+      }));
+      expect(scopedBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+        value: 'changed', previousValue: initialValue,
+      }));
+    });
+  }
+
+  it('publishes expression changes only after ancestor values are current', async () => {
+    const { control, component, definition } = createOptions('title', 'original');
+    const parent = new FormGroup({ title: control });
+    const root = new FormGroup({ nested: parent });
+    const validateParent = jasmine.createSpy('parent validator').and.returnValue(null);
+    parent.setValidators(validateParent);
+    const observed: unknown[] = [];
+    eventBus.publish.and.callFake(() => { observed.push(root.value); });
+    producer.bind({ component, definition });
+
+    await applyExpressionTarget('model.value', 'updated', { model: definition.model }, {
+      eventBus,
+      logger: TestBed.inject(LoggerService),
+    });
+
+    expect(observed).toEqual([{ nested: { title: 'updated' } }]);
+    expect(scopedBus.publish).toHaveBeenCalledTimes(1);
+    expect(validateParent).toHaveBeenCalledTimes(1);
+    control.setValue('original');
+    expect(eventBus.publish.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      value: 'original', previousValue: 'updated',
+    }));
+  });
+
+  it('preserves user edits and previous values during an asynchronous repeatable write', async () => {
+    const options = createOptions('people');
+    const control = new FormArray([new FormControl('original')]);
+    const form = new FormGroup({ people: control });
+    const observedForms: unknown[] = [];
+    eventBus.publish.and.callFake(() => { observedForms.push(form.value); });
+    options.definition.model!.formControl = control;
+    let resume!: () => void;
+    const pause = new Promise<void>(resolve => { resume = resolve; });
+    Object.assign(control, {
+      async setCustomValue(_value: unknown, setOptions?: ControlSetValueOptions): Promise<void> {
+        control.setValue(['expression'], setOptions);
+        await pause;
+        control.push(new FormControl('second'), setOptions);
+      },
+    });
+    producer.bind(options);
+
+    const write = applyExpressionTarget('model.value', ['expression', 'second'], {
+      model: options.definition.model,
+    }, { eventBus, logger: TestBed.inject(LoggerService) });
+    control.at(0).setValue('user edit');
+    expect(eventBus.publish).toHaveBeenCalledTimes(2);
+    resume();
+    await write;
+
+    expect(eventBus.publish.calls.allArgs().map(([event]) => {
+      const change = event as FormComponentEventResult<FieldValueChangedEvent>;
+      return { value: change.value, previousValue: change.previousValue };
+    })).toEqual([
+      { value: ['expression'], previousValue: ['original'] },
+      { value: ['user edit'], previousValue: ['expression'] },
+      { value: ['user edit', 'second'], previousValue: ['user edit'] },
+    ]);
+    expect(scopedBus.publish).toHaveBeenCalledTimes(3);
+    expect(observedForms).toEqual([
+      { people: ['expression'] },
+      { people: ['user edit'] },
+      { people: ['user edit', 'second'] },
+    ]);
+  });
+
   it('should detach subscriptions when destroyed', () => {
     const { control, component, definition } = createOptions('field-b', 'initial');
 
@@ -100,6 +188,24 @@ describe('FormComponentChangeEventProducer', () => {
 
     expect(eventBus.publish).not.toHaveBeenCalled();
     expect(scopedBus.publish).not.toHaveBeenCalled();
+  });
+
+  it('detaches the previous binding during an asynchronous expression write', async () => {
+    const oldField = createOptions('old-field');
+    const newField = createOptions('new-field');
+    producer.bind(oldField);
+
+    await withExpressionValueNotifications(oldField.control, async () => {
+      producer.bind(newField);
+      oldField.control.setValue('old update');
+    });
+
+    expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(scopedBus.publish).not.toHaveBeenCalled();
+    newField.control.setValue('new update');
+    expect(eventBus.publish.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({
+      fieldId: 'new-field', value: 'new update', previousValue: 'initial',
+    }));
   });
 
   it('should skip binding when the field id cannot be resolved', () => {

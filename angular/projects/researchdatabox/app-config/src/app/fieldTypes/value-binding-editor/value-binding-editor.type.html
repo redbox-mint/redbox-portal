@@ -84,6 +84,121 @@
         (input)="updateField('expression', $any($event.target).value)"
       ></textarea>
     </div>
+    } @if (kind === 'crosswalk') {
+    <div class="border rounded p-2 mb-2 bg-light">
+      <div class="small text-muted fw-semibold mb-2">Source Binding</div>
+      <div class="mb-2">
+        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-kind'">Source Type</label>
+        <select
+          class="form-select form-select-sm"
+          [attr.id]="fieldKey + '-source-kind'"
+          (change)="updateSourceField('kind', $any($event.target).value)"
+        >
+          @for (simpleKind of simpleKinds; track simpleKind) {
+          <option [value]="simpleKind" [selected]="simpleKind === sourceKind">{{ simpleKind }}</option>
+          }
+        </select>
+      </div>
+      @if (sourceKind === 'path') {
+      <div class="mb-0">
+        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-path'">Record Path</label>
+        <input
+          [attr.id]="fieldKey + '-source-path'"
+          class="form-control form-control-sm"
+          type="text"
+          [value]="value.source?.path || ''"
+          (input)="updateSourceField('path', $any($event.target).value)"
+          placeholder="e.g. metadata.forCodes"
+        />
+      </div>
+      } @if (sourceKind === 'handlebars') {
+      <div class="mb-0">
+        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-template'">Handlebars Template</label>
+        <textarea
+          [attr.id]="fieldKey + '-source-template'"
+          class="form-control form-control-sm"
+          rows="2"
+          [value]="value.source?.template || ''"
+          (input)="updateSourceField('template', $any($event.target).value)"
+        ></textarea>
+      </div>
+      } @if (sourceKind === 'jsonata') {
+      <div class="mb-0">
+        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-expression'">JSONata Expression</label>
+        <textarea
+          [attr.id]="fieldKey + '-source-expression'"
+          class="form-control form-control-sm"
+          rows="2"
+          [value]="value.source?.expression || ''"
+          (input)="updateSourceField('expression', $any($event.target).value)"
+        ></textarea>
+      </div>
+      }
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-vocabulary'">Source Vocabulary</label>
+      <select
+        class="form-select form-select-sm"
+        [attr.id]="fieldKey + '-source-vocabulary'"
+        [disabled]="crosswalksLoading"
+        (change)="updateField('sourceVocabularyId', $any($event.target).value)"
+      >
+        <option value="" [selected]="!value.sourceVocabularyId">-- select --</option>
+        @for (vocabulary of vocabularies; track vocabulary.id) {
+        <option [value]="vocabulary.id" [selected]="vocabulary.id === value.sourceVocabularyId">
+          {{ vocabulary.name }} ({{ vocabulary.source }})
+        </option>
+        }
+      </select>
+      <div class="form-text small">Record codes are resolved against entries of exactly this vocabulary.</div>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-crosswalk'">Approved Figshare Crosswalk</label>
+      <select
+        class="form-select form-select-sm"
+        [attr.id]="fieldKey + '-crosswalk'"
+        [disabled]="crosswalksLoading"
+        (change)="updateField('crosswalkId', $any($event.target).value)"
+      >
+        <option value="" [selected]="!value.crosswalkId">-- select --</option>
+        @for (crosswalk of crosswalkOptions; track crosswalk.id) {
+        <option [value]="crosswalk.id" [selected]="crosswalk.id === value.crosswalkId">{{ crosswalk.name }}</option>
+        }
+      </select>
+      @if (crosswalksLoading) {
+      <div class="form-text small">Loading crosswalks…</div>
+      } @if (crosswalksLoadError) {
+      <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalksLoadError }}</div>
+      } @if (selectedCrosswalk) {
+      <div class="form-text small">
+        {{ selectedCrosswalk.figshareSourceName }} · approved revision {{ selectedCrosswalk.approvedRevision }} ·
+        {{ selectedCrosswalk.approvedMappingCount }} mappings
+      </div>
+      } @if (crosswalkValidationMessage) {
+      <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalkValidationMessage }}</div>
+      } @if (adminUrl) {
+      <a class="small" [href]="adminUrl" target="_blank" rel="noopener">Open Figshare crosswalks &#8599;</a>
+      }
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-outputs'">Output</label>
+      <select
+        class="form-select form-select-sm"
+        [attr.id]="fieldKey + '-outputs'"
+        (change)="updateField('outputs', $any($event.target).value)"
+      >
+        @for (output of crosswalkOutputs; track output) {
+        <option [value]="output" [selected]="output === (value.outputs || 'categoryId')">{{ output }}</option>
+        }
+      </select>
+      <div class="form-text small">
+        The Categories binding must use <code>categoryId</code>. Use <code>label</code> or <code>sourceId</code> for
+        string fields such as keywords or custom fields.
+      </div>
+    </div>
     }
 
     <div class="mb-2">

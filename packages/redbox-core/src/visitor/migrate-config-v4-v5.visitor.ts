@@ -58,6 +58,12 @@ import {
   ContentFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RelatedObjectDataComponentName,
+  RelatedObjectDataFieldComponentConfig,
+  RelatedObjectDataFieldComponentDefinitionOutline,
+  RelatedObjectDataFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   TabComponentName,
   TabFieldComponentDefinitionOutline,
   TabFieldLayoutDefinitionOutline,
@@ -187,6 +193,12 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  WorkspaceSelectorComponentName,
+  WorkspaceFieldComponentConfig,
+  WorkspaceFieldComponentDefinitionOutline,
+  WorkspaceFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   CheckboxTreeComponentName,
   CheckboxTreeFieldComponentDefinitionOutline,
   CheckboxTreeFieldModelDefinitionOutline,
@@ -295,6 +307,11 @@ interface V5ClassNames {
  * Overall mapping from v4 class, v4 compClass to v5 class names.
  */
 const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: string]: V5ClassNames } } = {
+  RelatedObjectDataField: {
+    '': { componentClassName: RelatedObjectDataComponentName },
+    RelatedObjectDataField: { componentClassName: RelatedObjectDataComponentName },
+    RelatedObjectDataComponent: { componentClassName: RelatedObjectDataComponentName },
+  },
   Container: {
     '': {
       componentClassName: GroupFieldComponentName,
@@ -560,6 +577,14 @@ const formConfigV4ToV5Mapping: { [v4ClassName: string]: { [v4CompClassName: stri
     PublishDataLocationRefreshComponent: {
       componentClassName: PublishDataLocationRefreshComponentName,
     },
+  },
+  WorkspaceSelectorField: {
+    '': { componentClassName: WorkspaceSelectorComponentName },
+    WorkspaceSelectorComponent: { componentClassName: WorkspaceSelectorComponentName },
+  },
+  WorkspaceSelectorComponent: {
+    '': { componentClassName: WorkspaceSelectorComponentName },
+    WorkspaceSelectorComponent: { componentClassName: WorkspaceSelectorComponentName },
   },
 };
 
@@ -994,6 +1019,28 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
   }
 
+  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    item.config ??= new RelatedObjectDataFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    const definition = (field?.definition ?? {}) as Record<string, unknown>;
+    const legacyName = typeof definition['name'] === 'string' ? definition['name'] : undefined;
+    item.config.dataPath = legacyName;
+    item.config.oidProperty = 'id';
+    const columns = Array.isArray(definition['columns']) ? definition['columns'] as Record<string, unknown>[] : [];
+    item.config.relatedFields = columns.map(column => column['property']).filter((property): property is string => typeof property === 'string');
+    if (columns.length) {
+      const headers = columns.map(column => `<th>${String(column['label'] ?? column['property'] ?? '')}</th>`).join('');
+      const cells = columns.map(column => `<td>{{fields.${String(column['property'] ?? '')}}}</td>`).join('');
+      item.config.template = `<table><thead><tr>${headers}</tr></thead><tbody>{{#each relatedObjects}}<tr>${cells}</tr>{{/each}}</tbody></table>`;
+    }
+    if (!legacyName) this.logger.warn(`${this.logName}: RelatedObjectDataField has no definition.name to migrate to dataPath.`);
+  }
+
+  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
   /* Repeatable  */
 
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
@@ -1193,14 +1240,39 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
   /* Integration Status */
 
-  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFieldComponentDefinition(
+    item: IntegrationStatusFieldComponentDefinitionOutline
+  ): Promise<void> {
     const field = this.getV4Data();
     item.config = new IntegrationStatusFieldComponentConfig();
     this.sharedPopulateFieldComponentConfig(item.config, field);
   }
 
-  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFormComponentDefinition(
+    item: IntegrationStatusFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.populateFormComponent(item);
+  }
+
+  /* Workspace Selector */
+
+  async visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void> {
+    const field = this.getV4Data();
+    const definition = field?.definition;
+    item.config = new WorkspaceFieldComponentConfig();
+    this.sharedPopulateFieldComponentConfig(item.config, field);
+    this.sharedProps.setPropOverride('open', item.config, definition);
+    this.sharedProps.setPropOverride('saveFirst', item.config, definition);
+    this.sharedProps.setPropOverride('displayType', item.config, definition);
+    this.sharedProps.setPropOverride('shouldSaveForm', item.config, definition);
+    this.sharedProps.setPropOverride('allowAddTemplate', item.config, definition);
+    this.sharedProps.setPropOverride('defaultSelection', item.config, definition);
+  }
+
+  async visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void> {
+    await this.populateFormComponent(item);
+    item.layout = undefined;
+    item.model = undefined;
   }
 
   /* Group */
@@ -1441,6 +1513,7 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       item.config.redirectLocation = this.buildLegacyUrlTemplate(item.config.redirectLocation);
     }
     this.sharedProps.setPropOverride('redirectDelaySeconds', item.config, field?.definition);
+    this.sharedProps.setPropOverride('operation', item.config, field?.definition);
     this.sharedProps.setPropOverride('targetStep', item.config, field?.definition);
     this.sharedProps.setPropOverride('forceSave', item.config, field?.definition);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, field?.definition);
@@ -1889,19 +1962,25 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
 
     const options = this.migrateOptions(field);
     this.sharedProps.setPropOverride('options', item.config, { options: options });
+    if (this.isLegacyNoOptionToggle(field)) {
+      item.config.booleanMode = true;
+      item.config.multipleValues = false;
+    }
   }
 
   async visitCheckboxInputFieldModelDefinition(item: CheckboxInputFieldModelDefinitionOutline): Promise<void> {
     const field = this.getV4Data();
     item.config = new CheckboxInputFieldModelConfig();
     this.sharedPopulateFieldModelConfig(item.config, field);
+  }
 
+  /**
+   * A legacy checkbox toggle with no options carries a boolean rather than an option value,
+   * so it migrates to a single CheckboxInput control in boolean mode.
+   */
+  protected isLegacyNoOptionToggle(field: Record<string, unknown>): boolean {
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
-    const rawDefaultValue = definition.value ?? definition.defaultValue;
-    const hasOptions = Array.isArray(definition.options) && definition.options.length > 0;
-    if (definition.controlType === 'checkbox' && typeof rawDefaultValue === 'boolean' && !hasOptions) {
-      delete item.config.defaultValue;
-    }
+    return definition.controlType === 'checkbox' && this.migrateOptions(field).length === 0;
   }
 
   async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
@@ -2422,7 +2501,10 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     return postProcessingFormConfigV4ToV5Mapping(v4Field, v4ClassNames, matched);
   }
 
-  protected shouldOmitLegacyField(field: Record<string, unknown> | null | undefined, v4FormPathMore?: string[]): boolean {
+  protected shouldOmitLegacyField(
+    field: Record<string, unknown> | null | undefined,
+    v4FormPathMore?: string[]
+  ): boolean {
     if (!field || typeof field !== 'object') {
       this.logger.warn(
         `${this.logName}: Omitting empty legacy field entry at ${JSON.stringify([
@@ -2438,6 +2520,27 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     const definition = (field?.definition ?? {}) as Record<string, unknown>;
     const isLegacyParameterRetriever =
       v4ClassName === 'ParameterRetriever' || v4CompClassName === 'ParameterRetrieverComponent';
+    const isLegacyRenderCompleteMarker =
+      v4ClassName === 'Container' &&
+      `${definition.id ?? ''}`.trim() === 'form-render-complete' &&
+      `${definition.label ?? ''}`.trim() === 'Test' &&
+      Array.isArray(definition.fields) &&
+      definition.fields.some(childField => {
+        if (!childField || typeof childField !== 'object') {
+          return false;
+        }
+        const child = childField as Record<string, unknown>;
+        const childDefinition = (child.definition ?? {}) as Record<string, unknown>;
+        return (
+          (`${child.class ?? ''}`.trim() === 'TextBlock' ||
+            `${child.compClass ?? ''}`.trim() === 'TextBlockComponent') &&
+          `${childDefinition.value ?? ''}`.trim() === 'will be empty'
+        );
+      });
+
+    if (isLegacyRenderCompleteMarker) {
+      return true;
+    }
 
     if (!isLegacyParameterRetriever) {
       return false;
@@ -2899,12 +3002,18 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
   }
 
   private getLegacyContributorReusableFormName(fieldDefinition: Record<string, unknown>): string {
+    const splitNames = this.parseLegacyTypeaheadBoolean(fieldDefinition.splitNames, false, 'splitNames');
+    if (splitNames) {
+      return 'citation-contributor-fields-with-title-family-given-group';
+    }
     const forceLookupOnly = this.parseLegacyTypeaheadBoolean(fieldDefinition.forceLookupOnly, false, 'forceLookupOnly');
     return forceLookupOnly ? 'standard-contributor-fields-lookup-only-group' : 'standard-contributor-fields-group';
   }
 
   private getLegacyContributorReusableGroupItemName(reusableFormName: string): string {
     switch (reusableFormName) {
+      case 'citation-contributor-fields-with-title-family-given-group':
+        return 'citation_contributor_fields_with_title_family_given_group';
       case 'standard-contributor-fields-lookup-only-group':
         return 'standard_contributor_fields_lookup_only_group';
       case 'standard-contributor-fields-group':
@@ -3369,7 +3478,12 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
     }
     return deduped.filter(
       (mode): mode is MapDrawingMode =>
-        mode === 'point' || mode === 'polygon' || mode === 'linestring' || mode === 'rectangle' || mode === 'circle' || mode === 'select'
+        mode === 'point' ||
+        mode === 'polygon' ||
+        mode === 'linestring' ||
+        mode === 'rectangle' ||
+        mode === 'circle' ||
+        mode === 'select'
     );
   }
 
@@ -3881,7 +3995,13 @@ export class MigrationV4ToV5FormConfigVisitor extends FormConfigVisitor {
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(segment)) {
         return `${path}.${segment}`;
       }
-      return `${path}[${JSON.stringify(segment)}]`;
+      // JSONata reads `path["name"]` as a filter predicate, not a property lookup, so a
+      // string literal there is simply truthy and the whole object is returned. Names that
+      // are not bare identifiers (hyphens, colons) must be backtick quoted instead.
+      if (!segment.includes('`')) {
+        return `${path}.\`${segment}\``;
+      }
+      return `$lookup(${path}, ${JSON.stringify(segment)})`;
     }, 'event.value');
   }
 

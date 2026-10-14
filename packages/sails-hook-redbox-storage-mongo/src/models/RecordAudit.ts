@@ -6,6 +6,9 @@ export class RecordAuditClass {
   @Attr({ type: 'string' })
   public redboxOid?: string;
 
+  @Attr({ type: 'string' })
+  public occurredAt?: string;
+
   @Attr({ type: 'json' })
   public user?: Record<string, unknown>;
 
@@ -17,6 +20,12 @@ export class RecordAuditClass {
 
   @Attr({ type: 'string' })
   public action?: string;
+
+  @Attr({ type: 'json' })
+  public executionSummary?: Record<string, unknown>;
+
+  @Attr({ type: 'json' })
+  public concurrency?: Record<string, unknown>;
 }
 
 export const RecordAuditWLDef = toWaterlineModelDef(RecordAuditClass);

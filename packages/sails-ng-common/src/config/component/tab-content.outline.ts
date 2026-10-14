@@ -87,6 +87,12 @@ export interface TabContentFormComponentDefinitionFrame extends FormComponentDef
     layout?: TabContentFieldLayoutDefinitionFrame;
 }
 
+/**
+ * Defines the child content displayed by a tab container.
+ *
+ * @extensionPoint Use `TabContentComponent` beneath a tab to configure its labelled panel and child components.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface TabContentFormComponentDefinitionOutline extends TabContentFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: TabContentFieldComponentDefinitionOutline;
     model?: never;

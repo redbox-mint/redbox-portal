@@ -4,7 +4,7 @@ networks:
 
 services:
   bruno:
-    image: node:26.3.0-bookworm
+    image: node:26.10.0-bookworm
     pull_policy: 'missing'
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
@@ -63,6 +63,10 @@ services:
       - LOAD_DEFAULT_FORMS=true
       # - sails_log__level=verbose
       - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+      - sails_recordSchema__enabled=true
+      - sails_recordSchema__unknownProperties=allow
+      - sails_recordValidation__mode=shadow
+      - sails_recordtype__dataPublication__recordValidation__mode=enforce
       - sails_security__csrf=false
     networks:
      main:
@@ -72,7 +76,7 @@ services:
     init: true
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
-    image: mongo:latest
+    image: mongo:latest@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
     pull_policy: 'missing'
     networks:
       main:
@@ -86,7 +90,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest
+    image: solr:latest@sha256:4316295f16175f676ac6798769f7a21729131ab555f1ba8663839dd7abd92e13
     pull_policy: 'missing'
     expose:
       - "8983"
@@ -106,7 +110,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.0
+    image: quay.io/keycloak/keycloak:26.8.0-1
     pull_policy: 'missing'
     expose:
       - "8080"
@@ -127,7 +131,7 @@ services:
       - start-dev
       - --import-realm
   email:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:latest@sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365
     pull_policy: 'missing'
     expose:
       - '1025'

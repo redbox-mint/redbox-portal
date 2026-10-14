@@ -25,7 +25,7 @@ export function createMockSails(overrides: any = {}): any {
       environment: 'development',
       figshareDev: {
         enabled: false,
-        mode: 'live'
+        mode: 'live',
       },
     },
     log: createSinonStubLogger(sinon),
@@ -67,6 +67,7 @@ export function createQueryObject(result: any, error: any = null): any {
       }
     },
     // Support chaining methods
+    fetch: sinon.stub().returnsThis(),
     populate: sinon.stub().returnsThis(),
     where: sinon.stub().returnsThis(),
     sort: sinon.stub().returnsThis(),

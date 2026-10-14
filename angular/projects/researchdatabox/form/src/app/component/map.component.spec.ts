@@ -41,6 +41,8 @@ describe("MapComponent", () => {
   // OpenLayers-style fake constructors
   function FakeMapCtor(this: any, opts: any) {
     this.target = opts.target;
+    Object.defineProperty(this.target, "clientWidth", {configurable: true, value: 729});
+    Object.defineProperty(this.target, "clientHeight", {configurable: true, value: 450});
     fakeMapTarget = opts.target;
     this.layers = opts.layers;
     this.view = opts.view;
@@ -607,7 +609,7 @@ describe("MapComponent", () => {
     expect(modelValue.features.every((feature: any) => uuidV4Pattern.test(feature.id))).toBeTrue();
     expect(modelValue.features[0].geometry.coordinates).toEqual([-122.681944, 45.52]);
     expect(modelValue.features[4].geometry.coordinates[0][0]).toEqual([-122.681944, 45.52]);
-    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], { padding: [24, 24, 24, 24] });
+    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], { padding: [24, 24, 24, 24], maxZoom: 18 });
   });
 
   it("expands GeoJSON multi-geometries into draw-compatible features", async () => {
@@ -794,7 +796,7 @@ describe("MapComponent", () => {
     expect(fixture.nativeElement.querySelector("textarea")).toBeNull();
   });
 
-  it("loads pre-existing features into draw state and invalidates map size", async () => {
+  it("caps saved feature fitting in view mode", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",
       componentDefinitions: [
@@ -802,9 +804,7 @@ describe("MapComponent", () => {
           name: "map_coverage",
           component: {
             class: "MapComponent",
-            config: {
-              enableImport: true
-            }
+            config: {}
           },
           model: {
             class: "MapModel",
@@ -815,12 +815,258 @@ describe("MapComponent", () => {
                   {
                     type: "Feature",
                     geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    fakeView.fit.calls.reset();
+    (mapComponent as any).pendingFitSize = undefined;
+    (mapComponent as any).pendingFitStableSince = 0;
+    (mapComponent as any).vectorLayerFitPending = true;
+    (mapComponent as any).pendingFitRetryCount = (mapComponent as any).maxPendingFitRetries;
+    jasmine.clock().install();
+    try {
+      jasmine.clock().mockDate(new Date());
+      (mapComponent as any).runPendingFitPass();
+      jasmine.clock().tick(100);
+      (mapComponent as any).runPendingFitPass();
+
+      expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [12, 12, 12, 12], maxZoom: 18});
+    } finally {
+      jasmine.clock().uninstall();
+      fixture.destroy();
+    }
+  });
+
+  it("does not initialise or respond to layout changes after destruction", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+
+    fixture.destroy();
+    (mapComponent as any).initialiseMap();
+    (mapComponent as any).handleMapLayoutChange();
+
+    expect((mapComponent as any).map).toBeUndefined();
+  });
+
+  it("resets fit stability when the map target changes", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    (mapComponent as any).pendingFitSize = [729, 450];
+    (mapComponent as any).pendingFitStableSince = 123;
+    spyOn(mapComponent as any, "invalidateMap");
+
+    (mapComponent as any).handleMapLayoutChange();
+
+    expect((mapComponent as any).pendingFitSize).toBeUndefined();
+    expect((mapComponent as any).pendingFitStableSince).toBe(0);
+    fixture.destroy();
+  });
+
+  it("handles errors when fitting saved layer bounds", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.96, -37.81]},
+                    properties: {}
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: false} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    fakeView.fit.and.throwError("fit failed");
+
+    try {
+      expect(() => (mapComponent as any).fitToLayerBounds()).not.toThrow();
+      expect((mapComponent as any).fitToLayerBounds()).toBeTrue();
+      expect(mapComponent.mapError).toContain("Saved map features could not be displayed.");
+    } finally {
+      fixture.destroy();
+    }
+  });
+
+  it("defers collection fitting until the map surface has a size", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    const mapSurface = fixture.nativeElement.querySelector(".rb-map-surface") as HTMLElement;
+    Object.defineProperty(mapSurface, "clientWidth", {configurable: true, value: 0});
+    Object.defineProperty(mapSurface, "clientHeight", {configurable: true, value: 0});
+    (mapComponent as any).pendingFeatureCollectionFit = {
+      type: "FeatureCollection",
+      features: [{type: "Feature", geometry: {type: "Point", coordinates: [144.96, -37.81]}, properties: {}}]
+    };
+    fakeView.fit.calls.reset();
+
+    (mapComponent as any).fitPendingFeatureCollectionBounds();
+
+    expect(fakeView.fit).not.toHaveBeenCalled();
+
+    Object.defineProperty(mapSurface, "clientWidth", {configurable: true, value: 729});
+    Object.defineProperty(mapSurface, "clientHeight", {configurable: true, value: 450});
+    (mapComponent as any).pendingFitSize = [729, 450];
+    (mapComponent as any).pendingFitStableSince = Date.now() - 100;
+    (mapComponent as any).fitPendingFeatureCollectionBounds();
+
+    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [24, 24, 24, 24], maxZoom: 18});
+  });
+
+  it("re-arms fitting after a retry budget exhausted during a nonzero resize", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {}
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+    const mapComponent = formComponent.getComponentDefByName("map_coverage")?.component as MapComponent;
+    const mapSurface = fixture.nativeElement.querySelector(".rb-map-surface") as HTMLElement;
+    (mapComponent as any).pendingFeatureCollectionFit = {
+      type: "FeatureCollection",
+      features: [{type: "Feature", geometry: {type: "Point", coordinates: [144.96, -37.81]}, properties: {}}]
+    };
+    (mapComponent as any).pendingFitRetryCount = (mapComponent as any).maxPendingFitRetries;
+    (mapComponent as any).pendingFitSize = [729, 450];
+    Object.defineProperty(mapSurface, "clientWidth", {configurable: true, value: 800});
+    Object.defineProperty(mapSurface, "clientHeight", {configurable: true, value: 450});
+    fakeView.fit.calls.reset();
+
+    (mapComponent as any).rearmPendingFitRetryForLayoutChange();
+
+    expect((mapComponent as any).pendingFitRetryCount).toBe(0);
+    (mapComponent as any).fitPendingFeatureCollectionBounds();
+    expect(fakeView.fit).not.toHaveBeenCalled();
+    (mapComponent as any).pendingFitStableSince = Date.now() - 100;
+    (mapComponent as any).fitPendingFeatureCollectionBounds();
+
+    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [24, 24, 24, 24], maxZoom: 18});
+  });
+
+  it("rounds pre-existing coordinates to the configured draw precision", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              enableImport: true,
+              coordinatePrecision: 9
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              value: {
+                type: "FeatureCollection",
+                features: [
+                  {
+                    type: "Feature",
+                    geometry: {type: "Point", coordinates: [144.9600000004, -37.8100000004]},
                     properties: {name: "Melbourne"}
                   },
                   // Should allow string coordinates.
                   {
                     type: "Feature",
-                    geometry: {type: "Point", coordinates: ["145.935234375", "-22.625184301"]},
+                    geometry: {type: "Point", coordinates: ["145.9352343759", "-22.6251843014"]},
                     properties: {}
                   },
                   // Should only include coordinates that are numbers or non-empty strings.
@@ -873,12 +1119,13 @@ describe("MapComponent", () => {
       jasmine.objectContaining({
         id: jasmine.stringMatching(uuidV4Pattern),
         type: "Feature",
-        geometry: {type: "Point", coordinates: [145.935234375, -22.625184301]},
+        geometry: {type: "Point", coordinates: [145.935234376, -22.625184301]},
         properties: jasmine.objectContaining({mode: "point"})
       })
     ]);
     expect(drawFeatures.length).toBe(2);
     expect(fakeMap.updateSize).toHaveBeenCalled();
+    expect(fakeView.fit).toHaveBeenCalledWith([0, 0, 1, 1], {padding: [24, 24, 24, 24], maxZoom: 18});
   });
 
   it("shows saved features read-only when edit draw ids cannot be generated", async () => {
@@ -1370,6 +1617,9 @@ describe("MapComponent", () => {
     fixture.detectChanges();
 
     expect(fakeAdapterCtor).toHaveBeenCalled();
+    expect(fakeAdapterCtor).toHaveBeenCalledWith(jasmine.objectContaining({
+      coordinatePrecision: 15
+    }));
     expect(fakeDraw.start).toHaveBeenCalled();
   });
 
@@ -1405,6 +1655,35 @@ describe("MapComponent", () => {
     expect(fakeMapTarget?.querySelector("canvas")).not.toBeNull();
     expect(fakeAdapterCtor).toHaveBeenCalled();
     expect(fakeDraw.start).toHaveBeenCalled();
+  });
+
+  it("uses configured coordinate precision for draw tooling", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [
+        {
+          name: "map_coverage",
+          component: {
+            class: "MapComponent",
+            config: {
+              coordinatePrecision: 12
+            }
+          },
+          model: {
+            class: "MapModel",
+            config: {
+              defaultValue: {type: "FeatureCollection", features: []}
+            }
+          }
+        }
+      ]
+    };
+
+    await createFormAndWaitForReady(formConfig, {editMode: true} as any);
+
+    expect(fakeAdapterCtor).toHaveBeenCalledWith(jasmine.objectContaining({
+      coordinatePrecision: 12
+    }));
   });
 
   it("creates map with fromLonLat for configured center", async () => {

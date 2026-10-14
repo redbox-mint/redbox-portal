@@ -6,7 +6,14 @@ export * from './BrandingConfig';
 export * from './BrandingConfigHistory';
 export * from './CacheEntry';
 export * from './Counter';
+export * from './DashboardConfiguration';
 export * from './DashboardType';
+export * from './FigshareVocabularyCategory';
+export * from './FigshareVocabularyCrosswalk';
+export * from './FigshareVocabularyCrosswalkMapping';
+export * from './FigshareVocabularySource';
+export * from './FigshareVocabularySyncRun';
+export * from './FigshareSync';
 export * from './Form';
 export * from './HarvestRecordEvent';
 export * from './HarvestRun';
@@ -39,7 +46,14 @@ import { BrandingConfigWLDef } from './BrandingConfig';
 import { BrandingConfigHistoryWLDef } from './BrandingConfigHistory';
 import { CacheEntryWLDef } from './CacheEntry';
 import { CounterWLDef } from './Counter';
+import { DashboardConfigurationWLDef } from './DashboardConfiguration';
 import { DashboardTypeWLDef } from './DashboardType';
+import { FigshareVocabularyCategoryWLDef } from './FigshareVocabularyCategory';
+import { FigshareVocabularyCrosswalkWLDef } from './FigshareVocabularyCrosswalk';
+import { FigshareVocabularyCrosswalkMappingWLDef } from './FigshareVocabularyCrosswalkMapping';
+import { FigshareVocabularySourceWLDef } from './FigshareVocabularySource';
+import { FigshareVocabularySyncRunWLDef } from './FigshareVocabularySyncRun';
+import { FigshareSyncWLDef } from './FigshareSync';
 import { FormWLDef } from './Form';
 import { HarvestRecordEventWLDef } from './HarvestRecordEvent';
 import { HarvestRunWLDef } from './HarvestRun';
@@ -75,7 +89,14 @@ export const WaterlineModels = {
   BrandingConfigHistory: BrandingConfigHistoryWLDef,
   CacheEntry: CacheEntryWLDef,
   Counter: CounterWLDef,
+  DashboardConfiguration: DashboardConfigurationWLDef,
   DashboardType: DashboardTypeWLDef,
+  FigshareVocabularyCategory: FigshareVocabularyCategoryWLDef,
+  FigshareVocabularyCrosswalk: FigshareVocabularyCrosswalkWLDef,
+  FigshareVocabularyCrosswalkMapping: FigshareVocabularyCrosswalkMappingWLDef,
+  FigshareVocabularySource: FigshareVocabularySourceWLDef,
+  FigshareVocabularySyncRun: FigshareVocabularySyncRunWLDef,
+  FigshareSync: FigshareSyncWLDef,
   Form: FormWLDef,
   HarvestRecordEvent: HarvestRecordEventWLDef,
   HarvestRun: HarvestRunWLDef,

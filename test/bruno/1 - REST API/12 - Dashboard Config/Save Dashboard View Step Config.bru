@@ -1,0 +1,38 @@
+meta {
+  name: Save Dashboard View Step Settings
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{host}}/default/rdmp/api/dashboard-config/views/consolidated/consolidated
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  req.setBody({
+    expectedRevision: Number(bru.getVar("dashboardViewConfigRevision")),
+    settings: JSON.parse(bru.getVar("dashboardViewSettings")),
+    validationFingerprint: bru.getVar("dashboardViewValidationFingerprint"),
+    acknowledgedWarningIds: JSON.parse(bru.getVar("dashboardViewAcknowledgedWarningIds"))
+  });
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Saves the complete independent view-step settings", function () {
+    var data = res.getBody().data;
+    expect(data.target).to.deep.equal({ kind: "view", view: "consolidated", step: "consolidated" });
+    expect(data.settings).to.have.property("tableConfig");
+    expect(data.revision).to.equal(Number(bru.getVar("dashboardViewConfigRevision")) + 1);
+  });
+}

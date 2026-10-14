@@ -3,6 +3,7 @@ import { DropdownInputComponent } from './dropdown-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { TestBed } from '@angular/core/testing';
 import i18next from 'i18next';
+import { By } from '@angular/platform-browser';
 
 describe('DropdownInputComponent', () => {
   let translationService: any;
@@ -195,5 +196,51 @@ describe('DropdownInputComponent', () => {
     expect(selectEl.selectedIndex).toBe(0);
     expect(selectEl.value).toBe('');
     expect(formComponent.form?.get('dropdown_existing_empty')?.value).toBe('');
+  });
+
+  it('should render options added after initialisation', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing_dropdown_dynamic_options',
+      debugValue: false,
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      componentDefinitions: [
+        {
+          name: 'dropdown_dynamic_options',
+          model: {
+            class: 'DropdownInputModel',
+            config: {
+              validators: [],
+            },
+          },
+          component: {
+            class: 'DropdownInputComponent',
+            config: {
+              options: [],
+            },
+          },
+        },
+      ],
+    };
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const component = fixture.debugElement.query(By.directive(DropdownInputComponent)).componentInstance as DropdownInputComponent;
+
+    component.setProperty('options', [
+      { label: 'Chief investigator', value: 'Chief investigator' },
+      { label: 'Supervisor', value: 'Supervisor' },
+    ]);
+    component.setProperty('tooltip', 'updated tooltip');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const selectEl = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    expect(Array.from(selectEl.options).map(option => option.text)).toEqual([
+      'Chief investigator',
+      'Supervisor',
+    ]);
+    expect(selectEl.title).toEqual('updated tooltip');
   });
 });

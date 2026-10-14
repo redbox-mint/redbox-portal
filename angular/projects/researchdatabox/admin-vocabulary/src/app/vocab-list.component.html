@@ -58,10 +58,13 @@
             <td><a href="#" (click)="$event.preventDefault(); open(vocabulary.id)">{{ vocabulary.name }}</a></td>
             <td><code>{{ vocabulary.slug || '-' }}</code></td>
             <td><span class="badge badge-secondary text-uppercase">{{ ('admin-vocabulary-type-' + vocabulary.type) | i18next }}</span></td>
-            <td><span class="badge text-uppercase" [ngClass]="vocabulary.source === 'rva' ? 'badge-warning' : 'badge-info'">{{ ('admin-vocabulary-source-' + vocabulary.source) | i18next }}</span></td>
+            <td>
+              <span class="badge text-uppercase" [ngClass]="vocabulary.source === 'rva' ? 'badge-warning' : 'badge-info'">{{ ('admin-vocabulary-source-' + vocabulary.source) | i18next }}</span>
+              <span *ngIf="isReadOnly(vocabulary)" class="badge badge-light text-uppercase ml-1">{{ 'admin-vocabulary-read-only' | i18next }}</span>
+            </td>
             <td class="text-right text-nowrap">
-              <button class="btn btn-sm btn-primary action-button" type="button" (click)="open(vocabulary.id)">{{ 'admin-vocabulary-edit' | i18next }}</button>
-              <button class="btn btn-sm btn-danger action-button" type="button" (click)="remove(vocabulary.id)">{{ 'admin-vocabulary-delete' | i18next }}</button>
+              <button class="btn btn-sm action-button" type="button" [ngClass]="isReadOnly(vocabulary) ? 'btn-secondary' : 'btn-primary'" (click)="open(vocabulary.id)">{{ (isReadOnly(vocabulary) ? 'admin-vocabulary-view' : 'admin-vocabulary-edit') | i18next }}</button>
+              <button class="btn btn-sm btn-danger action-button" type="button" [disabled]="isReadOnly(vocabulary)" [attr.title]="isReadOnly(vocabulary) ? ('admin-vocabulary-read-only-hint' | i18next) : null" (click)="remove(vocabulary.id)">{{ 'admin-vocabulary-delete' | i18next }}</button>
             </td>
           </tr>
           <tr *ngIf="vocabularies.length === 0">

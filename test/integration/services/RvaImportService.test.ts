@@ -8,6 +8,10 @@ declare const VocabularyEntry: VocabularyEntryWaterlineModel;
 
 describe('RvaImportService integration', function () {
   it('imports production RVA vocabulary 316', async function () {
+    if (process.env.RUN_LIVE_INTEGRATION_TESTS !== 'true') {
+      this.skip();
+    }
+
     this.timeout(60000);
 
     let imported!: Awaited<ReturnType<typeof RvaImportService.importRvaVocabulary>>;

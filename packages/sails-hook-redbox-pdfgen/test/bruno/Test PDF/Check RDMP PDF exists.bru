@@ -1,0 +1,70 @@
+meta {
+  name: Check RDMP PDF exists
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+script:pre-request {
+  const pollIntervalMs = 2000;
+  const deadline = Date.now() + 210000;
+  const dmpOid = String(bru.getEnvVar("dmpOid"));
+  const datastreamUrl = `${bru.getEnvVar("host")}/default/rdmp/api/records/datastreams/${dmpOid}`;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await bru.sendRequest({
+        method: "GET",
+        url: datastreamUrl,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${bru.getEnvVar("token")}`
+        },
+        timeout: 5000
+      });
+      const records = response.data?.records;
+      const pdfExists = Array.isArray(records) && records.some((record) => {
+        const fileId = String(record.fileId);
+        return fileId.includes(dmpOid) && fileId.endsWith(".pdf");
+      });
+      if (pdfExists) {
+        break;
+      }
+    } catch (_error) {
+      // The final request and its existing assertions report any persistent failure.
+    }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs > 0) {
+      await bru.sleep(Math.min(pollIntervalMs, remainingMs));
+    }
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Has attachments", function () {
+      var jsonData = res.getBody();
+
+      // should be one attachment, with pdf ext
+      expect(Array.isArray(jsonData.records)).to.equal(true);
+      expect(jsonData.records.length).to.equal(1);
+      expect(String(jsonData.records[0].fileId).indexOf(bru.getEnvVar("dmpOid")) >= 0).to.equal(true);
+      bru.setEnvVar("recordStreamId",jsonData.records[0].fileId);
+
+      expect(String(jsonData.records[0].fileId).endsWith('.pdf')).to.equal(true);
+  });
+}

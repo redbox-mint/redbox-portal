@@ -88,6 +88,12 @@ export interface PDFListFormComponentDefinitionFrame extends FormComponentDefini
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Displays and models a configured list of PDF resources.
+ *
+ * @extensionPoint Use `PDFListComponent` with `PDFListModel` where a form manages PDF entries.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface PDFListFormComponentDefinitionOutline extends PDFListFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: PDFListFieldComponentDefinitionOutline;
     model?: PDFListFieldModelDefinitionOutline;

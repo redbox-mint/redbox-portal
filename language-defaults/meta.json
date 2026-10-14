@@ -9,6 +9,21 @@
     "description": "Dashboard heading shown for the one-step dashboard variant",
     "contentFormat": "plain"
   },
+  "dashboard-filter-by": {
+    "category": "dashboard",
+    "description": "Search filter field selector label; field is the selected field name",
+    "contentFormat": "plain"
+  },
+  "dashboard-settings-unavailable": {
+    "category": "dashboard",
+    "description": "Shown when a dashboard's saved settings cannot be loaded (for example before the dashboard migration has completed)",
+    "contentFormat": "plain"
+  },
+  "dashboard-no-columns": {
+    "category": "dashboard",
+    "description": "Shown when a dashboard stage has records but its settings define no columns",
+    "contentFormat": "plain"
+  },
   "create-plan": {
     "category": "create",
     "description": "Action label to create a plan from the dashboard or homepage",
@@ -574,9 +589,14 @@
     "description": "Status label for a linked alias account on the admin user management page",
     "contentFormat": "plain"
   },
-  "manage-users-account-status-linked-accounts": {
+  "manage-users-account-status-linked-accounts_one": {
     "category": "users",
-    "description": "Label for linked accounts on the admin user management page",
+    "description": "Singular linked-account count on the admin user management page",
+    "contentFormat": "plain"
+  },
+  "manage-users-account-status-linked-accounts_other": {
+    "category": "users",
+    "description": "Plural linked-account count on the admin user management page",
     "contentFormat": "plain"
   },
   "manage-users-account-status-primary-user": {
@@ -694,14 +714,24 @@
     "description": "Success message shown after linking accounts",
     "contentFormat": "plain"
   },
-  "manage-users-link-success-roles-merged": {
+  "manage-users-link-success-roles-merged_one": {
     "category": "users",
-    "description": "Success detail explaining that roles were merged after linking accounts",
+    "description": "Singular success detail explaining that a role was merged after linking accounts",
     "contentFormat": "plain"
   },
-  "manage-users-link-success-records-rewritten": {
+  "manage-users-link-success-roles-merged_other": {
     "category": "users",
-    "description": "Success detail explaining that record ownership was rewritten after linking accounts",
+    "description": "Plural success detail explaining that roles were merged after linking accounts",
+    "contentFormat": "plain"
+  },
+  "manage-users-link-success-records-rewritten_one": {
+    "category": "users",
+    "description": "Singular success detail explaining that a record was rewritten after linking accounts",
+    "contentFormat": "plain"
+  },
+  "manage-users-link-success-records-rewritten_other": {
+    "category": "users",
+    "description": "Plural success detail explaining that records were rewritten after linking accounts",
     "contentFormat": "plain"
   },
   "manage-users-link-failed": {
@@ -977,6 +1007,11 @@
   "menu-systemmessages": {
     "category": "menu",
     "description": "Global navigation link label for the system messages admin page",
+    "contentFormat": "plain"
+  },
+  "menu-webanalytics": {
+    "category": "menu",
+    "description": "Global navigation link label for the web analytics admin page",
     "contentFormat": "plain"
   },
   "aaf-title": {
@@ -3064,6 +3099,221 @@
     "description": "Success message shown after saving an RDMP form",
     "contentFormat": "plain"
   },
+  "@dmpt-form-save-advisory": {
+    "category": "rdmp",
+    "description": "Introduces nonblocking validation suggestions or adjustments shown after a confirmed save",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-warning-create": {
+    "category": "rdmp",
+    "description": "Warning shown after record creation when follow-up processing is incomplete. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-warning-update": {
+    "category": "rdmp",
+    "description": "Warning shown after an update when follow-up processing is incomplete. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-schema-warning": {
+    "category": "rdmp",
+    "description": "Warning shown after a saved record has structural schema validation issues. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-unknown-create": {
+    "category": "rdmp",
+    "description": "Guidance shown when record creation cannot be confirmed. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-unknown-update": {
+    "category": "rdmp",
+    "description": "Guidance shown when an update cannot be confirmed. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@record-save-failed": {
+    "category": "rdmp",
+    "description": "Generic record save failure message",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-failed": {
+    "category": "validator",
+    "description": "Record save error when blocking server-side validation fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-form-resolution-failed": {
+    "category": "validator",
+    "description": "Record save error when the authoritative form cannot be resolved",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-configuration-failed": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation configuration is invalid",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-timeout": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation exceeds its time budget",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-operation-invalid": {
+    "category": "validator",
+    "description": "Record save error for a malformed or unknown validation operation",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-operation-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot use the requested validation operation",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-transition-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot perform the requested transition",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-edit-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot edit the target record",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-snapshot-unavailable": {
+    "category": "validator",
+    "description": "Record save error when the current record snapshot cannot be loaded safely",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-authority-context-divergence": {
+    "category": "validator",
+    "description": "Record save error when hook output conflicts with authoritative record context",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-post-sync-failed": {
+    "category": "validator",
+    "description": "Record save warning when persisted validation state cannot be synchronized",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-invalid": {
+    "category": "validator",
+    "description": "Record save error for malformed authoritative validation bypass metadata",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-forbidden": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation bypass is not permitted",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-audit-failed": {
+    "category": "validator",
+    "description": "Record save error when a validation bypass audit cannot be persisted",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-batch-bypass-audit-failed": {
+    "category": "validator",
+    "description": "Batch save error when a validation bypass audit cannot be persisted",
+    "contentFormat": "plain"
+  },
+  "@record-save-invalid-attachment-id": {
+    "category": "rdmp",
+    "description": "Record save error for invalid attachment identity data",
+    "contentFormat": "plain"
+  },
+  "@record-save-duplicate-attachment-id": {
+    "category": "rdmp",
+    "description": "Record save error for duplicate attachment identity data",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-unknown": {
+    "category": "rdmp",
+    "description": "Record save outcome when persistence cannot be confirmed",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-not-applied": {
+    "category": "rdmp",
+    "description": "Record save outcome when persistence was not applied",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-precondition": {
+    "category": "rdmp",
+    "description": "Record save error when a save precondition fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-invalid-hook-configuration": {
+    "category": "rdmp",
+    "description": "Record save error for invalid hook configuration",
+    "contentFormat": "plain"
+  },
+  "@record-save-pre-save-processing-failed": {
+    "category": "rdmp",
+    "description": "Record save error when pre-save validation or processing fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-journal-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment journal failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-finalization-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment finalization failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-reference-finalization-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment reference finalization failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-save-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for follow-up processing failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-save-metadata-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for follow-up metadata failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-transition-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for workflow transition processing failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-transition-metadata-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for workflow transition metadata failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-response-projection-failed": {
+    "category": "rdmp",
+    "description": "Record save warning when the saved response projection fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-commit-reconciliation-deferred": {
+    "category": "rdmp",
+    "description": "Record save warning when final projection, indexing, and audit reconciliation is deferred",
+    "contentFormat": "plain"
+  },
+  "@record-save-not-dispatched": {
+    "category": "rdmp",
+    "description": "Record save error when the request could not be dispatched",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-invalid": {
+    "category": "rdmp",
+    "description": "Error shown when an invalid form cannot be saved",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-not-defined": {
+    "category": "rdmp",
+    "description": "Error shown when no form is available to save",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-not-modified": {
+    "category": "rdmp",
+    "description": "Message shown when a save is requested without changes",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-validation-timeout": {
+    "category": "rdmp",
+    "description": "Error shown when form validation does not settle before saving",
+    "contentFormat": "plain"
+  },
   "@dmpt-form-save-error": {
     "category": "rdmp",
     "description": "Error message shown when saving an RDMP form fails",
@@ -3077,6 +3327,16 @@
   "@dmpt-form-delete-error": {
     "category": "rdmp",
     "description": "Error message shown when deleting an RDMP form fails",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-delete-missing-oid": {
+    "category": "rdmp",
+    "description": "Delete error shown when the record identifier is missing",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-delete-failed": {
+    "category": "rdmp",
+    "description": "Generic record deletion error",
     "contentFormat": "plain"
   },
   "auth-update-error": {
@@ -4689,6 +4949,16 @@
     "description": "Audit action label for record update events",
     "contentFormat": "plain"
   },
+  "@record-audit-action-validation-bypassed": {
+    "category": "view",
+    "description": "Audit action label for an explicitly authorized record-validation bypass",
+    "contentFormat": "plain"
+  },
+  "@record-audit-action-batch-validation-bypassed": {
+    "category": "view",
+    "description": "Audit action label for the unvalidated direct-storage batch path",
+    "contentFormat": "plain"
+  },
   "@record-audit-action-deleted": {
     "category": "view",
     "description": "Audit action label for soft delete events",
@@ -4779,9 +5049,14 @@
     "description": "Entry count label on the record audit trail page",
     "contentFormat": "plain"
   },
-  "@record-audit-changed-fields-count": {
+  "@record-audit-changed-fields-count_one": {
     "category": "view",
-    "description": "Changed field count label in audit details",
+    "description": "Singular changed-field count label in audit details",
+    "contentFormat": "plain"
+  },
+  "@record-audit-changed-fields-count_other": {
+    "category": "view",
+    "description": "Plural changed-field count label in audit details",
     "contentFormat": "plain"
   },
   "@record-audit-link-json": {
@@ -5284,6 +5559,196 @@
     "description": "Success message shown after a record is deleted",
     "contentFormat": "plain"
   },
+  "branding-summary-default": {
+    "category": "branding",
+    "description": "Default Typography",
+    "contentFormat": "plain"
+  },
+  "branding-summary-custom": {
+    "category": "branding",
+    "description": "Custom ({{faces}})",
+    "contentFormat": "plain"
+  },
+  "branding-summary-incomplete": {
+    "category": "branding",
+    "description": "Custom (incomplete)",
+    "contentFormat": "plain"
+  },
+  "branding-conflict-detail": {
+    "category": "branding",
+    "description": "Another administrator changed the shared draft. Reload to get the latest state; your sample text is kept.",
+    "contentFormat": "plain"
+  },
+  "branding-default-draft-set": {
+    "category": "branding",
+    "description": "Draft set to Default Typography (publish to apply)",
+    "contentFormat": "plain"
+  },
+  "branding-draft-reset": {
+    "category": "branding",
+    "description": "Draft reset to saved values",
+    "contentFormat": "plain"
+  },
+  "branding-draft-saved": {
+    "category": "branding",
+    "description": "Draft saved",
+    "contentFormat": "plain"
+  },
+  "branding-face-bold-label": {
+    "category": "branding",
+    "description": "Bold",
+    "contentFormat": "plain"
+  },
+  "branding-face-boldItalic-label": {
+    "category": "branding",
+    "description": "Bold Italic",
+    "contentFormat": "plain"
+  },
+  "branding-face-italic-label": {
+    "category": "branding",
+    "description": "Italic",
+    "contentFormat": "plain"
+  },
+  "branding-face-optional-hint": {
+    "category": "branding",
+    "description": "Optional; browsers may synthesise it",
+    "contentFormat": "plain"
+  },
+  "branding-face-regular-label": {
+    "category": "branding",
+    "description": "Regular",
+    "contentFormat": "plain"
+  },
+  "branding-face-removed": {
+    "category": "branding",
+    "description": "{{slot}} face removed",
+    "contentFormat": "plain"
+  },
+  "branding-face-required-hint": {
+    "category": "branding",
+    "description": "Required to publish a custom typeface",
+    "contentFormat": "plain"
+  },
+  "branding-face-uploaded": {
+    "category": "branding",
+    "description": "{{slot}} face uploaded",
+    "contentFormat": "plain"
+  },
+  "branding-failed-generate-preview": {
+    "category": "branding",
+    "description": "Failed to generate preview: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-preview-version": {
+    "category": "branding",
+    "description": "Failed to preview version: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-publish": {
+    "category": "branding",
+    "description": "Failed to publish: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-remove-typeface-face": {
+    "category": "branding",
+    "description": "Failed to remove typeface face: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-restore-version": {
+    "category": "branding",
+    "description": "Failed to restore version: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-revert-typeface-draft": {
+    "category": "branding",
+    "description": "Failed to revert typeface draft: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-save-draft": {
+    "category": "branding",
+    "description": "Failed to save draft: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-switch-to-default-typography": {
+    "category": "branding",
+    "description": "Failed to switch to Default Typography: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-upload-favicon": {
+    "category": "branding",
+    "description": "Failed to upload favicon: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-upload-logo": {
+    "category": "branding",
+    "description": "Failed to upload logo: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-failed-upload-typeface-face": {
+    "category": "branding",
+    "description": "Failed to upload typeface face: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-favicon-uploaded": {
+    "category": "branding",
+    "description": "Favicon uploaded",
+    "contentFormat": "plain"
+  },
+  "branding-load-failed": {
+    "category": "branding",
+    "description": "Failed to load config: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-logo-uploaded": {
+    "category": "branding",
+    "description": "Logo uploaded",
+    "contentFormat": "plain"
+  },
+  "branding-preview-generated": {
+    "category": "branding",
+    "description": "Preview generated",
+    "contentFormat": "plain"
+  },
+  "branding-previewing-version": {
+    "category": "branding",
+    "description": "Previewing version {{version}}",
+    "contentFormat": "plain"
+  },
+  "branding-publish-unchanged": {
+    "category": "branding",
+    "description": "Already published: no changes",
+    "contentFormat": "plain"
+  },
+  "branding-published": {
+    "category": "branding",
+    "description": "Branding published",
+    "contentFormat": "plain"
+  },
+  "branding-typeface-draft-reverted": {
+    "category": "branding",
+    "description": "Typeface draft reverted to the active typeface",
+    "contentFormat": "plain"
+  },
+  "branding-unknown-error": {
+    "category": "branding",
+    "description": "unknown error",
+    "contentFormat": "plain"
+  },
+  "branding-upload-limit-detail": {
+    "category": "branding",
+    "description": "the configured typeface size limit was exceeded",
+    "contentFormat": "plain"
+  },
+  "branding-upload-too-large": {
+    "category": "branding",
+    "description": "Upload too large: {{detail}}",
+    "contentFormat": "plain"
+  },
+  "branding-version-restored": {
+    "category": "branding",
+    "description": "Version {{version}} restored as the new active version",
+    "contentFormat": "plain"
+  },
   "branding-header-name": {
     "category": "branding",
     "description": "Section heading for header styling in the branding configuration admin UI",
@@ -5297,6 +5762,41 @@
   "branding-header-text-color-label": {
     "category": "branding",
     "description": "Label for the header text colour setting in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-health-warning-face": {
+    "category": "branding",
+    "description": "Active typeface health warning for one unavailable font face",
+    "contentFormat": "plain"
+  },
+  "branding-health-warnings-title": {
+    "category": "branding",
+    "description": "Active typeface health warnings section heading",
+    "contentFormat": "plain"
+  },
+  "branding-history-active": {
+    "category": "branding",
+    "description": "Active version marker",
+    "contentFormat": "plain"
+  },
+  "branding-history-empty": {
+    "category": "branding",
+    "description": "Empty version history notice",
+    "contentFormat": "plain"
+  },
+  "branding-history-preview": {
+    "category": "branding",
+    "description": "Preview retained version action",
+    "contentFormat": "plain"
+  },
+  "branding-history-restore": {
+    "category": "branding",
+    "description": "Restore retained version action",
+    "contentFormat": "plain"
+  },
+  "branding-history-title": {
+    "category": "branding",
+    "description": "Version history section heading",
     "contentFormat": "plain"
   },
   "branding-header-text-color-help": {
@@ -5357,6 +5857,11 @@
   "branding-menu-name": {
     "category": "branding",
     "description": "Section heading for menu styling in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-optional": {
+    "category": "branding",
+    "description": "Optional slot marker",
     "contentFormat": "plain"
   },
   "branding-menu-help": {
@@ -5524,9 +6029,29 @@
     "description": "Help text for main menu inactive dropdown item background color in the branding configuration admin UI",
     "contentFormat": "plain"
   },
+  "branding-main-menu-inactive-dropdown-item-background-color-hover-label": {
+    "category": "branding",
+    "description": "Label for the inactive dropdown menu item background colour hover setting in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-main-menu-inactive-dropdown-item-background-color-hover-help": {
+    "category": "branding",
+    "description": "Help text for main menu inactive dropdown item background color hover in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
   "branding-content-name": {
     "category": "branding",
     "description": "Section heading for content styling in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-conflict-message": {
+    "category": "branding",
+    "description": "Shared draft conflict notice",
+    "contentFormat": "plain"
+  },
+  "branding-conflict-reload": {
+    "category": "branding",
+    "description": "Reload action after a shared draft conflict",
     "contentFormat": "plain"
   },
   "branding-content-help": {
@@ -5597,6 +6122,21 @@
   "branding-panels-name": {
     "category": "branding",
     "description": "Section heading for panel styling in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-preview-sample-help": {
+    "category": "branding",
+    "description": "Preview sample text help",
+    "contentFormat": "plain"
+  },
+  "branding-preview-sample-label": {
+    "category": "branding",
+    "description": "Preview sample text label",
+    "contentFormat": "plain"
+  },
+  "branding-preview-version": {
+    "category": "branding",
+    "description": "Historical preview marker",
     "contentFormat": "plain"
   },
   "branding-panels-help": {
@@ -5699,6 +6239,36 @@
     "description": "Label for the success state colour setting in the branding configuration admin UI",
     "contentFormat": "plain"
   },
+  "branding-typography-help": {
+    "category": "branding",
+    "description": "Typography section help",
+    "contentFormat": "plain"
+  },
+  "branding-typography-incomplete": {
+    "category": "branding",
+    "description": "Incomplete custom typeface notice",
+    "contentFormat": "plain"
+  },
+  "branding-typography-state-custom": {
+    "category": "branding",
+    "description": "Custom typeface state notice",
+    "contentFormat": "plain"
+  },
+  "branding-typography-state-default": {
+    "category": "branding",
+    "description": "Default typography state notice",
+    "contentFormat": "plain"
+  },
+  "branding-typography-title": {
+    "category": "branding",
+    "description": "Typography section heading",
+    "contentFormat": "plain"
+  },
+  "branding-use-default-typography": {
+    "category": "branding",
+    "description": "Use Default Typography action",
+    "contentFormat": "plain"
+  },
   "branding-success-help": {
     "category": "branding",
     "description": "Help text for success in the branding configuration admin UI",
@@ -5747,6 +6317,41 @@
   "branding-dark-label": {
     "category": "branding",
     "description": "Label for the dark theme colour setting in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-face-empty": {
+    "category": "branding",
+    "description": "Empty typeface slot notice",
+    "contentFormat": "plain"
+  },
+  "branding-face-file": {
+    "category": "branding",
+    "description": "Typeface face filename label",
+    "contentFormat": "plain"
+  },
+  "branding-face-metadata": {
+    "category": "branding",
+    "description": "Typeface embedded metadata label",
+    "contentFormat": "plain"
+  },
+  "branding-face-remove": {
+    "category": "branding",
+    "description": "Remove typeface face action",
+    "contentFormat": "plain"
+  },
+  "branding-face-replace": {
+    "category": "branding",
+    "description": "Replace typeface face action",
+    "contentFormat": "plain"
+  },
+  "branding-face-size": {
+    "category": "branding",
+    "description": "Typeface face size label",
+    "contentFormat": "plain"
+  },
+  "branding-face-upload": {
+    "category": "branding",
+    "description": "Upload typeface face action",
     "contentFormat": "plain"
   },
   "branding-dark-help": {
@@ -5799,9 +6404,34 @@
     "description": "Progress text shown while branding changes are being published",
     "contentFormat": "plain"
   },
+  "branding-required": {
+    "category": "branding",
+    "description": "Required slot marker",
+    "contentFormat": "plain"
+  },
   "branding-reset-draft-button": {
     "category": "branding",
     "description": "Button label to reset branding draft changes",
+    "contentFormat": "plain"
+  },
+  "branding-restore-confirm": {
+    "category": "branding",
+    "description": "Restore confirmation prompt",
+    "contentFormat": "plain"
+  },
+  "branding-restore-confirm-no": {
+    "category": "branding",
+    "description": "Cancel restore action",
+    "contentFormat": "plain"
+  },
+  "branding-restore-confirm-yes": {
+    "category": "branding",
+    "description": "Confirm restore action",
+    "contentFormat": "plain"
+  },
+  "branding-revert-typeface": {
+    "category": "branding",
+    "description": "Revert typeface draft action",
     "contentFormat": "plain"
   },
   "@rich-text-editor-source-toggle-rich-text": {
@@ -6014,6 +6644,11 @@
     "description":  "Error message for a failed max-length validator",
     "contentFormat":  "plain"
   },
+  "@validator-error-aggregate-max-length": {
+    "category":  "validator",
+    "description":  "Error message showing the maximum and actual character lengths of joined repeatable values",
+    "contentFormat":  "plain"
+  },
   "@validator-error-required": {
     "category":  "validator",
     "description":  "Error message for a failed required validator",
@@ -6049,9 +6684,539 @@
     "description":  "Error message for a failed url validator",
     "contentFormat":  "plain"
   },
+  "@validator-error-doi": {
+    "category": "validator",
+    "description": "Error message for a failed DOI validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-any-of": {
+    "category": "validator",
+    "description": "Error message for a failed any-of validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-record-validation": {
+    "category": "validator",
+    "description": "Safe fallback error message for an authoritative field validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-jsonata-expression": {
+    "category": "validator",
+    "description": "Error message for a failed JSONata expression validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-source-type": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an unsupported source type",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-static-options": {
+    "category": "validator",
+    "description": "Typeahead configuration error for missing static options",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-vocab-ref": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid vocabulary reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-query-id": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid query reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-service-id": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid service reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-provider": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid provider",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-multi-select-unsupported": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an unsupported multiple-selection mode",
+    "contentFormat": "plain"
+  },
+  "@validator-error-map-enabled-modes": {
+    "category": "validator",
+    "description": "Map field configuration error when no supported input mode is enabled",
+    "contentFormat": "plain"
+  },
+  "@validator-error-html-unsafe": {
+    "category": "validator",
+    "description": "HTML field validation error for unsafe markup",
+    "contentFormat": "plain"
+  },
+  "@validator-warning-html-sanitized": {
+    "category": "validator",
+    "description": "HTML field validation warning when unsafe markup is removed",
+    "contentFormat": "plain"
+  },
   "@lookup-placeholder-party": {
     "category": "lookup",
     "description": "Placeholder text in lookup field for party records",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-source-count_one": {
+    "category": "figshare",
+    "description": "Singular count of configured Figshare category sources",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-source-count_other": {
+    "category": "figshare",
+    "description": "Plural count of configured Figshare category sources",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-crosswalk-count_one": {
+    "category": "figshare",
+    "description": "Singular count of Figshare crosswalks",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-crosswalk-count_other": {
+    "category": "figshare",
+    "description": "Plural count of Figshare crosswalks",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-used-by_one": {
+    "category": "figshare",
+    "description": "Singular count of publishing configurations using a Figshare vocabulary",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-used-by_other": {
+    "category": "figshare",
+    "description": "Plural count of publishing configurations using a Figshare vocabulary",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-picker-target-count_one": {
+    "category": "figshare",
+    "description": "Singular count of Figshare targets in the mapping picker",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-picker-target-count_other": {
+    "category": "figshare",
+    "description": "Plural count of Figshare targets in the mapping picker",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-max-size": {
+    "category": "form",
+    "description": "Upload limit note shown by file and data-location form fields",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-add-attachment": {
+    "category": "form",
+    "description": "Button label for adding an attachment to a form field",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-save-before-attach": {
+    "category": "form",
+    "description": "Message shown when an attachment requires the record to be saved first",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-location": {
+    "category": "form",
+    "description": "Location column and field label for uploaded files",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-notes": {
+    "category": "form",
+    "description": "Notes column and field label for uploaded files",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-action": {
+    "category": "form",
+    "description": "Accessible action-column label for uploaded files",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-remove": {
+    "category": "form",
+    "description": "Accessible label for removing an uploaded file",
+    "contentFormat": "plain"
+  },
+  "@form-file-upload-notes-placeholder": {
+    "category": "form",
+    "description": "Placeholder for notes captured with an uploaded file",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-isc": {
+    "category": "form",
+    "description": "Information security classification label for a data location",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type": {
+    "category": "form",
+    "description": "Type column and field label for a data location",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-url": {
+    "category": "form",
+    "description": "Data-location type option for a URL",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-physical": {
+    "category": "form",
+    "description": "Data-location type option for a physical location",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-file": {
+    "category": "form",
+    "description": "Data-location type option for a file path",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-type-attachment": {
+    "category": "form",
+    "description": "Data-location type option for an attachment",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-edit": {
+    "category": "form",
+    "description": "Button label for editing data-location notes",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-edit-title": {
+    "category": "form",
+    "description": "Accessible title for editing data-location notes",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-apply": {
+    "category": "form",
+    "description": "Button label for applying edited data-location notes",
+    "contentFormat": "plain"
+  },
+  "@form-data-location-add": {
+    "category": "form",
+    "description": "Button label for adding a data location",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-no-selection-title": {
+    "category": "dataPublication",
+    "description": "Title of the publication notice when no data locations are selected",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-no-selection-body": {
+    "category": "dataPublication",
+    "description": "Body of the publication notice when only metadata will be published",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-none-title": {
+    "category": "dataPublication",
+    "description": "Title shown when a record has no data locations available",
+    "contentFormat": "plain"
+  },
+  "@form-publish-data-location-selection-summary": {
+    "category": "dataPublication",
+    "description": "Selection count summary for data locations being published",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-searching": {
+    "category": "form",
+    "description": "Status text shown while a typeahead lookup is running",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-lookup-failed": {
+    "category": "form",
+    "description": "Fallback error text for a failed typeahead lookup",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-misconfigured": {
+    "category": "form",
+    "description": "Fallback error text for an invalid typeahead configuration",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-vocab-ref": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing vocabulary reference",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-query-id": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing named-query identifier",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-service-id": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing service identifier",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-provider": {
+    "category": "form",
+    "description": "Typeahead configuration error for a missing external provider",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-missing-static-options": {
+    "category": "form",
+    "description": "Typeahead configuration error for missing static options",
+    "contentFormat": "plain"
+  },
+  "@form-typeahead-unable-to-fetch": {
+    "category": "form",
+    "description": "Error text shown when typeahead matches cannot be fetched",
+    "contentFormat": "plain"
+  },
+  "@form-server-sync-review-message": {
+    "category": "form",
+    "description": "Warning shown when authoritative server values cannot be safely synchronized into the current form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-stale-title": {
+    "category": "form",
+    "description": "Heading shown after a record revision conflict",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-stale-message": {
+    "category": "form",
+    "description": "Message shown while stale record edits remain unresolved",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reviewing-title": {
+    "category": "form",
+    "description": "Heading shown while reviewing concurrent record changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reviewing-message": {
+    "category": "form",
+    "description": "Message shown while reviewing concurrent record changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-merging-title": {
+    "category": "form",
+    "description": "Heading shown while a non-overlapping conflict retry is in progress",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-merging-message": {
+    "category": "form",
+    "description": "Message shown while a non-overlapping conflict retry is in progress",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-already-current-title": {
+    "category": "form",
+    "description": "Heading shown when the latest record already contains the local changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-already-current-message": {
+    "category": "form",
+    "description": "Message shown when no conflict retry write was needed",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-repeated-race-title": {
+    "category": "form",
+    "description": "Heading shown when a conflict resolution loses a second race",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-repeated-race-message": {
+    "category": "form",
+    "description": "Message shown when a conflict resolution loses a second race",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-form-changed-title": {
+    "category": "form",
+    "description": "Heading shown when the generated form contract changed",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-form-changed-message": {
+    "category": "form",
+    "description": "Message explaining that form drift disables same-form merging",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-old-tab-title": {
+    "category": "form",
+    "description": "Heading shown when an unversioned tab receives a precondition-required response",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-old-tab-message": {
+    "category": "form",
+    "description": "Message explaining that an unversioned tab is review-only",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-deleted-title": {
+    "category": "form",
+    "description": "Non-disclosing heading shown when the edited record was deleted",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-deleted-message": {
+    "category": "form",
+    "description": "Non-disclosing message shown when the edited record was deleted",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-permission-lost-title": {
+    "category": "form",
+    "description": "Heading shown when current edit permission is unavailable",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-permission-lost-message": {
+    "category": "form",
+    "description": "Non-disclosing message shown when current edit permission is unavailable",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-action": {
+    "category": "form",
+    "description": "Action label to open concurrent change review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-action": {
+    "category": "form",
+    "description": "Action label to discard local edits and adopt the latest record",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-export-action": {
+    "category": "form",
+    "description": "Action label to download unsaved form values",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-load-current-form-action": {
+    "category": "form",
+    "description": "Action label to reload the page with the current generated form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-heading": {
+    "category": "form",
+    "description": "Heading for the concurrent change review region",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-instructions": {
+    "category": "form",
+    "description": "Instructions for choosing concurrent field values",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-no-overlaps": {
+    "category": "form",
+    "description": "Status shown when conflict review has no divergent overlap",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-only": {
+    "category": "form",
+    "description": "Status explaining that old-tab values are available only for comparison",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-whole-repeatable": {
+    "category": "form",
+    "description": "Badge for an atomic repeatable conflict",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-whole-repeatable-help": {
+    "category": "form",
+    "description": "Explanation that a repeatable conflict is resolved as one value",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-mine": {
+    "category": "form",
+    "description": "Label for the local value in conflict review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-latest": {
+    "category": "form",
+    "description": "Label for the latest record value in conflict review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-save-resolution": {
+    "category": "form",
+    "description": "Action label to submit manually resolved changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-saving-resolution": {
+    "category": "form",
+    "description": "Busy label while manually resolved changes are saving",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-choices-required": {
+    "category": "form",
+    "description": "Status prompting for every manual conflict choice",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-title": {
+    "category": "form",
+    "description": "Heading for the unresolved-edits discard confirmation",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-message": {
+    "category": "form",
+    "description": "Warning before discarding unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reload-warning-message": {
+    "category": "form",
+    "description": "Warning before exporting edits and loading the current form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-confirm": {
+    "category": "form",
+    "description": "Confirmation label for discarding unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-cancel": {
+    "category": "form",
+    "description": "Cancellation label for keeping unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-navigation-warning": {
+    "category": "form",
+    "description": "Browser navigation warning for unresolved memory-only conflict edits",
+    "contentFormat": "plain"
+  },
+  "@form-confirm-dialog-title": {
+    "category": "form",
+    "description": "Default title for a form confirmation dialog",
+    "contentFormat": "plain"
+  },
+  "@form-confirm-dialog-yes": {
+    "category": "form",
+    "description": "Default affirmative action label in a form confirmation dialog",
+    "contentFormat": "plain"
+  },
+  "@form-confirm-dialog-no": {
+    "category": "form",
+    "description": "Default negative action label in a form confirmation dialog",
+    "contentFormat": "plain"
+  },
+  "@form-delete-button": {
+    "category": "form",
+    "description": "Default label for the form delete button",
+    "contentFormat": "plain"
+  },
+  "doi-api-error": {
+    "category": "doi",
+    "description": "Prefix for errors returned while communicating with the DOI provider",
+    "contentFormat": "plain"
+  },
+  "doi-error-updating": {
+    "category": "doi",
+    "description": "Error detail shown when updating a DOI fails",
+    "contentFormat": "plain"
+  },
+  "doi-error-creating": {
+    "category": "doi",
+    "description": "Error detail shown when creating a DOI fails",
+    "contentFormat": "plain"
+  },
+  "doi-error-deleting": {
+    "category": "doi",
+    "description": "Error detail shown when deleting a DOI fails",
+    "contentFormat": "plain"
+  },
+  "doi-error-changing-state": {
+    "category": "doi",
+    "description": "Error detail shown when changing DOI state fails",
+    "contentFormat": "plain"
+  },
+  "figshare-api-error": {
+    "category": "figshare",
+    "description": "Prefix for errors returned while communicating with Figshare",
+    "contentFormat": "plain"
+  },
+  "figshare-error-syncing-record": {
+    "category": "figshare",
+    "description": "Error detail shown when syncing a record with Figshare fails",
+    "contentFormat": "plain"
+  },
+  "figshare-error-verifying-upload": {
+    "category": "figshare",
+    "description": "Error detail shown when verifying Figshare upload status fails",
+    "contentFormat": "plain"
+  },
+  "figshare-error-publishing-article": {
+    "category": "figshare",
+    "description": "Error detail shown when publishing a Figshare article fails",
     "contentFormat": "plain"
   }
 }

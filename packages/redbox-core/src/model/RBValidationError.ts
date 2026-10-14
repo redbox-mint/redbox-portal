@@ -1,9 +1,39 @@
-import {Services} from "../services/TranslationService";
-import {ErrorResponseItemV2} from "./api";
+import { Services } from '../services/TranslationService';
+import type { RecordSaveProblemKind } from '@researchdatabox/sails-ng-common';
+import { ErrorResponseItemV2 } from './api';
 
 // Define ErrorOptions locally for ES6 target compatibility
 interface RBErrorOptions {
   cause?: unknown;
+}
+
+/**
+ * Alias of the shared save problem kind so the safe-error container and the
+ * typed save result can never drift apart.
+ */
+export type RBValidationProblemKind = RecordSaveProblemKind;
+
+/** The shapes `classify` is willing to read evidence from. */
+interface ClassifiableError {
+  problemKind?: RBValidationProblemKind;
+  status?: number;
+  statusCode?: number;
+  code?: string | number;
+  displayErrors?: ErrorResponseItemV2[];
+}
+
+const authorizationCodePattern = /^(unauthori[sz]ed|forbidden|access[-_]?denied|not[-_]?authori[sz]ed)$/i;
+
+function hasFieldEvidence(displayErrors: readonly ErrorResponseItemV2[]): boolean {
+  return displayErrors.some(displayError => {
+    const meta = displayError.meta as Record<string, unknown> | undefined;
+    const field = (displayError as ErrorResponseItemV2 & { field?: unknown }).field;
+    return (
+      typeof displayError.source?.pointer === 'string' ||
+      typeof field === 'string' ||
+      Array.isArray(meta?.errorFieldList)
+    );
+  });
 }
 
 /**
@@ -12,6 +42,7 @@ interface RBErrorOptions {
  */
 export class RBValidationError extends Error {
   private readonly _displayErrors: ErrorResponseItemV2[] = [];
+  private readonly _problemKind?: RBValidationProblemKind;
 
   /**
    * Create a new internal RBValidation Error with optional display errors for the response.
@@ -20,16 +51,24 @@ export class RBValidationError extends Error {
    * @param build.options The error options. This is only used internally and not sent to the end user.
    * @param build.displayErrors The display errors. These are sent to the end user.
    */
-  constructor(build: { message?: string, options?: RBErrorOptions, displayErrors?: ErrorResponseItemV2[] } = {}) {
-    super(build.message ?? "", build.options ?? {});
+  constructor(
+    build: {
+      message?: string;
+      options?: RBErrorOptions;
+      displayErrors?: ErrorResponseItemV2[];
+      problemKind?: RBValidationProblemKind;
+    } = {}
+  ) {
+    super(build.message ?? '', build.options ?? {});
     this.name = RBValidationError.errorName;
     this._displayErrors = build.displayErrors ?? [];
+    this._problemKind = build.problemKind;
   }
 
   /**
    * Convenient way to access the name of this error.
    */
-  public static readonly errorName = "RBValidationError";
+  public static readonly errorName = 'RBValidationError';
 
   /**
    * Check if item is an instance of RBValidationError.
@@ -52,12 +91,12 @@ export class RBValidationError extends Error {
     if (RBValidationError.isError(item)) {
       return new RBValidationError({
         message: item.message,
-        displayErrors: [{title: item.name, detail: item.message}],
-        options: {cause: item.cause}
+        displayErrors: [{ title: item.name, detail: item.message }],
+        options: { cause: item.cause },
       });
     }
 
-    return new RBValidationError({message: String(item)});
+    return new RBValidationError({ message: String(item) });
   }
 
   /**
@@ -94,15 +133,18 @@ export class RBValidationError extends Error {
    * @param errors The initial array of Error instances.
    * @param displayErrors The initial array of display errors.
    */
-  public static collectErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]): {
-    errors: Error[],
+  public static collectErrors(
+    errors: (Error | unknown)[],
     displayErrors: ErrorResponseItemV2[]
+  ): {
+    errors: Error[];
+    displayErrors: ErrorResponseItemV2[];
   } {
     // Collect and process the errors recursively
     const collectedErrors: Error[] = [];
-    const collectedDisplayErrors: ErrorResponseItemV2[] = [...displayErrors ?? []];
+    const collectedDisplayErrors: ErrorResponseItemV2[] = [...(displayErrors ?? [])];
 
-    const errorsToProcess = [...errors ?? []];
+    const errorsToProcess = [...(errors ?? [])];
     while (errorsToProcess.length > 0) {
       // remove the first error in the array and process it
       const error = errorsToProcess.shift();
@@ -130,7 +172,7 @@ export class RBValidationError extends Error {
 
     // If there are any errors, there must be at least one display error to show the user.
     if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
-      collectedDisplayErrors.push({code: 'server-error', status: '500'});
+      collectedDisplayErrors.push({ code: 'server-error', status: '500' });
     }
 
     // If there are any display errors, there must be at least one error to record the error.
@@ -138,7 +180,7 @@ export class RBValidationError extends Error {
       collectedErrors.push(new Error(JSON.stringify(collectedDisplayErrors)));
     }
 
-    return {errors: collectedErrors, displayErrors: collectedDisplayErrors};
+    return { errors: collectedErrors, displayErrors: collectedDisplayErrors };
   }
 
   /**
@@ -148,30 +190,40 @@ export class RBValidationError extends Error {
    *       and thrown or returned from the service to the controller / caller service.
    *       This approach is reasonable for API v1 in controllers.
    */
-  public static displayMessage(options: {
-    t?: Services.Translation,
-    errors?: (Error | unknown)[],
-    displayErrors?: ErrorResponseItemV2[],
-    defaultMessage?: string
-  } = {}): string {
+  public static displayMessage(
+    options: {
+      t?: Services.Translation;
+      errors?: (Error | unknown)[];
+      displayErrors?: ErrorResponseItemV2[];
+      defaultMessage?: string;
+    } = {}
+  ): string {
     const t = options?.t?.t;
     if (!t) {
       throw new Error("Must provide TranslationService as 't' to RBValidationError.displayMessage.");
     }
-    const {displayErrors: collectedDisplayErrors} = RBValidationError.collectErrors(options?.errors ?? [], options?.displayErrors ?? []);
-    const displayMessages = (collectedDisplayErrors ?? [{title: options?.defaultMessage ?? t("An error occurred")}])
-      ?.map(displayError => {
-        const code = displayError.code?.toString()?.trim() ?? "";
-        const title = displayError.title?.toString()?.trim() || code;
-        const detail = displayError.detail?.toString()?.trim() || code;
-        // Translate the unique non-empty values, then combine into a string.
-        const items = Array.from(new Set([title, detail])).filter(i => !!i).map(i => t(i));
-        return items.join(': ');
-      });
-    return displayMessages.map(i => {
-      const trimmed = i?.trim();
-      return trimmed.endsWith('.') ? trimmed : trimmed + '.';
-    }).join(' ');
+    const { displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(
+      options?.errors ?? [],
+      options?.displayErrors ?? []
+    );
+    const displayMessages = (
+      collectedDisplayErrors ?? [{ title: options?.defaultMessage ?? t('An error occurred') }]
+    )?.map(displayError => {
+      const code = displayError.code?.toString()?.trim() ?? '';
+      const title = displayError.title?.toString()?.trim() || code;
+      const detail = displayError.detail?.toString()?.trim() || code;
+      // Translate the unique non-empty values, then combine into a string.
+      const items = Array.from(new Set([title, detail]))
+        .filter(i => !!i)
+        .map(i => t(i));
+      return items.join(': ');
+    });
+    return displayMessages
+      .map(i => {
+        const trimmed = i?.trim();
+        return trimmed.endsWith('.') ? trimmed : trimmed + '.';
+      })
+      .join(' ');
   }
 
   /**
@@ -179,5 +231,31 @@ export class RBValidationError extends Error {
    */
   get displayErrors(): ErrorResponseItemV2[] {
     return this._displayErrors;
+  }
+
+  /** Explicit classification is preferred over inferring from display text. */
+  get problemKind(): RBValidationProblemKind | undefined {
+    return this._problemKind;
+  }
+
+  /**
+   * Classify an arbitrary thrown value in the order defined by the record
+   * save design: explicit kind, then explicit status, then field evidence.
+   * `RBValidationError` means "safe to display", not "HTTP 400", so being an
+   * instance of it is deliberately not evidence of validation on its own.
+   */
+  public static classify(error: unknown): RBValidationProblemKind {
+    const candidate = (error ?? null) as ClassifiableError | null;
+    if (candidate?.problemKind) {
+      return candidate.problemKind;
+    }
+    const status = Number(candidate?.status ?? candidate?.statusCode);
+    if (Number.isFinite(status) && status >= 500) {
+      return 'system';
+    }
+    if (status === 401 || status === 403 || authorizationCodePattern.test(String(candidate?.code ?? ''))) {
+      return 'authorization';
+    }
+    return hasFieldEvidence(candidate?.displayErrors ?? []) ? 'validation' : 'system';
   }
 }

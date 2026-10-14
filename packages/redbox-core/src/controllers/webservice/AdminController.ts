@@ -57,9 +57,10 @@ export namespace Controllers {
         return this.apiRespond(req, res, response, 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
+        const status = (error as { status?: number })?.status === 410 ? 410 : 500;
         return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          status,
+          displayErrors: [{ status: String(status), code: (error as { code?: string })?.code, title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),
         });
       }

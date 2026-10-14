@@ -86,6 +86,7 @@ export interface DomPurifyConfig {
 }
 
 export const safeHtmlUriRegexp = /^(?:(?:https?|ftps?|mailto|tel):|(?:[^a-z:]|[a-z][a-z0-9.+-]*(?:[^a-z0-9.+-:]|$)))/i;
+export const safeSvgUriRegexp = /^(?:#[^\s]*|(?:\.{1,2}\/|\/(?!\/))?[^\\/:?#\s]+(?:\/[^\\/:?#\s]+)*(?:[?#][^\s]*)?)$/i;
 
 export const dompurify: DomPurifyConfig = {
     /**
@@ -151,7 +152,9 @@ export const dompurify: DomPurifyConfig = {
             ],
             ALLOW_DATA_ATTR: false,
             ALLOW_UNKNOWN_PROTOCOLS: false,
-            ALLOWED_URI_REGEXP: /^(?:#|(?:\.{1,2}\/|\/(?!\/)))/i,
+            // DomSanitizerService applies safeSvgUriRegexp specifically to href and
+            // xlink:href. DOMPurify also applies ALLOWED_URI_REGEXP to path geometry
+            // (`d`), so setting it here would erase SVG drawings.
             SANITIZE_DOM: true,
             KEEP_CONTENT: false,
             IN_PLACE: false

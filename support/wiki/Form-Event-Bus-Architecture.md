@@ -60,6 +60,9 @@ interface FormComponentEventBase {
     readonly type: string;      // Discriminator
     readonly timestamp: number; // Auto-added on publish
     readonly sourceId?: string; // Channel/field that published
+    readonly behaviourChain?: readonly number[]; // Behaviours already in this event chain
+    readonly expressionChain?: readonly string[]; // Expressions that caused this change
+    readonly formScopeId?: string; // Owning form instance
     readonly fieldId?: string;  // Target field (if applicable)
 }
 ```
@@ -109,6 +112,75 @@ export class FormComponentValueChangeEventProducer {
 - Publishes to the scoped channel with `sourceId: fieldId`
 - Tracks `previousValue` for change detection
 - Publishes initial value on `form.definition.ready`
+
+### Expression-driven value notifications
+
+An expression targeting `model.value` uses `applyExpressionTarget` to write
+changed values with notifications enabled. The same path serves behaviour
+`setUIProperty` / `setUIProperties` targets and `runTemplate` `applyResults`
+assignments to `model.value`. Behaviour `setValue` / `setValues` actions retain
+their silent-write contract and require an explicit `emitEvent` for follow-up
+notifications.
+
+The write and notification sequence is:
+
+1. Compare the current and requested values by content. An equal value skips the
+   write and its notification.
+2. `withExpressionValueNotifications` supplies a fresh options object containing
+   `{ emitEvent: true, onlySelf: true }` to `setControlValue`. The changed control
+   validates without a second validation pass for notification purposes.
+3. Before the bound producer publishes each value change, containing controls
+   refresh their aggregate values silently. This ensures event handlers see
+   `formData` consistent with the change, including for children of a group being
+   populated. It avoids extra ancestor value events while retaining asynchronous
+   validation events from the changed control.
+4. After the setter completes, the framework awaits display synchronisation and
+   broadcasts form status. Controls without a bound producer still receive an
+   ancestor refresh.
+
+Notifications are immediate as changes occur, including during asynchronous
+setters; they are not held until the setter's promise resolves. Repeatable
+replacement suppresses intermediate row changes and publishes the completed
+array once. Its definition-change notification follows row initialisation and
+precedes the final value notification, so component queries include the new
+nested fields.
+
+### Tracking the cause of a value change
+
+Events carry optional `expressionChain` and `behaviourChain` metadata. Expression
+consumers skip events containing their own expression identity; behaviour
+handlers likewise skip chains they have already handled. Behaviour value writes
+through `applyExpressionTarget` and explicit `emitEvent` actions preserve the
+incoming chains. This stops feedback through expressions and behaviours without
+blocking later independent edits.
+
+A pending asynchronous write does not make every intervening edit part of that
+chain. The framework attributes changes made synchronously by the write, and
+later changes identified by that write's options object. Independent user edits
+start a fresh chain, even if the user enters the same value the pending write
+intends to set.
+
+### Asynchronous custom value setters
+
+Controls implementing `CustomSetValueControl.setCustomValue(value, options)`
+must pass the **same options object** they receive to their own value-changing
+control methods after an `await`, such as `setValue`, `patchValue` or `push`.
+The object's identity connects that later notification to the originating write
+for cycle detection. Copying the options or replacing them with a new object
+loses that connection.
+
+Honour the supplied `emitEvent` and `onlySelf` settings. Publish a composite
+replacement's final state with the original options, as the repeatable component
+does. For a change on another control belonging to the same write, the internal
+`withWriteOptions(options, change)` helper preserves its attribution; repeatables
+use this when disabling a new row to match the containing field.
+
+The notification path does not itself mark controls dirty. Keep display state
+synchronisation separate from user input, so mirroring an enabled/disabled state
+does not mark an untouched form as edited. See
+[Automatic Value Changes and Dependent Fields](Configuring-Form-Expressions.md#automatic-value-changes-and-dependent-fields)
+for the configuration-facing contract, including behaviour actions that do
+explicitly mark controls dirty.
 
 ## Event Consumers
 

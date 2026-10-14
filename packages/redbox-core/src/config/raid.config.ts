@@ -1,3 +1,5 @@
+import type { RaidContributorMapping } from '../configmodels/RaidPublishing';
+
 /**
  * RAiD Config Interface
  * (sails.config.raid)
@@ -29,11 +31,13 @@ export interface RaidContributorConfig {
     roles: RaidContributorRoles;
 }
 
-export interface RaidMappingField {
+export interface RaidConfigMappingField {
     dest: string;
-    src: string;
+    engine: 'jsonata' | 'handlebars';
+    expression?: string;
+    template?: string;
     parseJson?: boolean;
-    contributorMap?: Record<string, unknown>;
+    contributorMap?: Record<string, RaidContributorMapping>;
 }
 
 export interface RaidConfig {
@@ -64,7 +68,7 @@ export interface RaidConfig {
     };
     mapping: {
         [recordType: string]: {
-            [fieldName: string]: RaidMappingField;
+            [fieldName: string]: RaidConfigMappingField;
         };
     };
 }
@@ -217,74 +221,68 @@ export const raid: RaidConfig = {
             /*
               Schema:
                 human_friendly_name: { <- uniquely identify this config item
-                  src: '', <- the _.get() path of the source OR a _.template() string. For the latter, see RaidService.getMappedData() `imports` object for the injected variables.
+                  engine: 'jsonata' | 'handlebars',
+                  expression/template: '',
                   dest: '' <- the _.set() path destination
                 },
             */
             title_text: {
                 dest: 'title[0].text',
-                src: 'metadata.title',
+                engine: 'jsonata', expression: 'record.metadata.title',
             },
             title_type: {
                 dest: 'title[0].type',
-                src: '<%= JSON.stringify(types.title.Primary)  %>',
-                parseJson: true
+                engine: 'jsonata', expression: 'types.title.Primary'
             },
             title_lang: {
                 dest: 'title[0].language',
-                src: '<%= JSON.stringify(types.language.eng)  %>',
-                parseJson: true
+                engine: 'jsonata', expression: 'types.language.eng'
             },
             title_startDate: {
                 dest: 'title[0].startDate',
-                src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start',
+                engine: 'jsonata', expression: 'record.metadata."dc:coverage_vivo:DateTimeInterval_vivo:start"',
             },
             title_endDate: {
                 dest: 'title[0].endDate',
-                src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:end'
+                engine: 'jsonata', expression: 'record.metadata."dc:coverage_vivo:DateTimeInterval_vivo:end"'
             },
             date_start: {
                 dest: 'date.startDate',
-                src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:start'
+                engine: 'jsonata', expression: 'record.metadata."dc:coverage_vivo:DateTimeInterval_vivo:start"'
             },
             date_end: {
                 dest: 'date.endDate',
-                src: 'metadata.dc:coverage_vivo:DateTimeInterval_vivo:end',
+                engine: 'jsonata', expression: 'record.metadata."dc:coverage_vivo:DateTimeInterval_vivo:end"',
             },
             description_main: {
                 dest: 'description[0].text',
-                src: 'metadata.description',
+                engine: 'jsonata', expression: 'record.metadata.description',
             },
             description_type: {
                 dest: 'description[0].type',
-                src: '<%= JSON.stringify(types.description.Primary) %>',
-                parseJson: true
+                engine: 'jsonata', expression: 'types.description.Primary'
             },
             description_lang: {
                 dest: 'description[0].language',
-                src: '<%= JSON.stringify(types.language.eng)  %>',
-                parseJson: true
+                engine: 'jsonata', expression: 'types.language.eng'
             },
             access_type: {
                 dest: 'access.type',
                 // Always open, otherwise will return 'Creating closed Raids is no longer supported'
-                src: '<%= JSON.stringify(types.access.open) %>',
-                parseJson: true
+                engine: 'jsonata', expression: 'types.access.open'
             },
             // return the value/label when access rights isn't "open"
             access_statement_text: {
                 dest: 'access.accessStatement.text',
-                src: '<%= record.metadata["dc:accessRights"] %>'
+                engine: 'jsonata', expression: 'record.metadata."dc:accessRights"'
             },
             access_statement_lang: {
                 dest: 'access.accessStatement.language',
-                src: '<%= JSON.stringify(types.language.eng) %>',
-                parseJson: true,
+                engine: 'jsonata', expression: 'types.language.eng',
             },
             contributors: {
                 dest: 'contributor',
-                src: '<%= JSON.stringify(that.getContributors(record, options, fieldConfig, mappedData)) %>',
-                parseJson: true,
+                engine: 'jsonata', expression: '$contributors()',
                 contributorMap: {
                     contributor_ci: {
                         fieldMap: { id: 'orcid' }, // allows for the orcid to be renamed or be sourced elsewhere
@@ -311,23 +309,21 @@ export const raid: RaidConfig = {
             },
             organisations_id: {
                 dest: 'organisation[0].id',
-                src: "<%= 'https://ror.org/03sd43014' %>",
+                engine: 'jsonata', expression: '"https://ror.org/03sd43014"',
             },
             organisations_identifierSchemaUri: {
-                src: "<%= 'https://ror.org/' %>",
+                engine: 'jsonata', expression: '"https://ror.org/"',
                 dest: 'organisation[0].schemaUri'
             },
             organisations_roles: {
                 dest: 'organisation[0].role',
-                src: "<% const roles = [{ schemaUri: types.organisation.role.Lead.schemaUri, id:types.organisation.role.Lead.id, startDate:  mappedData?.date?.startDate, endDate: mappedData?.date?.endDate }]; print(JSON.stringify(roles)) %>",
-                parseJson: true,
+                engine: 'jsonata', expression: '[{"schemaUri": types.organisation.role.Lead.schemaUri, "id": types.organisation.role.Lead.id, "startDate": mappedData.date.startDate, "endDate": mappedData.date.endDate}]',
             },
             // alternateUrl: https://metadata.raid.org/en/latest/core/alternateUrls.html
             //  DMPs are not public, leaving optional and unconfigured
             subject_for: {
                 dest: 'subject',
-                src: '<%= JSON.stringify(that.getSubject(record, options, fieldConfig, _.get(mappedData, "subject", []), "for", record.metadata["dc:subject_anzsrc:for"])) %>',
-                parseJson: true
+                engine: 'jsonata', expression: '$subjects(record.metadata."dc:subject_anzsrc:for", "for")'
             },
         }
     }

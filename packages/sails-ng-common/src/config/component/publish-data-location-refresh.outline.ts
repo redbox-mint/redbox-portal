@@ -56,6 +56,12 @@ export interface PublishDataLocationRefreshFormComponentDefinitionFrame extends 
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures the action that refreshes publishable data-location state.
+ *
+ * @extensionPoint Use `PublishDataLocationRefreshComponent` alongside the publish data-location selector; it intentionally has no backing model.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface PublishDataLocationRefreshFormComponentDefinitionOutline
   extends PublishDataLocationRefreshFormComponentDefinitionFrame,
     FormComponentDefinitionOutline {

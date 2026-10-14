@@ -74,6 +74,11 @@ module.exports = {
   http:{
     rootContext: ''
   },
+  csp: {
+    // The development stack is served over plain HTTP. This also keeps
+    // same-origin assets loadable when the shared preview uses its LAN URL.
+    extras: []
+  },
   /***************************************************************************
    * Set the default database connection for models in the development       *
    * environment (see config/connections.js and config/models.js )           *

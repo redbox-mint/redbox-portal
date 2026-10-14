@@ -7,9 +7,11 @@ import { GroupTypes } from './component/group.outline';
 import { SaveButtonTypes } from './component/save-button.outline';
 import { SaveStatusTypes } from './component/save-status.outline';
 import { IntegrationStatusTypes } from './component/integration-status.outline';
+import { WorkspaceTypes } from './component/workspace.outline';
 import { TextAreaTypes } from './component/text-area.outline';
 import { ContentTypes } from './component/content.outline';
-import { SimpleInputTypes} from './component/simple-input.outline';
+import { RelatedObjectDataTypes } from './component/related-object-data.outline';
+import { SimpleInputTypes } from './component/simple-input.outline';
 import { ValidationSummaryTypes } from './component/validation-summary.outline';
 import { SuggestedValidationSummaryTypes } from './component/suggested-validation-summary.outline';
 import {
@@ -29,11 +31,11 @@ import {
   FormComponentDefinitionFrameKindType,
   FormComponentDefinitionKindType,
 } from './shared.outline';
-import {  CheckboxInputTypes} from './component/checkbox-input.outline';
+import { CheckboxInputTypes } from './component/checkbox-input.outline';
 import { DropdownInputTypes } from './component/dropdown-input.outline';
-import {  RadioInputTypes} from './component/radio-input.outline';
+import { RadioInputTypes } from './component/radio-input.outline';
 import { DateInputTypes } from './component/date-input.outline';
-import {  ReusableTypes} from './component/reusable.outline';
+import { ReusableTypes } from './component/reusable.outline';
 import { QuestionTreeTypes } from './component/question-tree.outline';
 import { CheckboxTreeTypes } from './component/checkbox-tree.outline';
 import { RecordSelectorTypes } from './component/record-selector.outline';
@@ -49,8 +51,8 @@ import { PublishDataLocationSelectorTypes } from './component/publish-data-locat
 import { CancelButtonTypes } from './component/cancel-button.outline';
 import { TabNavButtonTypes } from './component/tab-nav-button.outline';
 import { DeleteButtonTypes } from './component/delete-button.outline';
-import {FieldComponentDefinitionFrame} from "./field-component.outline";
-import {FieldLayoutDefinitionFrame} from "./field-layout.outline";
+import { FieldComponentDefinitionFrame } from './field-component.outline';
+import { FieldLayoutDefinitionFrame } from './field-layout.outline';
 
 /**
  * The static type union of all available interfaces that provides typing for the object literal and schema.
@@ -65,11 +67,13 @@ export type AllTypes =
   | SaveButtonTypes
   | SaveStatusTypes
   | IntegrationStatusTypes
+  | WorkspaceTypes
   | CancelButtonTypes
   | DeleteButtonTypes
   | TabNavButtonTypes
   | TextAreaTypes
   | ContentTypes
+  | RelatedObjectDataTypes
   | SimpleInputTypes
   | ValidationSummaryTypes
   | SuggestedValidationSummaryTypes
@@ -141,12 +145,15 @@ export type AllFormComponentDefinitionOutlines = Extract<
 /**
  * All possible field component definition frames.
  */
-export type AllFieldComponentDefinitionFrames = Extract<AllTypes, {kind:FieldComponentDefinitionFrameKindType}>['class'];
+export type AllFieldComponentDefinitionFrames = Extract<
+  AllTypes,
+  { kind: FieldComponentDefinitionFrameKindType }
+>['class'];
 
 /**
  * All possible field layout definition frames.
  */
-export type AllFieldLayoutDefinitionFrames = Extract<AllTypes, {kind:FieldLayoutDefinitionFrameKindType}>['class'];
+export type AllFieldLayoutDefinitionFrames = Extract<AllTypes, { kind: FieldLayoutDefinitionFrameKindType }>['class'];
 
 /**
  * All possible field component and field layout definition frames, including the non-component specific frames.
@@ -155,8 +162,7 @@ export type FormFieldComponentOrLayoutDefinition =
   | FieldComponentDefinitionFrame
   | FieldLayoutDefinitionFrame
   | AllFieldComponentDefinitionFrames
-  | AllFieldLayoutDefinitionFrames
-  ;
+  | AllFieldLayoutDefinitionFrames;
 
 /**
  * The form component definition outlines available for use in any list of form components.

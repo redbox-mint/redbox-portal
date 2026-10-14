@@ -1,0 +1,218 @@
+<div class="figshare-panel">
+  @if (errorMessage) {
+  <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
+  }
+
+  @if (!preview) {
+  <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+  } @else {
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ preview.summary.added }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-change-added' | i18next }}</span>
+    </div>
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ preview.summary.changed }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-change-changed' | i18next }}</span>
+    </div>
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ preview.summary.removed }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-change-removed' | i18next }}</span>
+    </div>
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ preview.summary.reappeared }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-change-reappeared' | i18next }}</span>
+    </div>
+    <div class="figshare-stat">
+      <span class="figshare-stat__value">{{ preview.summary.unchanged }}</span>
+      <span class="d-block small">{{ 'figshare-vocab-change-unchanged' | i18next }}</span>
+    </div>
+  </div>
+
+  <p class="text-muted small">{{ 'figshare-vocab-preview-untouched' | i18next }}</p>
+
+  <div class="row g-2 align-items-end mb-3">
+    <div class="col-md-4">
+      <label class="form-label" for="figshare-preview-search">{{ 'figshare-vocab-search' | i18next }}</label>
+      <input
+        id="figshare-preview-search"
+        class="form-control"
+        type="search"
+        [value]="filters.q"
+        (change)="update({ q: $any($event.target).value })"
+      />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="figshare-preview-view">{{ 'figshare-vocab-view' | i18next }}</label>
+      <select
+        id="figshare-preview-view"
+        class="form-select"
+        [value]="filters.view"
+        (change)="update({ view: $any($event.target).value })"
+      >
+        <option value="proposals">{{ 'figshare-vocab-view-proposals' | i18next }}</option>
+        <option value="diff">{{ 'figshare-vocab-view-diff' | i18next }}</option>
+      </select>
+    </div>
+    <div class="col-md-5">
+      <div class="form-check form-check-inline">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="figshare-preview-unresolved"
+          [checked]="filters.unresolvedOnly"
+          (change)="update({ unresolvedOnly: $any($event.target).checked })"
+        />
+        <label class="form-check-label" for="figshare-preview-unresolved">
+          {{ 'figshare-vocab-filter-unresolved' | i18next: { count: preview.summary.unresolved } }}
+        </label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="figshare-preview-historical"
+          [checked]="filters.historicalOnly"
+          (change)="update({ historicalOnly: $any($event.target).checked })"
+        />
+        <label class="form-check-label" for="figshare-preview-historical">
+          {{ 'figshare-vocab-filter-historical' | i18next: { count: preview.summary.historicalWarnings } }}
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div aria-live="polite" role="status" class="visually-hidden">
+    {{ 'figshare-vocab-page-status' | i18next: { total: preview.page.total, approved: approvedCount } }}
+  </div>
+
+  @if (loading) {
+  <p class="text-muted" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+  } @else if (filters.view === 'proposals') {
+  <table class="table table-sm align-middle">
+    <caption class="visually-hidden">{{ 'figshare-vocab-proposal-table-caption' | i18next }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{{ 'figshare-vocab-column-approved' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-column-local-term' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-column-proposal' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-column-target' | i18next }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (proposal of proposals; track proposal.proposalId) {
+      <tr>
+        <td>
+          <input
+            class="form-check-input"
+            type="checkbox"
+            [id]="'proposal-' + proposal.proposalId"
+            [checked]="isApproved(proposal.proposalId)"
+            (change)="toggle(proposal.proposalId, $any($event.target).checked)"
+          />
+          <label class="visually-hidden" [attr.for]="'proposal-' + proposal.proposalId">
+            {{ 'figshare-vocab-approve-mapping' | i18next: { local: proposal.localLabel, target: proposal.targetTitle } }}
+          </label>
+        </td>
+        <td>
+          <span class="d-block fw-semibold">{{ proposal.localValue }}</span>
+          <small class="text-muted">{{ proposal.localLabel }}</small>
+        </td>
+        <td>
+          <span class="figshare-badge">{{ 'figshare-vocab-match-' + proposal.matchType | i18next }}</span>
+          @if (proposal.historical) {
+          <span class="figshare-badge figshare-badge--historical ms-1">{{
+            'figshare-vocab-historical' | i18next
+          }}</span>
+          }
+        </td>
+        <td>{{ proposal.targetSourceId }} · {{ proposal.targetTitle }}</td>
+      </tr>
+      } @empty {
+      <tr>
+        <td colspan="4" class="text-muted">{{ 'figshare-vocab-no-proposals' | i18next }}</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+  } @else {
+  <table class="table table-sm align-middle">
+    <caption class="visually-hidden">{{ 'figshare-vocab-diff-table-caption' | i18next }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{{ 'figshare-vocab-column-change' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-column-code' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-column-title' | i18next }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of diffRows; track row.sourceId) {
+      <tr>
+        <td>
+          <span
+            class="figshare-badge"
+            [class.figshare-badge--historical]="row.changeClass === 'removed'"
+            [class.figshare-badge--warning]="row.changeClass === 'changed'"
+          >{{ 'figshare-vocab-change-' + row.changeClass | i18next }}</span>
+        </td>
+        <td>{{ row.sourceId }}</td>
+        <td>{{ row.title }}</td>
+      </tr>
+      } @empty {
+      <tr>
+        <td colspan="3" class="text-muted">{{ 'figshare-vocab-no-changes' | i18next }}</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+  }
+
+  <nav class="d-flex justify-content-between align-items-center" [attr.aria-label]="'figshare-vocab-pagination' | i18next">
+    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoPrevious"
+      (click)="changePage(preview.page.offset - preview.page.limit)">
+      {{ 'figshare-vocab-previous' | i18next }}
+    </button>
+    <span class="small text-muted">
+      {{ 'figshare-vocab-page-range' | i18next: { from: preview.page.offset + 1, to: preview.page.offset + preview.page.records.length, total: preview.page.total } }}
+    </span>
+    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoNext"
+      (click)="changePage(preview.page.offset + preview.page.limit)">
+      {{ 'figshare-vocab-next' | i18next }}
+    </button>
+  </nav>
+
+  <div class="mt-3 d-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-secondary" (click)="cancelled.emit()">
+      {{ 'figshare-vocab-cancel' | i18next }}
+    </button>
+    <button type="button" class="btn btn-primary" [disabled]="applying" (click)="requestApply()">
+      {{ applying ? ('figshare-vocab-applying' | i18next) : ('figshare-vocab-apply' | i18next) }}
+    </button>
+  </div>
+
+  @if (confirming) {
+  <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
+    aria-labelledby="figshareApplyTitle" (keydown.escape)="cancelApply()">
+    <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="modal-title h5" id="figshareApplyTitle">{{ 'figshare-vocab-confirm-apply-title' | i18next }}</span>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">{{ 'figshare-vocab-confirm-apply-body' | i18next: { approved: approvedCount } }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cancelApply()" cdkFocusInitial>
+            {{ 'figshare-vocab-cancel' | i18next }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="confirmApply()">
+            {{ 'figshare-vocab-apply' | i18next }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" aria-hidden="true"></div>
+  }
+  }
+</div>

@@ -1,4 +1,5 @@
 import { Component, ViewChild, ViewContainerRef, ComponentRef, inject, Injector, HostBinding } from '@angular/core';
+import { AbstractControl, FormArray, FormGroup } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import {
   FormConfigFrame, guessType, isTypeFieldDefinitionName, isTypeFormComponentDefinitionName,
@@ -8,7 +9,7 @@ import {
   TabFieldComponentConfigFrame, TabFieldComponentDefinitionFrame,
   TabFieldLayoutConfig, TabFieldLayoutDefinitionFrame, TabLayoutName
 } from '@researchdatabox/sails-ng-common';
-import { find as _find, merge as _merge } from 'lodash-es';
+import { find as _find } from 'lodash-es';
 import { FormComponent } from "../form.component";
 import { FormBaseWrapperComponent } from './base-wrapper.component';
 import { FormComponentsMap, FormService } from '../form.service';
@@ -168,6 +169,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
   protected formService = inject(FormService);
   public override componentDefinition?: TabFieldComponentDefinitionFrame;
 
+  protected get getFormComponent(): FormComponent {
+    return this.formComponent;
+  }
+
   protected get tabConfig(): TabFieldComponentConfigFrame {
     return this.componentDefinition?.config || { tabs: [] };
   }
@@ -223,16 +228,31 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
         if (this.formFieldCompMapEntry?.formControlMap == null) {
           this.formFieldCompMapEntry.formControlMap = {};
         }
-        _merge(this.formFieldCompMapEntry.formControlMap, fieldMapDefEntry.formControlMap);
+        for (const [name, control] of Object.entries(fieldMapDefEntry.formControlMap)) {
+          const existing = this.formFieldCompMapEntry.formControlMap[name];
+          if (!existing || (this.isCompositeControl(control) && !this.isCompositeControl(existing))) {
+            this.formFieldCompMapEntry.formControlMap[name] = control;
+          }
+        }
       }
       // Note: the last tab with `selected` true will take precedence
       if (tab.component?.config?.selected) {
         selectedTabName = tab.name;
       }
     }
+    // A record link may request a particular tab (the legacy portal contract is
+    // `?focusTabId=<tab name>`). Only honour it when it names a tab in this
+    // container; malformed or unrelated values must not leave the form with no
+    // selected tab.
+    const requestedTabId = this.getFormComponent.getRequestParam('focusTabId');
+    const requestedTabName = typeof requestedTabId === 'string' &&
+      this.tabs.some(tab => tab.name === requestedTabId)
+      ? requestedTabId
+      : null;
+
     // Note: selection is deferred to the layout component to avoid flashes and incorrect display of content. For now, we just set the selectedTabId here for the layout to pick up.
     // This will select the first tab if none are marked as selected.
-    this.selectedTabId = selectedTabName ?? this.tabs[0]?.name ?? '0';
+    this.selectedTabId = requestedTabName ?? selectedTabName ?? this.tabs[0]?.name ?? '0';
     await super.setComponentReady();
   }
 
@@ -311,6 +331,10 @@ export class TabComponent extends FormFieldBaseComponent<undefined> {
 
   public get activeTabId(): string | null {
     return this.selectedTabId;
+  }
+
+  private isCompositeControl(control: AbstractControl): boolean {
+    return control instanceof FormArray || control instanceof FormGroup;
   }
 
   @HostBinding('id') get hostId(): string {

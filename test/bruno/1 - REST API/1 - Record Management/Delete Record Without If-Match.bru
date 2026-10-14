@@ -1,0 +1,26 @@
+meta {
+  name: Delete Record Without If-Match
+  type: http
+  seq: 21
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/records/metadata/{{strictLifecycleOid}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("The isolated strict lifecycle record requires an exact If-Match", function () {
+    expect(res.getStatus()).to.equal(428);
+    expect(JSON.stringify(res.getBody())).to.include("record-precondition-required");
+  });
+}

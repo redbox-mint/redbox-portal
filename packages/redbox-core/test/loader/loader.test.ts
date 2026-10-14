@@ -221,6 +221,7 @@ describe('redbox-loader', function () {
 
             const result = await redboxLoader.generateAllShims(sandboxDir);
             expect(result.skipped).to.be.true;
+            expect(result.recordContractContributorState.registrations).not.to.have.length(0);
         });
 
         it('should generate shims when forced', async function () {
@@ -234,6 +235,7 @@ describe('redbox-loader', function () {
                 throw new Error('Expected shim generation to run');
             }
             expect(result.stats).to.exist;
+            expect(result.recordContractContributorState.registrationIssues).to.deep.equal([]);
         });
 
         it('should delete marker file after regeneration', async function () {
@@ -976,10 +978,16 @@ describe('redbox-loader', function () {
 
             const shimPath = path.join(configDir, 'migrations.js');
             delete require.cache[require.resolve(shimPath)];
-            const loaded = require(shimPath) as { migrations: Array<{ name: string }> };
+            const loaded = require(shimPath) as { migrations: Array<{ name: string; source?: string }> };
             expect(loaded.migrations.map(migration => migration.name)).to.deep.equal([
                 '2026.06.08T09.00.00-local',
                 '2026.06.08T10.00.00-hook'
+            ]);
+            // source must be stamped onto each migration so MigrationRunner.logMigration
+            // can persist it: auto-derived for the hook, explicit value preserved for the local one.
+            expect(loaded.migrations.map(migration => migration.source)).to.deep.equal([
+                'app',
+                'hook:redbox-hook-migrations'
             ]);
         });
 

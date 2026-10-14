@@ -21,10 +21,9 @@
 
 import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
-import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
-import { firstValueFrom } from "rxjs";
+import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
+import { firstValueFrom } from 'rxjs';
 import { FormAttributes } from '../waterline-models';
-
 
 /**
  * Package that contains all Controllers.
@@ -36,7 +35,6 @@ export namespace Controllers {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class DynamicAsset extends controllers.Core.Controller {
-
     /**
      * Exported methods, accessible from internet.
      */
@@ -48,7 +46,7 @@ export namespace Controllers {
       'getDashboardViewTemplates',
     ];
 
-    private _recordTypeAuto = "auto";
+    private _recordTypeAuto = 'auto';
 
     /**
      **************************************************************************************************
@@ -63,123 +61,151 @@ export namespace Controllers {
      */
 
     public get(req: Sails.Req, res: Sails.Res) {
-      let assetId = req.param("asset");
-      if (!assetId) assetId = 'apiClientConfig.json'
-      this.updateChronicle(req, {assetId: assetId});
+      let assetId = req.param('asset');
+      if (!assetId) assetId = 'apiClientConfig.json';
+      this.updateChronicle(req, { assetId: assetId });
       this.sendAssetView(req, res, assetId, { layout: false });
     }
 
     public async getFormCompiledItems(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const editMode = req.query.edit == "true";
-      const formMode = editMode ? "edit" : "view";
-      const recordType = req.param("recordType") || this._recordTypeAuto;
-      const oid = req.param("oid") || "";
+      const editMode = req.query.edit == 'true';
+      const formMode = editMode ? 'edit' : 'view';
+      const recordType = req.param('recordType') || this._recordTypeAuto;
+      const oid = req.param('oid') || '';
       const reusableFormDefs = sails.config.reusableFormDefinitions;
 
-      this.updateChronicle(req, {editMode, formMode, recordType, oid});
+      this.updateChronicle(req, { editMode, formMode, recordType, oid });
 
       try {
         // TODO: this block is very similar to RecordController.getForm - refactor to service?
-        const userRoles = ((req.user?.roles ?? []) as globalThis.Record<string, unknown>[]).map((role) => role?.name as string).filter((name) => !!name);
-        this.updateChronicle(req, {userRoles});
+        const userRoles = ((req.user?.roles ?? []) as globalThis.Record<string, unknown>[])
+          .map(role => role?.name as string)
+          .filter(name => !!name);
+        this.updateChronicle(req, { userRoles });
         let form: FormAttributes | null, recordMetadata;
         if (!oid) {
           recordMetadata = null;
-          form = await firstValueFrom<FormAttributes>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+          form = await firstValueFrom<FormAttributes>(
+            FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode)
+          );
         } else {
           const record = await RecordsService.getMeta(oid);
-          this.updateChronicle(req, {recordFound: record !== null && record !== undefined});
+          this.updateChronicle(req, { recordFound: record !== null && record !== undefined });
           const recordAny = record as unknown as Record<string, unknown>;
           let hasAccess: boolean = false;
           if (editMode) {
             //find form to edit a record
-            hasAccess = await RecordsService.hasEditAccess(brand, req.user!, (req.user!.roles ?? []) as globalThis.Record<string, unknown>[], recordAny);
+            hasAccess = await RecordsService.hasEditAccess(
+              brand,
+              req.user!,
+              (req.user!.roles ?? []) as globalThis.Record<string, unknown>[],
+              recordAny
+            );
           } else {
             //find form to view a record
-            hasAccess = await RecordsService.hasViewAccess(brand, req.user!, (req.user!.roles ?? []) as globalThis.Record<string, unknown>[], recordAny);
+            hasAccess = await RecordsService.hasViewAccess(
+              brand,
+              req.user!,
+              (req.user!.roles ?? []) as globalThis.Record<string, unknown>[],
+              recordAny
+            );
           }
-          this.updateChronicle(req, {hasAccess});
+          this.updateChronicle(req, { hasAccess });
           if (!hasAccess) {
             return this.sendResp(req, res, {
               status: 403,
               displayErrors: [{ code: 'view-error-no-permissions' }],
-              v1: { message: TranslationService.t('view-error-no-permissions') }
+              v1: { message: TranslationService.t('view-error-no-permissions') },
             });
           }
           recordMetadata = record?.metadata ?? {};
-          form = await FormsService.getForm(brand, "", editMode, "", record);
+          form = await FormsService.getForm(brand, '', editMode, '', record);
         }
 
-        this.updateChronicle(req, {formConfigName: form?.name});
+        this.updateChronicle(req, { formConfigName: form?.name });
 
         const formConfig = form?.configuration;
         if (!formConfig) {
           return this.sendResp(req, res, {
             status: 500,
-            displayErrors: [{ detail: "Form configuration not found." }]
+            displayErrors: [{ detail: 'Form configuration not found.' }],
           });
         }
-        const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+        const entries: TemplateCompileInput[] =
+          (await FormRecordConsistencyService.extractRawTemplates(
+            formConfig,
+            formMode,
+            userRoles,
+            recordMetadata,
+            reusableFormDefs
+          )) || [];
         return this.sendClientMappingJavascript(req, res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
           status: 500,
           errors: [error],
-          displayErrors: [{ detail: "Could not get form data." }],
+          displayErrors: [{ detail: 'Could not get form data.' }],
         });
       }
     }
 
     /**
-    * Provide the client script that can run the report expressions as jsonata expressions.
-    * @param req
-    * @param res
-    */
+     * Provide the client script that can run the report expressions as jsonata expressions.
+     * @param req
+     * @param res
+     */
     public async getAdminReportTemplates(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const reportName = req.param("reportName") || "";
-      this.updateChronicle(req, {reportName: reportName});
+      const reportName = req.param('reportName') || '';
+      this.updateChronicle(req, { reportName: reportName });
       try {
         const entries = await ReportsService.extractReportTemplates(brand, reportName);
         return this.sendClientMappingJavascript(req, res, entries);
       } catch (error) {
-        this.updateChronicle(req, {adminReportTemplatesFailed: true}, [error]);
+        this.updateChronicle(req, { adminReportTemplatesFailed: true }, [error]);
         return res.serverError();
       }
     }
 
     /**
-    * Provide the client script that can run the dashboard expressions as jsonata expressions.
-    * @param req
-    * @param res
-    */
+     * Compiled templates for one workflow stage's independent dashboard settings.
+     * `settingsFingerprint` pins the exact settings the page loaded; if they have
+     * since changed the response is 409 so the page reloads settings and
+     * templates together instead of mixing versions.
+     */
     public async getRecordDashboardTemplates(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const recordType = req.param("recordType") || "";
-      const workflowStage = req.param("workflowStage") || "";
-      const dashboardType = req.param("dashboardType") || "standard";
-      this.updateChronicle(req, {recordType, workflowStage, dashboardType});
+      const recordType = req.param('recordType') || '';
+      const workflowStage = req.param('workflowStage') || '';
+      this.updateChronicle(req, { recordType, workflowStage });
+      const settingsFingerprint = req.param('settingsFingerprint') || undefined;
+      this.updateChronicle(req, { settingsFingerprint });
 
       if (!recordType || !workflowStage) {
-        this.updateChronicle(req, {missingRecordDashboardRecordTypeOrWorkflowStage: true});
+        this.updateChronicle(req, { missingRecordDashboardRecordTypeOrWorkflowStage: true });
         return this.sendClientMappingJavascript(req, res, []);
       }
 
       try {
-        const entries = await DashboardTypesService.extractDashboardTemplates(brand, recordType, workflowStage, dashboardType);
+        const entries = await DashboardTypesService.extractDashboardTemplates(
+          brand,
+          recordType,
+          workflowStage,
+          settingsFingerprint
+        );
         return this.sendClientMappingJavascript(req, res, entries);
       } catch (error) {
-        this.updateChronicle(req, {recordDashboardTemplatesFailed: true}, [error]);
-        return res.serverError();
+        return this.sendDashboardTemplateError(req, res, error, 'Could not build dashboard templates:');
       }
     }
 
     public async getDashboardViewTemplates(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const dashboardView = req.param("dashboardView") || "";
-      const stepName = req.param("stepName") || "";
-      const dashboardType = req.param("dashboardType") || "";
+      const dashboardView = req.param('dashboardView') || '';
+      const stepName = req.param('stepName') || '';
+      const settingsFingerprint = req.param('settingsFingerprint') || undefined;
+      this.updateChronicle(req, { settingsFingerprint });
 
       if (!dashboardView || !stepName) {
         sails.log.warn(`getDashboardViewTemplates called without dashboardView or stepName`);
@@ -187,33 +213,53 @@ export namespace Controllers {
       }
 
       try {
-        const entries = await DashboardTypesService.extractDashboardViewTemplates(brand, dashboardView, stepName, dashboardType);
+        const entries = await DashboardTypesService.extractDashboardViewTemplates(
+          brand,
+          dashboardView,
+          stepName,
+          settingsFingerprint
+        );
         return this.sendClientMappingJavascript(req, res, entries);
       } catch (error) {
-        sails.log.error("Could not build dashboard view templates:", error);
-        return res.serverError();
+        return this.sendDashboardTemplateError(req, res, error, 'Could not build dashboard view templates:');
       }
+    }
+
+    private sendDashboardTemplateError(req: Sails.Req, res: Sails.Res, error: unknown, logMessage: string) {
+      this.updateChronicle(req, { dashboardTemplatesFailed: true }, [error]);
+      const status = (error as { status?: number })?.status;
+      if (status === 409 || status === 503) {
+        sails.log.verbose(`${logMessage} ${(error as Error).message}`);
+        res.status(status);
+        return res.send((error as Error).message);
+      }
+      sails.log.error(logMessage, error);
+      return res.serverError();
     }
 
     private sendClientMappingJavascript(req: Sails.Req, res: Sails.Res, inputs: TemplateCompileInput[]) {
       inputs = inputs || [];
       const entries = TemplateService.buildClientMapping(inputs);
-      const assetId = "dynamicScriptAsset";
+      const assetId = 'dynamicScriptAsset';
 
-      this.updateChronicle(req, {assetId: assetId, assetTemplateInputCount: inputs.length, assetTemplateEntriesKeys: entries.length});
+      this.updateChronicle(req, {
+        assetId: assetId,
+        assetTemplateInputCount: inputs.length,
+        assetTemplateEntriesKeys: entries.length,
+      });
       return this.sendAssetView(req, res, assetId, {
         entries: entries.map(i => {
-          return { key: TemplateService.buildKeyString(i.key), value: i.value }
+          return { key: TemplateService.buildKeyString(i.key), value: i.value };
         }),
-        layout: false
+        layout: false,
       });
     }
 
     private sendAssetView(req: Sails.Req, res: Sails.Res, assetId: string, viewContext: Record<string, unknown>) {
       const dynamicAssetInfo = sails.config.dynamicasset[assetId];
-      this.updateChronicle(req, {assetDynamicInfo: dynamicAssetInfo});
+      this.updateChronicle(req, { assetDynamicInfo: dynamicAssetInfo });
       if (!dynamicAssetInfo || !dynamicAssetInfo.type || !dynamicAssetInfo.view) {
-        this.updateChronicle(req, {assetDynamicMissing: true}, ["Dynamic asset missing."]);
+        this.updateChronicle(req, { assetDynamicMissing: true }, ['Dynamic asset missing.']);
         return res.notFound();
       }
       res.set('Content-Type', dynamicAssetInfo.type);
@@ -221,9 +267,9 @@ export namespace Controllers {
     }
 
     /**
-   **************************************************************************************************
-   **************************************** Override magic methods **********************************
-   **************************************************************************************************
-   */
+     **************************************************************************************************
+     **************************************** Override magic methods **********************************
+     **************************************************************************************************
+     */
   }
 }

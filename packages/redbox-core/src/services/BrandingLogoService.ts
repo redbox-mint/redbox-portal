@@ -13,7 +13,7 @@ export namespace Services {
   @PopulateExportedMethods
   export class BrandingLogo extends coreServices.Core.Service {
     /** In-memory placeholder storage keyed by storage identifier. */
-    private _binaryById: Record<string, { buffer: Buffer; storedAt: number }> = {};
+    private _binaryById: Record<string, { buffer: Buffer; sha256: string; storedAt: number }> = {};
 
     private getCacheTtlMs(): number {
       const DEFAULT_LOGO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -34,18 +34,43 @@ export namespace Services {
     }
 
     private setCache(id: string, buffer: Buffer): void {
-      this._binaryById[id] = { buffer, storedAt: Date.now() };
+      const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+      this._binaryById[id] = { buffer, sha256, storedAt: Date.now() };
       this.pruneExpiredEntries();
     }
 
-    private getFromCache(id: string): Buffer | null {
+    private getFromCache(id: string, expectedSha256?: string): Buffer | null {
       const entry = this._binaryById[id];
       if (!entry) return null;
       if (Date.now() - entry.storedAt > this.getCacheTtlMs()) {
         delete this._binaryById[id];
         return null;
       }
+      if (expectedSha256 && entry.sha256 !== expectedSha256) {
+        delete this._binaryById[id];
+        return null;
+      }
       return entry.buffer;
+    }
+
+    private scheduleSupersededFaviconCleanup(brandId: string, storageKey: string): void {
+      const cleanupTimer = setTimeout(async () => {
+        try {
+          const currentBrand = await BrandingConfig.findOne({ id: brandId });
+          if (_.get(currentBrand, 'favicon.storageKey') === storageKey) {
+            return;
+          }
+          const disk = StorageManagerService.primaryDisk();
+          const retainedBytes = Buffer.from(await disk.getBytes(storageKey));
+          await disk.delete(storageKey);
+          // Keep a fresh in-process copy for another full TTL so a request that
+          // captured the superseded metadata before cleanup can still complete.
+          this.setCache(storageKey, retainedBytes);
+        } catch (error) {
+          sails.log.warn(`BrandingLogoService failed to remove superseded favicon ${storageKey}:`, error);
+        }
+      }, this.getCacheTtlMs());
+      cleanupTimer.unref?.();
     }
 
     private isStorageNotFoundError(err: unknown): boolean {
@@ -82,9 +107,9 @@ export namespace Services {
       return `${branding}/${portal}/images/logo.${ext}`;
     }
 
-    private faviconStorageKey(branding: string, portal: string, contentType: string): string {
+    private faviconStorageKey(branding: string, portal: string, contentType: string, sha256: string): string {
       const ext = this.extForContentType(contentType);
-      return `${branding}/${portal}/images/favicon.${ext}`;
+      return `${branding}/${portal}/images/favicon-${sha256}-${crypto.randomUUID()}.${ext}`;
     }
 
     getMaxBytes(): number {
@@ -209,7 +234,7 @@ export namespace Services {
       if (!ok) throw new Error('favicon-invalid: ' + errorList.join(','));
 
       const resolvedContentType = finalContentType ?? opts.contentType;
-      const storageKey = this.faviconStorageKey(opts.branding, opts.portal, resolvedContentType);
+      const storageKey = this.faviconStorageKey(opts.branding, opts.portal, resolvedContentType, sha256!);
 
       await StorageManagerService.primaryDisk().put(storageKey, sanitizedBuffer!, { contentType: resolvedContentType });
 
@@ -221,7 +246,21 @@ export namespace Services {
         contentType: resolvedContentType,
         updatedAt: new Date().toISOString(),
       };
-      await BrandingConfig.update({ id: brand.id }, { favicon: meta });
+      try {
+        await BrandingConfig.update({ id: brand.id }, { favicon: meta });
+      } catch (error) {
+        try {
+          await StorageManagerService.primaryDisk().delete(storageKey);
+          delete this._binaryById[storageKey];
+        } catch (cleanupError) {
+          sails.log.warn(`BrandingLogoService failed to remove unreferenced favicon ${storageKey}:`, cleanupError);
+        }
+        throw error;
+      }
+      const previousStorageKey = _.get(brand, 'favicon.storageKey') as string | undefined;
+      if (previousStorageKey && previousStorageKey !== storageKey) {
+        this.scheduleSupersededFaviconCleanup(brand.id, previousStorageKey);
+      }
       return { hash: sha256!, gridFsId: storageKey, storageKey, contentType: resolvedContentType, updatedAt: meta.updatedAt };
     }
 
@@ -229,13 +268,18 @@ export namespace Services {
       return this.getFromCache(id);
     }
 
-    async getBinaryAsync(id: string): Promise<Buffer | null> {
-      const mem = this.getFromCache(id);
+    async getBinaryAsync(id: string, expectedSha256?: string): Promise<Buffer | null> {
+      const mem = this.getFromCache(id, expectedSha256);
       if (mem) return mem;
 
       try {
         const bytes = await StorageManagerService.primaryDisk().getBytes(id);
         const buf = Buffer.from(bytes);
+        const actualSha256 = crypto.createHash('sha256').update(buf).digest('hex');
+        if (expectedSha256 && actualSha256 !== expectedSha256) {
+          sails.log.warn(`BrandingLogoService.getBinaryAsync hash mismatch for ${id}`);
+          return null;
+        }
         this.setCache(id, buf);
         return buf;
       } catch (error) {
@@ -247,6 +291,32 @@ export namespace Services {
         }
         return null;
       }
+    }
+
+    async getCurrentFaviconBinary(branding: string): Promise<{
+      buffer: Buffer;
+      favicon: Record<string, unknown>;
+    } | null> {
+      let failedStorageId: string | null = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const brand = await BrandingConfig.findOne({ name: branding });
+        const favicon = brand?.favicon as Record<string, unknown> | undefined;
+        const storageId = typeof favicon?.storageKey === 'string'
+          ? favicon.storageKey
+          : typeof favicon?.gridFsId === 'string'
+            ? favicon.gridFsId
+            : null;
+        if (!favicon || !storageId || storageId === failedStorageId) {
+          return null;
+        }
+        const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
+        const buffer = await this.getBinaryAsync(storageId, expectedSha256);
+        if (buffer) {
+          return { buffer, favicon };
+        }
+        failedStorageId = storageId;
+      }
+      return null;
     }
 
     private async getLegacyGridFsBinary(id: string): Promise<Buffer | null> {

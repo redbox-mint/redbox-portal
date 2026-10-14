@@ -80,7 +80,19 @@ describe('The FormVocabularyService', function () {
     };
 
     const solrQuery = (FormVocabularyService as any).buildSolrParams(brand, 'test', queryConfig, 1, 1, 'json', user);
-    expect(solrQuery).to.equal('metaMetadata_type:rdmp&sort=date_object_modified desc&version=2.2&start=1&rows=1&fq=metaMetadata_brandId:1&wt=json&fq=title:test*&fq=userEmail:test@redboxresearchdata.com.au&fq=userRole:Guest,Researcher,Admin');
+    expect(solrQuery).to.be.instanceOf(URLSearchParams);
+    expect(solrQuery.get('q')).to.equal('metaMetadata_type:rdmp');
+    expect(solrQuery.get('sort')).to.equal('date_object_modified desc');
+    expect(solrQuery.get('version')).to.equal('2.2');
+    expect(solrQuery.get('start')).to.equal('1');
+    expect(solrQuery.get('rows')).to.equal('1');
+    expect(solrQuery.get('wt')).to.equal('json');
+    expect(solrQuery.getAll('fq')).to.deep.equal([
+      'metaMetadata_brandId:1',
+      'title:test*',
+      'userEmail:test@redboxresearchdata.com.au',
+      'userRole:Guest,Researcher,Admin'
+    ]);
     done();
   });
 

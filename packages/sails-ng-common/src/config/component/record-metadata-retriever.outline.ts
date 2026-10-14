@@ -45,6 +45,12 @@ export interface RecordMetadataRetrieverFormComponentDefinitionFrame extends For
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures retrieval of metadata from a related ReDBox record.
+ *
+ * @extensionPoint Use `RecordMetadataRetrieverComponent` to populate form state through the supported record metadata lookup contract.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface RecordMetadataRetrieverFormComponentDefinitionOutline
   extends RecordMetadataRetrieverFormComponentDefinitionFrame,
     FormComponentDefinitionOutline {

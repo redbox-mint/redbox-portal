@@ -54,8 +54,25 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
   CheckboxInputFieldComponentDefinitionFrame
 > {
   protected override logName = CheckboxInputComponentName;
-  public placeholder: string | undefined = '';
-  public multipleValues: boolean = true;
+
+  public get multipleValues(): boolean {
+    return this.getBooleanProperty('multipleValues', true);
+  }
+
+  public get booleanMode(): boolean {
+    return this.getBooleanProperty('booleanMode', false);
+  }
+
+  public override get options(): CheckboxOption[] {
+    const options = super.options;
+    return this.booleanMode && options.length === 0
+      ? [{ label: '', value: 'true' }]
+      : options;
+  }
+
+  public override set options(value: CheckboxOption[]) {
+    super.options = value;
+  }
 
   /**
    * The model associated with this component.
@@ -63,11 +80,8 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
   @Input() public override model?: CheckboxInputModel;
 
   protected override async initData(): Promise<void> {
-    const config = this.getOptionInputConfig(CheckboxInputComponentName);
-    this.setSharedOptionConfig(config);
-    this.placeholder = config?.placeholder ?? "";
-    this.multipleValues = config?.multipleValues ?? true;
-
+    // Validate the component definition; the remaining properties are read from the config on demand.
+    this.getOptionInputConfig(CheckboxInputComponentName);
   }
 
   /**
@@ -75,6 +89,9 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
    */
   public isOptionSelected(optionValue: string): boolean {
     const currentValue = this.formControl?.value;
+    if (this.booleanMode) {
+      return currentValue === true;
+    }
     if (this.multipleValues) {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
       return currentArray.includes(optionValue);
@@ -92,6 +109,10 @@ export class CheckboxInputComponent extends OptionInputBaseComponent<
     }
     const optionValue = option.value;
     const currentValue = this.formControl?.value;
+    if (this.booleanMode) {
+      this.setControlValue(checked);
+      return;
+    }
     if (this.multipleValues) {
       const currentArray = Array.isArray(currentValue) ? currentValue : [];
       const nextValue: CheckboxInputModelValueType = checked

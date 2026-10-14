@@ -41,6 +41,12 @@ export interface ReusableFormComponentDefinitionFrame extends FormComponentDefin
     layout?: never;
 }
 
+/**
+ * References a reusable form definition that the construction visitor expands.
+ *
+ * @extensionPoint Use `ReusableComponent` to compose named reusable definitions; it is a construction-time contract rather than an Angular component.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface ReusableFormComponentDefinitionOutline extends ReusableFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: ReusableFieldComponentDefinitionOutline;
     model?: never;

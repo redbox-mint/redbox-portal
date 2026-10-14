@@ -1,0 +1,21 @@
+{
+  "name": "dropdown-input-example",
+  "debugValue": false,
+  "validators": [],
+  "componentDefinitions": [
+    {
+      "name": "licence",
+      "component": {
+        "class": "DropdownInputComponent",
+        "config": {
+          "placeholder": "Choose a licence",
+          "options": [
+            { "label": "CC BY", "value": "cc-by" },
+            { "label": "CC0", "value": "cc0" }
+          ]
+        }
+      },
+      "model": { "class": "DropdownInputModel" }
+    }
+  ]
+}

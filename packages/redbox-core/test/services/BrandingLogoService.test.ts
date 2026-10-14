@@ -1,5 +1,6 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
+import crypto from 'crypto';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/BrandingLogoService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
@@ -16,6 +17,7 @@ describe('BrandingLogoService', function() {
     mockPrimaryDisk = {
       put: sinon.stub().resolves(),
       getBytes: sinon.stub().resolves(Buffer.from('stored-binary')),
+      delete: sinon.stub().resolves(),
     };
 
     (global as any).StorageManagerService = {
@@ -112,6 +114,55 @@ describe('BrandingLogoService', function() {
       expect(secondRead?.toString()).to.equal('stored-binary');
       expect(mockPrimaryDisk.getBytes.calledOnce).to.be.true;
     });
+
+    it('should reload a cached binary when the expected hash changes', async function() {
+      const oldBinary = Buffer.from('old-binary');
+      const newBinary = Buffer.from('new-binary');
+      const oldHash = crypto.createHash('sha256').update(oldBinary).digest('hex');
+      const newHash = crypto.createHash('sha256').update(newBinary).digest('hex');
+      mockPrimaryDisk.getBytes.onFirstCall().resolves(oldBinary);
+      mockPrimaryDisk.getBytes.onSecondCall().resolves(newBinary);
+
+      const firstRead = await service.getBinaryAsync('brand/portal/images/favicon.png', oldHash);
+      const secondRead = await service.getBinaryAsync('brand/portal/images/favicon.png', newHash);
+
+      expect(firstRead?.toString()).to.equal('old-binary');
+      expect(secondRead?.toString()).to.equal('new-binary');
+      expect(mockPrimaryDisk.getBytes.calledTwice).to.be.true;
+    });
+
+    it('should not serve storage bytes that do not match the expected hash', async function() {
+      const expectedHash = crypto.createHash('sha256').update('new-binary').digest('hex');
+      mockPrimaryDisk.getBytes.resolves(Buffer.from('old-binary'));
+
+      const result = await service.getBinaryAsync('brand/portal/images/favicon.png', expectedHash);
+
+      expect(result).to.be.null;
+      expect(mockSails.log.warn.calledWith(
+        'BrandingLogoService.getBinaryAsync hash mismatch for brand/portal/images/favicon.png'
+      )).to.be.true;
+    });
+
+    it('should retry current favicon metadata when a superseded object disappears', async function() {
+      const oldBuffer = Buffer.from('old-binary');
+      const currentBuffer = Buffer.from('current-binary');
+      const oldHash = crypto.createHash('sha256').update(oldBuffer).digest('hex');
+      const currentHash = crypto.createHash('sha256').update(currentBuffer).digest('hex');
+      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+        favicon: { storageKey: 'favicon-old.png', sha256: oldHash },
+      });
+      (global as any).BrandingConfig.findOne.onSecondCall().resolves({
+        favicon: { storageKey: 'favicon-current.png', sha256: currentHash, contentType: 'image/png' },
+      });
+      mockPrimaryDisk.getBytes.onFirstCall().rejects({ code: 'ENOENT' });
+      mockPrimaryDisk.getBytes.onSecondCall().resolves(currentBuffer);
+
+      const result = await service.getCurrentFaviconBinary('brand');
+
+      expect(result?.buffer.toString()).to.equal('current-binary');
+      expect(result?.favicon.storageKey).to.equal('favicon-current.png');
+      expect((global as any).BrandingConfig.findOne.calledTwice).to.be.true;
+    });
   });
 
   describe('putFavicon', function() {
@@ -131,14 +182,111 @@ describe('BrandingLogoService', function() {
       (global as any).BrandingConfig.update.resolves([]);
 
       const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
+      const expectedHash = crypto.createHash('sha256').update('data').digest('hex');
 
       expect(result.contentType).to.equal('image/png');
-      expect(result.storageKey).to.equal('brand/portal/images/favicon.png');
-      expect(mockPrimaryDisk.put.firstCall.args[0]).to.equal('brand/portal/images/favicon.png');
+      expect(result.storageKey).to.match(
+        new RegExp(`^brand/portal/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.png$`)
+      );
+      expect(mockPrimaryDisk.put.firstCall.args[0]).to.equal(result.storageKey);
       expect((global as any).BrandingConfig.update.firstCall.args[1].favicon).to.include({
-        storageKey: 'brand/portal/images/favicon.png',
+        storageKey: result.storageKey,
         contentType: 'image/png',
       });
+    });
+
+    it('should use distinct storage keys when identical favicon bytes are uploaded again', async function() {
+      (global as any).BrandingConfig.findOne.resolves({ id: 'brand1' });
+      (global as any).BrandingConfig.update.resolves([]);
+
+      const first = await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('same-data'),
+        contentType: 'image/png',
+      });
+      const second = await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('same-data'),
+        contentType: 'image/png',
+      });
+
+      expect(first.hash).to.equal(second.hash);
+      expect(first.storageKey).to.not.equal(second.storageKey);
+    });
+
+    it('should clean up a superseded favicon after the reader cache TTL', async function() {
+      const clock = sinon.useFakeTimers();
+      const previousStorageKey = 'brand/portal/images/favicon-previous.png';
+      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+        id: 'brand1',
+        favicon: { storageKey: previousStorageKey },
+      });
+      (global as any).BrandingConfig.findOne.onSecondCall().resolves({
+        id: 'brand1',
+        favicon: { storageKey: 'brand/portal/images/favicon-current.png' },
+      });
+      (global as any).BrandingConfig.update.resolves([]);
+
+      await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('replacement'),
+        contentType: 'image/png',
+      });
+
+      expect((global as any).BrandingConfig.update.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.delete.called).to.be.false;
+
+      await clock.tickAsync(24 * 60 * 60 * 1000);
+      expect(mockPrimaryDisk.delete.calledOnceWithExactly(previousStorageKey)).to.be.true;
+      expect(service.getBinary(previousStorageKey)?.toString()).to.equal('stored-binary');
+    });
+
+    it('should not delete a superseded favicon that becomes active again before cleanup', async function() {
+      const clock = sinon.useFakeTimers();
+      const previousStorageKey = 'brand/portal/images/favicon-previous.png';
+      (global as any).BrandingConfig.findOne.resolves({
+        id: 'brand1',
+        favicon: { storageKey: previousStorageKey },
+      });
+      (global as any).BrandingConfig.update.resolves([]);
+
+      await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('replacement'),
+        contentType: 'image/png',
+      });
+      await clock.tickAsync(24 * 60 * 60 * 1000);
+
+      expect((global as any).BrandingConfig.findOne.calledTwice).to.be.true;
+      expect(mockPrimaryDisk.delete.called).to.be.false;
+    });
+
+    it('should log deferred cleanup failures without failing the completed upload', async function() {
+      const clock = sinon.useFakeTimers();
+      const previousStorageKey = 'brand/portal/images/favicon-previous.png';
+      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+        id: 'brand1',
+        favicon: { storageKey: previousStorageKey },
+      });
+      (global as any).BrandingConfig.findOne.onSecondCall().rejects(new Error('database unavailable'));
+      (global as any).BrandingConfig.update.resolves([]);
+
+      await service.putFavicon({
+        branding: 'brand',
+        portal: 'portal',
+        fileBuffer: Buffer.from('replacement'),
+        contentType: 'image/png',
+      });
+      await clock.tickAsync(24 * 60 * 60 * 1000);
+
+      expect(mockSails.log.warn.calledWith(
+        `BrandingLogoService failed to remove superseded favicon ${previousStorageKey}:`,
+        sinon.match.instanceOf(Error)
+      )).to.be.true;
     });
 
     it('should accept an ICO favicon', async function() {
@@ -147,9 +295,60 @@ describe('BrandingLogoService', function() {
       (global as any).BrandingConfig.update.resolves([]);
 
       const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('icodata'), contentType: 'image/x-icon' });
+      const expectedHash = crypto.createHash('sha256').update('icodata').digest('hex');
 
       expect(result.contentType).to.equal('image/x-icon');
-      expect(result.storageKey).to.equal('brand/portal/images/favicon.ico');
+      expect(result.storageKey).to.match(
+        new RegExp(`^brand/portal/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.ico$`)
+      );
+    });
+
+    it('should remove the unreferenced object when its metadata update fails', async function() {
+      const previousStorageKey = 'brand/portal/images/favicon-previous.png';
+      (global as any).BrandingConfig.findOne.resolves({
+        id: 'brand1',
+        favicon: { storageKey: previousStorageKey, sha256: 'previous' }
+      });
+      (global as any).BrandingConfig.update.rejects(new Error('database unavailable'));
+
+      try {
+        await service.putFavicon({
+          branding: 'brand',
+          portal: 'portal',
+          fileBuffer: Buffer.from('replacement'),
+          contentType: 'image/png'
+        });
+        expect.fail('Should have thrown');
+      } catch (error: unknown) {
+        expect(error instanceof Error ? error.message : String(error)).to.equal('database unavailable');
+      }
+
+      expect(mockPrimaryDisk.put.calledOnce).to.be.true;
+      expect(mockPrimaryDisk.put.firstCall.args[0]).to.not.equal(previousStorageKey);
+      expect(mockPrimaryDisk.delete.calledOnceWithExactly(mockPrimaryDisk.put.firstCall.args[0])).to.be.true;
+    });
+
+    it('should preserve the metadata error when unreferenced object cleanup also fails', async function() {
+      (global as any).BrandingConfig.findOne.resolves({ id: 'brand1' });
+      (global as any).BrandingConfig.update.rejects(new Error('database unavailable'));
+      mockPrimaryDisk.delete.rejects(new Error('storage unavailable'));
+
+      try {
+        await service.putFavicon({
+          branding: 'brand',
+          portal: 'portal',
+          fileBuffer: Buffer.from('replacement'),
+          contentType: 'image/png',
+        });
+        expect.fail('Should have thrown');
+      } catch (error: unknown) {
+        expect(error instanceof Error ? error.message : String(error)).to.equal('database unavailable');
+      }
+
+      expect(mockSails.log.warn.calledWith(
+        sinon.match('BrandingLogoService failed to remove unreferenced favicon'),
+        sinon.match.instanceOf(Error)
+      )).to.be.true;
     });
 
     it('should reject an unsupported favicon content type', async function() {

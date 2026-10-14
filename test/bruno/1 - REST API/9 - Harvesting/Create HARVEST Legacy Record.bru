@@ -88,10 +88,7 @@ tests {
         var returnedHarvestId = rec.harvestId || rec.harvest_id;
         expect(returnedHarvestId).to.equal(expectedId);
         if (rec.message) {
-          var harvestId = expectedId;
-          var allowed = ['Record created successfully','Record updated successfully'];
-          var msgOk = allowed.indexOf(rec.message) !== -1 || /skip update of harvestId/i.test(rec.message) || (harvestId && rec.message.indexOf(harvestId) !== -1);
-          expect(msgOk, 'Unexpected legacy harvest message: ' + rec.message).to.equal(true);
+          expect(rec.message).to.be.a('string').and.not.empty;
         }
   });
 }

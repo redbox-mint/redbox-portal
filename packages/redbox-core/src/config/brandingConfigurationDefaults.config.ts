@@ -6,6 +6,9 @@
  */
 
 import type { DoiPublishingConfigData } from '../configmodels/DoiPublishing';
+import type { RaidPublishingConfigData } from '../configmodels/RaidPublishing';
+import { raid } from './raid.config';
+import { OniPublishing, type OniPublishingConfigData } from '../configmodels/OniPublishing';
 
 export interface BrandAuthLocalConfig {
     usernameField: string;
@@ -145,6 +148,8 @@ export interface BrandingConfigurationDefaultsConfig {
     adminSidebar: BrandingAdminSidebarConfig;
     doiPublishing?: DoiPublishingConfigData;
     figsharePublishing?: import('../configmodels/FigsharePublishing').FigsharePublishingConfigData;
+    raidPublishing?: RaidPublishingConfigData;
+    oniPublishing?: OniPublishingConfigData;
 }
 
 /**
@@ -282,6 +287,7 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
                 { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
                 { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
                 { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
+                { id: 'web-analytics', labelKey: 'menu-webanalytics', href: '/admin/appconfig/edit/webAnalytics' },
                 { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
                 { id: 'dashboard-config', labelKey: 'menu-dashboard-config', href: '/admin/dashboard-config' },
                 { id: 'named-query', labelKey: 'menu-named-query', href: '/admin/named-query' }
@@ -296,7 +302,8 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
                 { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
                 { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
                 { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
-                { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' }
+                { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
+                { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
             ]
         },
         {
@@ -307,6 +314,19 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
             items: [
                 { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' },
                 { id: 'vocabulary', labelKey: 'menu-vocabulary-management', href: '/admin/vocabulary/manager' }
+            ]
+        },
+        {
+            id: 'integrations',
+            titleKey: 'menu-integrations',
+            defaultExpanded: true,
+            requiredRoles: ['Admin'],
+            items: [
+                {
+                    id: 'figshare-vocabularies',
+                    labelKey: 'menu-figshare-vocabularies',
+                    href: '/admin/integrations/figshare/vocabularies'
+                }
             ]
         }
     ],
@@ -350,6 +370,40 @@ const defaultDoiPublishingConfig: DoiPublishingConfigData = {
     profiles: {}
 };
 
+const defaultRaidPublishingConfig: RaidPublishingConfigData = {
+    enabled: true,
+    connection: {
+        baseUrl: raid.basePath,
+        token: raid.token,
+        timeoutMs: 30000,
+        oauth: {
+            url: raid.oauth.url,
+            clientId: raid.oauth.client_id,
+            username: raid.oauth.username,
+            password: raid.oauth.password,
+            timeoutMs: 10000,
+            expirySkewMs: 30000
+        },
+        retry: {
+            maxAttempts: 3,
+            baseDelayMs: 500,
+            maxDelayMs: 10000,
+            jitter: true,
+            retryOnStatusCodes: [408, 425, 429, 500, 502, 503, 504]
+        }
+    },
+    durableRetry: {
+        jobName: raid.retryJobName,
+        schedule: raid.retryJobSchedule,
+        maxAttempts: raid.retryJobMaxAttempts
+    },
+    saveBodyInMeta: raid.saveBodyInMeta,
+    raidFieldName: raid.raidFieldName,
+    orcidBaseUrl: raid.orcidBaseUrl,
+    types: raid.types,
+    mapping: raid.mapping
+};
+
 /**
  * Default branding configuration defaults
  * Provides fallback values when brand-specific config is not set
@@ -359,5 +413,7 @@ export const brandingConfigurationDefaults: Partial<BrandingConfigurationDefault
     menu: defaultMenuConfig,
     homePanels: defaultHomePanelsConfig,
     adminSidebar: defaultAdminSidebarConfig,
-    doiPublishing: defaultDoiPublishingConfig
+    doiPublishing: defaultDoiPublishingConfig,
+    raidPublishing: defaultRaidPublishingConfig,
+    oniPublishing: new OniPublishing()
 };

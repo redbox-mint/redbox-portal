@@ -1,9 +1,10 @@
+import { figshareLiveSummary } from '../services/figshare-v2/status';
 import { Controllers as controllers } from '../CoreController';
 import { RecordsService } from '../RecordsService';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { IntegrationAuditParams } from '../IntegrationAuditParams';
-import { RecordAuditActionType } from '../model/storage/RecordAuditModel';
+import { getRecordAuditTimestamp, RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import { IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
 import type { IntegrationStatusRecordContext } from '../services/IntegrationAuditService';
 
@@ -101,7 +102,7 @@ export namespace Controllers {
     }
 
     private getAuditSortValue(auditRecord: AnyRecord): number {
-      const rawValue = auditRecord['createdAt'] ?? auditRecord['updatedAt'] ?? auditRecord['dateCreated'] ?? null;
+      const rawValue = getRecordAuditTimestamp(auditRecord);
       const parsed = rawValue == null ? Number.NaN : new Date(String(rawValue)).getTime();
       return Number.isFinite(parsed) ? parsed : 0;
     }
@@ -238,7 +239,7 @@ export namespace Controllers {
         return persistedId;
       }
       const oid = String(auditRecord['redboxOid'] ?? '');
-      const timestamp = String(auditRecord['createdAt'] ?? auditRecord['updatedAt'] ?? auditRecord['dateCreated'] ?? '');
+      const timestamp = String(getRecordAuditTimestamp(auditRecord) ?? '');
       return `${oid}:${timestamp}:${index}`;
     }
 
@@ -352,10 +353,9 @@ export namespace Controllers {
           });
         }
 
+        // Filter event dates after resolving legacy snapshot timestamps and computing diffs.
         const rawAudit = await this.recordsService.getRecordAudit({
           oid,
-          dateFrom,
-          dateTo,
           action: !_.isEmpty(action) ? action : undefined,
           workflowState: !_.isEmpty(workflowState) ? workflowState : undefined,
         });
@@ -398,7 +398,7 @@ export namespace Controllers {
           const rowId = this.buildAuditRowId(auditRecord, index);
           rowMap.set(rowId, {
             id: rowId,
-            timestamp: auditRecord['createdAt'] ?? auditRecord['updatedAt'] ?? auditRecord['dateCreated'] ?? null,
+            timestamp: getRecordAuditTimestamp(auditRecord),
             action,
             actionLabelKey: this.getActionLabelKey(action),
             workflowStageLabel: String(_.get(auditRecord, 'record.workflow.stageLabel', '')),
@@ -410,6 +410,14 @@ export namespace Controllers {
         });
 
         const records = Array.from(rowMap.values())
+          .filter(row => {
+            if ((dateFrom != null || dateTo != null) && row['timestamp'] == null) {
+              return false;
+            }
+            const timestamp = Number(row['_sortValue']);
+            return (dateFrom == null || timestamp >= dateFrom.getTime()) &&
+              (dateTo == null || timestamp <= dateTo.getTime());
+          })
           .sort((a, b) => Number(b['_sortValue'] ?? 0) - Number(a['_sortValue'] ?? 0))
           .map(row => {
             _.unset(row, '_sortValue');
@@ -509,6 +517,14 @@ export namespace Controllers {
         };
 
         const integrations = await IntegrationAuditService.getStatusSummaryWithOutcomes(params, recordContext);
+        if (!integrationName || integrationName.split(',').map(name => name.trim().toLowerCase()).includes('figshare')) {
+          const live = await figshareLiveSummary(oid, record);
+          if (live) {
+            const index = integrations.findIndex(item => item.integrationName.toLowerCase() === 'figshare');
+            if (index >= 0) integrations[index] = live;
+            else integrations.push(live);
+          }
+        }
         return this.sendResp(req, res, { data: { integrations } });
       } catch (error) {
         return this.sendResp(req, res, {

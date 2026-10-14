@@ -188,7 +188,7 @@ dev
 api/models/
 packages/raido/dist
 packages/raido/*.tgz
-angular/.angular/cache/
+angular/.angular
 
 api/configmodels/*
 api/additional/*
@@ -233,3 +233,6 @@ packages/redbox-dev-tools/.nyc_output/
 packages/redbox-dev-tools/support/junit/
 
 *.tsbuildinfo
+
+# Local Figshare E2E verification reports
+/support/figshare/E2E*.md

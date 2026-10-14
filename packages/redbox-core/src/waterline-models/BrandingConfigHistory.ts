@@ -1,6 +1,7 @@
 /// <reference path="../sails.ts" />
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
+import type { BrandingTypefaceState } from '../model/BrandingTypeface';
 
 @Entity('brandingconfighistory', {
   datastore: 'redboxStorage',
@@ -30,7 +31,19 @@ export class BrandingConfigHistoryClass {
   public css?: string;
 
   @Attr({ type: 'json' })
-  public variables?: Record<string, unknown>;
+  public variables?: Record<string, string>;
+
+  @Attr({ type: 'json' })
+  public typeface?: BrandingTypefaceState | null;
+
+  @Attr({ type: 'string' })
+  public actorId?: string;
+
+  @Attr({ type: 'string' })
+  public actorDisplayName?: string;
+
+  @Attr({ type: 'number' })
+  public restoredFromVersion?: number;
 
   @Attr({ type: 'string', autoCreatedAt: true })
   public dateCreated!: string;
@@ -45,8 +58,12 @@ export interface BrandingConfigHistoryAttributes extends Sails.WaterlineAttribut
   css?: string;
   dateCreated?: string;
   hash: string;
-  variables?: Record<string, unknown>;
+  variables?: Record<string, string>;
   version: number;
+  typeface?: BrandingTypefaceState | null;
+  actorId?: string;
+  actorDisplayName?: string;
+  restoredFromVersion?: number;
 }
 
 export interface BrandingConfigHistoryWaterlineModel extends Sails.Model<BrandingConfigHistoryAttributes> {

@@ -1,4 +1,3 @@
-version: '3.1'
 networks:
   main:
 services:
@@ -28,7 +27,7 @@ services:
     init: true
     entrypoint: /bin/bash -c "cd /opt/redbox-portal && node app.js"
   mongodb:
-    image: mvertes/alpine-mongo:latest
+    image: mongo:latest@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
     networks:
       main:
         aliases:

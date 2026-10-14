@@ -2,7 +2,11 @@ import { TestBed } from "@angular/core/testing";
 import { TypeaheadModule } from "ngx-bootstrap/typeahead";
 import { By } from "@angular/platform-browser";
 import { firstValueFrom } from "rxjs";
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {
+  FormConfigFrame,
+  TypeaheadInputDefaultNoResultsMessageKey,
+  TypeaheadOption
+} from "@researchdatabox/sails-ng-common";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions} from "../helpers.spec";
 import { TypeaheadDataService } from "../service/typeahead-data.service";
 import { TypeaheadInputComponent } from "./typeahead-input.component";
@@ -15,6 +19,20 @@ import {GroupFieldComponent} from "./group.component";
 
 describe("TypeaheadInputComponent", () => {
   let translationService: any;
+
+  async function registerTranslations(items: Record<string, string>): Promise<void> {
+    if (!i18next.isInitialized) {
+      await i18next.init({
+        lng: 'en',
+        fallbackLng: 'en',
+        returnEmptyString: false,
+        resources: { en: { translation: {} } },
+      });
+    }
+    i18next.addResourceBundle('en', 'translation', items, true, true);
+    await i18next.changeLanguage('en');
+    Object.assign(translationService.translationMap, items);
+  }
 
     beforeEach(async () => {
       ({ translationService } = await createTestbedModule({
@@ -512,6 +530,172 @@ describe("TypeaheadInputComponent", () => {
         expect((formComponent as any).form.get("person_lookup")?.dirty).toBeTrue();
     });
 
+    it("dismisses the no matches status when the input loses focus", async () => {
+        await registerTranslations({
+            [TypeaheadInputDefaultNoResultsMessageKey]: "No matches found"
+        });
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        component.displayControl.setValue("unknown");
+        await firstValueFrom(component.suggestions$);
+        fixture.detectChanges();
+
+        expect(component.searchState).toBe("no-results");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? "")).toContain("No matches found");
+
+        input.dispatchEvent(new Event("blur"));
+        fixture.detectChanges();
+
+        expect(component.searchState).toBe("idle");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? "")).not.toContain("No matches found");
+    });
+
+    it("renders the configured no results translation key", async () => {
+        await registerTranslations({
+            "@custom-typeahead-no-results": "No people matched this search"
+        });
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1,
+                            noResultsMessageKey: "@custom-typeahead-no-results"
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("unknown");
+        await firstValueFrom(component.suggestions$);
+        fixture.detectChanges();
+
+        expect(component.noResultsMessageKey).toBe("@custom-typeahead-no-results");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? ""))
+            .toContain("No people matched this search");
+    });
+
+    it("does not restore the no matches status when a lookup completes after blur", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        let resolveSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        spyOn(typeaheadDataService, "searchStatic").and.returnValue(new Promise<TypeaheadOption[]>(resolve => {
+            resolveSearch = resolve;
+        }));
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelector("input") as HTMLInputElement;
+        component.displayControl.setValue("unknown");
+        const lookup = firstValueFrom(component.suggestions$);
+        expect(component.searchState).toBe("loading");
+
+        input.dispatchEvent(new Event("blur"));
+        resolveSearch([]);
+        await lookup;
+        fixture.detectChanges();
+
+        expect(component.searchState).toBe("idle");
+        expect(String((fixture.nativeElement as HTMLElement).textContent ?? "")).not.toContain("No matches found");
+    });
+
+    it("does not apply an earlier valid lookup after another valid query is entered", async () => {
+        const typeaheadDataService = TestBed.inject(TypeaheadDataService);
+        let resolveFirstSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        let resolveReplacementSearch: (options: TypeaheadOption[]) => void = () => undefined;
+        const searchStatic = spyOn(typeaheadDataService, "searchStatic").and.callFake((search: string) =>
+            new Promise<TypeaheadOption[]>(resolve => {
+                if (search === "first") {
+                    resolveFirstSearch = resolve;
+                    return;
+                }
+                resolveReplacementSearch = resolve;
+            })
+        );
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "person_lookup",
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }],
+                            minChars: 1
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        component.displayControl.setValue("first");
+        const firstLookup = firstValueFrom(component.suggestions$);
+        expect(searchStatic).toHaveBeenCalledTimes(1);
+
+        component.displayControl.setValue("second");
+        expect(searchStatic).toHaveBeenCalledTimes(1);
+        resolveFirstSearch([]);
+        await firstLookup;
+
+        expect(component.searchState).not.toBe("no-results");
+
+        const replacementLookup = firstValueFrom(component.suggestions$);
+        expect(searchStatic).toHaveBeenCalledTimes(2);
+        expect(searchStatic.calls.mostRecent().args[0]).toBe("second");
+        resolveReplacementSearch([{ label: "Second result", value: "second" }]);
+        await replacementLookup;
+
+        expect(component.searchState).toBe("idle");
+    });
+
     it("keeps the display control in sync with disabled state changes", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
@@ -559,6 +743,246 @@ describe("TypeaheadInputComponent", () => {
         expect((formComponent as any).form.get("person_lookup")?.disabled).toBeFalse();
     });
 
+    it("honours a field.disabled gate expression applied on form ready", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "dataRecord",
+                    component: { class: "SimpleInputComponent", config: { type: "text" } },
+                    model: { class: "SimpleInputModel", config: { value: "" } }
+                },
+                {
+                    name: "person_lookup",
+                    expressions: [
+                        {
+                            name: "gate-on-data-record",
+                            config: {
+                                conditionKind: "jsonpointer",
+                                condition: "/dataRecord::field.value.changed",
+                                target: "field.disabled",
+                                hasTemplate: true,
+                                template: "event.value ? false : true",
+                                runOnFormReady: true
+                            }
+                        }
+                    ],
+                    component: {
+                        class: "TypeaheadInputComponent",
+                        config: {
+                            sourceType: "static",
+                            staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                        }
+                    },
+                    model: { class: "TypeaheadInputModel", config: {} }
+                },
+                {
+                    name: "gated_text",
+                    expressions: [
+                        {
+                            name: "gate-on-data-record",
+                            config: {
+                                conditionKind: "jsonpointer",
+                                condition: "/dataRecord::field.value.changed",
+                                target: "field.disabled",
+                                hasTemplate: true,
+                                template: "event.value ? false : true",
+                                runOnFormReady: true
+                            }
+                        }
+                    ],
+                    component: { class: "SimpleInputComponent", config: { type: "text" } },
+                    model: { class: "SimpleInputModel", config: { value: "" } }
+                }
+            ]
+        };
+
+        // 'event.value ? false : true' compiled server-side, mocked here.
+        const dynamicAssetOptions: DynamicAssetOptions = {
+            entries: [{
+                urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+                callable: function (keyStr: string, key: (string | number)[], context: any) {
+                    return context?.event?.value ? false : true;
+                }
+            }]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, undefined, undefined, dynamicAssetOptions);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+        const input = fixture.nativeElement.querySelectorAll("input")[1] as HTMLInputElement;
+        const simpleInputs = fixture.debugElement.queryAll(By.directive(SimpleInputComponent));
+        const gated = simpleInputs[simpleInputs.length - 1].componentInstance as SimpleInputComponent;
+
+        // Selecting a data record lifts the gate, clearing it re-applies it.
+        (formComponent as any).form.controls.dataRecord.setValue("record-1");
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect((gated as any).isDisabled).toBeFalse();
+        expect(component.isDisabled).toBeFalse();
+        expect(component.displayControl.disabled).toBeFalse();
+
+        (formComponent as any).form.controls.dataRecord.setValue("");
+        await fixture.whenStable();
+        fixture.detectChanges();
+        // The typeahead must gate in step with the plain input control field.
+        expect((gated as any).isDisabled).toBeTrue();
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+        expect(input.disabled).toBeTrue();
+    });
+
+    it("keeps an empty repeatable pristine when its disabled gate opens", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "geolocations",
+                    component: {
+                        class: "RepeatableComponent",
+                        config: {
+                            disabled: true,
+                            elementTemplate: {
+                                name: "",
+                                component: {
+                                    class: "TypeaheadInputComponent",
+                                    config: { sourceType: "static", staticOptions: [] }
+                                },
+                                model: { class: "TypeaheadInputModel", config: {} },
+                                layout: { class: "RepeatableElementLayout", config: {} }
+                            }
+                        }
+                    },
+                    model: { class: "RepeatableModel", config: { value: [null] } },
+                    layout: { class: "DefaultLayout", config: { disabled: true } }
+                }
+            ]
+        };
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+        const component: TypeaheadInputComponent = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance;
+        const input: HTMLInputElement = fixture.nativeElement.querySelector("redbox-typeahead-input input");
+
+        expect(input.disabled).toBeTrue();
+        expect(formComponent.form?.pristine).toBeTrue();
+
+        const repeatable: RepeatableComponent = fixture.debugElement.query(By.directive(RepeatableComponent)).componentInstance;
+        repeatable.setDisabled(false);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(input.disabled).toBeFalse();
+        expect(component.formControl.value).toBeNull();
+        expect(component.formControl.pristine).toBeTrue();
+        expect(component.formControl.untouched).toBeTrue();
+        expect(formComponent.form?.pristine).toBeTrue();
+
+        // Opening the gate must still leave real edits able to update the model.
+        input.value = "Newcastle";
+        input.dispatchEvent(new Event("input"));
+        input.dispatchEvent(new Event("blur"));
+        await fixture.whenStable();
+        expect(component.formControl.value).toBe("Newcastle");
+        expect(formComponent.form?.dirty).toBeTrue();
+    });
+
+    it("honours a field.disabled gate expression when nested inside a repeatable", async () => {
+        const formConfig: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [
+                {
+                    name: "dataRecord",
+                    component: { class: "SimpleInputComponent", config: { type: "text" } },
+                    model: { class: "SimpleInputModel", config: { value: "" } }
+                },
+                {
+                    name: "grants",
+                    component: {
+                        class: "RepeatableComponent",
+                        config: {
+                            elementTemplate: {
+                                name: "",
+                                component: {
+                                    class: "GroupComponent",
+                                    config: {
+                                        componentDefinitions: [
+                                            {
+                                                name: "grant_lookup",
+                                                expressions: [
+                                                    {
+                                                        name: "gate-on-data-record",
+                                                        config: {
+                                                            conditionKind: "jsonpointer",
+                                                            condition: "/dataRecord::field.value.changed",
+                                                            target: "field.disabled",
+                                                            hasTemplate: true,
+                                                            template: "event.value ? false : true",
+                                                            runOnFormReady: true
+                                                        }
+                                                    }
+                                                ],
+                                                component: {
+                                                    class: "TypeaheadInputComponent",
+                                                    config: {
+                                                        sourceType: "static",
+                                                        staticOptions: [{ label: "Jane Doe", value: "jane" }]
+                                                    }
+                                                },
+                                                model: { class: "TypeaheadInputModel" },
+                                                layout: { class: "InlineLayout", config: {} }
+                                            }
+                                        ]
+                                    }
+                                },
+                                model: { class: "GroupModel" },
+                                layout: { class: "RepeatableElementLayout" }
+                            }
+                        }
+                    },
+                    layout: { class: "DefaultLayout", config: {} },
+                    model: { class: "RepeatableModel", config: { value: [{ grant_lookup: null }] } }
+                }
+            ]
+        };
+
+        const dynamicAssetOptions: DynamicAssetOptions = {
+            entries: [{
+                urlKeyStart: "http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp",
+                callable: function (keyStr: string, key: (string | number)[], context: any) {
+                    // 'event.value ? false : true'
+                    return context?.event?.value ? false : true;
+                }
+            }]
+        };
+
+        const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, undefined, undefined, dynamicAssetOptions);
+        const component = fixture.debugElement.query(By.directive(TypeaheadInputComponent)).componentInstance as TypeaheadInputComponent;
+
+        (formComponent as any).form.controls.dataRecord.setValue("record-1");
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        (formComponent as any).form.controls.dataRecord.setValue("");
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+
+        // A row added while the gate is applied must also come up disabled.
+        const repeatable = fixture.debugElement.query(By.directive(RepeatableComponent)).componentInstance as RepeatableComponent;
+        await (repeatable as any).appendNewElement();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        const allTypeaheads = fixture.debugElement.queryAll(By.directive(TypeaheadInputComponent));
+        const added = allTypeaheads[allTypeaheads.length - 1].componentInstance as TypeaheadInputComponent;
+        expect(added.isDisabled).toBeTrue();
+        expect(added.displayControl.disabled).toBeTrue();
+        const addedInput = fixture.nativeElement.querySelectorAll("input")[allTypeaheads.length] as HTMLInputElement;
+        expect(addedInput?.disabled).toBeTrue();
+
+        expect(component.isDisabled).toBeTrue();
+        expect(component.displayControl.disabled).toBeTrue();
+    });
+
     it("shows misconfiguration message when named query source lacks queryId", async () => {
         const formConfig: FormConfigFrame = {
             name: "testing",
@@ -578,7 +1002,7 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
-        expect(text).toContain("Missing queryId for namedQuery typeahead source");
+        expect(text).toContain("@form-typeahead-missing-query-id");
     });
 
     it("shows misconfiguration message when external source lacks provider", async () => {
@@ -600,7 +1024,7 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
-        expect(text).toContain("Missing provider for external typeahead source");
+        expect(text).toContain("@form-typeahead-missing-provider");
     });
 
     it("shows misconfiguration message when service source lacks serviceId", async () => {
@@ -622,7 +1046,7 @@ describe("TypeaheadInputComponent", () => {
 
         const { fixture } = await createFormAndWaitForReady(formConfig);
         const text = String((fixture.nativeElement as HTMLElement).textContent ?? "");
-        expect(text).toContain("Missing serviceId for service typeahead source");
+        expect(text).toContain("@form-typeahead-missing-service-id");
     });
 
     it("renders named query suggestions with labelTemplate from query response fields", async () => {
@@ -1056,22 +1480,7 @@ describe("TypeaheadInputComponent", () => {
       const translationMapItems = {
         '@lookup-placeholder-party': "Start typing a party name...",
       }
-      if (!i18next.isInitialized) {
-        await i18next.init({
-          lng: 'en',
-          fallbackLng: 'en',
-          returnEmptyString: false,
-          resources: {
-            en: {
-              translation: {},
-            },
-          },
-        });
-      }
-      i18next.addResourceBundle('en', 'translation', translationMapItems, true, true);
-      await i18next.changeLanguage('en');
-
-      Object.assign(translationService.translationMap, translationMapItems);
+      await registerTranslations(translationMapItems);
 
       const formConfig: FormConfigFrame = {
         name: "testing",

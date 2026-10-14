@@ -158,6 +158,14 @@ export class FormComponentItemSelectEventConsumer extends FormComponentEventBase
       previousValue: previousValue === undefined ? undefined : this.cloneEventValue(previousValue),
       sourceId: parentPointer,
     });
+    // Keep the row-scoped event for consumers that intentionally listen to this
+    // exact group, and also publish the completed group value on the broadcast
+    // channel so cross-tree expressions can react to sibling autofill (for
+    // example, DMP permissions syncing the selected contributor email).
+    this.eventBus.publish({
+      ...scopedEvent,
+      sourceId: '*',
+    } as Omit<typeof scopedEvent, 'timestamp'>);
     this.eventBus.scoped(parentPointer).publish(scopedEvent as Omit<typeof scopedEvent, 'timestamp' | 'sourceId'>);
   }
 

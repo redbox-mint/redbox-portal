@@ -329,11 +329,21 @@ describe('FormComponent Integration Tests', () => {
     dispatchSpy.calls.reset();
 
     // Act: Call facade.submit()
-    facade.submit({ force: true, targetStep: 'review', enabledValidationGroups: ["all"] });
+    facade.submit({
+      force: true,
+      operation: 'submit',
+      targetStep: 'review',
+      enabledValidationGroups: ["all"],
+    });
 
     // Assert: submitForm action dispatched with parameters
     expect(dispatchSpy).toHaveBeenCalledWith(
-      FormActions.submitForm({ force: true, targetStep: 'review', enabledValidationGroups: ["all"] })
+      FormActions.submitForm({
+        force: true,
+        operation: 'submit',
+        targetStep: 'review',
+        enabledValidationGroups: ["all"],
+      })
     );
 
     dispatchSpy.calls.reset();

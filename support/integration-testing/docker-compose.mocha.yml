@@ -1,5 +1,3 @@
-version: '3.9'
-
 networks:
   main:
 
@@ -20,6 +18,8 @@ x-rbportal-env: &rbportal-env
   - CI=${CI:-false}
   - RBPORTAL_MOCHA_TEST_PATHS=${RBPORTAL_MOCHA_TEST_PATHS:-}
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
+  # Keep the schema contract default explicit when tests regenerate runtime config shims.
+  - sails_recordSchema__unknownProperties=allow
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -75,7 +75,7 @@ services:
       - './solr-multi-core-example.js:/opt/redbox-portal/config/solr.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   mongodb:
-    image: mongo:latest
+    image: mongo:latest@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
     pull_policy: 'always'
     networks:
       main:
@@ -88,7 +88,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest
+    image: solr:latest@sha256:4316295f16175f676ac6798769f7a21729131ab555f1ba8663839dd7abd92e13
     pull_policy: 'always'
     expose:
       - '8983'
@@ -109,7 +109,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.0
+    image: quay.io/keycloak/keycloak:26.8.0-1
     pull_policy: 'always'
     expose:
       - '8080'
@@ -129,7 +129,7 @@ services:
       - start-dev
       - --import-realm
   email:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:latest@sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365
     pull_policy: 'always'
     expose:
       - '1025'

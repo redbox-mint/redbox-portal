@@ -1,18 +1,19 @@
-import {createSinonStubLogger} from "../logger.test";
+import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { solr } from '../../src/config/solr.config';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
-describe('SolrSearchService', function() {
+describe('SolrSearchService', function () {
   let mockSails: any;
   let SolrSearchService: any;
   let mockQueueService: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockQueueService = {
-      now: sinon.stub()
+      now: sinon.stub(),
     };
 
     mockSails = createMockSails({
@@ -25,47 +26,43 @@ describe('SolrSearchService', function() {
                 host: 'localhost',
                 port: 8983,
                 core: 'redbox',
-                https: false
+                https: false,
               },
               schema: {},
               initSchemaFlag: { name: '_schema_init_flag', type: 'string' },
               preIndex: {
-                move: [
-                  { source: 'metadata', dest: '' }
-                ],
-                copy: [
-                  { source: 'redboxOid', dest: 'storage_id' }
-                ],
+                move: [{ source: 'metadata', dest: '' }],
+                copy: [{ source: 'redboxOid', dest: 'storage_id' }],
                 jsonString: [],
                 template: [],
                 flatten: {
                   options: { delimiter: '_', safe: true },
-                  special: []
-                }
-              }
-            }
+                  special: [],
+                },
+              },
+            },
           },
           maxWaitTries: 3,
           waitTime: 1000,
           createOrUpdateJobName: 'SolrAddOrUpdate',
           deleteJobName: 'SolrDelete',
-          clientSleepTimeMillis: 100
+          clientSleepTimeMillis: 100,
         },
         queue: {
-          serviceName: 'agendaqueueservice'
-        }
+          serviceName: 'agendaqueueservice',
+        },
       },
       log: createSinonStubLogger(sinon),
       services: {
-        agendaqueueservice: mockQueueService
+        agendaqueueservice: mockQueueService,
       },
-      on: sinon.stub()
+      on: sinon.stub(),
     });
 
     setupServiceTestGlobals(mockSails);
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
-      hasEditAccess: sinon.stub().returns(true)
+      hasEditAccess: sinon.stub().returns(true),
     };
 
     // Import after mocks are set up
@@ -74,58 +71,58 @@ describe('SolrSearchService', function() {
     SolrSearchService.queueService = mockQueueService;
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).RecordsService;
     sinon.restore();
   });
 
-  describe('constructor', function() {
-    it('should create instance with logHeader', function() {
+  describe('constructor', function () {
+    it('should create instance with logHeader', function () {
       expect(SolrSearchService.logHeader).to.equal('SolrIndexer::');
     });
 
-    it('should initialize clients as empty object', function() {
+    it('should initialize clients as empty object', function () {
       expect(SolrSearchService.clients).to.be.an('object');
     });
   });
 
-  describe('luceneEscape', function() {
-    it('should escape special characters', function() {
+  describe('luceneEscape', function () {
+    it('should escape special characters', function () {
       const result = (SolrSearchService as any).luceneEscape('test+query-with:special');
 
       expect(result).to.include('\\');
     });
 
-    it('should escape brackets', function() {
+    it('should escape brackets', function () {
       const result = (SolrSearchService as any).luceneEscape('test[1]');
 
       expect(result).to.include('\\[');
       expect(result).to.include('\\]');
     });
 
-    it('should escape parentheses', function() {
+    it('should escape parentheses', function () {
       const result = (SolrSearchService as any).luceneEscape('test(value)');
 
       expect(result).to.include('\\(');
       expect(result).to.include('\\)');
     });
 
-    it('should escape quotation marks', function() {
+    it('should escape quotation marks', function () {
       const result = (SolrSearchService as any).luceneEscape('test"value"');
 
       expect(result).to.include('\\"');
     });
 
-    it('should handle simple strings without special chars', function() {
+    it('should handle simple strings without special chars', function () {
       const result = (SolrSearchService as any).luceneEscape('simplestring');
 
       expect(result).to.equal('simplestring');
     });
   });
 
-  describe('addAuthFilter', function() {
-    it('should add authorization filter for username', function() {
+  describe('addAuthFilter', function () {
+    it('should add authorization filter for username', function () {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles = [{ name: 'Admin', branding: 'brand-1' }];
@@ -137,12 +134,12 @@ describe('SolrSearchService', function() {
       expect(result).to.include('authorization_view:testuser');
     });
 
-    it('should add role-based filters', function() {
+    it('should add role-based filters', function () {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles = [
         { name: 'Admin', branding: 'brand-1' },
-        { name: 'Researcher', branding: 'brand-1' }
+        { name: 'Researcher', branding: 'brand-1' },
       ];
       const brand = { id: 'brand-1', name: 'default' };
 
@@ -154,12 +151,12 @@ describe('SolrSearchService', function() {
       expect(result).to.include('Researcher');
     });
 
-    it('should filter roles by brand', function() {
+    it('should filter roles by brand', function () {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles = [
         { name: 'Admin', branding: 'brand-1' },
-        { name: 'OtherBrandRole', branding: 'brand-2' }
+        { name: 'OtherBrandRole', branding: 'brand-2' },
       ];
       const brand = { id: 'brand-1', name: 'default' };
 
@@ -169,7 +166,7 @@ describe('SolrSearchService', function() {
       expect(result).to.not.include('OtherBrandRole');
     });
 
-    it('should exclude view access when editAccessOnly is true', function() {
+    it('should exclude view access when editAccessOnly is true', function () {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles = [{ name: 'Admin', branding: 'brand-1' }];
@@ -181,7 +178,7 @@ describe('SolrSearchService', function() {
       expect(result).to.not.include('authorization_view:testuser');
     });
 
-    it('should handle empty roles', function() {
+    it('should handle empty roles', function () {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles: any[] = [];
@@ -193,12 +190,160 @@ describe('SolrSearchService', function() {
     });
   });
 
-  describe('getBaseUrl', function() {
-    it('should build HTTP URL', function() {
+  describe('addAuthParams', function () {
+    it('should append the authorization filter as an fq param', function () {
+      const params = new URLSearchParams();
+      const roles = [{ name: 'Admin', branding: 'brand-1' }];
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'testuser', roles, brand);
+
+      const authFilters = params.getAll('fq');
+      expect(authFilters).to.have.lengthOf(1);
+      expect(authFilters[0]).to.include('authorization_edit:testuser');
+      expect(authFilters[0]).to.include('authorization_viewRoles:(Admin)');
+    });
+
+    it('should not overwrite filters already collected', function () {
+      const params = new URLSearchParams();
+      params.append('fq', 'existing:filter');
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'testuser', [], brand);
+
+      expect(params.getAll('fq')).to.have.lengthOf(2);
+      expect(params.getAll('fq')[0]).to.equal('existing:filter');
+    });
+  });
+
+  describe('parseQueryFragment', function () {
+    it('should treat a bare expression as the q param', function () {
+      const params = (SolrSearchService as any).parseQueryFragment('metaMetadata_type:rdmp&rows=10');
+
+      expect(params.get('q')).to.equal('metaMetadata_type:rdmp');
+      expect(params.get('rows')).to.equal('10');
+    });
+
+    it('should strip a redundant q= prefix', function () {
+      const params = (SolrSearchService as any).parseQueryFragment('q=*:*&wt=json');
+
+      expect(params.get('q')).to.equal('*:*');
+      expect(params.get('wt')).to.equal('json');
+    });
+
+    it('should preserve repeated filter params', function () {
+      const params = (SolrSearchService as any).parseQueryFragment('*:*&fq=title:test*&fq=userEmail:a@b.com');
+
+      expect(params.getAll('fq')).to.deep.equal(['title:test*', 'userEmail:a@b.com']);
+    });
+
+    it('should keep values that contain an equals sign intact', function () {
+      const params = (SolrSearchService as any).parseQueryFragment('*:*&fq=note:a=b');
+
+      expect(params.get('fq')).to.equal('note:a=b');
+    });
+  });
+
+  describe('searchFuzzy', function () {
+    const brand = { id: 'brand-1', name: 'default' };
+    const user = { username: 'testuser' };
+
+    function stubAxiosGet() {
+      return sinon.stub(require('axios'), 'get').resolves({
+        data: { response: { numFound: 0, docs: [] } },
+      });
+    }
+
+    it('should send every filter and facet field to solr', async function () {
+      const axiosGet = stubAxiosGet();
+
+      await SolrSearchService.searchFuzzy(
+        'default',
+        'rdmp',
+        '',
+        'search terms',
+        [
+          { name: 'title', value: 'first' },
+          { name: 'owner', value: 'second' },
+        ],
+        [
+          { name: 'workflow_stage', value: '' },
+          { name: 'metaMetadata_type', value: 'rdmp' },
+        ],
+        brand,
+        user,
+        [],
+        ['title'],
+        0,
+        10
+      );
+
+      const params: URLSearchParams = axiosGet.firstCall.args[1].params;
+      expect(params).to.be.instanceOf(URLSearchParams);
+      expect(params.getAll('facet.field')).to.deep.equal(['workflow_stage', 'metaMetadata_type']);
+      // Two exact searches, one facet value and the authorization filter.
+      expect(params.getAll('fq')).to.have.lengthOf(4);
+      expect(params.getAll('fq')[0]).to.equal('title:first');
+      expect(params.getAll('fq')[1]).to.equal('owner:second');
+      expect(params.getAll('fq')[3]).to.include('authorization_edit:testuser');
+    });
+
+    it('should build the q param from brand, type and search query', async function () {
+      const axiosGet = stubAxiosGet();
+
+      await SolrSearchService.searchFuzzy(
+        'default',
+        'rdmp',
+        'draft',
+        'search terms',
+        [],
+        [],
+        brand,
+        user,
+        [],
+        ['title'],
+        0,
+        10
+      );
+
+      const params: URLSearchParams = axiosGet.firstCall.args[1].params;
+      expect(params.get('q')).to.equal(
+        'metaMetadata_brandId:brand-1 AND metaMetadata_type:rdmp AND workflow_stage:draft AND full_text:search terms'
+      );
+    });
+  });
+
+  describe('searchAdvanced', function () {
+    it('should pass the parsed query fragment to solr', async function () {
+      const axiosGet = sinon.stub(require('axios'), 'get').resolves({ data: {} });
+
+      await SolrSearchService.searchAdvanced('default', '', 'metaMetadata_type:rdmp&fq=title:a&fq=title:b');
+
+      expect(axiosGet.firstCall.args[0]).to.equal('http://localhost:8983/solr/redbox/select');
+      const params: URLSearchParams = axiosGet.firstCall.args[1].params;
+      expect(params.get('q')).to.equal('metaMetadata_type:rdmp');
+      expect(params.getAll('fq')).to.deep.equal(['title:a', 'title:b']);
+    });
+
+    it('should accept URLSearchParams directly', async function () {
+      const axiosGet = sinon.stub(require('axios'), 'get').resolves({ data: {} });
+      const query = new URLSearchParams([
+        ['q', '*:*'],
+        ['fq', 'title:a'],
+      ]);
+
+      await SolrSearchService.searchAdvanced('default', '', query);
+
+      expect(axiosGet.firstCall.args[1].params).to.equal(query);
+    });
+  });
+
+  describe('getBaseUrl', function () {
+    it('should build HTTP URL', function () {
       const options = {
         host: 'localhost',
         port: 8983,
-        https: false
+        https: false,
       };
 
       const result = (SolrSearchService as any).getBaseUrl(options);
@@ -206,11 +351,11 @@ describe('SolrSearchService', function() {
       expect(result).to.equal('http://localhost:8983/solr/');
     });
 
-    it('should build HTTPS URL', function() {
+    it('should build HTTPS URL', function () {
       const options = {
         host: 'solr.example.com',
         port: 443,
-        https: true
+        https: true,
       };
 
       const result = (SolrSearchService as any).getBaseUrl(options);
@@ -219,59 +364,66 @@ describe('SolrSearchService', function() {
     });
   });
 
-  describe('index', function() {
-    it('should queue indexing job', function() {
+  describe('index', function () {
+    it('should acknowledge a queued indexing job', async function () {
       const data: any = {
         metadata: { title: 'Test Record' },
-        metaMetadata: { brandId: 'brand-1' }
+        metaMetadata: { brandId: 'brand-1' },
       };
 
-      SolrSearchService.index('record-123', data);
+      expect(await SolrSearchService.index('record-123', data)).to.equal(true);
 
       expect(mockQueueService.now.called).to.be.true;
       expect(mockQueueService.now.firstCall.args[0]).to.equal('SolrAddOrUpdate');
     });
 
-    it('should set id on data before queueing', function() {
+    it('should set id on data before queueing', async function () {
       const data: any = {
-        metadata: { title: 'Test' }
+        metadata: { title: 'Test' },
       };
 
-      SolrSearchService.index('my-oid', data);
+      await SolrSearchService.index('my-oid', data);
 
       expect(data.id).to.equal('my-oid');
     });
 
-    it('should run inline when queue service is unavailable', function() {
+    it('should run inline when queue service is unavailable', async function () {
       const solrAddOrUpdateStub = sinon.stub(SolrSearchService, 'solrAddOrUpdate').resolves();
       SolrSearchService.queueService = undefined;
       const data: any = {
-        metadata: { title: 'Inline Test' }
+        metadata: { title: 'Inline Test' },
       };
 
-      SolrSearchService.index('inline-oid', data);
+      expect(await SolrSearchService.index('inline-oid', data)).to.equal(true);
 
       expect(solrAddOrUpdateStub.calledOnce).to.be.true;
       expect(solrAddOrUpdateStub.firstCall.args[0].attrs.data.id).to.equal('inline-oid');
     });
+
+    it('does not acknowledge a failed queue submission', async function () {
+      mockQueueService.now.rejects(new Error('queue unavailable'));
+
+      expect(await SolrSearchService.index('record-123', { metadata: {} })).to.equal(false);
+      expect(mockSails.log.error.called).to.equal(true);
+    });
   });
 
-  describe('remove', function() {
-    it('should queue delete job', function() {
+  describe('remove', function () {
+    it('should queue delete job', function () {
       SolrSearchService.remove('record-123');
 
       expect(mockQueueService.now.called).to.be.true;
       expect(mockQueueService.now.firstCall.args[0]).to.equal('SolrDelete');
     });
 
-    it('should pass id in job data', function() {
+    it('should pass id in job data', function () {
       SolrSearchService.remove('record-456');
 
       const jobData = mockQueueService.now.firstCall.args[1];
       expect(jobData.id).to.equal('record-456');
     });
 
-    it('should run delete inline when queue service is unavailable', function() {
+    it('should run delete inline when queue service is unavailable', function () {
       const solrDeleteStub = sinon.stub(SolrSearchService, 'solrDelete').resolves();
       SolrSearchService.queueService = undefined;
 
@@ -282,76 +434,230 @@ describe('SolrSearchService', function() {
     });
   });
 
-  describe('preIndex', function() {
-    // Note: preIndex requires the 'flat' module which is dynamically imported
-    // These tests require integration testing with the actual module loaded
-
-    it.skip('should flatten nested data (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+  describe('preIndex', function () {
+    beforeEach(async function () {
+      await SolrSearchService.processDynamicImports();
     });
 
-    it.skip('should apply move transformations (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('flattens and moves metadata while copying the storage identifier', function () {
+      const result = SolrSearchService.preIndex({
+        redboxOid: 'record-123',
+        metadata: { title: 'Test record', creator: { name: 'Researcher' } },
+      });
+
+      expect(result).to.deep.equal({
+        redboxOid: 'record-123',
+        storage_id: 'record-123',
+        title: 'Test record',
+        creator_name: 'Researcher',
+      });
     });
 
-    it.skip('should apply copy transformations (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('normalizes flattened date fields to UTC without changing other fields or the source record', function () {
+      const data = {
+        metadata: {
+          date: {
+            positiveOffset: '2026-09-24T14:30:00+10:00',
+            negativeOffset: '2026-09-23T23:30:00-05:00',
+            utc: '2026-09-24T04:30:00.123Z',
+            noOffset: '2026-09-24T04:30:00',
+            dateOnly: '2026-09-24',
+            basicDate: '20260924',
+            basicTimestamp: '20260924T143000+1000',
+            native: new Date('2026-09-24T14:30:00+10:00'),
+          },
+          title: '2026-09-24T14:30:00+10:00',
+        },
+      };
+
+      const result = SolrSearchService.preIndex(data);
+
+      expect(result).to.include({
+        date_positiveOffset: '2026-09-24T04:30:00.000Z',
+        date_negativeOffset: '2026-09-24T04:30:00.000Z',
+        date_utc: '2026-09-24T04:30:00.123Z',
+        date_noOffset: '2026-09-24T04:30:00.000Z',
+        date_dateOnly: '2026-09-24T00:00:00.000Z',
+        date_basicDate: '2026-09-24T00:00:00.000Z',
+        date_basicTimestamp: '2026-09-24T04:30:00.000Z',
+        date_native: '2026-09-24T04:30:00.000Z',
+        title: data.metadata.title,
+      });
+      expect(data.metadata.date.positiveOffset).to.equal('2026-09-24T14:30:00+10:00');
+      expect(data.metadata.date.native).to.be.instanceOf(Date);
     });
 
-    it.skip('should apply template transformations (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('normalizes every date in arrays, including nested arrays', function () {
+      const dates = [
+        '2026-09-24T14:30:00+10:00',
+        new Date('2026-09-23T23:30:00-05:00'),
+        ['2026-09-24T04:30:00Z', null, 42, 'invalid'],
+      ];
+
+      const result = SolrSearchService.preIndex({ metadata: { date_events: dates, date_empty: [] } });
+
+      expect(result.date_events).to.deep.equal([
+        '2026-09-24T04:30:00.000Z',
+        '2026-09-24T04:30:00.000Z',
+        ['2026-09-24T04:30:00.000Z', null, 42, 'invalid'],
+      ]);
+      expect(result.date_empty).to.deep.equal([]);
+      expect(dates[0]).to.equal('2026-09-24T14:30:00+10:00');
     });
 
-    it.skip('should convert objects to JSON strings (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('normalizes numbered date fields using the production default core configuration', function () {
+      mockSails.config.solr.cores.default = structuredClone(solr.cores.default);
+      const data = {
+        redboxOid: 'record-123',
+        metaMetadata: { createdOn: '2026-09-24T14:30:00+10:00' },
+        lastSaveDate: '2026-09-24T14:45:00+10:00',
+        metadata: {
+          date_events: ['2026-09-24T14:30:00+10:00', new Date('2026-09-23T23:30:00-05:00'), '2024', 'invalid', null],
+          title: '2026-09-24T14:30:00+10:00',
+          finalKeywords: ['Dates', 'UTC'],
+        },
+      };
+      const original = structuredClone(data);
+
+      const result = SolrSearchService.preIndex(data);
+
+      expect(result).to.include({
+        'date_events.0': '2026-09-24T04:30:00.000Z',
+        'date_events.1': '2026-09-24T04:30:00.000Z',
+        'date_events.2': '2024',
+        'date_events.3': 'invalid',
+        'date_events.4': null,
+        date_object_created: '2026-09-24T04:30:00.000Z',
+        date_object_modified: '2026-09-24T04:45:00.000Z',
+        title: data.metadata.title,
+      });
+      expect(result).not.to.have.property('date_events');
+      expect(result.finalKeywords).to.deep.equal(['Dates', 'UTC']);
+      expect(data).to.deep.equal(original);
     });
 
-    it.skip('should remove empty keys (requires dynamic import)', function() {
-      // This test requires the flat module to be loaded
+    it('preserves invalid dates and non-date values', function () {
+      const result = SolrSearchService.preIndex({
+        metadata: {
+          date_invalid: 'not-a-date',
+          date_empty: '',
+          date_null: null,
+          date_number: 42,
+          date_boolean: false,
+          date_undefined: undefined,
+          date_invalidCalendar: '2026-02-30T10:30:00+10:00',
+          date_invalidNative: new Date(NaN),
+        },
+      });
+
+      expect(result).to.include({
+        date_invalid: 'not-a-date',
+        date_empty: '',
+        date_null: null,
+        date_number: 42,
+        date_boolean: false,
+        date_undefined: undefined,
+        date_invalidCalendar: '2026-02-30T10:30:00+10:00',
+      });
+      expect(result.date_invalidNative).to.be.instanceOf(Date);
+      expect(Number.isNaN(result.date_invalidNative.getTime())).to.equal(true);
+    });
+
+    for (const value of ['10:30', '10:30:00+10:00', '2024', '2024-09', '202409', '2024-09T10:30', '2024-W39']) {
+      it(`preserves incomplete date ${value} in scalar and array fields`, function () {
+        const result = SolrSearchService.preIndex({ metadata: { date_incomplete: value, date_array: [value] } });
+
+        expect(result.date_incomplete).to.equal(value);
+        expect(result.date_array).to.deep.equal([value]);
+      });
+    }
+
+    it('normalizes dates produced by templates and special flattening', function () {
+      const preIndex = mockSails.config.solr.cores.default.preIndex;
+      preIndex.template = [{ source: 'metadata.modified', dest: 'date_modified', template: '<%= data %>' }];
+      preIndex.flatten.special = [
+        {
+          field: 'events',
+          source: 'metadata.events',
+          dest: 'date_events',
+          options: { delimiter: '_', safe: true },
+        },
+      ];
+
+      const result = SolrSearchService.preIndex({
+        metadata: {
+          modified: '2026-09-24T14:30:00+10:00',
+          events: { start: '2026-09-23T23:30:00-05:00' },
+        },
+      });
+
+      expect(result.date_modified).to.equal('2026-09-24T04:30:00.000Z');
+      expect(result.date_events_start).to.equal('2026-09-24T04:30:00.000Z');
+      expect(result).not.to.have.property('events_start');
+    });
+
+    it('converts configured objects to JSON and removes empty keys', function () {
+      mockSails.config.solr.cores.default.preIndex.jsonString = [{ source: 'metadata.details', dest: 'details_json' }];
+
+      const result = SolrSearchService.preIndex({ metadata: { details: { title: 'Test' }, '': 'remove me' } });
+
+      expect(result.details_json).to.equal('{"title":"Test"}');
+      expect(result).not.to.have.property('');
     });
   });
 
-  describe('initClient', function() {
-    it('should initialize clients for all cores', function() {
+  describe('initClient', function () {
+    it('should initialize clients for all cores', function () {
       (SolrSearchService as any).initClient();
 
       expect(SolrSearchService.clients).to.have.property('default');
     });
   });
 
-  describe('buildSchema', function() {
+  describe('buildSchema', function () {
     const configuredSchema = {
       'add-field': [{ name: 'title', type: 'string', indexed: true, stored: true, multiValued: false }],
-      'add-dynamic-field': [{ name: 'date_*', type: 'pdate', indexed: true, stored: true }, { name: '*', type: 'string', indexed: true, stored: true, multiValued: true }],
-      'add-copy-field': [{ source: '*', dest: 'title' }]
+      'add-dynamic-field': [
+        { name: 'date_*', type: 'pdate', indexed: true, stored: true },
+        { name: '*', type: 'string', indexed: true, stored: true, multiValued: true },
+      ],
+      'add-copy-field': [{ source: '*', dest: 'title' }],
     };
 
     function prepareSchemaReconciliation(liveSchema: Record<string, unknown>) {
       mockSails.config.solr.cores.default.schema = configuredSchema;
-      mockSails.config.solr.cores.default.initSchemaFlag = { name: 'schema_initialised', type: 'string', indexed: false, stored: false };
+      mockSails.config.solr.cores.default.initSchemaFlag = {
+        name: 'schema_initialised',
+        type: 'string',
+        indexed: false,
+        stored: false,
+      };
       sinon.stub(SolrSearchService, 'waitForSolr').resolves();
       const axios = require('axios');
       sinon.stub(axios, 'get').resolves({ data: { schema: liveSchema } });
       return sinon.stub(axios, 'post').resolves({ data: { responseHeader: { status: 0 } } });
     }
 
-    it('adds all configured definitions to an empty schema', async function() {
+    it('adds all configured definitions to an empty schema', async function () {
       const post = prepareSchemaReconciliation({ fields: [], dynamicFields: [], copyFields: [] });
 
       await SolrSearchService.buildSchema();
 
       expect(post.calledOnce).to.equal(true);
       const payload = post.firstCall.args[1];
-      expect(payload['add-field'].map((field: { name: string }) => field.name)).to.deep.equal(['title', 'schema_initialised']);
+      expect(payload['add-field'].map((field: { name: string }) => field.name)).to.deep.equal([
+        'title',
+        'schema_initialised',
+      ]);
       expect(payload['add-dynamic-field'].map((field: { name: string }) => field.name)).to.deep.equal(['date_*', '*']);
       expect(payload['add-copy-field']).to.deep.equal([{ source: '*', dest: 'title' }]);
     });
 
-    it('adds the catch-all field when the legacy initialization flag is present', async function() {
+    it('adds the catch-all field when the legacy initialization flag is present', async function () {
       const post = prepareSchemaReconciliation({
         fields: [{ name: 'schema_initialised', type: 'string', indexed: false, stored: false }],
         dynamicFields: [{ name: 'date_*', type: 'pdate', indexed: true, stored: true }],
-        copyFields: []
+        copyFields: [],
       });
 
       await SolrSearchService.buildSchema();
@@ -360,11 +666,14 @@ describe('SolrSearchService', function() {
       expect(post.firstCall.args[1]['add-dynamic-field']).to.deep.equal([configuredSchema['add-dynamic-field'][1]]);
     });
 
-    it('does not post when all definitions already exist', async function() {
+    it('does not post when all definitions already exist', async function () {
       const post = prepareSchemaReconciliation({
-        fields: [configuredSchema['add-field'][0], { name: 'schema_initialised', type: 'string', indexed: false, stored: false }],
+        fields: [
+          configuredSchema['add-field'][0],
+          { name: 'schema_initialised', type: 'string', indexed: false, stored: false },
+        ],
         dynamicFields: configuredSchema['add-dynamic-field'],
-        copyFields: configuredSchema['add-copy-field']
+        copyFields: configuredSchema['add-copy-field'],
       });
 
       await SolrSearchService.buildSchema();
@@ -372,33 +681,37 @@ describe('SolrSearchService', function() {
       expect(post.called).to.equal(false);
     });
 
-    it('reports conflicts without replacing existing fields', async function() {
+    it('reports conflicts without replacing existing fields', async function () {
       const post = prepareSchemaReconciliation({
         fields: [{ name: 'title', type: 'pdate', indexed: true, stored: true, multiValued: false }],
         dynamicFields: configuredSchema['add-dynamic-field'],
-        copyFields: configuredSchema['add-copy-field']
+        copyFields: configuredSchema['add-copy-field'],
       });
 
       await SolrSearchService.buildSchema();
 
       expect(post.calledOnce).to.equal(true);
-      expect(post.firstCall.args[1]['add-field']).to.deep.equal([{ name: 'schema_initialised', type: 'string', indexed: false, stored: false }]);
+      expect(post.firstCall.args[1]['add-field']).to.deep.equal([
+        { name: 'schema_initialised', type: 'string', indexed: false, stored: false },
+      ]);
       expect(mockSails.log.error.calledWithMatch('Solr schema definition conflict')).to.equal(true);
     });
 
-    it('does not duplicate initialization fields across reconciliations', async function() {
+    it('does not duplicate initialization fields across reconciliations', async function () {
       const post = prepareSchemaReconciliation({ fields: [], dynamicFields: [], copyFields: [] });
 
       await SolrSearchService.buildSchema();
       await SolrSearchService.buildSchema();
 
-      expect(post.firstCall.args[1]['add-field'].filter((field: { name: string }) => field.name === 'schema_initialised')).to.have.length(1);
+      expect(
+        post.firstCall.args[1]['add-field'].filter((field: { name: string }) => field.name === 'schema_initialised')
+      ).to.have.length(1);
       expect(mockSails.config.solr.cores.default.schema['add-field']).to.have.length(1);
     });
   });
 
-  describe('clientSleep', function() {
-    it('should resolve immediately when no sleep time configured', async function() {
+  describe('clientSleep', function () {
+    it('should resolve immediately when no sleep time configured', async function () {
       mockSails.config.solr.clientSleepTimeMillis = undefined;
 
       const start = Date.now();
@@ -408,7 +721,7 @@ describe('SolrSearchService', function() {
       expect(elapsed).to.be.lessThan(50);
     });
 
-    it('should sleep for configured time', async function() {
+    it('should sleep for configured time', async function () {
       mockSails.config.solr.clientSleepTimeMillis = 50;
 
       const start = Date.now();
@@ -419,8 +732,8 @@ describe('SolrSearchService', function() {
     });
   });
 
-  describe('exports', function() {
-    it('should export all public methods', function() {
+  describe('exports', function () {
+    it('should export all public methods', function () {
       const exported = SolrSearchService.exports();
 
       expect(exported).to.have.property('index');
@@ -435,25 +748,25 @@ describe('SolrSearchService', function() {
 });
 
 // Test the SolrClient class separately
-describe('SolrClient', function() {
+describe('SolrClient', function () {
   let SolrClient: any;
   let mockAxios: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     // Access the SolrClient class through the module
     const mockSails = createMockSails({});
     setupServiceTestGlobals(mockSails);
     (global as any).RecordsService = {};
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).RecordsService;
     sinon.restore();
   });
 
-  describe('constructor', function() {
-    it('should create axios instance with correct base URL', function() {
+  describe('constructor', function () {
+    it('should create axios instance with correct base URL', function () {
       // Test through service initialization
       const mockSails = createMockSails({
         config: {
@@ -464,16 +777,16 @@ describe('SolrClient', function() {
                   host: 'localhost',
                   port: 8983,
                   core: 'redbox',
-                  https: false
+                  https: false,
                 },
                 initSchemaFlag: { name: 'flag' },
-                preIndex: { move: [], copy: [], jsonString: [], template: [], flatten: { options: {}, special: [] } }
-              }
-            }
+                preIndex: { move: [], copy: [], jsonString: [], template: [], flatten: { options: {}, special: [] } },
+              },
+            },
           },
-          queue: { serviceName: 'agendaqueueservice' }
+          queue: { serviceName: 'agendaqueueservice' },
         },
-        services: { agendaqueueservice: { now: sinon.stub() } }
+        services: { agendaqueueservice: { now: sinon.stub() } },
       });
       setupServiceTestGlobals(mockSails);
 

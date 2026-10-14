@@ -253,7 +253,7 @@ describe('The EmailService', function () {
                         options: {
                             name: `Add notification log`,
                             logName: "notification.log.testing",
-                            saveRecord: true,
+                            saveRecord: false,
                             forceRun: true,
                         },
                     },

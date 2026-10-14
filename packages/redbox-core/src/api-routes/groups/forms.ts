@@ -10,7 +10,15 @@ export const getFormRoute = apiRoute(
   '/:branding/:portal/api/forms/get',
   'webservice/FormManagementController',
   'getForm',
-  { query: objectField({ name: stringField(), editable: stringField() }, ['name']) },
+  {
+    query: objectField({
+      name: stringField(),
+      editable: stringField(),
+      oid: stringField('Optional record OID used to resolve current workflow and brand context'),
+      recordType: stringField('Optional record type used for new-record operation discovery'),
+      targetStep: stringField('Optional actor-authorized workflow target used to narrow operation discovery'),
+    }, ['name']),
+  },
   {
     tags: ['Forms'],
     summary: 'Get form definition',

@@ -2,22 +2,22 @@ import type { Response } from 'express';
 import * as _ from 'lodash';
 import path from 'path';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
+import { sendTerminalErrorFallback } from './responses/terminalErrorFallback';
 import { resolveHookViewFile } from './hooks/hookResources';
 import type { ResolvedHookFile } from './hooks/hookResources';
 import {
   BuildResponseType,
+  RawJsonResponseMediaTypes,
   APIErrorResponse,
   ApiVersion,
   ApiVersionStrings,
   RBValidationError,
   ErrorResponseItemV2,
-} from "./model";
-import {RequestChronicleHelper} from "./utilities/RequestChronicle";
-import {CoreBase} from "./CoreBase";
-
+} from './model';
+import { RequestChronicleHelper } from './utilities/RequestChronicle';
+import { CoreBase } from './CoreBase';
 
 export namespace Controllers.Core {
-
   type ResolvedViewFile = ResolvedHookFile;
 
   /**
@@ -34,6 +34,10 @@ export namespace Controllers.Core {
    *
    * The public methods such as index/show/etc. are defined but send by default a 404 response if they are not overridden in the child class.
    * They exists just to bind by default all these methods without take care if they exists or not in order to speed up development.
+   *
+   * @extensionPoint Hook controllers extend this class, retain inherited `_exportedMethods`, and export replacements under the same controller registry name.
+   * @remarks Use `sendResp` for responses so API versioning and the standard response envelope remain consistent.
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
    */
   export class Controller extends CoreBase {
     /**
@@ -68,7 +72,7 @@ export namespace Controllers.Core {
       '_config',
     ];
 
-    protected _loggerNamespaceSuffix: string = "Controller";
+    protected _loggerNamespaceSuffix: string = 'Controller';
 
     /**
      **************************************************************************************************
@@ -101,7 +105,9 @@ export namespace Controllers.Core {
               exportedMethods[methodName] = member;
             }
           } else {
-            this.logger.error(`The controller method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
+            this.logger.error(
+              `The controller method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`
+            );
           }
         } else {
           this.logger.error(`The controller method "${methodName}" does not exist on ${this.constructor?.name}`);
@@ -129,7 +135,12 @@ export namespace Controllers.Core {
      *          controller  Controller      Child controller class. (static)
      *
      */
-    protected _handleRequest(req: Sails.Req, res: Sails.Res, callback: (req: Sails.Req, res: Sails.Res, options: Record<string, unknown>) => void, options: Record<string, unknown> = {}): void {
+    protected _handleRequest(
+      req: Sails.Req,
+      res: Sails.Res,
+      callback: (req: Sails.Req, res: Sails.Res, options: Record<string, unknown>) => void,
+      options: Record<string, unknown> = {}
+    ): void {
       callback(req, res, options);
     }
 
@@ -152,7 +163,6 @@ export namespace Controllers.Core {
       res.notFound();
     }
 
-
     private getCoreViewRoot(): string {
       return path.resolve(sails.config.appPath, 'views');
     }
@@ -165,8 +175,7 @@ export namespace Controllers.Core {
     }
 
     private resolveViewCandidate(viewPath: string): ResolvedViewFile | null {
-      return resolveHookViewFile(sails.config.appPath, viewPath)
-        ?? this.resolveCoreViewFile(viewPath);
+      return resolveHookViewFile(sails.config.appPath, viewPath) ?? this.resolveCoreViewFile(viewPath);
     }
 
     private resolveViewFile(branding: string, portal: string, view: string): ResolvedViewFile | null {
@@ -174,6 +183,7 @@ export namespace Controllers.Core {
         `${branding}/${portal}/${view}`,
         `default/${portal}/${view}`,
         `default/default/${view}`,
+        view,
       ];
 
       for (const candidate of candidates) {
@@ -226,6 +236,42 @@ export namespace Controllers.Core {
       return path.resolve(this.getCoreViewRoot(), path.dirname(resolvedFile.relativePath));
     }
 
+    private addRequestBrandingAndPortal(req: Sails.Req, locals: Record<string, unknown>): void {
+      const stringValue = (value: unknown): string | undefined => {
+        return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+      };
+      const requestParam = (name: string): string | undefined => {
+        if (typeof req.param === 'function') {
+          return stringValue(req.param(name));
+        }
+        return stringValue(req.params?.[name]);
+      };
+
+      let branding = stringValue(locals.branding) ?? requestParam('branding');
+      let portal = stringValue(locals.portal) ?? requestParam('portal');
+
+      // A route-level 404 has already run brandingAndPortal, but an unmatched
+      // branded URL has no route parameters or policies. Recover its context
+      // from the first two path segments so it receives the same theme.
+      if (!branding || !portal) {
+        const requestPath = stringValue(req.originalUrl) ?? stringValue(req.url);
+        const segments = requestPath?.split('?')[0].split('/').filter(Boolean) ?? [];
+        const rootContext = stringValue(sails.config.http?.rootContext);
+        if (rootContext && segments[0] === rootContext) {
+          segments.shift();
+        }
+        if (segments.length >= 2) {
+          branding ??= segments[0];
+          portal ??= segments[1];
+        }
+      }
+
+      branding ??= stringValue(req.session?.branding) ?? stringValue(sails.config.auth?.defaultBrand) ?? 'default';
+      portal ??= stringValue(req.session?.portal) ?? stringValue(sails.config.auth?.defaultPortal) ?? 'default';
+      locals.branding = branding;
+      locals.portal = portal;
+    }
+
     public _getResolvedView(branding: string, portal: string, view: string): string | null {
       const resolvedView = this.resolveViewFile(branding, portal, view);
       return resolvedView ? this.getSailsViewPath(resolvedView) : null;
@@ -237,14 +283,18 @@ export namespace Controllers.Core {
     }
 
     public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
-
       if (!req.options) {
         req.options = {};
       }
       if (req.options.locals == null) {
         req.options.locals = {};
       }
-      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals as Record<string, unknown>, locals);
+      const mergedLocal: Record<string, unknown> = Object.assign(
+        {},
+        req.options.locals as Record<string, unknown>,
+        locals
+      );
+      this.addRequestBrandingAndPortal(req, mergedLocal);
 
       const branding = mergedLocal['branding'] as string;
       const portal = mergedLocal['portal'] as string;
@@ -252,18 +302,22 @@ export namespace Controllers.Core {
       const resolvedView = this.resolveViewFile(branding, portal, view);
       const resolvedLayout = this.resolveLayoutFile(branding, portal);
 
-      // View still doesn't exist so return a 404
+      // Do not re-enter res.notFound here: the missing view may itself be the
+      // 404 template. Preserve an existing error status and terminate safely.
       if (resolvedView === null) {
-        res.notFound(mergedLocal, "404");
+        sendTerminalErrorFallback(res);
         return;
       }
 
       // If we can resolve a layout set it explicitly for ejs-locals. Sails' built-in
       // layout calculation assumes one app views root, but hook views live elsewhere.
-      if (resolvedLayout !== null && mergedLocal["layout"] !== false) {
-        mergedLocal["_layoutFile"] = path.relative(path.dirname(resolvedView.absolutePath), resolvedLayout.absolutePath);
-        mergedLocal["layout"] = false;
-        mergedLocal["layoutDirectoryLocation"] = `${path.dirname(resolvedLayout.absolutePath)}${path.sep}`;
+      if (resolvedLayout !== null && mergedLocal['layout'] !== false) {
+        mergedLocal['_layoutFile'] = path.relative(
+          path.dirname(resolvedView.absolutePath),
+          resolvedLayout.absolutePath
+        );
+        mergedLocal['layout'] = false;
+        mergedLocal['layoutDirectoryLocation'] = `${path.dirname(resolvedLayout.absolutePath)}${path.sep}`;
       }
 
       // Add some properties blueprints usually adds
@@ -276,10 +330,12 @@ export namespace Controllers.Core {
       _.merge(mergedLocal, this.getNg2Apps(view));
       mergedLocal['templateDirectoryLocation'] = `${path.dirname(resolvedView.absolutePath)}${path.sep}`;
       mergedLocal['__dirname'] = resolvedView.absolutePath;
-      mergedLocal['views'] = Array.from(new Set([
-        this.getCoreMirrorDirectory(resolvedView),
-        ...(resolvedLayout ? [this.getCoreMirrorDirectory(resolvedLayout)] : []),
-      ]));
+      mergedLocal['views'] = Array.from(
+        new Set([
+          this.getCoreMirrorDirectory(resolvedView),
+          ...(resolvedLayout ? [this.getCoreMirrorDirectory(resolvedLayout)] : []),
+        ])
+      );
 
       // this.logger.debug("resolvedView");
       // this.logger.debug(sailsViewPath);
@@ -335,7 +391,13 @@ export namespace Controllers.Core {
     /**
      * @deprecated Use `sendResp` instead.
      */
-    public respond(req: Sails.Req, res: Sails.Res, ajaxCb: (req: Sails.Req, res: Sails.Res) => unknown, normalCb: (req: Sails.Req, res: Sails.Res) => unknown, _forceAjax = false): unknown {
+    public respond(
+      req: Sails.Req,
+      res: Sails.Res,
+      ajaxCb: (req: Sails.Req, res: Sails.Res) => unknown,
+      normalCb: (req: Sails.Req, res: Sails.Res) => unknown,
+      _forceAjax = false
+    ): unknown {
       if (this.isAjax(req) || _forceAjax === true) {
         return ajaxCb(req, res);
       } else {
@@ -367,10 +429,12 @@ export namespace Controllers.Core {
      * @deprecated Use `sendResp` instead.
      */
     protected apiFail(req: Sails.Req, res: Sails.Res, statusCode = 500, errorResponse?: APIErrorResponse): Response {
-      const displayErrors = [{
-        title: errorResponse?.message ?? 'An error has occurred',
-        detail: errorResponse?.details
-      }];
+      const displayErrors = [
+        {
+          title: errorResponse?.message ?? 'An error has occurred',
+          detail: errorResponse?.details,
+        },
+      ];
       return this.sendResp(req, res, { status: statusCode, displayErrors, headers: this.getNoCacheHeaders() });
     }
 
@@ -409,25 +473,30 @@ export namespace Controllers.Core {
      * Defaults to v1.
      * @param req The sails request.
      * @return The API version string.
-     * @private
+     * @protected
      */
-    private getApiVersion(req: Sails.Req): ApiVersionStrings {
+    protected getApiVersion(req: Sails.Req): ApiVersionStrings {
       const defaultVersion = ApiVersion.VERSION_1_0;
 
       const qs = req.query;
-      const qsKey = "apiVersion";
+      const qsKey = 'apiVersion';
       const qsKeyLower = qsKey.toLowerCase();
 
       const headers = req.headers;
-      const headerKey = "X-ReDBox-Api-Version";
+      const headerKey = 'X-ReDBox-Api-Version';
       const headerKeyLower = headerKey.toLowerCase();
 
       const qsValue = (_.get(qs, qsKey) ?? _.get(qs, qsKeyLower))?.toString()?.trim()?.toLowerCase();
-      const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))?.toString()?.trim()?.toLowerCase();
+      const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))
+        ?.toString()
+        ?.trim()
+        ?.toLowerCase();
 
       if (qsValue && headerValue && qsValue !== headerValue) {
-        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match. ` +
-          `Using default API version (${defaultVersion}).`);
+        sails.log.error(
+          `If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match. ` +
+            `Using default API version (${defaultVersion}).`
+        );
         return defaultVersion;
       }
 
@@ -436,8 +505,10 @@ export namespace Controllers.Core {
 
       const available: string[] = Object.values(ApiVersion);
       if (!available.includes(version)) {
-        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
-          `Using default API version (${defaultVersion}).`);
+        sails.log.error(
+          `The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
+            `Using default API version (${defaultVersion}).`
+        );
         return defaultVersion;
       }
 
@@ -474,8 +545,8 @@ export namespace Controllers.Core {
       const apiVersion = this.getApiVersion(req);
       // Destructure build response properties and set defaults.
       const {
-        format = "json",
-        data = {},
+        format = 'json',
+        data: suppliedData,
         headers = {},
         errors = [],
         displayErrors = [],
@@ -484,6 +555,7 @@ export namespace Controllers.Core {
         v1 = null,
         chronicle = {},
       } = buildResponse ?? {};
+      const data = suppliedData === undefined ? {} : suppliedData;
       // Response status defaults to 200.
       let { status = 200 } = buildResponse ?? {};
 
@@ -495,6 +567,14 @@ export namespace Controllers.Core {
       this.applyResponseStatus(res, status);
 
       this.updateChronicle(req, chronicle, collectedErrors);
+      if (status === 304) {
+        sails.log.verbose('Send bodyless 304 response.');
+        return res.end();
+      }
+
+      if (format === 'raw-json') {
+        return this.sendRawJsonResponse(res, buildResponse?.mediaType, suppliedData);
+      }
 
       // Delegate full version-specific responses (success + errors) to wrapper handlers.
       if (apiVersion === ApiVersion.VERSION_1_0) {
@@ -502,7 +582,16 @@ export namespace Controllers.Core {
       }
 
       if (apiVersion === ApiVersion.VERSION_2_0) {
-        return this.handleV2Response(res, format, status, collectedErrors, collectedDisplayErrors, data, meta, prehydrate);
+        return this.handleV2Response(
+          res,
+          format,
+          status,
+          collectedErrors,
+          collectedDisplayErrors,
+          data,
+          meta,
+          prehydrate
+        );
       }
 
       const unknownSituation = {
@@ -523,8 +612,8 @@ export namespace Controllers.Core {
           collectedDisplayErrors,
         },
       };
-      sails.log.error("Unknown API version in sendResp", unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+      sails.log.error('Unknown API version in sendResp', unknownSituation);
+      return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: {} });
     }
 
     protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
@@ -534,10 +623,10 @@ export namespace Controllers.Core {
     }
 
     private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[]) {
-      const {
-        errors: collectedErrors,
-        displayErrors: collectedDisplayErrors
-      } = RBValidationError.collectErrors(errors, displayErrors);
+      const { errors: collectedErrors, displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(
+        errors,
+        displayErrors
+      );
 
       for (const error of collectedErrors) {
         sails.log.error(`Collected error in sendResp:`, error);
@@ -552,7 +641,7 @@ export namespace Controllers.Core {
     private ensureDisplayErrors(collectedErrors: Error[], collectedDisplayErrors: ErrorResponseItemV2[]) {
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
         // If there are any errors, there must be at least one display error to show the user.
-        collectedDisplayErrors.push({ code: 'server-error', status: "500" });
+        collectedDisplayErrors.push({ code: 'server-error', status: '500' });
       }
 
       const errorsMsg = `${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'}`;
@@ -566,12 +655,13 @@ export namespace Controllers.Core {
         try {
           const statuses: number[] = [];
           if (status !== undefined && status !== null) {
-            statuses.push(status)
+            statuses.push(status);
           }
-          statuses.push(...collectedDisplayErrors
-            .map(i => i?.status ? parseInt(i?.status?.toString()) : 0)
-            .filter(i => Number.isFinite(i))
-          )
+          statuses.push(
+            ...collectedDisplayErrors
+              .map(i => (i?.status ? parseInt(i?.status?.toString()) : 0))
+              .filter(i => Number.isFinite(i))
+          );
           if (statuses.length > 0) {
             // Note that Math.max has a maximum number of parameters, which a very long array (10,000+) could exceed.
             // We don't expect that many statuses. If this becomes an issue, use Array.reduce instead.
@@ -608,6 +698,93 @@ export namespace Controllers.Core {
       }
     }
 
+    private isApprovedRawJsonMediaType(value: unknown): value is (typeof RawJsonResponseMediaTypes)[number] {
+      return RawJsonResponseMediaTypes.some(mediaType => mediaType === value);
+    }
+
+    private isJsonSafeValue(value: unknown, ancestors: Set<object>): boolean {
+      if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+        return true;
+      }
+      if (typeof value === 'number') {
+        return Number.isFinite(value);
+      }
+      if (typeof value !== 'object') {
+        return false;
+      }
+
+      if (ancestors.has(value)) {
+        return false;
+      }
+      ancestors.add(value);
+      try {
+        if (Array.isArray(value)) {
+          if (Object.getOwnPropertySymbols(value).length > 0) {
+            return false;
+          }
+          const descriptors = Object.getOwnPropertyDescriptors(value);
+          if (Object.keys(descriptors).length !== value.length + 1) {
+            return false;
+          }
+          for (let index = 0; index < value.length; index += 1) {
+            const descriptor = descriptors[index];
+            if (
+              !descriptor ||
+              descriptor.enumerable !== true ||
+              !('value' in descriptor) ||
+              !this.isJsonSafeValue(descriptor.value, ancestors)
+            ) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        const prototype = Object.getPrototypeOf(value);
+        if (prototype !== Object.prototype && prototype !== null) {
+          return false;
+        }
+        if (Object.getOwnPropertySymbols(value).length > 0) {
+          return false;
+        }
+
+        return Object.values(Object.getOwnPropertyDescriptors(value)).every(
+          descriptor =>
+            descriptor.enumerable === true && 'value' in descriptor && this.isJsonSafeValue(descriptor.value, ancestors)
+        );
+      } finally {
+        ancestors.delete(value);
+      }
+    }
+
+    private isRawJsonObject(value: unknown): value is Record<string, unknown> {
+      try {
+        return (
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          this.isJsonSafeValue(value, new Set<object>())
+        );
+      } catch {
+        return false;
+      }
+    }
+
+    private sendRawJsonResponse(res: Response, mediaType: unknown, data: unknown): Response {
+      if (!this.isApprovedRawJsonMediaType(mediaType) || !this.isRawJsonObject(data)) {
+        sails.log.error('Rejected unsupported raw JSON response in sendResp', {
+          mediaType: typeof mediaType === 'string' ? mediaType : typeof mediaType,
+          bodyKind: data === null ? 'null' : Array.isArray(data) ? 'array' : typeof data,
+        });
+        res.set('Content-Type', 'application/json');
+        return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: {} });
+      }
+
+      res.set('Content-Type', mediaType);
+      sails.log.verbose(`Send raw JSON response with media type ${mediaType}.`);
+      return res.json(data);
+    }
+
     private shouldSendSuccessJson(
       format: string,
       collectedErrors: Error[],
@@ -629,10 +806,8 @@ export namespace Controllers.Core {
 
       return (
         (data !== null && data !== undefined) ||
-        (
-          ((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
-          apiVersion === ApiVersion.VERSION_1_0
-        )
+        (((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
+          apiVersion === ApiVersion.VERSION_1_0)
       );
     }
 
@@ -660,23 +835,23 @@ export namespace Controllers.Core {
       const errorResponse = new APIErrorResponse();
       if (collectedDisplayErrors.length === 1) {
         const displayError = collectedDisplayErrors[0] ?? {};
-        const title = displayError.title?.toString()?.trim() || displayError.code?.toString()?.trim() || "";
-        const detail = displayError.detail?.toString()?.trim() || "";
+        const title = displayError.title?.toString()?.trim() || displayError.code?.toString()?.trim() || '';
+        const detail = displayError.detail?.toString()?.trim() || '';
         if (title || detail) {
-          errorResponse.message = title || detail || "An error occurred";
+          errorResponse.message = title || detail || 'An error occurred';
           if (title && detail) {
             errorResponse.details = detail;
           }
         } else {
           errorResponse.message = RBValidationError.displayMessage({
             t: TranslationService,
-            displayErrors: collectedDisplayErrors
+            displayErrors: collectedDisplayErrors,
           });
         }
       } else {
         errorResponse.message = RBValidationError.displayMessage({
           t: TranslationService,
-          displayErrors: collectedDisplayErrors
+          displayErrors: collectedDisplayErrors,
         });
       }
       return errorResponse;
@@ -685,9 +860,9 @@ export namespace Controllers.Core {
     private formatV2DisplayErrors(collectedDisplayErrors: ErrorResponseItemV2[]): ErrorResponseItemV2[] {
       const t = TranslationService.t;
       return collectedDisplayErrors.map(displayError => {
-        const code = displayError.code?.toString()?.trim() || "";
-        let title = displayError.title?.toString()?.trim() || "";
-        const detail = displayError.detail?.toString()?.trim() || "";
+        const code = displayError.code?.toString()?.trim() || '';
+        let title = displayError.title?.toString()?.trim() || '';
+        const detail = displayError.detail?.toString()?.trim() || '';
 
         if (code && !title && !detail) {
           title = code;
@@ -714,7 +889,17 @@ export namespace Controllers.Core {
       meta: Record<string, unknown>
     ) {
       // Success path for v1
-      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, v1, ApiVersion.VERSION_1_0)) {
+      if (
+        this.shouldSendSuccessJson(
+          format,
+          collectedErrors,
+          collectedDisplayErrors,
+          status,
+          data,
+          v1,
+          ApiVersion.VERSION_1_0
+        )
+      ) {
         return this.sendSuccessJson(res, ApiVersion.VERSION_1_0, status, data, meta, v1);
       }
 
@@ -744,8 +929,8 @@ export namespace Controllers.Core {
           collectedDisplayErrors,
         },
       };
-      sails.log.error("Unknown v1 situation in sendResp", unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+      sails.log.error('Unknown v1 situation in sendResp', unknownSituation);
+      return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: meta || {} });
     }
 
     private handleV2Response(
@@ -759,7 +944,17 @@ export namespace Controllers.Core {
       prehydrate?: unknown
     ) {
       // Success path for v2
-      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, null, ApiVersion.VERSION_2_0)) {
+      if (
+        this.shouldSendSuccessJson(
+          format,
+          collectedErrors,
+          collectedDisplayErrors,
+          status,
+          data,
+          null,
+          ApiVersion.VERSION_2_0
+        )
+      ) {
         if (prehydrate !== null && prehydrate !== undefined) {
           sails.log.verbose(`Send response status ${status} api version 2 format json with prehydrate.`);
           return res.json({ data: data, meta: meta, prehydrate });
@@ -780,7 +975,7 @@ export namespace Controllers.Core {
           format,
           status,
           data,
-          meta
+          meta,
         },
         errors: {
           collectedErrors,
@@ -788,14 +983,14 @@ export namespace Controllers.Core {
         },
       };
       sails.log.error(`Unknown v2 situation in sendResp`, unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+      return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: meta || {} });
     }
 
     protected getNoCacheHeaders(): Record<string, string> {
       return {
         'Cache-control': 'no-cache, private',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        Pragma: 'no-cache',
+        Expires: '0',
       };
     }
 
@@ -818,12 +1013,24 @@ export namespace Controllers.Core {
         result = value;
       }
 
-      const parsed = Number.parseFloat(value?.toString() ?? "");
-      if (result === null && parsed !== null && parsed !== undefined && typeof parsed === 'number' && Number.isFinite(parsed)) {
+      const parsed = Number.parseFloat(value?.toString() ?? '');
+      if (
+        result === null &&
+        parsed !== null &&
+        parsed !== undefined &&
+        typeof parsed === 'number' &&
+        Number.isFinite(parsed)
+      ) {
         result = parsed;
       }
 
-      if (result === null && defaultValue !== null && defaultValue !== undefined && typeof defaultValue === 'number' && Number.isFinite(defaultValue)) {
+      if (
+        result === null &&
+        defaultValue !== null &&
+        defaultValue !== undefined &&
+        typeof defaultValue === 'number' &&
+        Number.isFinite(defaultValue)
+      ) {
         result = defaultValue;
       }
 

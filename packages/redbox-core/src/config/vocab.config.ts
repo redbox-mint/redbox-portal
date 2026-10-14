@@ -94,6 +94,10 @@ export interface VocabConfig {
     services: Record<string, VocabServiceLookupConfig>;
     nonAnds: Record<string, { url: string }>;
     collection: Record<string, VocabCollectionConfig>;
+    /** Set to false to skip `bootstrap-data/vocabularies/rva-imports.json` during lift. */
+    bootstrapRvaImports?: boolean;
+    /** Set to false to skip `bootstrap-data/vocabularies/figshare-imports.json` during lift. */
+    bootstrapFigshareImports?: boolean;
 }
 
 const baseUrl = "https://geonames.redboxresearchdata.com.au/select";

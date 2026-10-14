@@ -1,0 +1,53 @@
+meta {
+  name: Reject Stale Schema Precondition
+  type: http
+  seq: 12
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaEnforceOid}}?merge=true
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+  X-ReDBox-Record-Schema-If-Match: {{recordSchemaEnforceStaleEtag}}
+}
+
+body:json {
+  {
+    "title": "This stale schema write must not persist"
+  }
+}
+
+tests {
+  test("Rejects a dynamically derived stale schema ETag with HTTP 412", function () {
+    expect(bru.getEnvVar("recordSchemaEnforceStaleEtag"), "stale schema ETag").to.match(
+      /^"sha256:[0-9a-f]{64}"$/
+    );
+    expect(bru.getEnvVar("recordSchemaEnforceStaleEtag")).not.to.equal(
+      bru.getEnvVar("recordSchemaEnforceUpdateEtag")
+    );
+    expect(res.getStatus()).to.equal(412);
+
+    const body = res.getBody();
+    expect(body.errors).to.deep.include({
+      code: "record-schema.precondition-failed",
+      title: "@record-schema.precondition-failed"
+    });
+    expect(body.meta.outcome).to.equal("not-saved");
+
+    const schemaProblem = body.meta.problems.find(
+      problem => problem.source === "schema" && problem.phase === "schema"
+    );
+    expect(schemaProblem, "schema precondition problem").to.be.an("object");
+    expect(schemaProblem.issues).to.deep.include({
+      code: "record-schema.precondition-failed",
+      message: "@record-schema.precondition-failed"
+    });
+    expect(res.getHeader("link")).to.equal(undefined);
+  });
+}

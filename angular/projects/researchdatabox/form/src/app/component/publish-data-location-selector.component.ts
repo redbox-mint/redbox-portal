@@ -33,29 +33,29 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
 
   @Input() public override model?: PublishDataLocationSelectorModel;
 
-  public editNotesButtonText = "Edit";
-  public editNotesTitle = "Edit Notes";
-  public cancelEditNotesButtonText = "Cancel";
-  public applyEditNotesButtonText = "Apply";
+  public editNotesButtonText = "@form-data-location-edit";
+  public editNotesTitle = "@form-data-location-edit-title";
+  public cancelEditNotesButtonText = "@cancel-button";
+  public applyEditNotesButtonText = "@form-data-location-apply";
   public editNotesCssClasses = "form-control";
-  public typeHeader = "Type";
-  public locationHeader = "Location";
-  public notesHeader = "Notes";
-  public iscHeader = "Information Security Classification";
+  public typeHeader = "@form-data-location-type";
+  public locationHeader = "@form-file-upload-location";
+  public notesHeader = "@form-file-upload-notes";
+  public iscHeader = "@form-data-location-isc";
   public iscEnabled = false;
   public notesEnabled = true;
-  public metadataOnlyTitle = "No data locations selected";
-  public metadataOnlyBody = "Publicise only metadata (or description)";
-  public noLocationsAvailableTitle = "No data locations available";
+  public metadataOnlyTitle = "@form-publish-data-location-no-selection-title";
+  public metadataOnlyBody = "@form-publish-data-location-no-selection-body";
+  public noLocationsAvailableTitle = "@form-publish-data-location-none-title";
   public noLocationsAvailableBody = "";
-  public selectionSummaryTemplate = "{{selected}} of {{total}} locations selected for publication";
+  public selectionSummaryTemplate = "@form-publish-data-location-selection-summary";
   public publicCheck = "public";
   public selectionCriteria: PublishDataLocationSelectionCriterion[] = [{ isc: "public", type: "attachment" }];
   public dataTypeLookup: Record<string, string> = {
-    url: "URL",
-    physical: "Physical location",
-    file: "File path",
-    attachment: "Attachment",
+    url: "@form-data-location-type-url",
+    physical: "@form-data-location-type-physical",
+    file: "@form-data-location-type-file",
+    attachment: "@form-data-location-type-attachment",
   };
   public editingNotesIndex = -1;
   public editingNotesValue = "";
@@ -72,23 +72,23 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
       (this.componentDefinition?.config as PublishDataLocationSelectorFieldComponentConfigOutline) ??
       new PublishDataLocationSelectorFieldComponentConfig();
     const cfgRecord = cfg as PublishDataLocationSelectorFieldComponentConfigOutline & Record<string, unknown>;
-    this.editNotesButtonText = String(cfg.editNotesButtonText ?? "Edit");
-    this.editNotesTitle = String(cfg.editNotesTitle ?? "Edit Notes");
-    this.cancelEditNotesButtonText = String(cfg.cancelEditNotesButtonText ?? "Cancel");
-    this.applyEditNotesButtonText = String(cfg.applyEditNotesButtonText ?? "Apply");
+    this.editNotesButtonText = String(cfg.editNotesButtonText ?? "@form-data-location-edit");
+    this.editNotesTitle = String(cfg.editNotesTitle ?? "@form-data-location-edit-title");
+    this.cancelEditNotesButtonText = String(cfg.cancelEditNotesButtonText ?? "@cancel-button");
+    this.applyEditNotesButtonText = String(cfg.applyEditNotesButtonText ?? "@form-data-location-apply");
     this.editNotesCssClasses = String(cfg.editNotesCssClasses ?? "form-control");
-    this.typeHeader = String(cfg.typeHeader ?? "Type");
-    this.locationHeader = String(cfg.locationHeader ?? "Location");
-    this.notesHeader = String(cfg.notesHeader ?? "Notes");
-    this.iscHeader = String(cfg.iscHeader ?? "Information Security Classification");
+    this.typeHeader = String(cfg.typeHeader ?? "@form-data-location-type");
+    this.locationHeader = String(cfg.locationHeader ?? "@form-file-upload-location");
+    this.notesHeader = String(cfg.notesHeader ?? "@form-file-upload-notes");
+    this.iscHeader = String(cfg.iscHeader ?? "@form-data-location-isc");
     this.iscEnabled = cfg.iscEnabled === true;
     this.notesEnabled = cfg.notesEnabled !== false;
-    this.metadataOnlyTitle = String(cfg.metadataOnlyTitle ?? "No data locations selected");
-    this.metadataOnlyBody = String(cfg.metadataOnlyBody ?? "Publicise only metadata (or description)");
-    this.noLocationsAvailableTitle = String(cfg.noLocationsAvailableTitle ?? "No data locations available");
+    this.metadataOnlyTitle = String(cfg.metadataOnlyTitle ?? "@form-publish-data-location-no-selection-title");
+    this.metadataOnlyBody = String(cfg.metadataOnlyBody ?? "@form-publish-data-location-no-selection-body");
+    this.noLocationsAvailableTitle = String(cfg.noLocationsAvailableTitle ?? "@form-publish-data-location-none-title");
     this.noLocationsAvailableBody = String(cfg.noLocationsAvailableBody ?? "");
     this.selectionSummaryTemplate = String(
-      cfg.selectionSummaryTemplate ?? "{{selected}} of {{total}} locations selected for publication"
+      cfg.selectionSummaryTemplate ?? "@form-publish-data-location-selection-summary"
     );
     this.publicCheck = String(cfg.publicCheck ?? "public");
     this.selectionCriteria = Array.isArray(cfg.selectionCriteria) && cfg.selectionCriteria.length > 0
@@ -215,7 +215,8 @@ export class PublishDataLocationSelectorComponent extends FormFieldBaseComponent
   }
 
   public getLocationTypeLabel(item: PublishDataLocationValueType): string {
-    return this.dataTypeLookup[String(item?.type ?? "")] ?? String(item?.type ?? "");
+    const label = this.dataTypeLookup[String(item?.type ?? "")] ?? String(item?.type ?? "");
+    return String(this.translationService.t(label));
   }
 
   public getLocationDisplayText(item: PublishDataLocationValueType): string {

@@ -4,7 +4,7 @@ import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
 
-const require = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 
 describe('hookResources', function () {
   before(async function () {
@@ -50,7 +50,7 @@ describe('hookResources', function () {
       getHookViewRoots,
       resolveHookAssetFile,
       resolveHookViewFile,
-    } = require('../../src/hooks/hookResources'));
+    } = testRequire('../../src/hooks/hookResources'));
 
     appPath = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-hook-resources-')));
     writeJson(path.join(appPath, 'package.json'), {

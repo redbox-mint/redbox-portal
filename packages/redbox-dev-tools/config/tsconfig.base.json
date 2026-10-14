@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/node24/tsconfig.json",
+  "extends": "../../../node_modules/@tsconfig/node24/tsconfig.json",
   "compilerOptions": {
     "target": "ES2024",
     "lib": ["ES2024"],

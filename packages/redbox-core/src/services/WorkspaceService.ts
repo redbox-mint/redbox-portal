@@ -46,9 +46,22 @@ export namespace Services {
      * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
      * @return
      */
-    public async addWorkspaceToRecord(targetRecordOid: string, workspaceOid: string, workspaceData: Record<string, unknown> = {}, targetRecord: Record<string, unknown> | undefined = undefined) {
+    public async addWorkspaceToRecord(
+      targetRecordOid: string,
+      workspaceOid: string,
+      workspaceData: Record<string, unknown> = {},
+      targetRecord: Record<string, unknown> | undefined = undefined,
+      initiatingUser: unknown = {}
+    ) {
       workspaceData.id = workspaceOid;
-      return await RecordsService.appendToRecord(targetRecordOid, workspaceData, 'metadata.workspaces', 'array', targetRecord);
+      return await RecordsService.appendToRecord(
+        targetRecordOid,
+        workspaceData,
+        'metadata.workspaces',
+        'array',
+        targetRecord,
+        initiatingUser
+      );
     }
 
 /**
@@ -61,9 +74,21 @@ export namespace Services {
      * @param  targetRecord - the target record to update, leaving it empty will retrieve the record
      * @return
      */
-    public async removeWorkspaceFromRecord(targetRecordOid: string, workspaceOid: string, workspaceData: Record<string, unknown> = {}, targetRecord: Record<string, unknown> | undefined = undefined) {
+    public async removeWorkspaceFromRecord(
+      targetRecordOid: string,
+      workspaceOid: string,
+      workspaceData: Record<string, unknown> = {},
+      targetRecord: Record<string, unknown> | undefined = undefined,
+      initiatingUser: unknown = {}
+    ) {
       workspaceData.id = workspaceOid;
-      return await RecordsService.removeFromRecord(targetRecordOid, workspaceData, 'metadata.workspaces', targetRecord);
+      return await RecordsService.removeFromRecord(
+        targetRecordOid,
+        workspaceData,
+        'metadata.workspaces',
+        targetRecord,
+        initiatingUser
+      );
     }    
 
     /**

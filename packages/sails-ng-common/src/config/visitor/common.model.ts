@@ -82,6 +82,7 @@ export class PropertiesHelper {
 
     item.constraints.authorization = new FormConstraintAuthorizationConfig();
     item.constraints.authorization.allowRoles = currentData?.constraints?.authorization?.allowRoles ?? [];
+    item.constraints.authorization.denyRoles = currentData?.constraints?.authorization?.denyRoles ?? [];
 
     // TODO: Commented out below while we decide on how to handle 'form-level' expressions
     // Set the expressions

@@ -2,6 +2,7 @@ import { SaveButtonComponent } from './save-button.component';
 import { SimpleInputComponent } from './simple-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { TestBed } from "@angular/core/testing";
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import * as FormActions from '../form-state/state/form.actions';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
@@ -47,6 +48,7 @@ describe('SaveButtonComponent', () => {
             config: {
               label: '@save-button-default',
               labelSaving: "@save-button-saving",
+              operation: 'submit-for-review',
               targetStep: 'next_step',
               forceSave: true,
             }
@@ -56,6 +58,46 @@ describe('SaveButtonComponent', () => {
     };
   });
 
+
+  for (const scenario of ['server action', 'local form', 'server field']) {
+    it(`permits a different save after an action rejection, but keeps ${scenario} validation scoped`, async () => {
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+      const form = formComponent.form!;
+      form.markAsDirty();
+      if (scenario === 'server field') {
+        form.get('text_1_event')!.setErrors({ 'server#0': { message: 'Invalid field' } });
+      } else {
+        form.setErrors(scenario === 'server action'
+          ? { 'server#0': { message: 'Only the CI can activate' } }
+          : { required: true });
+      }
+      formComponent.broadcastFormStatus(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('button').disabled).toBe(scenario !== 'server action');
+    });
+  }
+
+  it('keeps save disabled after an action rejection when a nested control makes its parent group invalid', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const form = formComponent.form!;
+    const nestedGroup = new FormGroup({
+      requiredField: new FormControl('', Validators.required),
+    });
+    form.addControl('nested', nestedGroup);
+    form.markAsDirty();
+    form.setErrors({ 'server#0': { message: 'Only the CI can activate' } });
+
+    formComponent.broadcastFormStatus(false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(nestedGroup.controls.requiredField.hasError('required')).toBeTrue();
+    expect(nestedGroup.errors).toBeNull();
+    expect(nestedGroup.valid).toBeFalse();
+    expect(formComponent.canRetryFormLevelServerErrors()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('button').disabled).toBeTrue();
+  });
 
   it('should create SaveButtonComponent', async () => {
     const { fixture } = await createFormAndWaitForReady(formConfig);
@@ -189,6 +231,7 @@ describe('SaveButtonComponent', () => {
       expect(events.length).toBe(1);
       expect(events[0].type).toBe('form.save.requested');
       expect(events[0].force).toBe(true);
+      expect(events[0].operation).toBe('submit-for-review');
       expect(events[0].targetStep).toBe('next_step');
       expect(events[0].closeOnSave).toBe(true);
       expect(events[0].redirectLocation).toBe('redirect-location/one');
@@ -244,8 +287,31 @@ describe('SaveButtonComponent', () => {
 
       expect(events.length).toBe(1);
       expect(events[0].force).toBe(true);
+      expect(events[0].operation).toBe('submit-for-review');
       expect(events[0].targetStep).toBe('next_step');
       expect(events[0].enabledValidationGroups).toEqual(["none"]);
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  it('keeps save buttons without an operation compatible', async () => {
+    const saveButtonConfig = formConfig.componentDefinitions?.[1]?.component?.config as Record<string, unknown>;
+    delete saveButtonConfig['operation'];
+
+    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const events: any[] = [];
+    const sub = eventBus.select$('form.save.requested').subscribe(event => events.push(event));
+    try {
+      const saveButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      saveButton.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(events.length).toBe(1);
+      expect(events[0].operation).toBeUndefined();
+      expect(events[0].enabledValidationGroups).toEqual(['none']);
     } finally {
       sub.unsubscribe();
     }

@@ -48,6 +48,7 @@ import { ConfirmationDialogComponent } from "./component/confirmation-dialog.com
 import { ConfirmationDialogService } from "./confirmation-dialog.service";
 import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
 import { RecordAuditLauncherComponent } from "./record-audit/record-audit-launcher.component";
+import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
 import { ApplicationRef, ComponentRef } from "@angular/core";
 import isSpy = jasmine.isSpy;
 
@@ -127,6 +128,10 @@ export async function createFormAndWaitForReady(
   const fixture = TestBed.createComponent(FormComponent);
   const formComponent = fixture.componentInstance;
 
+  if (formDebugUrlOptions) {
+    formComponent.debugState.refreshFromUrl();
+  }
+
   ensureApplicationRefFormComponent(fixture.componentRef);
 
   // set the attributes on the nativeElement
@@ -163,6 +168,26 @@ export async function createFormAndWaitForReady(
   await formComponent.downloadAndCreateFormComponents(formConfig);
 
   await fixture.whenStable();
+
+  // Other form fixtures may finish asynchronous work while this helper is
+  // creating the current fixture. Re-apply an explicitly requested debug URL
+  // after the form is ready so this helper remains isolated from that work.
+  if (formDebugUrlOptions) {
+    setFormDebugUrl(formDebugUrlOptions);
+    formComponent.debugState.refreshFromUrl();
+    const rawDebugValue = formDebugUrlOptions.formDebugParam;
+    const expectedDebugEnabled = typeof rawDebugValue === 'boolean'
+      ? rawDebugValue
+      : ['1', 'true', 'yes'].includes(String(rawDebugValue ?? '').trim().toLowerCase());
+    // Karma runs all form specs in one browser context. A live fixture from an
+    // earlier spec can restore the shared history URL while this fixture is
+    // being created, so keep an explicit helper option isolated at the state
+    // boundary as well as at the URL boundary.
+    if (formComponent.debugState.isDebugEnabled() !== expectedDebugEnabled) {
+      formComponent.debugState.isDebugEnabled.set(expectedDebugEnabled);
+    }
+    fixture.detectChanges();
+  }
 
   logFormTestHelper('createFormAndWaitForReady - finished', {
     debugInfo: formComponent.getDebugInfo(),
@@ -218,6 +243,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormDebugConfigTabComponent": FormDebugConfigTabComponent,
       "FormDebugEventsTabComponent": FormDebugEventsTabComponent,
       "ConfirmationDialogComponent": ConfirmationDialogComponent,
+      FormConflictPresenterComponent: FormConflictPresenterComponent,
       "RecordAuditLauncherComponent": RecordAuditLauncherComponent,
     }, testConfig.declarations ?? {}),
     imports: await createTestBedModuleConfig({

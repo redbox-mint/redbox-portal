@@ -17,6 +17,7 @@ import { HomePanelsEditorTypeComponent } from './fieldTypes/home-panels-editor';
 import { ValueBindingEditorTypeComponent } from './fieldTypes/value-binding-editor';
 import { FigshareCategoryMappingEditorTypeComponent } from './fieldTypes/figshare-category-mapping-editor';
 import { CheckboxTypeComponent } from './fieldTypes/checkbox.type';
+import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.service';
 
 @NgModule({
   declarations: [
@@ -44,6 +45,7 @@ import { CheckboxTypeComponent } from './fieldTypes/checkbox.type';
     FormlyBootstrapModule
   ],
   providers: [
+    FigshareCrosswalkApiService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),

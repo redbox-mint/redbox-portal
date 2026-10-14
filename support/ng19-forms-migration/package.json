@@ -5,6 +5,9 @@
   "main": "index.js",
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "test": "node fieldComponentMap.test.js"
+  },
   "dependencies": {
     "lodash": "4.18.1"
   }

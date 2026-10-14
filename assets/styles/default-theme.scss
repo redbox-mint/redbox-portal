@@ -42,7 +42,7 @@ h6 {
     margin: 0 0 15px;
 }
 
-body, .preview-root { font-family: $body-font-family; }
+body, .preview-root { font-family: var(--rb-brand-font-family, $body-font-family); }
 
 
 .header-area {
@@ -92,7 +92,7 @@ body, .preview-root { font-family: $body-font-family; }
 
 .mainmenu-area {
 background: none repeat scroll 0 0 var(--rb-main-menu-branding-background-color, #{$main-menu-branding-background-color});
-font-family: $main-menu-branding-font-family;
+font-family: var(--rb-brand-font-family, $main-menu-branding-font-family);
 text-transform: uppercase;
 width: 100%;
 z-index: 999;
@@ -114,71 +114,87 @@ z-index: 999;
 }
 .logo h1 a:hover {text-decoration: none;opacity: .7}
 
-
-.mainmenu-area ul.navbar-nav li {
-    background-color: var(--rb-main-menu-inactive-item-background-color, #{$main-menu-inactive-item-background-color});
-}
+/* Main menu inactive top-level item */
 
 .mainmenu-area ul.navbar-nav li a {
-    font-size: 16px;
-    font-weight: 700;
-    padding: 20px;
-    color: var(--rb-main-menu-inactive-item-color, #{$main-menu-inactive-item-color});
+  font-size: 16px;
+  font-weight: 700;
+  padding: 20px;
+  color: var(--rb-main-menu-inactive-item-color, #{$main-menu-inactive-item-color});
 }
 
 .mainmenu-area ul.navbar-nav li a:hover {
-    font-size: 16px;
-    font-weight: 700;
-    padding: 20px;
-    color: var(--rb-main-menu-inactive-item-color-hover, #{$main-menu-inactive-item-color-hover});
+  color: var(--rb-main-menu-inactive-item-color-hover, #{$main-menu-inactive-item-color-hover});
+  background-color: var(--rb-main-menu-inactive-item-background-color-hover, #{$main-menu-inactive-item-background-color-hover});
 }
 
- .mainmenu-area ul.navbar-nav li.nav-active-item {
-      background-color: var(--rb-main-menu-active-item-background-color, #{$main-menu-active-item-background-color});
-      color: var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
-  }
-
-.mainmenu-area ul.navbar-nav li.nav-active-item:hover {
-      background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
-  }
-
-.mainmenu-area ul.dropdown-menu li {
-    color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
-    background-color: var(--rb-main-menu-inactive-dropdown-item-background-color, #{$main-menu-inactive-dropdown-item-background-color});
+.mainmenu-area ul.navbar-nav li {
+  background-color: var(--rb-main-menu-inactive-item-background-color, #{$main-menu-inactive-item-background-color});
 }
 
-
-.mainmenu-area .nav > li > a:focus {color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color})}
-
-.mainmenu-area ul.navbar-nav li.nav-active-item a {
-    color:  var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
+.mainmenu-area ul.navbar-nav li:hover {
+  background-color: var(--rb-main-menu-inactive-item-background-color-hover, #{$main-menu-inactive-item-background-color-hover});
 }
 
-.mainmenu-area ul.navbar-nav li.nav-active-item a:hover {
-    color:  var(--rb-main-menu-active-item-color-hover, #{$main-menu-active-item-color-hover});
+/* Main menu inactive dropdown item */
+
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li a.dropdown-item {
+  color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
 }
 
-.mainmenu-area ul.navbar-nav li.nav-active-item a.dropdown-item {
-    color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li a.dropdown-item:hover {
+  color: var(--rb-main-menu-inactive-dropdown-item-color-hover, #{$main-menu-inactive-dropdown-item-color-hover});
+  background-color: var(--rb-main-menu-inactive-dropdown-item-background-color-hover, #{$main-menu-inactive-dropdown-item-background-color-hover});
 }
 
-.mainmenu-area ul.dropdown-menu li a.dropdown-item.active,
-.mainmenu-area ul.dropdown-menu li a.dropdown-item:active {
-    color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
-    background-color: var(--rb-main-menu-active-dropdown-item-background-color, #{$main-menu-active-dropdown-item-background-color});
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li {
+  background-color: var(--rb-main-menu-inactive-dropdown-item-background-color, #{$main-menu-inactive-dropdown-item-background-color});
 }
 
-.mainmenu-area ul.navbar-nav li.nav-active-item a.dropdown-item:hover {
-    color: var(--rb-main-menu-active-dropdown-item-color-hover, #{$main-menu-active-dropdown-item-color-hover});
-    background-color: var(--rb-main-menu-active-dropdown-item-background-color-hover, #{$main-menu-active-dropdown-item-background-color-hover});
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li:hover {
+  background-color: var(--rb-main-menu-inactive-dropdown-item-background-color-hover, #{$main-menu-inactive-dropdown-item-background-color-hover});
 }
 
-.mainmenu-area ul.dropdown-menu li a.dropdown-item {
-    color: var(--rb-main-menu-inactive-dropdown-item-color, #{$main-menu-inactive-dropdown-item-color});
+/* Main menu active top-level item */
+
+.mainmenu-area ul.navbar-nav > li.active > a,
+.mainmenu-area ul.navbar-nav > li.nav-active-item > a {
+  color: var(--rb-main-menu-active-item-color, #{$main-menu-active-item-color});
 }
 
-.mainmenu-area ul.dropdown-menu li a.dropdown-item:hover {
-    color: var(--rb-main-menu-inactive-dropdown-item-color-hover, #{$main-menu-inactive-dropdown-item-color-hover});
+.mainmenu-area ul.navbar-nav > li.active > a:hover,
+.mainmenu-area ul.navbar-nav > li.nav-active-item > a:hover {
+  color: var(--rb-main-menu-active-item-color-hover, #{$main-menu-active-item-color-hover});
+  background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
+}
+
+.mainmenu-area ul.navbar-nav > li.active,
+.mainmenu-area ul.navbar-nav > li.nav-active-item {
+  background-color: var(--rb-main-menu-active-item-background-color, #{$main-menu-active-item-background-color});
+}
+
+.mainmenu-area ul.navbar-nav > li.active:hover,
+.mainmenu-area ul.navbar-nav > li.nav-active-item:hover {
+  background-color: var(--rb-main-menu-active-item-background-color-hover, #{$main-menu-active-item-background-color-hover});
+}
+
+/* Main menu active dropdown item */
+
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li a.dropdown-item.active,
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li a.dropdown-item:active {
+  color: var(--rb-main-menu-active-dropdown-item-color, #{$main-menu-active-dropdown-item-color});
+  background-color: var(--rb-main-menu-active-dropdown-item-background-color, #{$main-menu-active-dropdown-item-background-color});
+}
+
+.mainmenu-area ul.navbar-nav ul.dropdown-menu li a.dropdown-item.active:hover {
+  color: var(--rb-main-menu-active-dropdown-item-color-hover, #{$main-menu-active-dropdown-item-color-hover});
+  background-color: var(--rb-main-menu-active-dropdown-item-background-color-hover, #{$main-menu-active-dropdown-item-background-color-hover});
+}
+
+.mainmenu-area ul.navbar-nav > li > a:focus,
+.mainmenu-area ul.navbar-nav > li.active > a:focus,
+.mainmenu-area ul.navbar-nav > li.nav-active-item > a:focus {
+  color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color})
 }
 
 .maincontent-area {padding-bottom: 170px}
@@ -190,7 +206,7 @@ z-index: 999;
 }
 
 .footer-wid-title {
-  font-family: $branding-footer-font-family;
+  font-family: var(--rb-brand-font-family, $branding-footer-font-family);
   font-size: 30px;
   font-weight: 100;
   color: #fff
@@ -207,7 +223,7 @@ z-index: 999;
 
 
 .maincontent-bit-title h2 {
-  font-family: $main-content-heading-font-family;
+  font-family: var(--rb-brand-font-family, $main-content-heading-font-family);
   font-size: 50px;
   font-weight: 200;
   margin: 0;
@@ -282,6 +298,13 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: var(--r
     margin-bottom: 1rem;
 }
 
+.rb-view-repeatable-table th,
+.rb-view-repeatable-table td,
+.rb-view-repeatable-table td a {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 .rb-view-repeatable-list {
     display: grid;
     gap: 0.75rem;
@@ -313,6 +336,16 @@ input[type="submit"]:hover, button[type=submit]:hover {background-color: var(--r
 .rb-view-group {
     display: grid;
     gap: 0.25rem;
+}
+
+.rb-view-group > .rb-view-row {
+    border-bottom: 1px solid var(--rb-view-row-divider-color, #e5e5e5);
+    padding-bottom: var(--rb-view-row-divider-padding, 0.5rem);
+}
+
+.rb-view-group > .rb-view-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
 }
 
 .rb-view-label {
@@ -7232,7 +7265,7 @@ img[src$="images/loading.svg"],
   padding: 15px;
   font-weight: bold;
   border-bottom: 1px solid #dee2e6;
-  
+
   i {
     margin-right: 8px;
   }
@@ -7251,16 +7284,16 @@ img[src$="images/loading.svg"],
   font-weight: 600;
   text-decoration: none;
   background-color: #fff;
-  
+
   &:hover {
     background-color: #f8f9fa;
     text-decoration: none;
   }
-  
+
   &[aria-expanded="false"] i.fa-chevron-down {
     transform: rotate(-90deg);
   }
-  
+
   i.fa-chevron-down {
     font-size: 12px;
     transition: transform 0.2s ease;
@@ -7274,18 +7307,18 @@ img[src$="images/loading.svg"],
 
 .admin-sidebar-link {
   padding: 8px 15px 8px 25px;
-  
+
     a {
     color: #495057;
     text-decoration: none;
     display: block;
-    
+
     &:hover {
       color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
       text-decoration: underline;
     }
   }
-  
+
   &:last-child {
     padding-bottom: 12px;
   }
@@ -7294,11 +7327,11 @@ img[src$="images/loading.svg"],
 .admin-sidebar-footer {
   padding: 10px 15px;
   border-bottom: 1px solid #dee2e6;
-  
+
     a {
     color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
     text-decoration: none;
-    
+
     &:hover {
       text-decoration: underline;
     }
@@ -7310,10 +7343,10 @@ img[src$="images/loading.svg"],
     background: #fff;
     border-left: 1px solid #dee2e6;
     min-height: 70vh;
-  
+
     h1 {
         margin-bottom: 20px;
-    
+
         i {
             margin-right: 10px;
         }

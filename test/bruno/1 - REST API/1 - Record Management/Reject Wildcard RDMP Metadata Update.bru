@@ -1,0 +1,31 @@
+meta {
+  name: Reject Wildcard RDMP Metadata Update
+  type: http
+  seq: 35
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/{{dmpOid}}?merge=true
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  If-Match: *
+}
+
+body:json {
+  {
+    "title": "A wildcard must never bypass concurrency"
+  }
+}
+
+tests {
+  test("Wildcard If-Match is rejected before mutation work", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(JSON.stringify(res.getBody())).to.include("record-if-match-invalid");
+  });
+}

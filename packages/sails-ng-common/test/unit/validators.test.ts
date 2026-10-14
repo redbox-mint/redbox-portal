@@ -3,6 +3,7 @@ import {
   FormValidatorDefinition,
   FormValidatorErrors,
   SimpleServerFormValidatorControl,
+  FORM_VALIDATOR_DOI_REGEXP,
   FORM_VALIDATOR_EMAIL_REGEXP,
   formValidatorsSharedDefinitions,
   ValidatorsSupport,
@@ -636,6 +637,141 @@ describe("Validator", async () => {
           expected: null,
         },
       ];
+    cases.forEach(({ title, args, expected }) => {
+      it(`should validate ${title}`, async () => {
+        await checkValidator({ title, args, expected });
+      });
+    });
+  });
+
+  describe("doi", async () => {
+    const doiError = (actual: unknown): FormValidatorErrors => ({
+      doi: {
+        message: "@validator-error-doi",
+        params: {
+          description: "",
+          requiredPattern: FORM_VALIDATOR_DOI_REGEXP.source,
+          actual,
+        },
+      },
+    });
+
+    const cases: TestCase[] = [
+      {
+        title: "doi - expect pass (bare DOI)",
+        args: {
+          value: "10.1016/j.futures.2015.03.003",
+          definition: formValidatorsSharedDefinitions,
+          block: { class: "doi" },
+        },
+        expected: null,
+      },
+      {
+        title: "doi - expect pass (mixed-case suffix and surrounding whitespace)",
+        args: {
+          value: "  10.0166/FK2.stagefigshare.10122493  ",
+          definition: formValidatorsSharedDefinitions,
+          block: { class: "doi" },
+        },
+        expected: null,
+      },
+      {
+        title: "doi - expect failure (resolver URL is not a bare DOI)",
+        args: {
+          value: "https://doi.org/10.1016/j.futures.2015.03.003",
+          definition: formValidatorsSharedDefinitions,
+          block: { class: "doi" },
+        },
+        expected: doiError("https://doi.org/10.1016/j.futures.2015.03.003"),
+      },
+      {
+        title: "doi - expect failure (invalid registrant)",
+        args: {
+          value: "10.123/example",
+          definition: formValidatorsSharedDefinitions,
+          block: { class: "doi" },
+        },
+        expected: doiError("10.123/example"),
+      },
+      {
+        title: "doi - expect pass (empty optional value)",
+        args: {
+          value: "",
+          definition: formValidatorsSharedDefinitions,
+          block: { class: "doi" },
+        },
+        expected: null,
+      },
+    ];
+
+    cases.forEach(({ title, args, expected }) => {
+      it(`should validate ${title}`, async () => {
+        await checkValidator({ title, args, expected });
+      });
+    });
+  });
+
+  describe("any-of", async () => {
+    const urlOrDoiValidator: FormValidatorConfig = {
+      class: "any-of",
+      message: "@url-or-doi-invalid",
+      config: {
+        description: "an absolute HTTP(S) URL or a bare DOI",
+        validators: [
+          { class: "url", config: { schemes: ["http", "https"] } },
+          { class: "doi" },
+        ],
+      },
+    };
+
+    const cases: TestCase[] = [
+      {
+        title: "any-of - expect pass when URL validator accepts",
+        args: {
+          value: "https://example.org/resource",
+          definition: formValidatorsSharedDefinitions,
+          block: urlOrDoiValidator,
+        },
+        expected: null,
+      },
+      {
+        title: "any-of - expect pass when DOI validator accepts",
+        args: {
+          value: "10.1016/j.futures.2015.03.003",
+          definition: formValidatorsSharedDefinitions,
+          block: urlOrDoiValidator,
+        },
+        expected: null,
+      },
+      {
+        title: "any-of - expect failure when neither validator accepts",
+        args: {
+          value: "not a URL or DOI",
+          definition: formValidatorsSharedDefinitions,
+          block: urlOrDoiValidator,
+        },
+        expected: {
+          "any-of": {
+            message: "@url-or-doi-invalid",
+            params: {
+              description: "an absolute HTTP(S) URL or a bare DOI",
+              validatorClasses: ["url", "doi"],
+              actual: "not a URL or DOI",
+            },
+          },
+        },
+      },
+      {
+        title: "any-of - expect pass for an empty optional value",
+        args: {
+          value: "",
+          definition: formValidatorsSharedDefinitions,
+          block: urlOrDoiValidator,
+        },
+        expected: null,
+      },
+    ];
+
     cases.forEach(({ title, args, expected }) => {
       it(`should validate ${title}`, async () => {
         await checkValidator({ title, args, expected });

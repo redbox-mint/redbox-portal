@@ -4,14 +4,16 @@ import { MenuConfig, MENU_CONFIG_SCHEMA } from './MenuConfig';
 import { HomePanelConfig, HOME_PANEL_CONFIG_SCHEMA } from './HomePanelConfig';
 import { AdminSidebarConfig, ADMIN_SIDEBAR_CONFIG_SCHEMA } from './AdminSidebarConfig';
 import { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } from './FigsharePublishing';
+import { OniPublishing, ONI_PUBLISHING_SCHEMA } from './OniPublishing';
 import {
   DoiPublishing,
   DOI_PUBLISHING_SCHEMA,
   fromDoiPublishingFormModel,
   toDoiPublishingFormModel
 } from './DoiPublishing';
-import { DashboardTableOverrideConfig, DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA } from './DashboardTableOverrideConfig';
 import { IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA } from './IntegrationNotificationConfig';
+import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from './RaidPublishing';
+import { WebAnalytics, WEB_ANALYTICS_SCHEMA } from './WebAnalytics';
 import * as path from 'path';
 
 export interface ConfigModelFormAdapter {
@@ -36,9 +38,11 @@ export type ConfigModelKey =
     | 'homePanels'
     | 'adminSidebar'
     | 'figsharePublishing'
+    | 'oniPublishing'
     | 'doiPublishing'
-    | 'dashboardTableConfig'
-    | 'integrationNotification';
+    | 'integrationNotification'
+    | 'raidPublishing'
+    | 'webAnalytics';
 
 export class ConfigModels {
     private static modelsMap: Map<string, ConfigModelInfo> = new Map([
@@ -85,6 +89,13 @@ export class ConfigModels {
             tsGlob: path.join(__dirname, '../../src/configmodels/FigsharePublishing.ts'),
             secretFields: ['connection.token']
         }],
+        ['oniPublishing', {
+            modelName: 'OniPublishing',
+            title: 'Oni Publishing',
+            class: OniPublishing,
+            schema: ONI_PUBLISHING_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/OniPublishing.ts')
+        }],
         ['doiPublishing', {
             modelName: 'DoiPublishing',
             title: 'DOI Publishing',
@@ -97,19 +108,27 @@ export class ConfigModels {
                 fromForm: fromDoiPublishingFormModel
             }
         }],
-        ['dashboardTableConfig', {
-            modelName: 'DashboardTableOverrideConfig',
-            title: 'Dashboard Table Configuration',
-            class: DashboardTableOverrideConfig,
-            schema: DASHBOARD_TABLE_OVERRIDE_CONFIG_SCHEMA,
-            tsGlob: path.join(__dirname, '../../src/configmodels/DashboardTableOverrideConfig.ts')
-        }],
         ['integrationNotification', {
             modelName: 'IntegrationNotificationConfig',
             title: 'Integration Notification',
             class: IntegrationNotificationConfig,
             schema: INTEGRATION_NOTIFICATION_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/IntegrationNotificationConfig.ts')
+        }],
+        ['raidPublishing', {
+            modelName: 'RaidPublishing',
+            title: 'RAiD Publishing',
+            class: RaidPublishing,
+            schema: RAID_PUBLISHING_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/RaidPublishing.ts'),
+            secretFields: ['connection.token', 'connection.oauth.password']
+        }],
+        ['webAnalytics', {
+            modelName: 'WebAnalytics',
+            title: 'Web Analytics',
+            class: WebAnalytics,
+            schema: WEB_ANALYTICS_SCHEMA,
+            tsGlob: path.join(__dirname, '../../src/configmodels/WebAnalytics.ts')
         }],
     ]);
 

@@ -81,6 +81,12 @@ export interface RadioInputFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures a single-choice radio group from inline or vocabulary options.
+ *
+ * @extensionPoint Use `RadioInputComponent` with `RadioInputModel` to collect one value from the configured choices.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface RadioInputFormComponentDefinitionOutline extends RadioInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: RadioInputFieldComponentDefinitionOutline;
     model?: RadioInputFieldModelDefinitionOutline;

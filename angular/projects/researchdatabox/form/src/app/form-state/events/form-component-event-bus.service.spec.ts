@@ -143,6 +143,7 @@ describe('FormComponentEventBus', () => {
       const event = createFormSaveRequestedEvent({
         force: true,
         enabledValidationGroups: ['all'],
+        operation: 'submit',
         targetStep: 'review',
         sourceId: 'save-button',
       });
@@ -152,6 +153,7 @@ describe('FormComponentEventBus', () => {
           expect(received.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
           expect(received.force).toBe(true);
           expect(received.enabledValidationGroups).toEqual(['all']);
+          expect(received.operation).toBe('submit');
           expect(received.targetStep).toBe('review');
           expect(received.sourceId).toBe('save-button');
           expect(received.timestamp).toBeGreaterThan(0);
@@ -166,6 +168,7 @@ describe('FormComponentEventBus', () => {
       const event = createFormSaveExecuteEvent({
         force: false,
         enabledValidationGroups: ['all'],
+        operation: 'publish',
         targetStep: 'submit',
         sourceId: 'effect',
       });
@@ -175,6 +178,7 @@ describe('FormComponentEventBus', () => {
           expect(received.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
           expect(received.force).toBe(false);
           expect(received.enabledValidationGroups).toEqual(['all']);
+          expect(received.operation).toBe('publish');
           expect(received.targetStep).toBe('submit');
           expect(received.sourceId).toBe('effect');
           expect(received.timestamp).toBeGreaterThan(0);
@@ -644,6 +648,7 @@ describe('FormComponentEventBus', () => {
       const event = createFormSaveRequestedEvent({
         force: true,
         enabledValidationGroups: ['all'],
+        operation: 'submit',
         targetStep: 'review',
         sourceId: 'button-1',
       });
@@ -651,6 +656,7 @@ describe('FormComponentEventBus', () => {
       expect(event.type).toBe(FormComponentEventType.FORM_SAVE_REQUESTED);
       expect(event.force).toBe(true);
       expect(event.enabledValidationGroups).toEqual(['all']);
+      expect(event.operation).toBe('submit');
       expect(event.targetStep).toBe('review');
       expect(event.sourceId).toBe('button-1');
     });
@@ -659,6 +665,7 @@ describe('FormComponentEventBus', () => {
       const event = createFormSaveExecuteEvent({
         force: false,
         enabledValidationGroups: ['all'],
+        operation: 'publish',
         targetStep: 'submit',
         sourceId: 'effect-1',
       });
@@ -666,6 +673,7 @@ describe('FormComponentEventBus', () => {
       expect(event.type).toBe(FormComponentEventType.FORM_SAVE_EXECUTE);
       expect(event.force).toBe(false);
       expect(event.enabledValidationGroups).toEqual(['all']);
+      expect(event.operation).toBe('publish');
       expect(event.targetStep).toBe('submit');
       expect(event.sourceId).toBe('effect-1');
     });

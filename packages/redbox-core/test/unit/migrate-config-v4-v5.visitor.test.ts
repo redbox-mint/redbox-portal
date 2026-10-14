@@ -1,4 +1,5 @@
 import path from 'path';
+import jsonata from 'jsonata';
 import {
   MigrationV4ToV5FormConfigVisitor,
   migrateDataClassification,
@@ -6,7 +7,7 @@ import {
   migrateFormConfigVerify,
   reusableFormDefinitions,
 } from '../../src';
-import {consoleLogger as testingLogger} from "@researchdatabox/sails-ng-common";
+import { consoleLogger as testingLogger } from '@researchdatabox/sails-ng-common';
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
@@ -138,11 +139,52 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(saveStatusIndex).to.be.greaterThan(-1);
     expect(validationSummaryIndex).to.equal(saveStatusIndex + 1);
     expect(migrated.componentDefinitions[saveStatusIndex].component.class).to.equal('SaveStatusComponent');
-    expect(migrated.componentDefinitions[validationSummaryIndex].component.class).to.equal('ValidationSummaryComponent');
+    expect(migrated.componentDefinitions[validationSummaryIndex].component.class).to.equal(
+      'ValidationSummaryComponent'
+    );
     expect(migrated.componentDefinitions[validationSummaryIndex].constraints).to.deep.equal({
-      authorization: { allowRoles: [] },
+      authorization: { allowRoles: [], denyRoles: [] },
       allowModes: [],
     });
+  });
+
+  it('omits the legacy form-render-complete test marker', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-render-complete-marker-migration',
+        fields: [
+          {
+            class: 'Container',
+            definition: {
+              id: 'form-render-complete',
+              label: 'Test',
+              fields: [
+                {
+                  class: 'Container',
+                  compClass: 'TextBlockComponent',
+                  definition: {
+                    value: 'will be empty',
+                    type: 'span',
+                  },
+                },
+              ],
+            },
+          },
+          {
+            class: 'TextField',
+            definition: {
+              name: 'title',
+              label: 'Test',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(migrated.componentDefinitions.some(component => component.name === 'form-render-complete')).to.equal(false);
+    expect(migrated.componentDefinitions.some(component => component.name === 'title')).to.equal(true);
+    expect(JSON.stringify(migrated)).to.not.contain('will be empty');
   });
 
   it('omits sparse legacy field entries while migrating nested retriever subscriptions', async function () {
@@ -251,7 +293,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(warnings.some(msg => msg.includes('coerced non-array default value'))).to.equal(true);
   });
 
-  it('omits boolean defaults for legacy toggle fields migrated to CheckboxInput', async function () {
+  it('migrates no-option legacy toggles to boolean checkboxes', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
     const migrated = await visitor.start({
       data: {
@@ -274,7 +316,120 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const migratedField = migrated.componentDefinitions[0];
     expect(migratedField.component.class).to.equal('CheckboxInputComponent');
     expect(migratedField.model?.class).to.equal('CheckboxInputModel');
-    expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(undefined);
+    expect(migratedField.component.config).to.deep.include({
+      options: [],
+      booleanMode: true,
+      multipleValues: false,
+    });
+    // The legacy boolean default is representable now that the model accepts booleans,
+    // so the field starts unticked and saves false rather than null.
+    expect((migratedField.model?.config as Record<string, unknown>)?.defaultValue).to.equal(false);
+  });
+
+  it('backtick quotes non-identifier property names in migrated subscribe templates', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-subscribe-migration',
+        fields: [
+          {
+            class: 'RecordMetadataRetriever',
+            compClass: 'RecordMetadataRetrieverComponent',
+            definition: { name: 'rdmpGetter' },
+          },
+          {
+            class: 'Toggle',
+            compClass: 'ToggleComponent',
+            definition: {
+              name: 'project-hdr',
+              controlType: 'checkbox',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [{ action: 'utilityService.getPropertyFromObject', field: 'project-hdr' }],
+                },
+              },
+            },
+          },
+          {
+            class: 'TextArea',
+            compClass: 'TextAreaComponent',
+            definition: {
+              name: 'description',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [{ action: 'utilityService.getPropertyFromObject', field: 'description' }],
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const templateFor = (name: string) =>
+      migrated.componentDefinitions.find(item => item.name === name)?.expressions?.[0]?.config?.template;
+
+    // `event.value["project-hdr"]` is a JSONata filter predicate, so it would return the
+    // whole source object instead of the property.
+    expect(templateFor('project-hdr')).to.equal('event.value.`project-hdr`');
+    expect(templateFor('description')).to.equal('event.value.description');
+
+    const source = { event: { value: { 'project-hdr': true, description: 'a description' } } };
+    expect(await jsonata(templateFor('project-hdr') as string).evaluate(source)).to.equal(true);
+    expect(await jsonata(templateFor('description') as string).evaluate(source)).to.equal('a description');
+  });
+
+  it('backtick quotes non-identifier property names in migrated subscribe templates', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'legacy-subscribe-migration',
+        fields: [
+          {
+            class: 'RecordMetadataRetriever',
+            compClass: 'RecordMetadataRetrieverComponent',
+            definition: { name: 'rdmpGetter' },
+          },
+          {
+            class: 'Toggle',
+            compClass: 'ToggleComponent',
+            definition: {
+              name: 'project-hdr',
+              controlType: 'checkbox',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [{ action: 'utilityService.getPropertyFromObject', field: 'project-hdr' }],
+                },
+              },
+            },
+          },
+          {
+            class: 'TextArea',
+            compClass: 'TextAreaComponent',
+            definition: {
+              name: 'description',
+              subscribe: {
+                rdmpGetter: {
+                  onValueUpdate: [{ action: 'utilityService.getPropertyFromObject', field: 'description' }],
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const templateFor = (name: string) =>
+      migrated.componentDefinitions.find(item => item.name === name)?.expressions?.[0]?.config?.template;
+
+    // `event.value["project-hdr"]` is a JSONata filter predicate, so it would return the
+    // whole source object instead of the property.
+    expect(templateFor('project-hdr')).to.equal('event.value.`project-hdr`');
+    expect(templateFor('description')).to.equal('event.value.description');
+
+    const source = { event: { value: { 'project-hdr': true, description: 'a description' } } };
+    expect(await jsonata(templateFor('project-hdr') as string).evaluate(source)).to.equal(true);
+    expect(await jsonata(templateFor('description') as string).evaluate(source)).to.equal('a description');
   });
 
   it('migrates legacy selection options to arrays for dropdown and checkbox inputs', async function () {
@@ -1099,6 +1254,31 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migratedField.layout).to.equal(undefined);
   });
 
+  it('maps legacy split-name contributors to the citation contributor definition', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'citation-contributor',
+        fields: [
+          {
+            class: 'ContributorField',
+            definition: {
+              name: 'creator',
+              splitNames: true,
+            },
+          },
+        ],
+      },
+    });
+
+    const migratedField = migrated.componentDefinitions[0];
+    expect(migratedField.component.class).to.equal('ReusableComponent');
+    expect(migratedField.overrides).to.deep.equal({
+      reusableFormName: 'citation-contributor-fields-with-title-family-given-group',
+    });
+    expect(migratedField.layout).to.equal(undefined);
+  });
+
   it('defines lookup-only contributor reusable fields with required selection and readonly email', async function () {
     const lookupOnlyFields = reusableFormDefinitions['standard-contributor-fields-lookup-only'];
     expect(lookupOnlyFields).to.have.length(3);
@@ -1214,6 +1394,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     const componentConfig = migratedField.component.config as Record<string, unknown>;
     expect(componentConfig.center).to.deep.equal([-24.67, 134.07]);
     expect(componentConfig.zoom).to.equal(5);
+    expect(componentConfig.coordinatePrecision).to.equal(15);
     expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'rectangle', 'circle', 'select']);
     const modelConfig = migratedField.model?.config as Record<string, unknown>;
     expect(modelConfig.defaultValue).to.deep.equal({
@@ -1249,7 +1430,14 @@ describe('Migrate v4 to v5 Visitor', async () => {
     });
 
     const componentConfig = migrated.componentDefinitions[0].component.config as Record<string, unknown>;
-    expect(componentConfig.enabledModes).to.deep.equal(['point', 'polygon', 'linestring', 'rectangle', 'circle', 'select']);
+    expect(componentConfig.enabledModes).to.deep.equal([
+      'point',
+      'polygon',
+      'linestring',
+      'rectangle',
+      'circle',
+      'select',
+    ]);
   });
 
   it('omits select tooling when legacy map explicitly disables editing', async function () {
@@ -1337,7 +1525,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(modelConfig.disabled).to.be.true;
   });
 
-  it('migrates SaveButton targetStep into the v5 component config', async function () {
+  it('migrates SaveButton operation intent without dropping legacy validation groups', async function () {
     const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
     const migrated = await visitor.start({
       data: {
@@ -1347,7 +1535,9 @@ describe('Migrate v4 to v5 Visitor', async () => {
             class: 'SaveButton',
             definition: {
               name: 'save-and-submit',
+              operation: 'submit',
               targetStep: 'queued',
+              enabledValidationGroups: ['all', 'transitionDraftToSubmitted'],
             },
           },
         ],
@@ -1357,7 +1547,49 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migrated.componentDefinitions).to.have.length.greaterThan(0);
     const migratedField = migrated.componentDefinitions[0];
     expect(migratedField.component.class).to.equal('SaveButtonComponent');
-    expect((migratedField.component.config as Record<string, unknown>)?.targetStep).to.equal('queued');
+    const migratedConfig = migratedField.component.config as Record<string, unknown>;
+    expect(migratedConfig.operation).to.equal('submit');
+    expect(migratedConfig.targetStep).to.equal('queued');
+    expect(migratedConfig.enabledValidationGroups).to.deep.equal(['all', 'transitionDraftToSubmitted']);
+  });
+
+  it('migrates the legacy workspace selector and preserves its configuration', async function () {
+    const visitor = new MigrationV4ToV5FormConfigVisitor(testingLogger);
+    const migrated = await visitor.start({
+      data: {
+        name: 'workspace-selector-migration',
+        fields: [
+          {
+            class: 'WorkspaceSelectorField',
+            compClass: 'WorkspaceSelectorComponent',
+            definition: {
+              name: 'workspace-selector',
+              open: '@open-workspace',
+              saveFirst: '@save-first',
+              displayType: 'cards',
+              shouldSaveForm: false,
+              allowAddTemplate: '<%= imports.rdmp ? "true" : "false" %>',
+              defaultSelection: [{ name: 'gitlab', label: 'GitLab' }],
+            },
+          },
+        ],
+      },
+    });
+
+    const migratedField = migrated.componentDefinitions[0];
+    expect(migratedField.component.class).to.equal('WorkspaceSelectorComponent');
+    expect(migratedField.model).to.be.undefined;
+    expect(migratedField.layout).to.be.undefined;
+    expect(migratedField.component.config).to.include({
+      open: '@open-workspace',
+      saveFirst: '@save-first',
+      displayType: 'cards',
+      shouldSaveForm: false,
+      allowAddTemplate: '<%= imports.rdmp ? "true" : "false" %>',
+    });
+    expect((migratedField.component.config as any).defaultSelection).to.deep.equal([
+      { name: 'gitlab', label: 'GitLab' },
+    ]);
   });
 
   it('maps AnchorOrButton links to ContentComponent anchor links with InlineLayout', async function () {

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "./config/recordSchema.test.ts",
+    "./fixtures/record-contract.fixtures.ts",
+    "./loader/record-contract-contributor-loader.test.ts",
+    "./services/RecordSchema*.test.ts",
+    "./unit/build-response-contract.test.ts",
+    "./unit/record-contract-fixtures.test.ts",
+    "./unit/record-contract/**/*.test.ts",
+    "./unit/record-schema-contracts.test.ts",
+    "./unit/storage-service-record-schema-capability.test.ts"
+  ]
+}

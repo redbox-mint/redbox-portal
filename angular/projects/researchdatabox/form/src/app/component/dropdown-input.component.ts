@@ -1,13 +1,14 @@
 import { Component, Input } from '@angular/core';
-import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel } from '@researchdatabox/portal-ng-common';
+import { FormFieldModel } from '@researchdatabox/portal-ng-common';
 import {
   DropdownInputComponentName,
-  DropdownInputFieldComponentConfig,
+  DropdownInputFieldComponentDefinitionFrame,
   DropdownInputModelName,
   DropdownInputModelValueType,
   DropdownOption,
 } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
+import { isUndefined as _isUndefined } from 'lodash-es';
+import { OptionInputBaseComponent } from './option-input-base.component';
 
 export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueType> {
   protected override logName = DropdownInputModelName;
@@ -37,31 +38,17 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
   `,
   standalone: false,
 })
-export class DropdownInputComponent extends FormFieldBaseComponent<DropdownInputModelValueType> {
+export class DropdownInputComponent extends OptionInputBaseComponent<
+  DropdownInputModelValueType,
+  DropdownOption,
+  DropdownInputFieldComponentDefinitionFrame['config'],
+  DropdownInputFieldComponentDefinitionFrame
+> {
   protected override logName = DropdownInputComponentName;
-  public tooltip: string = '';
-  public placeholder: string | undefined = undefined;
-  public options: DropdownOption[] = [];
 
-  /**
-   * Override to set additional properties required by the wrapper component.
-   *
-   * @param formFieldCompMapEntry
-   */
-  protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
-    super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
-    this.tooltip = this.getStringProperty('tooltip');
-    this.placeholder = this.getStringProperty('placeholder');
-    const dropdownInputConfig = this.componentDefinition?.config as DropdownInputFieldComponentConfig | undefined;
-    const defaultConfig = new DropdownInputFieldComponentConfig();
-    const cfg =
-      _isUndefined(dropdownInputConfig) || _isEmpty(dropdownInputConfig) ? defaultConfig : dropdownInputConfig;
-    const cfgOptions: DropdownOption[] = cfg.options;
-    if (!_isUndefined(cfgOptions) && !_isEmpty(cfgOptions)) {
-      this.options = cfgOptions;
-    } else {
-      this.options = defaultConfig.options;
-    }
+  protected override async initData(): Promise<void> {
+    // Validate the component definition; options, tooltip and placeholder are read from the config on demand.
+    this.getOptionInputConfig(DropdownInputComponentName);
     this.setDefaultSelection();
   }
 

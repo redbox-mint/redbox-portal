@@ -120,9 +120,11 @@
       <div class="modal-content">
         <div class="modal-header">
           <span class="modal-title h4-header" id="vocabModalTitle">{{
-            selectedVocabulary?.id
-              ? ('admin-vocabulary-edit-title' | i18next)
-              : ('admin-vocabulary-create-title' | i18next)
+            isSelectedReadOnly
+              ? ('admin-vocabulary-view-title' | i18next)
+              : selectedVocabulary?.id
+                ? ('admin-vocabulary-edit-title' | i18next)
+                : ('admin-vocabulary-create-title' | i18next)
           }}</span>
           <button
             type="button"
@@ -134,6 +136,9 @@
           ></button>
         </div>
         <div class="modal-body">
+          @if (isSelectedReadOnly) {
+            <div class="alert alert-info" role="status">{{ 'admin-vocabulary-read-only-notice' | i18next }}</div>
+          }
           <vocab-detail [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
         </div>
         <div class="modal-footer">
@@ -181,9 +186,11 @@
               </div>
             </div>
           }
-          <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave || isSyncInProgress">
-            {{ 'admin-vocabulary-save' | i18next }}
-          </button>
+          @if (!isSelectedReadOnly) {
+            <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave || isSyncInProgress">
+              {{ 'admin-vocabulary-save' | i18next }}
+            </button>
+          }
           @if (!isSyncConfirmationOpen) {
             <button type="button" class="btn btn-warning" (click)="syncSelected()" [disabled]="!canSyncSelected">
               {{ 'admin-vocabulary-sync-rva' | i18next }}

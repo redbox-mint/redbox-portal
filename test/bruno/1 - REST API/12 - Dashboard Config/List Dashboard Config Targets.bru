@@ -1,0 +1,31 @@
+meta {
+  name: List Dashboard Config Targets
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/dashboard-config/targets
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Lists workflow stage targets without profiles", function () {
+    var data = res.getBody().data;
+    expect(data).to.have.property("targets");
+    expect(data).to.not.have.property("dashboardTypes");
+    var draft = data.targets.find(function (t) { return t.target.kind === "workflow" && t.target.recordType === "rdmp" && t.target.stage === "draft"; });
+    expect(draft).to.not.equal(undefined);
+    expect(draft).to.have.property("hidden");
+  });
+}

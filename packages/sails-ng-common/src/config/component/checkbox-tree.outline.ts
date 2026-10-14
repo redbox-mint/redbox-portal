@@ -94,6 +94,12 @@ export interface CheckboxTreeFormComponentDefinitionFrame extends FormComponentD
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures hierarchical checkbox selection from tree-shaped option data.
+ *
+ * @extensionPoint Use `CheckboxTreeComponent` with its model to collect one or more values from a hierarchy.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface CheckboxTreeFormComponentDefinitionOutline extends CheckboxTreeFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: CheckboxTreeFieldComponentDefinitionOutline;
     model?: CheckboxTreeFieldModelDefinitionOutline;

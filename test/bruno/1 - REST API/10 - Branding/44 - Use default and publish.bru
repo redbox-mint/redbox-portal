@@ -1,0 +1,32 @@
+meta {
+  name: Use default and publish
+  type: http
+  seq: 44
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/draft/typeface/use-default
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "expectedDraftRevision": {{rb_revision}}
+  }
+}
+
+tests {
+  test("Draft set to Default Typography", function(){
+    expect(res.getStatus()).to.equal(200);
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body.draft.typeface.mode).to.equal('default');
+    bru.setVar('rb_revision', body.draft.revision);
+  });
+}

@@ -23,6 +23,26 @@ export interface SaveStatusFieldComponentConfigFrame extends FieldComponentConfi
      * Defaults to 3000 milliseconds.
      */
     successDisplayDurationMs?: number;
+    /**
+     * Translation code for a persisted warning after creating a record.
+     * Falls back to the global save warning when not provided.
+     */
+    warningMessageCreate?: string;
+    /**
+     * Translation code for a persisted warning after updating a record.
+     * Falls back to the global save warning when not provided.
+     */
+    warningMessageUpdate?: string;
+    /**
+     * Translation code when the result of creating a record cannot be confirmed.
+     * Falls back to the global unknown-save message when not provided.
+     */
+    unknownMessageCreate?: string;
+    /**
+     * Translation code when the result of updating a record cannot be confirmed.
+     * Falls back to the global unknown-save message when not provided.
+     */
+    unknownMessageUpdate?: string;
 }
 
 export interface SaveStatusFieldComponentConfigOutline extends SaveStatusFieldComponentConfigFrame, FieldComponentConfigOutline {
@@ -45,6 +65,12 @@ export interface SaveStatusFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Displays current form save progress and result state.
+ *
+ * @extensionPoint Use `SaveStatusComponent` alongside save controls without adding a submitted model value.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface SaveStatusFormComponentDefinitionOutline extends SaveStatusFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: SaveStatusFieldComponentDefinitionOutline;
     model?: never;

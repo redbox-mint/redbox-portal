@@ -1,5 +1,5 @@
 import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
-import { FormConfig, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
+import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
 
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
 import { FormConfigFrame, FormConfigOutline } from '@researchdatabox/sails-ng-common';
@@ -65,6 +65,13 @@ import {
   ContentFieldComponentDefinitionFrame,
   ContentFieldComponentDefinitionOutline,
   ContentFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
+  RelatedObjectDataComponentName,
+  RelatedObjectDataFieldComponentConfig,
+  RelatedObjectDataFieldComponentDefinitionFrame,
+  RelatedObjectDataFieldComponentDefinitionOutline,
+  RelatedObjectDataFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
   TabComponentName,
@@ -342,6 +349,13 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { IntegrationStatusFieldComponentConfig } from '@researchdatabox/sails-ng-common';
 import {
+  WorkspaceSelectorComponentName,
+  WorkspaceFieldComponentConfig,
+  WorkspaceFieldComponentDefinitionFrame,
+  WorkspaceFieldComponentDefinitionOutline,
+  WorkspaceFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   isTypeFieldDefinitionName,
   isTypeFormComponentDefinition,
   isTypeFormComponentDefinitionName,
@@ -376,7 +390,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   private formMode: FormModesConfig;
   private recordValues: Record<string, unknown> | null;
   private removeOverrides: boolean;
+  private preserveDefaultValues: boolean;
   private extractedDefaultValues: Record<string, unknown>;
+  private translate?: (key: string) => string;
 
   private mostRecentRepeatableElementTemplatePath: LineagePath | null;
 
@@ -397,6 +413,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.formMode = 'view';
     this.recordValues = null;
     this.removeOverrides = false;
+    this.preserveDefaultValues = false;
     this.extractedDefaultValues = {};
 
     this.mostRecentRepeatableElementTemplatePath = null;
@@ -421,6 +438,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    * @param options.formMode The currently active form mode. Defaults to 'view'.
    * @param options.record The record metadata values. Set to undefined or null to use the form default values.
    * @param options.removeOverrides True to remove all overrides, false to retain the overrides that the client visitor might use.
+   * @param options.preserveDefaultValues Preserve model default values for downstream contract compilation.
+   * @param options.translate Resolve a translation code to text, used for form config default values.
    */
   async start(options: {
     data: FormConfigFrame;
@@ -428,16 +447,20 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     formMode?: FormModesConfig;
     record?: Record<string, unknown> | null;
     removeOverrides?: boolean;
+    preserveDefaultValues?: boolean;
+    translate?: (key: string) => string;
   }): Promise<FormConfigOutline> {
     this.data = _cloneDeep(options.data);
     this.reusableFormDefs = options.reusableFormDefs ?? {};
     this.formMode = options.formMode ?? 'view';
+    this.translate = options.translate;
 
     // When options.record is null or undefined, use the form defaults. Otherwise, use recordValues only.
     // This allows for specifying an empty record '{}' and using that instead of the defaults.
     this.recordValues = options.record === null || options.record === undefined ? null : options.record;
 
     this.removeOverrides = options.removeOverrides ?? false;
+    this.preserveDefaultValues = options.preserveDefaultValues ?? false;
 
     // Collect the form config defaults.
     // The defaults always need to be extract so they are available to any repeatable components.
@@ -473,6 +496,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('enabledValidationGroups', item, currentData);
     this.sharedProps.setPropOverride('validators', item, currentData);
     this.sharedProps.setPropOverride('validationGroups', item, currentData);
+    this.sharedProps.setPropOverride('validationOperations', item, currentData);
     this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
     this.sharedProps.setPropOverride('debugValue', item, currentData);
     this.sharedProps.setPropOverride('expressions', item, currentData);
@@ -483,6 +507,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     // classes because the runtime consumes the config directly.
     this.sharedProps.setPropOverride('behaviours', item, currentData);
     this.sharedProps.setPropOverride('attachmentFields', item, currentData);
+    this.sharedProps.setPropOverride('serverSyncOnSave', item, currentData);
     // Ensure the default validation groups are present.
     if (!item.validationGroups) {
       item.validationGroups = {};
@@ -590,6 +615,26 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
     // TODO: does the content component require the data model?
+    await this.populateFormComponent(item);
+  }
+
+  async visitRelatedObjectDataFieldComponentDefinition(item: RelatedObjectDataFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (!isTypeFieldDefinitionName<RelatedObjectDataFieldComponentDefinitionFrame>(currentData, RelatedObjectDataComponentName)) {
+      throw new Error(`Invalid ${RelatedObjectDataComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`);
+    }
+    const config = currentData.config;
+    item.config = new RelatedObjectDataFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    for (const prop of ['template', 'content', 'contentIsTranslationCode', 'translationContentFormat', 'outputFormat', 'dataPath', 'oidProperty', 'relatedFields'] as const) {
+      this.sharedProps.setPropOverride(prop, item.config, config);
+    }
+    item.config.oidProperty ??= 'id';
+    item.config.relatedFields ??= [];
+    item.config.template ??= '{{#each relatedObjects}}<div>{{#if title}}{{title}}{{else}}{{oid}}{{/if}}</div>{{/each}}';
+  }
+
+  async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
@@ -793,6 +838,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new SaveStatusFieldComponentConfig();
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('successDisplayDurationMs', item.config, config);
+    this.sharedProps.setPropOverride('warningMessageCreate', item.config, config);
+    this.sharedProps.setPropOverride('warningMessageUpdate', item.config, config);
+    this.sharedProps.setPropOverride('unknownMessageCreate', item.config, config);
+    this.sharedProps.setPropOverride('unknownMessageUpdate', item.config, config);
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
@@ -801,9 +851,16 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
   /* Integration Status */
 
-  async visitIntegrationStatusFieldComponentDefinition(item: IntegrationStatusFieldComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFieldComponentDefinition(
+    item: IntegrationStatusFieldComponentDefinitionOutline
+  ): Promise<void> {
     const currentData = this.getData();
-    if (!isTypeFieldDefinitionName<IntegrationStatusFieldComponentDefinitionFrame>(currentData, IntegrationStatusComponentName)) {
+    if (
+      !isTypeFieldDefinitionName<IntegrationStatusFieldComponentDefinitionFrame>(
+        currentData,
+        IntegrationStatusComponentName
+      )
+    ) {
       throw new Error(
         `Invalid ${IntegrationStatusComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
@@ -822,7 +879,33 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('hideWhenInactive', item.config, config);
   }
 
-  async visitIntegrationStatusFormComponentDefinition(item: IntegrationStatusFormComponentDefinitionOutline): Promise<void> {
+  async visitIntegrationStatusFormComponentDefinition(
+    item: IntegrationStatusFormComponentDefinitionOutline
+  ): Promise<void> {
+    await this.populateFormComponent(item);
+  }
+
+  async visitWorkspaceFieldComponentDefinition(item: WorkspaceFieldComponentDefinitionOutline): Promise<void> {
+    const currentData = this.getData();
+    if (
+      !isTypeFieldDefinitionName<WorkspaceFieldComponentDefinitionFrame>(currentData, WorkspaceSelectorComponentName)
+    ) {
+      throw new Error(
+        `Invalid ${WorkspaceSelectorComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
+      );
+    }
+    const config = currentData?.config;
+    item.config = new WorkspaceFieldComponentConfig();
+    this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('open', item.config, config);
+    this.sharedProps.setPropOverride('saveFirst', item.config, config);
+    this.sharedProps.setPropOverride('displayType', item.config, config);
+    this.sharedProps.setPropOverride('shouldSaveForm', item.config, config);
+    this.sharedProps.setPropOverride('allowAddTemplate', item.config, config);
+    this.sharedProps.setPropOverride('defaultSelection', item.config, config);
+  }
+
+  async visitWorkspaceFormComponentDefinition(item: WorkspaceFormComponentDefinitionOutline): Promise<void> {
     await this.populateFormComponent(item);
   }
 
@@ -1186,6 +1269,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
+    this.sharedProps.setPropOverride('operation', item.config, config);
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
@@ -1397,6 +1481,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('enabledModes', item.config, config);
     this.sharedProps.setPropOverride('enableImport', item.config, config);
     this.sharedProps.setPropOverride('coordinatesHelp', item.config, config);
+    this.sharedProps.setPropOverride('coordinatePrecision', item.config, config);
 
     item.config.enabledModes = this.sanitizeMapEnabledModes(item.config.enabledModes, 'construct');
   }
@@ -1773,6 +1858,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('placeholder', item.config, config);
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('multipleValues', item.config, config);
+    this.sharedProps.setPropOverride('booleanMode', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
@@ -1974,6 +2060,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('cacheResults', itemConfig, config);
     this.sharedProps.setPropOverride('multiSelect', itemConfig, config);
     this.sharedProps.setPropOverride('placeholder', itemConfig, config);
+    this.sharedProps.setPropOverride('noResultsMessageKey', itemConfig, config);
     this.sharedProps.setPropOverride('readOnlyAfterSelect', itemConfig, config);
     this.sharedProps.setPropOverride('historicalVocabMode', itemConfig, config);
 
@@ -2110,6 +2197,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new DateInputFieldModelConfig();
 
     this.sharedProps.sharedPopulateFieldModelConfig(item.config, currentData?.config);
+    this.sharedProps.setPropOverride('dateOnly', item.config, currentData?.config);
 
     this.setModelValue(item, currentData?.config);
   }
@@ -2243,15 +2331,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         className === QuestionTreeComponentName ||
         className === RepeatableComponentName ||
         (className === GroupFieldComponentName && formComponent?.layout?.class !== ActionRowLayoutName) ||
-        this.mostRecentRepeatableElementTemplatePath !== null ||
-        (
-          componentConfig?.inlineVocab === true &&
-          (
-            className === DropdownInputComponentName ||
+this.mostRecentRepeatableElementTemplatePath !== null ||
+        (componentConfig?.inlineVocab === true &&
+          (className === DropdownInputComponentName ||
             className === CheckboxInputComponentName ||
-            className === RadioInputComponentName
-          )
-        );
+            className === RadioInputComponentName));
       if (shouldDeferToClientViewTransform) {
         if (formComponent.overrides?.replaceName !== undefined) {
           (formComponent as { name: string | null }).name = formComponent.overrides.replaceName;
@@ -2343,7 +2427,9 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     // Set the model.config.value or new item value
     if (isElementTemplate) {
-      item.config.newEntryValue = config?.newEntryValue;
+      // newEntryValue is the elementTemplate's equivalent of defaultValue, so it is
+      // authored in the form config and needs the same translation code resolution.
+      item.config.newEntryValue = this.translateConfigDefault(config?.newEntryValue);
     } else if (!isElementTemplateDescendant) {
       // NOTE: It is useless to set the model.config.value on an elementTemplate or a descendant component.
       // The top-most repeatable must have either:
@@ -2351,8 +2437,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
       // - a value, which will be used to populate the entire repeatable and so any value on nested components will be ignored.
       item.config.value = this.currentModelValue();
 
-      // Remove the defaultValue property.
-      if (item?.config && 'defaultValue' in item.config) {
+      // Remove the defaultValue property from client forms. Contract compilation
+      // needs the authored default to distinguish nullable fields from fields
+      // with an explicit non-null default.
+      if (!this.preserveDefaultValues && item?.config && 'defaultValue' in item.config) {
         delete item.config.defaultValue;
       }
     }
@@ -2383,7 +2471,40 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    */
   protected currentDefaultValue(itemDefaultValue?: unknown) {
     const dataModelPath = this.formPathHelper.formPath.dataModel;
-    return _cloneDeep(_get(this.extractedDefaultValues, dataModelPath, itemDefaultValue));
+    const value = _cloneDeep(_get(this.extractedDefaultValues, dataModelPath, itemDefaultValue));
+    return this.translateConfigDefault(value);
+  }
+
+  /**
+   * Resolve translation codes in a form config default value.
+   *
+   * Default values are authored in the form config, so a value such as
+   * '@dataPublication-citation-publisher-default' is a translation code rather than
+   * literal text. Labels are resolved by the client i18next pipe, but a default value
+   * becomes record metadata, so leaving it unresolved persists the raw code. Strings
+   * that look like natural language are left untouched, and an unknown code resolves
+   * to itself, so this is a no-op unless the value really is a translation code.
+   *
+   * @param value The default value from the form config.
+   * @protected
+   */
+  protected translateConfigDefault(value: unknown): unknown {
+    if (!this.translate) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      return isLikelyNaturalLanguage(value) ? value : this.translate(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map(entry => this.translateConfigDefault(entry));
+    }
+    // Only walk plain objects, so class instances and dates are left as they are.
+    if (value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, this.translateConfigDefault(entry)])
+      );
+    }
+    return value;
   }
 
   /**

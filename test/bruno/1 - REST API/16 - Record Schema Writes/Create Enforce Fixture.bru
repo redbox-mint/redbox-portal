@@ -1,0 +1,43 @@
+meta {
+  name: Create Enforce Fixture
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/metadata/dataPublication
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "title": "Bruno record schema enforce fixture"
+  }
+}
+
+tests {
+  test("Creates a schema-valid enforce-mode fixture", function () {
+    expect(res.getStatus()).to.equal(201);
+
+    const body = res.getBody();
+    expect(body.data.outcome).to.equal("saved");
+    expect(body.data.oid).to.be.a("string").and.not.equal("");
+    expect(body.meta.problems).to.deep.equal([]);
+
+    bru.setEnvVar("recordSchemaEnforceOid", body.data.oid);
+  });
+
+  test("Returns schema discovery for the successful enforce create", function () {
+    const link = res.getHeader("link");
+    expect(link || "").to.match(
+      /^<\/default\/rdmp\/api\/records\/schemas\/[0-9a-f]{64}>; rel="describedby"; type="application\/schema\+json"$/
+    );
+  });
+}

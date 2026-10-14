@@ -1,26 +1,29 @@
 @if (isReady) {
   <div>
+    @if (settingsUnavailable) {
+      <div class="alert alert-warning" role="alert">{{ 'dashboard-settings-unavailable' | i18next }}</div>
+    }
     <ng-container>
-      @for (workflowStep of workflowSteps; track workflowStep) {
+      @for (workflowStep of workflowSteps; track getStepKey(workflowStep)) {
         <div>
           <div class="d-flex flex-row">
-            @if (workflowSteps.length > 1 && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')) {
+            @if (workflowSteps.length > 1 && isStageTitleShown(getStepKey(workflowStep))) {
               <div class="col-md-4">
                 <h2>{{ 'dashboard-heading' | i18next: {stage: getStepStageLabel(workflowStep), recordTypeName: typeLabel} }}</h2>
               </div>
             }
-            @if (workflowSteps.length == 1 && !hideWorkflowStepTitle && (dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'consolidated')) {
+            @if (workflowSteps.length == 1 && isStageTitleShown(getStepKey(workflowStep))) {
               <div class="col-md-4">
                 <h2>{{ 'dashboard-heading-one-step' | i18next: {recordTypeName: typeLabel} }}</h2>
               </div>
             }
-            @if ((dashboardTypeSelected == 'standard' || dashboardTypeSelected == 'workspace') && ((records[getStepKey(workflowStep)]?.totalItems > 0) || (records[getStepKey(workflowStep)]?.totalItems <= 0 && getFilterSearchDisplayed(getStepKey(workflowStep))))) {
+            @if (isSearchEnabled(getStepKey(workflowStep)) && ((records[getStepKey(workflowStep)]?.totalItems > 0) || (records[getStepKey(workflowStep)]?.totalItems <= 0 && getFilterSearchDisplayed(getStepKey(workflowStep))))) {
               <div class="col-md-8">
                 <div class="d-flex flex-row mt-4">
-                  <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >Filter by {{ filterFieldName }}</button>
+                  <button class="btn btn-primary dropdown-toggle" type='button' data-bs-toggle="dropdown" aria-expanded="false" >{{ 'dashboard-filter-by' | i18next: {field: getFilterFieldName(getStepKey(workflowStep))} }}</button>
                   <ul class="dropdown-menu">
-                    @for (filter of getTextFilters(); track filter) {
-                      <li><a class="dropdown-item" href="#" (click)="setFilterField(filter, $event)">Filter by {{ filter.name }}</a></li>
+                    @for (filter of getTextFilters(getStepKey(workflowStep)); track filter) {
+                      <li><a class="dropdown-item" href="#" (click)="setFilterField(getStepKey(workflowStep), filter, $event)">{{ 'dashboard-filter-by' | i18next: {field: filter.name} }}</a></li>
                     }
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'record-search-reset' | i18next }}</a></li>
@@ -41,33 +44,35 @@
               }
               @if (records[getStepKey(workflowStep)].totalItems > 0) {
                 <div>
-                  <table class="table">
-                    <thead>
-                      <tr>
-                        @for (rowConfig of tableConfig[getStepKey(workflowStep)]; track rowConfig) {
-                          <th>
-                            @if (enableSort) {
-                              <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="getStepKey(workflowStep)" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
-                            }
-                            @if (!enableSort) {
-                              <span class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
-                            }
-                          </th>
-                        }
-                      </tr>
-                    </thead>
-                    @for (plan of records[getStepKey(workflowStep)].items; track plan) {
-                      <tbody>
-                        <tr>@for (rowConfig of tableConfig[getStepKey(workflowStep)]; track rowConfig) {
-                          <td [innerHtml]="plan[rowConfig.variable]"></td>
-                        }</tr>
-                      </tbody>
-                    }
-                  </table>
-                  @if (records[getStepKey(workflowStep)].totalItems > 0) {
-                    <pagination [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
-                    [(ngModel)]="records[getStepKey(workflowStep)].currentPage" (pageChanged)="pageChanged($event,getStepKey(workflowStep))" class="pagination-sm" [maxSize]="10"></pagination>
+                  @if (tableConfig[getStepKey(workflowStep)].length === 0) {
+                    <div class="padding-bottom-10">{{ 'dashboard-no-columns' | i18next }}</div>
+                  } @else {
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          @for (rowConfig of tableConfig[getStepKey(workflowStep)]; track $index) {
+                            <th>
+                              @if (enableSort) {
+                                <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="getStepKey(workflowStep)" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
+                              }
+                              @if (!enableSort) {
+                                <span class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
+                              }
+                            </th>
+                          }
+                        </tr>
+                      </thead>
+                      @for (plan of records[getStepKey(workflowStep)].items; track $index) {
+                        <tbody>
+                          <tr>@for (rowConfig of tableConfig[getStepKey(workflowStep)]; track $index) {
+                            <td [innerHtml]="plan[rowConfig.variable]"></td>
+                          }</tr>
+                        </tbody>
+                      }
+                    </table>
                   }
+                  <pagination [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
+                  [(ngModel)]="records[getStepKey(workflowStep)].currentPage" (pageChanged)="pageChanged($event,getStepKey(workflowStep))" class="pagination-sm" [maxSize]="10"></pagination>
                 </div>
               }
             </div>

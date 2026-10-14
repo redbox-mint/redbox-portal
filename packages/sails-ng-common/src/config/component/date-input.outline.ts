@@ -51,9 +51,11 @@ export interface DateInputFieldComponentDefinitionOutline extends DateInputField
 /* Date Input Model */
 export const DateInputModelName = "DateInputModel" as const;
 export type DateInputModelNameType = typeof DateInputModelName;
-export type DateInputModelValueType = Date | null;
+export type DateInputModelValueType = Date | string | null;
 
 export interface DateInputFieldModelConfigFrame extends FieldModelConfigFrame<DateInputModelValueType> {
+    /** Store a calendar date as YYYY-MM-DD (or null), without a time or timezone. Defaults to false. */
+    dateOnly?: boolean;
 }
 
 
@@ -78,6 +80,12 @@ export interface DateInputFormComponentDefinitionFrame extends FormComponentDefi
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures date entry and its serialised model value.
+ *
+ * @extensionPoint Use `DateInputComponent` with `DateInputModel` and the documented date configuration properties.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface DateInputFormComponentDefinitionOutline extends DateInputFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: DateInputFieldComponentDefinitionOutline;
     model?: DateInputFieldModelDefinitionOutline;

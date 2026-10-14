@@ -18,6 +18,11 @@ export type SaveButtonComponentNameType = typeof SaveButtonComponentName;
 
 export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfigFrame {
   /**
+   * Server-owned validation intent to apply to this save.
+   * This is independent of targetStep and does not make client validation groups authoritative.
+   */
+  operation?: string;
+  /**
    * Try to transition to this workflow step as part of the save process on the server.
    */
   targetStep?: string;
@@ -78,6 +83,12 @@ export interface SaveButtonFormComponentDefinitionFrame extends FormComponentDef
     layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures the primary form save action.
+ *
+ * @extensionPoint Use `SaveButtonComponent` in form action areas and configure its supported label and save behaviour.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface SaveButtonFormComponentDefinitionOutline extends SaveButtonFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: SaveButtonFieldComponentDefinitionOutline;
     model?: never;

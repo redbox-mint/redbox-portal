@@ -106,6 +106,11 @@ export interface AgendaQueueConfig {
     jobs: AgendaJobsConfig;
 }
 
+export const RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME = 'RecordsService-ReconcilePostCommitSave';
+
+/** Daily orphan reconciliation for content-addressed brand typeface assets (design.md section 12). */
+export const BRANDING_TYPEFACE_RECONCILE_JOB_NAME = 'BrandingTypefaceService-ReconcileAssets';
+
 export const agendaQueue: AgendaQueueConfig = {
     options: {
         backend: parseAgendaQueueBackend(process.env['sails__agendaQueue_options_backend'], 'sails__agendaQueue_options_backend') ?? 'mongodb',
@@ -139,6 +144,14 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
+        [RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME]: {
+            fnName: 'recordsservice.reconcilePostCommitSave',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
         'IntegrationAuditService-StoreIntegrationAudit': {
             fnName: 'integrationauditservice.storeIntegrationAudit',
             options: {
@@ -162,6 +175,15 @@ export const agendaQueue: AgendaQueueConfig = {
                 intervalOrSchedule: '5 minutes'
             }
         },
+        'Figshare-SyncRecord': {
+            fnName: 'figshareservice.syncRecordJob',
+            options: { concurrency: 4, lockLimit: 4, lockLifetime: 120000 }
+        },
+        'Figshare-Dispatch': {
+            fnName: 'figshareservice.dispatchSyncJob', backend: 'mongodb',
+            schedule: { method: 'every', intervalOrSchedule: '30 seconds' },
+            options: { concurrency: 1, lockLimit: 1, lockLifetime: 120000 }
+        },
         'Figshare-PublishAfterUpload-Service': {
             fnName: 'figshareservice.publishAfterUploadFilesJob',
             options: {
@@ -176,6 +198,22 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLifetime: 120 * 1000,
                 lockLimit: 1,
                 concurrency: 1
+            }
+        },
+        [BRANDING_TYPEFACE_RECONCILE_JOB_NAME]: {
+            fnName: 'brandingtypefaceservice.reconcileAssets',
+            backend: 'mongodb',
+            options: {
+                lockLifetime: 10 * 60 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            },
+            schedule: {
+                method: 'every',
+                intervalOrSchedule: '1 day',
+                opts: {
+                    skipImmediate: true
+                }
             }
         }
     }

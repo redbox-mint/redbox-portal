@@ -222,6 +222,87 @@ describe("RichTextEditorComponent", () => {
     expect(richTextComponent.editor?.getHTML()).toContain("<p>Updated by formControl</p>");
   });
 
+  it("syncs the editor when an expression updates model.value with emitEvent false", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [{
+        name: "editableField",
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "" } }
+      }]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editModeProps);
+    const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    const control = formComponent.form?.controls["editableField"];
+    expect(control).toBeDefined();
+    if (!control) {
+      return;
+    }
+
+    // Expression-driven updates bypass valueChanges, then the framework calls syncDisplayFromModel.
+    control.setValue("<p>Archival data record created for v5 verification.</p>", { emitEvent: false });
+    await richTextComponent.syncDisplayFromModel();
+    await fixture.whenStable();
+
+    expect(richTextComponent.editor?.getHTML()).toContain("Archival data record created for v5 verification.");
+  });
+
+  it("does not write back to the formControl when syncing display from the model", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [{
+        name: "editableField",
+        component: { class: "RichTextEditorComponent" },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Before</p>" } }
+      }]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, editModeProps);
+    const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    const control = formComponent.form?.controls["editableField"];
+    expect(control).toBeDefined();
+    if (!control) {
+      return;
+    }
+    control.setValue("<p>Set by expression</p>", { emitEvent: false });
+    const setValueSpy = spyOn(control, "setValue").and.callThrough();
+
+    await richTextComponent.syncDisplayFromModel();
+    await fixture.whenStable();
+
+    expect(setValueSpy.calls.count()).toBe(0);
+    expect(control.value).toContain("<p>Set by expression</p>");
+  });
+
+  it("syncs the readonly view when an expression updates model.value with emitEvent false", async () => {
+    const formConfig: FormConfigFrame = {
+      name: "testing",
+      componentDefinitions: [{
+        name: "syncField",
+        component: {
+          class: "RichTextEditorComponent",
+          config: {
+            readonly: true,
+            outputFormat: "html"
+          }
+        },
+        model: { class: "RichTextEditorModel", config: { value: "<p>Before</p>" } }
+      }]
+    };
+
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const richTextComponent = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    (formComponent as any).form.controls.syncField.setValue("<p>Set by expression</p>", { emitEvent: false });
+    await richTextComponent.syncDisplayFromModel();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const content = (compiled.querySelector(".redbox-rich-text-view") as HTMLElement)?.innerHTML ?? "";
+    expect(content).toContain("<p>Set by expression</p>");
+  });
+
   it("prevents value sync loops between editor and formControl", async () => {
     const formConfig: FormConfigFrame = {
       name: "testing",

@@ -128,11 +128,11 @@ export class FormOverride {
   private readonly linkLeafFallbackTemplate =
     `{{#if [[valueExpr]]}}<a href="{{default [[valueExpr]] ""}}" target="_blank" rel="noopener noreferrer">{{default [[valueExpr]] ""}}</a>{{/if}}`;
   private readonly dataLocationLeafFallbackTemplate =
-    `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-data-location"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="40%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}`;
+    `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-data-location"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="40%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}{{#if (attachmentDownloadUrl this @root.oid @root.branding @root.portal)}}<a href="{{attachmentDownloadUrl this @root.oid @root.branding @root.portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}{{default this.name this.location}}{{/if}}{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/each}}</tbody></table></div>{{/if}}`;
   private readonly pdfListLeafFallbackTemplate =
     `{{#if [[valueExpr]]}}<ul class="rb-view-pdf-list">{{#each [[valueExpr]]}}<li>{{default this.fileName this.label}}</li>{{/each}}</ul>{{/if}}`;
   private readonly publishDataLocationSelectorLeafFallbackTemplate =
-    `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-publish-data-location-selector"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="35%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}{{#if this.selected}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}<a href="{{default this.url this.location}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/if}}{{/each}}</tbody></table></div>{{/if}}`;
+    `{{#if [[valueExpr]]}}<div class="table-responsive mt-2"><table class="table table-bordered table-striped table-hover mb-0 rb-view-publish-data-location-selector"><thead><tr><th width="15%">[[typeHeaderHtml]]</th><th width="35%">[[locationHeaderHtml]]</th>[[notesHeaderCellHtml]][[iscHeaderCellHtml]]</tr></thead><tbody>{{#each [[valueExpr]]}}{{#if this.selected}}<tr><td>{{default this.typeLabel this.type}}</td><td>{{#if (or (eq this.type "url") (eq this.type "attachment"))}}{{#if (attachmentDownloadUrl this @root.oid @root.branding @root.portal)}}<a href="{{attachmentDownloadUrl this @root.oid @root.branding @root.portal}}" target="_blank" rel="noopener noreferrer">{{default this.name this.location}}</a>{{else}}{{default this.name this.location}}{{/if}}{{else}}<span>{{default this.name this.location}}</span>{{/if}}</td>[[notesCellHtml]][[iscCellHtml]]</tr>{{/if}}{{/each}}</tbody></table></div>{{/if}}`;
   private readonly questionTreeHelper: QuestionTreeHelper;
   private readonly forcedViewTransformOverrideKey = '__forceViewTransform';
 
@@ -796,14 +796,15 @@ export class FormOverride {
     const target = this.commonContentComponent(source, formMode);
 
     if (target.component.config !== undefined && source.model?.config?.value !== undefined) {
-      // Checkbox value can be string, null, array. If string or array, get the labels.
+      // Checkbox value can be string, boolean, null, or an array. Resolve option
+      // labels for strings and stringify boolean-mode values for view rendering.
       // Can have 0, 1, or more values.
       const values =
         source.model.config.value === null
           ? []
           : Array.isArray(source.model.config.value)
             ? source.model.config.value
-            : [source.model.config.value];
+            : [String(source.model.config.value)];
       const options = source.component.config?.options ?? [];
 
       this.commonContentOptionList(target, values, options);
@@ -2007,14 +2008,15 @@ export class FormOverride {
       return;
     }
     const targetCompConf = target.component.config;
+    const normalizedValues = values.filter(value => value !== '');
 
-    if (values.length === 0) {
+    if (normalizedValues.length === 0) {
       // Empty
       targetCompConf.content = undefined;
       targetCompConf.template = this.resolveReusableViewTemplate(this.reusableViewTemplateKeys.leafOptionEmpty, `<span></span>`);
-    } else if (values.length === 1) {
+    } else if (normalizedValues.length === 1) {
       // One value
-      const value = values[0];
+      const value = normalizedValues[0];
       const label = options?.find(option => option.value === value)?.label ?? value;
       targetCompConf.content = { value, label };
       targetCompConf.template = this.resolveReusableViewTemplate(
@@ -2023,7 +2025,7 @@ export class FormOverride {
       );
     } else {
       // More than one value
-      targetCompConf.content = values.map(
+      targetCompConf.content = normalizedValues.map(
         value =>
           options?.find(option => option.value === value) ?? {
             label: value,

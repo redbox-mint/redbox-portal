@@ -1,10 +1,13 @@
 import { Observable, of } from 'rxjs';
+import supertest from 'supertest';
+import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../../../packages/redbox-core/test/fixtures/metadata-projection.fixtures';
 import {
   FormRecordConsistencyService as FormRecordConsistencyModule,
   FormsService as FormsModule,
 } from '@researchdatabox/redbox-core';
 import {
   AvailableFormComponentDefinitionFrames,
+  FORM_VALIDATOR_EMAIL_REGEXP,
   FormConfigFrame,
   FormValidatorSummaryErrors,
 } from '@researchdatabox/sails-ng-common';
@@ -48,6 +51,60 @@ describe('The FormRecordConsistencyService', function () {
     ...formConfigStandard,
     ...formModelStandard,
   };
+
+  it("returns permitted Data Locations and Data Manager from the browser metadata endpoint", async function () {
+    const agent = supertest.agent(sails.hooks.http.app);
+    await agent
+      .post("/user/login_local")
+      .set("X-Source", "jsclient")
+      .send({
+        username: "admin",
+        password: "rbadmin",
+        branding: "default",
+        portal: "rdmp",
+      })
+      .expect(200);
+
+    const brand = BrandingService.getDefault();
+    const oid = `data-location-projection-${Date.now()}`;
+    const getFormByName = FormsService.getFormByName;
+    try {
+      await Record.create({
+        redboxOid: oid,
+        metadata: {
+          ...dataRecordProjectedMetadata,
+          serverOnly: { internalNote: "never exposed" },
+        },
+        metaMetadata: {
+          type: "dataRecord",
+          form: dataRecordProjectionForm.name,
+          brandId: brand.id,
+        },
+        authorization: {
+          edit: ["admin"],
+          view: ["admin"],
+          editRoles: [],
+          viewRoles: [],
+        },
+      });
+      FormsService.getFormByName = function (formName, ...args) {
+        return formName === dataRecordProjectionForm.name
+          ? of({ configuration: dataRecordProjectionForm })
+          : getFormByName.call(this, formName, ...args);
+      };
+
+      const response = await agent
+        .get(`/default/rdmp/record/metadata/${oid}`)
+        .set("X-Source", "jsclient")
+        .expect(200);
+
+      expect(response.body).to.deep.equal(dataRecordProjectedMetadata);
+    } finally {
+      FormsService.getFormByName = getFormByName;
+      await Record.destroy({ redboxOid: oid });
+    }
+  });
+
   it('should detect changes using compareRecords', function () {
     const original = {
       name: 'my object',
@@ -349,6 +406,82 @@ describe('The FormRecordConsistencyService', function () {
         FormRecordConsistencyService.mergeRecordMetadataPermitted(record, record, permittedChanges, []);
       };
       expect(func).to.throw(Error, 'elements');
+    });
+
+    it('filters newly added nested objects and arrays when projecting metadata', async function () {
+      const clientFormConfig: FormConfigFrame = {
+        name: 'project-nested-metadata',
+        type: 'rdmp',
+        debugValue: false,
+        domElementType: 'form',
+        defaultComponentConfig: {},
+        editCssClasses: 'redbox-form form',
+        enabledValidationGroups: ['all'],
+        componentDefinitions: [
+          {
+            name: 'parent',
+            model: { class: 'GroupModel', config: {} },
+            component: {
+              class: 'GroupComponent',
+              config: {
+                componentDefinitions: [
+                  {
+                    name: 'visible',
+                    model: { class: 'SimpleInputModel', config: {} },
+                    component: { class: 'SimpleInputComponent' },
+                  },
+                  {
+                    name: 'children',
+                    model: { class: 'RepeatableModel', config: {} },
+                    component: {
+                      class: 'RepeatableComponent',
+                      config: {
+                        elementTemplate: {
+                          name: null,
+                          model: { class: 'GroupModel', config: {} },
+                          component: {
+                            class: 'GroupComponent',
+                            config: {
+                              componentDefinitions: [
+                                {
+                                  name: 'visibleChild',
+                                  model: { class: 'SimpleInputModel', config: {} },
+                                  component: { class: 'SimpleInputComponent' },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+
+      const projected = await FormRecordConsistencyService.projectMetadataClientFormConfig(
+        {
+          parent: {
+            visible: 'included',
+            omitted: 'excluded',
+            children: [
+              { visibleChild: 'included child', omittedChild: 'excluded child' },
+            ],
+          },
+        },
+        clientFormConfig,
+        'edit'
+      );
+
+      expect(projected).to.eql({
+        parent: {
+          visible: 'included',
+          children: [{ visibleChild: 'included child' }],
+        },
+      });
     });
   });
 
@@ -963,6 +1096,37 @@ describe('The FormRecordConsistencyService', function () {
               params: {
                 actualLength: 9,
                 requiredLength: 50,
+              },
+            },
+          ],
+        },
+        {
+          id: null,
+          message: null,
+          lineagePaths: {
+            formConfig: [
+              'componentDefinitions',
+              '2',
+              'component',
+              'config',
+              'componentDefinitions',
+              '3',
+              'component',
+              'config',
+              'elementTemplate',
+            ],
+            dataModel: ['group_2', 'repeatable_2', 0],
+            angularComponents: ['group_2', 'repeatable_2', 0],
+            angularComponentsJsonPointer: '/group_2/repeatable_2/0',
+          },
+          errors: [
+            {
+              class: 'email',
+              message: '@validator-error-email',
+              params: {
+                actual: 'not an email',
+                description: 'email must be in format (name)@(domain.tld)',
+                requiredPattern: FORM_VALIDATOR_EMAIL_REGEXP,
               },
             },
           ],

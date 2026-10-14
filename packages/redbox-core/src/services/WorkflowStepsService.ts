@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, firstValueFrom, of } from 'rxjs';
+import { Observable, firstValueFrom, from, of, switchMap } from 'rxjs';
 import { Services as services } from '../CoreService';
 import type { WorkflowStageDefinition } from '../config/workflow.config';
 import type { RecordTypeModel } from '../model/storage/RecordTypeModel';
@@ -40,7 +40,8 @@ export namespace Services {
       'create',
       'get',
       'getFirst',
-      'getAllForRecordType'
+      'getAllForRecordType',
+      'getAllForRecordTypeIncludingHidden'
     ];
 
     public async bootstrap(recordTypes: RecordTypeLike[]): Promise<unknown[]> {
@@ -101,7 +102,25 @@ export namespace Services {
         recordType: recordTypeId,
         starting: starting,
         hidden: hidden
-      }));
+      })).pipe(switchMap((created) => from(this.initialiseDashboardSettings(recordType).then(() => created))));
+    }
+
+    /**
+     * Give a newly created stage its own dashboard settings once dashboard
+     * configuration is initialised. During bootstrap the post-bootstrap pass
+     * initialises every stage instead.
+     */
+    private async initialiseDashboardSettings(recordType: RecordTypeLike): Promise<void> {
+      const brandId = (recordType as { branding?: unknown }).branding as string | { id?: string } | undefined;
+      const id = typeof brandId === 'object' ? brandId?.id : brandId;
+      if (!id || typeof DashboardConfigService === 'undefined' || !DashboardConfigService.isReady?.()) {
+        return;
+      }
+      try {
+        await DashboardConfigService.initialiseMissingTargets(BrandingService.getBrandById(String(id)));
+      } catch (error) {
+        this.logger.error('Could not initialise dashboard settings for a new workflow stage', error);
+      }
     }
 
     public get(recordType: RecordTypeLike, name: string) {
@@ -114,6 +133,17 @@ export namespace Services {
         return of([] as WorkflowStepModel[]);
       }
       return super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } }));
+    }
+
+    /**
+     * All stages including hidden ones. For administration and migration only;
+     * ordinary dashboards keep using getAllForRecordType.
+     */
+    public getAllForRecordTypeIncludingHidden(recordType?: RecordTypeLike | null): Observable<WorkflowStepModel[]> {
+      if (!recordType?.id) {
+        return of([] as WorkflowStepModel[]);
+      }
+      return super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id as string }));
     }
 
     public getFirst(recordType: RecordTypeLike) {

@@ -123,6 +123,54 @@ describe('contentSecurityPolicy policy', function () {
         expect(csp).to.include('block-all-mixed-content');
     });
 
+    it('should omit upgrade-insecure-requests for an HTTP appUrl', function () {
+        (global as any).sails.config.appUrl = 'http://redbox-portal.local:1500';
+
+        const { res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy({} as any, res, () => { });
+
+        expect(getHeaders()['Content-Security-Policy']).not.to.include('upgrade-insecure-requests');
+    });
+
+    it('should retain upgrade-insecure-requests for an HTTPS appUrl', function () {
+        (global as any).sails.config.appUrl = 'https://portal.example.edu';
+
+        const { res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy({} as any, res, () => { });
+
+        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
+    });
+
+    it('should retain upgrade-insecure-requests for a malformed appUrl', function () {
+        (global as any).sails.config.appUrl = 'not a valid URL';
+
+        const { res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy({} as any, res, () => { });
+
+        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
+    });
+
+    it('should retain upgrade-insecure-requests for HTTP appUrl in production', function () {
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+        (global as any).sails.config.appUrl = 'http://portal.example.edu';
+
+        const { res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy({} as any, res, () => { });
+
+        if (originalNodeEnv === undefined) {
+            delete process.env.NODE_ENV;
+        } else {
+            process.env.NODE_ENV = originalNodeEnv;
+        }
+
+        expect(getHeaders()['Content-Security-Policy']).to.include('upgrade-insecure-requests');
+    });
+
     it('should include default directives', function () {
         const { req, res, getHeaders } = createMockReqRes();
 
@@ -202,5 +250,149 @@ describe('contentSecurityPolicy policy', function () {
 
         const csp = getHeaders()['Content-Security-Policy'];
         expect(csp.endsWith(';')).to.be.true;
+    });
+
+    it('should skip the header when every configured directive and extra is empty', function () {
+        (global as any).sails.config.csp = {
+            addNonceTo: [],
+            directives: {
+                'default-src': [],
+                'script-src': [],
+                'worker-src': [],
+                'object-src': [],
+                'manifest-src': [],
+                'style-src': [],
+                'font-src': [],
+                'frame-ancestors': [],
+                'form-action': [],
+                'base-uri': [],
+            },
+            extras: [],
+        };
+        let nextCalled = false;
+        const { req, res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy(req, res, () => { nextCalled = true; });
+
+        expect(nextCalled).to.be.true;
+        expect(getHeaders()['Content-Security-Policy']).to.be.undefined;
+    });
+
+    describe('web analytics allow-listing', function () {
+        function withBrandingAnalytics(analytics: any) {
+            (global as any).sails.config.brandingAware = () => ({ webAnalytics: analytics });
+            (global as any).BrandingService = { getBrandNameFromReq: () => 'default' };
+        }
+
+        afterEach(function () {
+            delete (global as any).BrandingService;
+        });
+
+        it('should allow-list Google Analytics domains when enabled for the branding', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC123' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.include('https://www.googletagmanager.com');
+            expect(csp).to.include('https://*.google-analytics.com');
+            expect(csp).to.include('https://*.analytics.google.com');
+            expect(csp).to.not.include("'strict-dynamic'");
+        });
+
+        it('should allow-list Google Tag Manager domains when enabled for the branding', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'googleTagManager', trackingId: 'GTM-XYZ' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            const scriptSrc = csp.match(/script-src[^;]*/)?.[0] ?? '';
+            const frameSrc = csp.match(/frame-src[^;]*/)?.[0] ?? '';
+            expect(scriptSrc).to.include("'self'");
+            expect(scriptSrc).to.include('https://www.googletagmanager.com');
+            expect(scriptSrc).to.not.include("'strict-dynamic'");
+            expect(frameSrc).to.include('https://www.googletagmanager.com');
+        });
+
+        it('should NOT allow-list analytics domains when disabled for the branding', function () {
+            withBrandingAnalytics({ enabled: false, provider: 'googleAnalytics', trackingId: 'G-ABC123' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.not.include('google-analytics.com');
+            expect(csp).to.not.include('googletagmanager.com');
+        });
+
+        it('should NOT allow-list analytics domains when the tracking ID is empty', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: '  ' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.not.include('google-analytics.com');
+            expect(csp).to.not.include('googletagmanager.com');
+        });
+
+        it('should NOT allow-list analytics domains when the tracking ID is invalid', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC<script>' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.not.include('google-analytics.com');
+            expect(csp).to.not.include('googletagmanager.com');
+        });
+
+        it('should NOT allow-list analytics domains for an unsupported provider', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'unsupported', trackingId: 'VALID-123' });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            const csp = getHeaders()['Content-Security-Policy'];
+            expect(csp).to.not.include('google-analytics.com');
+            expect(csp).to.not.include('googletagmanager.com');
+        });
+
+        it('should not throw when BrandingService is unavailable', function () {
+            (global as any).sails.config.brandingAware = () => ({
+                webAnalytics: { enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC123' }
+            });
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            expect(getHeaders()['Content-Security-Policy']).to.exist;
+        });
+
+        it('should log and retain the base policy when branding resolution fails', function () {
+            withBrandingAnalytics({ enabled: true, provider: 'googleAnalytics', trackingId: 'G-ABC123' });
+            (global as any).sails.config.brandingAware = () => {
+                throw new Error('branding unavailable');
+            };
+            let warning = '';
+            (global as any).sails.log.warn = (message: string) => { warning = message; };
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            expect(getHeaders()['Content-Security-Policy']).to.exist;
+            expect(warning).to.include('branding unavailable');
+        });
+
+        it('should not throw and still emit CSP when brandingAware is unavailable', function () {
+            // brandingAware not a function -> helper is a no-op
+            const { req, res, getHeaders } = createMockReqRes();
+
+            contentSecurityPolicy(req, res, () => { });
+
+            expect(getHeaders()['Content-Security-Policy']).to.exist;
+        });
     });
 });

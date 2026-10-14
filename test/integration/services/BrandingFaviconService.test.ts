@@ -10,16 +10,21 @@ describe('BrandingLogoService favicon', () => {
     const res = await BrandingLogoService.putFavicon({ branding: 'default', portal: 'default', fileBuffer: pngBuf, contentType: 'image/png' });
     expect(res.hash).to.match(/^[0-9a-f]{64}$/);
     expect(res.hash).to.equal(expectedHash);
-    expect(res.storageKey).to.equal('default/default/images/favicon.png');
+    expect(res.storageKey).to.match(
+      new RegExp(`^default/default/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.png$`)
+    );
     const brand = await BrandingConfig.findOne({ name: 'default' });
     expect(brand.favicon).to.have.property('sha256', res.hash);
   });
 
   it('accepts an ICO favicon', async () => {
     const icoBuf = Buffer.from('00000100010010101000010004002806000016000000', 'hex');
+    const expectedHash = createHash('sha256').update(icoBuf).digest('hex');
     const res = await BrandingLogoService.putFavicon({ branding: 'default', portal: 'default', fileBuffer: icoBuf, contentType: 'image/x-icon' });
     expect(res.contentType).to.equal('image/x-icon');
-    expect(res.storageKey).to.equal('default/default/images/favicon.ico');
+    expect(res.storageKey).to.match(
+      new RegExp(`^default/default/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.ico$`)
+    );
   });
 
   it('rejects unsupported content type', async () => {
@@ -50,7 +55,9 @@ describe('BrandingLogoService favicon', () => {
     const res = await BrandingLogoService.putFavicon({ branding: 'default', portal: 'default', fileBuffer: safe, contentType: 'image/svg+xml' });
     expect(res.hash).to.match(/^[0-9a-f]{64}$/);
     expect(res.contentType).to.equal('image/svg+xml');
-    expect(res.storageKey).to.equal('default/default/images/favicon.svg');
+    expect(res.storageKey).to.match(
+      new RegExp(`^default/default/images/favicon-${res.hash}-[0-9a-f-]{36}\\.svg$`)
+    );
     const stored = await BrandingLogoService.getBinaryAsync(res.gridFsId);
     expect(stored).to.be.instanceOf(Buffer);
   });

@@ -1,0 +1,201 @@
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from './apply-expression-target';
+import { FormComponentEventType } from './events/form-component-event.types';
+
+/**
+ * Unit coverage for the shared expression-target application helper used by
+ * both component expressions (`setTarget`) and behaviour actions
+ * (`setUIProperty` / `setUIProperties` / `runTemplate` instructions).
+ */
+describe('applyExpressionTarget', () => {
+  let logger: jasmine.SpyObj<LoggerService>;
+  let eventBus: { publish: jasmine.Spy };
+  let broadcastFormStatus: jasmine.Spy;
+  let ctx: ApplyExpressionTargetContext;
+  let host: ExpressionTargetHost & {
+    model: { formControl: FormControl; setDisabled: jasmine.Spy };
+    component: { setProperty: jasmine.Spy };
+    layout: { setProperty: jasmine.Spy };
+  };
+
+  beforeEach(() => {
+    logger = jasmine.createSpyObj<LoggerService>('LoggerService', ['debug', 'warn', 'error']);
+    eventBus = { publish: jasmine.createSpy('publish') };
+    broadcastFormStatus = jasmine.createSpy('broadcastFormStatus');
+    ctx = {
+      eventBus: eventBus as any,
+      logger,
+      broadcastFormStatus,
+      eventFieldId: '/main/source',
+    };
+    host = {
+      model: {
+        formControl: new FormControl<unknown>('initial'),
+        setDisabled: jasmine.createSpy('setDisabled'),
+      },
+      component: { setProperty: jasmine.createSpy('componentSetProperty') },
+      layout: { setProperty: jasmine.createSpy('layoutSetProperty') },
+    } as any;
+  });
+
+  it('notifies dependent fields when an expression populates a value', async () => {
+    const changed = jasmine.createSpy('dependent field');
+    host.model.formControl.valueChanges.subscribe(changed);
+    await applyExpressionTarget('model.value', 'other', host, ctx);
+    expect(changed).toHaveBeenCalledOnceWith('other');
+    expect(host.model.formControl.pristine).toBeTrue();
+  });
+
+  it('does not re-emit structurally equal populated values', async () => {
+    host.model.formControl.setValue({ name: 'Researcher' });
+    const changed = jasmine.createSpy('dependent field');
+    host.model.formControl.valueChanges.subscribe(changed);
+    await applyExpressionTarget('model.value', { name: 'Researcher' }, host, ctx);
+    expect(changed).not.toHaveBeenCalled();
+    expect(broadcastFormStatus).not.toHaveBeenCalled();
+  });
+
+  it('validates an expression-populated control only once', async () => {
+    const validate = jasmine.createSpy('validator').and.returnValue(null);
+    host.model.formControl.setValidators(validate);
+
+    await applyExpressionTarget('model.value', 'updated', host, ctx);
+
+    expect(validate).toHaveBeenCalledTimes(1);
+    expect(host.model.formControl.valid).toBeTrue();
+  });
+
+  it('does not restart asynchronous validation to notify dependants', async () => {
+    let completeValidation!: (errors: null) => void;
+    const validate = jasmine.createSpy('async validator').and.callFake(() =>
+      new Promise<null>(resolve => { completeValidation = resolve; })
+    );
+    const parent = new FormGroup({ field: host.model.formControl });
+    const statuses: string[] = [];
+    parent.statusChanges.subscribe(status => statuses.push(status));
+    host.model.formControl.setAsyncValidators(validate);
+
+    await applyExpressionTarget('model.value', 'updated', host, ctx);
+
+    expect(validate).toHaveBeenCalledTimes(1);
+    expect(host.model.formControl.pending).toBeTrue();
+    expect(parent.pending).toBeTrue();
+    completeValidation(null);
+    await Promise.resolve();
+    expect(host.model.formControl.valid).toBeTrue();
+    expect(parent.valid).toBeTrue();
+    expect(statuses).toEqual(['VALID']);
+    expect(validate).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates ancestor values and validity without emitting ancestor value changes', async () => {
+    host.model.formControl.setValidators(Validators.required);
+    const parent = new FormGroup({ field: host.model.formControl });
+    const root = new FormGroup({ nested: parent });
+    const parentChanged = jasmine.createSpy('parent changed');
+    const rootChanged = jasmine.createSpy('root changed');
+    parent.valueChanges.subscribe(parentChanged);
+    root.valueChanges.subscribe(rootChanged);
+
+    await applyExpressionTarget('model.value', '', host, ctx);
+
+    expect(root.value).toEqual({ nested: { field: '' } });
+    expect(parent.invalid).toBeTrue();
+    expect(root.invalid).toBeTrue();
+    expect(root.pristine).toBeTrue();
+    expect(parentChanged).not.toHaveBeenCalled();
+    expect(rootChanged).not.toHaveBeenCalled();
+  });
+
+  it('sets model.value and re-broadcasts form status', async () => {
+    await applyExpressionTarget('model.value', 'updated', host, ctx);
+
+    expect(host.model.formControl.value).toBe('updated');
+    expect(broadcastFormStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not touch model.value when the value is unchanged', async () => {
+    await applyExpressionTarget('model.value', 'initial', host, ctx);
+
+    expect(broadcastFormStatus).not.toHaveBeenCalled();
+  });
+
+  it('sets model.disabled silently and broadcasts only when the state changes', async () => {
+    host.model.setDisabled.and.callFake(() => host.model.formControl.disable({ emitEvent: false, onlySelf: true }));
+    await applyExpressionTarget('model.disabled', true, host, ctx);
+    await applyExpressionTarget('model.disabled', true, host, ctx);
+
+    expect(host.model.setDisabled).toHaveBeenCalledWith(true, { emitEvent: false, onlySelf: true });
+    expect(broadcastFormStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets layout.* properties on the layout component', async () => {
+    await applyExpressionTarget('layout.cssClasses', 'highlight', host, ctx);
+
+    expect(host.layout.setProperty).toHaveBeenCalledWith('cssClasses', 'highlight');
+    expect(host.component.setProperty).not.toHaveBeenCalled();
+  });
+
+  it('sets component.* properties on the component', async () => {
+    await applyExpressionTarget('component.helpText', 'hi', host, ctx);
+
+    expect(host.component.setProperty).toHaveBeenCalledWith('helpText', 'hi');
+    expect(host.layout.setProperty).not.toHaveBeenCalled();
+  });
+
+  it('field.visible sets both component.visible and layout.visible', async () => {
+    await applyExpressionTarget('field.visible', false, host, ctx);
+
+    expect(host.component.setProperty).toHaveBeenCalledWith('visible', false);
+    expect(host.layout.setProperty).toHaveBeenCalledWith('visible', false);
+  });
+
+  it('field.disabled sets component, layout, and model disabled and broadcasts status', async () => {
+    host.model.setDisabled.and.callFake(() => host.model.formControl.disable({ emitEvent: false, onlySelf: true }));
+    await applyExpressionTarget('field.disabled', true, host, ctx);
+
+    expect(host.component.setProperty).toHaveBeenCalledWith('disabled', true);
+    expect(host.layout.setProperty).toHaveBeenCalledWith('disabled', true);
+    expect(host.model.setDisabled).toHaveBeenCalledWith(true, { emitEvent: false, onlySelf: true });
+    expect(broadcastFormStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes a validation-groups change request for valid values', async () => {
+    await applyExpressionTarget(
+      'form.enabledValidationGroups',
+      { groups: { include: ['minimal'] } },
+      host,
+      ctx
+    );
+
+    expect(eventBus.publish).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        type: FormComponentEventType.FORM_VALIDATION_CHANGE_REQUEST,
+        sourceId: '*',
+        fieldId: '/main/source',
+        groups: { include: ['minimal'] },
+      })
+    );
+  });
+
+  it('logs an error for invalid validation-groups values', async () => {
+    await applyExpressionTarget('form.enabledValidationGroups', 'not-valid', host, ctx);
+
+    expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('warns on unknown targets', async () => {
+    await applyExpressionTarget('nonsense.target', 'x', host, ctx);
+
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('tolerates hosts without model, component, or layout', async () => {
+    await applyExpressionTarget('field.disabled', true, {}, ctx);
+    await applyExpressionTarget('model.value', 'x', {}, ctx);
+
+    expect(broadcastFormStatus).not.toHaveBeenCalled();
+  });
+});

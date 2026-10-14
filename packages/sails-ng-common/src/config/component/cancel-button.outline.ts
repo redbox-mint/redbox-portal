@@ -77,6 +77,12 @@ export interface CancelButtonFormComponentDefinitionFrame extends FormComponentD
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures a button that cancels form editing.
+ *
+ * @extensionPoint Use `CancelButtonComponent` in FormConfig action areas and configure its label and navigation behaviour.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface CancelButtonFormComponentDefinitionOutline
   extends CancelButtonFormComponentDefinitionFrame, FormComponentDefinitionOutline {
   component: CancelButtonFieldComponentDefinitionOutline;

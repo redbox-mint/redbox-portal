@@ -26,7 +26,7 @@ export const searchRecordsRoute = apiRoute(
 );
 
 export const indexRecordRoute = apiRoute(
-  'get',
+  'post',
   '/:branding/:portal/api/search/index',
   'webservice/SearchController',
   'index',
@@ -39,7 +39,7 @@ export const indexRecordRoute = apiRoute(
 );
 
 export const indexAllRecordsRoute = apiRoute(
-  'get',
+  'post',
   '/:branding/:portal/api/search/indexAll',
   'webservice/SearchController',
   'indexAll',
@@ -52,7 +52,7 @@ export const indexAllRecordsRoute = apiRoute(
 );
 
 export const removeAllIndexedRoute = apiRoute(
-  'get',
+  'post',
   '/:branding/:portal/api/search/removeAll',
   'webservice/SearchController',
   'removeAll',

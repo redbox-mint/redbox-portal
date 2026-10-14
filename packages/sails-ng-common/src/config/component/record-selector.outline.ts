@@ -87,6 +87,12 @@ export interface RecordSelectorFormComponentDefinitionFrame extends FormComponen
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Configures lookup and selection of another ReDBox record.
+ *
+ * @extensionPoint Use `RecordSelectorComponent` with `RecordSelectorModel` for relationship or record-reference fields.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface RecordSelectorFormComponentDefinitionOutline
   extends RecordSelectorFormComponentDefinitionFrame,
     FormComponentDefinitionOutline {

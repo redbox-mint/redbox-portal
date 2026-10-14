@@ -395,6 +395,7 @@ describe('FormEffects', () => {
       const action = FormActions.submitForm({
         force: true,
         enabledValidationGroups: ["none"],
+        operation: 'publish',
         targetStep: 'S2'
       });
 
@@ -408,6 +409,7 @@ describe('FormEffects', () => {
             type: 'form.save.execute',
             force: true,
             enabledValidationGroups: ["none"],
+            operation: 'publish',
             targetStep: 'S2'
           }));
           done();

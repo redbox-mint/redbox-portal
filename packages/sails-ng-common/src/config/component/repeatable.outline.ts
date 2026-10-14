@@ -124,6 +124,12 @@ export interface RepeatableFormComponentDefinitionFrame extends FormComponentDef
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Repeats a configured element template and models the resulting array of values.
+ *
+ * @extensionPoint Use `RepeatableComponent` with `RepeatableModel` for zero-or-more structured form entries.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface RepeatableFormComponentDefinitionOutline
   extends RepeatableFormComponentDefinitionFrame, FormComponentDefinitionOutline {
   component: RepeatableFieldComponentDefinitionOutline;

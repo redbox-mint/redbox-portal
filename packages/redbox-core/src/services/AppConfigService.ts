@@ -22,6 +22,7 @@ import { AppConfigAttributes } from '../waterline-models/AppConfig';
 import { Services as services } from '../CoreService';
 import { ConfigModels, type ConfigModelInfo, type ConfigModelFormAdapter } from '../configmodels/ConfigModels';
 import type { BrandingConfigurationDefaultsConfig } from '../config/brandingConfigurationDefaults.config';
+import { RESERVED_DASHBOARD_APP_CONFIG_KEYS } from './DashboardConfigService';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
@@ -31,6 +32,7 @@ export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
 
 type AppConfigData = Record<string, unknown>;
 type AppConfigRecordLike = AppConfigAttributes & Record<string, unknown>;
+const APP_CONFIG_PRESENT_KEYS_SYMBOL = Symbol.for('redbox.appConfig.presentKeys');
 
 export namespace Services {
   /**
@@ -255,6 +257,11 @@ export namespace Services {
       for (const appConfigItem of latestAppConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
       }
+      Object.defineProperty(appConfiguration, APP_CONFIG_PRESENT_KEYS_SYMBOL, {
+        value: new Set(latestAppConfigItems.map(item => item.configKey)),
+        enumerable: false,
+        configurable: true
+      });
       return appConfiguration as unknown as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
     }
 
@@ -278,7 +285,22 @@ export namespace Services {
       return this.maskSecretFields(configKey, config);
     }
 
+    /**
+     * Retired dashboard keys cannot be written through generic configuration
+     * operations: independent dashboard settings are revision-checked and live in
+     * the DashboardConfiguration model. The migration reads legacy rows directly.
+     */
+    private assertWritableConfigKey(configKey: string): void {
+      if (RESERVED_DASHBOARD_APP_CONFIG_KEYS.includes(configKey)) {
+        const error = new Error(`Config key "${configKey}" is retired. Dashboard settings are managed through the dashboard configuration editor or /api/dashboard-config.`) as Error & { status: number; code: string };
+        error.status = 410;
+        error.code = 'legacy-operation-retired';
+        throw error;
+      }
+    }
+
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
+      this.assertWritableConfigKey(configKey);
       const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
       const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
       const mergedConfigData = this.mergeSecretFields(configKey, preparedConfigData, dbConfig?.configData);
@@ -296,6 +318,7 @@ export namespace Services {
     }
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
+      this.assertWritableConfigKey(configKey);
       const branding: BrandingModel = BrandingService.getBrand(brandName);
       const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
       const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);

@@ -17,6 +17,7 @@ import {
 /* Save Button Component */
 
 export class SaveButtonFieldComponentConfig extends FieldComponentConfig implements SaveButtonFieldComponentConfigOutline {
+    operation?: string;
     targetStep?: string;
     forceSave?: boolean;
     labelSaving?: string;

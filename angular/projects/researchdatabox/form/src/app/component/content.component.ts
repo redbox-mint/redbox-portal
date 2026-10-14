@@ -9,7 +9,6 @@ import {
   guessType,
   handlebarsTemplate
 } from "@researchdatabox/sails-ng-common";
-import {FormService} from "../form.service";
 
 
 /*
@@ -50,19 +49,18 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ContentComponentName;
   public content:string = '';
   public isRichTextContent = false;
-  private formValueChangesSub?: Subscription;
-  private formBindTimeoutId?: ReturnType<typeof setTimeout>;
+  protected formValueChangesSub?: Subscription;
+  protected formBindTimeoutId?: ReturnType<typeof setTimeout>;
 
   /**
    * The model associated with this component.
    */
   @Input() public override model?: never;
 
-  private handlebarsTemplateService = inject(HandlebarsTemplateService);
-  private translationService = inject(TranslationService);
-  private formService = inject(FormService);
+  protected handlebarsTemplateService = inject(HandlebarsTemplateService);
+  protected translationService = inject(TranslationService);
 
-  private get getFormComponent(): FormComponent {
+  protected get getFormComponent(): FormComponent {
     return this.formComponent;
   }
 
@@ -78,25 +76,15 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       ? 'html'
       : 'plain';
 
-    if (hasContent && template) {
+    if (this.shouldRenderWithTemplate(config)) {
       // If there is both a content and template, retrieve the template and provide the content as context.
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
       try {
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
         const renderTemplate = (formData: Record<string, unknown> = {}) => {
-          const runtimeContext = this.getRuntimeTemplateContext();
           // Build the variables available to the template.
-          const context = {
-            content: content,
-            formData: formData,
-            translationService: this.translationService,
-            branding: runtimeContext.branding,
-            portal: runtimeContext.portal,
-            oid: runtimeContext.oid,
-            workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
-            outputFormat: config?.outputFormat,
-          };
+          const context = this.buildTemplateContext(config, formData);
           const extra = {libraries: {handlebars: handlebarsTemplate}};
           this.content = compiledItems.evaluate(templateLineagePath, context, extra)?.toString() ?? "";
         };
@@ -140,8 +128,27 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
     }
   }
 
+  protected shouldRenderWithTemplate(config: ContentFieldComponentConfig): boolean {
+    return config?.content !== undefined && config?.content !== null && !!config?.template;
+  }
+
+  protected buildTemplateContext(config: ContentFieldComponentConfig, formData: Record<string, unknown>): Record<string, unknown> {
+    const runtimeContext = this.getRuntimeTemplateContext();
+    return {
+      content: config?.content ?? '',
+      formData,
+      translationService: this.translationService,
+      branding: runtimeContext.branding,
+      portal: runtimeContext.portal,
+      oid: runtimeContext.oid,
+      workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
+      outputFormat: config?.outputFormat,
+    };
+  }
+
   private translate(value: string): string {
-    return this.formService.translate(value);
+    const translated = this.translationService.t(value);
+    return translated === undefined || translated === null || translated === '' ? value : translated.toString();
   }
 
   private escapeHtml(value: string): string {
@@ -153,7 +160,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       .replace(/'/g, '&#39;');
   }
 
-  private getRuntimeTemplateContext(): { branding: string; portal: string; oid: string } {
+  protected getRuntimeTemplateContext(): { branding: string; portal: string; oid: string } {
     const oid = String(this.getFormComponent.trimmedParams.oid() ?? '').trim();
     const branding = String(this.getFormComponent.trimmedParams.branding() ?? '').trim();
     const portal = String(this.getFormComponent.trimmedParams.portal() ?? '').trim();

@@ -6,7 +6,9 @@ import {FieldDefinitionFrame, FieldDefinitionOutline} from "./field.outline";
  */
 export interface SyncSourceEntry {
     /**
-     * formData key to read the source data from.
+     * formData key to read the source data from. The source value may be a
+     * single object or an array of objects; array values are synced item by
+     * item.
      */
     fieldName: string;
     /**

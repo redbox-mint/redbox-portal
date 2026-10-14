@@ -1,0 +1,55 @@
+meta {
+  name: Shadow Schema-Invalid Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/default/rdmp/api/records/metadata/rdmp
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "text_1_event": 42
+  }
+}
+
+tests {
+  test("Persists schema-invalid create input with an advisory in shadow mode", function () {
+    expect(res.getStatus()).to.equal(201);
+
+    const body = res.getBody();
+    expect(body.data.outcome).to.equal("saved-with-warnings");
+    expect(body.data.oid).to.be.a("string").and.not.equal("");
+
+    const schemaProblem = body.meta.problems.find(
+      problem => problem.source === "schema" && problem.phase === "schema"
+    );
+    expect(schemaProblem, "schema advisory problem").to.be.an("object");
+    expect(schemaProblem.issues).to.deep.include({
+      code: "record-schema.type",
+      message: "@record-schema.type",
+      pointer: "/text_1_event",
+      expected: { type: "string" }
+    });
+
+    bru.setEnvVar("recordSchemaShadowOid", body.data.oid);
+  });
+
+  test("Returns schema discovery for the successful shadow create", function () {
+    const link = res.getHeader("link");
+    const match = /^<\/default\/rdmp\/api\/records\/schemas\/([0-9a-f]{64})>; rel="describedby"; type="application\/schema\+json"$/.exec(
+      link || ""
+    );
+    expect(match, "describedby Link header").not.to.equal(null);
+    bru.setEnvVar("recordSchemaShadowCreateDigest", match[1]);
+  });
+}

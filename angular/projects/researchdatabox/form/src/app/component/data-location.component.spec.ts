@@ -3,6 +3,7 @@ import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { DataLocationComponent } from "./data-location.component";
+import { FormComponentEventBus, createFormSaveSuccessEvent } from "../form-state/events";
 
 class FakeUppy {
     public plugins: Record<string, any> = {};
@@ -85,6 +86,45 @@ describe("DataLocationComponent", () => {
         const fixture = TestBed.createComponent(DataLocationComponent);
         expect(fixture.componentInstance).toBeDefined();
     });
+
+    for (const action of ["edit notes", "save success"]) {
+        it(`preserves persisted attachment identity after ${action}`, async () => {
+            const formConfig: FormConfigFrame = {
+                name: "attachment_identity",
+                componentDefinitions: [{
+                    name: "dataLocations",
+                    component: { class: "DataLocationComponent" },
+                    model: {
+                        class: "DataLocationModel",
+                        config: { defaultValue: [] }
+                    }
+                }]
+            };
+            const { fixture } = await createFormAndWaitForReady(formConfig, {
+                oid: "oid-1", editMode: true, recordType: "testing",
+                formName: "attachment_identity", downloadAndCreateOnInit: false
+            });
+            const component: DataLocationComponent = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance;
+            component.formControl.setValue([
+                { type: "attachment", attachmentId: "stable-id", fileId: "file-1",
+                  name: "existing.txt", location: "/record/oid-1/attach/file-1",
+                  uploadUrl: "http://localhost/record/oid-1/attach/file-1", pending: false },
+                { type: "url", attachmentId: "url-id", location: "https://example.org/data", notes: "Original" }
+            ]);
+            if (action === "edit notes") {
+                component.startEditNotes(1);
+                component.editingNotesValue = "Changed URL notes";
+                component.applyEditNotes();
+            } else {
+                TestBed.inject(FormComponentEventBus).publish(createFormSaveSuccessEvent({ oid: "oid-1" }));
+            }
+            await fixture.whenStable();
+            expect(component.formControl.value[0]).toEqual(jasmine.objectContaining({
+                attachmentId: "stable-id", fileId: "file-1", location: "/record/oid-1/attach/file-1"
+            }));
+            expect(component.formControl.value[1].attachmentId).toBe("url-id");
+        });
+    }
 
     it("defaults to URL when no data type placeholder is configured", async () => {
         const formConfig: FormConfigFrame = {
@@ -510,6 +550,72 @@ describe("DataLocationComponent", () => {
             location: "https://example.com/data.csv",
             notes: "source"
         }));
+    });
+
+    it("keeps long notes and their edit action in one vertically aligned cell", async () => {
+        const longNotes = "A long note that should wrap within the available notes width without moving the edit action below it";
+        const formConfig: FormConfigFrame = {
+            name: "testing_notes_layout",
+            componentDefinitions: [
+                {
+                    name: "dataLocations",
+                    component: {
+                        class: "DataLocationComponent",
+                        config: {
+                            notesEnabled: true
+                        }
+                    },
+                    model: {
+                        class: "DataLocationModel",
+                        config: {
+                            value: [{
+                                type: "attachment",
+                                location: "/record/oid-1/attach/file-1",
+                                uploadUrl: "/record/oid-1/attach/file-1",
+                                fileId: "file-1",
+                                name: "file-1",
+                                notes: longNotes
+                            }]
+                        }
+                    }
+                }
+            ]
+        };
+
+        const { fixture } = await createFormAndWaitForReady(formConfig, {
+            oid: "oid-1",
+            recordType: "rdmp",
+            editMode: true,
+            formName: "default-1.0-draft",
+            downloadAndCreateOnInit: false
+        });
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+        fixture.detectChanges();
+
+        const nativeEl = fixture.nativeElement as HTMLElement;
+        const locationHeader = nativeEl.querySelector(".data-location-location-header") as HTMLTableCellElement;
+        const notesHeader = nativeEl.querySelector(".data-location-notes-header") as HTMLTableCellElement;
+        const notesCell = nativeEl.querySelector(".data-location-notes-cell") as HTMLTableCellElement;
+        const notesLayout = notesCell.querySelector(".data-location-notes-layout") as HTMLDivElement;
+        const notesText = notesCell.querySelector(".data-location-notes-text") as HTMLSpanElement;
+        const editButton = notesCell.querySelector(".data-location-edit-notes") as HTMLButtonElement;
+        const removeButton = nativeEl.querySelector(".data-location-remove") as HTMLButtonElement;
+        const removeCell = removeButton.closest("td") as HTMLTableCellElement;
+
+        expect(notesText.textContent).toContain(longNotes);
+        expect(locationHeader.getAttribute("width")).toBe("40%");
+        expect(notesHeader.getAttribute("width")).toBe("40%");
+        expect(notesCell.contains(editButton)).toBeTrue();
+        expect(getComputedStyle(notesLayout).display).toBe("flex");
+        expect(getComputedStyle(notesLayout).alignItems).toBe("center");
+        expect(getComputedStyle(notesText).overflowWrap).toBe("anywhere");
+        expect(getComputedStyle(editButton).flexShrink).toBe("0");
+        expect(getComputedStyle(notesCell).verticalAlign).toBe("middle");
+        expect(getComputedStyle(removeCell).verticalAlign).toBe("middle");
+
+        component.iscEnabled = true;
+        fixture.detectChanges();
+        expect(nativeEl.querySelector(".data-location-notes-header")?.getAttribute("width")).toBe("20%");
     });
 
     it("appends attachment locations on upload success", async () => {

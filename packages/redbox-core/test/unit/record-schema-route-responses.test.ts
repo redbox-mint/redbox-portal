@@ -1,0 +1,225 @@
+import assert from 'node:assert/strict';
+
+import { buildOpenApiDocument } from '../../src/api-routes';
+import {
+  getImmutableRecordSchemaRoute,
+  recordSchemaApiRoutes,
+  resolveCreateRecordSchemaRoute,
+  resolveUpdateRecordSchemaRoute,
+} from '../../src/api-routes/groups/record-schemas';
+import {
+  recordSchemaCanonicalLink,
+  recordSchemaCreateResolverUrl,
+  recordSchemaDescribedByLink,
+  recordSchemaImmutableUrl,
+  recordSchemaUpdateResolverUrl,
+  RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
+  RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+  RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+  RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+  RECORD_SCHEMA_RESPONSE_VARY,
+  RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
+} from '../../src/api-routes/record-schema-response';
+
+type OpenApiResponseHeader = { schema?: { pattern?: string } };
+
+type OpenApiOperation = {
+  responses?: Record<string, { headers?: Record<string, OpenApiResponseHeader> }>;
+};
+
+describe('record-schema route response contracts', function () {
+  const digest = 'a'.repeat(64);
+  const etag = `"sha256:${digest}"`;
+  const canonicalUrl = `/default/rdmp/api/records/schemas/${digest}`;
+  const canonicalLink = recordSchemaCanonicalLink(canonicalUrl);
+
+  it('formats an exact described-by Link value for save response discovery', function () {
+    assert.equal(
+      recordSchemaDescribedByLink(canonicalUrl),
+      `<${canonicalUrl}>; rel="describedby"; type="application/schema+json"`
+    );
+  });
+
+  it('builds public resolver URLs with canonical encoded route segments', function () {
+    assert.equal(
+      recordSchemaImmutableUrl('public brand', 'portal/subpath', digest),
+      `/public%20brand/portal%2Fsubpath/api/records/schemas/${digest}`
+    );
+    assert.equal(
+      recordSchemaCreateResolverUrl('public brand', 'portal/subpath', 'data set'),
+      '/public%20brand/portal%2Fsubpath/api/records/schemas/create/data%20set'
+    );
+    assert.equal(
+      recordSchemaUpdateResolverUrl('public brand', 'portal/subpath', 'record/1'),
+      '/public%20brand/portal%2Fsubpath/api/records/schemas/update/record%2F1'
+    );
+  });
+
+  it('includes a non-empty configured root context without weakening segment encoding', function () {
+    assert.equal(
+      recordSchemaImmutableUrl('public brand', 'portal/subpath', digest, '/redbox'),
+      `/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/${digest}`
+    );
+    assert.equal(
+      recordSchemaCreateResolverUrl('public brand', 'portal/subpath', 'data set', '/redbox/'),
+      '/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/create/data%20set'
+    );
+    assert.equal(
+      recordSchemaUpdateResolverUrl('public brand', 'portal/subpath', 'record/1', 'redbox'),
+      '/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/update/record%2F1'
+    );
+  });
+
+  it('preserves long interior slash runs without repeatedly rescanning them', function () {
+    const rootContext = `prefix${'/'.repeat(20_000)}suffix`;
+
+    assert.equal(
+      recordSchemaCreateResolverUrl('default', 'rdmp', 'dataset', rootContext),
+      `/${rootContext}/default/rdmp/api/records/schemas/create/dataset`
+    );
+  });
+
+  it('trims long outer slash runs in linear time', function () {
+    const outerSlashes = '/'.repeat(20_000);
+
+    assert.equal(
+      recordSchemaCreateResolverUrl('default', 'rdmp', 'dataset', `${outerSlashes}redbox${outerSlashes}`),
+      '/redbox/default/rdmp/api/records/schemas/create/dataset'
+    );
+  });
+
+  it('uses the public root-context substitution convention in resolver route templates', function () {
+    assert.equal(
+      RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
+      '{rootContext}/{branding}/{portal}/api/records/schemas/create/{recordType}'
+    );
+    assert.equal(
+      RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
+      '{rootContext}/{branding}/{portal}/api/records/schemas/update/{oid}'
+    );
+    assert.equal(
+      RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE.replace('{rootContext}', '/redbox')
+        .replace('{branding}', 'default')
+        .replace('{portal}', 'rdmp')
+        .replace('{recordType}', 'dataset'),
+      recordSchemaCreateResolverUrl('default', 'rdmp', 'dataset', '/redbox')
+    );
+    assert.equal(
+      RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE.replace('{rootContext}', '')
+        .replace('{branding}', 'default')
+        .replace('{portal}', 'rdmp')
+        .replace('{oid}', 'record-1'),
+      recordSchemaUpdateResolverUrl('default', 'rdmp', 'record-1')
+    );
+  });
+
+  it('validates emitted canonical links with a root context against typed and OpenAPI response contracts', function () {
+    const rootedCanonicalLink = recordSchemaCanonicalLink(
+      recordSchemaImmutableUrl('public brand', 'portal/subpath', digest, '/redbox/')
+    );
+    const unsafeRootContextLink = rootedCanonicalLink.replace('/redbox/', '/red box/');
+    const resolverContracts = [
+      {
+        route: resolveCreateRecordSchemaRoute,
+        path: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+      },
+      {
+        route: resolveUpdateRecordSchemaRoute,
+        path: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+      },
+    ] as const;
+    const openApiDocument = buildOpenApiDocument(
+      resolverContracts.map(({ route }) => route),
+      { title: 'Record schema route-response contracts', version: '1.0.0' }
+    );
+
+    assert.equal(
+      rootedCanonicalLink,
+      `</redbox/public%20brand/portal%2Fsubpath/api/records/schemas/${digest}>; rel="canonical"; type="application/schema+json"`
+    );
+
+    for (const { route, path } of resolverContracts) {
+      const operation = openApiDocument.paths[path]?.get as OpenApiOperation | undefined;
+
+      for (const status of [200, 304] as const) {
+        const typedLink = route.responses?.[status]?.headers?.Link;
+        assert.ok(typedLink);
+        assert.equal(typedLink.safeParse(rootedCanonicalLink).success, true);
+        assert.equal(typedLink.safeParse(unsafeRootContextLink).success, false);
+
+        const openApiPattern = operation?.responses?.[String(status)]?.headers?.Link?.schema?.pattern;
+        assert.ok(openApiPattern);
+        assert.match(rootedCanonicalLink, new RegExp(openApiPattern));
+        assert.doesNotMatch(unsafeRootContextLink, new RegExp(openApiPattern));
+      }
+    }
+  });
+
+  it('accepts the optional strong conditional header on every schema GET route', function () {
+    for (const route of recordSchemaApiRoutes) {
+      assert.equal(route.request?.headers?.safeParse({}).success, true);
+      assert.equal(route.request?.headers?.safeParse({ 'If-None-Match': etag }).success, true);
+      assert.equal(route.request?.headers?.safeParse({ 'If-None-Match': [etag, etag] }).success, false);
+    }
+  });
+
+  it('specifies the exact raw media type and representation headers for 200 and 304', function () {
+    for (const route of recordSchemaApiRoutes) {
+      const success = route.responses?.[200];
+      assert.deepEqual(Object.keys(success?.content ?? {}), [RECORD_SCHEMA_RESPONSE_MEDIA_TYPE]);
+
+      for (const status of [200, 304] as const) {
+        const response = route.responses?.[status];
+        const headers = response?.headers;
+        assert.ok(headers);
+        assert.equal(headers.ETag?.safeParse(etag).success, true);
+        assert.equal(headers.ETag?.safeParse('W/' + etag).success, false);
+        assert.equal(headers['Cache-Control']?.safeParse(RECORD_SCHEMA_RESPONSE_CACHE_CONTROL).success, true);
+        assert.equal(headers['Cache-Control']?.safeParse('no-store').success, false);
+        assert.equal(headers.Vary?.safeParse(RECORD_SCHEMA_RESPONSE_VARY).success, true);
+        assert.equal(headers.Vary?.safeParse('Cookie').success, false);
+
+        const isResolver = route === resolveCreateRecordSchemaRoute || route === resolveUpdateRecordSchemaRoute;
+        if (isResolver) {
+          assert.equal(headers.Link?.safeParse(canonicalLink).success, true);
+          assert.equal(headers.Link?.safeParse(`<${canonicalUrl}>; rel="describedby"`).success, false);
+        } else {
+          assert.equal(route, getImmutableRecordSchemaRoute);
+          assert.equal(headers.Link, undefined);
+        }
+      }
+
+      assert.equal(route.responses?.[304]?.content, undefined);
+    }
+  });
+
+  it('specifies status-matched Problem Details schemas for every mapped and documented failure', function () {
+    const problemStatuses = [400, 401, 403, 404, 409, 413, 422, 503] as const;
+
+    for (const route of recordSchemaApiRoutes) {
+      assert.deepEqual(
+        Object.keys(route.responses ?? {})
+          .map(Number)
+          .sort((left, right) => left - right),
+        [200, 304, ...problemStatuses].sort((left, right) => left - right)
+      );
+      for (const status of problemStatuses) {
+        const response = route.responses?.[status];
+        assert.deepEqual(Object.keys(response?.content ?? {}), [RECORD_SCHEMA_PROBLEM_MEDIA_TYPE]);
+        const schema = response?.content?.[RECORD_SCHEMA_PROBLEM_MEDIA_TYPE]?.schema;
+        assert.ok(schema);
+        const problem = {
+          type: 'https://redboxresearchdata.com/problems/record-schema-test',
+          title: 'Stable title',
+          status,
+          detail: 'Safe detail.',
+          instance: '/default/rdmp/api/records/schemas/test',
+          code: 'record-schema.test',
+        };
+        assert.equal(schema.safeParse(problem).success, true);
+        assert.equal(schema.safeParse({ ...problem, status: status === 400 ? 503 : 400 }).success, false);
+        assert.equal(schema.safeParse({ ...problem, detail: undefined }).success, false);
+      }
+    }
+  });
+});

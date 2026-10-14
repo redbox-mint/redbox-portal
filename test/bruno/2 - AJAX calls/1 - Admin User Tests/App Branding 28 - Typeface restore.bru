@@ -1,0 +1,40 @@
+meta {
+  name: App Typeface restore
+  type: http
+  seq: 60
+}
+
+post {
+  url: {{host}}/default/rdmp/app/branding/restore/{{app_version_id}}
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json, text/plain, */*
+}
+
+body:json {
+  {
+    "expectedVersion": {{app_version}},
+    "expectedDraftRevision": {{app_revision}}
+  }
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200 with a new version", function(){
+    expect(res.getStatus()).to.equal(200);
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body.active.version).to.be.above(parseInt(bru.getVar('app_version'), 10));
+    bru.setVar('app_version', body.active.version);
+    bru.setVar('app_revision', body.draft.revision);
+  });
+}

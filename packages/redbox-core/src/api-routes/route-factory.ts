@@ -29,6 +29,7 @@ export function apiRoute(
     description: metadata.description,
     operationId: metadata.operationId,
     responses: metadata.responses,
+    includeDefaultResponses: metadata.includeDefaultResponses,
     security: metadata.security ?? [{ bearerAuth: [] }],
     extensions,
     csrf: false,

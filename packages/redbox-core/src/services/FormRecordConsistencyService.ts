@@ -22,7 +22,8 @@ import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.de
 import {
     guessType, FormValidatorSummaryErrors,
     FormConfigFrame, TemplateCompileInput, FormModesConfig,
-    ReusableFormDefinitions, arrayStartsWithArray
+    ReusableFormDefinitions, arrayStartsWithArray, diffRecordValues,
+    RecordValueChange, RecordValuePath
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
 import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
@@ -33,6 +34,16 @@ import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
+
+const isPermittedChangesSchemaObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const requirePermittedChangesSchemaObject = (value: unknown): Record<string, unknown> => {
+    if (!isPermittedChangesSchemaObject(value)) {
+        throw new Error(`Invalid permittedChanges object, schema definitions must be objects: ${JSON.stringify(value)}`);
+    }
+    return value;
+};
 
 
 
@@ -49,35 +60,12 @@ export namespace Services {
      * The path from the root of the item to the key in the original, which has a change.
      * Object property keys are strings, array indicies are integers.
      */
-    export type FormRecordConsistencyChangePath = (string | number)[];
+    export type FormRecordConsistencyChangePath = RecordValuePath;
 
     /**
      * The properties of one change.
      */
-    export interface FormRecordConsistencyChange {
-        /**
-         * The kind of change:
-         * - "add": an object property or array index that was not previously present
-         * - "delete": an object property or array index that was previously present has been removed
-         * - "change": an object property or array index that already existed has a value that has changed
-         */
-        kind: "add" | "delete" | "change";
-
-        /**
-         * The path from the root of the item to the key in the original.
-         */
-        path: FormRecordConsistencyChangePath;
-
-        /**
-         * The original value of the property or array index before the change.
-         */
-        original: unknown;
-
-        /**
-         * The new value of the property or array index after the change.
-         */
-        changed: unknown;
-    }
+    export type FormRecordConsistencyChange = RecordValueChange;
 
     /**
      * A service for verifying that form config and one or two associated Records are consistent.
@@ -169,6 +157,32 @@ export namespace Services {
         }
 
         /**
+         * Project authoritative metadata to the fields in an already filtered client form.
+         * This intentionally uses an empty original so server-only metadata is not retained.
+         */
+        public async projectMetadataClientFormConfig(
+            metadata: Record<string, unknown>,
+            clientFormConfig: FormConfigFrame,
+            formMode: FormModesConfig,
+            reusableFormDefs?: ReusableFormDefinitions
+        ): Promise<Record<string, unknown>> {
+            const projected = await this.mergeRecordClientFormConfig(
+                {
+                    redboxOid: '',
+                    metadata: {},
+                },
+                {
+                    redboxOid: '',
+                    metadata,
+                },
+                clientFormConfig,
+                formMode,
+                reusableFormDefs
+            );
+            return projected.metadata;
+        }
+
+        /**
          * Merge the original and changed records, using the client form config to know which changes to include.
          * @param original The existing original record.
          * @param changed The new record.
@@ -202,11 +216,17 @@ export namespace Services {
             const originalRecord = original as Record<string | number, unknown>;
             const changedRecord = changed as Record<string | number, unknown>;
             const permittedChangesObj = permittedChanges as Record<string | number, unknown>;
+            if (permittedChangesObj?.type === 'object') {
+                return changedRecord;
+            }
             // if (!('properties' in permittedChangesObj)) {
             //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
             // }
-            const permittedChangesProps = (('properties' in permittedChangesObj)
-              ? (permittedChangesObj['properties'] as Record<string | number, unknown>)
+            const permittedChangesProps = (('properties' in permittedChangesObj || 'optionalProperties' in permittedChangesObj)
+              ? {
+                  ...((permittedChangesObj['properties'] ?? {}) as Record<string | number, unknown>),
+                  ...((permittedChangesObj['optionalProperties'] ?? {}) as Record<string | number, unknown>),
+                }
               : permittedChangesObj) as Record<string | number, unknown>;
 
 
@@ -221,7 +241,6 @@ export namespace Services {
                 // pre-calculate aspects of the original item
                 const isKeyInOriginal = key in originalRecord;
                 const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
-                const originalValueType = guessType(originalValue);
 
                 // pre-calculate aspects of the changed item
                 const isKeyInChanged = key in changedRecord;
@@ -230,11 +249,23 @@ export namespace Services {
 
                 // pre-calculate aspects of the permitted changes
                 const isKeyInPermittedChange = key in permittedChangesProps;
-                const permittedChangesValue = permittedChangesProps?.[key] as Record<string, unknown> | undefined;
-                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValue && 'properties' in permittedChangesValue;
-                const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValue && 'elements' in permittedChangesValue;
-                const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValue && 'type' in permittedChangesValue;
-                const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValue && Object.keys(permittedChangesValue).length === 0;
+                const permittedChangesValue = permittedChangesProps?.[key];
+                const permittedChangesValueObj = isKeyInPermittedChange
+                  ? requirePermittedChangesSchemaObject(permittedChangesValue)
+                  : undefined;
+                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValueObj
+                  && ('properties' in permittedChangesValueObj || 'optionalProperties' in permittedChangesValueObj);
+                const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValueObj && 'elements' in permittedChangesValueObj;
+                const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValueObj && 'type' in permittedChangesValueObj;
+                const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValueObj && Object.keys(permittedChangesValueObj).length === 0;
+                const originalValueForMerge = isKeyInOriginal
+                  ? originalValue
+                  : isPermittedChangeArray
+                    ? []
+                    : isPermittedChangeObject
+                      ? {}
+                      : undefined;
+                const originalValueForMergeType = guessType(originalValueForMerge);
 
                 // ensure the permitted changes item is valid
                 const isPermittedChangeMatches = {
@@ -250,9 +281,8 @@ export namespace Services {
                 // evaluate the combinations of original and changed values
                 if (
                     isPermittedChangeArray
-                    && isKeyInOriginal
                     && isKeyInChanged
-                    && originalValueType === "array"
+                    && originalValueForMergeType === "array"
                     && changedValueType === "array"
                 ) {
                     // The change is permitted and an array, original and changed have the key and both are arrays.
@@ -260,8 +290,11 @@ export namespace Services {
                     // The whole array is replaced because there is no current way to distinguish what from the original should be kept.
                     // TODO: Consider how to replace each element in the array instead of the whole array.
                     //       Replacing the whole array prevents use of constraints in components in the array elements.
-                    const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
+                    const newPermittedChanges = requirePermittedChangesSchemaObject(permittedChangesValueObj?.['elements']);
                     result[key] = (changedValue as unknown[]).map((changedElement: unknown, index: number) => {
+                        if (newPermittedChanges.type === 'object' || Object.keys(newPermittedChanges).length === 0) {
+                            return changedElement;
+                        }
                         // Evaluate the element in the array.
                         const guessedType = guessType(changedElement);
                         if (guessedType === "object") {
@@ -287,9 +320,8 @@ export namespace Services {
 
                 } else if (
                     isPermittedChangeObject
-                    && isKeyInOriginal
                     && isKeyInChanged
-                    && originalValueType === "object"
+                    && originalValueForMergeType === "object"
                     && changedValueType === "object"
                 ) {
                     // The change is permitted and an object, original and changed have the key and both are objects.
@@ -297,7 +329,7 @@ export namespace Services {
                     const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
                     const newPath = [...currentPath, key];
                     const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
-                    result[key] = this.mergeRecordMetadataPermitted(originalValue as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
+                    result[key] = this.mergeRecordMetadataPermitted(originalValueForMerge as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
 
                 } else if (isKeyInPermittedChange && isKeyInChanged) {
                     // The change is permitted and the key is in the changed.
@@ -367,64 +399,7 @@ export namespace Services {
             changed: unknown,
             path?: FormRecordConsistencyChangePath
         ): FormRecordConsistencyChange[] {
-            path = path ?? [];
-            const result: FormRecordConsistencyChange[] = [];
-            const isOriginalArray = Array.isArray(original);
-            const isChangedArray = Array.isArray(changed);
-            const isOriginalObject = _.isPlainObject(original);
-            const isChangedObject = _.isPlainObject(changed);
-            if ((isOriginalArray && isChangedArray) || (isOriginalObject && isChangedObject)) {
-                const {entries: originalEntries, keys: originalKeys} = this.toKeysEntries(original);
-                const {entries: changedEntries, keys: changedKeys} = this.toKeysEntries(changed);
-                const originalRecord = original as Record<string | number, unknown>;
-                const changedRecord = changed as Record<string | number, unknown>;
-
-                // delete
-                for (const [key, value] of originalEntries) {
-                    const newPath = [...path, key];
-                    const isKeyInChanged = changedKeys.includes(key);
-                    const changedValue = isKeyInChanged ? changedRecord[key] : undefined;
-
-                    if (!isKeyInChanged) {
-                        // delete key & value
-                        result.push({
-                            kind: "delete",
-                            path: newPath,
-                            original: value,
-                            changed: changedValue
-                        });
-                    } else if (isKeyInChanged && changedValue !== value) {
-                        // change value in original
-                        this.compareRecords(value, changedValue, newPath)
-                            .forEach(i => result.push(i));
-                    }
-                }
-
-                // add
-                for (const [key, value] of changedEntries) {
-                    const newPath = [...path, key];
-                    const isKeyInOriginal = originalKeys.includes(key);
-                    const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
-                    if (!isKeyInOriginal) {
-                        // add key & value
-                        result.push({
-                            kind: "add",
-                            path: newPath,
-                            original: originalValue,
-                            changed: value
-                        });
-                    }
-                }
-            } else if (original !== changed) {
-                result.push({
-                    kind: "change",
-                    path: path,
-                    original: original,
-                    changed: changed
-                });
-            }
-
-            return result;
+            return diffRecordValues(original, changed, path);
         }
 
         // TODO: implement this

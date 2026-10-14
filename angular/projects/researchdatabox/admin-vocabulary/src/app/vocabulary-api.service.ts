@@ -4,12 +4,18 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
 
+/**
+ * `external` covers vocabularies mirrored from an integration (currently Figshare
+ * catalogues). They are read-only here and maintained from their own admin screen.
+ */
+export type VocabularySource = 'local' | 'rva' | 'external';
+
 export interface VocabularySummary {
   id: string;
   name: string;
   slug: string;
   type: 'flat' | 'tree';
-  source: 'local' | 'rva';
+  source: VocabularySource;
   sourceId?: string;
 }
 
@@ -30,7 +36,7 @@ export interface VocabularyDetail {
   description?: string;
   slug?: string;
   type: 'flat' | 'tree';
-  source: 'local' | 'rva';
+  source: VocabularySource;
   sourceId?: string;
   sourceVersionId?: string;
   owner?: string;
@@ -40,7 +46,7 @@ export interface VocabularyDetail {
 export interface VocabularyListQuery {
   q?: string;
   type?: 'flat' | 'tree';
-  source?: 'local' | 'rva';
+  source?: VocabularySource;
   limit?: number;
   offset?: number;
   sort?: string;

@@ -26,16 +26,24 @@ function resolveBrandConfig(brandName: string): DoiPublishing | null {
   return null;
 }
 
-export function resolveDoiPublishingConfig(
-  record?: DoiRecordModel
-): DoiPublishing | null {
-  const brandId = record?.metaMetadata?.brandId;
+export function resolveDoiPublishingBrand(record?: DoiRecordModel): BrandingModel {
+  const brandId = String(record?.metaMetadata?.brandId ?? '').trim();
   if (!brandId) {
     throw new Error('Cannot resolve DOI publishing config: record does not have a brand');
   }
-  const brandName = BrandingService.getBrandById(brandId)?.name;
-  if (_.isEmpty(brandName)) {
+  const brand = BrandingService.getBrandById(brandId);
+  if (brand == null) {
     throw new Error(`Cannot resolve DOI publishing config: unknown brand id '${brandId}'`);
+  }
+  return brand;
+}
+
+export function resolveDoiPublishingConfig(
+  record?: DoiRecordModel
+): DoiPublishing | null {
+  const brandName = resolveDoiPublishingBrand(record).name;
+  if (_.isEmpty(brandName)) {
+    throw new Error('Cannot resolve DOI publishing config: resolved brand does not have a name');
   }
   return resolveBrandConfig(String(brandName));
 }

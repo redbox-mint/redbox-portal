@@ -63,6 +63,12 @@ export interface ContentFormComponentDefinitionFrame extends FormComponentDefini
 }
 
 
+/**
+ * Renders configured informational content without contributing a model value.
+ *
+ * @extensionPoint Use `ContentComponent` in FormConfig for headings, guidance, or other non-field content.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface ContentFormComponentDefinitionOutline extends ContentFormComponentDefinitionFrame, FormComponentDefinitionOutline {
     component: ContentFieldComponentDefinitionOutline;
     model?: never;

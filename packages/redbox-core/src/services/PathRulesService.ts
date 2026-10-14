@@ -104,7 +104,7 @@ export namespace Services {
                     this.pathRules = rules;
                     this.rulePatterns = [];
                     _.forEach(rules, (rule: PathRuleModel) => {
-                      this.rulePatterns.push({pattern: new UrlPattern(rule.path ?? ''), rule: rule});
+                      this.rulePatterns.push({pattern: new UrlPattern(this.normalizePath(rule.path ?? '')), rule: rule});
                     });
                     return of(this.pathRules);
                   }));
@@ -114,16 +114,23 @@ export namespace Services {
     @return PathRule[]
     */
     public getRulesFromPath = (path: string, brand: BrandingModel): PathRuleModel[] | null => {
+      const normalizedPath = this.normalizePath(path);
       const matchedRulePatterns =  _.filter(this.rulePatterns, (rulePattern: PathRulePattern) => {
         const pattern = rulePattern.pattern;
         // matching by path and brand, meaning only brand-specific rules apply
-        return pattern.match(path) && rulePattern.rule.branding.id  == brand.id;
+        return pattern.match(normalizedPath) && rulePattern.rule.branding.id  == brand.id;
       });
       if (matchedRulePatterns && matchedRulePatterns.length > 0) {
         return _.map(matchedRulePatterns, 'rule');
       } else {
         return null;
       }
+    }
+
+    private normalizePath(path: string): string {
+      // Sails dispatches routes without case sensitivity or a required trailing slash.
+      // Apply the same normalization to stored rules and requests before matching.
+      return (path.length > 1 ? path.replace(/\/$/, '') : path).toLowerCase();
     }
 
     public canRead = (rules: PathRuleModel[], roles: RoleLike[], brandName: string): boolean => {

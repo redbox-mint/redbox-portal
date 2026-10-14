@@ -239,10 +239,13 @@ function buildResponses(
 ): Record<string, unknown> {
   const responses: Record<string, unknown> = {};
   const routeResponses = route.responses ?? { 200: { description: 'Success' } };
-  const defaultResponses: Record<number, ApiResponseDefinition> = {
-    400: responseField(apiErrorResponseSchema, 'Bad request'),
-    500: responseField(apiErrorResponseSchema, 'Internal server error'),
-  };
+  const defaultResponses: Record<number, ApiResponseDefinition> =
+    route.includeDefaultResponses === false
+      ? {}
+      : {
+          400: responseField(apiErrorResponseSchema, 'Bad request'),
+          500: responseField(apiErrorResponseSchema, 'Internal server error'),
+        };
   const responseDefinitions: Record<string, ApiResponseDefinition> = {
     ...defaultResponses,
     ...routeResponses,

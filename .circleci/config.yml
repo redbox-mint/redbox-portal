@@ -1,7 +1,7 @@
 jobs:
   build:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: large
     steps:
       - checkout
@@ -16,6 +16,12 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
+      - run:
+          name: Test npm publish version handling
+          command: bash support/build/npm-publish-backend-packages.test.sh
+      - run:
+          name: Test Docker tag handling
+          command: bash support/build/docker-build-vars.test.sh
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -23,6 +29,7 @@ jobs:
       - setup_remote_docker
       - run:
           name: Build test image via Dockerfile
+          no_output_timeout: 30m
           command: |
             docker build \
               --progress plain \
@@ -40,7 +47,7 @@ jobs:
             - docker-images/redbox-portal-test.tar
   generate-api-docs:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: large
     steps:
       - checkout
@@ -66,16 +73,24 @@ jobs:
       - run:
           name: Generate API docs artifacts
           command: npm run doc:api
+      - run:
+          name: Test and audit generated contract documentation
+          command: |
+            npm run docs:test
+            npm run docs:audit
       - store_artifacts:
           path: support/docs/generated/api
           destination: api-docs
+      - store_artifacts:
+          path: .tmp/documentation-health
+          destination: documentation-health
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
   refresh-dependabot-package-locks:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -92,6 +107,8 @@ jobs:
               packages/agenda-sqs-backend \
               packages/redbox-core \
               packages/redbox-dev-tools \
+              packages/sails-hook-redbox-pdfgen \
+              packages/sails-ng-common \
               packages/sails-hook-redbox-storage-mongo
       - run:
           name: Commit refreshed package locks
@@ -110,7 +127,7 @@ jobs:
             git push origin "HEAD:${CIRCLE_BRANCH}"
   build-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: large
     steps:
       - checkout
@@ -162,10 +179,24 @@ jobs:
           command: |
             mkdir -p /tmp/.codecov-cli
             cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecops/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            downloadCodecovFile() {
+              local url="$1"
+              local target="$2"
+              local attempt
+              for attempt in 1 2 3 4 5; do
+                if curl --fail --location --silent --show-error --retry 2 --retry-delay 3 --retry-all-errors --output "$target" "$url" && test -s "$target"; then
+                  return 0
+                fi
+                echo "Retrying Codecov download ($attempt/5): $url" >&2
+                sleep 3
+              done
+              return 1
+            }
+            downloadCodecovFile https://keybase.io/codecovsecops/pgp_keys.asc pgp_keys.asc
+            gpg --no-default-keyring --keyring trustedkeys.gpg --import pgp_keys.asc
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov codecov
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM codecov.SHA256SUM
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig codecov.SHA256SUM.sig
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
@@ -483,6 +514,8 @@ jobs:
       - run:
           name: Install packages
           command: |
+            nvm install
+            nvm use
             npm install --no-save --ignore-scripts
             cd ./packages/sails-ng-common
             npm ci --include=dev
@@ -512,10 +545,23 @@ jobs:
     machine:
       image: ubuntu-2404:current
     resource_class: large
+    environment:
+      FIGSHARE_TEST_MONGO_URI: mongodb://127.0.0.1:27028
     steps:
       - checkout
       - attach_workspace:
           at: /tmp
+      - run:
+          name: Start MongoDB for Figshare worker tests
+          command: |
+            docker run -d --name figshare-test-mongo -p 127.0.0.1:27028:27017 mongo:7.0
+            for attempt in $(seq 1 30); do
+              if docker exec figshare-test-mongo mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)'; then
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 1
       - run:
           <<: *installCodecov
       - run:
@@ -526,7 +572,10 @@ jobs:
           name: Install packages
           command: |
             cd ./packages/redbox-core
-            npm ci --include=dev
+            npm install --no-save --include=dev
+      - run:
+          name: Verify record-contract coverage
+          command: nvm install && npm run test:record-contracts
       - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m
@@ -550,7 +599,7 @@ jobs:
           path: packages/redbox-core/support/junit
   test-agenda-sqs-backend:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: medium
     steps:
       - checkout
@@ -588,7 +637,7 @@ jobs:
             - ~/.npm
   test-rva-registry:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: medium
     steps:
       - checkout
@@ -682,8 +731,11 @@ jobs:
           path: packages/redbox-dev-tools/support/junit
   test-storage-mongo:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
+      - image: mongo:7.0
     resource_class: medium
+    environment:
+      MONGO_TEST_URL: mongodb://127.0.0.1:27017
     steps:
       - checkout
       - restore_cache:
@@ -731,7 +783,7 @@ jobs:
             - ~/.npm
   lint-redbox-core:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: medium
     steps:
       - checkout
@@ -811,6 +863,7 @@ jobs:
         type: enum
         enum:
           - beta
+          - rc
           - release
       release_version:
         type: string
@@ -819,7 +872,7 @@ jobs:
         type: string
         default: 'latest'
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: medium
     steps:
       - checkout
@@ -847,7 +900,7 @@ jobs:
             bash support/build/npm-publish-backend-packages.sh
   deploy:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     steps:
       - checkout
       - setup_remote_docker
@@ -875,7 +928,7 @@ jobs:
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
   publish-runtime-amd64:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: large
     steps:
       - checkout
@@ -896,7 +949,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime ""
   publish-runtime-pdfgen-amd64:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     resource_class: large
     steps:
       - checkout
@@ -917,7 +970,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   deploy-runtime-pdfgen:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     steps:
       - checkout
       - setup_remote_docker
@@ -928,16 +981,7 @@ jobs:
           command: |
             docker load -i /tmp/docker-images/redbox-portal-runtime-pdfgen-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
+            source support/build/docker-build-vars.sh
 
             docker tag redbox-portal:runtime-pdfgen-test "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
@@ -963,7 +1007,7 @@ jobs:
           command: chmod +x support/build/docker-publish-arm64-variant.sh && support/build/docker-publish-arm64-variant.sh runtime_pdfgen "-pdfgen"
   publish-manifest:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     steps:
       - checkout
       - setup_remote_docker
@@ -972,7 +1016,7 @@ jobs:
           command: chmod +x support/build/docker-publish-manifest.sh && support/build/docker-publish-manifest.sh
   publish-runtime-pdfgen-manifest:
     docker:
-      - image: 'cimg/node:24.16.0'
+      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
     steps:
       - checkout
       - setup_remote_docker
@@ -1001,41 +1045,54 @@ jobs:
             npm run compile:raido
             npm run compile:rva
             npm run compile:sails-ng-common
+            npm run compile:agenda-sqs
             npm run compile:core
       - run:
-          name: Generate angular docs
-          command: npm run doc-ng2
-      - run:
-          name: Deploy docs by adding commit to gh-pages branch
+          name: Generate extension, form, and REST references
           command: |
-            npm install -g --silent gh-pages@2.0.1
-            git config user.email "ci-build@redboxresearchdata.com.au"
-            git config user.name "ci-build"
-            gh-pages --dotfiles --message "[ci skip] Updating documents" --dist support/docs/generated/ng2
+            npm run doc:api -- --branding=default --portal=rdmp
+            npm run docs:test
+            npm run docs:generate
       - run:
-          name: Publish wiki docs
+          name: Deploy generated references to gh-pages
           command: |
             git config user.email "ci-build@redboxresearchdata.com.au"
             git config user.name "ci-build"
-            mkdir -p ~/.ssh
-            ssh-keyscan github.com >> ~/.ssh/known_hosts
-            tmp_dir=$(mktemp -d)
-            git clone git@github.com:redbox-mint/redbox-portal.wiki.git "$tmp_dir"
-            git -C "$tmp_dir" rm -r --ignore-unmatch .
-            cp -a support/wiki/. "$tmp_dir"/
-            cd "$tmp_dir"
-            git add -A
-            if git diff --cached --quiet; then
-              echo "Wiki up to date; no changes to push."
-            else
-              git commit -m "[ci skip] Update wiki docs"
-              branch=$(git symbolic-ref --short HEAD)
-              git push origin "$branch"
-            fi
+            ./node_modules/.bin/gh-pages --dotfiles --message "[ci skip] Updating generated documentation" --dist .tmp/generated-docs-site
+      - store_artifacts:
+          path: .tmp/documentation-health
+          destination: documentation-health
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+  publish-wiki:
+    docker:
+      - image: 'cimg/node:24.16.0'
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - '50:0c:a1:7f:b6:64:84:42:01:61:0f:76:3f:e4:78:ff'
+      - checkout
+      - run:
+          name: Publish wiki docs
+          command: |
+            git config --global user.email "ci-build@redboxresearchdata.com.au"
+            git config --global user.name "ci-build"
+
+            wiki_dir=$(mktemp -d)
+            git clone git@github.com:redbox-mint/redbox-portal.wiki.git "$wiki_dir"
+            git -C "$wiki_dir" rm -r --ignore-unmatch .
+            cp -a support/wiki/. "$wiki_dir"/
+            git -C "$wiki_dir" add -A
+
+            if git -C "$wiki_dir" diff --cached --quiet; then
+              echo "Wiki is already up to date."
+              exit 0
+            fi
+
+            git -C "$wiki_dir" commit -m "[ci skip] Update wiki docs from ${CIRCLE_SHA1}"
+            git -C "$wiki_dir" push origin HEAD
 orbs:
   node: circleci/node@7.2.1
   docker: circleci/docker@3.0.1
@@ -1080,6 +1137,24 @@ workflows:
           filters:
             branches:
               ignore: /^dependabot.*/
+      - publish-wiki:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
+      - generate-docs:
+          requires:
+            - deploy
+            - deploy-arm64
+          filters:
+            branches:
+              only: master
+            tags:
+              ignore: /.*/
       - build-runtime-pdfgen:
           requires:
             - build
@@ -1582,11 +1657,36 @@ workflows:
             - test-sails-ng-common
             - test-redbox-core
             - test-agenda-sqs-backend
+            - test-rva-registry
             - test-redbox-dev-tools-cli
             - test-storage-mongo
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+            branches:
+              ignore: /.*/
+      - npm-publish-backend:
+          name: npm-publish-backend-rc
+          release_kind: rc
+          release_version: ''
+          dist_tag: next
+          context:
+            - npm-publish
+          requires:
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-bruno-s3
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-agenda-sqs-backend
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-[Rr][Cc][0-9]+$/
             branches:
               ignore: /.*/
   docker_manual_publish:

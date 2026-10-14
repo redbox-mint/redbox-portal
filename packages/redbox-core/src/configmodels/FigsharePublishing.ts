@@ -1,6 +1,6 @@
 import { AppConfig } from './AppConfig.interface';
 
-export type FigshareBindingKind = 'path' | 'handlebars' | 'jsonata';
+export type FigshareBindingKind = 'path' | 'handlebars' | 'jsonata' | 'crosswalk';
 export type FigshareArticleItemType =
   | 'dataset'
   | 'fileset'
@@ -31,7 +31,27 @@ export interface JsonataBinding {
   defaultValue?: unknown;
 }
 
-export type ValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
+/** The binding kinds that read a value straight out of the evaluation target. */
+export type SimpleValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
+
+/** What a crosswalk binding emits for each resolved mapping. */
+export type FigshareCrosswalkOutput = 'categoryId' | 'label' | 'sourceId';
+
+/**
+ * Resolves the codes produced by `source` through the approved revision of a
+ * Figshare crosswalk. `source` is deliberately a simple binding: a crosswalk
+ * never nests another crosswalk.
+ */
+export interface CrosswalkBinding {
+  kind: 'crosswalk';
+  source: SimpleValueBinding;
+  sourceVocabularyId: string;
+  crosswalkId: string;
+  outputs: FigshareCrosswalkOutput;
+  defaultValue?: unknown;
+}
+
+export type ValueBinding = SimpleValueBinding | CrosswalkBinding;
 
 export interface LicenseBinding {
   source: ValueBinding;
@@ -41,7 +61,6 @@ export interface LicenseBinding {
 
 export interface CategoryBinding {
   source: ValueBinding;
-  mappingStrategy: 'for2020Mapping';
 }
 
 export interface RelatedResourceBinding {
@@ -66,19 +85,12 @@ export interface AuthorLookupRule {
 }
 
 export interface EmbargoBinding {
+  /** A non-empty/truthy result means the record has an active embargo. */
   accessRights: ValueBinding;
+  /** Figshare v2 embargo scope. Must evaluate to `article` or `file`. */
+  embargoType: ValueBinding;
   fullEmbargoUntil?: ValueBinding;
-  fileEmbargoUntil?: ValueBinding;
   reason?: ValueBinding;
-}
-
-export interface WorkflowTransitionRule {
-  when: 'published' | 'republished' | 'embargoUpdated' | 'awaitingUploadCompletion';
-  targetWorkflowStageName: string;
-  targetWorkflowStageLabel?: string;
-  targetForm?: string;
-  ifArticleField?: string;
-  equals?: string | number | boolean;
 }
 
 export interface FigshareFixtureConfig {
@@ -136,7 +148,41 @@ export function resolveFigshareConnectionToken(token: string, options: { allowEm
   return value;
 }
 
+export type FigshareActor = 'token' | 'owner';
+export type FigshareOperation = 'create' | 'recovery' | 'metadata' | 'assets' | 'embargo' | 'publish' | 'read';
+export interface FigshareImpersonationConfig {
+  enabled: boolean;
+  institutionalIdPath: string;
+  emailPath: string;
+  allowEmailFallback: boolean;
+  operations: Record<FigshareOperation, FigshareActor>;
+}
+export interface FigshareProcessingConfig {
+  enabled: boolean;
+  coalesceMs: number;
+  leaseMs: number;
+  heartbeatMs: number;
+  maxAttempts: number;
+  retryBaseMs: number;
+  observationMs: number;
+  cleanupMs: number;
+  serviceUsername: string;
+  serviceUserType: string;
+}
+export const DEFAULT_FIGSHARE_PROCESSING: FigshareProcessingConfig = {
+  enabled: false, coalesceMs: 5000, leaseMs: 120000, heartbeatMs: 20000,
+  maxAttempts: 5, retryBaseMs: 60000, observationMs: 120000, cleanupMs: 300000,
+  serviceUsername: '', serviceUserType: ''
+};
+export const DEFAULT_FIGSHARE_IMPERSONATION: FigshareImpersonationConfig = {
+  enabled: false, institutionalIdPath: 'metadata.contributor_ci.dc_identifier',
+  emailPath: 'metadata.contributor_ci.email', allowEmailFallback: false,
+  operations: { create: 'owner', recovery: 'owner', metadata: 'token', assets: 'token', embargo: 'token', publish: 'token', read: 'token' }
+};
+
 export interface FigsharePublishingConfigData {
+  processing?: FigshareProcessingConfig;
+  impersonation?: FigshareImpersonationConfig;
   enabled: boolean;
   connection: FigshareConnectionConfig;
   article: {
@@ -153,7 +199,6 @@ export interface FigsharePublishingConfigData {
   };
   record: {
     articleIdPath: string;
-    articleUrlPaths: string[];
     dataLocationsPath: string;
     statusPath: string;
     errorPath: string;
@@ -166,7 +211,6 @@ export interface FigsharePublishingConfigData {
     selectedFlagPath: string;
   };
   authors: {
-    source: 'defaultRedboxContributors';
     contributorPaths: string[];
     uniqueBy: 'email' | 'orcid' | 'username' | 'none';
     externalNameField: string;
@@ -188,14 +232,13 @@ export interface FigsharePublishingConfigData {
     customFields: CustomFieldBinding[];
   };
   categories: {
-    strategy: 'for2020Mapping';
+    /** Consulted only when the categories binding is not a crosswalk binding. */
     mappingTable: Array<{ sourceCode: string; figshareCategoryId: number }>;
     allowUnmapped: boolean;
   };
   assets: {
     enableHostedFiles: boolean;
     enableLinkFiles: boolean;
-    dedupeStrategy: 'sourceId' | 'nameAndMd5' | 'url';
     staging: {
       /**
        * StorageManager disk name used to stage attachments before upload.
@@ -204,10 +247,6 @@ export interface FigsharePublishingConfigData {
       disk?: string;
       /** Key prefix for staged objects on the disk. Default: 'figshare/'. */
       keyPrefix?: string;
-      /** @deprecated fs-only; ignored once staging runs through StorageManagerService. */
-      tempDir?: string;
-      /** @deprecated fs-only pre-flight guard; the disk surfaces its own capacity errors. */
-      diskSpaceThresholdBytes: number;
       cleanupPolicy: 'deleteAfterSuccess' | 'retainForRetry';
     };
   };
@@ -221,7 +260,6 @@ export interface FigsharePublishingConfigData {
     uploadedFilesCleanupDelay: string;
   };
   workflow: {
-    transitionRules: WorkflowTransitionRule[];
     transitionJob: {
       enabled: boolean;
       namedQuery: string;
@@ -250,6 +288,8 @@ function createDefaultBinding(path: string, defaultValue?: unknown): ValueBindin
 
 export class FigsharePublishing extends AppConfig implements FigsharePublishingConfigData {
   enabled = false;
+  processing = { ...DEFAULT_FIGSHARE_PROCESSING };
+  impersonation = { ...DEFAULT_FIGSHARE_IMPERSONATION, operations: { ...DEFAULT_FIGSHARE_IMPERSONATION.operations } };
 
   connection: FigshareConnectionConfig = {
     baseUrl: '',
@@ -286,7 +326,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
 
   record = {
     articleIdPath: 'metadata.figshare_article_id',
-    articleUrlPaths: ['metadata.figshare_article_location'],
     dataLocationsPath: 'metadata.dataLocations',
     statusPath: 'metadata.figshareStatus',
     errorPath: 'metadata.figshareError',
@@ -301,7 +340,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   };
 
   authors = {
-    source: 'defaultRedboxContributors' as const,
     contributorPaths: [
       'metadata.contributor_ci',
       'metadata.contributor_data_manager',
@@ -336,7 +374,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     },
     categories: {
       source: createDefaultBinding('metadata.forCodes', []),
-      mappingStrategy: 'for2020Mapping' as const,
     },
     relatedResource: {
       title: createDefaultBinding('metadata.title', ''),
@@ -346,7 +383,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   };
 
   categories = {
-    strategy: 'for2020Mapping' as const,
     mappingTable: [] as Array<{ sourceCode: string; figshareCategoryId: number }>,
     allowUnmapped: false,
   };
@@ -354,13 +390,10 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   assets = {
     enableHostedFiles: true,
     enableLinkFiles: true,
-    dedupeStrategy: 'sourceId' as 'sourceId' | 'nameAndMd5' | 'url',
     staging: {
       disk: 'figshare-staging',
       keyPrefix: 'figshare/',
-      tempDir: '',
       cleanupPolicy: 'deleteAfterSuccess' as 'deleteAfterSuccess' | 'retainForRetry',
-      diskSpaceThresholdBytes: 1073741824,
     },
   };
 
@@ -369,8 +402,8 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     forceSync: false,
     accessRights: {
       accessRights: createDefaultBinding('metadata.accessRights', ''),
+      embargoType: createDefaultBinding('metadata.embargoType', 'article'),
       fullEmbargoUntil: createDefaultBinding('metadata.embargoUntil'),
-      fileEmbargoUntil: createDefaultBinding('metadata.embargoUntil'),
       reason: createDefaultBinding('metadata.embargoReason'),
     },
   };
@@ -381,7 +414,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   };
 
   workflow = {
-    transitionRules: [] as WorkflowTransitionRule[],
     transitionJob: {
       enabled: false,
       namedQuery: '',
@@ -403,6 +435,8 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   public static getFieldOrder(): string[] {
     return [
       'enabled',
+      'processing',
+      'impersonation',
       'connection',
       'article',
       'record',
@@ -419,14 +453,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
   }
 }
 
-const VALUE_BINDING_EDITOR_WIDGET = {
-  widget: {
-    formlyConfig: {
-      type: 'value-binding-editor',
-    },
-  },
-};
-
 const CATEGORY_MAPPING_EDITOR_WIDGET = {
   widget: {
     formlyConfig: {
@@ -435,34 +461,80 @@ const CATEGORY_MAPPING_EDITOR_WIDGET = {
   },
 };
 
+const SIMPLE_BINDING_PROPERTIES = {
+  kind: {
+    type: 'string',
+    title: 'Binding Type',
+    enum: ['path', 'handlebars', 'jsonata'],
+    default: 'path',
+  },
+  path: {
+    type: 'string',
+    title: 'Record Path',
+  },
+  template: {
+    type: 'string',
+    title: 'Handlebars Template',
+  },
+  expression: {
+    type: 'string',
+    title: 'JSONata Expression',
+  },
+  defaultValue: {
+    title: 'Default Value',
+  },
+};
+
+/**
+ * The inner source of a crosswalk binding. Deliberately excludes the `crosswalk`
+ * kind so a crosswalk can never nest another crosswalk, and carries no widget of
+ * its own: the parent value-binding-editor renders it inline.
+ */
+const SIMPLE_VALUE_BINDING_SCHEMA = {
+  type: 'object',
+  title: 'Source Binding',
+  properties: SIMPLE_BINDING_PROPERTIES,
+  required: ['kind'],
+};
+
 const VALUE_BINDING_SCHEMA = {
   type: 'object',
   title: 'Binding',
   properties: {
+    ...SIMPLE_BINDING_PROPERTIES,
     kind: {
-      type: 'string',
-      title: 'Binding Type',
-      enum: ['path', 'handlebars', 'jsonata'],
-      default: 'path',
+      ...SIMPLE_BINDING_PROPERTIES.kind,
+      enum: ['path', 'handlebars', 'jsonata', 'crosswalk'],
     },
-    path: {
+    source: SIMPLE_VALUE_BINDING_SCHEMA,
+    sourceVocabularyId: {
       type: 'string',
-      title: 'Record Path',
+      title: 'Source Vocabulary',
+      description: 'Crosswalk kind only. Record codes are resolved against entries of exactly this vocabulary.',
     },
-    template: {
+    crosswalkId: {
       type: 'string',
-      title: 'Handlebars Template',
+      title: 'Approved Figshare Crosswalk',
+      description: 'Crosswalk kind only. Publishing always reads the approved revision.',
     },
-    expression: {
+    outputs: {
       type: 'string',
-      title: 'JSONata Expression',
-    },
-    defaultValue: {
-      title: 'Default Value',
+      title: 'Output',
+      description:
+        'What each resolved mapping emits. The Categories binding must use categoryId; label and sourceId produce strings for fields such as keywords or custom fields.',
+      enum: ['categoryId', 'label', 'sourceId'],
+      default: 'categoryId',
     },
   },
   required: ['kind'],
-  ...VALUE_BINDING_EDITOR_WIDGET,
+  // `allowCrosswalk` gates the crosswalk kind in the shared editor. DOI publishing
+  // has its own copy of this schema without the flag, so it never offers the kind.
+  widget: {
+    formlyConfig: {
+      type: 'value-binding-editor',
+      props: { allowCrosswalk: true },
+    },
+  },
 };
 
 export const FIGSHARE_PUBLISHING_SCHEMA = {
@@ -472,6 +544,26 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'boolean',
       title: 'Enabled',
       default: false,
+    },
+    processing: {
+      type: 'object', title: 'Background Processing',
+      description: 'Enable only after migration, indexes and worker cutover. Local attachment bytes are retained.',
+      properties: {
+        enabled: { type: 'boolean', default: false },
+        ...Object.fromEntries((['coalesceMs', 'leaseMs', 'heartbeatMs', 'maxAttempts', 'retryBaseMs', 'observationMs', 'cleanupMs'] as const).map(key => [key, { type: 'integer', minimum: 1, default: DEFAULT_FIGSHARE_PROCESSING[key] }])),
+        serviceUsername: { type: 'string', title: 'Local Service Username' },
+        serviceUserType: { type: 'string', title: 'Local Service User Type' }
+      }
+    },
+    impersonation: {
+      type: 'object', title: 'Figshare Ownership',
+      properties: {
+        enabled: { type: 'boolean', default: false },
+        institutionalIdPath: { type: 'string', default: DEFAULT_FIGSHARE_IMPERSONATION.institutionalIdPath },
+        emailPath: { type: 'string', default: DEFAULT_FIGSHARE_IMPERSONATION.emailPath },
+        allowEmailFallback: { type: 'boolean', default: false },
+        operations: { type: 'object', properties: Object.fromEntries(Object.entries(DEFAULT_FIGSHARE_IMPERSONATION.operations).map(([key, value]) => [key, { type: 'string', enum: ['token', 'owner'], default: value }])) }
+      }
     },
     connection: {
       type: 'object',
@@ -565,12 +657,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       title: 'Record',
       properties: {
         articleIdPath: { type: 'string', title: 'Article ID Path', default: 'metadata.figshare_article_id' },
-        articleUrlPaths: {
-          type: 'array',
-          title: 'Article URL Paths',
-          items: { type: 'string' },
-          default: ['metadata.figshare_article_location'],
-        },
         dataLocationsPath: { type: 'string', title: 'Data Locations Path', default: 'metadata.dataLocations' },
         statusPath: { type: 'string', title: 'Status Path', default: 'metadata.figshareStatus' },
         errorPath: { type: 'string', title: 'Error Path', default: 'metadata.figshareError' },
@@ -601,12 +687,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'object',
       title: 'Authors',
       properties: {
-        source: {
-          type: 'string',
-          title: 'Source Strategy',
-          enum: ['defaultRedboxContributors'],
-          default: 'defaultRedboxContributors',
-        },
         uniqueBy: {
           type: 'string',
           title: 'Unique By',
@@ -679,12 +759,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
           title: 'Categories Binding',
           properties: {
             source: VALUE_BINDING_SCHEMA,
-            mappingStrategy: {
-              type: 'string',
-              title: 'Mapping Strategy',
-              enum: ['for2020Mapping'],
-              default: 'for2020Mapping',
-            },
           },
         },
         relatedResource: {
@@ -730,15 +804,11 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'object',
       title: 'Categories',
       properties: {
-        strategy: {
-          type: 'string',
-          title: 'Strategy',
-          enum: ['for2020Mapping'],
-          default: 'for2020Mapping',
-        },
         mappingTable: {
           type: 'array',
           title: 'Mapping Table',
+          description:
+            'Used only when the Categories binding is not a crosswalk binding. Each row maps a record category code to a Figshare category ID.',
           items: {
             type: 'object',
             properties: {
@@ -757,32 +827,17 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       properties: {
         enableHostedFiles: { type: 'boolean', title: 'Enable Hosted Files', default: true },
         enableLinkFiles: { type: 'boolean', title: 'Enable Link Files', default: true },
-        dedupeStrategy: {
-          type: 'string',
-          title: 'Dedupe Strategy',
-          enum: ['sourceId', 'nameAndMd5', 'url'],
-          default: 'sourceId',
-        },
         staging: {
           type: 'object',
           title: 'Staging',
           properties: {
             disk: { type: 'string', title: 'Storage Disk', default: 'figshare-staging' },
             keyPrefix: { type: 'string', title: 'Storage Key Prefix', default: 'figshare/' },
-            tempDir: { type: 'string', title: 'Temp Directory' },
             cleanupPolicy: {
               type: 'string',
               title: 'Cleanup Policy',
               enum: ['deleteAfterSuccess', 'retainForRetry'],
               default: 'deleteAfterSuccess',
-            },
-            diskSpaceThresholdBytes: {
-              type: 'integer',
-              title: 'Disk Space Threshold Bytes (deprecated, no-op)',
-              deprecated: true,
-              description:
-                'Deprecated and ignored. Staging now runs through StorageManagerService, which surfaces its own capacity errors; this value no longer acts as a pre-flight disk-space guard. Retained only for compatibility with stored configs.',
-              default: 1073741824,
             },
           },
         },
@@ -801,11 +856,11 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         forceSync: { type: 'boolean', title: 'Force Sync', default: false },
         accessRights: {
           type: 'object',
-          title: 'Access Rights Binding',
+          title: 'Embargo Bindings',
           properties: {
             accessRights: VALUE_BINDING_SCHEMA,
+            embargoType: VALUE_BINDING_SCHEMA,
             fullEmbargoUntil: VALUE_BINDING_SCHEMA,
-            fileEmbargoUntil: VALUE_BINDING_SCHEMA,
             reason: VALUE_BINDING_SCHEMA,
           },
         },
@@ -823,25 +878,6 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       type: 'object',
       title: 'Workflow',
       properties: {
-        transitionRules: {
-          type: 'array',
-          title: 'Transition Rules',
-          items: {
-            type: 'object',
-            properties: {
-              when: {
-                type: 'string',
-                title: 'When',
-                enum: ['published', 'republished', 'embargoUpdated', 'awaitingUploadCompletion'],
-              },
-              targetWorkflowStageName: { type: 'string', title: 'Target Workflow Stage Name' },
-              targetWorkflowStageLabel: { type: 'string', title: 'Target Workflow Stage Label' },
-              targetForm: { type: 'string', title: 'Target Form' },
-              ifArticleField: { type: 'string', title: 'Article Field' },
-              equals: { title: 'Equals' },
-            },
-          },
-        },
         transitionJob: {
           type: 'object',
           title: 'Transition Job',

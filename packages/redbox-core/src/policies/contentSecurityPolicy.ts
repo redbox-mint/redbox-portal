@@ -1,4 +1,7 @@
 import * as crypto from 'node:crypto';
+import * as BrandingServiceModule from '../services/BrandingService';
+
+declare const BrandingService: BrandingServiceModule.Services.Branding;
 
 interface CspConfig {
     enabled?: boolean;
@@ -10,6 +13,84 @@ interface CspConfig {
 
 function isAdminApiDocsPath(pathname: string): boolean {
     return /\/admin\/api-docs(?:\/|$)/.test(pathname);
+}
+
+function isHttpAppUrl(): boolean {
+    if (process.env.NODE_ENV === 'production') {
+        return false;
+    }
+
+    const appUrl = String((sails.config as { appUrl?: unknown } | undefined)?.appUrl ?? '').trim();
+    if (!appUrl) {
+        return false;
+    }
+
+    try {
+        return new URL(appUrl).protocol === 'http:';
+    } catch (_error) {
+        return false;
+    }
+}
+
+/**
+ * Additional CSP directive sources required by each supported web analytics
+ * provider. Kept as a small map so adding a provider later is a single edit
+ * (see also views/default/default/analytics.ejs and the WebAnalytics config
+ * model). Domains are only merged when analytics is enabled for the request's
+ * branding, so brandings without analytics get no extra allow-listing.
+ */
+const WEB_ANALYTICS_CSP_SOURCES: Record<string, Record<string, string[]>> = {
+    googleAnalytics: {
+        'script-src': ['https://www.googletagmanager.com'],
+        'img-src': ['https://*.google-analytics.com', 'https://*.googletagmanager.com'],
+        'connect-src': ['https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com'],
+    },
+    googleTagManager: {
+        // Keep the explicit GTM origin without strict-dynamic. The latter
+        // disables host allow-listing in supported browsers and would also
+        // block ReDBox's same-origin bundles when they do not carry a nonce.
+        'script-src': ['https://www.googletagmanager.com'],
+        'img-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com'],
+        'connect-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com', 'https://*.analytics.google.com'],
+        'frame-src': ['https://www.googletagmanager.com'],
+    },
+};
+
+/**
+ * If web analytics is enabled for the request's branding, merge the provider's
+ * required sources into the CSP directives (Set-union, mirroring the
+ * admin-api-docs handling). Best-effort and fully guarded: any resolution
+ * failure leaves the directives untouched.
+ */
+function applyWebAnalyticsCsp(req: Sails.Req, directives: Record<string, string[]>): void {
+    try {
+        if (!sails || !sails.config || typeof sails.config.brandingAware !== 'function') {
+            return;
+        }
+        if (typeof BrandingService === 'undefined' || typeof BrandingService.getBrandNameFromReq !== 'function') {
+            return;
+        }
+        const brandName = BrandingService.getBrandNameFromReq(req);
+        const analytics = (sails.config.brandingAware(brandName) || {}).webAnalytics;
+        if (!analytics || analytics.enabled !== true) {
+            return;
+        }
+        const trackingId = typeof analytics.trackingId === 'string' ? analytics.trackingId.trim() : '';
+        if (!/^[A-Za-z0-9\-_]+$/.test(trackingId)) {
+            return;
+        }
+        const sources = WEB_ANALYTICS_CSP_SOURCES[analytics.provider];
+        if (!sources) {
+            return;
+        }
+        Object.keys(sources).forEach((directive) => {
+            const merged = new Set([...(directives[directive] ?? [])]);
+            sources[directive].forEach((src) => merged.add(src));
+            directives[directive] = Array.from(merged);
+        });
+    } catch (err) {
+        sails.log.warn(`Failed to apply web analytics CSP sources: ${(err as Error)?.message}`);
+    }
 }
 
 /**
@@ -62,7 +143,13 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
     const enabled = cfg.enabled != null ? !!cfg.enabled : defaults.enabled;
     const reportOnly = cfg.reportOnly != null ? !!cfg.reportOnly : defaults.reportOnly;
     let addNonceTo = Array.isArray(cfg.addNonceTo) ? cfg.addNonceTo : defaults.addNonceTo;
-    const extras = Array.isArray(cfg.extras) ? cfg.extras : defaults.extras;
+    // Browsers upgrade every HTTP request when this directive is present.
+    // That makes an HTTP appUrl unusable during LAN development, so retain
+    // the directive for HTTPS deployments but omit it for HTTP app URLs.
+    const configuredExtras = Array.isArray(cfg.extras) ? cfg.extras : defaults.extras;
+    const extras = isHttpAppUrl()
+        ? configuredExtras.filter((directive) => directive.trim().toLowerCase() !== 'upgrade-insecure-requests')
+        : configuredExtras;
     const directives: Record<string, string[]> = Object.assign({}, defaults.directives, cfg.directives || {});
 
     if (isAdminApiDocsPath(req.path)) {
@@ -87,6 +174,9 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
         connectSrc.add('blob:');
         directives['connect-src'] = Array.from(connectSrc);
     }
+
+    // Allow-list the branding's configured web analytics provider (if enabled).
+    applyWebAnalyticsCsp(req, directives);
 
     if (!enabled) {
         return next();

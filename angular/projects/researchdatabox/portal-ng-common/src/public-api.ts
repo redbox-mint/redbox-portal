@@ -14,6 +14,7 @@ export * from './lib/csrf.interceptor';
 export * from './lib/appconfig.service';
 export * from './lib/user.service';
 export * from './lib/record.service';
+export * from './lib/workspace-type.service';
 export * from './lib/dashboard-models';
 export * from './lib/base.component';
 export * from './lib/helper.spec';

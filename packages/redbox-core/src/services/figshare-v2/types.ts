@@ -27,6 +27,7 @@ export interface FigshareArticle {
   url_private_api?: string;
   is_embargoed?: boolean;
   access_type?: string;
+  embargo_type?: string;
   embargo_date?: string;
   embargo_reason?: string;
   [key: string]: unknown;
@@ -58,6 +59,7 @@ export interface FigshareUploadDescriptor {
 
 export interface FigshareUploadPart {
   partNo: number;
+  status?: string;
   startOffset: number;
   endOffset: number;
 }
@@ -79,6 +81,21 @@ export interface FigshareInstitutionAccount {
   [key: string]: unknown;
 }
 
+/** Figshare exposes an anonymous catalogue and an authenticated account catalogue. */
+export type FigshareCategoryScope = 'public' | 'account';
+
+export interface FigshareCategory {
+  id: number;
+  title: string;
+  parent_id?: number;
+  path?: string;
+  source_id?: string;
+  taxonomy_id?: number;
+  is_selectable?: boolean;
+  has_children?: boolean;
+  [key: string]: unknown;
+}
+
 export interface FigsharePublishResult {
   id?: number | string;
   status?: string;
@@ -97,19 +114,23 @@ export interface FigshareArticlePayload {
   categories?: number[];
   license?: unknown;
   authors?: Array<{ id?: number | string; name?: string }>;
-  related_materials?: Array<{ title: unknown; identifier: unknown }>;
+  related_materials?: Array<{ title: unknown; identifier: unknown; identifier_type: 'DOI' | 'URL' }>;
   custom_fields?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
 export interface FigshareCreateFilePayload {
+  md5?: string;
   name?: string;
   size?: number;
   link?: string;
 }
 
+export type FigshareEmbargoType = 'article' | 'file';
+
 export interface FigshareEmbargoPayload {
-  access_type: unknown;
+  is_embargoed: true;
+  embargo_type: FigshareEmbargoType;
   embargo_date: unknown;
   embargo_reason: unknown;
 }
@@ -157,6 +178,7 @@ export interface FigshareJobData {
 }
 
 export interface FigshareJob {
+  touch?: () => Promise<unknown>;
   attrs?: {
     data?: FigshareJobData;
   };

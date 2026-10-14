@@ -2,7 +2,7 @@ networks:
   main:
 
 x-bruno-service: &bruno-service
-  image: node:24.16.0-bookworm
+  image: node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
   pull_policy: 'missing'
   volumes:
     - '../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno'
@@ -134,7 +134,7 @@ services:
       retries: 30
       start_period: '600s'
   mongodb:
-    image: mongo:latest
+    image: mongo:latest@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
     pull_policy: 'missing'
     networks:
       main:
@@ -147,7 +147,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest
+    image: solr:latest@sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69
     pull_policy: 'missing'
     expose:
       - '8983'
@@ -166,7 +166,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.6
+    image: quay.io/keycloak/keycloak:26.5.6@sha256:8d44614c74798322c4e07fbe0ecb15cfbb5879d69b484628555f58ade06f0d8c
     pull_policy: 'missing'
     expose:
       - '8080'
@@ -186,7 +186,7 @@ services:
       - start-dev
       - --import-realm
   email:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:latest@sha256:d5ecbb067db3705fa953d79e1b7f81ef84038df67aba6c52825d8c02a1ea748a
     pull_policy: 'missing'
     expose:
       - '1025'

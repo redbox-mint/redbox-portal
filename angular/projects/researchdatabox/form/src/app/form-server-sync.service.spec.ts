@@ -1,0 +1,208 @@
+import { TestBed } from '@angular/core/testing';
+import { FormControl, FormGroup } from '@angular/forms';
+import { LoggerService } from '@researchdatabox/portal-ng-common';
+import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormComponentsMap, FormService } from './form.service';
+import { FormServerSyncService } from './form-server-sync.service';
+
+describe('FormServerSyncService', () => {
+  let service: FormServerSyncService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        FormServerSyncService,
+        { provide: FormService, useValue: { shouldIncludeInFormControlMap: () => true } },
+        { provide: LoggerService, useValue: { warn: () => undefined } },
+      ],
+    });
+    service = TestBed.inject(FormServerSyncService);
+  });
+
+  it('keeps a control dirty when it was edited while the save was in flight', async () => {
+    const serverControl = new FormControl('before-server-sync');
+    const localControl = new FormControl('before-local-edit');
+    const form = new FormGroup({ serverControl, localControl });
+    form.markAsPristine();
+    localControl.setValue('edited-during-save');
+    localControl.markAsDirty();
+
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { serverControl, localControl };
+
+    const result = await service.applyServerMetadata(
+      { serverControl: 'before-server-sync', localControl: 'before-local-edit' },
+      { serverControl: 'after-server-sync', localControl: 'server-value' },
+      formDefMap,
+      form,
+      'preserveLocalEdits'
+    );
+
+    expect(serverControl.value).toBe('after-server-sync');
+    expect(serverControl.pristine).toBeTrue();
+    expect(localControl.value).toBe('edited-during-save');
+    expect(localControl.dirty).toBeTrue();
+    expect(form.dirty).toBeTrue();
+    expect(result.patched).toEqual(['serverControl']);
+    expect(result.skipped).toEqual([{ name: 'localControl', reason: 'local-edit' }]);
+  });
+
+  it('restores an edit emitted while an asynchronous control replacement is pending', async () => {
+    let releaseReplacement!: () => void;
+    const replacementGate = new Promise<void>(resolve => (releaseReplacement = resolve));
+    let firstReplacement = true;
+    const control = new FormControl('local', { nonNullable: true }) as FormControl<string> & {
+      setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void>;
+    };
+    control.setCustomValue = async (value, options) => {
+      if (firstReplacement) {
+        firstReplacement = false;
+        await replacementGate;
+      }
+      control.setValue(value, options);
+    };
+    const form = new FormGroup({ control });
+    form.markAsPristine();
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { control };
+
+    const sync = service.applyServerMetadata(
+      { control: 'local' },
+      { control: 'server' },
+      formDefMap,
+      form,
+      'preserveLocalEdits'
+    );
+    await Promise.resolve();
+    control.setValue('edited-during-replacement');
+    control.markAsDirty();
+    releaseReplacement();
+    const result = await sync;
+
+    expect(control.value).toBe('edited-during-replacement');
+    expect(control.dirty).toBeTrue();
+    expect(result.patched).toEqual([]);
+    expect(result.skipped).toEqual([{ name: 'control', reason: 'local-edit-during-sync' }]);
+  });
+
+  it('reports and preserves an edit that arrives during an explicit asynchronous replacement', async () => {
+    let releaseReplacement!: () => void;
+    const replacementGate = new Promise<void>(resolve => (releaseReplacement = resolve));
+    let firstReplacement = true;
+    const control = new FormControl('local', { nonNullable: true }) as FormControl<string> & {
+      setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void>;
+    };
+    control.setCustomValue = async (value, options) => {
+      if (firstReplacement) {
+        firstReplacement = false;
+        await replacementGate;
+      }
+      control.setValue(value, options);
+    };
+    const form = new FormGroup({ control });
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { control };
+
+    const sync = service.replaceWithServerMetadata({ control: 'server' }, formDefMap, form);
+    await Promise.resolve();
+    control.setValue('edited-during-replacement');
+    releaseReplacement();
+    const result = await sync;
+
+    expect(control.value).toBe('edited-during-replacement');
+    expect(control.dirty).toBeTrue();
+    expect(result.patched).toEqual([]);
+    expect(result.skipped).toEqual([{ name: 'control', reason: 'local-edit-during-sync' }]);
+  });
+
+  it('reports controls that cannot be synchronized', async () => {
+    const unchanged = new FormControl('same');
+    const excluded = new FormControl('old');
+    const failed = new FormControl('old') as FormControl<string | null> & {
+      setCustomValue(): Promise<void>;
+    };
+    failed.setCustomValue = () => Promise.reject(new Error('cannot set'));
+    spyOn(failed, 'markAsDirty').and.callThrough();
+    const form = new FormGroup({ unchanged, excluded });
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = {
+      unchanged,
+      excluded,
+      failed,
+      missingFromServer: new FormControl('local'),
+      noComponent: new FormControl('old'),
+    };
+    formDefMap.completeGroupMap = {
+      excluded: {} as any,
+    };
+
+    const formService = TestBed.inject(FormService);
+    spyOn(formService, 'shouldIncludeInFormControlMap').and.callFake(
+      component => component !== formDefMap.completeGroupMap?.['excluded']
+    );
+
+    const result = await service.applyServerMetadata(
+      {
+        unchanged: 'same',
+        missingFromServer: 'sent',
+        noComponent: 'sent',
+        excluded: 'sent',
+        failed: 'old',
+      },
+      {
+        unchanged: 'same',
+        noComponent: 'server',
+        excluded: 'server',
+        failed: 'new',
+      },
+      formDefMap,
+      form,
+      'always'
+    );
+
+    expect(result.patched).toEqual(['noComponent']);
+    expect(result.skipped).toEqual([
+      { name: 'unchanged', reason: 'unchanged' },
+      { name: 'missingFromServer', reason: 'not-in-server' },
+      { name: 'excluded', reason: 'excluded' },
+      { name: 'failed', reason: 'set-failed' },
+    ]);
+    expect(failed.markAsDirty).toHaveBeenCalled();
+  });
+
+  it('does nothing when server synchronization is disabled', async () => {
+    const control = new FormControl('local');
+    const form = new FormGroup({ control });
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { control };
+
+    const result = await service.applyServerMetadata(
+      { control: 'local' },
+      { control: 'server' },
+      formDefMap,
+      form,
+      'never'
+    );
+
+    expect(control.value).toBe('local');
+    expect(result).toEqual({ patched: [], skipped: [] });
+  });
+
+  it('replaces local and missing projected values after an explicit adopt decision', async () => {
+    const title = new FormControl('mine');
+    const removed = new FormControl('local-only');
+    const form = new FormGroup({ title, removed });
+    title.markAsDirty();
+    removed.markAsDirty();
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { title, removed };
+
+    const result = await service.replaceWithServerMetadata({ title: 'latest' }, formDefMap, form);
+
+    expect(title.value).toBe('latest');
+    expect(removed.value).toBeUndefined();
+    expect(title.pristine).toBeTrue();
+    expect(removed.pristine).toBeTrue();
+    expect(result.patched).toEqual(['title', 'removed']);
+  });
+});

@@ -126,6 +126,12 @@ export interface PublishDataLocationSelectorFormComponentDefinitionFrame extends
   layout?: AvailableFieldLayoutDefinitionFrames;
 }
 
+/**
+ * Selects a configured data location for publication workflows.
+ *
+ * @extensionPoint Use `PublishDataLocationSelectorComponent` with its model to bind publishable location choices.
+ * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
+ */
 export interface PublishDataLocationSelectorFormComponentDefinitionOutline
   extends PublishDataLocationSelectorFormComponentDefinitionFrame,
   FormComponentDefinitionOutline {

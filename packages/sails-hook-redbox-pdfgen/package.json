@@ -1,0 +1,49 @@
+{
+  "name": "@researchdatabox/sails-hook-redbox-pdfgen",
+  "version": "1.0.0",
+  "description": "ReDBox hook for PDF generation using Puppeteer",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "src/api/configmodels",
+    "README.md"
+  ],
+  "sails": {
+    "isHook": true,
+    "hasServices": true,
+    "hasConfig": true
+  },
+  "scripts": {
+    "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
+    "prepack": "npm run compile",
+    "test": "npm run test:unit && npm run test:integration:bruno",
+    "test:unit": "npm run compile && TS_NODE_PROJECT=./test/tsconfig.json node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs ./test/unit",
+    "test:integration:bruno": "npm run compile && docker compose -f ./support/api-integration-testing/docker-compose.bruno.yml up --build --menu=false --abort-on-container-exit --exit-code-from bruno",
+    "test:integration:bruno:clean": "docker compose -f ./support/api-integration-testing/docker-compose.bruno.yml down -v --remove-orphans --timeout 180",
+    "dev:run": "docker compose -f ./support/development/docker-compose.yml up --build --menu=false --abort-on-container-exit --exit-code-from rbportal",
+    "dev:run:build": "docker compose -f ./support/development/docker-compose.yml build",
+    "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down -v --remove-orphans --timeout 180",
+    "dev:run:prepare": "mkdir -p ./support/development/.tmp/attachments/staging"
+  },
+  "keywords": [
+    "sails",
+    "hook",
+    "redbox"
+  ],
+  "license": "GPL-3.0",
+  "dependencies": {
+    "effect": "3.22.1",
+    "luxon": "3.7.2",
+    "puppeteer": "25.0.4"
+  },
+  "peerDependencies": {
+    "@researchdatabox/redbox-core": "file:../redbox-core"
+  },
+  "devDependencies": {
+    "@researchdatabox/redbox-core": "file:../redbox-core",
+    "@researchdatabox/redbox-dev-tools": "file:../redbox-dev-tools",
+    "@types/node": "24.12.4",
+    "typescript": "5.9.3"
+  }
+}

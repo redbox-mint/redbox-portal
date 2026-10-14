@@ -407,6 +407,46 @@ export namespace Services {
       });
     }
 
+    private async resolvePermissionUser(users: unknown[]): Promise<unknown | null> {
+      const candidates = users.filter((user: unknown) => !_.isEmpty(user));
+      if (_.isEmpty(candidates)) {
+        return null;
+      }
+
+      const effectiveUsers = await Promise.all(candidates.map(async (candidate: unknown) => {
+        try {
+          const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(candidate));
+          return effectiveUser ?? candidate;
+        } catch (error) {
+          sails.log.verbose(`Failed to resolve effective user for permission assignment, using original:`, error);
+          return candidate;
+        }
+      }));
+
+      // Permissions are stored by username. Multiple users with the same email
+      // are therefore safe to resolve only when every candidate resolves to the
+      // same username. In that case the first candidate is sufficient because
+      // all candidates produce the same permission value; otherwise leave the
+      // email pending rather than selecting an arbitrary username.
+      if (candidates.length > 1) {
+        const effectiveUsernames = effectiveUsers.map((user: unknown) => {
+          const username = (user as AnyRecord)?.username;
+          return _.isString(username) && !_.isEmpty(username) ? username : null;
+        });
+        if (_.isEmpty(effectiveUsernames) || effectiveUsernames.some((username: string | null) => username !== effectiveUsernames[0])) {
+          return null;
+        }
+      }
+
+      return effectiveUsers[0] ?? null;
+    }
+
+    private findPermissionUser(email: string): Observable<unknown> {
+      return this.getObservable<unknown[]>(User.find({
+        email: email.toLowerCase()
+      })).pipe(flatMap((users: unknown[]) => from(this.resolvePermissionUser(users))));
+    }
+
     public queueTriggerCall(oid: string, record: RecordWithMeta, options: unknown, user: unknown) {
       const optionsObj = options as AnyRecord;
       const triggerCondition = _.get(optionsObj, "triggerCondition", "");
@@ -577,17 +617,21 @@ export namespace Services {
       }
       // when both are empty, simpy return the record
       if (_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails)) {
+        if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
+          auth.edit = createdBy ? [createdBy] : [];
+          auth.editPending = [];
+        }
+        if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
+          auth.view = createdBy ? [createdBy] : [];
+          auth.viewPending = [];
+        }
         return of(record);
       }
       _.each(editContributorEmails, (editorEmail: string) => {
-        editContributorObs.push(this.getObservable(User.findOne({
-          email: editorEmail.toLowerCase()
-        })));
+        editContributorObs.push(this.findPermissionUser(editorEmail));
       });
       _.each(viewContributorEmails, (viewerEmail: string) => {
-        viewContributorObs.push(this.getObservable(User.findOne({
-          email: viewerEmail.toLowerCase()
-        })));
+        viewContributorObs.push(this.findPermissionUser(viewerEmail));
       });
       if (editContributorObs.length === 0 && viewContributorObs.length === 0) {
         return of(record);
@@ -612,18 +656,7 @@ export namespace Services {
       } else {
         zippedViewContributorUsers = zip(...editContributorObs)
           .pipe(flatMap((editContributorUsers: unknown) => {
-            return from(Promise.all(normalizeResolvedUsers(editContributorUsers).map(async (editContributorUser: unknown) => {
-              if (_.isEmpty(editContributorUser)) {
-                return editContributorUser;
-              }
-              try {
-                const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(editContributorUser));
-                return effectiveUser ?? editContributorUser;
-              } catch (error) {
-                sails.log.verbose(`Failed to resolve effective user for edit contributor, using original:`, error);
-                return editContributorUser;
-              }
-            }))).pipe(flatMap((effectiveEditUsers: unknown[]) => {
+            return of(normalizeResolvedUsers(editContributorUsers)).pipe(flatMap((effectiveEditUsers: unknown[]) => {
               const newEditList: string[] = [];
               this.filterPending(effectiveEditUsers, editContributorEmails, newEditList);
               if (recordCreatorPermissions == "edit" || recordCreatorPermissions == "view&edit") {
@@ -652,18 +685,7 @@ export namespace Services {
         if (useDefaultViewList) {
           return of(record);
         }
-        return from(Promise.all(normalizeResolvedUsers(viewContributorUsers).map(async (viewContributorUser: unknown) => {
-          if (_.isEmpty(viewContributorUser)) {
-            return viewContributorUser;
-          }
-          try {
-            const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(viewContributorUser));
-            return effectiveUser ?? viewContributorUser;
-          } catch (error) {
-            sails.log.verbose(`Failed to resolve effective user for view contributor, using original:`, error);
-            return viewContributorUser;
-          }
-        }))).pipe(flatMap((viewUsers: unknown[]) => {
+        return of(normalizeResolvedUsers(viewContributorUsers)).pipe(flatMap((viewUsers: unknown[]) => {
           const newViewList: string[] = [];
           this.filterPending(viewUsers, viewContributorEmails, newViewList);
           if (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit") {
@@ -808,13 +830,19 @@ export namespace Services {
       const workspaceObj = workspaceData as AnyRecord;
       const workspaceMetadata = (workspaceObj.metadata ?? {}) as AnyRecord;
       const rdmpOidField = _.get(optionsObj, 'rdmpOidField', 'rdmpOid') as string;
-      const rdmpOid = _.get(workspaceMetadata, rdmpOidField, null) as string | null;
+      const rdmpOid = String(_.get(workspaceMetadata, rdmpOidField, '') ?? '').trim();
       sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
       if (_.isEmpty(rdmpOid)) {
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      await WorkspaceService.addWorkspaceToRecord(workspaceMetadata.rdmpOid as string, oid);
+      await WorkspaceService.addWorkspaceToRecord(
+        rdmpOid,
+        oid,
+        {},
+        undefined,
+        user
+      );
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;
@@ -825,13 +853,19 @@ export namespace Services {
       const workspaceObj = workspaceData as AnyRecord;
       const workspaceMetadata = (workspaceObj.metadata ?? {}) as AnyRecord;
       const rdmpOidField = _.get(optionsObj, 'rdmpOidField', 'rdmpOid') as string;
-      const rdmpOid = _.get(workspaceMetadata, rdmpOidField, null) as string | null;
+      const rdmpOid = String(_.get(workspaceMetadata, rdmpOidField, '') ?? '').trim();
       sails.log.verbose(`Generic removing workspace ${oid} from record: ${rdmpOid}`);
       if (_.isEmpty(rdmpOid)) {
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      await WorkspaceService.removeWorkspaceFromRecord(rdmpOid as string, oid);
+      await WorkspaceService.removeWorkspaceFromRecord(
+        rdmpOid,
+        oid,
+        {},
+        undefined,
+        user
+      );
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;

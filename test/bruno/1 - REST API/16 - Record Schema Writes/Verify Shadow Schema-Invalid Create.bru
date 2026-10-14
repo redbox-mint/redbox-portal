@@ -1,0 +1,23 @@
+meta {
+  name: Verify Shadow Schema-Invalid Create
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaShadowOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Reads back the schema-invalid value accepted in shadow mode", function () {
+    expect(bru.getEnvVar("recordSchemaShadowOid"), "shadow record OID").to.be.a("string").and.not.equal("");
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().text_1_event).to.equal(42);
+  });
+}

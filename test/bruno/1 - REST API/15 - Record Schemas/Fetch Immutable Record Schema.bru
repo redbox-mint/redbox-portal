@@ -1,0 +1,27 @@
+meta {
+  name: Fetch Immutable Record Schema
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/schemas/{{recordSchemaUpdateDigest}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Returns the dynamically resolved immutable update artifact", function () {
+    expect(bru.getEnvVar("recordSchemaUpdateDigest"), "update schema digest").to.match(/^[0-9a-f]{64}$/);
+    expect(res.getStatus()).to.equal(200);
+    expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/schema+json");
+    expect(res.getHeader("etag")).to.equal(bru.getEnvVar("recordSchemaUpdateEtag"));
+    expect(res.getHeader("cache-control")).to.equal("private, no-cache");
+    expect(res.getHeader("vary")).to.equal("Authorization");
+    expect(res.getBody()).to.deep.equal(JSON.parse(bru.getEnvVar("recordSchemaUpdateDocument")));
+  });
+}

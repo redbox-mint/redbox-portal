@@ -72,6 +72,9 @@ export namespace Controllers {
         const savedConfig = await this.appConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
         return res.json(savedConfig);
       } catch (error) {
+        if ((error as { status?: number })?.status === 410) {
+          return res.status(410).json({ message: (error as Error).message });
+        }
         sails.log.error(error);
         return res.serverError(error);
       }

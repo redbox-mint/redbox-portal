@@ -20,6 +20,9 @@ module.exports = function (config) {
         // the possible options are listed at https://jasmine.github.io/api/edge/Configuration.html
         // for example, you can disable the random execution with `random: false`
         // or set a specific seed with `seed: 4321`
+        // Keep CI ordering deterministic so leaked browser activity cannot make the suite
+        // intermittently stall after all specs have reported success.
+        random: !isCI,
       },
       clearContext: false // leave Jasmine Spec Runner output visible in browser
     },
@@ -42,10 +45,10 @@ module.exports = function (config) {
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
-    browserNoActivityTimeout: 300000,
-    browserDisconnectTimeout: 30000,
-    browserDisconnectTolerance: 3,
-    captureTimeout: 300000,
+    browserNoActivityTimeout: 120000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 2,
+    captureTimeout: 120000,
     autoWatch: true,
     customLaunchers: {
       ChromeHeadlessNoSandbox: {

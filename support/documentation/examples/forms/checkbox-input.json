@@ -1,0 +1,21 @@
+{
+  "name": "checkbox-input-example",
+  "debugValue": false,
+  "validators": [],
+  "componentDefinitions": [
+    {
+      "name": "access",
+      "component": {
+        "class": "CheckboxInputComponent",
+        "config": {
+          "multipleValues": true,
+          "options": [
+            { "label": "Open", "value": "open" },
+            { "label": "Restricted", "value": "restricted" }
+          ]
+        }
+      },
+      "model": { "class": "CheckboxInputModel" }
+    }
+  ]
+}

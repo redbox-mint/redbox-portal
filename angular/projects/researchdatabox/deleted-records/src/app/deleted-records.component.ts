@@ -24,6 +24,10 @@ import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefi
 import { ModalDirective } from "ngx-bootstrap/modal";
 import { DateTime } from 'luxon';
 
+interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
+  sortProperty: string;
+}
+
 /**
  * Restore deleted records Component
  */
@@ -70,10 +74,11 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   filterParams: any = {};
 
   // Record table properties
-  tableHeaders: RecordPropViewMetaDto[] = [
+  tableHeaders: DeletedRecordTableHeader[] = [
     {
       label: "deleted-records-results-table-header-title",
       property: "title",
+      sortProperty: "deletedRecordMetadata.metadata.title",
       template: "",
       hide: false,
       multivalue: false
@@ -81,6 +86,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     {
       label: "deleted-records-results-table-header-created-date",
       property: "dateCreatedDisplay",
+      sortProperty: "deletedRecordMetadata.dateCreated",
       template: "",
       hide: false,
       multivalue: false
@@ -88,6 +94,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     {
       label: "deleted-records-results-table-header-modified-date",
       property: "dateModifiedDisplay",
+      sortProperty: "deletedRecordMetadata.lastSaveDate",
       template: "",
       hide: false,
       multivalue: false
@@ -95,6 +102,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     {
       label: "deleted-records-results-table-header-deleted-date",
       property: "dateDeletedDisplay",
+      sortProperty: "dateDeleted",
       template: "",
       hide: false,
       multivalue: false
@@ -111,6 +119,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   // destroy record confirm modal
   currentDestroyRecordModalOid: string | undefined;
+  currentDestroyRecordModalRevision: number | undefined;
   isDestroyRecordModalShown: boolean = false;
   @ViewChild('destroyRecordModal') destroyRecordModal?: ModalDirective;
 
@@ -155,20 +164,22 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     await this.gotoPage(1);
   }
 
-  public async headerSortChanged(event: any, data: any) {
-    this.sort = `${event.variable}:${event.sort === 'desc' ? '-1' : '1'}`;
+  public async headerSortChanged(event: any, data: DeletedRecordTableHeader) {
+    this.sort = `${data.sortProperty}:${event.sort === 'desc' ? '-1' : '1'}`;
     await this.gotoPage(1);
   }
 
   public async recordTableAction(event: any, data: any, actionName: string) {
     const oid = data.oid;
+    const revision = data.revision;
     if (actionName === 'restore') {
-      const result = await this.recordService.restoreDeletedRecord(oid);
+      const result = await this.recordService.restoreDeletedRecord(oid, revision);
       this.loggerService.debug(`Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`);
       await this.gotoPage(this.currentPageNumber);
 
     } else if (actionName === 'destroy') {
       this.currentDestroyRecordModalOid = oid;
+      this.currentDestroyRecordModalRevision = revision;
       this.showDestroyRecordModal();
 
     } else {
@@ -185,6 +196,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   public hideDestroyRecordModal(): void {
     this.destroyRecordModal?.hide();
     this.currentDestroyRecordModalOid = undefined;
+    this.currentDestroyRecordModalRevision = undefined;
   }
 
   public onDestroyRecordModalHidden(): void {
@@ -197,11 +209,13 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       return;
     }
     const oid = this.currentDestroyRecordModalOid;
-    const result = await this.recordService.destroyDeletedRecord(oid);
+    const revision = this.currentDestroyRecordModalRevision;
+    const result = await this.recordService.destroyDeletedRecord(oid, revision ?? {});
     this.loggerService.debug(`Record table action destroy result ${JSON.stringify(result)}.`);
 
     this.destroyRecordModal?.hide();
     this.currentDestroyRecordModalOid = undefined;
+    this.currentDestroyRecordModalRevision = undefined;
 
     await this.gotoPage(this.currentPageNumber);
   }

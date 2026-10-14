@@ -13,6 +13,7 @@ import { AvailableFieldLayoutDefinitionOutlines } from "../dictionary.outline";
 import type { HistoricalVocabMode } from "./dropdown-input.outline";
 import {
     TypeaheadInputComponentName,
+    TypeaheadInputDefaultNoResultsMessageKey,
     TypeaheadInputFieldComponentConfigOutline,
     TypeaheadInputFieldComponentDefinitionOutline,
     TypeaheadInputFieldModelConfigOutline,
@@ -50,6 +51,7 @@ export class TypeaheadInputFieldComponentConfig extends FieldComponentConfig imp
     cacheResults = true;
     multiSelect = false;
     placeholder?: string;
+    noResultsMessageKey = TypeaheadInputDefaultNoResultsMessageKey;
     readOnlyAfterSelect?: boolean;
     historicalVocabMode?: HistoricalVocabMode;
 

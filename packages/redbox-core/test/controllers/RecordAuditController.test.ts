@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordAuditController';
-import {createSinonStubLogger} from "../logger.test";
+import { createSinonStubLogger } from '../logger.test';
+import { RecordAuditActionType } from '../../src/model/storage/RecordAuditModel';
 
 describe('RecordAuditController', () => {
   let controller: Controllers.RecordAudit;
@@ -77,17 +78,17 @@ describe('RecordAuditController', () => {
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).FormsService = {
-      getFormByName: sinon.stub().returns(of({
-        configuration: [
-          {
-            name: 'contributors',
-            component: { config: { label: 'Contributors' } },
-            children: [
-              { name: 'name', component: { config: { label: 'Contributor Name' } } },
-            ],
-          },
-        ],
-      })),
+      getFormByName: sinon.stub().returns(
+        of({
+          configuration: [
+            {
+              name: 'contributors',
+              component: { config: { label: 'Contributors' } },
+              children: [{ name: 'name', component: { config: { label: 'Contributor Name' } } }],
+            },
+          ],
+        })
+      ),
     };
     (global as any).FormRecordConsistencyService = {
       compareRecords: sinon.stub().returns([
@@ -102,17 +103,31 @@ describe('RecordAuditController', () => {
     (global as any).IntegrationAuditService = {
       getTraceAuditLog: sinon.stub().resolves({
         total: 1,
-        rows: [{
-          id: 'trace-1',
-          traceId: 'trace-1',
-          startedAt: '2026-03-03T00:00:00Z',
-          completedAt: '2026-03-03T00:01:00Z',
-          durationMs: 60000,
-          status: 'success',
-          actions: ['publish'],
-          eventCount: 1,
-          events: [{ id: 'integration-1', redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1', depth: 0, hasChildren: false }],
-        }],
+        rows: [
+          {
+            id: 'trace-1',
+            traceId: 'trace-1',
+            startedAt: '2026-03-03T00:00:00Z',
+            completedAt: '2026-03-03T00:01:00Z',
+            durationMs: 60000,
+            status: 'success',
+            actions: ['publish'],
+            eventCount: 1,
+            events: [
+              {
+                id: 'integration-1',
+                redboxOid: 'oid-1',
+                startedAt: '2026-03-03T00:00:00Z',
+                status: 'success',
+                integrationAction: 'publish',
+                traceId: 'trace-1',
+                spanId: 'span-1',
+                depth: 0,
+                hasChildren: false,
+              },
+            ],
+          },
+        ],
       }),
       getStatusSummaryWithOutcomes: sinon.stub().resolves([]),
     };
@@ -136,7 +151,11 @@ describe('RecordAuditController', () => {
   });
 
   it('returns 400 from render when oid is missing', async () => {
-    const req = { param: sinon.stub().returns(''), options: { locals: {} }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = {
+      param: sinon.stub().returns(''),
+      options: { locals: {} },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -196,7 +215,21 @@ describe('RecordAuditController', () => {
     assert.equal(payload?.data?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
   });
 
-  it('passes audit filters through to the records service', async () => {
+  it('maps validation bypass audit actions to registered language-default keys', () => {
+    const metadata = require('../../../../language-defaults/meta.json');
+    const english = require('../../../../language-defaults/en/translation.json');
+    const actions = [RecordAuditActionType.validationBypassed, RecordAuditActionType.batchValidationBypassed];
+
+    for (const action of actions) {
+      const key = (controller as any).getActionLabelKey(action);
+      assert.equal(key, `@record-audit-action-${action}`);
+      assert.equal(metadata[key]?.contentFormat, 'plain');
+      assert.equal(typeof english[key], 'string');
+      assert.notEqual(english[key].trim(), '');
+    }
+  });
+
+  it('passes action and workflow filters through without insertion date bounds', async () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');
     param.withArgs('branding').returns('default');
@@ -218,11 +251,90 @@ describe('RecordAuditController', () => {
 
     assert.equal((global as any).sails.services.recordsservice.getRecordAudit.calledOnce, true);
     assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.action, 'updated');
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.workflowState, 'Draft');
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom?.toISOString(), new Date(2026, 2, 1, 0, 0, 0, 0).toISOString());
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
+    assert.equal(
+      (global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.workflowState,
+      'Draft'
+    );
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom, undefined);
+    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo, undefined);
     assert.equal(sendResp.calledOnce, true);
   });
+
+  it('displays, sorts and filters by event time when queue insertion is delayed', async () => {
+    const oldTime = new Date(2026, 1, 28, 12).toISOString();
+    const legacyTime = new Date(2026, 2, 1, 12).toISOString();
+    const newTime = new Date(2026, 2, 2, 12).toISOString();
+    const audit = (global as any).sails.services.recordsservice.getRecordAudit;
+    audit.resolves([
+      {
+        id: 'old',
+        action: 'created',
+        occurredAt: oldTime,
+        createdAt: '2026-03-03T00:00:00Z',
+        record: { metadata: { title: 'Old' } },
+      },
+      {
+        id: 'legacy',
+        action: 'updated',
+        createdAt: '2026-03-05T00:00:00Z',
+        record: { lastSaveDate: legacyTime, metaMetadata: { lastSaveDate: oldTime }, metadata: { title: 'Legacy' } },
+      },
+      {
+        id: 'new',
+        action: 'updated',
+        occurredAt: newTime,
+        createdAt: '2026-03-04T00:00:00Z',
+        record: { metadata: { title: 'New' } },
+      },
+    ]);
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    param.withArgs('dateFrom').returns('2026-03-01');
+    param.withArgs('dateTo').returns('2026-03-02');
+    const req = { param, options: { locals: {} }, session: {}, user: { roles: [] } } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getAuditData(req, {} as Sails.Res);
+
+    const records = sendResp.firstCall.args[2].data.records;
+    assert.deepEqual(
+      records.map((row: { id: string }) => row.id),
+      ['new', 'legacy']
+    );
+    assert.equal(records[0].timestamp, newTime);
+    assert.equal(records[1].timestamp, legacyTime);
+    assert.equal(records[1].changeSummary.available, true);
+    assert.equal((global as any).FormRecordConsistencyService.compareRecords.firstCall.args[0].title, 'Old');
+  });
+
+  for (const bounds of [
+    { name: 'no bounds', dateFrom: '', dateTo: '', includeUndated: true },
+    { name: 'a start bound', dateFrom: '2026-03-01', dateTo: '', includeUndated: false },
+    { name: 'an end bound', dateFrom: '', dateTo: '2026-03-02', includeUndated: false },
+    { name: 'both bounds', dateFrom: '2026-03-01', dateTo: '2026-03-02', includeUndated: false },
+  ]) {
+    it(`handles missing and invalid event dates with ${bounds.name}`, async () => {
+      (global as any).sails.services.recordsservice.getRecordAudit.resolves([
+        { id: 'missing', action: 'created', record: {} },
+        { id: 'invalid', action: 'created', occurredAt: 'invalid', createdAt: 'invalid', record: {} },
+        { id: 'dated', action: 'created', occurredAt: new Date(2026, 2, 1, 12).toISOString(), record: {} },
+      ]);
+      const param = sinon.stub();
+      param.withArgs('oid').returns('oid-1');
+      param.withArgs('dateFrom').returns(bounds.dateFrom);
+      param.withArgs('dateTo').returns(bounds.dateTo);
+      const req = { param, options: { locals: {} }, session: {}, user: { roles: [] } } as unknown as Sails.Req;
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+
+      await controller.getAuditData(req, {} as Sails.Res);
+
+      const records = sendResp.firstCall.args[2].data.records;
+      assert.deepEqual(
+        records.map((row: { id: string }) => row.id),
+        bounds.includeUndated ? ['dated', 'missing', 'invalid'] : ['dated']
+      );
+    });
+  }
 
   it('rejects invalid audit date filters', async () => {
     const param = sinon.stub();
@@ -308,10 +420,19 @@ describe('RecordAuditController', () => {
     await controller.getIntegrationAuditData(req, res);
 
     assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.calledOnce, true);
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.integrationName, 'figshare');
+    assert.equal(
+      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.integrationName,
+      'figshare'
+    );
     assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.status, 'success');
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateFrom?.toISOString(), new Date(2026, 2, 1, 0, 0, 0, 0).toISOString());
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
+    assert.equal(
+      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateFrom?.toISOString(),
+      new Date(2026, 2, 1, 0, 0, 0, 0).toISOString()
+    );
+    assert.equal(
+      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(),
+      new Date(2026, 2, 31, 23, 59, 59, 999).toISOString()
+    );
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.page, 2);
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.pageSize, 10);
   });
@@ -345,22 +466,39 @@ describe('RecordAuditController', () => {
     await controller.getIntegrationStatusData(req, res);
 
     assert.equal((global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.calledOnce, true);
-    assert.equal((global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.firstCall.args[1]?.citationDoi, '10.1234/custom-doi');
+    assert.equal(
+      (global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.firstCall.args[1]?.citationDoi,
+      '10.1234/custom-doi'
+    );
     assert.equal(sendResp.calledOnce, true);
   });
 
   it('preserves the fallback integration audit id when a row id is missing', async () => {
     (global as any).IntegrationAuditService.getTraceAuditLog.resolves({
       total: 1,
-      rows: [{
-        id: undefined,
-        traceId: 'trace-1',
-        startedAt: '2026-03-03T00:00:00Z',
-        status: 'success',
-        actions: ['publish'],
-        eventCount: 1,
-        events: [{ id: undefined, redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1', depth: 0, hasChildren: false }],
-      }],
+      rows: [
+        {
+          id: undefined,
+          traceId: 'trace-1',
+          startedAt: '2026-03-03T00:00:00Z',
+          status: 'success',
+          actions: ['publish'],
+          eventCount: 1,
+          events: [
+            {
+              id: undefined,
+              redboxOid: 'oid-1',
+              startedAt: '2026-03-03T00:00:00Z',
+              status: 'success',
+              integrationAction: 'publish',
+              traceId: 'trace-1',
+              spanId: 'span-1',
+              depth: 0,
+              hasChildren: false,
+            },
+          ],
+        },
+      ],
     });
 
     const param = sinon.stub();
