@@ -89,17 +89,7 @@ sails = {
       config: webpackConfig,
     },
   },
-  log: {
-    info: function (msg, data = null) {
-      console.info(msg, data);
-    },
-    warn: function (msg, data = null) {
-      console.warn(msg, data);
-    },
-    error: function (msg, data = null) {
-      console.error(msg, data);
-    },
-  },
+  log: require('@researchdatabox/sails-ng-common').consoleLogger,
 };
 async function main() {
   if (!defineWebpackHook) {
