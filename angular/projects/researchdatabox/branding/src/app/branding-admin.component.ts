@@ -341,6 +341,12 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
 
+  getColourValue(variable: ColourVariable): string {
+    if (variable.key === 'admin-sidebar-text-color') {
+      return this.draftConfig[variable.key] || this.draftConfig['panel-branding-background-color'] || variable.default;
+    }
+    return this.draftConfig[variable.key] || variable.default;
+  }
 
   updateVariable(key: string, event: any) {
     const value = event.target.value;
