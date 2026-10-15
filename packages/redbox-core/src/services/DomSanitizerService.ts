@@ -68,6 +68,7 @@ const isDomPurifyConfig = (candidate: unknown): candidate is DomPurifyConfig => 
   return typeof record.profiles === 'object' && record.profiles !== null;
 };
 
+/** Use a supplied browser window or lazily cache a JSDOM window for sanitisation. */
 const getWindow = () => {
   const globalCache = globalThis as typeof globalThis & {
     window?: WindowLike;
@@ -151,6 +152,7 @@ const initialiseDOMPurify = (): DomPurifyInstance => {
 };
 
 let purifier: DomPurifyInstance | undefined;
+/** Cache the purifier on first use, leaving failed initialisation available for retry. */
 const getDOMPurify = (): DomPurifyInstance => (purifier ??= initialiseDOMPurify());
 
 // Preserve the global export for hooks while avoiding a browser DOM at lift.

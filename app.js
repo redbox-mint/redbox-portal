@@ -25,6 +25,10 @@ process.chdir(__dirname);
 
 // process.uptime() includes the time before this entrypoint began executing.
 const startupTimingEnabled = process.env.STARTUP_TIMING === 'true';
+/**
+ * Log a startup milestone in milliseconds since process start when timing is enabled.
+ * @param {string} stage Name of the completed startup stage.
+ */
 function reportStartupTiming(stage) {
   if (startupTimingEnabled) {
     console.info(`[redbox-startup] ${stage}: ${(process.uptime() * 1000).toFixed(1)}ms since process start`);

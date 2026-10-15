@@ -10,6 +10,7 @@ import {
 
 let sanitizer: { window: import('jsdom').DOMWindow; purifier: ReturnType<typeof domPurify> } | undefined;
 
+/** Create and cache the DOM and purifier on the first translation HTML sanitisation call. */
 function getSanitizer(): NonNullable<typeof sanitizer> {
   if (!sanitizer) {
     const { JSDOM } = require('jsdom') as typeof import('jsdom');

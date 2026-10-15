@@ -1007,6 +1007,11 @@ export namespace Services {
       return { created, updated, skipped };
     }
 
+    /**
+     * Replace vocabulary entries while preserving model validation and remapping parent IDs.
+     * Bulk creation requires distinct identifiers. Parent links stay serial for transactions
+     * and graphs that cannot be verified as internal forests.
+     */
     private async replaceEntries(
       vocabularyId: string,
       isFlat: boolean,

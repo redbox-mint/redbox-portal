@@ -567,6 +567,11 @@ export namespace Services {
       return this.unflatten(flat);
     }
 
+    /**
+     * Copy bundle values into translation entries and prune keys absent from the source.
+     * Non-overwriting syncs retain custom entries and persist normalised bundle values
+     * before inserting missing entries in a batch.
+     */
     public async syncEntriesFromBundle(
       bundleOrId: I18nBundleAttributes | string | number,
       overwrite = false
