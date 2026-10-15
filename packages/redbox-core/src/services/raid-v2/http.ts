@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { Configuration, RaidApi, type RaidCreateRequest } from '@researchdatabox/raido-openapi-generated-node';
-import { Effect, Layer } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { RaidAuthenticationError, RaidHttpError } from './errors';
 import { RaidConfigTag, RaidHttpClientTag, RaidRunContextTag } from './tags';
 
