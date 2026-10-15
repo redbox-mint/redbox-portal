@@ -48,8 +48,8 @@ export class AppConfigSecrets {
   constructor(private config: AppConfigSecretsConfig) {
     this.client = new SecretsManagerClient({
       region: config.region,
-      // Bound every attempt, including migration/comparison/hydration reads
-      // that run outside storeBundle's operation-level abort controller.
+      // Bound connection/header waits per attempt. Overall deadlines below also
+      // cover response bodies and retries, including reads outside storeBundle.
       requestHandler: { connectionTimeout: 5_000, requestTimeout: 30_000, throwOnRequestTimeout: true }
     });
   }
@@ -59,14 +59,14 @@ export class AppConfigSecrets {
     const scope = createHash('sha256')
       .update(JSON.stringify([brandId, configKey, field]))
       .digest('hex');
-    const result = await this.safeAwsCall('store', () => this.client.send(
+    const result = await this.safeAwsCall('store', () => this.withAwsDeadline(signal => this.client.send(
       new CreateSecretCommand({
         Name: `${prefix}/${scope}/${randomUUID()}`,
         SecretString: value,
         KmsKeyId: this.config.kmsKeyId,
         Tags: [{ Key: 'managed-by', Value: 'redbox-appconfig' }],
-      })
-    ));
+      }), { abortSignal: signal }
+    )));
     if (!result.ARN) throw new Error('AWS Secrets Manager did not return a secret ARN');
     this.remember({ arn: result.ARN, name: result.Name, value });
     return { $appConfigSecret: { provider: 'aws-secrets-manager', arn: result.ARN } };
@@ -104,8 +104,17 @@ export class AppConfigSecrets {
     }
   }
 
+  /** Abort the complete SDK operation, including a response body stalled after headers. */
+  private async withAwsDeadline<T>(request: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    try { return await request(controller.signal); }
+    finally { clearTimeout(timeout); }
+  }
+
   private async fetch(secretId: string, signal?: AbortSignal): Promise<SecretValue> {
-    const result = await this.client.send(new GetSecretValueCommand({ SecretId: secretId }), { abortSignal: signal });
+    const request = (abortSignal: AbortSignal) => this.client.send(new GetSecretValueCommand({ SecretId: secretId }), { abortSignal });
+    const result = signal ? await request(signal) : await this.withAwsDeadline(request);
     if (result.SecretString === undefined) throw new Error('AppConfig secrets must contain a SecretString');
     return { arn: result.ARN ?? secretId, name: result.Name, value: result.SecretString };
   }

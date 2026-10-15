@@ -245,35 +245,57 @@ describe('AppConfig per-brand JSON bundles', function () {
     expect(secrets.has(arn)).to.equal(true);
   });
 
-  it('times out an unresponsive migration read and releases its renewable lease', async function () {
-    // Use the real SDK transport against a local server that accepts the request
-    // and never responds. Stubbing send() would bypass the timeout being tested.
+  for (const scenario of [
+    { name: 'an unresponsive migration read', partialBody: false, creatingField: false },
+    { name: 'a migration read with a stalled response body', partialBody: true, creatingField: false },
+    { name: 'a per-field creation with a stalled response body', partialBody: true, creatingField: true }
+  ]) it(`times out ${scenario.name} and releases its renewable lease`, async function () {
+    // Exercise the real SDK transport, including deserialization after headers.
+    // A send() stub would bypass the timeout and response-body handling.
+    if (scenario.creatingField) {
+      await service.createConfig('default', 'first', { connection: { token: 'one' } });
+      sails.config.appConfigSecrets.layout = 'per-field';
+      persist.resetHistory();
+    }
     send.restore();
     let received!: () => void;
     const requestReceived = new Promise<void>(resolve => { received = resolve; });
-    const server = createServer(request => { request.resume(); received(); });
+    const server = createServer((request, response) => {
+      request.resume();
+      if (scenario.partialBody) {
+        response.writeHead(200, { 'content-type': 'application/x-amz-json-1.1', 'content-length': '200' });
+        response.write('{"ARN":', () => received());
+      } else received();
+    });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const attemptsBeforeTest = process.env.AWS_MAX_ATTEMPTS;
     process.env.AWS_MAX_ATTEMPTS = '1';
-    const store = new AppConfigSecrets(sails.config.appConfigSecrets);
+    const store = scenario.creatingField
+      ? (service as unknown as { secretStore: AppConfigSecrets }).secretStore
+      : new AppConfigSecrets(sails.config.appConfigSecrets);
     const client = (store as unknown as { client: SecretsManagerClient }).client;
     client.config.endpointProvider = () => ({ url: new URL(`http://127.0.0.1:${(server.address() as AddressInfo).port}`) });
     client.config.credentials = async () => ({ accessKeyId: 'test', secretAccessKey: 'test' });
     (service as unknown as { secretStore: AppConfigSecrets }).secretStore = store;
-    rows.push({ branding: 'brand1', configKey: 'first', configData: { connection: {
-      token: { $appConfigSecret: { provider: 'aws-secrets-manager', arn: 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:legacy-123456' } }
-    } } });
+    if (!scenario.creatingField) {
+      rows.push({ branding: 'brand1', configKey: 'first', configData: { connection: {
+        token: { $appConfigSecret: { provider: 'aws-secrets-manager', arn: 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:legacy-123456' } }
+      } } });
+    }
     const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
     let settled = false;
-    const saving = service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } }).then(
+    const saving = service.createOrUpdateConfig(brand, 'first', { connection: { token: scenario.creatingField ? 'changed' : APP_CONFIG_SECRET_MASK } }).then(
       value => { settled = true; return value; }, error => { settled = true; return error; }
     );
     try {
       await requestReceived;
+      // Let the client consume the headers before advancing its deadline.
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setImmediate(resolve));
       await clock.tickAsync(30_001);
       await new Promise(resolve => setImmediate(resolve));
       expect(settled).to.equal(true);
-      expect(String(await saving)).to.equal('Error: Unable to resolve AppConfig secret in AWS Secrets Manager');
+      expect(String(await saving)).to.equal(`Error: Unable to ${scenario.creatingField ? 'store' : 'resolve'} AppConfig secret in AWS Secrets Manager`);
       expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
       expect(clock.countTimers()).to.equal(0);
       expect(persist.called).to.equal(false);
