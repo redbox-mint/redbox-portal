@@ -226,11 +226,46 @@ describe('AppConfigSecrets', function () {
     expect(String(await result)).to.contain('Unable to store');
     expect([...locks.documents.values()].filter(lock => lock.owner)).to.have.length(1);
     send.callsFake(awsSend);
-    await clock.tickAsync(90_000);
+    // The heartbeat renewed at 20s; an aborted writer stops renewing and its
+    // last lease expires at 140s.
+    await clock.tickAsync(110_000);
     const recovered = new AppConfigSecrets(config);
     await recovered.storeBundle('brand1', new Map([['token', 'recovered']]));
     expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
     clock.restore();
+  });
+
+  it('starts the AWS timeout after lease acquisition and slow migration work', async function () {
+    const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    try {
+      await store.withBundleSave('brand1', async lease => {
+        await clock.tickAsync(45_000);
+        const arn = await store.storeBundle('brand1', new Map([['token', 'migrated']]), lease);
+        expect(await store.resolve(reference(arn!, 'token'))).to.equal('migrated');
+      });
+      expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
+      expect(clock.countTimers()).to.equal(0);
+    } finally { clock.restore(); }
+  });
+
+  it('detects lost ownership and never releases a replacement writer\'s lease', async function () {
+    const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    try {
+      await store.withBundleSave('brand1', async lease => {
+        const lock = [...locks.documents.values()][0];
+        lock.owner = 'replacement';
+        await clock.tickAsync(20_001);
+        expect(lease.lost).to.equal(true);
+        try {
+          await store.storeBundle('brand1', new Map([['token', 'stale']]), lease);
+          expect.fail('Expected a lost lease to reject writes');
+        } catch (error) { expect(String(error)).to.contain('lease was lost'); }
+        expect(send.called).to.equal(false);
+      });
+      expect([...locks.documents.values()][0].owner).to.equal('replacement');
+      expect(sails.log.error.called).to.equal(true);
+      expect(clock.countTimers()).to.equal(0);
+    } finally { clock.restore(); }
   });
 
   it('refreshes all fields in a bundle with one read on explicit invalidation', async function () {

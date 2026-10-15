@@ -201,14 +201,20 @@ describe('AppConfig per-brand JSON bundles', function () {
     expect(send.called).to.equal(false);
   });
 
-  it('skips lock checks when registered secret paths are absent from incoming and existing data', async function () {
+  it('coordinates registered secret configurations even when their current secret paths are absent', async function () {
     await service.createConfig('default', 'first', { connection: { token: 'one' } });
     Object.assign([...locks.documents.values()][0], { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000) });
-    const lockRead = sinon.spy(locks, 'findOne');
     send.resetHistory();
+    try {
+      await service.createConfig('default', 'second', { label: 'created' });
+      expect.fail('Expected overlapping save to be rejected');
+    } catch (error) { expect(String(error)).to.contain('update is in progress'); }
+    const lock = [...locks.documents.values()][0];
+    delete lock.owner;
+    lock.expiresAt = new Date(0);
     await service.createConfig('default', 'second', { label: 'created' });
     await service.createOrUpdateConfig(brand, 'second', { label: 'updated' });
-    expect(lockRead.called).to.equal(false);
+    expect(_.get(service.getAppConfigurationForBrand('default'), 'second.label')).to.equal('updated');
     expect(send.called).to.equal(false);
   });
 
@@ -247,6 +253,75 @@ describe('AppConfig per-brand JSON bundles', function () {
     expect(calls(CreateSecretCommand)).to.equal(1);
   });
 
+  it('excludes another node through a slow database write, then lets its retry clear the saved password', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    const arn = stored('first').arn;
+    let resume!: () => void;
+    let entered!: () => void;
+    const pending = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { resume = resolve; });
+    persist.onFirstCall().callsFake(async (criteria, data) => {
+      entered();
+      await gate;
+      const row = rows.find(row => row.configKey === criteria.configKey)!;
+      Object.assign(row, data);
+      return row;
+    });
+    const first = service.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
+    await pending;
+    await clock.tickAsync(180_000);
+    const otherNode = new Services.AppConfigs();
+    const reads = sinon.spy(AppConfig, 'find');
+    send.resetHistory();
+    try {
+      try {
+        await otherNode.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_CLEAR } });
+        expect.fail('Expected overlapping save to be rejected');
+      } catch (error) { expect(String(error)).to.contain('update is in progress'); }
+      expect(send.called).to.equal(false);
+      expect(persist.callCount).to.equal(1);
+      expect(reads.called).to.equal(false);
+    } finally { resume(); try { await first; } finally { clock.restore(); } }
+    await otherNode.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_CLEAR } });
+    expect(_.get(rows[0].configData, 'connection.token')).to.equal(undefined);
+    expect(JSON.parse(secrets.get(arn)!.value).values).to.deep.equal({});
+    expect(_.get(await service.loadAppConfigurationModel('brand1'), 'first.connection.token')).to.equal(undefined);
+  });
+
+  it('holds the bundle lease until a new configuration row is persisted', async function () {
+    const model = AppConfig as unknown as { create: (data: Row) => Promise<Row> };
+    let resume!: () => void;
+    let entered!: () => void;
+    const pending = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { resume = resolve; });
+    const create = sinon.stub(model, 'create').callsFake(async data => { rows.push(data); return data; });
+    create.onFirstCall().callsFake(async data => {
+      entered();
+      await gate;
+      rows.push(data);
+      return data;
+    });
+    const first = service.createConfig('default', 'first', { connection: { token: 'one' } });
+    await pending;
+    const otherNode = new Services.AppConfigs();
+    send.resetHistory();
+    try {
+      try {
+        await otherNode.createConfig('default', 'first', { connection: { token: 'two' } });
+        expect.fail('Expected overlapping create to be rejected');
+      } catch (error) { expect(String(error)).to.contain('update is in progress'); }
+      expect(create.callCount).to.equal(1);
+      expect(send.called).to.equal(false);
+    } finally { resume(); await first; }
+    try {
+      await otherNode.createConfig('default', 'first', { connection: { token: 'two' } });
+      expect.fail('Expected existing configuration to be rejected');
+    } catch (error) { expect(String(error)).to.contain('already exists'); }
+    expect(rows).to.have.length(1);
+    expect(_.get(await service.loadAppConfigurationModel('brand1'), 'first.connection.token')).to.equal('one');
+  });
+
   it('recovers forward after a database failure without writing the same secret again', async function () {
     await service.createConfig('default', 'first', { connection: { token: 'one' } });
     const arn = stored('first').arn;
@@ -260,4 +335,46 @@ describe('AppConfig per-brand JSON bundles', function () {
     expect(send.called).to.equal(false);
     expect(_.get(service.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('changed');
   });
+
+  it('loads a cleared value and retries without another AWS write after its database save fails', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one', password: 'keep' } });
+    persist.onFirstCall().rejects(new Error('Database failed'));
+    try {
+      await service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_CLEAR, password: APP_CONFIG_SECRET_MASK } });
+      expect.fail('Expected rejection');
+    } catch (error) { expect(String(error)).to.contain('Database failed'); }
+    const startingNode = new Services.AppConfigs();
+    const loaded = await startingNode.loadAppConfigurationModel('brand1');
+    expect(_.get(loaded, 'first.connection.token')).to.equal('');
+    expect(_.get(loaded, 'first.connection.password')).to.equal('keep');
+    send.resetHistory();
+    await startingNode.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_CLEAR, password: APP_CONFIG_SECRET_MASK } });
+    expect(_.get(rows[0].configData, 'connection.token')).to.equal(undefined);
+    expect(send.called).to.equal(false);
+  });
+
+  for (const provider of ['database', 'aws-secrets-manager'] as const) {
+    it(`coordinates existing bundled references after switching to ${provider} per-field mode`, async function () {
+      await service.createConfig('default', 'first', { connection: { token: 'one' } });
+      sails.config.appConfigSecrets.provider = provider;
+      sails.config.appConfigSecrets.layout = 'per-field';
+      const lock = [...locks.documents.values()][0];
+      Object.assign(lock, { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000) });
+      const otherNode = new Services.AppConfigs();
+      send.resetHistory();
+      try {
+        await otherNode.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } });
+        expect.fail('Expected overlapping save to be rejected');
+      } catch (error) { expect(String(error)).to.contain('update is in progress'); }
+      expect(send.called).to.equal(false);
+      delete lock.owner;
+      lock.expiresAt = new Date(0);
+      const reads = sinon.spy(AppConfig, 'find');
+      await otherNode.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } });
+      expect(reads.callCount).to.equal(2); // optimistic read, then authoritative read inside the lease
+      expect(_.get(otherNode.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('one');
+      expect(calls(GetSecretValueCommand)).to.equal(1);
+      expect(calls(PutSecretValueCommand)).to.equal(0);
+    });
+  }
 });

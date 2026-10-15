@@ -26,7 +26,7 @@ import { RESERVED_DASHBOARD_APP_CONFIG_KEYS } from './DashboardConfigService';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
-import { AppConfigSecrets, isAppConfigSecretReference } from './AppConfigSecrets';
+import { AppConfigSecrets, isAppConfigSecretReference, type AppConfigBundleLease } from './AppConfigSecrets';
 import { appConfigSecrets } from '../config/appConfigSecrets.config';
 
 export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
@@ -170,7 +170,7 @@ export namespace Services {
       return hydrated;
     }
 
-    private async storeSecretFields(brandId: string, configKey: string, incoming: AppConfigData, existing?: unknown): Promise<AppConfigData> {
+    private async storeSecretFields(brandId: string, configKey: string, incoming: AppConfigData, existing?: unknown, lease?: AppConfigBundleLease): Promise<AppConfigData> {
       const provider = sails.config.appConfigSecrets?.provider ?? 'database';
       if (provider !== 'database' && provider !== 'aws-secrets-manager') {
         throw new Error('Unsupported appConfigSecrets.provider');
@@ -194,7 +194,7 @@ export namespace Services {
         return isAppConfigSecretReference(value) && value.$appConfigSecret.key !== undefined;
       });
       if ((bundle && (incomingSecretPaths.length > 0 || existingSecretPaths.length > 0)) || hasBundledReferences) {
-        await this.getSecretStore().synchronizeBundle(brandId);
+        await this.getSecretStore().synchronizeBundle(brandId, 'save', lease);
       }
       const stored = this.mergeSecretFields(configKey, incoming, existing) as AppConfigData;
       for (const field of this.getSecretPaths(configKey, stored, true)) {
@@ -246,7 +246,7 @@ export namespace Services {
           }
         }
         if (changes.size > 0) {
-          const arn = await this.getSecretStore().storeBundle(brandId, changes);
+          const arn = await this.getSecretStore().storeBundle(brandId, changes, lease);
           if (bundledFields.length > 0 && !arn) throw new Error('AWS Secrets Manager did not return a bundle ARN');
           for (const { field, key } of bundledFields) {
             _.set(stored, field, { $appConfigSecret: { provider: 'aws-secrets-manager', arn: arn!, key } });
@@ -492,7 +492,7 @@ export namespace Services {
     }
 
     /** Order persistence/cache publication per key, or per brand for shared JSON bundles. */
-    private async withConfigWriteLock<T>(brandId: string, configKey: string, write: () => Promise<T>): Promise<T> {
+    private async withConfigWriteLock<T>(brandId: string, configKey: string, write: (existing: AppConfigAttributes | undefined, lease?: AppConfigBundleLease) => Promise<T>): Promise<T> {
       const bundle = sails.config.appConfigSecrets?.provider === 'aws-secrets-manager' && sails.config.appConfigSecrets.layout === 'brand-json';
       const key = JSON.stringify([brandId, bundle ? null : configKey]);
       const previous = this.configWriteGates.get(key) ?? Promise.resolve();
@@ -501,7 +501,22 @@ export namespace Services {
       this.configWriteGates.set(key, gate);
       await previous;
       try {
-        return await write();
+        const readAndWrite = async (lease: AppConfigBundleLease) => write(await this.findLatestConfigRecord(brandId, configKey), lease);
+        // Acquire before reading the row, including saves that omit/clear every
+        // secret: another node may be adding one to this same key right now.
+        if (bundle && this.getSecretFields(configKey).length > 0) {
+          return await this.getSecretStore().withBundleSave(brandId, readAndWrite);
+        }
+        // Existing bundle references still require coordination after a layout
+        // or provider change. Re-read the row inside the lease in write().
+        const existing = await this.findLatestConfigRecord(brandId, configKey);
+        if (this.getSecretFields(configKey).length > 0) {
+          if (this.getSecretPaths(configKey, existing?.configData).some(field => {
+            const value: unknown = _.get(existing?.configData, field);
+            return isAppConfigSecretReference(value) && value.$appConfigSecret.key !== undefined;
+          })) return await this.getSecretStore().withBundleSave(brandId, readAndWrite);
+        }
+        return await write(existing);
       } finally {
         release();
         if (this.configWriteGates.get(key) === gate) this.configWriteGates.delete(key);
@@ -510,13 +525,13 @@ export namespace Services {
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
-      return this.withConfigWriteLock(String(branding.id), configKey, async () => {
-        const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
+      return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
         const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
-        const mergedConfigData = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, dbConfig?.configData ?? _.get(this.createDefaultConfiguration(), [configKey]));
+        const mergedConfigData = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, dbConfig?.configData ?? _.get(this.createDefaultConfiguration(), [configKey]), lease);
 
         const hydrated = await this.hydrateSecretFields(configKey, mergedConfigData);
         const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
+        if (lease) await this.getSecretStore().checkBundleSave(lease);
         // Hydrate and prepare defaults before persistence; cache publication needs no AWS reads.
         let record;
         if (dbConfig == null) {
@@ -534,15 +549,15 @@ export namespace Services {
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
       const branding: BrandingModel = BrandingService.getBrand(brandName);
-      return this.withConfigWriteLock(String(branding.id), configKey, async () => {
-        const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
+      return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
         const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
 
         // Create if no config exists
         if (dbConfig == null) {
-          const stored = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, _.get(this.createDefaultConfiguration(), [configKey]));
+          const stored = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, _.get(this.createDefaultConfiguration(), [configKey]), lease);
           const hydrated = await this.hydrateSecretFields(configKey, stored);
           const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
+          if (lease) await this.getSecretStore().checkBundleSave(lease);
           const createdRecord = await AppConfig.create({ branding: branding.id, configKey, configData: stored });
           this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
           return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);

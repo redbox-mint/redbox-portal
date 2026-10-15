@@ -28,6 +28,16 @@ interface BundleLockCollection {
   findOne(filter: object): Promise<BundleLock | null>;
   updateOne(filter: object, update: object, options?: object): Promise<{ matchedCount: number }>;
 }
+export interface AppConfigBundleLease {
+  readonly name: string;
+  readonly collection: BundleLockCollection;
+  readonly owner: string;
+  token: string;
+  expiresAt: number;
+  active: boolean;
+  aborted: boolean;
+  lost: boolean;
+}
 
 /** Cached reads for both immutable field secrets and mutable brand bundles. */
 export class AppConfigSecrets {
@@ -122,8 +132,13 @@ export class AppConfigSecrets {
   }
 
   /** Mongo-only freshness check before comparisons or hydration during saves/reloads. */
-  async synchronizeBundle(brandId: string, purpose: 'save' | 'load' = 'save'): Promise<void> {
+  async synchronizeBundle(brandId: string, purpose: 'save' | 'load' = 'save', lease?: AppConfigBundleLease): Promise<void> {
     const name = this.bundleName(brandId);
+    if (lease) {
+      this.assertBundleLease(lease, name);
+      this.synchronizeBundleCache(name, lease.token);
+      return;
+    }
     let lock: BundleLock | null;
     try { lock = await this.lockCollection().findOne({ _id: name }); }
     catch { throw new Error('Unable to coordinate AppConfig secret update'); }
@@ -139,8 +154,9 @@ export class AppConfigSecrets {
     this.synchronizeBundleCache(name, lock?.cacheToken ?? '');
   }
 
-  /** A lease covers all portal nodes, since Secrets Manager has no conditional JSON update. */
-  private async withBundleLock<T>(name: string, write: (signal: AbortSignal, deadline: number, collection: BundleLockCollection, owner: string, token: string) => Promise<T>): Promise<T> {
+  /** Keep the same cross-node lease from the authoritative row read through cache publication. */
+  async withBundleSave<T>(brandId: string, save: (lease: AppConfigBundleLease) => Promise<T>): Promise<T> {
+    const name = this.bundleName(brandId);
     const collection = this.lockCollection();
     const owner = randomUUID();
     const now = Date.now();
@@ -154,87 +170,137 @@ export class AppConfigSecrets {
       }
       throw new Error('Unable to coordinate AppConfig secret update');
     }
-    // Finish or abort well before a crashed writer's lease can be reclaimed.
-    const controller = new AbortController();
-    const remaining = 30_000 - (Date.now() - now);
-    const timeout = setTimeout(() => controller.abort(), Math.max(remaining, 0));
+    const lease: AppConfigBundleLease = { name, collection, owner, token: '', expiresAt: now + 120_000, active: true, aborted: false, lost: false };
+    let heartbeat: ReturnType<typeof setTimeout> | undefined;
+    let renewing: Promise<void> | undefined;
+    let closing = false;
+    const schedule = () => {
+      if (closing || !lease.active || lease.aborted || lease.lost) return;
+      heartbeat = setTimeout(() => {
+        if (closing || lease.aborted || lease.lost) return;
+        renewing = this.checkBundleSave(lease).catch(() => {
+          sails.log.error('Unable to renew AppConfig secret write lease. Further writes require a valid lease.');
+        }).finally(schedule);
+      }, 20_000);
+      heartbeat.unref();
+    };
     try {
-      if (remaining <= 0) throw new Error('AppConfig secret write lease acquisition timed out');
       let lock: BundleLock | null;
       try { lock = await collection.findOne({ _id: name, owner }); }
       catch { throw new Error('Unable to coordinate AppConfig secret update'); }
       if (!lock) throw new Error('Unable to coordinate AppConfig secret update');
-      return await write(controller.signal, now + 30_000, collection, owner, lock.cacheToken ?? '');
+      lease.token = lock.cacheToken ?? '';
+      this.assertBundleLease(lease, name);
+      this.synchronizeBundleCache(name, lease.token);
+      schedule();
+      return await save(lease);
     } finally {
-      clearTimeout(timeout);
-      if (Date.now() >= now + 30_000) controller.abort();
+      closing = true;
+      clearTimeout(heartbeat);
+      await renewing;
+      lease.active = false;
+      if (lease.lost || Date.now() >= lease.expiresAt) sails.log.error('AppConfig secret write lease was lost during the save. Reload and retry the intended configuration.');
       // An aborted request may still finish at AWS. Leave its lease until expiry.
-      if (!controller.signal.aborted) {
+      if (!lease.aborted) {
         // Keep the freshness token after release; it is cache invalidation metadata,
         // not a stored secret version or rollback history.
-        try { await collection.updateOne({ _id: name, owner }, { $set: { expiresAt: new Date(0) }, $unset: { owner: '' } }); }
+        try {
+          const released = await collection.updateOne({ _id: name, owner }, { $set: { expiresAt: new Date(0) }, $unset: { owner: '' } });
+          if (released.matchedCount !== 1) sails.log.error('AppConfig secret write lease ownership changed before release.');
+        }
         catch { sails.log.error('Unable to release AppConfig secret write lease; it will expire automatically.'); }
       }
     }
   }
 
+  private assertBundleLease(lease: AppConfigBundleLease, name: string): void {
+    if (lease.expiresAt <= Date.now()) lease.lost = true;
+    if (lease.name !== name || !lease.active || lease.aborted || lease.lost) throw new Error('AppConfig secret write lease was lost or aborted');
+  }
+
+  /** Renew immediately before persistence, and while an unabortable database write is pending. */
+  async checkBundleSave(lease: AppConfigBundleLease): Promise<void> {
+    this.assertBundleLease(lease, lease.name);
+    const expiresAt = Date.now() + 120_000;
+    let renewed: { matchedCount: number };
+    try {
+      renewed = await lease.collection.updateOne({ _id: lease.name, owner: lease.owner, expiresAt: { $gt: new Date() } }, { $max: { expiresAt: new Date(expiresAt) } });
+    } catch { throw new Error('Unable to coordinate AppConfig secret update'); }
+    if (renewed.matchedCount !== 1) lease.lost = true;
+    lease.expiresAt = Math.max(lease.expiresAt, expiresAt);
+    this.assertBundleLease(lease, lease.name);
+  }
+
   /** Merge only explicitly changed fields into the current brand JSON; never send cached snapshots. */
-  async storeBundle(brandId: string, changes: ReadonlyMap<string, string | null>): Promise<string | undefined> {
+  async storeBundle(brandId: string, changes: ReadonlyMap<string, string | null>, lease?: AppConfigBundleLease): Promise<string | undefined> {
+    if (!lease) return this.withBundleSave(brandId, owned => this.storeBundle(brandId, changes, owned));
     const name = this.bundleName(brandId);
-    return this.withBundleLock(name, (signal, deadline, collection, owner, token) => this.safeAwsCall('store', async () => {
-      this.synchronizeBundleCache(name, token);
-      const cached = this.values.get(name);
-      if (cached) {
-        try {
-          const secret = await cached;
-          const bundle = this.parseBundle(secret.value);
-          const unchanged = [...changes].every(([key, value]) => value === null
-            ? !Object.prototype.hasOwnProperty.call(bundle.values, key)
-            : Object.prototype.hasOwnProperty.call(bundle.values, key) && bundle.values[key] === value);
-          if (unchanged) return secret.arn;
-        } catch {
-          // An in-flight read can fail. Retry under the lease with normal redaction.
+    this.assertBundleLease(lease, name);
+    const { collection, owner } = lease;
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const deadline = Date.now() + 30_000;
+    const timeout = setTimeout(() => { lease.aborted = true; controller.abort(); }, 30_000);
+    try {
+      const result = await this.safeAwsCall('store', async () => {
+        this.synchronizeBundleCache(name, lease.token);
+        const cached = this.values.get(name);
+        if (cached) {
+          try {
+            const secret = await cached;
+            const bundle = this.parseBundle(secret.value);
+            const unchanged = [...changes].every(([key, value]) => value === null
+              ? !Object.prototype.hasOwnProperty.call(bundle.values, key)
+              : Object.prototype.hasOwnProperty.call(bundle.values, key) && bundle.values[key] === value);
+            if (unchanged) return secret.arn;
+          } catch {
+            // An in-flight read can fail. Retry under the lease with normal redaction.
+          }
         }
-      }
-      let current: SecretValue | undefined;
-      try { current = await this.fetch(name, signal); }
-      catch (error: unknown) {
-        if (!(error instanceof Error) || error.name !== 'ResourceNotFoundException') throw error;
-      }
-      const bundle: BrandSecrets = current ? this.parseBundle(current.value) : { format: 'redbox-appconfig-v1', values: {} };
-      let changed = false;
-      for (const [key, value] of changes) {
-        if (value === null) {
-          if (Object.prototype.hasOwnProperty.call(bundle.values, key)) { delete bundle.values[key]; changed = true; }
-        } else if (!Object.prototype.hasOwnProperty.call(bundle.values, key) || bundle.values[key] !== value) {
-          Object.defineProperty(bundle.values, key, { value, enumerable: true, writable: true, configurable: true });
-          changed = true;
+        let current: SecretValue | undefined;
+        try { current = await this.fetch(name, signal); }
+        catch (error: unknown) {
+          if (!(error instanceof Error) || error.name !== 'ResourceNotFoundException') throw error;
         }
-      }
-      if (!changed) {
-        if (current) this.remember(current);
-        return current?.arn;
-      }
-      const value = JSON.stringify(bundle);
-      if (Buffer.byteLength(value, 'utf8') > 65_536) throw new Error('AppConfig secret bundle exceeds the AWS 64 KiB limit');
-      // Invalidate other nodes BEFORE dispatch: a failed/aborted AWS request may
-      // still commit. Never leave their old caches marked as current in that case.
-      const nextToken = randomUUID();
-      const marked = await collection.updateOne({ _id: name, owner }, { $set: { cacheToken: nextToken } });
-      if (marked.matchedCount !== 1) throw new Error('AppConfig secret write lease was lost');
-      if (signal.aborted || Date.now() >= deadline) throw new Error('AppConfig secret write timed out');
-      const result = current
-        ? await this.client.send(new PutSecretValueCommand({ SecretId: current.arn, SecretString: value }), { abortSignal: signal })
-        : await this.client.send(new CreateSecretCommand({
-          Name: name, SecretString: value, KmsKeyId: this.config.kmsKeyId,
-          Tags: [{ Key: 'managed-by', Value: 'redbox-appconfig' }]
-        }), { abortSignal: signal });
-      const arn = result.ARN ?? current?.arn;
-      if (!arn) throw new Error('AWS Secrets Manager did not return a secret ARN');
-      this.remember({ arn, name, value });
-      this.bundleTokens.set(name, nextToken);
-      return arn;
-    }));
+        const bundle: BrandSecrets = current ? this.parseBundle(current.value) : { format: 'redbox-appconfig-v1', values: {} };
+        let changed = false;
+        for (const [key, value] of changes) {
+          if (value === null) {
+            if (Object.prototype.hasOwnProperty.call(bundle.values, key)) { delete bundle.values[key]; changed = true; }
+          } else if (!Object.prototype.hasOwnProperty.call(bundle.values, key) || bundle.values[key] !== value) {
+            Object.defineProperty(bundle.values, key, { value, enumerable: true, writable: true, configurable: true });
+            changed = true;
+          }
+        }
+        if (!changed) {
+          if (current) this.remember(current);
+          return current?.arn;
+        }
+        const value = JSON.stringify(bundle);
+        if (Buffer.byteLength(value, 'utf8') > 65_536) throw new Error('AppConfig secret bundle exceeds the AWS 64 KiB limit');
+        // Invalidate other nodes BEFORE dispatch: a failed/aborted AWS request may
+        // still commit. Never leave their old caches marked as current in that case.
+        const nextToken = randomUUID();
+        await this.checkBundleSave(lease);
+        const marked = await collection.updateOne({ _id: name, owner, expiresAt: { $gt: new Date() } }, { $set: { cacheToken: nextToken } });
+        if (marked.matchedCount !== 1) { lease.lost = true; throw new Error('AppConfig secret write lease was lost'); }
+        lease.token = nextToken;
+        if (signal.aborted || Date.now() >= deadline) throw new Error('AppConfig secret write timed out');
+        const result = current
+          ? await this.client.send(new PutSecretValueCommand({ SecretId: current.arn, SecretString: value }), { abortSignal: signal })
+          : await this.client.send(new CreateSecretCommand({
+            Name: name, SecretString: value, KmsKeyId: this.config.kmsKeyId,
+            Tags: [{ Key: 'managed-by', Value: 'redbox-appconfig' }]
+          }), { abortSignal: signal });
+        const arn = result.ARN ?? current?.arn;
+        if (!arn) throw new Error('AWS Secrets Manager did not return a secret ARN');
+        this.remember({ arn, name, value });
+        this.bundleTokens.set(name, nextToken);
+        return arn;
+      });
+      this.assertBundleLease(lease, name);
+      return result;
+    } finally { clearTimeout(timeout); }
   }
 
   /** Explicit reloads refresh this ARN and its name alias without evicting other brands. */
@@ -262,7 +328,12 @@ export class AppConfigSecrets {
       const key = reference.$appConfigSecret.key;
       if (key === undefined) return secret.value;
       const bundle = this.parseBundle(secret.value);
-      if (!Object.prototype.hasOwnProperty.call(bundle.values, key)) throw new Error('Missing AppConfig bundle field');
+      if (!Object.prototype.hasOwnProperty.call(bundle.values, key)) {
+        // A clear can commit before its database write fails, or while a reload
+        // still holds the old reference. The current bundle remains authoritative.
+        sails.log.warn('AppConfig bundle field has been cleared. Retry any incomplete configuration save.');
+        return '';
+      }
       return bundle.values[key];
     });
   }

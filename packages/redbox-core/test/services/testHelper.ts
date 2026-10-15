@@ -133,23 +133,25 @@ export function cleanupServiceTestGlobals(): void {
 /** Native Mongo lock metadata shared by multiple simulated portal processes. */
 export function createBundleLockCollection() {
   type Lock = { owner?: string; expiresAt: Date; cacheToken?: string };
-  type Filter = { _id: string; owner?: string; expiresAt?: { $lte: Date } };
+  type Filter = { _id: string; owner?: string; expiresAt?: { $lte?: Date; $gt?: Date } };
   const documents = new Map<string, Lock>();
   const matches = (lock: Lock, filter: Filter) =>
     (filter.owner === undefined || lock.owner === filter.owner) &&
-    (filter.expiresAt === undefined || lock.expiresAt <= filter.expiresAt.$lte);
+    (filter.expiresAt?.$lte === undefined || lock.expiresAt <= filter.expiresAt.$lte) &&
+    (filter.expiresAt?.$gt === undefined || lock.expiresAt > filter.expiresAt.$gt);
   return {
     documents,
     findOne: async (filter: Filter) => {
       const lock = documents.get(filter._id);
       return lock && matches(lock, filter) ? { ...lock } : null;
     },
-    updateOne: async (filter: Filter, update: { $set?: Partial<Lock>; $unset?: { owner?: string } }, options?: { upsert?: boolean }) => {
+    updateOne: async (filter: Filter, update: { $set?: Partial<Lock>; $unset?: { owner?: string }; $max?: { expiresAt: Date } }, options?: { upsert?: boolean }) => {
       const lock = documents.get(filter._id);
       const matched = lock !== undefined && matches(lock, filter);
       if (!matched && !options?.upsert) return { matchedCount: 0 };
       if (!matched && lock) throw Object.assign(new Error('Duplicate key'), { code: 11000 });
       const next = { ...(lock ?? { expiresAt: new Date(0) }), ...update.$set };
+      if (update.$max && next.expiresAt < update.$max.expiresAt) next.expiresAt = update.$max.expiresAt;
       if (update.$unset?.owner !== undefined) delete next.owner;
       documents.set(filter._id, next);
       return { matchedCount: matched ? 1 : 0 };
