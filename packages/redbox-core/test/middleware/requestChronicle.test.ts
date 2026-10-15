@@ -42,7 +42,8 @@ describe('requestChronicle middleware', function () {
       requestChronicle(sailsReq, res as unknown as Sails.Res, () => {
         if (req.url?.startsWith('/service/')) {
           const owner = req.url;
-          void new HTTPTestService().recordOwner(owner, Number(owner.split('/')[2])).then(() => res.end('done'));
+          const wait = owner === '/service/20' ? 20 : 1;
+          void new HTTPTestService().recordOwner(owner, wait).then(() => res.end('done'));
           return;
         }
         if (req.url === '/abort') {

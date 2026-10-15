@@ -1139,9 +1139,7 @@ export namespace Services {
                                     return done(err, false, { message: 'Error updating user' });
                                   }
                                   if (_.isEmpty(user)) {
-                                    that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [
-                                      'No user found',
-                                    ]);
+                                    that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
                                     return done('No user found', false, { message: 'No user found' });
                                   }
 
@@ -1181,9 +1179,7 @@ export namespace Services {
                                 return done(err, false, { message: 'Error updating user' });
                               }
                               if (_.isEmpty(user)) {
-                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [
-                                  'No user found',
-                                ]);
+                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
                                 return done('No user found', false, { message: 'No user found' });
                               }
 
@@ -1455,14 +1451,12 @@ export namespace Services {
       const originalDone = done;
       let rejectionOutcome: string | undefined;
       done = (error, user, info) => {
-        this.updateChronicle(
-          {
-            usersOperation: 'openIdConnectAuthVerifyCallback',
-            usersAuthOutcome: rejectionOutcome ?? (error ? 'failure' : user ? 'success' : 'rejected'),
-            usersAuthUserId: _.get(user, 'id'),
-          },
-          error ? [error] : []
-        );
+        // The controller records errors passed to passport, including string rejections.
+        this.updateChronicle({
+          usersOperation: 'openIdConnectAuthVerifyCallback',
+          usersAuthOutcome: rejectionOutcome ?? (error ? 'failure' : user ? 'success' : 'rejected'),
+          usersAuthUserId: _.get(user, 'id'),
+        });
         originalDone(error, user, info);
       };
       const that = this;
@@ -2403,7 +2397,7 @@ export namespace Services {
             return done(err, false);
           }
           if (_.isEmpty(user)) {
-            this.updateChronicle({ usersOperation: 'updateUserAfterLogin', usersOutcome: 'failed' }, ['No user found']);
+            this.updateChronicle({ usersOperation: 'updateUserAfterLogin', usersOutcome: 'failed' });
             return done('No user found', false);
           }
 
@@ -2514,14 +2508,14 @@ export namespace Services {
     public checkAuthorizedEmail(email: string, branding: string, authType: string): boolean {
       // Must pass email.
       if (!email) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'missing-email' }, ['No email address provided.']);
+        this.updateChronicle({ usersEmailAccessOutcome: 'missing-email' }, [], 'warn');
         return false;
       }
 
       // Assess email address.
       const emailParts = email.includes('@') ? email.split('@') : [];
       if (emailParts.length !== 2) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'invalid-address' }, ['Unexpected email format.']);
+        this.updateChronicle({ usersEmailAccessOutcome: 'invalid-address' }, [], 'warn');
         return false;
       }
 
@@ -2547,9 +2541,7 @@ export namespace Services {
         domains.push(...(authorizedDomainsEmails.domainsOidc || []));
         emails.push(...(authorizedDomainsEmails.emailsOidc || []));
       } else {
-        this.updateChronicle({ usersEmailAccessOutcome: 'unsupported-provider' }, [
-          'Unsupported email authentication provider.',
-        ]);
+        this.updateChronicle({ usersEmailAccessOutcome: 'unsupported-provider' }, [], 'warn');
         return false;
       }
 
@@ -2574,9 +2566,7 @@ export namespace Services {
       }
 
       // Checks did not pass, so email is not allowed.
-      this.updateChronicle({ usersEmailAccessOutcome: 'denied', usersAuthProvider: authType }, [
-        'Email is not authorized to login.',
-      ]);
+      this.updateChronicle({ usersEmailAccessOutcome: 'denied', usersAuthProvider: authType }, [], 'warn');
       return false;
     }
   }

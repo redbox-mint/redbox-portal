@@ -100,7 +100,7 @@ export namespace Services {
      * @return
      */
     public runHooksSync(oid: string, record: RecordLike, options: Record<string, unknown>, user: UserLike) {
-      const hookFnArray = _.get(options, 'hooks', []) as Array<HookConfig>;
+      const hookFnArray = (_.get(options, 'hooks', []) ?? []) as Array<HookConfig>;
       this.updateChronicle({ triggerRecordOid: oid, triggerHookCount: hookFnArray.length });
       const hookFnDefArray: Array<{ hookFn: HookFn; hookOpt: Record<string, unknown> | undefined }> = [];
       _.each(hookFnArray, hookFnDef => {
@@ -500,7 +500,7 @@ export namespace Services {
       user: UserLike
     ) {
       if (this.metTriggerCondition(relatedOid, relatedRecord as Record<string, unknown>, options) === 'true') {
-        const templates = _.get(options, 'templates', []) as Array<Record<string, unknown>>;
+        const templates = (_.get(options, 'templates', []) ?? []) as Array<Record<string, unknown>>;
         this.updateChronicle({ triggerRelatedRecordOid: relatedOid, triggerTemplateCount: templates.length });
 
         const pathToRelatedOid = String(_.get(options, 'pathToRelatedOid', ''));

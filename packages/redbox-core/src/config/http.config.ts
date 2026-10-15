@@ -7,6 +7,7 @@
  */
 
 import { RequestHandler, Request, Response, NextFunction } from 'express';
+import { AsyncResource } from 'node:async_hooks';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -697,7 +698,8 @@ export const http: HttpConfig = {
                 // strict: true,
                 // ... more Skipper options here ...
             });
-            return skipperMiddleware(req, res, next);
+            // Multipart parser events originate outside the request's async context.
+            return skipperMiddleware(req, res, AsyncResource.bind(next));
         },
 
         poweredBy: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {

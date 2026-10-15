@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import supertest from 'supertest';
-import { ControllerExports, Services } from '@researchdatabox/redbox-core';
+import { ControllerExports, Controllers, Services } from '@researchdatabox/redbox-core';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 type CapturedLog = { level: LogLevel; args: unknown[] };
@@ -17,6 +20,16 @@ class WarningService extends Services.Core.Service {
   public recordWarning(): void {
     this.updateChronicle({ serviceWarning: 'retained' }, [], 'warn');
   }
+
+  public recordUploadFailure(fileCount: number, error: Error): void {
+    this.updateChronicle({ serviceUploadFileCount: fileCount, serviceUploadOutcome: 'failed' }, [error]);
+  }
+}
+
+class UploadController extends Controllers.Core.Controller {
+  public recordFailure(req: Sails.Req, error: Error): void {
+    this.updateChronicle(req, { controllerUploadOutcome: 'failed' }, [error]);
+  }
 }
 
 /**
@@ -29,12 +42,14 @@ describe('Request chronicle in lifted Sails', function () {
   const translationFailurePath = '/request-chronicle-translation-failure-test';
   const servicePaths = ['/request-chronicle-service-first', '/request-chronicle-service-second'];
   const warningPath = '/request-chronicle-service-warning';
+  const uploadPath = '/request-chronicle-service-upload';
   const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
   let captured: CapturedLog[] = [];
   let originalLog: Partial<Record<LogLevel, (...args: unknown[]) => void>> = {};
   let originalSettings: unknown;
   let anonymous: supertest.Agent;
   let admin: supertest.Agent;
+  let uploadDirectory: string;
 
   before(async () => {
     const app = (sails.hooks.http as { app: Parameters<typeof supertest.agent>[0] }).app;
@@ -66,9 +81,19 @@ describe('Request chronicle in lifted Sails', function () {
       });
     }
     const warningService = new WarningService();
+    const uploadController = new UploadController();
+    uploadDirectory = mkdtempSync(join(tmpdir(), 'chronicle-sails-upload-'));
     router.bind(warningPath, (_req, res) => {
       warningService.recordWarning();
       res.json({ status: true });
+    });
+    router.bind(uploadPath, (req, res) => {
+      req.file('attachment').upload({ dirname: uploadDirectory }, (parserError: unknown, files: unknown[]) => {
+        const error = new Error('upload service failed');
+        warningService.recordUploadFailure(files?.length ?? 0, error);
+        uploadController.recordFailure(req, error);
+        res.json({ uploaded: files?.length ?? 0, parserFailed: parserError !== null && parserError !== undefined });
+      });
     });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
@@ -98,6 +123,8 @@ describe('Request chronicle in lifted Sails', function () {
     (sails.router as unknown as { unbind(path: string): void }).unbind(virtualPath);
     (sails.router as unknown as { unbind(path: string): void }).unbind(translationFailurePath);
     (sails.router as unknown as { unbind(path: string): void }).unbind(warningPath);
+    (sails.router as unknown as { unbind(path: string): void }).unbind(uploadPath);
+    rmSync(uploadDirectory, { recursive: true, force: true });
     for (const servicePath of servicePaths) {
       (sails.router as unknown as { unbind(path: string): void }).unbind(servicePath);
     }
@@ -268,5 +295,25 @@ describe('Request chronicle in lifted Sails', function () {
     } finally {
       logConfig.requestChronicle = settings;
     }
+  });
+
+  it('captures service details and one rethrown error through multipart parsing and the file upload callback', async () => {
+    const response = await anonymous
+      .post(uploadPath)
+      .field('marker', 'PRIVATE MARKER')
+      .attach('attachment', Buffer.from('PRIVATE UPLOAD CONTENT'), 'test.txt')
+      .expect(200);
+    await settle();
+    assert.deepEqual(response.body, { uploaded: 1, parserFailed: false });
+    const logged = events(uploadPath);
+    assert.equal(logged.length, 1);
+    assert.equal(logged[0].level, 'error');
+    assert.equal(logged[0].event.serviceUploadFileCount, 1);
+    assert.equal(logged[0].event.serviceUploadOutcome, 'failed');
+    assert.equal(logged[0].event.controllerUploadOutcome, 'failed');
+    assert.equal(Object.values(logged[0].event.errors ?? {}).length, 1);
+    assert.ok(!JSON.stringify(logged[0].event).includes('PRIVATE'));
+    assert.equal(captured.filter(item => item.args[1] === 'Service operation failed.').length, 0);
+    assert.deepEqual(chronicleWarnings(), []);
   });
 });
