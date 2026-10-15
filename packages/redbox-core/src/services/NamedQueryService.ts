@@ -126,9 +126,6 @@ export namespace Services {
    *
    */
   export class NamedQueryService extends services.Core.Service {
-
-
-
     protected override _exportedMethods: string[] = [
       "bootstrapData",
       "getNamedQueryConfig",
@@ -403,7 +400,6 @@ export namespace Services {
       })));
     }
 
-
     public async list(brand: BrandingModel): Promise<NamedQueryDefinition[]> {
       const records = (await NamedQuery.find({
         branding: brand.id
@@ -457,7 +453,6 @@ export namespace Services {
       return firstValueFrom(super.getObservable(NamedQuery.destroyOne({ key })));
     }
 
-
     async getNamedQueryConfig(brand: BrandingModel, namedQuery: string): Promise<NamedQueryConfig | null> {
       const nQDBEntry = await NamedQuery.findOne({
         key: brand.id + "_" + namedQuery
@@ -496,7 +491,11 @@ export namespace Services {
         for (const filter of relatedRecordFilters) {
           const filterModel = sails.models[filter.collectionName];
           if (!filterModel) {
-            sails.log.warn(`Skipping related record filter: model '${filter.collectionName}' not found for collectionName='${filter.collectionName}', localField='${filter.localField}', foreignField='${filter.foreignField}'`);
+            this.updateChronicle(
+              { namedQueryFilterCollection: filter.collectionName, namedQueryFilterOutcome: 'model-missing' },
+              [],
+              'warn'
+            );
             continue;
           }
           const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
@@ -524,7 +523,7 @@ export namespace Services {
 
       this.setMongoQueryValue(mongoQuery, brandScope.fieldPath, brand.id);
       const waterlineQuery = this.flattenDeepTargetCriteria(mongoQuery);
-      sails.log.debug("Mongo query to be executed", waterlineQuery);
+      this.updateChronicle({ namedQueryCollection: collectionName, namedQueryStart: start, namedQueryRows: rows });
 
       // Get the total count of matching records
       let totalItems = 0;
@@ -568,7 +567,7 @@ export namespace Services {
       }
 
       // Run query
-      sails.log.debug("Mongo query criteria", criteria);
+      this.updateChronicle({ namedQueryTotalItems: totalItems });
       if (collectionName !== 'record' && totalItems > 0) {
         const find = model.find;
         if (typeof find !== 'function') {
@@ -582,7 +581,7 @@ export namespace Services {
       const recordsService = sails.services.recordsservice as unknown as RecordsService | undefined;
       const expandRelationsActual = expandRelations === true && collectionName === 'record';
       if (expandRelations === true && collectionName !== 'record') {
-        sails.log.debug(`expandRelations is only supported for the 'record' collection; ignoring for '${collectionName}'`);
+        this.updateChronicle({ namedQueryRelationsIgnored: true });
       }
 
       // 'user' collections are scoped and rendered separately via performUserNamedQuery,
@@ -595,7 +594,10 @@ export namespace Services {
             const relationships = await recordsService.getRelatedRecords(recordItem.redboxOid, brand);
             recordItem.relationships = relationships;
           } catch (err) {
-            sails.log.warn(`Failed to fetch relationships for record ${recordItem.redboxOid}`, err);
+            this.updateChronicle(
+              { namedQueryRelationshipOid: recordItem.redboxOid, namedQueryRelationshipOutcome: 'failed' },
+              [err]
+            );
           }
         }
 
@@ -607,7 +609,6 @@ export namespace Services {
             _.set(resultMetadata, key, that.runTemplate(value as string, variables));
           });
           defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
-
         } else {
           defaultMetadata = collectionName === 'record'
             ? that.runTemplate('record.metadata', variables) as NamedQueryResponseMetadata
@@ -624,7 +625,6 @@ export namespace Services {
         responseRecords.push(responseRecord);
       }
       const response = new ListAPIResponse<NamedQueryResponseRecord>();
-
 
       const startIndex = start;
       const noItems = rows;
@@ -712,10 +712,8 @@ export namespace Services {
 
     setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>) {
       for (const queryParamKey in queryParams) {
-
         let value = paramMap[queryParamKey];
         const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
-        sails.log.debug(`${queryParamKey} has value ${value}`);
 
         if (_.isUndefined(value) && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
@@ -805,14 +803,12 @@ export namespace Services {
 
             query[queryParam.queryType] = value;
             value = query;
-
           }
         }
 
         if (value == undefined && queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.ignore) {
           this.unsetMongoQueryValue(mongoQuery, queryParam.path);
         } else {
-
           const existingValue = this.getMongoQueryValue(mongoQuery, queryParam.path)
           if (_.isPlainObject(existingValue) && _.isPlainObject(value)) {
             _.merge(value, existingValue);
@@ -831,7 +827,7 @@ export namespace Services {
           const compiledTemplate = handlebarsCompile(templateOrPath, { noEscape: true });
           return compiledTemplate(templateVars);
         } catch (err) {
-          sails.log.error(`Template compilation failed for ${templateOrPath}`, err);
+          this.updateChronicle({ namedQueryTemplateOutcome: 'failed' }, [err]);
           throw err;
         }
       }
@@ -839,14 +835,7 @@ export namespace Services {
     }
 
     public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown) {
-      sails.log.debug("performNamedQueryFromConfig with parameters", {
-        config: config,
-        paramMap: paramMap,
-        brand: brand,
-        start: start,
-        rows: rows,
-        user: user
-      });
+      this.updateChronicle({ namedQueryBrandId: brand.id, namedQueryParameterCount: _.size(paramMap) });
       const collectionName = _.get(config, 'collectionName', '') ?? '';
       const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
       const mongoQuery = _.cloneDeep(_.get(config, 'mongoQuery', {}) ?? {});
@@ -860,7 +849,7 @@ export namespace Services {
     public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0, rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
       const records = [];
       let requestCount = 0;
-      sails.log.debug(`All named query results: start query with name '${queryName}' brand ${JSON.stringify(brand)} start ${start} rows ${rows} paramMap ${JSON.stringify(paramMap)}`);
+      this.updateChronicle({ namedQueryName: queryName, namedQueryMaxRecords: maxRecords });
 
       while (true) {
         // Keep going while there are more results.
@@ -870,12 +859,12 @@ export namespace Services {
 
         if (!response) {
           // stop if there is no response
-          sails.log.warn(`All named query results: invalid query response for '${queryName}'`);
+          this.updateChronicle({ namedQueryOutcome: 'invalid-response' }, [], 'warn');
           break;
         }
 
         // add the new records to the collected records
-        sails.log.debug(`All named query results: add results for '${queryName}': start ${start} rows ${rows} new results ${response.records.length} summary ${JSON.stringify(response.summary)}`);
+        this.updateChronicle({ namedQueryPageResultCount: response.records.length });
         for (const record of response.records) {
           records.push(record);
         }
@@ -883,7 +872,7 @@ export namespace Services {
         const currentRetrievedCount = start + rows;
         if (response.summary.numFound <= currentRetrievedCount) {
           // stop if the total count is less than or equal to the number of records retrieved so far
-          sails.log.debug(`All named query results: reached end of results for '${queryName}': start ${start} rows ${rows} total results ${records.length}`);
+          this.updateChronicle({ namedQueryOutcome: 'complete' });
           break;
         }
 
@@ -892,17 +881,16 @@ export namespace Services {
 
         // Check the number of records and stop if it exceeds maxRecords.
         if (records.length > maxRecords) {
-          sails.log.warn(`All named query results: returning early before finished with ${records.length} results for '${queryName}' from ${requestCount} requests because the number of records is more than max records ${maxRecords}`);
+          this.updateChronicle({ namedQueryOutcome: 'limit-reached' }, [], 'warn');
           break;
         }
 
         // continue the while loop
       }
 
-      sails.log.debug(`All named query results: returning ${records.length} results for '${queryName}' from ${requestCount} requests`);
+      this.updateChronicle({ namedQueryResultCount: records.length, namedQueryRequestCount: requestCount });
       return records;
     }
-
   }
 }
 

@@ -108,7 +108,6 @@ class SolrClient {
       throw err;
     }
   }
-
 }
 // Create a minimal SolrClient class if not already available
 class Solr {
@@ -312,9 +311,9 @@ export namespace Services {
     }
 
     public async index(id: string, data: RecordModel): Promise<boolean> {
-      sails.log.verbose(`${this.logHeader} adding indexing job: ${id} with data:`);
+      this.updateChronicle({ solrRecordId: id, solrOperation: 'index' });
       data.id = id;
-      sails.log.verbose(JSON.stringify(data));
+
       return this.enqueueOrRunNow(
         sails.config.solr.createOrUpdateJobName,
         data,
@@ -323,10 +322,9 @@ export namespace Services {
     }
 
     public remove(id: string): void {
-      sails.log.verbose(`${this.logHeader} adding delete-index job: ${id} with data:`);
+      this.updateChronicle({ solrRecordId: id, solrOperation: 'delete' });
       const data = { id: id };
 
-      sails.log.verbose(JSON.stringify(data));
       void this.enqueueOrRunNow(
         sails.config.solr.deleteJobName,
         data,
@@ -345,16 +343,14 @@ export namespace Services {
           return true;
         }
 
-        sails.log.warn(`${this.logHeader} queue service unavailable, running job inline: ${jobName}`);
+        this.updateChronicle({ solrJob: jobName, solrJobExecution: 'inline' }, [], 'warn');
         await fallback({ attrs: { data } });
         return true;
       } catch (err) {
-        sails.log.error(`${this.logHeader} index job submission failed: ${jobName}`);
-        sails.log.error(err);
+        this.updateChronicle({ solrJob: jobName, solrJobOutcome: 'submission-failed' }, [err]);
         return false;
       }
     }
-
 
     public async searchAdvanced(coreId: string = 'default', type: string, query: string | URLSearchParams): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
@@ -362,7 +358,7 @@ export namespace Services {
       const coreName = core.options.core;
       const url = `${this.getBaseUrl(core.options)}${coreName}/select`;
       const params = query instanceof URLSearchParams ? query : this.parseQueryFragment(query);
-      sails.log.verbose(`Searching advanced using: ${url}`);
+      this.updateChronicle({ solrCore: coreId, solrSearchMode: 'advanced' });
       const response = await axios.get(url, { params }).then((response: { data: Record<string, unknown> }) => response.data);
       return response;
     }
@@ -407,8 +403,13 @@ export namespace Services {
         params.append(param.key, param.value);
       }
 
-      const url = `${baseUrl}?${params.toString()}`;
-      sails.log.verbose(`Searching fuzzy using: ${url}`);
+      this.updateChronicle({
+        solrCore: coreId,
+        solrSearchMode: 'fuzzy',
+        solrRecordType: type,
+        solrStart: start,
+        solrRows: rows,
+      });
       const response = await axios.get(baseUrl, { params }).then((response: { data: SolrResponse }) => response.data);
       const customResp: { records: Array<Record<string, unknown>>; facets?: Array<{ name: string; values: Array<{ value: string; count: number }> }>; totalItems?: number } = {
         records: []
@@ -448,13 +449,14 @@ export namespace Services {
           });
         });
       }
+      this.updateChronicle({ solrTotalItems: totalItems, solrResultCount: customResp.records.length });
       customResp['totalItems'] = totalItems;
       return customResp;
     }
 
     private clientSleep() {
       if (!_.isUndefined(sails.config.solr.clientSleepTimeMillis)) {
-        sails.log.verbose(`${this.logHeader} sleeping for: ${sails.config.solr.clientSleepTimeMillis}`);
+        this.updateChronicle({ solrClientSleepMs: sails.config.solr.clientSleepTimeMillis });
         return this.sleep(sails.config.solr.clientSleepTimeMillis);
       } else {
         return Promise.resolve();
@@ -467,22 +469,20 @@ export namespace Services {
         const coreId = String(_.get(data, 'metaMetadata.searchCore', 'default'));
         // storage_id is used as the main ID in searches
         const solrDocument: SolrDocument = new SolrDocument(data);
-        sails.log.verbose(`${this.logHeader} adding document: ${solrDocument.id} to index`);
+        this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'index' });
         // flatten the JSON
         const processedData = this.preIndex(solrDocument);
-        sails.log.verbose(JSON.stringify(processedData));
+        this.updateChronicle({ solrIndexFieldCount: Object.keys(processedData).length });
         await this.clients[coreId].add(processedData);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
         await this.clients[coreId].commit();
         await this.clientSleep();
-
       } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to solrAddOrUpdate, while pre-processing index: `);
-        sails.log.error(JSON.stringify(err));
+        this.updateChronicle({ solrIndexOutcome: 'failed' }, [err]);
       }
     }
 
-    // TODO: This method shouldn't need to be public 
+    // TODO: This method shouldn't need to be public
     // but can't unit test it easily if it isn't
     public preIndex(data: SolrDocument): Record<string, unknown> {
       let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
@@ -503,8 +503,6 @@ export namespace Services {
           } else {
             _.set(processedData, dest, moveData);
           }
-        } else {
-          sails.log.verbose(`${this.logHeader} no data to move from: ${moveConfig.source}, ignoring.`);
         }
       });
       const copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy') as unknown as PreIndexCopyConfig[];
@@ -584,7 +582,6 @@ export namespace Services {
     }
 
     protected addAuthParams(allParams: Array<{ key: string; value: string }> | URLSearchParams, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
-
       let roleString = ""
       let matched = false;
       for (let i = 0; i < roles.length; i++) {
@@ -631,14 +628,13 @@ export namespace Services {
         const data = job.attrs.data;
         const coreId = String(_.get(data, 'searchCore', 'default'));
         const solrDocument: SolrDocument = new SolrDocument(data);
-        sails.log.verbose(`${this.logHeader} deleting document: ${solrDocument.id}`);
+        this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'delete' });
         await this.clients[coreId].delete('id', solrDocument.id);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
         await this.clients[coreId].commit();
         await this.clientSleep();
       } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to solrDelete:`);
-        sails.log.error(JSON.stringify(err));
+        this.updateChronicle({ solrDeleteOutcome: 'failed' }, [err]);
       }
     }
   }

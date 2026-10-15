@@ -21,6 +21,7 @@ describe('Request chronicle in lifted Sails', function () {
 
   const virtualPath = '/request-chronicle-virtual-test';
   const translationFailurePath = '/request-chronicle-translation-failure-test';
+  const servicePaths = ['/request-chronicle-service-first', '/request-chronicle-service-second'];
   const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
   let captured: CapturedLog[] = [];
   let originalLog: Partial<Record<LogLevel, (...args: unknown[]) => void>> = {};
@@ -46,6 +47,17 @@ describe('Request chronicle in lifted Sails', function () {
       req.params.branding = 'default';
       return translationController.getBundleApp(req, res);
     });
+    for (const [index, servicePath] of servicePaths.entries()) {
+      router.bind(servicePath, async (_req, res) => {
+        await new Promise(resolve => setTimeout(resolve, index === 0 ? 20 : 1));
+        const result = await EmailService.buildFromTemplateAsync(`missing-service-template-${index}`, {
+          subject: 'PRIVATE SUBJECT',
+          body: 'PRIVATE BODY',
+        });
+        // Keep the legacy HTTP 200 failure contract and let the service error retain the event.
+        return res.json({ status: result.status });
+      });
+    }
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
     await admin
@@ -73,6 +85,9 @@ describe('Request chronicle in lifted Sails', function () {
   after(() => {
     (sails.router as unknown as { unbind(path: string): void }).unbind(virtualPath);
     (sails.router as unknown as { unbind(path: string): void }).unbind(translationFailurePath);
+    for (const servicePath of servicePaths) {
+      (sails.router as unknown as { unbind(path: string): void }).unbind(servicePath);
+    }
     (sails.config.log as { requestChronicle?: unknown }).requestChronicle = originalSettings;
     const log = sails.log as unknown as Record<LogLevel, (...args: unknown[]) => void>;
     for (const level of levels) {
@@ -185,6 +200,27 @@ describe('Request chronicle in lifted Sails', function () {
     } finally {
       I18nEntriesService.getBundle = original;
     }
+  });
+
+  it('isolates async service capture across simultaneous HTTP requests and retains HTTP 200 failures', async () => {
+    const responses = await Promise.all(servicePaths.map(path => anonymous.get(path).expect(200)));
+    await settle();
+    const ids = new Set<string>();
+    for (const [index, servicePath] of servicePaths.entries()) {
+      assert.deepEqual(responses[index].body, { status: 500 });
+      const logged = events(servicePath);
+      assert.equal(logged.length, 1);
+      const { event, level } = logged[0];
+      assert.equal(level, 'error');
+      assert.equal(event.result?.outcome, 'failure');
+      assert.equal(event.emailTemplate, `missing-service-template-${index}`);
+      assert.equal(event.emailTemplateOutcome, 'failed');
+      assert.equal(Object.values(event.errors ?? {}).length, 1);
+      assert.ok(!JSON.stringify(event).includes('PRIVATE'));
+      ids.add(event.requestId ?? '');
+    }
+    assert.equal(ids.size, 2);
+    assert.deepEqual(chronicleWarnings(), []);
   });
 
   it('does not warn for virtual requests, which have no request chronicle', async () => {

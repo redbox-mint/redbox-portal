@@ -518,6 +518,7 @@ const helperBrand = Symbol.for('@researchdatabox/redbox-core/RequestChronicleHel
 export class RequestChronicleHelper {
   private readonly [helperBrand] = true;
   #data: RequestChronicle = {};
+  readonly #recordedErrors = new WeakSet<object>();
   #state: ChronicleState = 'pending';
   #startedAt = 0;
   #logged = false;
@@ -715,6 +716,14 @@ export class RequestChronicleHelper {
    */
   public addError(error?: unknown): void {
     this.#safely('addError', () => {
+      // Services may record a failure before rethrowing it to a controller.
+      // Retain that error once while the request runs, without hiding late failures.
+      if (this.isRunning && error !== null && typeof error === 'object') {
+        if (this.#recordedErrors.has(error)) {
+          return;
+        }
+        this.#recordedErrors.add(error);
+      }
       const chronicleError = toChronicleError(error);
       if (!this.isRunning) {
         this.logger.error(

@@ -1,4 +1,5 @@
 import { RequestChronicleHelper } from '../utilities/RequestChronicle';
+import { runWithRequestChronicle } from '../utilities/RequestChronicleContext';
 
 /**
  * Provide the request chronicle for a request.
@@ -11,6 +12,7 @@ import { RequestChronicleHelper } from '../utilities/RequestChronicle';
  * @param next The next middleware callback.
  */
 export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+  let helper: RequestChronicleHelper | undefined;
   try {
     // Create the request chronicle and init with request context
     const item = RequestChronicleHelper.fromReq(sails.log, req);
@@ -32,6 +34,7 @@ export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.Nex
     };
     res.once('finish', conclude);
     res.once('close', conclude);
+    helper = item;
   } catch {
     try {
       sails.log.warn('Request chronicle: could not start the request chronicle.');
@@ -40,7 +43,8 @@ export function requestChronicle(req: Sails.Req, res: Sails.Res, next: Sails.Nex
     }
   }
 
-  return next();
+  // Keep next outside the setup catch: a downstream error must propagate once.
+  return runWithRequestChronicle(helper, next);
 }
 
 const errorCaptureRegistered = Symbol.for('@researchdatabox/redbox-core/requestChronicleErrorCapture');
