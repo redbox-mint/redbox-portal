@@ -534,10 +534,13 @@ export namespace Services {
         if (!_.isEmpty(oidList)) {
           for (const oid of oidList) {
             let templateIndex: number | undefined;
+            let phase: 'lookup' | 'template' | 'brand' | 'save' = 'lookup';
+            let saveOutcome: string | undefined;
             try {
               record = await RecordsService.getMeta(oid);
               if (_.isObject(record)) {
                 const previousMetadata = _.cloneDeep(_.get(record, 'metadata', {}));
+                phase = 'template';
                 _.each(templates, (templateConfig: Record<string, unknown>, index: number) => {
                   templateIndex = index;
                   const imports = _.extend(
@@ -575,6 +578,8 @@ export namespace Services {
                     _.set(record as Record<string, unknown>, fieldPath, data);
                   }
                 });
+                templateIndex = undefined;
+                phase = 'brand';
                 const brandId = _.get(record, 'metaMetadata.brandId', '') as string;
                 if (_.isEmpty(brandId)) {
                   throw new RBValidationError({
@@ -584,6 +589,7 @@ export namespace Services {
                 }
                 const brand: BrandingModel = BrandingService.getBrandById(brandId);
 
+                phase = 'save';
                 const response = await RecordsService.updateMetaInternal({
                   actor: { kind: 'service', id: 'TriggerService.runTemplatesOnRelatedRecord' },
                   authorization: { kind: 'service' },
@@ -597,8 +603,9 @@ export namespace Services {
                   metadata: createRecordMetadataDelta(previousMetadata, _.get(record, 'metadata', {})),
                   metadataMode: 'pre-applied',
                 });
+                saveOutcome = response.outcome;
                 if (!response.wasPersisted()) {
-                  throw new Error(String(response.message ?? response.outcome));
+                  throw new Error('Related record was not persisted');
                 }
                 if (response.outcome === 'saved-with-warnings') {
                   this.updateChronicle(
@@ -614,10 +621,13 @@ export namespace Services {
               } else {
                 this.updateChronicle({ triggerTemplateOutcome: 'record-missing' });
               }
-            } catch {
+            } catch (cause) {
               // Template source and exception excerpts can contain private record or user values.
               const error = new RBValidationError({
-                message: `Failed to run one of the string templates for oid ${oid} relatedOid ${relatedOid}`,
+                message:
+                  phase === 'template'
+                    ? `Failed to run one of the string templates for oid ${oid} relatedOid ${relatedOid}`
+                    : `Failed to process related record for oid ${oid} relatedOid ${relatedOid} during ${phase}`,
                 displayErrors: [{ title: 'Processing failed', meta: { oid: oid, relatedOid: relatedOid } }],
               });
               this.updateChronicle(
@@ -625,7 +635,10 @@ export namespace Services {
                   triggerRelatedRecordOid: oid,
                   triggerTemplateSourceOid: relatedOid,
                   triggerTemplateOutcome: 'failed',
+                  triggerTemplatePhase: phase,
                   triggerTemplateIndex: templateIndex,
+                  triggerTemplateErrorType: cause instanceof Error ? cause.constructor.name : typeof cause,
+                  triggerTemplateSaveOutcome: saveOutcome,
                 },
                 [error]
               );

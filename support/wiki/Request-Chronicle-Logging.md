@@ -144,7 +144,7 @@ The migrated service summaries include:
 - Email: template reference, message format, send/notification outcome and hook outcome.
 - Named queries: collection, branding ID, pagination, parameter/result counts and completion/limit outcome.
 - Solr: core, record ID, operation, pagination, result/index-field counts and job outcome.
-- Triggers: record ID, hook/template counts, transition condition flag and validation failure count. Related-template failures retain their validation error class and display errors, with safe record IDs and template indexes instead of template configuration or exception excerpts.
+- Triggers: record ID, hook/template counts, transition condition flag and validation failure count. Related-template failures retain their validation error class and display errors, with safe record IDs, the operation phase (`lookup`, `template`, `brand`, or `save`), error class, and save outcome instead of template configuration or exception excerpts. A template index is recorded only when rendering fails, so a later lookup, branding, or save failure does not blame a successful template.
 
 Full records, user profiles, login claims, email content, query criteria, parameter values, and hook options are excluded.
 

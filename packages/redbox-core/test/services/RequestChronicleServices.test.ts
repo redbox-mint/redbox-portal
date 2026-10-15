@@ -398,12 +398,81 @@ describe('Request chronicles in services', () => {
         sinon.assert.notCalled(update);
         const output = inspect([item?.data, logger.error.getCalls().map(call => call.args)], { depth: null });
         assert.ok(!output.includes(marker));
-        if (item) assert.equal(item.data.errors?.length, 1);
-        else sinon.assert.calledOnceWithMatch(logger.error, { info: { triggerRelatedRecordOid: 'target-oid' } });
+        if (item) {
+          assert.equal(item.data.errors?.length, 1);
+          assert.equal(item.data.triggerTemplatePhase, 'template');
+          assert.equal(item.data.triggerTemplateIndex, 0);
+          assert.equal(item.data.triggerTemplateErrorType, 'SyntaxError');
+        } else sinon.assert.calledOnceWithMatch(logger.error, { info: { triggerRelatedRecordOid: 'target-oid' } });
       } finally {
         Reflect.set(globalThis, 'RecordsService', original);
       }
     });
+
+    for (const failure of [
+      { kind: 'lookup', phase: 'lookup', errorType: 'TypeError' },
+      { kind: 'missing-brand', phase: 'brand', errorType: 'RBValidationError' },
+      { kind: 'save-error', phase: 'save', errorType: 'Error' },
+      { kind: 'not-persisted', phase: 'save', errorType: 'Error' },
+    ]) {
+      it(`keeps safe ${context} diagnostics for a related-record ${failure.kind} failure`, async () => {
+        const names = ['RecordsService', 'BrandingService'];
+        const originals = names.map(name => Reflect.get(globalThis, name));
+        const marker = 'PRIVATE RELATED RECORD FAILURE';
+        Reflect.set(globalThis, 'RecordsService', {
+          getMeta: async () => {
+            if (failure.kind === 'lookup') throw new TypeError(marker);
+            return { metaMetadata: failure.kind === 'missing-brand' ? {} : { brandId: 'brand' }, metadata: {} };
+          },
+          updateMetaInternal: async () => {
+            if (failure.kind === 'save-error') throw new Error(marker);
+            return { wasPersisted: () => false, outcome: 'not-saved', message: marker };
+          },
+        });
+        Reflect.set(globalThis, 'BrandingService', { getBrandById: () => ({ id: 'brand' }) });
+        try {
+          const trigger = new TriggerServices.Trigger();
+          const item = context === 'http' ? helper('related-record-failure') : undefined;
+          await assert.rejects(
+            runWithRequestChronicle(item, () =>
+              trigger.runTemplatesOnRelatedRecord(
+                'source-oid',
+                { metadata: { relatedOid: 'target-oid' } },
+                {
+                  forceRun: true,
+                  pathToRelatedOid: 'metadata.relatedOid',
+                  templates: [{ field: 'metadata.copy', template: () => marker }],
+                },
+                {}
+              )
+            ),
+            error => {
+              assert.ok(error instanceof RBValidationError);
+              assert.match(error.message, new RegExp(`during ${failure.phase}`));
+              assert.ok(!inspect(error, { depth: null }).includes(marker));
+              item?.addError(error);
+              return true;
+            }
+          );
+          const expected = {
+            triggerRelatedRecordOid: 'target-oid',
+            triggerTemplatePhase: failure.phase,
+            triggerTemplateErrorType: failure.errorType,
+            ...(failure.kind === 'not-persisted' ? { triggerTemplateSaveOutcome: 'not-saved' } : {}),
+          };
+          if (item) {
+            for (const [key, value] of Object.entries(expected)) assert.equal(item.data[key], value);
+            assert.equal(item.data.triggerTemplateIndex, undefined, 'Non-template failures must not blame a template');
+            assert.equal(item.data.errors?.length, 1);
+          } else sinon.assert.calledOnceWithMatch(logger.error, { info: expected });
+          assert.ok(
+            !inspect([item?.data, logger.error.getCalls().map(call => call.args)], { depth: null }).includes(marker)
+          );
+        } finally {
+          names.forEach((name, index) => Reflect.set(globalThis, name, originals[index]));
+        }
+      });
+    }
   }
 
   it('preserves datastream results without capturing their contents', async () => {
