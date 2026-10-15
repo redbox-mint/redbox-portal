@@ -1,8 +1,11 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
+import { AppConfigSecrets } from '../../src/services/AppConfigSecrets';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals, createBundleLockCollection } from './testHelper';
 
 describe('AppConfig per-brand JSON bundles', function () {
@@ -240,6 +243,49 @@ describe('AppConfig per-brand JSON bundles', function () {
     expect(stored('first').key).to.equal('["first","connection","token"]');
     expect(_.get(service.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('legacy-token');
     expect(secrets.has(arn)).to.equal(true);
+  });
+
+  it('times out an unresponsive migration read and releases its renewable lease', async function () {
+    // Use the real SDK transport against a local server that accepts the request
+    // and never responds. Stubbing send() would bypass the timeout being tested.
+    send.restore();
+    let received!: () => void;
+    const requestReceived = new Promise<void>(resolve => { received = resolve; });
+    const server = createServer(request => { request.resume(); received(); });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const attemptsBeforeTest = process.env.AWS_MAX_ATTEMPTS;
+    process.env.AWS_MAX_ATTEMPTS = '1';
+    const store = new AppConfigSecrets(sails.config.appConfigSecrets);
+    const client = (store as unknown as { client: SecretsManagerClient }).client;
+    client.config.endpointProvider = () => ({ url: new URL(`http://127.0.0.1:${(server.address() as AddressInfo).port}`) });
+    client.config.credentials = async () => ({ accessKeyId: 'test', secretAccessKey: 'test' });
+    (service as unknown as { secretStore: AppConfigSecrets }).secretStore = store;
+    rows.push({ branding: 'brand1', configKey: 'first', configData: { connection: {
+      token: { $appConfigSecret: { provider: 'aws-secrets-manager', arn: 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:legacy-123456' } }
+    } } });
+    const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    let settled = false;
+    const saving = service.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } }).then(
+      value => { settled = true; return value; }, error => { settled = true; return error; }
+    );
+    try {
+      await requestReceived;
+      await clock.tickAsync(30_001);
+      await new Promise(resolve => setImmediate(resolve));
+      expect(settled).to.equal(true);
+      expect(String(await saving)).to.equal('Error: Unable to resolve AppConfig secret in AWS Secrets Manager');
+      expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
+      expect(clock.countTimers()).to.equal(0);
+      expect(persist.called).to.equal(false);
+    } finally {
+      clock.restore();
+      if (attemptsBeforeTest === undefined) delete process.env.AWS_MAX_ATTEMPTS;
+      else process.env.AWS_MAX_ATTEMPTS = attemptsBeforeTest;
+      client.destroy();
+      server.closeAllConnections();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+      await saving;
+    }
   });
 
   it('serializes different configuration keys within one brand without losing fields', async function () {

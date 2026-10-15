@@ -46,7 +46,12 @@ export class AppConfigSecrets {
   private bundleTokens = new Map<string, string>();
 
   constructor(private config: AppConfigSecretsConfig) {
-    this.client = new SecretsManagerClient({ region: config.region });
+    this.client = new SecretsManagerClient({
+      region: config.region,
+      // Bound every attempt, including migration/comparison/hydration reads
+      // that run outside storeBundle's operation-level abort controller.
+      requestHandler: { connectionTimeout: 5_000, requestTimeout: 30_000, throwOnRequestTimeout: true }
+    });
   }
 
   async store(brandId: string, configKey: string, field: string, value: string): Promise<AppConfigSecretReference> {
