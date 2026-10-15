@@ -4,7 +4,6 @@ import { safeSvgUriRegexp, type DomPurifyConfig } from '../config/dompurify.conf
 
 import domPurify = require('dompurify');
 import { Buffer } from 'buffer';
-import { JSDOM } from 'jsdom';
 
 
 //TODO: Move to a shared place when we want to reuse dompurify 
@@ -82,6 +81,7 @@ const getWindow = () => {
 
   const cacheKey = '__domSanitizerWindow';
   if (!globalCache[cacheKey]) {
+    const { JSDOM } = require('jsdom') as typeof import('jsdom');
     const { window } = new JSDOM('', { pretendToBeVisual: true });
     globalCache[cacheKey] = window;
   }
@@ -150,9 +150,20 @@ const initialiseDOMPurify = (): DomPurifyInstance => {
   throw new Error('DomSanitizerService: Failed to initialise DOMPurify with hook support');
 };
 
-const DOMPurify = initialiseDOMPurify();
+let purifier: DomPurifyInstance | undefined;
+const getDOMPurify = (): DomPurifyInstance => (purifier ??= initialiseDOMPurify());
 
-(globalThis as typeof globalThis & { DOMPurify?: DomPurifyInstance }).DOMPurify = DOMPurify;
+// Preserve the global export for hooks while avoiding a browser DOM at lift.
+Object.defineProperty(globalThis, 'DOMPurify', {
+  configurable: true,
+  enumerable: true,
+  get: getDOMPurify,
+  set: (value: unknown) => {
+    Object.defineProperty(globalThis, 'DOMPurify', {
+      configurable: true, enumerable: true, writable: true, value,
+    });
+  },
+});
 
 const createDOMPurifyForCall = (): DomPurifyInstance => {
   const windowRef = getWindow();
@@ -273,7 +284,7 @@ export namespace Services {
 
       try {
         const config = this.getDOMPurifyConfig(profileName);
-        const sanitized = DOMPurify.sanitize(content, config);
+        const sanitized = getDOMPurify().sanitize(content, config);
         return String(sanitized);
       } catch (error) {
         sails.log.error(`DomSanitizerService: Error sanitizing content with profile '${profileName}':`, error);

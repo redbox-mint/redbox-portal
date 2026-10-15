@@ -1,5 +1,6 @@
 x-rbportal-env: &rbportal-env
   NODE_ENV: docker
+  STARTUP_TIMING: '${STARTUP_TIMING:-false}'
   PORT: 1500
   WEBPACK_SKIP: 'true'
   sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal

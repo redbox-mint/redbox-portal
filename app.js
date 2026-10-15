@@ -23,6 +23,14 @@
 // > Note: This is not required in order to lift, but it is a convenient default.
 process.chdir(__dirname);
 
+// process.uptime() includes the time before this entrypoint began executing.
+const startupTimingEnabled = process.env.STARTUP_TIMING === 'true';
+function reportStartupTiming(stage) {
+  if (startupTimingEnabled) {
+    console.info(`[redbox-startup] ${stage}: ${(process.uptime() * 1000).toFixed(1)}ms since process start`);
+  }
+}
+
 // Attempt to import `sails`.
 var sails;
 try {
@@ -42,6 +50,8 @@ try {
   console.error("but if it doesn't, the app will run with the global sails instead!");
   return;
 }
+
+reportStartupTiming('Sails module loaded');
 
 // --•
 // Try to get `rc` dependency (for loading `.sailsrc` files).
@@ -67,6 +77,7 @@ try {
 // This ensures models, policies, middleware, and responses exist before
 // Sails hooks try to load them, eliminating race conditions.
 const { generateAllShims } = require('@researchdatabox/redbox-core');
+reportStartupTiming('Core module loaded');
 
 // Generate shims and then lift Sails
 generateAllShims(__dirname, {
@@ -74,6 +85,10 @@ generateAllShims(__dirname, {
   verbose: process.env.SHIM_VERBOSE === 'true',
 })
   .then(({ recordContractContributorState }) => {
+    reportStartupTiming('Shims ready');
+    if (startupTimingEnabled) {
+      sails.once('lifted', () => reportStartupTiming('Lift complete'));
+    }
     // Start server
     const sailsConfig = rc('sails');
     sailsConfig.recordContractContributorState = recordContractContributorState;

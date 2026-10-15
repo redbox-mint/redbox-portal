@@ -1,4 +1,4 @@
-import { Data } from 'effect';
+import * as Data from 'effect/Data';
 
 export class RaidConfigurationError extends Data.TaggedError('RaidConfigurationError')<{ message: string; cause?: unknown }> {}
 export class RaidMappingError extends Data.TaggedError('RaidMappingError')<{ message: string; field?: string; engine?: string; cause?: unknown }> {}

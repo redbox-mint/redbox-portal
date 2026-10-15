@@ -1007,7 +1007,12 @@ export namespace Services {
       return { created, updated, skipped };
     }
 
-    private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<void> {
+    private async replaceEntries(
+      vocabularyId: string,
+      isFlat: boolean,
+      entries: VocabularyEntryInput[],
+      connection?: Sails.Connection
+    ): Promise<void> {
       const flatEntries = this.flattenEntries(entries);
       if (isFlat && flatEntries.some(entry => entry.parent)) {
         throw new Error('Vocabulary.type = flat does not support parent entries');
@@ -1017,37 +1022,112 @@ export namespace Services {
       await this.executeQuery(destroyQuery, connection);
 
       const oldToNewIds: Record<string, string> = {};
-      for (const entry of flatEntries) {
-        const normalized = entry;
-        if (!normalized.label || normalized.value === null || normalized.value === undefined) {
-          throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
-        }
-
-        const createQuery = VocabularyEntry.create({
-          vocabulary: vocabularyId,
-          label: normalized.label,
-          value: normalized.value,
-          identifier: normalized.identifier,
-          order: normalized.order ?? 0,
-          historical: normalized.historical ?? false
+      const identifiers = flatEntries.map(entry => String(entry.identifier ?? '').trim());
+      // RVA concepts have distinct identifiers, so fetched rows can be matched
+      // without depending on the adapter's return order. Keep serial creation
+      // for other inputs, including duplicates that model callbacks must reject.
+      if (identifiers.every(Boolean) && new Set(identifiers).size === flatEntries.length) {
+        const records = flatEntries.map(entry => {
+          if (!entry.label || entry.value === null || entry.value === undefined) {
+            throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
+          }
+          return {
+            vocabulary: vocabularyId,
+            label: entry.label,
+            value: entry.value,
+            identifier: entry.identifier,
+            order: entry.order ?? 0,
+            historical: entry.historical ?? false,
+          };
         });
-        const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+        const idsByIdentifier = new Map<string, string>();
+        // Waterline runs a model callback per row concurrently. Bound each
+        // batch so large vocabularies do not flood the database connection pool.
+        for (let start = 0; start < records.length; start += 500) {
+          const created = await this.createAndFetch<VocabularyEntryAttributes[]>(
+            VocabularyEntry.createEach(records.slice(start, start + 500)),
+            connection
+          );
+          for (const entry of created) {
+            idsByIdentifier.set(String(entry.identifier).trim(), String(entry.id));
+          }
+        }
+        for (const [index, entry] of flatEntries.entries()) {
+          const id = idsByIdentifier.get(identifiers[index]);
+          if (!id) {
+            throw new Error('Vocabulary entry batch did not return every requested identifier');
+          }
+          oldToNewIds[String(entry.id)] = id;
+        }
+      } else {
+        for (const entry of flatEntries) {
+          const normalized = entry;
+          if (!normalized.label || normalized.value === null || normalized.value === undefined) {
+            throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
+          }
 
-        oldToNewIds[String(normalized.id)] = String(created.id);
+          const createQuery = VocabularyEntry.create({
+            vocabulary: vocabularyId,
+            label: normalized.label,
+            value: normalized.value,
+            identifier: normalized.identifier,
+            order: normalized.order ?? 0,
+            historical: normalized.historical ?? false,
+          });
+          const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+
+          oldToNewIds[String(normalized.id)] = String(created.id);
+        }
       }
 
-      for (const entry of flatEntries) {
-        if (!entry.parent) {
-          continue;
+      const entriesWithParents = flatEntries.filter((entry): entry is VocabularyEntryInput & { parent: string } =>
+        Boolean(entry.parent)
+      );
+      const parentsById = new Map(flatEntries.map(entry => [String(entry.id), entry.parent]));
+      let canLinkInParallel = !connection && parentsById.size === flatEntries.length;
+      const checked = new Set<string>();
+      for (const entry of entriesWithParents) {
+        if (!canLinkInParallel) break;
+        const path = new Set<string>();
+        let cursor: string | null | undefined = String(entry.id);
+        while (cursor && !checked.has(cursor)) {
+          if (path.has(cursor) || !parentsById.has(cursor)) {
+            canLinkInParallel = false;
+            break;
+          }
+          path.add(cursor);
+          cursor = parentsById.get(cursor);
         }
+        path.forEach(id => checked.add(id));
+      }
+
+      const linkParent = async (entry: VocabularyEntryInput & { parent: string }): Promise<void> => {
         const entryId = oldToNewIds[String(entry.id)];
         const mappedParentId = oldToNewIds[entry.parent] ?? entry.parent;
         if (!entryId) {
-          continue;
+          return;
         }
         await this.validateParent(vocabularyId, entryId, mappedParentId, connection);
-        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({ parent: mappedParentId }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({
+          parent: mappedParentId,
+        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
+      };
+
+      if (canLinkInParallel) {
+        // An internal forest cannot gain a cycle from concurrent parent writes.
+        // Keep model callbacks and validation, and settle each bounded batch
+        // before propagating failure so create() can clean up safely.
+        for (let start = 0; start < entriesWithParents.length; start += 10) {
+          const results = await Promise.allSettled(entriesWithParents.slice(start, start + 10).map(linkParent));
+          for (const result of results) {
+            if (result.status === 'rejected') throw result.reason;
+          }
+        }
+      } else {
+        for (const entry of entriesWithParents) {
+          await linkParent(entry);
+        }
       }
     }
 

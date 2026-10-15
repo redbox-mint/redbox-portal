@@ -1,7 +1,8 @@
 import { figshareExecution, workerClient, transportGuardedMethods } from './execution';
 import type { FigshareOperation } from '../../configmodels/FigsharePublishing';
 import axios, { AxiosError, type AxiosResponse } from 'axios';
-import { Context, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Layer from 'effect/Layer';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { ResolvedFigsharePublishingConfigData } from './config';
 import {

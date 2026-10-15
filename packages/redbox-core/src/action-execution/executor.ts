@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
 import * as Fiber from 'effect/Fiber';
 import { randomUUID } from 'node:crypto';
