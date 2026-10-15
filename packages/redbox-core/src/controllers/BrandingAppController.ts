@@ -42,6 +42,7 @@ export namespace Controllers {
 
     private sendError(req: Sails.Req, res: Sails.Res, e: unknown) {
       const mapped = mapBrandingError(e);
+      this.updateChronicle(req, { brandingAppErrorCode: mapped.code }, [e]);
       return this.sendResp(req, res, {
         status: mapped.status,
         displayErrors: [{ code: mapped.code, detail: mapped.detail }],
@@ -51,6 +52,7 @@ export namespace Controllers {
     }
 
     private sendState(req: Sails.Req, res: Sails.Res, state: unknown, extra: Record<string, unknown> = {}) {
+      this.updateChronicle(req, { brandingAppRetrieveSuccess: true });
       return this.sendResp(req, res, {
         data: { ...(state as Record<string, unknown>), ...extra },
         headers: this.getNoCacheHeaders(),
@@ -61,6 +63,7 @@ export namespace Controllers {
     async config(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = getRouteParam(req, 'branding');
+        this.updateChronicle(req, { brandingAppBranding: branding });
         const state = await BrandingService.getAdminState(branding);
         return this.sendState(req, res, state);
       } catch (e: unknown) {
@@ -71,11 +74,15 @@ export namespace Controllers {
     /** Replace validated colour draft with expected revision */
     async draft(req: Sails.Req, res: Sails.Res) {
       const branding = getRouteParam(req, 'branding');
+      this.updateChronicle(req, { brandingAppBranding: branding });
       const actor = req.user;
       const body = (req.body ?? {}) as Record<string, unknown>;
       const variablesInput = body.variables;
       if (variablesInput !== undefined && variablesInput !== null) {
         if (typeof variablesInput !== 'object' || Array.isArray(variablesInput)) {
+          this.updateChronicle(req, {
+            brandingAppInvalidVariablesType: Array.isArray(variablesInput) ? 'array' : typeof variablesInput,
+          });
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ code: 'invalid-variable', detail: 'Invalid variables in request body' }],
@@ -197,6 +204,7 @@ export namespace Controllers {
     async preview(req: Sails.Req, res: Sails.Res) {
       const branding = getRouteParam(req, 'branding');
       const portal = getRouteParam(req, 'portal');
+      this.updateChronicle(req, { brandingAppBranding: branding, brandingAppPortal: portal });
       try {
         const body = (req.body ?? {}) as Record<string, unknown>;
         const preview = await BrandingService.preview(
@@ -206,6 +214,7 @@ export namespace Controllers {
         );
         return this.sendResp(req, res, {
           data: { ...preview, previewToken: preview.token, previewUrl: preview.url },
+          chronicle: { brandingAppPreviewCreated: true },
           headers: this.getNoCacheHeaders(),
         });
       } catch (e: unknown) {
@@ -233,6 +242,7 @@ export namespace Controllers {
         const preview = await BrandingService.previewVersion({ branding, portal, versionId });
         return this.sendResp(req, res, {
           data: { ...preview, previewToken: preview.token, previewUrl: preview.url },
+          chronicle: { brandingAppPreviewCreated: true },
           headers: this.getNoCacheHeaders(),
         });
       } catch (e: unknown) {
@@ -244,6 +254,7 @@ export namespace Controllers {
     async publish(req: Sails.Req, res: Sails.Res) {
       const branding = getRouteParam(req, 'branding');
       const portal = getRouteParam(req, 'portal');
+      this.updateChronicle(req, { brandingAppBranding: branding, brandingAppPortal: portal });
       const actor = req.user;
       try {
         const body = (req.body ?? {}) as Record<string, unknown>;
@@ -311,8 +322,10 @@ export namespace Controllers {
     async logo(req: Sails.Req, res: Sails.Res) {
       const branding = getRouteParam(req, 'branding');
       const portal = getRouteParam(req, 'portal');
+      this.updateChronicle(req, { brandingAppBranding: branding, brandingAppPortal: portal });
       try {
         if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {
+          this.updateChronicle(req, { brandingAppErrorCode: 'no-file' });
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<globalThis.Record<string, unknown>[]>((resolve, reject) => {
@@ -328,7 +341,13 @@ export namespace Controllers {
             resolve([]);
           }
         });
-        if (!files || !files.length) return res.badRequest({ error: 'no-file' });
+        this.updateChronicle(req, {
+          brandingAppLogoFiles: (files ?? []).map(file => ({ size: file.size, type: file.type })),
+        });
+        if (!files || !files.length) {
+          this.updateChronicle(req, { brandingAppErrorCode: 'no-file' });
+          return res.badRequest({ error: 'no-file' });
+        }
         const f = files[0];
         const fs = require('fs').promises;
         const buf = await fs.readFile(f.fd);
@@ -340,6 +359,7 @@ export namespace Controllers {
             contentType: f.type as string,
           });
           await fs.unlink(f.fd);
+          this.updateChronicle(req, { brandingAppRetrieveSuccess: true, brandingAppLogoHash: hash });
           return res.ok({ hash });
         } catch (e) {
           await fs.unlink(f.fd);

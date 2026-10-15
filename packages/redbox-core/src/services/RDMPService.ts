@@ -78,7 +78,7 @@ export namespace Services {
       const that = this;
       this.registerSailsHook('on', 'ready', function () {
         that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
-        sails.log.verbose(`${that.logHeader}: Assigned queueService`, that.queueService);
+        that.updateChronicle({ rdmpQueueService: sails.config.queue.serviceName });
       });
     }
 
@@ -122,19 +122,14 @@ export namespace Services {
       //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
       //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
-      sails.log[processRecordCountersLogLevel](`processRecordCounters - brandId: ${recordData.metaMetadata.brandId}`);
-      sails.log[processRecordCountersLogLevel]('processRecordCounters - options:');
-      sails.log[processRecordCountersLogLevel](options);
+      this.logAtLevel(processRecordCountersLogLevel, `processRecordCounters - brandId: ${recordData.metaMetadata.brandId}`);
+      this.updateChronicle({ rdmpCountersOid: oid, rdmpCounterCount: _.size(optionsData.counters) });
       // get the counters
       for (const counter of optionsData.counters ?? []) {
         const counterData = counter as { field_name?: string; strategy?: string; source_field?: string };
-        sails.log[processRecordCountersLogLevel](`processRecordCounters - counter.strategy: ${counterData.strategy}`);
+        this.logAtLevel(processRecordCountersLogLevel,`processRecordCounters - counter.strategy: ${counterData.strategy}`);
 
         if (counterData.strategy == "global") {
-
-          sails.log[processRecordCountersLogLevel]('processRecordCounters - before - counter:');
-          sails.log[processRecordCountersLogLevel](counter);
-
           const promiseCounter = await firstValueFrom(this.getObservable<Array<{ id?: string | number; value: number }>>(Counter.findOrCreate({
             name: counterData.field_name,
             branding: brandId
@@ -145,44 +140,38 @@ export namespace Services {
           })));
 
           if (_.isEmpty(promiseCounter)) {
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter isEmpty');
-            sails.log[processRecordCountersLogLevel](promiseCounter);
+            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - promiseCounter isEmpty');
 
           } else {
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - promiseCounter:');
-            sails.log[processRecordCountersLogLevel](promiseCounter);
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - after - counter:');
-            sails.log[processRecordCountersLogLevel](counter);
             const newVal = promiseCounter[0].value + 1;
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - newVal:');
-            sails.log[processRecordCountersLogLevel](newVal);
+            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - newVal:');
+            this.logAtLevel(processRecordCountersLogLevel, newVal);
 
             //increment counter to get new value for the record's field associated to the counter
             this.incrementCounter(recordData, counterData, newVal);
 
             //Update global counter
-            const updateOnePromise = await firstValueFrom(this.getObservable<Record<string, unknown>>(Counter.updateOne({
+            await firstValueFrom(this.getObservable<Record<string, unknown>>(Counter.updateOne({
               id: promiseCounter[0].id
             }, {
               value: newVal
             })));
-            sails.log[processRecordCountersLogLevel]('processRecordCounters - updateOnePromise:');
-            sails.log[processRecordCountersLogLevel](updateOnePromise);
+            this.updateChronicle({ rdmpCounterUpdateOutcome: 'success' });
           }
 
         } else if (counterData.strategy == "field") {
-          sails.log[processRecordCountersLogLevel]('processRecordCounters - field - enter');
+          this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - field - enter');
           let srcVal = (recordData.metadata ?? {})[counterData.field_name ?? ''];
           if (!_.isEmpty(counterData.source_field)) {
             srcVal = (recordData.metadata ?? {})[counterData.source_field ?? ''];
           }
           const newVal = _.isUndefined(srcVal) || _.isEmpty(srcVal) ? 1 : _.toNumber(srcVal) + 1;
-          sails.log[processRecordCountersLogLevel](`processRecordCounters - field - newVal: ${newVal}`);
+          this.logAtLevel(processRecordCountersLogLevel, `processRecordCounters - field - newVal: ${newVal}`);
           this.incrementCounter(recordData, counterData, newVal);
         }
       }
 
-      sails.log[processRecordCountersLogLevel]('processRecordCounters - end');
+      this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - end');
       return record;
     }
 
@@ -201,12 +190,10 @@ export namespace Services {
       //For all projects that don't set environment variable "sails_record__processRecordCountersLogLevel" in docker-compose.yml
       //the log level of this function is going to be verbose which is the standard but in example for CQU it will be set to
       //error to make it so this function always prints logging until the RDMPs missing IDs issue is fixed
-      sails.log[processRecordCountersLogLevel]('incrementCounter - enter');
+      this.logAtLevel(processRecordCountersLogLevel, 'incrementCounter - enter');
 
       if (!_.isEmpty(counterData.template)) {
-        sails.log[processRecordCountersLogLevel](`incrementCounter - newVal: ${newVal}`);
-        sails.log[processRecordCountersLogLevel]('incrementCounter - counter:');
-        sails.log[processRecordCountersLogLevel](counter);
+        this.logAtLevel(processRecordCountersLogLevel, `incrementCounter - newVal: ${newVal}`);
         const templateData = _.extend({ newVal: newVal }, counterData);
         const templateImportData = {
           imports: {
@@ -221,7 +208,7 @@ export namespace Services {
         newVal = (counterData.template as (data: unknown) => unknown)(templateData);
       }
       const recVal = `${TranslationService.t(counterData.prefix ?? '')}${newVal}`;
-      sails.log[processRecordCountersLogLevel](`incrementCounter - recVal: ${recVal}`);
+      this.updateChronicle({ rdmpCounterValueLength: recVal.length });
       const fieldName = counterData.field_name ?? '';
       if (fieldName) {
         _.set(metadata, fieldName, recVal);
@@ -232,10 +219,9 @@ export namespace Services {
         const arrayVal = _.get(record, arrayPath, []) as unknown[];
         arrayVal.push(recVal);
         _.set(record, arrayPath, arrayVal);
-        sails.log[processRecordCountersLogLevel]('incrementCounter - arrayVal:');
-        sails.log[processRecordCountersLogLevel](arrayVal);
+        this.updateChronicle({ rdmpCounterArrayCount: arrayVal.length });
       }
-      sails.log[processRecordCountersLogLevel]('incrementCounter - end');
+      this.logAtLevel(processRecordCountersLogLevel, 'incrementCounter - end');
     }
 
     public checkTotalSizeOfFilesInRecord(oid: string, record: RecordWithMeta, options: unknown, user: unknown) {
@@ -250,8 +236,7 @@ export namespace Services {
           sails.log.info(`checkTotalSizeOfFilesInRecord - log level ${functionLogLevel}`);
         }
         const dataLocations = _.get(record, 'metadata.dataLocations', []) as AnyRecord[];
-        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - dataLocations');
-        sails.log[functionLogLevel](dataLocations);
+        this.updateChronicle({ rdmpAttachmentOid: oid, rdmpDataLocationCount: _.size(dataLocations) });
         if (Array.isArray(dataLocations)) {
           let foundAttachment = false;
 
@@ -263,18 +248,17 @@ export namespace Services {
             }
           }
 
-          sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - foundAttachment ' + foundAttachment);
+          this.logAtLevel(functionLogLevel, 'checkTotalSizeOfFilesInRecord - foundAttachment ' + foundAttachment);
           if (foundAttachment) {
             let totalSizeOfFilesInRecord = 0;
             for (const attachmentFile of dataLocations) {
               const attachmentObj = attachmentFile as AnyRecord;
-              sails.log[functionLogLevel](attachmentObj);
               if (!_.isUndefined(attachmentObj.size)) {
                 totalSizeOfFilesInRecord = totalSizeOfFilesInRecord + _.toInteger(attachmentObj.size);
               }
             }
 
-            sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
+            this.logAtLevel(functionLogLevel, 'checkTotalSizeOfFilesInRecord - totalSizeOfFilesInRecord ' + totalSizeOfFilesInRecord);
             const maxUploadSize = sails.config.record.maxUploadSize;
             if (totalSizeOfFilesInRecord > maxUploadSize) {
 
@@ -303,7 +287,7 @@ export namespace Services {
           }
         }
 
-        sails.log[functionLogLevel]('checkTotalSizeOfFilesInRecord - end');
+        this.logAtLevel(functionLogLevel, 'checkTotalSizeOfFilesInRecord - end');
       }
       return record;
     }
@@ -336,7 +320,6 @@ export namespace Services {
           contributorEmailAddress = contributorEmailAddress[0];
         }
         if (_.isString(contributorEmailAddress)) {
-          sails.log.verbose(`Pushing contrib email address ${contributorEmailAddress}`);
           if (lowerCaseEmailAddresses) {
             contributorEmailAddress = contributorEmailAddress.toLowerCase()
           }
@@ -351,8 +334,6 @@ export namespace Services {
         const editContributor = _.get(record, editContributorPath, null);
 
         if (editContributor) {
-          sails.log.verbose(`Contributor:`);
-          sails.log.verbose(JSON.stringify(editContributor));
           if (_.isArray(editContributor)) {
             _.each(editContributor, (contributor: unknown) => {
               this.addEmailToList(contributor, emailProperty, emailList);
@@ -368,12 +349,9 @@ export namespace Services {
     protected getContribListByRule(contribProperties: unknown[], record: RecordWithMeta, rule: unknown, emailProperty: string, emailList: string[]) {
       const compiledRule = _.template(String(rule ?? ''));
       _.each(contribProperties, (contributorProperty: unknown) => {
-        sails.log.verbose(`Processing contributor property ${contributorProperty}`)
         const contributorPath = String(contributorProperty ?? '');
         const contributor = _.get(record, contributorPath, null);
         if (contributor) {
-          sails.log.verbose(`Contributor:`);
-          sails.log.verbose(JSON.stringify(contributor));
           if (_.isArray(contributor)) {
             _.each(contributor, (individualContributor: unknown) => {
               const compiledResult = String(compiledRule(individualContributor as AnyRecord));
@@ -417,8 +395,8 @@ export namespace Services {
         try {
           const effectiveUser = await firstValueFrom(UsersService.getEffectiveUser(candidate));
           return effectiveUser ?? candidate;
-        } catch (error) {
-          sails.log.verbose(`Failed to resolve effective user for permission assignment, using original:`, error);
+        } catch {
+          this.updateChronicle({ rdmpPermissionUserResolution: 'fallback' }, [], 'warn');
           return candidate;
         }
       }));
@@ -459,8 +437,7 @@ export namespace Services {
           triggerConfiguration: triggerConfiguration,
           user: user
         };
-        sails.log.debug(`${this.logHeader} Queueing up trigger using job name ${jobName}`);
-        sails.log.verbose(queueMessage);
+        this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'queued' });
         this.queueService.now(jobName, queueMessage);
       }
       return of(record);
@@ -471,25 +448,26 @@ export namespace Services {
       const attrs = (jobObj.attrs ?? {}) as AnyRecord;
       const data = (_.get(attrs, "data", attrs) ?? {}) as AnyRecord;
       const oid = _.get(data, "oid", null);
+      const jobName = typeof attrs.name === 'string' ? attrs.name : undefined;
       const triggerConfiguration = _.get(data, "triggerConfiguration", null);
       const record = _.get(data, "record", null);
       const user = _.get(data, "user", null);
-      sails.log.verbose('queuedTriggerSubscriptionHandler Consuming job:');
-      sails.log.verbose(data);
+      this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'processing' });
       const hookFunctionString = _.get(triggerConfiguration, "function", null);
-      sails.log.verbose(`Found hook function string ${hookFunctionString}`);
       if (hookFunctionString != null) {
         const hookFunction = eval(hookFunctionString);
         const options = _.get(triggerConfiguration, "options", {});
         if (_.isFunction(hookFunction)) {
-          sails.log.debug(`Triggering queuedtrigger: ${hookFunctionString}`)
           const hookResponse = hookFunction(oid, record, options, user);
           const response = this.convertToObservable(hookResponse);
           return firstValueFrom(response);
 
         } else {
-          sails.log.error(`queued trigger function: '${hookFunctionString}' did not resolve to a valid function, what I got:`);
-          sails.log.error(hookFunction);
+          this.updateChronicle(
+            { rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerOutcome: 'invalid-function' },
+            [],
+            'warn'
+          );
         }
       }
       return of(record);
@@ -512,10 +490,7 @@ export namespace Services {
       const optionsObj = options as AnyRecord;
       const triggerCondition = _.get(optionsObj, "triggerCondition", "");
       if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, optionsObj) === "true") {
-        sails.log.verbose(`Complex Assign Permissions executing on oid: ${oid}, using options:`);
-        sails.log.verbose(JSON.stringify(options));
-        sails.log.verbose(`With record: `);
-        sails.log.verbose(JSON.stringify(record));
+        this.updateChronicle({ rdmpPermissionOid: oid, rdmpPermissionMode: 'rules' });
 
         const emailProperty = String(_.get(optionsObj, "emailProperty", "email"));
         const userProperties = _.get(optionsObj, "userProperties", []);
@@ -552,10 +527,7 @@ export namespace Services {
       const optionsObj = options as AnyRecord;
       const triggerCondition = _.get(optionsObj, "triggerCondition", "");
       if (_.isEmpty(triggerCondition) || this.metTriggerCondition(oid, record, optionsObj) === "true") {
-        sails.log.verbose(`Assign Permissions executing on oid: ${oid}, using options:`);
-        sails.log.verbose(JSON.stringify(options));
-        sails.log.verbose(`With record: `);
-        sails.log.verbose(JSON.stringify(record));
+        this.updateChronicle({ rdmpPermissionOid: oid, rdmpPermissionMode: 'properties' });
 
         const emailProperty = String(_.get(optionsObj, "emailProperty", "email"));
         const editContributorProperties = _.get(optionsObj, "editContributorProperties", []);
@@ -598,12 +570,15 @@ export namespace Services {
       record.authorization = auth;
       const createdBy = record.metaMetadata?.createdBy ?? user?.username;
       const hasContributors = !_.isEmpty(editContributorEmails) || !_.isEmpty(viewContributorEmails);
-      if (_.isEmpty(editContributorEmails)) {
-        sails.log.error(`No editors for record: ${oid}`);
-      }
-      if (_.isEmpty(viewContributorEmails)) {
-        sails.log.error(`No viewers for record: ${oid}`);
-      }
+      this.updateChronicle(
+        {
+          rdmpPermissionOid: oid,
+          rdmpEditorCount: editContributorEmails.length,
+          rdmpViewerCount: viewContributorEmails.length,
+        },
+        [],
+        _.isEmpty(editContributorEmails) || _.isEmpty(viewContributorEmails) ? 'warn' : 'debug'
+      );
       const useDefaultViewList = _.isEmpty(viewContributorEmails)
         && (recordCreatorPermissions == "view" || recordCreatorPermissions == "view&edit")
         && !(_.isEmpty(editContributorEmails) && _.isEmpty(viewContributorEmails));
@@ -775,19 +750,17 @@ export namespace Services {
 
     public runTemplates(oid: string, record: RecordWithMeta, options: unknown, user: unknown, _response: StorageServiceResponse | null = null) {
 
-      sails.log.verbose(`runTemplates config:`);
-      sails.log.verbose(JSON.stringify((options as AnyRecord).templates));
-      sails.log.verbose(`runTemplates oid: ${oid} with user: ${JSON.stringify(user)}`);
-      sails.log.verbose(JSON.stringify(record));
+      const summary = { rdmpTemplateOid: oid, rdmpTemplateCount: _.size(_.get(options, 'templates')) };
+      this.updateChronicle(summary);
 
       const optionsObj = options as AnyRecord;
       const parseObject = _.get(optionsObj, 'parseObject', false);
-      let tmplConfig = null;
+      let templateIndex = 0;
       try {
         const templates = (optionsObj.templates ?? []) as AnyRecord[];
-        _.each(templates, (templateConfig: unknown) => {
+        _.each(templates, (templateConfig: unknown, index: number) => {
           const templateConfigObj = templateConfig as AnyRecord;
-          tmplConfig = templateConfigObj;
+          templateIndex = index;
           const imports = _.extend({
 
             moment: moment,
@@ -814,13 +787,17 @@ export namespace Services {
             _.set(record, templateConfigObj.field as string, data);
           }
         });
-      } catch (e) {
-        const errLog = `Failed to run one of the string templates: ${JSON.stringify(tmplConfig)}`
-        sails.log.error(errLog);
-        sails.log.error(e);
-        return throwError(new Error(errLog));
+      } catch {
+        // Template source and exception messages can contain private record or user values.
+        const error = new Error('Failed to run one of the string templates.');
+        this.updateChronicle(
+          { ...summary, rdmpTemplateOutcome: 'failed', rdmpTemplateIndex: templateIndex },
+          [error]
+        );
+        return throwError(() => error);
       }
 
+      this.updateChronicle({ ...summary, rdmpTemplateOutcome: 'success' });
       return of(record);
 
     }
@@ -831,9 +808,13 @@ export namespace Services {
       const workspaceMetadata = (workspaceObj.metadata ?? {}) as AnyRecord;
       const rdmpOidField = _.get(optionsObj, 'rdmpOidField', 'rdmpOid') as string;
       const rdmpOid = String(_.get(workspaceMetadata, rdmpOidField, '') ?? '').trim();
-      sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
+      this.updateChronicle({ rdmpWorkspaceOid: oid, rdmpWorkspaceRecordOid: rdmpOid, rdmpWorkspaceOperation: 'add' });
       if (_.isEmpty(rdmpOid)) {
-        sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
+        this.updateChronicle(
+          { rdmpWorkspaceOid: oid, rdmpWorkspaceOperation: 'add', rdmpWorkspaceOutcome: 'missing-record-oid' },
+          [],
+          'warn'
+        );
         return workspaceData;
       }
       await WorkspaceService.addWorkspaceToRecord(
@@ -854,9 +835,13 @@ export namespace Services {
       const workspaceMetadata = (workspaceObj.metadata ?? {}) as AnyRecord;
       const rdmpOidField = _.get(optionsObj, 'rdmpOidField', 'rdmpOid') as string;
       const rdmpOid = String(_.get(workspaceMetadata, rdmpOidField, '') ?? '').trim();
-      sails.log.verbose(`Generic removing workspace ${oid} from record: ${rdmpOid}`);
+      this.updateChronicle({ rdmpWorkspaceOid: oid, rdmpWorkspaceRecordOid: rdmpOid, rdmpWorkspaceOperation: 'remove' });
       if (_.isEmpty(rdmpOid)) {
-        sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
+        this.updateChronicle(
+          { rdmpWorkspaceOid: oid, rdmpWorkspaceOperation: 'remove', rdmpWorkspaceOutcome: 'missing-record-oid' },
+          [],
+          'warn'
+        );
         return workspaceData;
       }
       await WorkspaceService.removeWorkspaceFromRecord(

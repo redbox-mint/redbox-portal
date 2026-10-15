@@ -159,3 +159,7 @@ Compare these files to identify where a setting is being overwritten.
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks
 - [Configuring Solr](Configuring-Solr) - Solr connection, schema, and pre-index mapping options
 - [Record Schema Contract Operations](Record-Schema-Contract-Operations) - Record-schema configuration, rollout, storage, retention, diagnostics, telemetry, and troubleshooting
+
+## AppConfig secret storage
+
+[AppConfig secrets in AWS Secrets Manager](AppConfig-Secrets) describes optional AWS storage for branding-aware password and token fields, deployment setup, and migration behavior.

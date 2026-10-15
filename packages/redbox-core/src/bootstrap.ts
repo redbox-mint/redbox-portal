@@ -11,7 +11,8 @@
 
 import { lastValueFrom, Observable } from 'rxjs';
 import { ensureSiemDeliveryStorage } from './services/siem/SiemDeliveryStore';
-import type { BrandingAwareFunction } from './config';
+import { registerRequestChronicleErrorCapture } from './middleware/requestChronicle';
+import { BrandingAwareFunction, isPinoLogger } from './config';
 import type { LoDashStatic } from 'lodash';
 import { BrandingModel } from './model';
 import { getMergedApiRoutes, resetResolvedApiRouteCache } from './api-routes';
@@ -197,6 +198,7 @@ export async function coreBootstrap(): Promise<void> {
  * that need to be in place before services bootstrap.
  */
 export async function preLiftSetup(): Promise<void> {
+  registerRequestChronicleErrorCapture(sails);
   const csrfSetting = sails.config.security.csrf as boolean | string;
   if (csrfSetting === 'false') {
     sails.config.security.csrf = false;
@@ -214,8 +216,18 @@ export async function preLiftSetup(): Promise<void> {
     sails.log.debug('Using NG2 Bundled files.......');
   }
 
-  // Update the pino log level to the sails.log.level
-  sails.config.log.customLogger.level = sails.config.log.level;
+  if (isPinoLogger(sails.config.log.customLogger)) {
+    // Update the pino log level to the sails.config.log.level.
+    sails.config.log.customLogger.level = sails.config.log.level;
+  }
+
+  const middlewareOrder = (sails.config.http as { middleware?: { order?: unknown } } | undefined)?.middleware?.order;
+  if (Array.isArray(middlewareOrder) && middlewareOrder[0] !== 'requestChronicle') {
+    sails.log.warn(
+      "The 'requestChronicle' middleware should be first in sails.config.http.middleware.order, " +
+        'otherwise requests are not fully recorded in request chronicle logs.'
+    );
+  }
 
   sails.log.debug('Starting bootstrap process with bootstrapAlways set to: ' + sails.config.appmode.bootstrapAlways);
   void getMergedApiRoutes();

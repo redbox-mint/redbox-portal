@@ -76,10 +76,7 @@ export namespace Controllers {
 
         const brand: BrandingModel = BrandingService.getBrand(brandName);
 
-        let config: unknown = AppConfigService.getAppConfigurationForBrand(brand.name);
-        if (!_.isEmpty(validatedConfigKey)) {
-          config = _.get(config, validatedConfigKey!, null);
-        }
+        const config = AppConfigService.getMaskedAppConfigurationForBrand(brand.name, validatedConfigKey);
 
         return this.apiRespond(req, res, config, 200);
       } catch (error: unknown) {

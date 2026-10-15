@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -5,17 +7,12 @@ import * as lodash from 'lodash';
 import * as fs from 'node:fs/promises';
 import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
 import type { VocabularyAttributes } from '../../src/waterline-models';
+import { ILogger } from "@researchdatabox/sails-ng-common";
 
 type ReaddirResult = Awaited<ReturnType<typeof fs.readdir>>;
 
-type StubbedLogger = {
-  error: (...args: unknown[]) => void;
-  verbose: (...args: unknown[]) => void;
-  debug: (...args: unknown[]) => void;
-};
-
 type StubbedSails = {
-  log: StubbedLogger;
+  log: Partial<ILogger>;
   config: {
     auth: { defaultBrand: string };
     bootstrap?: { bootstrapDataPath?: string };
@@ -51,6 +48,7 @@ type VocabularyEntryModelStub = {
   destroy: (...args: unknown[]) => Promise<void>;
   findOne: (...args: unknown[]) => Promise<null>;
   create: (...args: unknown[]) => { fetch: (...args: unknown[]) => Promise<{ id: string }> };
+  createEach?: (...args: unknown[]) => { fetch: (...args: unknown[]) => Promise<Array<{ id: string; identifier: string }>> };
   updateOne: (...args: unknown[]) => { set: (...args: unknown[]) => Promise<{ id: string }> };
 };
 
@@ -71,7 +69,7 @@ describe('VocabularyService', () => {
     previousUnderscore = Reflect.get(globalThis, '_');
     Reflect.set(globalThis, '_', lodash);
     g.sails = {
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
+      log: createSinonStubLogger(sinon),
       config: { auth: { defaultBrand: 'default' } },
       services: {
         brandingservice: { getDefault: sinon.stub().returns('default') },
@@ -443,6 +441,298 @@ describe('VocabularyService', () => {
     expect(result.skipped).to.equal(2);
     const setPayloads = updateSetStub.getCalls().map((call) => call.args[0]);
     expect(setPayloads.some((payload) => payload?.parent === 'db-parent')).to.equal(true);
+  });
+
+  describe('replacement entry creation', () => {
+    it('bounds bulk creation and maps parents across batches independently of return order', async () => {
+      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      const createEach = sinon.stub().callsFake((records: Array<{ identifier: string }>) => ({
+        fetch: async () => records.map(record => ({ id: `db-${record.identifier}`, identifier: record.identifier })).reverse(),
+      }));
+      g.VocabularyEntry.createEach = createEach;
+      g.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'db-entry-0', vocabulary: 'v1', parent: null });
+      const set = sinon.stub().resolves({ id: 'db-entry-1000' });
+      const updateOne = sinon.stub().returns({ set });
+      g.VocabularyEntry.updateOne = updateOne;
+
+      await service.create({
+        name: 'Large vocabulary', branding: 'default', type: 'tree',
+        entries: Array.from({ length: 1001 }, (_, index) => ({
+          id: `entry-${index}`, identifier: `entry-${index}`, label: `Entry ${index}`, value: String(index),
+          ...(index === 1000 ? { parent: 'entry-0' } : {}),
+        })),
+      });
+
+      expect(createEach.getCalls().map(call => call.args[0].length)).to.deep.equal([500, 500, 1]);
+      expect(updateOne.calledOnceWithExactly({ id: 'db-entry-1000' })).to.equal(true);
+      expect(set.calledOnceWithExactly({ parent: 'db-entry-0' })).to.equal(true);
+    });
+
+    it('maps fetched batch rows by identifier before linking parents', async () => {
+      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      const fetched = [
+        { id: 'db-child', identifier: 'child' },
+        { id: 'db-root', identifier: 'root' },
+      ];
+      const createEach = sinon.stub().returns({ fetch: sinon.stub().resolves(fetched) });
+      g.VocabularyEntry.createEach = createEach;
+      g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
+        if (criteria.id === 'db-root') return { id: 'db-root', vocabulary: 'v1', parent: null };
+        return null;
+      });
+      const set = sinon.stub().resolves({ id: 'db-child' });
+      const updateOne = sinon.stub().returns({ set });
+      g.VocabularyEntry.updateOne = updateOne;
+
+      await service.create({
+        name: 'RVA tree',
+        branding: 'default',
+        type: 'tree',
+        entries: [
+          {
+            id: 'root',
+            identifier: 'root',
+            label: 'Root',
+            value: 'root',
+            children: [{ id: 'child', identifier: 'child', label: 'Child', value: '', historical: true }],
+          },
+        ],
+      });
+
+      expect(createEach.calledOnce).to.equal(true);
+      expect(createEach.firstCall.args[0]).to.deep.equal([
+        { vocabulary: 'v1', label: 'Root', value: 'root', identifier: 'root', order: 0, historical: false },
+        { vocabulary: 'v1', label: 'Child', value: '', identifier: 'child', order: 0, historical: true },
+      ]);
+      expect((g.VocabularyEntry.create as sinon.SinonStub).called).to.equal(false);
+      expect(updateOne.calledOnceWithExactly({ id: 'db-child' })).to.equal(true);
+      expect(set.calledOnceWithExactly({ parent: 'db-root' })).to.equal(true);
+    });
+
+    for (const identifiers of [
+      [undefined, undefined],
+      ['duplicate', ' duplicate '],
+    ]) {
+      it(`retains serial model validation for identifiers ${JSON.stringify(identifiers)}`, async () => {
+        const createEach = sinon.stub();
+        g.VocabularyEntry.createEach = createEach;
+        const create = sinon
+          .stub()
+          .onFirstCall()
+          .returns({ fetch: sinon.stub().resolves({ id: 'entry-1' }) })
+          .onSecondCall()
+          .returns({ fetch: sinon.stub().resolves({ id: 'entry-2' }) });
+        g.VocabularyEntry.create = create;
+        await service.create({
+          name: 'Local vocabulary',
+          branding: 'default',
+          entries: [
+            { label: 'First', value: 'first', identifier: identifiers[0] },
+            { label: 'Second', value: 'second', identifier: identifiers[1] },
+          ],
+        });
+        expect(createEach.called).to.equal(false);
+        expect(create.calledTwice).to.equal(true);
+      });
+    }
+
+    it('keeps parent writes serial and propagates the transaction connection', async () => {
+      const connection = {};
+      let activeWrites = 0;
+      let maximumWrites = 0;
+      const query = <T>(value: T, parentWrite = false) => ({
+        usingConnection: async (received: Sails.Connection): Promise<T> => {
+          expect(received).to.equal(connection);
+          if (parentWrite) {
+            maximumWrites = Math.max(maximumWrites, ++activeWrites);
+            await new Promise<void>(resolve => setImmediate(resolve));
+            activeWrites--;
+          }
+          return value;
+        },
+      });
+      sinon
+        .stub(service as unknown as { getDatastore: () => Pick<Sails.Datastore, 'transaction'> }, 'getDatastore')
+        .returns({
+          async transaction<T>(work: (connection: Sails.Connection) => Promise<T>): Promise<T> {
+            return work(connection);
+          },
+        });
+      g.Vocabulary.create = sinon.stub().returns({ fetch: () => query({ id: 'v1', type: 'tree' }) });
+      g.Vocabulary.findOne = sinon.stub().returns(query({ id: 'v1', type: 'tree' }));
+      g.VocabularyEntry.destroy = sinon.stub().returns(query([]));
+      g.VocabularyEntry.createEach = sinon.stub().returns({
+        fetch: () =>
+          query([
+            { id: 'db-root', identifier: 'root' },
+            { id: 'db-a', identifier: 'a' },
+            { id: 'db-b', identifier: 'b' },
+          ]),
+      });
+      g.VocabularyEntry.findOne = sinon.stub().returns(query({ id: 'db-root', vocabulary: 'v1', parent: null }));
+      g.VocabularyEntry.updateOne = sinon.stub().returns({ set: () => query({ id: 'updated' }, true) });
+      await service.create({
+        name: 'Transactional tree',
+        branding: 'default',
+        type: 'tree',
+        entries: [
+          {
+            id: 'root',
+            identifier: 'root',
+            label: 'Root',
+            value: 'root',
+            children: [
+              { id: 'a', identifier: 'a', label: 'A', value: 'a' },
+              { id: 'b', identifier: 'b', label: 'B', value: 'b' },
+            ],
+          },
+        ],
+      });
+      expect(maximumWrites).to.equal(1);
+    });
+
+    it('settles in-flight parent writes before cleaning up after an import failure', async () => {
+      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      g.VocabularyEntry.createEach = sinon.stub().returns({
+        fetch: sinon.stub().resolves([
+          { id: 'db-root', identifier: 'root' },
+          { id: 'db-a', identifier: 'a' },
+          { id: 'db-b', identifier: 'b' },
+        ]),
+      });
+      g.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'db-root', vocabulary: 'v1', parent: null });
+      let finishLate: () => void = () => {
+        throw new Error('late write was not started');
+      };
+      let parentWritesStarted: () => void = () => {
+        throw new Error('parent writes did not start');
+      };
+      const started = new Promise<void>(resolve => {
+        parentWritesStarted = resolve;
+      });
+      const late = new Promise<void>(resolve => {
+        finishLate = resolve;
+      });
+      const failure = new Error('parent write failed');
+      const set = sinon
+        .stub()
+        .onFirstCall()
+        .rejects(failure)
+        .onSecondCall()
+        .callsFake(() => {
+          parentWritesStarted();
+          return late;
+        });
+      g.VocabularyEntry.updateOne = sinon.stub().returns({ set });
+      const importing = service
+        .create({
+          name: 'Tree',
+          branding: 'default',
+          type: 'tree',
+          entries: [
+            {
+              id: 'root',
+              identifier: 'root',
+              label: 'Root',
+              value: 'root',
+              children: [
+                { id: 'a', identifier: 'a', label: 'A', value: 'a' },
+                { id: 'b', identifier: 'b', label: 'B', value: 'b' },
+              ],
+            },
+          ],
+        })
+        .then(
+          () => undefined,
+          (error: unknown) => error
+        );
+      await started;
+      expect((g.Vocabulary.destroyOne as sinon.SinonStub).called).to.equal(false);
+      finishLate();
+      expect(await importing).to.equal(failure);
+      expect((g.Vocabulary.destroyOne as sinon.SinonStub).calledOnce).to.equal(true);
+    });
+
+    it('keeps cycle validation serial for a graph that is not a forest', async () => {
+      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      g.VocabularyEntry.createEach = sinon.stub().returns({
+        fetch: sinon.stub().resolves([
+          { id: 'db-a', identifier: 'a' },
+          { id: 'db-b', identifier: 'b' },
+        ]),
+      });
+      const records = new Map([
+        ['db-a', { id: 'db-a', vocabulary: 'v1', parent: null as string | null }],
+        ['db-b', { id: 'db-b', vocabulary: 'v1', parent: null as string | null }],
+      ]);
+      g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: { id: string }) => records.get(criteria.id));
+      const updateOne = sinon.stub().callsFake((criteria: { id: string }) => ({
+        set: async (values: { parent: string }) => {
+          const row = records.get(criteria.id);
+          if (row) row.parent = values.parent;
+          return row;
+        },
+      }));
+      g.VocabularyEntry.updateOne = updateOne;
+      let rejected: unknown;
+      try {
+        await service.create({
+          name: 'Cyclic tree',
+          branding: 'default',
+          type: 'tree',
+          entries: [
+            { id: 'a', identifier: 'a', label: 'A', value: 'a', parent: 'b' },
+            { id: 'b', identifier: 'b', label: 'B', value: 'b', parent: 'a' },
+          ],
+        });
+      } catch (error) {
+        rejected = error;
+      }
+      expect((rejected as Error).message).to.equal('VocabularyEntry cycle detected');
+      expect(updateOne.calledOnce).to.equal(true);
+    });
+
+    it('rejects a parent from another vocabulary after batch creation', async () => {
+      g.Vocabulary.create = sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1', type: 'tree' }) });
+      g.VocabularyEntry.createEach = sinon
+        .stub()
+        .returns({ fetch: sinon.stub().resolves([{ id: 'db-child', identifier: 'child' }]) });
+      g.VocabularyEntry.findOne = sinon.stub().resolves({ id: 'foreign-parent', vocabulary: 'other', parent: null });
+      let rejected: unknown;
+      try {
+        await service.create({
+          name: 'Invalid tree',
+          branding: 'default',
+          type: 'tree',
+          entries: [{ identifier: 'child', label: 'Child', value: 'child', parent: 'foreign-parent' }],
+        });
+      } catch (error) {
+        rejected = error;
+      }
+      expect((rejected as Error).message).to.equal('VocabularyEntry.parent must belong to the same vocabulary');
+      expect((g.VocabularyEntry.updateOne as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('cleans up the vocabulary and its entries if a batch fails without a transaction', async () => {
+      const failure = new Error('entry batch failed');
+      g.VocabularyEntry.createEach = sinon.stub().returns({ fetch: sinon.stub().rejects(failure) });
+      let rejected: unknown;
+      try {
+        await service.create({
+          name: 'RVA vocabulary',
+          branding: 'default',
+          entries: [
+            { label: 'First', value: 'first', identifier: 'first' },
+            { label: 'Second', value: 'second', identifier: 'second' },
+          ],
+        });
+      } catch (error) {
+        rejected = error;
+      }
+      expect(rejected).to.equal(failure);
+      expect((g.Vocabulary.destroyOne as sinon.SinonStub).calledOnce).to.equal(true);
+      expect((g.VocabularyEntry.destroy as sinon.SinonStub).calledTwice).to.equal(true);
+    });
   });
 
   describe('bootstrapData', () => {

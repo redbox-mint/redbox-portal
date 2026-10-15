@@ -567,6 +567,11 @@ export namespace Services {
       return this.unflatten(flat);
     }
 
+    /**
+     * Copy bundle values into translation entries and prune keys absent from the source.
+     * Non-overwriting syncs retain custom entries and persist normalised bundle values
+     * before inserting missing entries in a batch.
+     */
     public async syncEntriesFromBundle(
       bundleOrId: I18nBundleAttributes | string | number,
       overwrite = false
@@ -613,17 +618,38 @@ export namespace Services {
         locale: safeLocale,
         namespace: safeNamespace,
       })) as unknown as I18nTranslationAttributes[];
-      const existingKeysSet = new Set(existingEntries.map((e: I18nTranslationAttributes) => e.key as string));
+      const entriesByKey = new Map(existingEntries.map(entry => [entry.key, entry]));
+      const existingKeysSet = new Set(entriesByKey.keys());
+      const newEntries: Array<Partial<I18nTranslationAttributes> & { key: string }> = [];
 
       for (const key of keys) {
         let val: unknown = flat[key];
         existingKeysSet.delete(key); // still present
-        const existing = await this.getEntry(brandingModel, safeLocale, safeNamespace, key);
+        const existing = overwrite
+          ? await this.getEntry(brandingModel, safeLocale, safeNamespace, key)
+          : entriesByKey.get(key);
 
         if (existing && !overwrite) continue;
 
         if (val === null || val === undefined) {
           val = key; // preserve intentional empty strings, but avoid nullish bundle values
+        }
+        if (!overwrite) {
+          // Seed missing entries in one write, preserving existing translations.
+          const contentFormat = this.resolveBundleContentFormat(existing, meta[key]?.contentFormat, false);
+          const sanitizedValue = this.sanitizeHtmlValue(val, contentFormat);
+          newEntries.push({
+            branding: brandingId,
+            bundle: bundleId != null ? String(bundleId) : undefined,
+            key,
+            locale: safeLocale,
+            namespace: safeNamespace,
+            value: sanitizedValue,
+            category: meta[key]?.category,
+            contentFormat,
+            description: meta[key]?.description,
+          });
+          continue;
         }
         await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, {
           bundleId: bundleId != null ? String(bundleId) : undefined,
@@ -632,6 +658,31 @@ export namespace Services {
           description: meta?.[key]?.description,
           noReload: true,
         });
+      }
+      if (newEntries.length > 0) {
+        // Public callers may supply a bundle-like object whose data or id differs
+        // from storage. Merge only missing entries into the current stored bundle.
+        let storedBundle = await this.getBundle(brandingModel, safeLocale, safeNamespace);
+        const mergedData: I18nData = _.cloneDeep(storedBundle?.data || {});
+        for (const entry of newEntries) {
+          this.setNested(mergedData, entry.key, entry.value);
+        }
+        // Persist normalisation first so a partially failed entry batch can be
+        // retried without leaving unsafe HTML or nullish values in the bundle.
+        if (!storedBundle) {
+          storedBundle = await I18nBundle.create({
+            branding: brandingId,
+            locale: safeLocale,
+            namespace: safeNamespace,
+            data: mergedData,
+          });
+        } else if (!_.isEqual(mergedData, storedBundle.data)) {
+          await I18nBundle.updateOne({ id: storedBundle.id }).set({ data: mergedData });
+        }
+        for (const entry of newEntries) {
+          entry.bundle = String(storedBundle.id);
+        }
+        await I18nTranslation.createEach(newEntries);
       }
       for (const obsoleteKey of existingKeysSet) {
         try {

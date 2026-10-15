@@ -1,4 +1,5 @@
-import { Logger, LogLevel } from 'effect';
+import * as Logger from 'effect/Logger';
+import * as LogLevel from 'effect/LogLevel';
 
 export interface RaidLogSink { debug(message: unknown): void; info(message: unknown): void; warn(message: unknown): void; error(message: unknown): void }
 

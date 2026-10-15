@@ -2,7 +2,6 @@ import path from 'path';
 import _ from 'lodash';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
-import type { ILogger } from '../../Logger';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
@@ -19,6 +18,7 @@ import {
 } from './types';
 import { setSyncState } from './config';
 import { getSelectedDataLocations } from './plan';
+import { ILogger } from '@researchdatabox/sails-ng-common';
 
 type IDisk = StorageManagerServices.IDisk;
 

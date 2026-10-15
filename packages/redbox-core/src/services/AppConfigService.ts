@@ -27,6 +27,8 @@ import { RESERVED_DASHBOARD_APP_CONFIG_KEYS } from './DashboardConfigService';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
+import { AppConfigSecrets, isAppConfigSecretReference, type AppConfigBundleLease } from './AppConfigSecrets';
+import { appConfigSecrets } from '../config/appConfigSecrets.config';
 
 export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
 export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
@@ -45,12 +47,15 @@ export namespace Services {
     brandingAppConfigMap: Record<string, BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails }> = {};
     modelSchemaMap: Record<string, unknown> = {};
     private extraTsGlobs: Set<string> = new Set();
+    private secretStore?: AppConfigSecrets;
+    private configWriteGates = new Map<string, Promise<void>>();
 
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'getAllConfigurationForBrand',
       'loadAppConfigurationModel',
       'getAppConfigurationForBrand',
+      'getMaskedAppConfigurationForBrand',
       'createOrUpdateConfig',
       'getAppConfigForm',
       'getAppConfigByBrandAndKey',
@@ -103,14 +108,162 @@ export namespace Services {
       }
     }
 
-    private async refreshBrandingAppConfigMap(branding: BrandingModel) {
-      const appConfig = await this.loadAppConfigurationModel(branding.id)
-      this.brandingAppConfigMap[branding.name] = appConfig as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
+    private prepareBrandingCache(branding: BrandingModel, configKey: string, hydrated: AppConfigData, fallback?: BrandingConfigurationDefaultsConfig): BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails } {
+      const current = this.brandingAppConfigMap[branding.name] ?? fallback;
+      const next: Record<string, unknown> = { ...(current ?? this.createDefaultConfiguration()) };
+      next[configKey] = hydrated;
+      const presentKeys: Set<string> = Reflect.get(current ?? {}, APP_CONFIG_PRESENT_KEYS_SYMBOL) ?? new Set<string>();
+      Object.defineProperty(next, APP_CONFIG_PRESENT_KEYS_SYMBOL, {
+        value: new Set([...presentKeys, configKey]), enumerable: false, configurable: true
+      });
+      return next as unknown as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
+    }
+
+    /** Expand only own properties; wildcard matches one literal key, including punctuation. */
+    private getSecretPaths(configKey: string, data: unknown, forWrite = false): string[][] {
+      const paths: string[][] = [];
+      const unsafe = new Set(['__proto__', 'prototype', 'constructor']);
+      if (configKey === 'siem') {
+        return siemSecretPaths(data).filter(path => {
+          if (forWrite && path.some(key => unsafe.has(key))) throw new Error('Unsafe AppConfig secret field key');
+          return _.has(data, path);
+        });
+      }
+      const visit = (value: unknown, parts: string[], path: string[]) => {
+        if (parts.length === 0) { paths.push(path); return; }
+        if (typeof value !== 'object' || value === null) return;
+        const [part, ...rest] = parts;
+        const keys = part === '*' ? Object.keys(value) : [part];
+        for (const key of keys) {
+          if (forWrite && unsafe.has(key)) throw new Error('Unsafe AppConfig secret field key');
+          if (Object.prototype.hasOwnProperty.call(value, key)) {
+            visit(Reflect.get(value, key), rest, [...path, key]);
+          }
+        }
+      };
+      for (const field of this.getSecretFields(configKey)) visit(data, field.split('.'), []);
+      return paths;
+    }
+
+    private setExistingSecretPath(data: object, path: string[], value: unknown): void {
+      let parent: object = data;
+      for (const key of path.slice(0, -1)) {
+        if (!Object.prototype.hasOwnProperty.call(parent, key)) return;
+        const next: unknown = Reflect.get(parent, key);
+        if (typeof next !== 'object' || next === null) return;
+        parent = next;
+      }
+      const key = path[path.length - 1];
+      if (key !== undefined && Object.prototype.hasOwnProperty.call(parent, key)) {
+        Object.defineProperty(parent, key, { value, writable: true, enumerable: true, configurable: true });
+      }
     }
 
     private getSecretFields(configKey: string): string[] {
       const fields = ConfigModels.getModelInfo(configKey)?.secretFields ?? [];
       return configKey === 'siem' ? fields.filter(path => !path.includes('.headers.')) : fields;
+    }
+
+    private getSecretStore(): AppConfigSecrets {
+      return this.secretStore ??= new AppConfigSecrets({ ...appConfigSecrets, ...sails.config.appConfigSecrets });
+    }
+
+    private async hydrateSecretFields(configKey: string, configData: AppConfigData | undefined): Promise<AppConfigData | undefined> {
+      if (configData == null) return configData;
+      const hydrated = _.cloneDeep(configData);
+      for (const field of this.getSecretPaths(configKey, hydrated)) {
+        const value: unknown = _.get(hydrated, field);
+        if (isAppConfigSecretReference(value)) {
+          this.setExistingSecretPath(hydrated, field, await this.getSecretStore().resolve(value));
+        }
+      }
+      return hydrated;
+    }
+
+    private async storeSecretFields(brandId: string, configKey: string, incoming: AppConfigData, existing?: unknown, lease?: AppConfigBundleLease): Promise<AppConfigData> {
+      const provider = sails.config.appConfigSecrets?.provider ?? 'database';
+      if (provider !== 'database' && provider !== 'aws-secrets-manager') {
+        throw new Error('Unsupported appConfigSecrets.provider');
+      }
+      const layout = sails.config.appConfigSecrets?.layout ?? 'per-field';
+      if (layout !== 'per-field' && layout !== 'brand-json') throw new Error('Unsupported appConfigSecrets.layout');
+      const bundle = provider === 'aws-secrets-manager' && layout === 'brand-json';
+      const changes = new Map<string, string | null>();
+      const bundledFields: Array<{ field: string[]; key: string }> = [];
+      // References are backend-owned. Forms submit only values, masks, or clear markers.
+      const incomingSecretPaths = this.getSecretPaths(configKey, incoming, true);
+      const existingSecretPaths = this.getSecretPaths(configKey, existing);
+      for (const field of incomingSecretPaths) {
+        const value: unknown = _.get(incoming, field);
+        if (value != null && typeof value !== 'string') {
+          throw new Error(`AppConfig secret field '${field.join('.')}' must be a string`);
+        }
+      }
+      const hasBundledReferences = existingSecretPaths.some(field => {
+        const value: unknown = _.get(existing, field);
+        return isAppConfigSecretReference(value) && value.$appConfigSecret.key !== undefined;
+      });
+      if ((bundle && (incomingSecretPaths.length > 0 || existingSecretPaths.length > 0)) || hasBundledReferences) {
+        await this.getSecretStore().synchronizeBundle(brandId, 'save', lease);
+      }
+      const stored = this.mergeSecretFields(configKey, incoming, existing) as AppConfigData;
+      for (const field of this.getSecretPaths(configKey, stored, true)) {
+        const value: unknown = _.get(stored, field);
+        if (isAppConfigSecretReference(value)) {
+          if (bundle && value.$appConfigSecret.key === undefined) {
+            const key = JSON.stringify([configKey, ...field]);
+            changes.set(key, await this.getSecretStore().resolve(value));
+            bundledFields.push({ field, key });
+          }
+          continue;
+        }
+        if (!this.shouldMaskSecretValue(value)) continue;
+        const previous: unknown = _.get(existing, field);
+        // Bundled plaintext comparisons run under the distributed lease in
+        // storeBundle, so a stale local value cannot suppress a requested change.
+        if (isAppConfigSecretReference(previous) && !(bundle && previous.$appConfigSecret.key !== undefined)) {
+          let previousValue: string | undefined;
+          try {
+            previousValue = await this.getSecretStore().resolve(previous);
+          } catch (error) {
+            // An explicit replacement can recover from a deleted/inaccessible old secret.
+            // Database mode must never turn an AWS reference into plaintext.
+            if (provider !== 'aws-secrets-manager') throw error;
+          }
+          if (value === previousValue && (!bundle || previous.$appConfigSecret.key !== undefined)) {
+            _.set(stored, field, previous);
+            continue;
+          }
+        }
+        if (provider === 'aws-secrets-manager') {
+          if (bundle) {
+            const key = JSON.stringify([configKey, ...field]);
+            changes.set(key, String(value));
+            bundledFields.push({ field, key });
+          } else {
+            _.set(stored, field, await this.getSecretStore().store(brandId, configKey, JSON.stringify(field), String(value)));
+          }
+        } else if (isAppConfigSecretReference(_.get(existing, field))) {
+          throw new Error('Enable AWS Secrets Manager to replace an externally stored AppConfig secret');
+        }
+      }
+      if (bundle) {
+        // Remove cleared/omitted bundled fields without rewriting any other configuration key.
+        for (const field of this.getSecretPaths(configKey, existing)) {
+          const previous: unknown = _.get(existing, field);
+          if (isAppConfigSecretReference(previous) && previous.$appConfigSecret.key !== undefined && !this.shouldMaskSecretValue(_.get(stored, field))) {
+            changes.set(previous.$appConfigSecret.key, null);
+          }
+        }
+        if (changes.size > 0) {
+          const arn = await this.getSecretStore().storeBundle(brandId, changes, lease);
+          if (bundledFields.length > 0 && !arn) throw new Error('AWS Secrets Manager did not return a bundle ARN');
+          for (const { field, key } of bundledFields) {
+            _.set(stored, field, { $appConfigSecret: { provider: 'aws-secrets-manager', arn: arn!, key } });
+          }
+        }
+      }
+      return stored;
     }
 
     private isMaskedSecretPlaceholder(value: unknown): boolean {
@@ -124,71 +277,17 @@ export namespace Services {
       return value != null;
     }
 
-    private expandArrayWildcardPaths(target: unknown, fieldPath: string): string[] {
-      if (!fieldPath.includes('[]')) {
-        return [fieldPath];
-      }
-      const [prefix, suffix = ''] = fieldPath.split('[]');
-      const arrayValue = _.get(target, prefix);
-      if (!Array.isArray(arrayValue)) {
-        return [];
-      }
-      return arrayValue.map((_item, index) => `${prefix}[${index}]${suffix}`);
-    }
-
-    private getIdMatchedPath(incomingConfig: unknown, existingConfig: unknown, resolvedPath: string, fieldPath: string): string | undefined {
-      if (!fieldPath.includes('[]')) {
-        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
-      }
-      const [prefix, suffix = ''] = fieldPath.split('[]');
-      const match = resolvedPath.match(/\[(\d+)\]/);
-      if (match == null) {
-        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
-      }
-      const incomingItemPath = `${prefix}[${match[1]}]`;
-      const incomingId: unknown = _.get(incomingConfig, `${incomingItemPath}.id`);
-      if (typeof incomingId !== 'string' || incomingId.trim() === '') {
-        return _.has(existingConfig, resolvedPath) ? resolvedPath : undefined;
-      }
-      const existingArray = _.get(existingConfig, prefix);
-      if (!Array.isArray(existingArray)) {
-        return undefined;
-      }
-      const existingIndex = existingArray.findIndex((item) => _.get(item, 'id') === incomingId);
-      if (existingIndex < 0) {
-        return undefined;
-      }
-      const idMatchedPath = `${prefix}[${existingIndex}]${suffix}`;
-      return _.has(existingConfig, idMatchedPath) ? idMatchedPath : undefined;
-    }
-
     private maskSecretFields<T>(configKey: string, configData: T): T {
       const secretFields = this.getSecretFields(configKey);
       if ((secretFields.length === 0 && configKey !== 'siem') || configData == null) {
         return configData;
       }
       const masked = _.cloneDeep(configData);
-      (configKey === 'siem' ? [] : secretFields).forEach((fieldPath: string) => {
-        this.expandArrayWildcardPaths(masked, fieldPath).forEach((resolvedPath) => {
-          if (_.has(masked, resolvedPath) && this.shouldMaskSecretValue(_.get(masked, resolvedPath))) {
-            _.set(masked, resolvedPath, APP_CONFIG_SECRET_MASK);
-          }
-        });
-      });
-      if (configKey === 'siem') {
-        for (const path of siemSecretPaths(masked)) {
-          if (this.shouldMaskSecretValue(_.get(masked, path))) {
-            // Older stored configs may contain names rejected by today's validator.
-            // Assign the literal own key so Lodash's reserved path guards cannot skip masking.
-            const parent: unknown = _.get(masked, path.slice(0, -1));
-            if (parent && typeof parent === 'object') {
-              Object.defineProperty(parent, path[path.length - 1], {
-                value: APP_CONFIG_SECRET_MASK, enumerable: true, writable: true, configurable: true,
-              });
-            }
-          }
+      this.getSecretPaths(configKey, masked).forEach((fieldPath: string[]) => {
+        if (_.has(masked, fieldPath) && this.shouldMaskSecretValue(_.get(masked, fieldPath))) {
+          this.setExistingSecretPath(masked as object, fieldPath, APP_CONFIG_SECRET_MASK);
         }
-      }
+      });
       return masked;
     }
 
@@ -201,33 +300,22 @@ export namespace Services {
       }
 
       const merged = _.cloneDeep(incomingConfig);
-      // SIEM credentials require both ID and target matching before restoration.
-      (configKey === 'siem' ? [] : secretFields).forEach((fieldPath: string) => {
-        this.expandArrayWildcardPaths(merged, fieldPath).forEach((resolvedPath) => {
-          const incomingValue = _.get(merged, resolvedPath);
-          if (this.isMaskedSecretPlaceholder(incomingValue)) {
-            const existingPath = existingConfig == null ? undefined : this.getIdMatchedPath(merged, existingConfig, resolvedPath, fieldPath);
-            if (existingPath != null) {
-              _.set(merged, resolvedPath, _.get(existingConfig, existingPath));
-            } else {
-              _.unset(merged, resolvedPath);
-            }
-          } else if (incomingValue === APP_CONFIG_SECRET_CLEAR) {
-            _.unset(merged, resolvedPath);
+      this.getSecretPaths(configKey, merged, true).forEach((fieldPath: string[]) => {
+        const incomingValue = _.get(merged, fieldPath);
+        if (this.isMaskedSecretPlaceholder(incomingValue)) {
+          // A SIEM destination ID cannot authorize moving credentials to a different target.
+          const existingPath = configKey === 'siem'
+            ? existingSiemSecretPath(merged, existingConfig, fieldPath)
+            : fieldPath;
+          if (existingPath && _.has(existingConfig, existingPath)) {
+            _.set(merged, fieldPath, _.get(existingConfig, existingPath));
+          } else {
+            _.unset(merged, fieldPath);
           }
-        });
-      });
-
-      if (configKey === 'siem') {
-        for (const path of siemSecretPaths(merged)) {
-          const value: unknown = _.get(merged, path);
-          if (this.isMaskedSecretPlaceholder(value)) {
-            const storedPath = existingSiemSecretPath(merged, existingConfig, path);
-            if (storedPath && _.has(existingConfig, storedPath)) _.set(merged, path, _.get(existingConfig, storedPath));
-            else _.unset(merged, path);
-          } else if (value === APP_CONFIG_SECRET_CLEAR) _.unset(merged, path);
+        } else if (incomingValue === APP_CONFIG_SECRET_CLEAR) {
+          _.unset(merged, fieldPath);
         }
-      }
+      });
       return merged;
     }
 
@@ -249,6 +337,16 @@ export namespace Services {
 
     public getAppConfigurationForBrand(brandName: string): BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails } {
       return _.get(this.brandingAppConfigMap, brandName, sails.config.brandingConfigurationDefaults == undefined ? {} : sails.config.brandingConfigurationDefaults) as BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails };
+    }
+
+    /** Safe admin view; backend consumers continue to use the hydrated cache. */
+    public getMaskedAppConfigurationForBrand(brandName: string, configKey?: string): unknown {
+      const configuration = this.getAppConfigurationForBrand(brandName);
+      const masked = _.cloneDeep(configuration) as unknown as Record<string, unknown>;
+      for (const key of new Set([...ConfigModels.getConfigKeys(), ...Object.keys(masked)])) {
+        if (_.has(masked, key)) _.set(masked, key, this.maskSecretFields(key, _.get(masked, key)));
+      }
+      return configKey ? _.get(masked, configKey, null) : masked;
     }
 
     public getAllConfigurationForBrand = (brandId: string): Promise<AppConfigAttributes[]> => {
@@ -304,7 +402,7 @@ export namespace Services {
       return this.chooseLatestConfigRecord(records);
     }
 
-    public async loadAppConfigurationModel(brandId: string): Promise<BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails }> {
+    private createDefaultConfiguration(): Record<string, unknown> {
       const appConfiguration: Record<string, unknown> = {};
       const modelNames = ConfigModels.getConfigKeys();
       for (const modelName of modelNames) {
@@ -321,13 +419,37 @@ export namespace Services {
       _.merge(appConfiguration, sails.config.brandingConfigurationDefaults);
 
 
+      return appConfiguration;
+    }
+
+    public async loadAppConfigurationModel(brandId: string): Promise<BrandingConfigurationDefaultsConfig & { authorizedDomainsEmails?: AuthorizedDomainsEmails }> {
+      const appConfiguration = this.createDefaultConfiguration();
       const appConfigItems: AppConfigAttributes[] = await this.getAllConfigurationForBrand(brandId);
-      const latestAppConfigItems = this.reduceToLatestConfigRecords(appConfigItems);
-      if (latestAppConfigItems.length !== appConfigItems.length) {
+      const latestAppConfigItems = this.reduceToLatestConfigRecords(appConfigItems).filter(item => {
+        if (this.isSafeConfigKey(item.configKey)) return true;
+        sails.log.warn(`Skipping legacy AppConfig row with an unsafe configuration key for branding '${brandId}'. Review hook filenames and migrate the row explicitly.`);
+        return false;
+      });
+      if (this.reduceToLatestConfigRecords(appConfigItems).length !== appConfigItems.length) {
         sails.log.warn(`Duplicate appconfig records detected for branding '${brandId}'. Using the most recently updated record for each config key.`);
       }
+      // An explicit reload refreshes each distinct ARN once; all fields in a brand
+      // bundle share that request. Routine reads and saves reuse the resolved values.
+      const references = new Set<string>();
+      let hasBundledReferences = false;
+      for (const item of latestAppConfigItems) {
+        for (const field of this.getSecretPaths(item.configKey, item.configData)) {
+          const value: unknown = _.get(item.configData, field);
+          if (isAppConfigSecretReference(value)) {
+            references.add(value.$appConfigSecret.arn);
+            hasBundledReferences ||= value.$appConfigSecret.key !== undefined;
+          }
+        }
+      }
+      for (const arn of references) this.secretStore?.invalidate(arn);
+      if (hasBundledReferences) await this.getSecretStore().synchronizeBundle(brandId, 'load');
       for (const appConfigItem of latestAppConfigItems) {
-        _.set(appConfiguration, appConfigItem.configKey, appConfigItem.configData);
+        _.set(appConfiguration, appConfigItem.configKey, await this.hydrateSecretFields(appConfigItem.configKey, appConfigItem.configData));
       }
       Object.defineProperty(appConfiguration, APP_CONFIG_PRESENT_KEYS_SYMBOL, {
         value: new Set(latestAppConfigItems.map(item => item.configKey)),
@@ -338,6 +460,7 @@ export namespace Services {
     }
 
     public async getAppConfigByBrandAndKey(brandId: string, configKey: string): Promise<unknown> {
+      this.assertSafeConfigKey(configKey);
       const dbConfig = await this.findLatestConfigRecord(brandId, configKey);
 
       // If no config exists in the DB return the default settings
@@ -364,7 +487,7 @@ export namespace Services {
     /** Remove this brand's stored override and immediately reload its defaults. */
     public async resetConfigOverride(branding: BrandingModel, configKey: string): Promise<unknown> {
       await AppConfig.destroy({ branding: branding.id, configKey });
-      await this.refreshBrandingAppConfigMap(branding);
+      this.brandingAppConfigMap[branding.name] = await this.loadAppConfigurationModel(String(branding.id));
       return this.getAppConfigByBrandAndKey(branding.id, configKey);
     }
 
@@ -373,7 +496,17 @@ export namespace Services {
      * operations: independent dashboard settings are revision-checked and live in
      * the DashboardConfiguration model. The migration reads legacy rows directly.
      */
+    private isSafeConfigKey(configKey: string): boolean {
+      return typeof configKey === 'string' && configKey.length > 0 &&
+        !/[.[\]]/.test(configKey) && !['__proto__', 'prototype', 'constructor'].includes(configKey);
+    }
+
+    private assertSafeConfigKey(configKey: string): void {
+      if (!this.isSafeConfigKey(configKey)) throw new Error('AppConfig key must be a single safe configuration name');
+    }
+
     private assertWritableConfigKey(configKey: string): void {
+      this.assertSafeConfigKey(configKey);
       if (RESERVED_DASHBOARD_APP_CONFIG_KEYS.includes(configKey)) {
         const error = new Error(`Config key "${configKey}" is retired. Dashboard settings are managed through the dashboard configuration editor or /api/dashboard-config.`) as Error & { status: number; code: string };
         error.status = 410;
@@ -382,39 +515,80 @@ export namespace Services {
       }
     }
 
+    /** Order persistence/cache publication per key, or per brand for shared JSON bundles. */
+    private async withConfigWriteLock<T>(brandId: string, configKey: string, write: (existing: AppConfigAttributes | undefined, lease?: AppConfigBundleLease) => Promise<T>): Promise<T> {
+      const bundle = sails.config.appConfigSecrets?.provider === 'aws-secrets-manager' && sails.config.appConfigSecrets.layout === 'brand-json';
+      const key = JSON.stringify([brandId, bundle ? null : configKey]);
+      const previous = this.configWriteGates.get(key) ?? Promise.resolve();
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      this.configWriteGates.set(key, gate);
+      await previous;
+      try {
+        const readAndWrite = async (lease: AppConfigBundleLease) => write(await this.findLatestConfigRecord(brandId, configKey), lease);
+        // Acquire before reading the row, including saves that omit/clear every
+        // secret: another node may be adding one to this same key right now.
+        if (bundle && this.getSecretFields(configKey).length > 0) {
+          return await this.getSecretStore().withBundleSave(brandId, readAndWrite);
+        }
+        // Existing bundle references still require coordination after a layout
+        // or provider change. Re-read the row inside the lease in write().
+        const existing = await this.findLatestConfigRecord(brandId, configKey);
+        if (this.getSecretFields(configKey).length > 0) {
+          if (this.getSecretPaths(configKey, existing?.configData).some(field => {
+            const value: unknown = _.get(existing?.configData, field);
+            return isAppConfigSecretReference(value) && value.$appConfigSecret.key !== undefined;
+          })) return await this.getSecretStore().withBundleSave(brandId, readAndWrite);
+        }
+        return await write(existing);
+      } finally {
+        release();
+        if (this.configWriteGates.get(key) === gate) this.configWriteGates.delete(key);
+      }
+    }
+
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
-      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
-      const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
-      const mergedConfigData = this.mergeSecretFields(configKey, preparedConfigData, dbConfig?.configData ?? (configKey === 'siem' ? _.get(this.getAppConfigurationForBrand(branding.name), 'siem') : undefined));
+      return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
+        const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
+        const mergedConfigData = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, dbConfig?.configData ?? (configKey === 'siem' ? _.get(this.getAppConfigurationForBrand(branding.name), 'siem') : _.get(this.createDefaultConfiguration(), [configKey])), lease);
 
-      // Create if no config exists
-      let record;
-      if (dbConfig == null) {
-        record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: mergedConfigData });
-      } else {
-        record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: mergedConfigData });
-      }
+        const hydrated = await this.hydrateSecretFields(configKey, mergedConfigData);
+        const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
+        if (lease) await this.getSecretStore().checkBundleSave(lease);
+        // Hydrate and prepare defaults before persistence; cache publication needs no AWS reads.
+        let record;
+        if (dbConfig == null) {
+          record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: mergedConfigData });
+        } else {
+          record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: mergedConfigData });
+        }
 
-      await this.refreshBrandingAppConfigMap(branding);
-      return this.maskSecretFields(configKey, (record as unknown as AppConfigAttributes).configData);
+        // Rebase on the current cache in case a different key was saved while the DB write awaited.
+        this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
+        return this.maskSecretFields(configKey, (record as unknown as AppConfigAttributes).configData);
+      });
     }
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
       const branding: BrandingModel = BrandingService.getBrand(brandName);
-      const dbConfig = await this.findLatestConfigRecord(String(branding.id), configKey);
-      const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
+      return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
+        const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
 
-      // Create if no config exists
-      if (dbConfig == null) {
-        const createdRecord = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: this.mergeSecretFields(configKey, preparedConfigData) });
+        // Create if no config exists
+        if (dbConfig == null) {
+          const stored = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, configKey === 'siem' ? _.get(this.getAppConfigurationForBrand(branding.name), 'siem') : _.get(this.createDefaultConfiguration(), [configKey]), lease);
+          const hydrated = await this.hydrateSecretFields(configKey, stored);
+          const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
+          if (lease) await this.getSecretStore().checkBundleSave(lease);
+          const createdRecord = await AppConfig.create({ branding: branding.id, configKey, configData: stored });
+          this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
+          return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);
+        }
 
-        await this.refreshBrandingAppConfigMap(branding);
-        return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);
-      }
-
-      throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
+        throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
+      });
     }
 
     public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[] }> {

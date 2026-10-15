@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
 
 export async function runEffectProgram<A>(program: Effect.Effect<A, unknown, never>): Promise<A> {

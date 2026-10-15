@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -19,16 +21,11 @@ describe('CacheService', function() {
         },
         angularDev: 'true' // Disable NG file hash building for tests
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     mockCacheEntry = createMockModel('CacheEntry');
-    
+
     setupServiceTestGlobals(mockSails);
     (global as any).CacheEntry = mockCacheEntry;
   });
@@ -43,9 +40,9 @@ describe('CacheService', function() {
     it('should initialize the cache with config options', async function() {
       const { Services } = require('../../src/services/CacheService');
       const cacheService = new Services.Cache();
-      
+
       await cacheService.bootstrap();
-      
+
       // Should have called log.verbose with cache options
       expect(mockSails.log.verbose.called).to.be.true;
     });
@@ -55,7 +52,7 @@ describe('CacheService', function() {
     it('should return cached data from local cache when available', function(done) {
       const { Services } = require('../../src/services/CacheService');
       const cacheService = new Services.Cache();
-      
+
       // Set up the cache first
       cacheService.cache = {
         get: sinon.stub().returns({ data: 'cached-value' }),
@@ -74,7 +71,7 @@ describe('CacheService', function() {
     it('should query database when local cache misses', function(done) {
       const { Services } = require('../../src/services/CacheService');
       const cacheService = new Services.Cache();
-      
+
       const mockDbData = {
         name: 'test-key',
         data: { value: 'from-db' },
@@ -123,7 +120,7 @@ describe('CacheService', function() {
       // Test that empty data is handled correctly
       const emptyDbData = null;
       const isEmpty = (global as any)._.isEmpty(emptyDbData);
-      
+
       expect(isEmpty).to.be.true;
     });
   });
@@ -132,7 +129,7 @@ describe('CacheService', function() {
     it('should update local cache', function() {
       const { Services } = require('../../src/services/CacheService');
       const cacheService = new Services.Cache();
-      
+
       const mockLocalCache = {
         get: sinon.stub().returns(undefined),
         set: sinon.stub()
@@ -155,7 +152,7 @@ describe('CacheService', function() {
       cacheService.ngFileAppHash = {};
 
       const result = cacheService.getNgAppFileHash('unknown-app', 'main');
-      
+
       expect(result).to.be.undefined;
     });
 
@@ -169,7 +166,7 @@ describe('CacheService', function() {
       };
 
       const result = cacheService.getNgAppFileHash('my-app', 'main', 'pre-', '-suf');
-      
+
       expect(result).to.equal('pre-abc123-suf');
     });
 
@@ -183,7 +180,7 @@ describe('CacheService', function() {
       };
 
       const result = cacheService.getNgAppFileHash('my-app', 'main', 'pre-', '-suf', true);
-      
+
       expect(result).to.equal('pre--suf');
     });
   });

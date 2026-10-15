@@ -1,4 +1,5 @@
-import { Context, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Layer from 'effect/Layer';
 import type { IntegrationAuditContext, Services as IntegrationAuditServices } from '../IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../model/storage/IntegrationAuditModel';
 import type { OniRunContext } from './types';

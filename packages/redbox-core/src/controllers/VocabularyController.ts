@@ -262,7 +262,7 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders()
         });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: 500, errors: [error], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -276,7 +276,7 @@ export namespace Controllers {
         const entries = await VocabularyService.getTree(id);
         return this.sendResp(req, res, { data: { vocabulary, entries }, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: 500, errors: [error], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -289,7 +289,7 @@ export namespace Controllers {
         const created = await VocabularyService.create(payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: 500, errors: [error], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -303,7 +303,7 @@ export namespace Controllers {
         const updated = await VocabularyService.update(id, payload);
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: 500, errors: [error], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -313,7 +313,7 @@ export namespace Controllers {
         await VocabularyService.delete(id);
         return this.sendResp(req, res, { status: 204, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { status: 500, errors: [error], headers: this.getNoCacheHeaders() });
       }
     }
 
@@ -327,8 +327,14 @@ export namespace Controllers {
         const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
+        // Report the failure detail to the client, and record the error in the request chronicle.
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail }],
+          errors: [error],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
@@ -338,7 +344,7 @@ export namespace Controllers {
         if (!id.trim()) {
           return this.sendResp(req, res, {
             status: 400,
-            errors: [this.asError(new Error('Missing required id'))],
+            errors: [new Error('Missing required id')],
             headers: this.getNoCacheHeaders()
           });
         }
@@ -346,8 +352,14 @@ export namespace Controllers {
         const result = await RvaImportService.syncRvaVocabulary(id, versionId);
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
+        // Report the failure detail to the client, and record the error in the request chronicle.
         const detail = this.asError(error).message;
-        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail }],
+          errors: [error],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
   }

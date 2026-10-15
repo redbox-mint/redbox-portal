@@ -2,6 +2,109 @@ import type {VocabularyAttributes} from "../../../packages/redbox-core/src/water
 
 describe('VocabularyService integration', function () {
 
+  it('imports identified entries with normalized values and a complete parent tree', async function () {
+    let vocabularyId: string | null = null;
+    try {
+      const vocabulary = await VocabularyService.create({
+        name: `Batch tree ${Date.now()}`,
+        branding: 'default',
+        type: 'tree',
+        entries: [
+          {
+            id: 'source-root',
+            identifier: 'root',
+            label: ' Root ',
+            value: ' ROOT ',
+            children: [
+              {
+                id: 'source-child',
+                identifier: 'child',
+                label: ' Child ',
+                value: '',
+                historical: true,
+                children: [{ id: 'source-leaf', identifier: 'leaf', label: 'Leaf', value: ' LEAF ' }],
+              },
+              {
+                id: 'source-sibling',
+                identifier: 'sibling',
+                label: 'Sibling',
+                value: 'sibling',
+              },
+            ],
+          },
+        ],
+      });
+      vocabularyId = vocabulary.id;
+      const entries = await VocabularyEntry.find({ vocabulary: vocabulary.id });
+      expect(entries).to.have.length(4);
+      const byIdentifier = new Map(entries.map(entry => [entry.identifier, entry]));
+      const root = byIdentifier.get('root');
+      const child = byIdentifier.get('child');
+      const leaf = byIdentifier.get('leaf');
+      const sibling = byIdentifier.get('sibling');
+      expect(root?.label).to.equal('Root');
+      expect(root?.labelLower).to.equal('root');
+      expect(root?.value).to.equal('ROOT');
+      expect(root?.valueLower).to.equal('root');
+      expect(child?.value).to.equal('');
+      expect(child?.historical).to.equal(true);
+      expect(child?.parent).to.equal(root?.id);
+      expect(sibling?.parent).to.equal(root?.id);
+      expect(leaf?.parent).to.equal(child?.id);
+      const tree = await VocabularyService.getTree(vocabulary.id);
+      expect(tree).to.have.length(1);
+      expect(tree[0].children).to.have.length(2);
+    } finally {
+      if (vocabularyId) {
+        await VocabularyEntry.destroy({ vocabulary: vocabularyId });
+        await Vocabulary.destroyOne({ id: vocabularyId });
+      }
+    }
+  });
+
+  for (const [name, entries, message] of [
+    [
+      'duplicate identifiers',
+      [
+        { id: 'a', identifier: 'same', label: 'A', value: 'a' },
+        { id: 'b', identifier: ' same ', label: 'B', value: 'b' },
+      ],
+      'VocabularyEntry.identifier must be unique within a vocabulary',
+    ],
+    [
+      'cyclic parents',
+      [
+        { id: 'a', identifier: 'a', label: 'A', value: 'a', parent: 'b' },
+        { id: 'b', identifier: 'b', label: 'B', value: 'b', parent: 'a' },
+      ],
+      'VocabularyEntry cycle detected',
+    ],
+    [
+      'missing parent',
+      [{ id: 'child', identifier: 'child', label: 'Child', value: 'child', parent: '000000000000000000000001' }],
+      'VocabularyEntry.parent not found',
+    ],
+  ] as const) {
+    it(`rejects ${name} and cleans up a failed import`, async function () {
+      const beforeCount = await VocabularyEntry.count();
+      const vocabularyName = `Invalid ${name} ${Date.now()}`;
+      let rejected: unknown;
+      try {
+        await VocabularyService.create({
+          name: vocabularyName,
+          branding: 'default',
+          type: 'tree',
+          entries: [...entries],
+        });
+      } catch (error) {
+        rejected = error;
+      }
+      expect((rejected as Error)?.message).to.contain(message);
+      expect(await Vocabulary.findOne({ name: vocabularyName })).to.equal(undefined);
+      expect(await VocabularyEntry.count()).to.equal(beforeCount);
+    });
+  }
+
   it('builds tree structure from entries', async function () {
     let vocabularyId: string | null = null;
 

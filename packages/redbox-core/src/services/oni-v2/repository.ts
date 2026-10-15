@@ -2,7 +2,9 @@ import type { OniPublishingSiteConfig } from '../../configmodels/OniPublishing';
 import type { DatastreamService } from '../../DatastreamService';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
 import type { Readable } from 'node:stream';
-import { Context, Effect, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import {
   OcflModuleAdapter,
   OcflStorageAdapter,

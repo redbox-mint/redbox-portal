@@ -1940,10 +1940,6 @@ export namespace Services {
       return undefined;
     }
 
-    private asError(error: unknown): Error {
-      return error instanceof Error ? error : new Error(String(error));
-    }
-
     private saveProblem(
       phase: RecordSaveLifecyclePhase,
       _message: string,
@@ -2603,6 +2599,13 @@ export namespace Services {
      */
     private logSaveOutcome(tracker: RecordSaveTracker, phase: RecordSavePhase, error?: unknown): void {
       const result = tracker.result;
+      this.updateChronicle({
+        recordsSaveOperation: tracker.context.operation ?? 'update',
+        recordsSavePhase: phase,
+        recordsSaveOutcome: result.outcome,
+        recordsSaveProblemCount: result.problems.length,
+        recordsSaveErrorType: error === undefined ? undefined : safeExceptionType(error),
+      });
       const problem = result.problems[result.problems.length - 1];
       const problemCode = problem?.issues[0]?.code;
       const operation = tracker.context.operation ?? 'update';
@@ -3774,7 +3777,6 @@ export namespace Services {
       } else {
         const datastreamServiceName = sails.config.record.datastreamService as string;
         ref.datastreamService = sails.services[datastreamServiceName] as unknown as DatastreamService;
-        sails.log.verbose(`${ref.logHeader} Using datastreamService: ${datastreamServiceName}`);
       }
     }
 
@@ -4322,8 +4324,7 @@ export namespace Services {
           );
           await this.refreshAttachmentFields(recordObj, undefined, brandObj);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
-          sails.log.error(err);
+          this.updateChronicle({ recordsOperation: 'create', recordsOperationOutcome: 'failed' }, [err]);
           tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
           this.logSaveOutcome(tracker, 'pre-save', err);
           return tracker.toResponse();
@@ -4389,7 +4390,7 @@ export namespace Services {
       }
 
       // save the record ...
-      sails.log.verbose(`${this.logHeader} create() -> recordObj before save: ${JSON.stringify(recordObj)}`);
+
       try {
         createResponse = await this.createStorageCandidate(brandObj, createOid, recordObj, recordTypeObj, userObj, {
           ...this.recordMutationOptions(tracker.context),
@@ -4434,7 +4435,7 @@ export namespace Services {
         currentRevision ??= INITIAL_RECORD_REVISION;
         if (this.committedRevision(createResponse) !== undefined) recordObj.revision = currentRevision;
         this.setConcurrencyMetadata(tracker, oid, concurrencyMode, currentRevision, currentFormFingerprint);
-        sails.log.verbose(`RecordsService - create - oid ${oid}`);
+
         const recordMetadata = recordObj.metadata as AnyRecord;
         const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
         if (createAttachmentPlan.length > 0) {
@@ -4612,10 +4613,7 @@ export namespace Services {
               this.setConcurrencyMetadata(tracker, oid, concurrencyMode, currentRevision, currentFormFingerprint);
             }
           } catch (err) {
-            sails.log.error(
-              `${this.logHeader} Exception while running post save sync hooks when creating: ${createResponse['oid']}`
-            );
-            sails.log.error(JSON.stringify(err));
+            this.updateChronicle({ recordsOperation: 'create', recordsOperationOutcome: 'failed' }, [err]);
             tracker.recordPostPersistenceProblem(
               this.saveProblemFromError(
                 err,
@@ -4732,10 +4730,7 @@ export namespace Services {
                 );
               }
             } catch (tErr) {
-              sails.log.error(
-                'RecordsService - create - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
-              );
-              sails.log.error(tErr);
+              this.updateChronicle({ recordsOperation: 'create', recordsOperationOutcome: 'failed' }, [tErr]);
               tracker.recordPostPersistenceProblem(
                 this.saveProblemFromError(
                   tErr,
@@ -4756,8 +4751,7 @@ export namespace Services {
           }
         }
       } else {
-        sails.log.error(`${this.logHeader} Failed to create record, storage service response:`);
-        sails.log.error(JSON.stringify(createResponse));
+        this.updateChronicle({ recordsStorageMutationState: primaryMutationState });
         if (primaryMutationState === 'not-applied') {
           await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'cancelled', 'save-not-applied');
           tracker.recordPrimaryNotApplied(
@@ -5136,7 +5130,6 @@ export namespace Services {
         return tracker.toResponse();
       }
       const origRecordObj = this.normalizeRecord(_.cloneDeep(requestedRecord) as AnyRecord);
-      sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
 
       const requestedMeta = this.recordObject(recordObj.metaMetadata);
       const originalMeta = this.recordObject(originalRecord?.metaMetadata);
@@ -5404,10 +5397,6 @@ export namespace Services {
       if (transitionRequested) {
         if (!_.isEmpty(recordType)) {
           try {
-            sails.log.verbose(`RecordService - updateMeta - hasPermissionToTransition - enter`);
-            sails.log.verbose(
-              `RecordService - updateMeta triggerPreSaveTransitionWorkflowTriggers - before - nextStep ${JSON.stringify(nextStepObj)}`
-            );
             this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
             await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
             recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
@@ -5421,8 +5410,7 @@ export namespace Services {
             // The hook sees the target workflow and any workflow metadata it
             // returns remains part of both persistence and validation.
           } catch (err) {
-            sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
-            sails.log.error(JSON.stringify(err));
+            this.updateChronicle({ recordsOperation: 'updateMeta', recordsOperationOutcome: 'failed' }, [err]);
             tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
             this.logSaveOutcome(tracker, 'pre-save', err);
             return tracker.toResponse();
@@ -5437,12 +5425,10 @@ export namespace Services {
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
-          sails.log.verbose('RecordService - updateMeta - calling triggerPreSaveTriggers');
           recordObj = await this.triggerPreSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj, hookOperation);
           await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
-          sails.log.error(err);
+          this.updateChronicle({ recordsOperation: 'updateMeta', recordsOperationOutcome: 'failed' }, [err]);
           tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
           this.logSaveOutcome(tracker, 'pre-save', err);
           return tracker.toResponse();
@@ -5560,7 +5546,6 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      sails.log.verbose(`RecordService - updateMeta - before storageService.updateMeta`);
       // Primary metadata is the commit boundary.  Physical attachment work
       // must not run until this mutation is explicitly confirmed applied.
       try {
@@ -5591,7 +5576,7 @@ export namespace Services {
         return tracker.toResponse();
       }
       const primaryUpdateMutationState = resolveStorageMutationState(updateResponse, this.logLegacyMutationResponse);
-      sails.log.verbose('RecordService - updateMeta - mutation state ' + primaryUpdateMutationState);
+
       if (primaryUpdateMutationState === 'not-applied') {
         await this.markAttachmentPlanState(oid, updateAttachmentPlan, 'cancelled', 'primary-not-applied');
         const conflictCode = this.storageConflictCode(updateResponse.nonApplicationReason);
@@ -5803,7 +5788,6 @@ export namespace Services {
         if (!_.isEmpty(recordType) && triggerPostSaveTriggers === true) {
           // Trigger Post-save sync hooks ...
           try {
-            sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveSyncTriggers');
             const beforePostSyncCandidate = this.mergeValidationCandidate(originalRecord, recordObj);
             const hookOutcome = await this.runPostSaveSyncTriggers({
               oid,
@@ -5888,8 +5872,7 @@ export namespace Services {
               authoritativeCandidate = beforePostSyncCandidate;
             }
           } catch (err) {
-            sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
-            sails.log.error(JSON.stringify(err));
+            this.updateChronicle({ recordsOperation: 'updateMeta', recordsOperationOutcome: 'failed' }, [err]);
             tracker.recordPostPersistenceProblem(
               this.saveProblemFromError(
                 err,
@@ -5907,7 +5890,7 @@ export namespace Services {
               recordType?.searchable !== false
             );
           }
-          sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
+
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj, hookOperation);
 
@@ -5927,12 +5910,7 @@ export namespace Services {
               const transitionResponse = transitionOutcome.response as unknown as StorageServiceResponse;
               let transitionProblem: RecordSaveProblem | undefined;
 
-              sails.log.verbose(
-                `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook enter`
-              );
-              sails.log.verbose(JSON.stringify(transitionResponse));
               if (!this.hookResponseFailed(transitionResponse)) {
-                sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
                 if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
                   const transitionCandidate = this.mergeValidationCandidate(beforeTransitionCandidate, recordObj);
                   recordObj = transitionCandidate;
@@ -5981,9 +5959,6 @@ export namespace Services {
                   }
                 }
               } else {
-                sails.log.verbose(
-                  `RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers post save hook not successful`
-                );
                 transitionProblem = this.saveProblem(
                   'post-save',
                   'Your changes were saved, but workflow processing could not be completed.',
@@ -6003,10 +5978,7 @@ export namespace Services {
                 );
               }
             } catch (tErr) {
-              sails.log.error(
-                'RecordService - updateMeta - Failed to run post-save hooks when onTransitionWorkflow... or Error updating meta:'
-              );
-              sails.log.error(tErr);
+              this.updateChronicle({ recordsOperation: 'updateMeta', recordsOperationOutcome: 'failed' }, [tErr]);
               tracker.recordPostPersistenceProblem(
                 this.saveProblemFromError(
                   tErr,
@@ -6244,8 +6216,7 @@ export namespace Services {
               return refreshed;
             }
           } catch (err) {
-            sails.log.error(`${this.logHeader} Failed to create fallback record audit:`);
-            sails.log.error(JSON.stringify(err));
+            this.updateChronicle({ recordsOperation: 'getRecordAudit', recordsOperationOutcome: 'failed' }, [err]);
           }
         }
         const fallbackDate = new Date();
@@ -6979,7 +6950,6 @@ export namespace Services {
       labelFilterStr: string | undefined = undefined,
       requestContext: { username?: string } | undefined = undefined
     ): Promise<Record<string, unknown>[]> {
-      sails.log.verbose(`RecordsService::Getting attachments of ${oid}`);
       const datastreams = (await this.datastreamService.listDatastreams(oid, '', requestContext)) as AnyRecord[];
       const attachments: Record<string, unknown>[] = [];
       _.each(datastreams, (datastream: unknown) => {
@@ -7042,27 +7012,25 @@ export namespace Services {
     ) {
       const auditingEnabled = sails.config.record.auditing.enabled as unknown;
       if (auditingEnabled !== true && auditingEnabled !== 'true') {
-        sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
         return;
       }
-      sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
+
       _.unset(user, 'password');
       _.unset(user, 'token');
       // storage_id is used as the main ID in searches
       const data = new RecordAuditModel(id, record, user, action, executionSummary, concurrency);
-      sails.log.verbose(JSON.stringify(data));
+      this.updateChronicle({ recordsAuditOid: id, recordsAuditAction: action, recordsAuditOutcome: 'queued' });
+
       const envName = String((sails.config as AnyRecord).environment ?? process.env.NODE_ENV ?? '');
       if (envName === 'integrationtest') {
         try {
           await this.createRecordAudit({ ...data });
         } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to create record audit in integrationtest:`);
-          sails.log.error(JSON.stringify(err));
+          this.updateChronicle({ recordsOperation: 'auditRecord', recordsOperationOutcome: 'failed' }, [err]);
         }
         return;
       }
       if (this.queueService == null) {
-        sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
         return;
       }
       await this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
@@ -7072,21 +7040,17 @@ export namespace Services {
       const jobObj = job as AnyRecord;
       const jobAttrs = (jobObj.attrs ?? {}) as AnyRecord;
       const data = ((jobAttrs as AnyRecord).data ?? jobAttrs) as AnyRecord;
-      sails.log.verbose(`${this.logHeader} Storing record Audit entry: `);
-      sails.log.verbose(JSON.stringify(data));
       return this.createRecordAudit({ ...data })
         .then((response: unknown) => {
           const responseObj = response as StorageServiceResponse;
-          if (responseObj.isSuccessful()) {
-            sails.log.verbose(`${this.logHeader} Record Audit stored successfully `);
-          } else {
-            sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record:`);
-            sails.log.verbose(JSON.stringify(responseObj));
-          }
+          const successful = responseObj.isSuccessful();
+          this.updateChronicle(
+            { recordsAuditOutcome: successful ? 'stored' : 'failed' },
+            successful ? [] : [new Error('Record audit storage failed.')]
+          );
         })
         .catch((err: unknown) => {
-          sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record: `);
-          sails.log.error(JSON.stringify(err));
+          this.updateChronicle({ recordsOperation: 'storeRecordAudit', recordsOperationOutcome: 'failed' }, [err]);
         });
     }
 
@@ -7146,7 +7110,6 @@ export namespace Services {
       _targetRecord: unknown = undefined,
       initiatingUser: unknown = {}
     ) {
-      sails.log.verbose(`RecordsService::Appending to record:${targetRecordOid}`);
       return await this.mutateMetaInternal({
         actor: { kind: 'service', id: 'RecordsService.appendToRecord' },
         authorization: { kind: 'service' },
@@ -7189,7 +7152,6 @@ export namespace Services {
       _targetRecord: unknown = undefined,
       initiatingUser: unknown = {}
     ) {
-      sails.log.verbose(`RecordsService::Removing field from record:${targetRecordOid}`);
       return await this.mutateMetaInternal({
         actor: { kind: 'service', id: 'RecordsService.removeFromRecord' },
         authorization: { kind: 'service' },
@@ -7317,7 +7279,7 @@ export namespace Services {
 
       let url = `${sails.config.record.baseUrl.redbox}${sails.config.record.api.search.url}?q=metaMetadata_brandId:${brandObj.id} AND metaMetadata_type:${typeStr}${searchParam}&version=2.2&wt=json&sort=date_object_modified desc`;
       url = this.addAuthFilter(url, username, roles, brandObj, false);
-      sails.log.debug(`Searching fuzzy using: ${url}`);
+
       const options = this.getOptions(url, sails.config.record.api.search.method);
 
       return firstValueFrom(
@@ -8212,9 +8174,7 @@ export namespace Services {
       const nextStepObj = (nextStep ?? {}) as AnyRecord;
       const meta = currentRecObj.metaMetadata as AnyRecord;
       const metadata = currentRecObj.metadata as AnyRecord;
-      sails.log.verbose(
-        `transitionWorkflowStepMetadata - start - previousWorkflow: ${currentRecObj.previousWorkflow}; workflow: ${currentRecObj.workflow}; nextStep: ${nextStepObj}`
-      );
+
       if (!_.isEmpty(nextStepObj)) {
         const config = nextStepObj.config as AnyRecord;
         currentRecObj.previousWorkflow = currentRecObj.workflow;
@@ -8240,9 +8200,6 @@ export namespace Services {
         currentRecObj.authorization.viewRoles = currentRecObj.authorization.viewRoles ?? configAuth.viewRoles;
         currentRecObj.authorization.editRoles = currentRecObj.authorization.editRoles ?? configAuth.editRoles;
       }
-      sails.log.verbose(
-        `transitionWorkflowStepMetadata - finish - previousWorkflow: ${currentRecObj.previousWorkflow}; workflow: ${currentRecObj.workflow}; nextStep: ${nextStepObj}`
-      );
     }
 
     public async triggerPreSaveTransitionWorkflowTriggers(
@@ -8287,19 +8244,14 @@ export namespace Services {
           responseObj = outcome.response;
         }
       } catch (err) {
-        sails.log.error(
-          `${this.logHeader} Exception while running post save sync hooks when transitioning workflow: ${JSON.stringify(err)}`
-        );
+        this.updateChronicle({ recordsTransitionHookOutcome: 'failed' }, [err]);
         responseObj.success = false;
         responseObj.message = RBValidationError.displayMessage({
           t: TranslationService,
-          errors: [this.asError(err)],
+          errors: [err],
           defaultMessage: 'Failed to transition record workflow, please check server logs.',
         });
         responseObj.metadata = { postSaveSyncWarning: 'true' };
-        sails.log.error(
-          `RecordsService - triggerPostSaveTransitionWorkflowTriggers - error - response: ${JSON.stringify(responseObj)}`
-        );
         return responseObj;
       }
 
@@ -8465,22 +8417,23 @@ export namespace Services {
       const stagingDisk = StorageManagerService.stagingDisk();
       return this.datastreamService.updateDatastream(oid, origRecord, metadata, stagingDisk, fileIdsAdded).pipe(
         concatMap((reqs: Promise<unknown>[]) => {
+          this.updateChronicle({
+            recordsDatastreamOid: oid,
+            recordsDatastreamCount: Array.isArray(reqs) ? reqs.length : 0,
+          });
           if (Array.isArray(reqs) && reqs.length > 0) {
-            this.logger.verbose(`Updating data streams...`);
             return from(reqs);
           }
-          this.logger.verbose(`No datastreams to update...`);
+
           return of(null);
         }),
         concatMap((promise: Promise<unknown> | null) => {
           if (promise) {
-            this.logger.verbose(`Update datastream request is...`);
-            this.logger.verbose(JSON.stringify(promise));
             return from(promise).pipe(
               catchError((e: unknown) => {
+                this.updateChronicle({ recordsDatastreamOid: oid, recordsDatastreamOutcome: 'failed' }, [e]);
                 const detail = this.describeError(e);
-                this.logger.verbose(`Error in updating stream::::`);
-                this.logger.verbose(detail);
+
                 return throwError(() => new Error(`${TranslationService.t('attachment-upload-error')}: ${detail}`));
               })
             );
@@ -8488,10 +8441,7 @@ export namespace Services {
           return of(null);
         }),
         concatMap(updateResp => {
-          if (updateResp) {
-            this.logger.verbose(`Got response from update datastream request...`);
-            this.logger.verbose(JSON.stringify(updateResp));
-          }
+          this.updateChronicle({ recordsDatastreamOutcome: updateResp ? 'updated' : 'unchanged' });
           return of(updateResp);
         }),
         last()

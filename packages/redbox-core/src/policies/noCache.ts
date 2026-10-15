@@ -1,3 +1,5 @@
+import { safeChronicleText } from '../utilities/RequestChronicle';
+
 /**
  * NoCache Policy
  *
@@ -9,7 +11,7 @@ export function noCache(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction
     // check if this request is RenderViewController related
     const optionsLocals = req.options?.locals as Record<string, unknown> | undefined;
     if (optionsLocals?.view !== undefined && optionsLocals?.view != null) {
-        sails.log.verbose(`Render view controller request detected: ${req.path}`);
+        sails.log.verbose(`Render view controller request detected: ${safeChronicleText(req.path, 500)}`);
         // allows caching for view components by default
         setHeaders = false;
         // selectively set cache-control headers for certain paths
@@ -18,7 +20,7 @@ export function noCache(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction
         }
     }
     if (setHeaders) {
-        sails.log.verbose(`Setting "no cache" headers for ${req.path}`);
+        sails.log.verbose(`Setting "no cache" headers for ${safeChronicleText(req.path, 500)}`);
         // Set cache-control headers
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');

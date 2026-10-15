@@ -147,6 +147,43 @@ describe('HTTP config security helpers', function () {
       expect(headers['Pragma']).to.equal('no-cache');
       expect(headers['Cross-Origin-Opener-Policy']).to.equal('same-origin-allow-popups');
     });
+
+    for (const { description, session, expectedCacheControl } of [
+      {
+        description: 'preserve the zero-age session fallback for configured no-cache paths',
+        session: { cookie: { maxAge: 0 } },
+        expectedCacheControl: 'max-age=31536000, private',
+      },
+      {
+        description: 'honor configured no-cache paths with a positive cookie age',
+        session: { cookie: { maxAge: 600000 } },
+        expectedCacheControl: 'no-cache, no-store',
+      },
+      {
+        description: 'honor configured no-cache paths when the cookie age is unset',
+        session: { cookie: {} },
+        expectedCacheControl: 'no-cache, no-store',
+      },
+      {
+        description: 'honor configured no-cache paths when the cookie config is unset',
+        session: {},
+        expectedCacheControl: 'no-cache, no-store',
+      },
+      {
+        description: 'honor configured no-cache paths when sessions are disabled',
+        session: false,
+        expectedCacheControl: 'no-cache, no-store',
+      },
+    ]) {
+      it(`should ${description}`, function () {
+        (global as any).sails.config.session = session;
+        (global as any).sails.config.custom.cacheControl.noCache = ['/js/index.bundle.js'];
+
+        const headers = runCacheControl('/default/default/js/index.bundle.js');
+
+        expect(headers['Cache-Control']).to.equal(expectedCacheControl);
+      });
+    }
   });
 
   describe('body parser skip path helpers', function () {
