@@ -574,6 +574,9 @@ jobs:
             cd ./packages/redbox-core
             npm install --no-save --include=dev
       - run:
+          name: Type-check Effect integrations and tests
+          command: nvm install && npm --prefix packages/redbox-core run typecheck:effect
+      - run:
           name: Verify record-contract coverage
           command: nvm install && npm run test:record-contracts
       - run:

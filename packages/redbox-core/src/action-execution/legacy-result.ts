@@ -17,7 +17,7 @@ export interface LegacyEffectAdaptation {
 
 /** Legacy Observable hooks are first-value: later emissions are ignored. */
 function observableEffect(observable: Observable<unknown>): Effect.Effect<unknown, unknown, never> {
-  return Effect.async((resume, signal) => {
+  return Effect.callback((resume, signal) => {
     let settled = false;
 
     const settle = (effect: Effect.Effect<unknown, unknown, never>): void => {

@@ -1,6 +1,7 @@
-import { Context, Effect, Fiber, TestClock, TestContext } from 'effect';
+import { Context, Effect, Fiber } from 'effect';
+import * as TestClock from 'effect/testing/TestClock';
 import { expect } from 'chai';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import {
   ActionTransientFailure,
   createActionExecutionOperation,
@@ -183,6 +184,33 @@ describe('Effect action execution', function () {
     expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
   });
 
+  it('unsubscribes an Observable hook before reporting a cooperative timeout', async function () {
+    let activeSubscriptions = 0;
+    const observable = new Observable(() => {
+      activeSubscriptions += 1;
+      return () => {
+        activeSubscriptions -= 1;
+      };
+    });
+    const operation = createActionExecutionOperation('onCreate');
+    const outcome = await Effect.runPromise(
+      runSequentialActionPlan([
+        {
+          actionId: 'observable-timeout',
+          mode: 'onCreate',
+          phase: 'pre',
+          index: 0,
+          policy: { timeoutMs: 5 },
+          invoke: () => legacyHookToEffect(() => observable),
+        },
+      ], createPhaseContext(operation, 'pre'))
+    );
+
+    expect(activeSubscriptions).to.equal(0);
+    expect(outcome.report.actions[0].status).to.equal('timed_out');
+    expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(true);
+  });
+
   it('does not retry a non-cooperative timeout into an overlapping invocation', async function () {
     let invocations = 0;
     const operation = createActionExecutionOperation('onCreate');
@@ -321,7 +349,7 @@ describe('Effect action execution', function () {
       sleep: (durationMs: number) => {
         sleeps.push(durationMs);
         return Effect.gen(function* () {
-          yield* TestClock.sleep(`${durationMs} millis`);
+          yield* Effect.sleep(`${durationMs} millis`);
           logicalTime += durationMs;
         });
       },
@@ -349,11 +377,11 @@ describe('Effect action execution', function () {
 
     const outcome = await Effect.runPromise(
       Effect.gen(function* () {
-        const fiber = yield* Effect.fork(runSequentialActionPlan([action], context, dependencies));
-        yield* Effect.yieldNow();
+        const fiber = yield* Effect.forkChild(runSequentialActionPlan([action], context, dependencies));
+        yield* Effect.yieldNow;
         yield* TestClock.adjust('20 millis');
         return yield* Fiber.join(fiber);
-      }).pipe(Effect.provide(TestContext.TestContext))
+      }).pipe(Effect.provide(TestClock.layer()))
     );
 
     expect(outcome.report.actions[0].durationMs).to.equal(20);
@@ -363,7 +391,7 @@ describe('Effect action execution', function () {
   });
 
   it('executes a native Effect action with its required layer already provided', async function () {
-    const service = Context.GenericTag<{ value: number }>('test/native-action-service');
+    const service = Context.Service<{ value: number }>('test/native-action-service');
     const nativeAction = Effect.gen(function* () {
       const current = yield* service;
       return current.value + 1;
@@ -433,7 +461,7 @@ describe('Effect action execution', function () {
           phase: 'post',
           index: 0,
           invoke: () =>
-            Effect.async((_resume, signal) => {
+            Effect.callback((_resume, signal) => {
               signal.addEventListener('abort', () => undefined, { once: true });
             }),
         },

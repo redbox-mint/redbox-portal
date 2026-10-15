@@ -69,20 +69,22 @@ export const mintRaidProgram = (input: RaidRuntimeInput) => Effect.gen(function*
     const request = yield* stage('mapRaidRequest', { profile, fieldCount: Object.keys(fields).length }, mapper.map(sourceRecord, fields, input.options), parent);
 
     const token = yield* stage('acquireRaidToken', {}, client.getToken().pipe(
-      Effect.timeoutFail({ duration: Duration.millis(config.connection.oauth.timeoutMs), onTimeout: () => new RaidTimeoutError({ message: 'RAiD token request timed out', operation: 'token', retryable: true }) })
+      Effect.timeoutOrElse({ duration: Duration.millis(config.connection.oauth.timeoutMs), orElse: () => Effect.fail(new RaidTimeoutError({ message: 'RAiD token request timed out', operation: 'token', retryable: true })) })
     ), parent);
 
     const attempts = yield* Ref.make(0);
-    let retrySchedule = Schedule.exponential(Duration.millis(config.connection.retry.baseDelayMs)).pipe(
-      Schedule.intersect(Schedule.recurs(Math.max(0, config.connection.retry.maxAttempts - 1))),
-      Schedule.whileInput(isRetryable),
-      Schedule.modifyDelay((_output, duration) => Duration.min(duration, Duration.millis(config.connection.retry.maxDelayMs)))
+    let retrySchedule = Schedule.max([
+      Schedule.exponential(Duration.millis(config.connection.retry.baseDelayMs)),
+      Schedule.recurs(Math.max(0, config.connection.retry.maxAttempts - 1)),
+    ]).pipe(
+      Schedule.while(({ input }) => isRetryable(input)),
+      Schedule.modifyDelay(({ duration }) => Effect.succeed(Duration.min(duration, Duration.millis(config.connection.retry.maxDelayMs))))
     );
     if (config.connection.retry.jitter) retrySchedule = retrySchedule.pipe(Schedule.jittered) as typeof retrySchedule;
     const minted = yield* Effect.gen(function* () {
       const attempt = yield* Ref.updateAndGet(attempts, value => value + 1);
       const mintOnce = (accessToken: string) => client.mint(request as RaidCreateRequest, accessToken, attempt).pipe(
-        Effect.timeoutFail({ duration: Duration.millis(config.connection.timeoutMs), onTimeout: () => new RaidTimeoutError({ message: 'RAiD mint request timed out', operation: 'mint', retryable: true }) })
+        Effect.timeoutOrElse({ duration: Duration.millis(config.connection.timeoutMs), orElse: () => Effect.fail(new RaidTimeoutError({ message: 'RAiD mint request timed out', operation: 'mint', retryable: true })) })
       );
       return yield* stage('mintRaidRequest', { attempt, method: 'POST', path: '/raid' }, mintOnce(token).pipe(
         Effect.catchIf(error => error instanceof RaidHttpError && error.statusCode === 401, () => client.getToken(true).pipe(Effect.flatMap(mintOnce)))
@@ -106,7 +108,7 @@ export const mintRaidProgram = (input: RaidRuntimeInput) => Effect.gen(function*
     }), parent);
     return input.record;
   }).pipe(
-    Effect.catchAll(error => Effect.gen(function* () {
+    Effect.catch(error => Effect.gen(function* () {
       if (isRetryable(error) && config.durableRetry.jobName && context.attemptCount < config.durableRetry.maxAttempts) {
         const nextAttempt = context.attemptCount + 1;
         setPath(input.record as AnyRecord, 'metaMetadata.raid.attemptCount', nextAttempt);
@@ -126,7 +128,7 @@ export const mintRaidProgram = (input: RaidRuntimeInput) => Effect.gen(function*
       return yield* Effect.fail(error);
     }))
   ).pipe(Effect.onExit(exit => Exit.isFailure(exit)
-    ? audit.fail(parent, Cause.squash(exit.cause), { message: Cause.isInterruptedOnly(exit.cause) ? 'RAiD orchestration interrupted' : undefined })
+    ? audit.fail(parent, Cause.squash(exit.cause), { message: Cause.hasInterruptsOnly(exit.cause) ? 'RAiD orchestration interrupted' : undefined })
     : Effect.void));
   yield* audit.complete(parent, { responseSummary: { oid: context.oid, raid: getPath(result, `metadata.${config.raidFieldName}`) } });
   return result;
@@ -139,7 +141,7 @@ export async function runRaidProgram<A, E, R>(program: Effect.Effect<A, E, R>, s
   try {
     const exit = await Effect.runPromise(Fiber.await(fiber));
     if (Exit.isSuccess(exit)) return exit.value;
-    const failure = Cause.failureOption(exit.cause);
+    const failure = Cause.findErrorOption(exit.cause);
     if (failure._tag === 'Some') throw failure.value;
     throw Cause.squash(exit.cause);
   } finally { signal?.removeEventListener('abort', interrupt); }
