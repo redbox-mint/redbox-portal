@@ -1,6 +1,7 @@
 import { resolveSiteTitle } from './siteTitle';
 import { inspect } from 'node:util';
 import { renderErrorView } from './renderErrorView';
+import { RequestChronicleHelper } from '../utilities/RequestChronicle';
 
 declare module 'express-serve-static-core' {
     interface Response {
@@ -27,8 +28,16 @@ export function serverError(this: { req: Sails.Req, res: Sails.Res }, data?: unk
     // Set status code
     res.status(500);
 
-    // Log error to console
-    if (data !== undefined) {
+    // Record the error in the request chronicle, which is logged when the request finishes.
+    // Without a running request chronicle, log the error immediately.
+    const chronicle = RequestChronicleHelper.existing(req);
+    if (chronicle?.isRunning) {
+        chronicle.addInfo({ responseHandler: 'serverError' });
+        if (data !== undefined) {
+            chronicle.addError(data);
+        }
+        sails.log.verbose(`Sending 500 ("Server Error") response for request ${chronicle.requestId}.`);
+    } else if (data !== undefined) {
         sails.log.error('Sending 500 ("Server Error") response: \n', data);
     }
     else sails.log.error('Sending 500 ("Server Error") response');

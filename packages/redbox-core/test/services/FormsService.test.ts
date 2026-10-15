@@ -1,3 +1,5 @@
+import { createSinonStubLogger } from '../logger.test';
+
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
@@ -59,13 +61,7 @@ describe('FormsService', function () {
           },
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
 
     mockForm = {
@@ -939,8 +935,14 @@ describe('FormsService', function () {
 
       expect(result.ok).to.equal(true);
       if (!result.ok) throw new Error(result.reason);
-      const configured = findComponentDefinitionByName(result.effectiveForm.componentDefinitions as unknown[], 'configured');
-      const unconfigured = findComponentDefinitionByName(result.effectiveForm.componentDefinitions as unknown[], 'unconfigured');
+      const configured = findComponentDefinitionByName(
+        result.effectiveForm.componentDefinitions as unknown[],
+        'configured'
+      );
+      const unconfigured = findComponentDefinitionByName(
+        result.effectiveForm.componentDefinitions as unknown[],
+        'unconfigured'
+      );
       expect(configured.model.config.defaultValue).to.equal('Configured value');
       expect(configured.model.config.value).to.equal('Configured value');
       expect(unconfigured.model.config).not.to.have.property('defaultValue');

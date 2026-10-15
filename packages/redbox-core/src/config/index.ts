@@ -1,6 +1,6 @@
 /**
  * Config Types Index
- * 
+ *
  * Exports all config interfaces and default values for sails.config typing.
  * These are used by the redbox-core loader to generate shim files in config/.
  */

@@ -1,3 +1,4 @@
+export type { ILogger } from '@researchdatabox/sails-ng-common';
 import './sails';
 
 export { Attachment } from './Attachment';
@@ -147,8 +148,6 @@ export type {
   IntegrationOutcomeMapper,
 } from './services/IntegrationAuditService';
 export * from './model/storage/HarvestRunModel';
-export { ILogger } from './Logger';
-
 export * from './model';
 export * from './record-contract';
 export * from './decorator';

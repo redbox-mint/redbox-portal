@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -22,7 +24,7 @@ describe('RvaImportService', () => {
           upsertEntries: sinon.stub().resolves({ created: 1, updated: 2, skipped: 0 })
         }
       },
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() }
+      log: createSinonStubLogger(sinon),
     };
 
     (global as any).Vocabulary = {

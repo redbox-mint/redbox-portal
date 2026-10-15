@@ -1,12 +1,12 @@
-import {ErrorResponseItemV2} from "./api";
-import {MetaResponseItemV2} from "./api/APIResponseVersion2";
+import { ErrorResponseItemV2 } from './api';
+import { MetaResponseItemV2 } from './api/APIResponseVersion2';
 import type { PublishedRecordJsonSchemaDocument } from '../record-contract/record-json-schema-artifact';
 import type { ContractJsonObject } from '../record-contract/types';
 
 export const BuildResponseFormat = ['json', 'raw-json'] as const;
-export type BuildResponseFormatType = typeof BuildResponseFormat[number];
+export type BuildResponseFormatType = (typeof BuildResponseFormat)[number];
 export const RawJsonResponseMediaTypes = ['application/schema+json', 'application/problem+json'] as const;
-export type RawJsonResponseMediaType = typeof RawJsonResponseMediaTypes[number];
+export type RawJsonResponseMediaType = (typeof RawJsonResponseMediaTypes)[number];
 
 /**
  * Common response controls retained by both enveloped and raw JSON responses.
@@ -25,7 +25,9 @@ interface BuildResponseCommon {
    * These will be logged.
    * They are not included in the response.
    */
-  errors?: Error[];
+  errors?: unknown[];
+  /** Arbitrary data to add to the request chronicle. */
+  chronicle?: Record<string, unknown>;
 }
 
 /** The existing API-version-aware JSON response contract. */

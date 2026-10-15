@@ -1,7 +1,6 @@
 import type { Response } from 'express';
 import * as _ from 'lodash';
 import path from 'path';
-import { ILogger } from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
 import { sendTerminalErrorFallback } from './responses/terminalErrorFallback';
 import { resolveHookViewFile } from './hooks/hookResources';
@@ -14,14 +13,17 @@ import {
   ApiVersionStrings,
   RBValidationError,
   ErrorResponseItemV2,
-} from "./model";
-
-
-
-
+} from './model';
+import {
+  RequestChronicleHelper,
+  RequestChronicleLimits,
+  safeChronicleText,
+  toChronicleError,
+  toChronicleLogRecord,
+} from './utilities/RequestChronicle';
+import { CoreBase } from './CoreBase';
 
 export namespace Controllers.Core {
-
   type ResolvedViewFile = ResolvedHookFile;
 
   /**
@@ -43,19 +45,13 @@ export namespace Controllers.Core {
    * @remarks Use `sendResp` for responses so API versioning and the standard response envelope remain consistent.
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
    */
-  export class Controller {
-
+  export class Controller extends CoreBase {
     /**
      * Overrides for the settings in `config/controllers.js`
      * (specific to the controller where it's defined)
      * Specific to sails. Don't rename.
      */
     protected _config: Record<string, unknown> = {};
-
-    /**
-     * Exported methods. Must be overridden by the child to add custom methods.
-     */
-    protected _exportedMethods: string[] = [];
 
     /**
      * Theme used by the controller by default.
@@ -82,97 +78,7 @@ export namespace Controllers.Core {
       '_config',
     ];
 
-    // Namespaced logger for controllers
-    private _logger: ILogger | null = null;
-
-    private getFallbackLogger(): ILogger {
-      const log = (...args: unknown[]): void => console.log(...args);
-      const noop = (): void => undefined;
-      return {
-        silly: log,
-        verbose: log,
-        trace: (...args: unknown[]): void => console.trace(...args),
-        debug: (...args: unknown[]): void => console.debug(...args),
-        log: (...args: unknown[]): void => console.log(...args),
-        info: (...args: unknown[]): void => console.info(...args),
-        warn: (...args: unknown[]): void => console.warn(...args),
-        error: (...args: unknown[]): void => console.error(...args),
-        crit: (...args: unknown[]): void => console.error(...args),
-        fatal: (...args: unknown[]): void => console.error(...args),
-        silent: noop,
-        blank: (): void => console.log(''),
-      };
-    }
-
-    /**
-     * Get a namespaced logger for this controller class.
-     * Uses the class constructor name as the namespace.
-     * Falls back to sails.log if pino namespaced logging is not available.
-     */
-    protected get logger(): ILogger {
-      if (typeof sails === 'undefined') {
-        return this.getFallbackLogger();
-      }
-      if (this._logger === null && sails?.config?.log?.createNamespaceLogger && sails?.config?.log?.customLogger) {
-        const controllerName = this.constructor.name + 'Controller';
-        this._logger = sails.config.log.createNamespaceLogger(controllerName, sails.config.log.customLogger);
-      }
-      if (this._logger !== null) {
-        return this._logger;
-      }
-      const sailsLogger = sails?.log as Partial<ILogger> | undefined;
-      if (sailsLogger && typeof sailsLogger.verbose === 'function') {
-        return sailsLogger as ILogger;
-      }
-      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      return this.getFallbackLogger();
-    }
-
-    /**
-     * Registers a Sails hook handler if Sails is available.
-     */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
-      if (typeof sails === 'undefined') {
-        return false;
-      }
-      if (action === 'on') {
-        if (typeof sails.on !== 'function') {
-          return false;
-        }
-        sails.on(eventName as string, handler);
-        return true;
-      }
-      if (typeof sails.after !== 'function') {
-        return false;
-      }
-      sails.after(eventName, handler);
-      return true;
-    }
-
-    constructor() {
-      this.processDynamicImports().then(() => {
-        this.logger.verbose("Dynamic imports imported");
-        this.onDynamicImportsCompleted();
-      });
-    }
-
-    /**
-     * Function that allows async dynamic imports of modules (such as ECMAScript modules).
-     * Called in the constructor and intended to be overridden in sub class to allow imports.
-     */
-    protected async processDynamicImports() {
-      // Override in sub class as needed
-    }
-
-    /**
-     * Function that is called during the construction of the Controller after the dynamic imports are completed.
-     * Intended to be overridden in the sub class
-     */
-    protected onDynamicImportsCompleted() {
-      // Override in sub class as needed
-    }
+    protected _loggerNamespaceSuffix: string = 'Controller';
 
     /**
      **************************************************************************************************
@@ -205,7 +111,9 @@ export namespace Controllers.Core {
               exportedMethods[methodName] = member;
             }
           } else {
-            this.logger.error(`The controller method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
+            this.logger.error(
+              `The controller method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`
+            );
           }
         } else {
           this.logger.error(`The controller method "${methodName}" does not exist on ${this.constructor?.name}`);
@@ -233,7 +141,12 @@ export namespace Controllers.Core {
      *          controller  Controller      Child controller class. (static)
      *
      */
-    protected _handleRequest(req: Sails.Req, res: Sails.Res, callback: (req: Sails.Req, res: Sails.Res, options: Record<string, unknown>) => void, options: Record<string, unknown> = {}): void {
+    protected _handleRequest(
+      req: Sails.Req,
+      res: Sails.Res,
+      callback: (req: Sails.Req, res: Sails.Res, options: Record<string, unknown>) => void,
+      options: Record<string, unknown> = {}
+    ): void {
       callback(req, res, options);
     }
 
@@ -256,7 +169,6 @@ export namespace Controllers.Core {
       res.notFound();
     }
 
-
     private getCoreViewRoot(): string {
       return path.resolve(sails.config.appPath, 'views');
     }
@@ -269,8 +181,7 @@ export namespace Controllers.Core {
     }
 
     private resolveViewCandidate(viewPath: string): ResolvedViewFile | null {
-      return resolveHookViewFile(sails.config.appPath, viewPath)
-        ?? this.resolveCoreViewFile(viewPath);
+      return resolveHookViewFile(sails.config.appPath, viewPath) ?? this.resolveCoreViewFile(viewPath);
     }
 
     private resolveViewFile(branding: string, portal: string, view: string): ResolvedViewFile | null {
@@ -378,14 +289,17 @@ export namespace Controllers.Core {
     }
 
     public sendView(req: Sails.Req, res: Sails.Res, view: string, locals: Record<string, unknown> = {}): void {
-
       if (!req.options) {
         req.options = {};
       }
       if (req.options.locals == null) {
         req.options.locals = {};
       }
-      const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals as Record<string, unknown>, locals);
+      const mergedLocal: Record<string, unknown> = Object.assign(
+        {},
+        req.options.locals as Record<string, unknown>,
+        locals
+      );
       this.addRequestBrandingAndPortal(req, mergedLocal);
 
       const branding = mergedLocal['branding'] as string;
@@ -403,10 +317,13 @@ export namespace Controllers.Core {
 
       // If we can resolve a layout set it explicitly for ejs-locals. Sails' built-in
       // layout calculation assumes one app views root, but hook views live elsewhere.
-      if (resolvedLayout !== null && mergedLocal["layout"] !== false) {
-        mergedLocal["_layoutFile"] = path.relative(path.dirname(resolvedView.absolutePath), resolvedLayout.absolutePath);
-        mergedLocal["layout"] = false;
-        mergedLocal["layoutDirectoryLocation"] = `${path.dirname(resolvedLayout.absolutePath)}${path.sep}`;
+      if (resolvedLayout !== null && mergedLocal['layout'] !== false) {
+        mergedLocal['_layoutFile'] = path.relative(
+          path.dirname(resolvedView.absolutePath),
+          resolvedLayout.absolutePath
+        );
+        mergedLocal['layout'] = false;
+        mergedLocal['layoutDirectoryLocation'] = `${path.dirname(resolvedLayout.absolutePath)}${path.sep}`;
       }
 
       // Add some properties blueprints usually adds
@@ -419,16 +336,15 @@ export namespace Controllers.Core {
       _.merge(mergedLocal, this.getNg2Apps(view));
       mergedLocal['templateDirectoryLocation'] = `${path.dirname(resolvedView.absolutePath)}${path.sep}`;
       mergedLocal['__dirname'] = resolvedView.absolutePath;
-      mergedLocal['views'] = Array.from(new Set([
-        this.getCoreMirrorDirectory(resolvedView),
-        ...(resolvedLayout ? [this.getCoreMirrorDirectory(resolvedLayout)] : []),
-      ]));
+      mergedLocal['views'] = Array.from(
+        new Set([
+          this.getCoreMirrorDirectory(resolvedView),
+          ...(resolvedLayout ? [this.getCoreMirrorDirectory(resolvedLayout)] : []),
+        ])
+      );
 
-      this.logger.debug("resolvedView");
-      this.logger.debug(sailsViewPath);
-      // this.logger.debug("mergedLocal");
-      // this.logger.debug(mergedLocal);
-
+      // The merged locals are too large to record; the view path identifies what was rendered.
+      this.updateChronicle(req, { view: sailsViewPath });
 
       res.view(this.getRenderViewPath(resolvedView), mergedLocal);
     }
@@ -476,7 +392,13 @@ export namespace Controllers.Core {
     /**
      * @deprecated Use `sendResp` instead.
      */
-    public respond(req: Sails.Req, res: Sails.Res, ajaxCb: (req: Sails.Req, res: Sails.Res) => unknown, normalCb: (req: Sails.Req, res: Sails.Res) => unknown, _forceAjax = false): unknown {
+    public respond(
+      req: Sails.Req,
+      res: Sails.Res,
+      ajaxCb: (req: Sails.Req, res: Sails.Res) => unknown,
+      normalCb: (req: Sails.Req, res: Sails.Res) => unknown,
+      _forceAjax = false
+    ): unknown {
       if (this.isAjax(req) || _forceAjax === true) {
         return ajaxCb(req, res);
       } else {
@@ -508,10 +430,12 @@ export namespace Controllers.Core {
      * @deprecated Use `sendResp` instead.
      */
     protected apiFail(req: Sails.Req, res: Sails.Res, statusCode = 500, errorResponse?: APIErrorResponse): Response {
-      const displayErrors = [{
-        title: errorResponse?.message ?? 'An error has occurred',
-        detail: errorResponse?.details
-      }];
+      const displayErrors = [
+        {
+          title: errorResponse?.message ?? 'An error has occurred',
+          detail: errorResponse?.details,
+        },
+      ];
       return this.sendResp(req, res, { status: statusCode, displayErrors, headers: this.getNoCacheHeaders() });
     }
 
@@ -556,19 +480,24 @@ export namespace Controllers.Core {
       const defaultVersion = ApiVersion.VERSION_1_0;
 
       const qs = req.query;
-      const qsKey = "apiVersion";
+      const qsKey = 'apiVersion';
       const qsKeyLower = qsKey.toLowerCase();
 
       const headers = req.headers;
-      const headerKey = "X-ReDBox-Api-Version";
+      const headerKey = 'X-ReDBox-Api-Version';
       const headerKeyLower = headerKey.toLowerCase();
 
       const qsValue = (_.get(qs, qsKey) ?? _.get(qs, qsKeyLower))?.toString()?.trim()?.toLowerCase();
-      const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))?.toString()?.trim()?.toLowerCase();
+      const headerValue = (_.get(headers, headerKey) ?? _.get(headers, headerKeyLower))
+        ?.toString()
+        ?.trim()
+        ?.toLowerCase();
 
       if (qsValue && headerValue && qsValue !== headerValue) {
-        sails.log.error(`If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match. ` +
-          `Using default API version (${defaultVersion}).`);
+        sails.log.error(
+          `If API version is provided in querystring (${qsValue}) and HTTP header (${headerValue}), they must match. ` +
+            `Using default API version (${defaultVersion}).`
+        );
         return defaultVersion;
       }
 
@@ -577,8 +506,10 @@ export namespace Controllers.Core {
 
       const available: string[] = Object.values(ApiVersion);
       if (!available.includes(version)) {
-        sails.log.error(`The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
-          `Using default API version (${defaultVersion}).`);
+        sails.log.error(
+          `The provided API version (${version}) must be one of the known API versions: ${available.join(', ')}. ` +
+            `Using default API version (${defaultVersion}).`
+        );
         return defaultVersion;
       }
 
@@ -615,7 +546,7 @@ export namespace Controllers.Core {
       const apiVersion = this.getApiVersion(req);
       // Destructure build response properties and set defaults.
       const {
-        format = "json",
+        format = 'json',
         data: suppliedData,
         headers = {},
         errors = [],
@@ -623,19 +554,47 @@ export namespace Controllers.Core {
         meta = {},
         prehydrate = undefined,
         v1 = null,
+        chronicle = {},
       } = buildResponse ?? {};
       const data = suppliedData === undefined ? {} : suppliedData;
       // Response status defaults to 200.
       let { status = 200 } = buildResponse ?? {};
 
       // Collect and process the errors recursively
-      const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(errors, displayErrors);
+      const chronicleRunning = RequestChronicleHelper.existing(req)?.isRunning === true;
+      const { collectedErrors, collectedDisplayErrors } = this.collectAndLogErrors(
+        errors,
+        displayErrors,
+        !chronicleRunning
+      );
       this.ensureDisplayErrors(collectedErrors, collectedDisplayErrors);
       status = this.resolveResponseStatus(status, collectedDisplayErrors);
 
       this.applyResponseHeaders(res, headers);
       this.applyResponseStatus(res, status);
 
+      // Record the errors in the request chronicle, which is logged when the request finishes.
+      this.updateChronicle(
+        req,
+        {
+          ...chronicle,
+          ...(collectedDisplayErrors.length > 0
+            ? {
+                // Slice before mapping, as the array may be large; the count is kept.
+                displayErrorCount: collectedDisplayErrors.length,
+                displayErrors: collectedDisplayErrors
+                  .slice(0, RequestChronicleLimits.maxArrayItems)
+                  .map(({ status, code, title, detail }) => ({
+                    status,
+                    code,
+                    title,
+                    detail,
+                  })),
+              }
+            : {}),
+        },
+        chronicleRunning ? collectedErrors : []
+      );
       if (status === 304) {
         sails.log.verbose('Send bodyless 304 response.');
         return res.end();
@@ -651,7 +610,16 @@ export namespace Controllers.Core {
       }
 
       if (apiVersion === ApiVersion.VERSION_2_0) {
-        return this.handleV2Response(res, format, status, collectedErrors, collectedDisplayErrors, data, meta, prehydrate);
+        return this.handleV2Response(
+          res,
+          format,
+          status,
+          collectedErrors,
+          collectedDisplayErrors,
+          data,
+          meta,
+          prehydrate
+        );
       }
 
       const unknownSituation = {
@@ -672,27 +640,102 @@ export namespace Controllers.Core {
           collectedDisplayErrors,
         },
       };
-      sails.log.error("Unknown API version in sendResp", unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+      sails.log.error('Unknown API version in sendResp', unknownSituation);
+      return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: {} });
     }
 
-    private collectAndLogErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]) {
-      const {
-        errors: collectedErrors,
-        displayErrors: collectedDisplayErrors
-      } = RBValidationError.collectErrors(errors, displayErrors);
-
-      for (const error of collectedErrors) {
-        sails.log.error(`Collected error in sendResp:`, error);
+    /**
+     * Add details and errors to the request chronicle, which is logged when the request finishes.
+     * Values are sanitised and size-bounded, but prefer identifiers, counts, and codes over whole objects.
+     * @param req The sails request.
+     * @param info The details to add.
+     * @param errors The errors to add.
+     * @protected
+     */
+    protected updateChronicle(req: Sails.Req, info?: Record<string, unknown>, errors?: (Error | unknown)[]): void {
+      try {
+        const rc = RequestChronicleHelper.existing(req);
+        if (rc === undefined) {
+          // No request chronicle (e.g. socket or virtual requests): ignore the details, but don't lose errors.
+          for (const error of errors ?? []) {
+            sails.log.error(
+              toChronicleLogRecord({ error: toChronicleError(error) }),
+              'Error recorded without a request chronicle.'
+            );
+          }
+          return;
+        }
+        rc.addInfo(info ?? {});
+        (errors ?? []).forEach(error => rc.addError(error));
+      } catch {
+        try {
+          sails.log.warn('Could not update the request chronicle.');
+        } catch {
+          // Recording details must never break the request.
+        }
       }
+    }
 
+    /**
+     * Record the result of work that is not awaited before the response is sent, such as an audit event.
+     * If the work finishes after the response, its result is logged separately with the request id,
+     * so failures are never discarded.
+     * @param req The sails request.
+     * @param operation A short name for the operation, used as the request chronicle key.
+     * @param work The work.
+     * @protected
+     */
+    protected recordBackgroundOperation(req: Sails.Req, operation: string, work: PromiseLike<unknown>): void {
+      // Capture the helper now, in case the request options change before the work finishes.
+      const rc = RequestChronicleHelper.existing(req);
+      const onResult = (error?: unknown) => {
+        try {
+          if (rc !== undefined) {
+            rc.addOperationResult(operation, error);
+          } else if (error !== undefined) {
+            const name = safeChronicleText(operation, 100);
+            sails.log.error(
+              toChronicleLogRecord({ operation: name, error: toChronicleError(error) }),
+              `Operation '${name}' failed.`
+            );
+          }
+        } catch {
+          try {
+            sails.log.warn('Could not record the result of a background operation.');
+          } catch {
+            // Recording the result must never cause an unhandled rejection.
+          }
+        }
+      };
+      try {
+        Promise.resolve(work).then(
+          () => onResult(),
+          (error: unknown) => onResult(error ?? new Error('Background operation failed'))
+        );
+      } catch (error) {
+        onResult(error);
+      }
+    }
+
+    private collectAndLogErrors(errors: (Error | unknown)[], displayErrors: ErrorResponseItemV2[], logErrors: boolean) {
+      const { errors: collectedErrors, displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(
+        errors,
+        displayErrors
+      );
+
+      if (logErrors) {
+        // Without a running request chronicle, log the errors immediately so they are not lost.
+        for (const error of collectedErrors) {
+          sails.log.error(`Collected error in sendResp:`, error);
+        }
+      }
       return { collectedErrors, collectedDisplayErrors };
     }
 
     private ensureDisplayErrors(collectedErrors: Error[], collectedDisplayErrors: ErrorResponseItemV2[]) {
       if (collectedErrors.length > 0 && collectedDisplayErrors.length === 0) {
         // If there are any errors, there must be at least one display error to show the user.
-        collectedDisplayErrors.push({ code: 'server-error', status: "500" });
+        collectedDisplayErrors.push({ code: 'server-error', status: '500' });
       }
 
       const errorsMsg = `${collectedErrors.length} ${collectedErrors.length === 1 ? 'error' : 'errors'}`;
@@ -706,12 +749,13 @@ export namespace Controllers.Core {
         try {
           const statuses: number[] = [];
           if (status !== undefined && status !== null) {
-            statuses.push(status)
+            statuses.push(status);
           }
-          statuses.push(...collectedDisplayErrors
-            .map(i => i?.status ? parseInt(i?.status?.toString()) : 0)
-            .filter(i => Number.isFinite(i))
-          )
+          statuses.push(
+            ...collectedDisplayErrors
+              .map(i => (i?.status ? parseInt(i?.status?.toString()) : 0))
+              .filter(i => Number.isFinite(i))
+          );
           if (statuses.length > 0) {
             // Note that Math.max has a maximum number of parameters, which a very long array (10,000+) could exceed.
             // We don't expect that many statuses. If this becomes an issue, use Array.reduce instead.
@@ -748,7 +792,7 @@ export namespace Controllers.Core {
       }
     }
 
-    private isApprovedRawJsonMediaType(value: unknown): value is typeof RawJsonResponseMediaTypes[number] {
+    private isApprovedRawJsonMediaType(value: unknown): value is (typeof RawJsonResponseMediaTypes)[number] {
       return RawJsonResponseMediaTypes.some(mediaType => mediaType === value);
     }
 
@@ -798,10 +842,9 @@ export namespace Controllers.Core {
           return false;
         }
 
-        return Object.values(Object.getOwnPropertyDescriptors(value)).every(descriptor =>
-          descriptor.enumerable === true &&
-          'value' in descriptor &&
-          this.isJsonSafeValue(descriptor.value, ancestors)
+        return Object.values(Object.getOwnPropertyDescriptors(value)).every(
+          descriptor =>
+            descriptor.enumerable === true && 'value' in descriptor && this.isJsonSafeValue(descriptor.value, ancestors)
         );
       } finally {
         ancestors.delete(value);
@@ -810,8 +853,12 @@ export namespace Controllers.Core {
 
     private isRawJsonObject(value: unknown): value is Record<string, unknown> {
       try {
-        return value !== null && typeof value === 'object' && !Array.isArray(value) &&
-          this.isJsonSafeValue(value, new Set<object>());
+        return (
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          this.isJsonSafeValue(value, new Set<object>())
+        );
       } catch {
         return false;
       }
@@ -824,7 +871,7 @@ export namespace Controllers.Core {
           bodyKind: data === null ? 'null' : Array.isArray(data) ? 'array' : typeof data,
         });
         res.set('Content-Type', 'application/json');
-        return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+        return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: {} });
       }
 
       res.set('Content-Type', mediaType);
@@ -853,10 +900,8 @@ export namespace Controllers.Core {
 
       return (
         (data !== null && data !== undefined) ||
-        (
-          ((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
-          apiVersion === ApiVersion.VERSION_1_0
-        )
+        (((v1 !== null && v1 !== undefined) || (data !== null && data !== undefined)) &&
+          apiVersion === ApiVersion.VERSION_1_0)
       );
     }
 
@@ -884,23 +929,23 @@ export namespace Controllers.Core {
       const errorResponse = new APIErrorResponse();
       if (collectedDisplayErrors.length === 1) {
         const displayError = collectedDisplayErrors[0] ?? {};
-        const title = displayError.title?.toString()?.trim() || displayError.code?.toString()?.trim() || "";
-        const detail = displayError.detail?.toString()?.trim() || "";
+        const title = displayError.title?.toString()?.trim() || displayError.code?.toString()?.trim() || '';
+        const detail = displayError.detail?.toString()?.trim() || '';
         if (title || detail) {
-          errorResponse.message = title || detail || "An error occurred";
+          errorResponse.message = title || detail || 'An error occurred';
           if (title && detail) {
             errorResponse.details = detail;
           }
         } else {
           errorResponse.message = RBValidationError.displayMessage({
             t: TranslationService,
-            displayErrors: collectedDisplayErrors
+            displayErrors: collectedDisplayErrors,
           });
         }
       } else {
         errorResponse.message = RBValidationError.displayMessage({
           t: TranslationService,
-          displayErrors: collectedDisplayErrors
+          displayErrors: collectedDisplayErrors,
         });
       }
       return errorResponse;
@@ -909,9 +954,9 @@ export namespace Controllers.Core {
     private formatV2DisplayErrors(collectedDisplayErrors: ErrorResponseItemV2[]): ErrorResponseItemV2[] {
       const t = TranslationService.t;
       return collectedDisplayErrors.map(displayError => {
-        const code = displayError.code?.toString()?.trim() || "";
-        let title = displayError.title?.toString()?.trim() || "";
-        const detail = displayError.detail?.toString()?.trim() || "";
+        const code = displayError.code?.toString()?.trim() || '';
+        let title = displayError.title?.toString()?.trim() || '';
+        const detail = displayError.detail?.toString()?.trim() || '';
 
         if (code && !title && !detail) {
           title = code;
@@ -938,7 +983,17 @@ export namespace Controllers.Core {
       meta: Record<string, unknown>
     ) {
       // Success path for v1
-      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, v1, ApiVersion.VERSION_1_0)) {
+      if (
+        this.shouldSendSuccessJson(
+          format,
+          collectedErrors,
+          collectedDisplayErrors,
+          status,
+          data,
+          v1,
+          ApiVersion.VERSION_1_0
+        )
+      ) {
         return this.sendSuccessJson(res, ApiVersion.VERSION_1_0, status, data, meta, v1);
       }
 
@@ -968,8 +1023,8 @@ export namespace Controllers.Core {
           collectedDisplayErrors,
         },
       };
-      sails.log.error("Unknown v1 situation in sendResp", unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+      sails.log.error('Unknown v1 situation in sendResp', unknownSituation);
+      return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: meta || {} });
     }
 
     private handleV2Response(
@@ -983,7 +1038,17 @@ export namespace Controllers.Core {
       prehydrate?: unknown
     ) {
       // Success path for v2
-      if (this.shouldSendSuccessJson(format, collectedErrors, collectedDisplayErrors, status, data, null, ApiVersion.VERSION_2_0)) {
+      if (
+        this.shouldSendSuccessJson(
+          format,
+          collectedErrors,
+          collectedDisplayErrors,
+          status,
+          data,
+          null,
+          ApiVersion.VERSION_2_0
+        )
+      ) {
         if (prehydrate !== null && prehydrate !== undefined) {
           sails.log.verbose(`Send response status ${status} api version 2 format json with prehydrate.`);
           return res.json({ data: data, meta: meta, prehydrate });
@@ -1004,7 +1069,7 @@ export namespace Controllers.Core {
           format,
           status,
           data,
-          meta
+          meta,
         },
         errors: {
           collectedErrors,
@@ -1012,14 +1077,14 @@ export namespace Controllers.Core {
         },
       };
       sails.log.error(`Unknown v2 situation in sendResp`, unknownSituation);
-      return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: meta || {} });
+      return res.status(500).json({ errors: [{ detail: 'Check server logs.' }], meta: meta || {} });
     }
 
     protected getNoCacheHeaders(): Record<string, string> {
       return {
         'Cache-control': 'no-cache, private',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        Pragma: 'no-cache',
+        Expires: '0',
       };
     }
 

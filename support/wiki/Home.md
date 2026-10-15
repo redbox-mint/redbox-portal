@@ -31,6 +31,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Record Schema Contract Contributors](https://github.com/redbox-mint/redbox-portal/wiki/Record-Schema-Contract-Contributors)**: Hook-author contract for component and namespaced-extension registration, dialect-neutral IR, ownership, nullability, deterministic output, diagnostics, limits, and lift failures.
 - **[Concurrent Record Modifications](https://github.com/redbox-mint/redbox-portal/wiki/Concurrent-Record-Modifications)**: Entity-tag clients, record-type modes, adapter contracts, lifecycle recovery, telemetry, canary rollout, and rollback.
 - **[Migrating Save Buttons to Validation Operations](https://github.com/redbox-mint/redbox-portal/wiki/Migrating-Save-Buttons-to-Validation-Operations)**: Add server-owned operation intent while retaining interactive validation groups.
+- **[Request Chronicle Logging](https://github.com/redbox-mint/redbox-portal/wiki/Request-Chronicle-Logging)**: The per-request log event, its fields, retention settings, safe capture rules, and logging work that outlives the response.
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.
 - **[Translation Updates Runbook](https://github.com/redbox-mint/redbox-portal/wiki/Translation-Updates-Runbook)**: Translation key, metadata, plural, locale, and verification guidance.
 - **[REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation)**: Link to the REST API reference.

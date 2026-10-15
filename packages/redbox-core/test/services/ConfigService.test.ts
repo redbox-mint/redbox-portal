@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -20,12 +22,7 @@ describe('ConfigService', function() {
         },
         brandingAware: sinon.stub()
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);
@@ -57,7 +54,7 @@ describe('ConfigService', function() {
       const configService = new Services.Config();
 
       const result = configService.getBrand('mybrand', 'feature');
-      
+
       expect(result).to.deep.equal({ customValue: true });
       expect(mockSails.config.brandingAware.calledWith('mybrand')).to.be.true;
     });
@@ -74,7 +71,7 @@ describe('ConfigService', function() {
       const configService = new Services.Config();
 
       const result = configService.getBrand('mybrand', 'feature');
-      
+
       expect(result).to.deep.equal({ defaultValue: true });
     });
 
@@ -85,7 +82,7 @@ describe('ConfigService', function() {
       const configService = new Services.Config();
 
       const result = configService.getBrand('mybrand', 'feature');
-      
+
       expect(result).to.deep.equal({ enabled: true });
     });
 
@@ -97,7 +94,7 @@ describe('ConfigService', function() {
       const configService = new Services.Config();
 
       const result = configService.getBrand('mybrand', 'nonexistent');
-      
+
       expect(result).to.be.undefined;
     });
 
@@ -113,7 +110,7 @@ describe('ConfigService', function() {
       const configService = new Services.Config();
 
       const result = configService.getBrand('mybrand', 'feature');
-      
+
       expect(result).to.deep.equal({ legacyValue: true });
     });
 
@@ -128,7 +125,7 @@ describe('ConfigService', function() {
       const configService = new Services.Config();
 
       const result = configService.getBrand('mybrand', 'feature');
-      
+
       expect(result).to.deep.equal({ defaultLegacy: true });
     });
   });

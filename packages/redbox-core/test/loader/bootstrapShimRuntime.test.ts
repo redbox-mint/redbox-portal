@@ -1,3 +1,4 @@
+import { createSinonStubLogger } from '../logger.test';
 let expect: Chai.ExpectStatic;
 import * as fs from 'fs';
 import * as os from 'os';
@@ -65,12 +66,7 @@ describe('bootstrapShimRuntime', function () {
       nested: { flag: true },
     };
     runtimeSails().models = {};
-    runtimeSails().log = {
-      verbose: sinon.stub(),
-      info: sinon.stub(),
-      warn: sinon.stub(),
-      error: sinon.stub(),
-    };
+    runtimeSails().log = createSinonStubLogger(sinon);
   });
 
   afterEach(async function () {

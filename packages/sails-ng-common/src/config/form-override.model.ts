@@ -34,7 +34,7 @@ import { ReusableComponentName, ReusableFormComponentDefinitionFrame } from './c
 import { FormModesConfig } from './shared.outline';
 import { isTypeFormComponentDefinitionName, isTypeReusableComponent } from './form-types.outline';
 import { PropertiesHelper } from './visitor/common.model';
-import { ILogger } from '../logger.interface';
+import { ILogger } from '../logger.model';
 import { ContentFieldComponentConfig } from './component/content.model';
 import {
   QuestionTreeFieldComponentDefinitionOutline,
@@ -590,7 +590,7 @@ export class FormOverride {
     }
 
     if (isTransformExpected) {
-      this.logger.info(
+      this.logger.verbose(
         `Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
         `from '${originalComponentClassName}' to '${transformComponentClassName}'.`
       );

@@ -1938,10 +1938,6 @@ export namespace Services {
       return undefined;
     }
 
-    private asError(error: unknown): Error {
-      return error instanceof Error ? error : new Error(String(error));
-    }
-
     private saveProblem(
       phase: RecordSaveLifecyclePhase,
       _message: string,
@@ -8264,7 +8260,7 @@ export namespace Services {
         responseObj.success = false;
         responseObj.message = RBValidationError.displayMessage({
           t: TranslationService,
-          errors: [this.asError(err)],
+          errors: [err],
           defaultMessage: 'Failed to transition record workflow, please check server logs.',
         });
         responseObj.metadata = { postSaveSyncWarning: 'true' };

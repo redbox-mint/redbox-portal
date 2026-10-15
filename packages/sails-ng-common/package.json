@@ -61,6 +61,7 @@
     "functions": 45,
     "branches": 45,
     "include": [
+      "**/src/logger.model.*",
       "**/src/handlebars-helpers.*",
       "**/src/config/names/**/*.*",
       "**/src/validation/**/*.*",

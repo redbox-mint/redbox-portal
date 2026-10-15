@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -26,13 +28,7 @@ describe('NamedQueryService', function() {
           bootstrapAlways: false
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       models: {}
     });
 
@@ -405,11 +401,11 @@ describe('NamedQueryService', function() {
         brandIdFieldPath: 'branding',
         sort: '[]'
       };
-      
+
       mockNamedQuery.findOne.resolves(namedQueryData);
-      
+
       const config = await NamedQueryService.getNamedQueryConfig(brand, 'test');
-      
+
       expect(config).to.be.instanceOf(NamedQueryConfig);
       expect(config.collectionName).to.equal('record');
     });
@@ -440,24 +436,24 @@ describe('NamedQueryService', function() {
     it('should perform query on Record model', async function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };
-      
+
       mockRecordNativeCollection.countDocuments.resolves(1);
       mockRecordNativeCollection.cursor.toArray.resolves([
         { redboxOid: 'oid-1', metadata: { title: 'Test Record' }, lastSaveDate: '', dateCreated: '' }
       ]);
-      
+
       const result = await NamedQueryService.performNamedQuery(
-        'branding', 
-        {}, 
-        'record', 
-        mongoQuery, 
-        {}, 
-        {}, 
-        brand, 
-        0, 
+        'branding',
+        {},
+        'record',
+        mongoQuery,
+        {},
+        {},
+        brand,
+        0,
         10
       );
-      
+
       expect(mockRecordNativeCollection.countDocuments.called).to.be.true;
       expect(mockRecordNativeCollection.countDocuments.firstCall.args[0]['metaMetadata.brandId']).to.equal('brand-1');
       expect(mockRecordNativeCollection.find.called).to.be.true;
@@ -493,21 +489,21 @@ describe('NamedQueryService', function() {
           }
         ])
       };
-      
+
       mockUser.find.returns(userQuery);
-      
+
       const result = await NamedQueryService.performNamedQuery(
-        'ignoredClientPath', 
-        {}, 
-        'user', 
-        mongoQuery, 
-        {}, 
-        {}, 
-        brand, 
-        0, 
+        'ignoredClientPath',
+        {},
+        'user',
+        mongoQuery,
+        {},
+        {},
+        brand,
+        0,
         10
       );
-      
+
       expect(mockUser.find.called).to.be.true;
       expect(userQuery.populate.calledOnceWithExactly('roles')).to.be.true;
       expect(result.records).to.have.length(1);
@@ -597,7 +593,7 @@ describe('NamedQueryService', function() {
         0,
         10
       );
-      
+
       expect(mockSails.models.custommodel.count.called).to.be.true;
       expect(mockSails.models.custommodel.count.firstCall.args[0].branding).to.equal('brand-1');
       expect(mockSails.models.custommodel.find.called).to.be.true;
@@ -823,9 +819,9 @@ describe('NamedQueryService', function() {
     it('should not execute legacy lodash templates', function() {
       const template = 'Hello <%= name %>';
       const variables = { name: 'World' };
-      
+
       const result = NamedQueryService.runTemplate(template, variables);
-      
+
       expect(result).to.equal(undefined);
     });
 
@@ -850,9 +846,9 @@ describe('NamedQueryService', function() {
     it('should get value from path', function() {
       const path = 'user.name';
       const variables = { user: { name: 'John' } };
-      
+
       const result = NamedQueryService.runTemplate(path, variables);
-      
+
       expect(result).to.equal('John');
     });
 
@@ -871,9 +867,9 @@ describe('NamedQueryService', function() {
         'status': { path: 'status', type: 'string', required: true }
       };
       const paramMap = { status: 'published' };
-      
+
       NamedQueryService.setParamsInQuery(mongoQuery, queryParams, paramMap);
-      
+
       expect(mongoQuery.status).to.equal('published');
     });
 
@@ -900,7 +896,7 @@ describe('NamedQueryService', function() {
         'status': { path: 'status', type: 'string', required: true }
       };
       const paramMap = {};
-      
+
       expect(() => {
         NamedQueryService.setParamsInQuery(mongoQuery, queryParams, paramMap);
       }).to.throw('status is a required parameter');
@@ -913,9 +909,9 @@ describe('NamedQueryService', function() {
         'tags': { path: 'tags', type: 'array', queryType: '$in' }
       };
       const paramMap = { isActive: 'true', tags: 'science' };
-      
+
       NamedQueryService.setParamsInQuery(mongoQuery, queryParams, paramMap);
-      
+
       expect(mongoQuery.isActive).to.be.true;
       expect(mongoQuery.tags).to.deep.equal({ $in: ['science'] });
     });

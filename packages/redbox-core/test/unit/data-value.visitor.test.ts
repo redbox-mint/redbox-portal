@@ -1,8 +1,7 @@
-import {FormConfigFrame} from "@researchdatabox/sails-ng-common";
+import {consoleLogger, FormConfigFrame} from "@researchdatabox/sails-ng-common";
 import { DataValueFormConfigVisitor } from "../../src/visitor/data-value.visitor";
 import { ConstructFormConfigVisitor } from "../../src/visitor/construct.visitor";
 import {formConfigExample1} from "./example-data";
-import {logger} from "./helpers";
 import {reusableFormDefinitions} from "../../src";
 
 
@@ -228,24 +227,24 @@ describe("Data Value Visitor", async () => {
     ];
     cases.forEach(({title, args, expected}) => {
         it(`should ${title}`, async function () {
-            const constructor = new ConstructFormConfigVisitor(logger);
+            const constructor = new ConstructFormConfigVisitor(consoleLogger);
             const constructed = await constructor.start({
               data: args,
               formMode:"edit",
               reusableFormDefs: reusableFormDefinitions,
             });
 
-            const visitor = new DataValueFormConfigVisitor(logger);
+            const visitor = new DataValueFormConfigVisitor(consoleLogger);
             const actual = await visitor.start({form: constructed});
             expect(actual).to.eql(expected);
 
             // Confirm that using an empty record gives empty data value result
-            const constructorEmpty = new ConstructFormConfigVisitor(logger);
+            const constructorEmpty = new ConstructFormConfigVisitor(consoleLogger);
             const constructedEmpty = await constructorEmpty.start({
               data: args, formMode:"edit", record: {}, reusableFormDefs: reusableFormDefinitions,
             });
 
-            const visitorEmpty = new DataValueFormConfigVisitor(logger);
+            const visitorEmpty = new DataValueFormConfigVisitor(consoleLogger);
             const actualEmpty = await visitorEmpty.start({form: constructedEmpty});
             expect(actualEmpty).to.eql({});
 

@@ -3,18 +3,18 @@ import {
   ContentComponentName,
   RepeatableComponentName,
   RepeatableFieldComponentDefinitionFrame,
- ReusableComponentName,
- SimpleInputComponentName,
- GroupFieldComponentName,
- DropdownInputComponentName,
- CheckboxInputComponentName,
- TypeaheadInputComponentName,
- FileUploadComponentName,
- DateInputComponentName,
- RichTextEditorComponentName,
- isTypeFieldDefinitionName,
- ILogger,
- handlebarsCompile,
+  ReusableComponentName,
+  SimpleInputComponentName,
+  GroupFieldComponentName,
+  DropdownInputComponentName,
+  CheckboxInputComponentName,
+  TypeaheadInputComponentName,
+  FileUploadComponentName,
+  DateInputComponentName,
+  RichTextEditorComponentName,
+  isTypeFieldDefinitionName,
+  handlebarsCompile,
+  nothingLogger as testLogger,
 } from '../../src';
 
 let expect: Chai.ExpectStatic;
@@ -23,24 +23,6 @@ before(async () => {
   const chai = await import('chai');
   expect = chai.expect;
 });
-
-function createLogger(): ILogger {
-  const noop = () => undefined;
-  return {
-    silly: noop,
-    verbose: noop,
-    trace: noop,
-    debug: noop,
-    log: noop,
-    info: noop,
-    warn: noop,
-    error: noop,
-    crit: noop,
-    fatal: noop,
-    silent: noop,
-    blank: noop,
-  };
-}
 
 function createExpression(name: string) {
   return {
@@ -55,7 +37,7 @@ const normalizeTemplate = (template: string): string => template.replace(/\s+/g,
 
 describe('FormOverride reusable expansion', () => {
   it('keeps wrapper expressions intact when reusable and additional items both define expressions', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const wrapperExpressions = [createExpression('wrapper-a'), createExpression('wrapper-b')];
     const reusableExpressions = [createExpression('reusable-a'), createExpression('reusable-b')];
     const additionalExpressions = [createExpression('additional-a'), createExpression('additional-b')];
@@ -103,7 +85,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('replaces expression arrays instead of merging them by index', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const reusableExpressions = [createExpression('reusable-a'), createExpression('reusable-b')];
     const additionalExpressions = [createExpression('additional-a'), createExpression('additional-b')];
 
@@ -148,7 +130,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('preserves date formatting when rendering date content leaf values', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).renderLeafValue(
       {
@@ -163,11 +145,13 @@ describe('FormOverride reusable expansion', () => {
       ['startDate']
     );
 
-    expect(result).to.equal('<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>');
+    expect(result).to.equal(
+      '<span data-value="{{default (get project "startDate" "") ""}}">{{formatDate (get project "startDate" "") "DD/MM/YYYY"}}</span>'
+    );
   });
 
   it('reports component classes with default view transforms', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     expect(formOverride.hasDefaultViewTransform(SimpleInputComponentName)).to.equal(true);
     expect(formOverride.hasDefaultViewTransform(DateInputComponentName)).to.equal(true);
@@ -178,7 +162,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders dropdown leaf option labels in generated view templates', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).renderLeafValue(
       {
@@ -202,7 +186,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('normalizes empty dropdown values before selecting the view template', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const options = [
       { value: 'heritage', label: 'Heritage' },
       { value: 'research', label: 'Research' },
@@ -257,7 +241,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders checkbox leaf option labels in generated view templates', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).renderLeafValue(
       {
@@ -281,7 +265,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders typeahead leaf values using the configured label field', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).renderLeafValue(
       {
@@ -303,7 +287,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders legacy typeahead option objects as content in view mode', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -335,7 +319,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders configured typeahead option objects as content in view mode', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -356,7 +340,8 @@ describe('FormOverride reusable expansion', () => {
           class: 'TypeaheadInputModel',
           config: {
             value: {
-              dc_title: 'Improving the transition of agricultural students between vocational and higher education - RSH/4414',
+              dc_title:
+                'Improving the transition of agricultural students between vocational and higher education - RSH/4414',
               grant_number: '0980024219',
             },
           },
@@ -373,7 +358,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders configured typeahead objects when stored keys differ from source paths', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -411,7 +396,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders repeatable typeahead objects without stringifying them', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).generateTemplateForComponent(
       {
@@ -441,7 +426,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders repeatable content objects using display fields after child transforms', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).generateTemplateForComponent(
       {
@@ -470,7 +455,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders utf8_name object values as display labels', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).renderDisplayValue('content');
 
@@ -479,7 +464,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders file upload leaf values as attachment download links', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).renderLeafValue(
       {
@@ -498,7 +483,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders data location leaf values with portal-aware attachment links', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = (formOverride as any).renderLeafValue(
       {
@@ -533,7 +518,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('expands contributor_dmp_permissions wrapper with replaceName, wrapper expressions, and syncSources', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const wrapperExpressions = [
       createExpression('projectType-sync'),
       createExpression('ciRhd-sync'),
@@ -541,7 +526,11 @@ describe('FormOverride reusable expansion', () => {
     ];
     const syncSourcesOverride = [
       { fieldName: 'contributor_ci_rhd', visibilityConditionField: 'project-type', visibilityConditionValues: ['rhd'] },
-      { fieldName: 'contributor_ci_not_rhd', visibilityConditionField: 'project-type', visibilityConditionValues: ['staff'] },
+      {
+        fieldName: 'contributor_ci_not_rhd',
+        visibilityConditionField: 'project-type',
+        visibilityConditionValues: ['staff'],
+      },
     ];
 
     const result = formOverride.applyOverridesReusable(
@@ -601,7 +590,9 @@ describe('FormOverride reusable expansion', () => {
     expect(result[0].name).to.equal('contributor_dmp_permissions');
     expect(result[0].expressions).to.deep.equal(wrapperExpressions);
 
-    if (!isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(result[0].component, RepeatableComponentName)) {
+    if (
+      !isTypeFieldDefinitionName<RepeatableFieldComponentDefinitionFrame>(result[0].component, RepeatableComponentName)
+    ) {
       throw new Error(`Expected RepeatableFieldComponentDefinitionFrame but got ${result[0].component?.class}`);
     }
 
@@ -611,7 +602,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('applies nested contributor_dmp_permissions field overrides inside the repeatable element template', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const result = formOverride.applyOverridesReusable(
       [
@@ -766,7 +757,8 @@ describe('FormOverride reusable expansion', () => {
     );
 
     const repeatableComponent = result[0].component as RepeatableFieldComponentDefinitionFrame;
-    const nestedGroup = (repeatableComponent.config?.elementTemplate as any)?.component?.config?.componentDefinitions?.[0];
+    const nestedGroup = (repeatableComponent.config?.elementTemplate as any)?.component?.config
+      ?.componentDefinitions?.[0];
     const nestedReusable = nestedGroup?.component?.config?.componentDefinitions?.[0];
     const nestedFields = nestedReusable?.component?.config?.componentDefinitions;
 
@@ -778,7 +770,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('skips hidden simple inputs when rendering group view rows', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -826,7 +818,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('skips hidden simple inputs when rendering repeatable group tables', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -894,7 +886,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders repeatable table values from unflattened leaf components', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -962,8 +954,12 @@ describe('FormOverride reusable expansion', () => {
 
     expect(transformed.component.class).to.equal(ContentComponentName);
     const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
-    expect(template).to.contain('<span data-value="{{default (get this "startDate" "") ""}}">{{formatDate (get this "startDate" "") "DD/MM/YYYY"}}</span>');
-    expect(template).to.contain('<span data-value="{{default (get this "endDate" "") ""}}">{{formatDate (get this "endDate" "") "YYYY/MM/DD"}}</span>');
+    expect(template).to.contain(
+      '<span data-value="{{default (get this "startDate" "") ""}}">{{formatDate (get this "startDate" "") "DD/MM/YYYY"}}</span>'
+    );
+    expect(template).to.contain(
+      '<span data-value="{{default (get this "endDate" "") ""}}">{{formatDate (get this "endDate" "") "YYYY/MM/DD"}}</span>'
+    );
     expect(template).to.contain('{{{markdownToHtml (get this "description" "") "markdown"}}}');
     expect(template).to.contain('(get (get this "person" "") "dc_title" "")');
     expect(template).to.contain('{{{renderMetadataValue (get this "person" "")}}}');
@@ -971,7 +967,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('renders standalone url simple inputs as links without changing plain simple inputs', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const urlTransformed = formOverride.applyOverrideTransform(
       {
@@ -994,9 +990,13 @@ describe('FormOverride reusable expansion', () => {
     expect(urlTransformed.component.class).to.equal(ContentComponentName);
     expect((urlTransformed.component.config as { content?: string }).content).to.equal('https://example.test/project');
     const urlTemplate = normalizeTemplate((urlTransformed.component.config as { template?: string }).template ?? '');
-    expect(urlTemplate).to.contain('<a href="{{default content ""}}" target="_blank" rel="noopener noreferrer">{{default content ""}}</a>');
+    expect(urlTemplate).to.contain(
+      '<a href="{{default content ""}}" target="_blank" rel="noopener noreferrer">{{default content ""}}</a>'
+    );
     const renderedUrlTemplate = handlebarsCompile(urlTemplate)({ content: 'https://example.test/project' });
-    expect(renderedUrlTemplate).to.contain('<a href="https://example.test/project" target="_blank" rel="noopener noreferrer">https://example.test/project</a>');
+    expect(renderedUrlTemplate).to.contain(
+      '<a href="https://example.test/project" target="_blank" rel="noopener noreferrer">https://example.test/project</a>'
+    );
 
     const plainTransformed = formOverride.applyOverrideTransform(
       {
@@ -1018,13 +1018,15 @@ describe('FormOverride reusable expansion', () => {
 
     expect(plainTransformed.component.class).to.equal(ContentComponentName);
     expect((plainTransformed.component.config as { content?: string }).content).to.equal('Project title');
-    const plainTemplate = normalizeTemplate((plainTransformed.component.config as { template?: string }).template ?? '');
+    const plainTemplate = normalizeTemplate(
+      (plainTransformed.component.config as { template?: string }).template ?? ''
+    );
     expect(plainTemplate).to.equal('<span>{{content}}</span>');
     expect(plainTemplate).to.not.contain('<a ');
   });
 
   it('renders url simple inputs as links in repeatable group tables', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -1076,7 +1078,9 @@ describe('FormOverride reusable expansion', () => {
 
     expect(transformed.component.class).to.equal(ContentComponentName);
     const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
-    expect(template).to.contain('<a href="{{default (get this "link" "") ""}}" target="_blank" rel="noopener noreferrer">{{default (get this "link" "") ""}}</a>');
+    expect(template).to.contain(
+      '<a href="{{default (get this "link" "") ""}}" target="_blank" rel="noopener noreferrer">{{default (get this "link" "") ""}}</a>'
+    );
     const renderedTemplate = handlebarsCompile(template)({
       content: [
         {
@@ -1085,11 +1089,13 @@ describe('FormOverride reusable expansion', () => {
         },
       ],
     });
-    expect(renderedTemplate).to.contain('<a href="https://example.test/repository" target="_blank" rel="noopener noreferrer">https://example.test/repository</a>');
+    expect(renderedTemplate).to.contain(
+      '<a href="https://example.test/repository" target="_blank" rel="noopener noreferrer">https://example.test/repository</a>'
+    );
   });
 
   it('substitutes the reusable repeatable-list item class', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -1099,12 +1105,12 @@ describe('FormOverride reusable expansion', () => {
           config: {
             elementTemplate: {
               name: 'keyword',
-              component: {class: SimpleInputComponentName},
-              model: {class: 'SimpleInputModel'},
+              component: { class: SimpleInputComponentName },
+              model: { class: 'SimpleInputModel' },
             },
           },
         },
-        model: {class: 'RepeatableModel', config: {value: ['one']}},
+        model: { class: 'RepeatableModel', config: { value: ['one'] } },
       } as never,
       'view',
       {
@@ -1116,7 +1122,8 @@ describe('FormOverride reusable expansion', () => {
               component: {
                 class: ContentComponentName,
                 config: {
-                  template: '{{#if [[rootExpr]]}}<div>{{#each [[rootExpr]]}}<div class="[[itemClass]]">[[itemBodyHtml]]</div>{{/each}}</div>{{/if}}',
+                  template:
+                    '{{#if [[rootExpr]]}}<div>{{#each [[rootExpr]]}}<div class="[[itemClass]]">[[itemBodyHtml]]</div>{{/each}}</div>{{/if}}',
                 },
               },
             } as never,
@@ -1125,13 +1132,13 @@ describe('FormOverride reusable expansion', () => {
       }
     );
 
-    const template = normalizeTemplate((transformed.component.config as {template?: string}).template ?? '');
+    const template = normalizeTemplate((transformed.component.config as { template?: string }).template ?? '');
     expect(template).to.contain('class="rb-view-repeatable-card rb-view-repeatable-card--leaf"');
     expect(template).to.not.contain('[[itemClass]]');
   });
 
   it('applies template-only view overrides to repeatable content transforms', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const customTemplate = '<div class="custom">{{#each content}}<span>{{title}}</span>{{/each}}</div>';
 
     const transformed = formOverride.applyOverrideTransform(
@@ -1162,11 +1169,7 @@ describe('FormOverride reusable expansion', () => {
         model: {
           class: 'RepeatableModel',
           config: {
-            value: [
-              { title: 'Kept' },
-              { title: '' },
-              { title: 'Also kept' },
-            ],
+            value: [{ title: 'Kept' }, { title: '' }, { title: 'Also kept' }],
           },
         },
         overrides: {
@@ -1190,7 +1193,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('applies template-only view overrides to leaf simple input content transforms', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
     const customTemplate = '<strong>{{content}}</strong>';
 
     const transformed = formOverride.applyOverrideTransform(
@@ -1198,9 +1201,9 @@ describe('FormOverride reusable expansion', () => {
         name: 'title',
         component: {
           class: SimpleInputComponentName,
-          config: {visible: false},
+          config: { visible: false },
         },
-        layout: {class: 'DefaultLayout', config: {visible: false}},
+        layout: { class: 'DefaultLayout', config: { visible: false } },
         model: {
           class: 'SimpleInputModel',
           config: {
@@ -1228,20 +1231,20 @@ describe('FormOverride reusable expansion', () => {
     const emptyTransformed = formOverride.applyOverrideTransform(
       {
         name: 'title',
-        component: {class: SimpleInputComponentName, config: {visible: false}},
-        layout: {class: 'DefaultLayout', config: {visible: false}},
-        model: {class: 'SimpleInputModel', config: {value: ''}},
-        overrides: {formModeClasses: {view: {template: customTemplate}}},
+        component: { class: SimpleInputComponentName, config: { visible: false } },
+        layout: { class: 'DefaultLayout', config: { visible: false } },
+        model: { class: 'SimpleInputModel', config: { value: '' } },
+        overrides: { formModeClasses: { view: { template: customTemplate } } },
       } as never,
       'view',
-      {phase: 'client'}
+      { phase: 'client' }
     );
-    expect((emptyTransformed.component.config as {visible?: boolean}).visible).to.equal(true);
-    expect((emptyTransformed.layout?.config as {visible?: boolean}).visible).to.equal(false);
+    expect((emptyTransformed.component.config as { visible?: boolean }).visible).to.equal(true);
+    expect((emptyTransformed.layout?.config as { visible?: boolean }).visible).to.equal(false);
   });
 
   it('ignores templates on identity view overrides', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {
@@ -1267,7 +1270,7 @@ describe('FormOverride reusable expansion', () => {
   });
 
   it('uses reusable view templates for url simple input links', () => {
-    const formOverride = new FormOverride(createLogger());
+    const formOverride = new FormOverride(testLogger);
 
     const transformed = formOverride.applyOverrideTransform(
       {

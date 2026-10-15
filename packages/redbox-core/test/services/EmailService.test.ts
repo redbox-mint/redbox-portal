@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -38,13 +40,7 @@ describe('EmailService', function() {
           }
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);
@@ -170,9 +166,9 @@ describe('EmailService', function() {
       const options = { msgTo: 'test@example.com' };
       const config = {};
       const templateData = {};
-      
+
       const result = EmailService.evaluateProperties(options, config, templateData);
-      
+
       expect(result.to).to.equal('test@example.com');
       expect(result.toRendered).to.equal('test@example.com');
       expect(result.from).to.equal('default@example.com');
@@ -196,13 +192,13 @@ describe('EmailService', function() {
         to: 'to@example.com',
         triggerCondition: 'true'
       };
-      
+
       sinon.stub(EmailService, 'metTriggerCondition').returns('true');
       sinon.stub(EmailService, 'buildFromTemplateAsync').resolves({ status: 200, body: 'Email Body' });
       sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
-      
+
       const result = await EmailService.sendRecordNotification('oid-1', record, options, {}, {});
-      
+
       expect(EmailService.sendMessage.called).to.be.true;
       expect(result).to.deep.equal(record);
     });
@@ -210,12 +206,12 @@ describe('EmailService', function() {
     it('should skip if condition not met', async function() {
       const record = { id: '1' };
       const options = { triggerCondition: 'false' };
-      
+
       sinon.stub(EmailService, 'metTriggerCondition').returns('false');
       sinon.spy(EmailService, 'sendMessage');
-      
+
       await EmailService.sendRecordNotification('oid-1', record, options, {}, {});
-      
+
       expect(EmailService.sendMessage.called).to.be.false;
     });
   });

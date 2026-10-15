@@ -8,6 +8,7 @@ import {
   createQueryObject,
   configureModelMethod,
 } from './testHelper';
+import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
 
@@ -43,13 +44,7 @@ describe('UsersService', function () {
           },
         }),
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
 
     mockUser = {

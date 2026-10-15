@@ -1,3 +1,5 @@
+import { createSinonStubLogger } from '../logger.test';
+
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
@@ -200,13 +202,7 @@ describe('RecordsService', function () {
           contexts: {},
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         brandingservice: {
           getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
@@ -1011,7 +1007,13 @@ describe('RecordsService', function () {
       metadata: { title: 'Updated by Figshare' },
     });
 
-    await RecordsService.setRecordFields('record-123', { 'metadata.title': 'Updated by Figshare' }, 1, ['metadata.title'], {});
+    await RecordsService.setRecordFields(
+      'record-123',
+      { 'metadata.title': 'Updated by Figshare' },
+      1,
+      ['metadata.title'],
+      {}
+    );
 
     expect(mockQueueService.now.calledOnce).to.be.true;
     expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-02T12:00:00Z');

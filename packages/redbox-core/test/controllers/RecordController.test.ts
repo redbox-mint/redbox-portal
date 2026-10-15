@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { firstValueFrom, of } from 'rxjs';
@@ -37,14 +39,7 @@ describe('RecordController getWorkflowSteps', () => {
 
     (global as any).sails = {
       config: {},
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any)._ = require('lodash');
     (global as any).BrandingService = {
@@ -2044,14 +2039,7 @@ describe('RecordController TUS URL generation', () => {
           mongodbDisk: '/legacy/mongodb-disk',
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any)._ = require('lodash');
     (global as any).StorageManagerService = {

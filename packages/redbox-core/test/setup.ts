@@ -82,20 +82,15 @@ export function getCapturedOpenTelemetryMeasurements(): readonly CapturedOpenTel
   }));
 }
 
+import {createSinonStubLogger} from "./logger.test";
+import * as sinon from "sinon";
+
 /**
  * Test setup file that runs before all tests.
  * Sets up minimal global mocks required for service module loading.
  */
 
 // Create logger that will be used by services
-const mockLogger = {
-  verbose: () => { },
-  debug: () => { },
-  info: () => { },
-  warn: () => { },
-  error: () => { },
-  trace: () => { }
-};
 
 // Set up minimal sails global required for service module loading
 (global as any).sails = {
@@ -115,13 +110,13 @@ const mockLogger = {
     http: { rootContext: '' },
     appUrl: 'http://localhost:1500',
     log: {
-      createNamespaceLogger: () => mockLogger,
-      customLogger: mockLogger
+      createNamespaceLogger: () => createSinonStubLogger(sinon),
+      customLogger: createSinonStubLogger(sinon)
     },
     brandingAware: () => ({}),
     brandingConfigurationDefaults: {}
   },
-  log: mockLogger,
+  log: createSinonStubLogger(sinon),
   services: {},
   on: () => { } // Mock sails.on for event handlers
 };

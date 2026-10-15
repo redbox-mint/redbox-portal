@@ -1,35 +1,31 @@
+import { createSinonStubLogger } from '../logger.test';
+
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import { DateTime } from 'luxon';
 
-describe('ReportsService', function() {
+describe('ReportsService', function () {
   let mockSails: any;
   let ReportsService: any;
   let mockReport: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockSails = createMockSails({
       config: {
         appPath: '/app',
         search: {
-          serviceName: 'solrsearchservice'
-        }
+          serviceName: 'solrsearchservice',
+        },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         solrsearchservice: {
-          searchAdvanced: sinon.stub().resolves({ response: { docs: [] } })
-        }
-      }
+          searchAdvanced: sinon.stub().resolves({ response: { docs: [] } }),
+        },
+      },
     });
 
     mockReport = {
@@ -45,23 +41,23 @@ describe('ReportsService', function() {
           databaseQuery: { queryName: 'testQuery' },
           solrQuery: null,
           filter: [],
-          columns: [{ label: 'Title', property: 'title' }]
-        })
+          columns: [{ label: 'Title', property: 'title' }],
+        }),
       }),
-      destroyOne: sinon.stub().resolves({ id: 'report-1' })
+      destroyOne: sinon.stub().resolves({ id: 'report-1' }),
     };
 
     setupServiceTestGlobals(mockSails);
     (global as any).RBReport = mockReport;
     (global as any).BrandingService = {
-      getFullPath: sinon.stub().returns('http://portal')
+      getFullPath: sinon.stub().returns('http://portal'),
     };
     (global as any).NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
-      performNamedQueryFromConfig: sinon.stub().resolves({ 
+      performNamedQueryFromConfig: sinon.stub().resolves({
         summary: { numFound: 1, start: 0, page: 1 },
-        records: [{ title: 'Record 1', id: '1' }]
-      })
+        records: [{ title: 'Record 1', id: '1' }],
+      }),
     };
 
     const { Services } = require('../../src/services/ReportsService');
@@ -69,7 +65,7 @@ describe('ReportsService', function() {
     ReportsService.searchService = mockSails.services.solrsearchservice;
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).RBReport;
     delete (global as any).BrandingService;
@@ -77,23 +73,25 @@ describe('ReportsService', function() {
     sinon.restore();
   });
 
-  describe('bootstrapData', function() {
+  describe('bootstrapData', function () {
     const stubFileOps = (fileOps: any) => sinon.stub(ReportsService, 'getBootstrapFileOps').returns(fileOps);
 
-    it('should create a report from a file when it is absent from the DB', async function() {
+    it('should create a report from a file when it is absent from the DB', async function () {
       const defBrand = { id: 'brand-1' };
       stubFileOps({
         readdir: sinon.stub().resolves([{ name: 'test-report.json', isFile: () => true }]),
-        readFile: sinon.stub().resolves(JSON.stringify({
-          title: 'Test Report',
-          reportSource: 'database',
-          databaseQuery: { queryName: 'testQuery' },
-          filter: [],
-          columns: [
-            { label: 'Title', property: 'title' },
-            { label: 'ID', property: 'id' }
-          ]
-        }))
+        readFile: sinon.stub().resolves(
+          JSON.stringify({
+            title: 'Test Report',
+            reportSource: 'database',
+            databaseQuery: { queryName: 'testQuery' },
+            filter: [],
+            columns: [
+              { label: 'Title', property: 'title' },
+              { label: 'ID', property: 'id' },
+            ],
+          })
+        ),
       });
       mockReport.findOne.resolves(null);
       const createStub = sinon.stub(ReportsService, 'create').returns(of({ id: 'report-1' }));
@@ -105,20 +103,22 @@ describe('ReportsService', function() {
       expect(createStub.firstCall.args[1]).to.equal('test-report');
     });
 
-    it('should skip a report that already exists in the DB', async function() {
+    it('should skip a report that already exists in the DB', async function () {
       const defBrand = { id: 'brand-1' };
       stubFileOps({
         readdir: sinon.stub().resolves([{ name: 'test-report.json', isFile: () => true }]),
-        readFile: sinon.stub().resolves(JSON.stringify({
-          title: 'Test Report',
-          reportSource: 'database',
-          databaseQuery: { queryName: 'testQuery' },
-          filter: [],
-          columns: [
-            { label: 'Title', property: 'title' },
-            { label: 'ID', property: 'id' }
-          ]
-        }))
+        readFile: sinon.stub().resolves(
+          JSON.stringify({
+            title: 'Test Report',
+            reportSource: 'database',
+            databaseQuery: { queryName: 'testQuery' },
+            filter: [],
+            columns: [
+              { label: 'Title', property: 'title' },
+              { label: 'ID', property: 'id' },
+            ],
+          })
+        ),
       });
       mockReport.findOne.resolves({ id: 'existing', key: 'brand-1_test-report' });
       const createStub = sinon.stub(ReportsService, 'create').returns(of({ id: 'report-1' }));
@@ -128,12 +128,12 @@ describe('ReportsService', function() {
       expect(createStub.called).to.be.false;
     });
 
-    it('should be a no-op when the bootstrap data directory is missing', async function() {
+    it('should be a no-op when the bootstrap data directory is missing', async function () {
       const defBrand = { id: 'brand-1' };
       const enoent = Object.assign(new Error('not found'), { code: 'ENOENT' });
       stubFileOps({
         readdir: sinon.stub().rejects(enoent),
-        readFile: sinon.stub()
+        readFile: sinon.stub(),
       });
       const createStub = sinon.stub(ReportsService, 'create').returns(of({ id: 'report-1' }));
 
@@ -143,8 +143,8 @@ describe('ReportsService', function() {
     });
   });
 
-  describe('create', function() {
-    it('should create report model', function(done) {
+  describe('create', function () {
+    it('should create report model', function (done) {
       const brand = { id: 'brand-1' };
       const config = {
         title: 'New Report',
@@ -152,20 +152,20 @@ describe('ReportsService', function() {
         solrQuery: {},
         databaseQuery: {},
         columns: [],
-        filter: []
+        filter: [],
       };
-      
+
       ReportsService.create(brand, 'new-report', config).subscribe({
         next: (res: any) => {
           expect(mockReport.create.called).to.be.true;
           done();
         },
-        error: done
+        error: done,
       });
     });
   });
 
-  describe('report config management', function() {
+  describe('report config management', function () {
     const brand = { id: 'brand-1' };
     const databaseConfig = {
       name: 'database-report',
@@ -179,69 +179,87 @@ describe('ReportsService', function() {
           paramName: 'dateRange',
           message: 'Date range',
           property: '',
-          database: { fromProperty: 'dateFrom', toProperty: 'dateTo' }
+          database: { fromProperty: 'dateFrom', toProperty: 'dateTo' },
         },
         {
           type: 'text',
           paramName: 'title',
           message: 'Title',
-          property: 'title'
-        }
+          property: 'title',
+        },
       ],
-      columns: [{ label: 'Title', property: 'title' }]
+      columns: [{ label: 'Title', property: 'title' }],
     };
 
-    it('should list normalized report configurations with read-only flags', async function() {
-      mockReport.find.returns(createQueryObject([
-        {
-          name: 'database-report',
-          title: 'Database Report',
-          reportSource: 'database',
-          databaseQuery: { queryName: 'testQuery' },
-          filter: [],
-          columns: []
-        },
-        {
-          name: 'solr-report',
-          title: 'Solr Report',
-          reportSource: 'solr',
-          solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
-          filter: [],
-          columns: []
-        }
-      ]));
+    it('should list normalized report configurations with read-only flags', async function () {
+      mockReport.find.returns(
+        createQueryObject([
+          {
+            name: 'database-report',
+            title: 'Database Report',
+            reportSource: 'database',
+            databaseQuery: { queryName: 'testQuery' },
+            filter: [],
+            columns: [],
+          },
+          {
+            name: 'solr-report',
+            title: 'Solr Report',
+            reportSource: 'solr',
+            solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
+            filter: [],
+            columns: [],
+          },
+        ])
+      );
 
       const result = await ReportsService.listConfigs(brand);
 
       expect(result).to.have.length(2);
-      expect(result[0]).to.include({ name: 'database-report', readOnly: false, canEdit: true, canDelete: true, canPreview: true });
-      expect(result[1]).to.include({ name: 'solr-report', readOnly: true, canEdit: false, canDelete: false, canPreview: false });
+      expect(result[0]).to.include({
+        name: 'database-report',
+        readOnly: false,
+        canEdit: true,
+        canDelete: true,
+        canPreview: true,
+      });
+      expect(result[1]).to.include({
+        name: 'solr-report',
+        readOnly: true,
+        canEdit: false,
+        canDelete: false,
+        canPreview: false,
+      });
       expect(result[1].readOnlyReason).to.equal('Solr reports are read-only in this version');
     });
 
-    it('should normalize the legacy filter message typo', async function() {
-      mockReport.find.returns(createQueryObject([
-        {
-          name: 'database-report',
-          title: 'Database Report',
-          reportSource: 'database',
-          databaseQuery: { queryName: 'testQuery' },
-          filter: [{ type: 'text', paramName: 'title', property: 'title', messsage: 'Legacy title' }],
-          columns: []
-        }
-      ]));
+    it('should normalize the legacy filter message typo', async function () {
+      mockReport.find.returns(
+        createQueryObject([
+          {
+            name: 'database-report',
+            title: 'Database Report',
+            reportSource: 'database',
+            databaseQuery: { queryName: 'testQuery' },
+            filter: [{ type: 'text', paramName: 'title', property: 'title', messsage: 'Legacy title' }],
+            columns: [],
+          },
+        ])
+      );
 
       const result = await ReportsService.listConfigs(brand);
 
       expect(result[0].filter[0].message).to.equal('Legacy title');
     });
 
-    it('should create a database report configuration after validating the named query', async function() {
+    it('should create a database report configuration after validating the named query', async function () {
       mockReport.findOne.returns(createQueryObject(null));
-      mockReport.create.returns(createQueryObject({
-        id: 'report-1',
-        ...databaseConfig
-      }));
+      mockReport.create.returns(
+        createQueryObject({
+          id: 'report-1',
+          ...databaseConfig,
+        })
+      );
 
       const result = await ReportsService.createConfig(brand, databaseConfig);
 
@@ -251,12 +269,12 @@ describe('ReportsService', function() {
         name: 'database-report',
         branding: 'brand-1',
         title: 'Database Report',
-        reportSource: 'database'
+        reportSource: 'database',
       });
       expect(result).to.include({ name: 'database-report', title: 'Database Report', readOnly: false });
     });
 
-    it('should reject duplicate report configuration names', async function() {
+    it('should reject duplicate report configuration names', async function () {
       mockReport.findOne.returns(createQueryObject({ id: 'existing-report', ...databaseConfig }));
 
       try {
@@ -267,7 +285,7 @@ describe('ReportsService', function() {
       }
     });
 
-    it('should validate required fields and named query existence before persisting', async function() {
+    it('should validate required fields and named query existence before persisting', async function () {
       (global as any).NamedQueryService.getNamedQueryConfig.resolves(null);
 
       try {
@@ -281,15 +299,17 @@ describe('ReportsService', function() {
       expect(mockReport.create.called).to.be.false;
     });
 
-    it('should update an existing database report and preserve the route name', async function() {
-      mockReport.findOne.returns(createQueryObject({
-        id: 'report-1',
-        ...databaseConfig
-      }));
+    it('should update an existing database report and preserve the route name', async function () {
+      mockReport.findOne.returns(
+        createQueryObject({
+          id: 'report-1',
+          ...databaseConfig,
+        })
+      );
 
       const result = await ReportsService.updateConfig(brand, 'database-report', {
         ...databaseConfig,
-        title: 'Updated Database Report'
+        title: 'Updated Database Report',
       });
 
       expect(mockReport.updateOne.calledWith({ key: 'brand-1_database-report' })).to.be.true;
@@ -297,13 +317,13 @@ describe('ReportsService', function() {
       expect(result).to.include({ name: 'database-report', title: 'Updated Database Report', readOnly: false });
     });
 
-    it('should return not found before validating a missing report update body', async function() {
+    it('should return not found before validating a missing report update body', async function () {
       (global as any).NamedQueryService.getNamedQueryConfig.resolves(null);
 
       try {
         await ReportsService.updateConfig(brand, 'missing-report', {
           ...databaseConfig,
-          databaseQuery: { queryName: 'missingQuery' }
+          databaseQuery: { queryName: 'missingQuery' },
         });
         expect.fail('Expected missing report to throw');
       } catch (error: any) {
@@ -315,11 +335,13 @@ describe('ReportsService', function() {
       expect(mockReport.updateOne.called).to.be.false;
     });
 
-    it('should reject attempts to rename an existing report', async function() {
-      mockReport.findOne.returns(createQueryObject({
-        id: 'report-1',
-        ...databaseConfig
-      }));
+    it('should reject attempts to rename an existing report', async function () {
+      mockReport.findOne.returns(
+        createQueryObject({
+          id: 'report-1',
+          ...databaseConfig,
+        })
+      );
 
       try {
         await ReportsService.updateConfig(brand, 'database-report', { ...databaseConfig, name: 'renamed-report' });
@@ -330,16 +352,18 @@ describe('ReportsService', function() {
       }
     });
 
-    it('should reject modification and deletion of solr reports', async function() {
-      mockReport.findOne.returns(createQueryObject({
-        id: 'report-1',
-        name: 'solr-report',
-        title: 'Solr Report',
-        reportSource: 'solr',
-        solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
-        filter: [],
-        columns: []
-      }));
+    it('should reject modification and deletion of solr reports', async function () {
+      mockReport.findOne.returns(
+        createQueryObject({
+          id: 'report-1',
+          name: 'solr-report',
+          title: 'Solr Report',
+          reportSource: 'solr',
+          solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
+          filter: [],
+          columns: [],
+        })
+      );
 
       try {
         await ReportsService.updateConfig(brand, 'solr-report', { ...databaseConfig, name: 'solr-report' });
@@ -356,11 +380,13 @@ describe('ReportsService', function() {
       }
     });
 
-    it('should delete an existing mutable report', async function() {
-      mockReport.findOne.returns(createQueryObject({
-        id: 'report-1',
-        ...databaseConfig
-      }));
+    it('should delete an existing mutable report', async function () {
+      mockReport.findOne.returns(
+        createQueryObject({
+          id: 'report-1',
+          ...databaseConfig,
+        })
+      );
 
       const result = await ReportsService.deleteConfig(brand, 'database-report');
 
@@ -368,9 +394,9 @@ describe('ReportsService', function() {
       expect(result).to.deep.equal({ deleted: true });
     });
 
-    it('should preview a draft database report using mapped filter parameters', async function() {
+    it('should preview a draft database report using mapped filter parameters', async function () {
       const req = {
-        param: sinon.stub()
+        param: sinon.stub(),
       };
       req.param.withArgs('dateRange_fromDate').returns('2024-01-01T00:00:00.000Z');
       req.param.withArgs('dateRange_toDate').returns('2024-01-31T23:59:59.999Z');
@@ -382,7 +408,7 @@ describe('ReportsService', function() {
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[1]).to.deep.equal({
         dateFrom: '2024-01-01T00:00:00.000Z',
         dateTo: '2024-01-31T23:59:59.999Z',
-        title: 'Test title'
+        title: 'Test title',
       });
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[3]).to.equal(0);
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[4]).to.equal(100);
@@ -391,43 +417,43 @@ describe('ReportsService', function() {
     });
   });
 
-  describe('get', function() {
-    it('should find report by key', async function() {
+  describe('get', function () {
+    it('should find report by key', async function () {
       const brand = { id: 'brand-1' };
       mockReport.findOne.returns(createQueryObject({ id: 'report-1' }));
-      
+
       const result = await ReportsService.get(brand, 'report-name');
-      
+
       expect(mockReport.findOne.calledWith({ key: 'brand-1_report-name' })).to.be.true;
       expect(result).to.deep.equal({ id: 'report-1' });
     });
   });
 
-  describe('getResults', function() {
-    it('should get results from database', async function() {
+  describe('getResults', function () {
+    it('should get results from database', async function () {
       const brand = { id: 'brand-1' };
       const req = { param: sinon.stub() };
-      
+
       const reportModel = {
         reportSource: 'database',
         databaseQuery: { queryName: 'testQuery' },
-        columns: []
+        columns: [],
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
-      
+
       const result = await ReportsService.getResults(brand, 'report-1', req);
-      
+
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
       expect(result.total).to.equal(1);
       expect(result.records).to.have.length(1);
     });
 
-    it('should get results from solr', async function() {
+    it('should get results from solr', async function () {
       const brand = { id: 'brand-1' };
       const req = {
-        param: sinon.stub().callsFake((name: string) => name === 'title' ? 'research & data' : undefined),
+        param: sinon.stub().callsFake((name: string) => (name === 'title' ? 'research & data' : undefined)),
       };
-      
+
       const reportModel = {
         reportSource: 'solr',
         solrQuery: { baseQuery: 'q=*:*', searchCore: 'core1' },
@@ -435,148 +461,145 @@ describe('ReportsService', function() {
         filter: [{ type: 'text', paramName: 'title', property: 'metadata_title' }],
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
-      
+
       mockSails.services.solrsearchservice.searchAdvanced.resolves({
-        response: { numFound: 5, start: 0, docs: [{}, {}, {}, {}, {}] }
+        response: { numFound: 5, start: 0, docs: [{}, {}, {}, {}, {}] },
       });
-      
+
       const result = await ReportsService.getResults(brand, 'report-1', req);
-      
+
       expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
       const params = mockSails.services.solrsearchservice.searchAdvanced.firstCall.args[2] as URLSearchParams;
-      expect(params.getAll('fq')).to.deep.equal([
-        'metaMetadata_brandId:brand-1',
-        'metadata_title:research & data*',
-      ]);
+      expect(params.getAll('fq')).to.deep.equal(['metaMetadata_brandId:brand-1', 'metadata_title:research & data*']);
       expect(result.total).to.equal(5);
       expect(result.records).to.have.length(5);
     });
   });
 
-  describe('getCSVResult', function() {
-    it('should return CSV string', async function() {
+  describe('getCSVResult', function () {
+    it('should return CSV string', async function () {
       const brand = { id: 'brand-1' };
       const req = { param: sinon.stub() };
-      
+
       const reportModel = {
         reportSource: 'database',
         databaseQuery: { queryName: 'testQuery' },
         columns: [
           { label: 'Title', property: 'title' },
-          { label: 'ID', property: 'id' }
-        ]
+          { label: 'ID', property: 'id' },
+        ],
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
-      
+
       const result = await ReportsService.getCSVResult(brand, 'report-1', req);
-      
+
       expect(result).to.be.a('string');
       expect(result).to.include('Title,ID');
       expect(result).to.include('Record 1,1');
     });
   });
 
-  describe('runTemplate', function() {
-    it('should run handlebars template', function() {
+  describe('runTemplate', function () {
+    it('should run handlebars template', function () {
       const data = { name: 'World' };
       const config = { template: 'Hello {{name}}' };
-      
+
       const result = ReportsService.runTemplate(data, config);
-      
+
       expect(result).to.equal('Hello World');
     });
 
-    it('should return JSON object if json=true', function() {
+    it('should return JSON object if json=true', function () {
       const data = { name: 'World' };
       const config = { template: '{"message": "Hello {{name}}"}', json: true };
-      
+
       const result = ReportsService.runTemplate(data, config);
-      
+
       expect(result).to.deep.equal({ message: 'Hello World' });
     });
   });
 
-  describe('getDataRows', function() {
-    it('should extract data rows based on columns', function() {
+  describe('getDataRows', function () {
+    it('should extract data rows based on columns', function () {
       const report = {
         columns: [
           { label: 'Title', property: 'title' },
-          { label: 'Count', property: 'stats.count' }
-        ]
+          { label: 'Count', property: 'stats.count' },
+        ],
       };
       const data = [
         { title: 'A', stats: { count: 1 } },
-        { title: 'B', stats: { count: 2 } }
+        { title: 'B', stats: { count: 2 } },
       ];
-      
+
       const result = ReportsService.getDataRows(report, data, {});
-      
+
       expect(result).to.have.length(2);
       expect(result[0]).to.deep.equal(['A', 1]);
       expect(result[1]).to.deep.equal(['B', 2]);
     });
   });
 
-  describe('extractReportTemplates', function() {
-    it('should extract templates from report columns', async function() {
+  describe('extractReportTemplates', function () {
+    it('should extract templates from report columns', async function () {
       const brand = { id: 'brand-1', name: 'default' };
       const reportData = {
         name: 'testReport',
         columns: [
           { label: 'Name', property: 'name', template: '{{name}}' },
-          { label: 'Link', property: 'url', template: '<a href="{{url}}">Link</a>', exportTemplate: '{{url}}' }
-        ]
+          { label: 'Link', property: 'url', template: '<a href="{{url}}">Link</a>', exportTemplate: '{{url}}' },
+        ],
       };
-      
+
       mockReport.findOne.resolves(reportData);
-      
+
       const result = await ReportsService.extractReportTemplates(brand, 'testReport');
-      
+
       expect(result).to.be.an('array');
       expect(result.length).to.be.greaterThan(0);
     });
 
-    it('should return empty array for non-existent report', async function() {
+    it('should return empty array for non-existent report', async function () {
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       mockReport.findOne.resolves(null);
-      
+
       const result = await ReportsService.extractReportTemplates(brand, 'nonexistent');
-      
+
       expect(result).to.be.an('array').that.is.empty;
     });
   });
 
-  describe('Handlebars Helpers', function() {
-    it('should support shared helpers like formatDate', function() {
+  describe('Handlebars Helpers', function () {
+    it('should support shared helpers like formatDate', function () {
       const report = {
         columns: [
-          { 
-            label: 'Date Modified', 
+          {
+            label: 'Date Modified',
             property: 'date_object_modified',
-            template: '{{formatDate date_object_modified "dd/MM/yyyy hh:mm a"}}'
-          }
-        ]
+            template: '{{formatDate date_object_modified "dd/MM/yyyy hh:mm a"}}',
+          },
+        ],
       };
-      
+
       const data = [
-        { 
-          id: 1, 
-          date_object_modified: "2023-05-18T01:30:00+10:00"
-        }
+        {
+          id: 1,
+          date_object_modified: '2023-05-18T01:30:00+10:00',
+        },
       ];
 
       const result = ReportsService.getDataRows(report, data, {});
-      
-      const expectedModified = DateTime.fromISO("2023-05-18T01:30:00+10:00").toFormat("dd/MM/yyyy hh:mm a");
+
+      const expectedModified = DateTime.fromISO('2023-05-18T01:30:00+10:00').toFormat('dd/MM/yyyy hh:mm a');
       expect(result[0][0]).to.equal(expectedModified);
     });
   });
 
-  describe('exports', function() {
-    it('should export all public methods', function() {
+  describe('exports', function () {
+    it('should export all public methods', function () {
       const exported = ReportsService.exports();
-      
+
       expect(exported).to.have.property('bootstrapData');
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('findAllReportsForBrand');
