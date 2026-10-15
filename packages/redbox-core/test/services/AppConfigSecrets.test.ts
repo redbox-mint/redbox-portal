@@ -195,10 +195,57 @@ describe('AppConfigSecrets', function () {
 
   it('rejects oversized bundles before writing AWS', async function () {
     try { await store.storeBundle('brand1', new Map([['token', 'x'.repeat(65_536)]])); expect.fail('Expected rejection'); }
-    catch (error) { expect(String(error)).to.contain('Unable to store'); }
+    catch (error) { expect(String(error)).to.equal('Error: AppConfig secret bundle exceeds the AWS 64 KiB limit'); }
     expect(calls(CreateSecretCommand)).to.equal(0);
     expect(calls(PutSecretValueCommand)).to.equal(0);
     expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
+    expect(sails.log.error.called).to.equal(false);
+  });
+
+  for (const stage of ['renewal', 'cache token']) for (const lost of [false, true]) {
+    it(`reports ${stage} ${lost ? 'lease loss' : 'MongoDB failure'} without AWS troubleshooting guidance`, async function () {
+      const update = locks.updateOne.bind(locks);
+      sinon.stub(locks, 'updateOne').callsFake(async (filter, change, options) => {
+        const target = stage === 'renewal' ? change.$max : change.$set?.cacheToken;
+        if (target) {
+          if (!lost) throw new Error('MongoDB private-credential connection failed');
+          locks.documents.get(filter._id)!.owner = 'replacement';
+          return { matchedCount: 0 };
+        }
+        return update(filter, change, options);
+      });
+      try {
+        await store.storeBundle('brand1', new Map([['token', 'value']]));
+        expect.fail('Expected coordination failure');
+      } catch (error) {
+        expect(String(error)).to.contain(lost ? 'lease was lost' : 'Check MongoDB connectivity and retry');
+        expect(String(error)).not.to.contain('private-credential');
+      }
+      const logs = sails.log.error.getCalls().map(call => call.args.join(' ')).join('\n');
+      expect(logs).not.to.contain('Check AWS permissions');
+      expect(logs).not.to.contain('private-credential');
+      expect(calls(CreateSecretCommand)).to.equal(0);
+      expect(calls(PutSecretValueCommand)).to.equal(0);
+    });
+  }
+
+  it('reports an elapsed bundle deadline without dispatching an AWS write', async function () {
+    const clock = sinon.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const update = locks.updateOne.bind(locks);
+      sinon.stub(locks, 'updateOne').callsFake(async (filter, change, options) => {
+        if (change.$set?.cacheToken) clock.setSystemTime(Date.now() + 30_001);
+        return update(filter, change, options);
+      });
+      try {
+        await store.storeBundle('brand1', new Map([['token', 'value']]));
+        expect.fail('Expected timeout');
+      } catch (error) { expect(String(error)).to.equal('Error: AppConfig secret write timed out. Retry shortly.'); }
+      expect(sails.log.error.called).to.equal(false);
+      expect(calls(CreateSecretCommand)).to.equal(0);
+      expect(calls(PutSecretValueCommand)).to.equal(0);
+      expect([...locks.documents.values()].every(lock => !lock.owner)).to.equal(true);
+    } finally { clock.restore(); }
   });
 
   it('sanitizes bundle update errors and leaves the previous cached value available', async function () {

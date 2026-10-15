@@ -23,6 +23,8 @@ export function isAppConfigSecretReference(value: unknown): value is AppConfigSe
 
 interface SecretValue { arn: string; name?: string; value: string }
 interface BrandSecrets { format: 'redbox-appconfig-v1'; values: Record<string, string> }
+/** Only controlled application messages may bypass SDK error redaction. */
+class AppConfigSecretsInternalError extends Error {}
 interface BundleLock { owner?: string; expiresAt: Date; cacheToken?: string }
 interface BundleLockCollection {
   findOne(filter: object): Promise<BundleLock | null>;
@@ -115,16 +117,16 @@ export class AppConfigSecrets {
   private async fetch(secretId: string, signal?: AbortSignal): Promise<SecretValue> {
     const request = (abortSignal: AbortSignal) => this.client.send(new GetSecretValueCommand({ SecretId: secretId }), { abortSignal });
     const result = signal ? await request(signal) : await this.withAwsDeadline(request);
-    if (result.SecretString === undefined) throw new Error('AppConfig secrets must contain a SecretString');
+    if (result.SecretString === undefined) throw new AppConfigSecretsInternalError('AppConfig secrets must contain a SecretString');
     return { arn: result.ARN ?? secretId, name: result.Name, value: result.SecretString };
   }
 
   private parseBundle(value: string): BrandSecrets {
     let parsed: unknown;
-    try { parsed = JSON.parse(value); } catch { throw new Error('Invalid AppConfig secret bundle'); }
+    try { parsed = JSON.parse(value); } catch { throw new AppConfigSecretsInternalError('Invalid AppConfig secret bundle'); }
     if (typeof parsed !== 'object' || parsed === null || !('format' in parsed) || parsed.format !== 'redbox-appconfig-v1' ||
         !('values' in parsed) || typeof parsed.values !== 'object' || parsed.values === null || Array.isArray(parsed.values) ||
-        !Object.values(parsed.values).every(value => typeof value === 'string')) throw new Error('Invalid AppConfig secret bundle');
+        !Object.values(parsed.values).every(value => typeof value === 'string')) throw new AppConfigSecretsInternalError('Invalid AppConfig secret bundle');
     return parsed as BrandSecrets;
   }
 
@@ -229,7 +231,7 @@ export class AppConfigSecrets {
 
   private assertBundleLease(lease: AppConfigBundleLease, name: string): void {
     if (lease.expiresAt <= Date.now()) lease.lost = true;
-    if (lease.name !== name || !lease.active || lease.aborted || lease.lost) throw new Error('AppConfig secret write lease was lost or aborted');
+    if (lease.name !== name || !lease.active || lease.aborted || lease.lost) throw new AppConfigSecretsInternalError('AppConfig secret write lease was lost or aborted. Reload and retry.');
   }
 
   /** Renew immediately before persistence, and while an unabortable database write is pending. */
@@ -239,7 +241,7 @@ export class AppConfigSecrets {
     let renewed: { matchedCount: number };
     try {
       renewed = await lease.collection.updateOne({ _id: lease.name, owner: lease.owner, expiresAt: { $gt: new Date() } }, { $max: { expiresAt: new Date(expiresAt) } });
-    } catch { throw new Error('Unable to coordinate AppConfig secret update'); }
+    } catch { throw new AppConfigSecretsInternalError('Unable to coordinate AppConfig secret update. Check MongoDB connectivity and retry.'); }
     if (renewed.matchedCount !== 1) lease.lost = true;
     lease.expiresAt = Math.max(lease.expiresAt, expiresAt);
     this.assertBundleLease(lease, lease.name);
@@ -291,15 +293,17 @@ export class AppConfigSecrets {
           return current?.arn;
         }
         const value = JSON.stringify(bundle);
-        if (Buffer.byteLength(value, 'utf8') > 65_536) throw new Error('AppConfig secret bundle exceeds the AWS 64 KiB limit');
+        if (Buffer.byteLength(value, 'utf8') > 65_536) throw new AppConfigSecretsInternalError('AppConfig secret bundle exceeds the AWS 64 KiB limit');
         // Invalidate other nodes BEFORE dispatch: a failed/aborted AWS request may
         // still commit. Never leave their old caches marked as current in that case.
         const nextToken = randomUUID();
         await this.checkBundleSave(lease);
-        const marked = await collection.updateOne({ _id: name, owner, expiresAt: { $gt: new Date() } }, { $set: { cacheToken: nextToken } });
-        if (marked.matchedCount !== 1) { lease.lost = true; throw new Error('AppConfig secret write lease was lost'); }
+        let marked: { matchedCount: number };
+        try { marked = await collection.updateOne({ _id: name, owner, expiresAt: { $gt: new Date() } }, { $set: { cacheToken: nextToken } }); }
+        catch { throw new AppConfigSecretsInternalError('Unable to coordinate AppConfig secret update. Check MongoDB connectivity and retry.'); }
+        if (marked.matchedCount !== 1) { lease.lost = true; throw new AppConfigSecretsInternalError('AppConfig secret write lease was lost. Reload and retry.'); }
         lease.token = nextToken;
-        if (signal.aborted || Date.now() >= deadline) throw new Error('AppConfig secret write timed out');
+        if (signal.aborted || Date.now() >= deadline) throw new AppConfigSecretsInternalError('AppConfig secret write timed out. Retry shortly.');
         const result = current
           ? await this.client.send(new PutSecretValueCommand({ SecretId: current.arn, SecretString: value }), { abortSignal: signal })
           : await this.client.send(new CreateSecretCommand({
@@ -307,7 +311,7 @@ export class AppConfigSecrets {
             Tags: [{ Key: 'managed-by', Value: 'redbox-appconfig' }]
           }), { abortSignal: signal });
         const arn = result.ARN ?? current?.arn;
-        if (!arn) throw new Error('AWS Secrets Manager did not return a secret ARN');
+        if (!arn) throw new AppConfigSecretsInternalError('AWS Secrets Manager did not return a secret ARN');
         this.remember({ arn, name, value });
         this.bundleTokens.set(name, nextToken);
         return arn;
@@ -328,6 +332,7 @@ export class AppConfigSecrets {
     try {
       return await call();
     } catch (error: unknown) {
+      if (error instanceof AppConfigSecretsInternalError) throw error;
       const name = error instanceof Error ? error.name : '';
       const knownErrors = ['AccessDeniedException', 'DecryptionFailure', 'EncryptionFailure', 'ResourceNotFoundException', 'InvalidRequestException', 'ThrottlingException'];
       const category = knownErrors.includes(name) ? name : 'SDKError';
