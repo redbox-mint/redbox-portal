@@ -3,6 +3,7 @@ import { once } from 'node:events';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { inspect } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import express from 'express';
 import * as sinon from 'sinon';
@@ -50,6 +51,51 @@ describe('Request chronicle through the configured body parser', () => {
     Reflect.set(globalThis, 'sails', originalSails);
     rmSync(directory, { recursive: true, force: true });
   });
+
+  for (const captureChronicle of [true, false]) {
+    it(`excludes malformed JSON content from every Sails fallback error log ${captureChronicle ? 'with' : 'without'} a chronicle`, async () => {
+      const logger = createSinonStubLogger(sinon);
+      const sailsApp = { config: {}, log: logger };
+      Reflect.set(globalThis, 'sails', sailsApp);
+      const fallback = require('sails/lib/router/bindDefaultHandlers')(sailsApp)[500];
+      let forwardedError: unknown;
+      const app = express();
+      if (captureChronicle) {
+        app.use((req, res, next) => requestChronicle(req as Sails.Req, res as unknown as Sails.Res, next));
+      }
+      app.use((req, res, next) => http.middleware.myBodyParser!(req as Sails.Req, res as unknown as Sails.Res, next));
+      app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+        forwardedError = error;
+        fallback(error, req, res);
+      });
+      const server = app.listen(0, '127.0.0.1');
+      try {
+        await once(server, 'listening');
+        const address = server.address();
+        assert.ok(address && typeof address !== 'string');
+        const marker = 'PRIVATE-MALFORMED-PASSWORD';
+        const response = await fetch(`http://127.0.0.1:${address.port}/malformed`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: `{"password":"${marker}",`,
+        });
+        assert.equal(response.status, 500, 'Preserve the existing Sails fallback response contract');
+        await response.text();
+        assert.ok(forwardedError instanceof Error);
+        assert.equal(Reflect.get(forwardedError, 'status'), 400);
+        assert.equal(Reflect.get(forwardedError, 'type'), 'entity.parse.failed');
+        assert.equal(Reflect.has(forwardedError, 'body'), false);
+        assert.equal(forwardedError.cause, undefined);
+        const output = inspect(
+          logger.error.getCalls().map(call => call.args),
+          { depth: null }
+        );
+        assert.ok(!output.includes(marker), 'All parser error logs must exclude the raw body and parser excerpts');
+      } finally {
+        await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+      }
+    });
+  }
 
   for (const mode of ['buffered', 'streamed', 'callback-only'] as const) {
     it(`keeps service capture and rethrow deduplication inside a ${mode} multipart upload callback`, async () => {

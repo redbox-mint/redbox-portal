@@ -23,6 +23,8 @@ The approach follows the "wide event" or "canonical log line" pattern.
 3. The event is concluded exactly once, when the response finishes (`finish`), or when the connection closes first (`close`), which records an aborted request.
 4. The event is classified, then logged at the level for its classification, or discarded.
 
+The configured body parser replaces errors with a safe error before forwarding them to Sails. Raw bodies, parser excerpts, and causes are excluded from both the chronicle and Sails' fallback error logs. Numeric HTTP status metadata and known parser error types are retained. Malformed JSON keeps the existing HTTP 500 fallback response. Policy path messages use the same preview-token redaction as the chronicle.
+
 Failures in the request chronicle are caught. They never fail the request or crash the process.
 
 Requests that do not pass through the HTTP middleware, such as socket requests and `sails.request()`, have no request chronicle. Controller details are ignored without warnings and controller errors are logged immediately. Service summaries and errors use the service's namespace logger. Startup work and jobs processed by a separate queue worker also use namespace logging.
@@ -137,6 +139,7 @@ Service work started within a request retains that request's helper after the re
 The migrated service summaries include:
 
 - Records: save operation, phase, outcome and problem count; audit action and outcome; datastream count and outcome.
+- RDMP: record IDs, template counts and outcomes, contributor counts, queue phases, attachment counts, and workspace outcomes. Template failures use a generic error and the failing template index, excluding template source and exception excerpts that may contain private values.
 - Users: authentication provider and outcome, email access outcome, hook counts and outcomes, audit action and user ID.
 - Email: template reference, message format, send/notification outcome and hook outcome.
 - Named queries: collection, branding ID, pagination, parameter/result counts and completion/limit outcome.
@@ -153,7 +156,7 @@ Capture identifiers, counts, codes, flags, statuses, revisions, hashes, and timi
 
 - whole request bodies, results, records, reports, action results, or view locals: record identifiers and counts instead (`summarizeChronicleValue` describes a value's type, length, or key count without its content);
 - message content, such as email bodies and subjects, translation values, or user-entered text;
-- tokens, preview URLs, credentials, or provider authentication details.
+- tokens, stored token/password hashes, preview URLs, credentials, or provider authentication details.
 
 As a safeguard, every value is sanitised and bounded:
 
@@ -190,7 +193,7 @@ Controllers migrated so far: Action, BrandingApp, DynamicAsset, Email, FormVocab
 3. Use `recordBackgroundOperation` for work that is not awaited.
 4. Add tests for the response and the captured details.
 
-The request-facing legacy logging in Records, Users, Email, NamedQuery, SolrSearch, and Trigger services now uses service summaries. Existing structured audit, validation, concurrency, and lifecycle events remain separate. Other service logging can migrate incrementally using the inherited `updateChronicle(info, errors, level)` helper and the same safe capture rules. Keep startup and independently scheduled job diagnostics useful through the namespace fallback, and test both HTTP and background execution.
+The request-facing legacy payload logging in Records, RDMP, Users, Email, NamedQuery, SolrSearch, and Trigger services now uses service summaries. Existing structured audit, validation, concurrency, and lifecycle events remain separate. Other service logging can migrate incrementally using the inherited `updateChronicle(info, errors, level)` helper and the same safe capture rules. Keep startup and independently scheduled job diagnostics useful through the namespace fallback, and test both HTTP and background execution.
 
 ## Namespace loggers
 

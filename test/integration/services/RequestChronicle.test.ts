@@ -4,10 +4,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
+import { inspect } from 'node:util';
+import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
 import { ControllerExports, Controllers, Services } from '@researchdatabox/redbox-core';
 
-type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
 type CapturedLog = { level: LogLevel; args: unknown[] };
 type ChronicleEvent = {
   requestId?: string;
@@ -45,7 +47,8 @@ describe('Request chronicle in lifted Sails', function () {
   const servicePaths = ['/request-chronicle-service-first', '/request-chronicle-service-second'];
   const warningPath = '/request-chronicle-service-warning';
   const uploadPath = '/request-chronicle-service-upload';
-  const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
+  const rdmpPath = '/request-chronicle-rdmp-privacy';
+  const levels: LogLevel[] = ['error', 'warn', 'info', 'debug', 'verbose'];
   let captured: CapturedLog[] = [];
   let originalLog: Partial<Record<LogLevel, (...args: unknown[]) => void>> = {};
   let originalSettings: unknown;
@@ -99,6 +102,15 @@ describe('Request chronicle in lifted Sails', function () {
       });
       markUploadStarted();
     });
+    router.bind(rdmpPath, async (_req, res) => {
+      const record = { metaMetadata: { createdBy: 'admin' }, metadata: { description: 'PRIVATE RDMP DESCRIPTION' } };
+      const user = { username: 'admin', token: 'PRIVATE STORED TOKEN HASH' };
+      const options = { templates: [{ field: 'metadata.copied', template: '<%= record.metadata.description %>' }] };
+      await firstValueFrom(RDMPService.runTemplates('privacy-rdmp', record, options, user));
+      await firstValueFrom(RDMPService.assignPermissions('privacy-rdmp', record, {}, user));
+      await firstValueFrom(RDMPService.complexAssignPermissions('privacy-rdmp', record, {}));
+      res.json({ status: true });
+    });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
     await admin
@@ -128,6 +140,7 @@ describe('Request chronicle in lifted Sails', function () {
     (sails.router as unknown as { unbind(path: string): void }).unbind(translationFailurePath);
     (sails.router as unknown as { unbind(path: string): void }).unbind(warningPath);
     (sails.router as unknown as { unbind(path: string): void }).unbind(uploadPath);
+    (sails.router as unknown as { unbind(path: string): void }).unbind(rdmpPath);
     rmSync(uploadDirectory, { recursive: true, force: true });
     for (const servicePath of servicePaths) {
       (sails.router as unknown as { unbind(path: string): void }).unbind(servicePath);
@@ -207,21 +220,42 @@ describe('Request chronicle in lifted Sails', function () {
     assert.equal(logged[0].event.userDetailsUpdateSuccess, false);
   });
 
-  it('records request body errors in the event', async () => {
+  it('records malformed JSON errors without exposing the body in any log', async () => {
     const path = '/default/rdmp/user/update';
     const response = await admin
       .post(path)
       .set('X-Source', 'jsclient')
       .set('Content-Type', 'application/json')
-      .send('{"details": ');
+      .send('{"password":"PRIVATE MALFORMED PASSWORD",')
+      .expect(500);
     await settle();
 
     const logged = events(path);
     assert.equal(logged.length, 1);
     assert.equal(logged[0].event.res?.statusCode, response.status);
-    if (response.status >= 500) {
-      assert.ok(logged[0].event.errors, 'server errors are recorded in the event');
-    }
+    assert.equal(Object.values(logged[0].event.errors ?? {}).length, 1);
+    assert.ok(!inspect(captured, { depth: null }).includes('PRIVATE MALFORMED PASSWORD'));
+  });
+
+  it('keeps safe RDMP summaries while excluding records and token hashes from every log level', async () => {
+    await anonymous.get(rdmpPath).expect(200);
+    await settle();
+    const logged = events(rdmpPath);
+    assert.equal(logged.length, 1);
+    assert.equal(logged[0].event.rdmpTemplateOid, 'privacy-rdmp');
+    assert.equal(logged[0].event.rdmpTemplateCount, 1);
+    assert.equal(logged[0].event.rdmpTemplateOutcome, 'success');
+    assert.equal(logged[0].event.rdmpPermissionOid, 'privacy-rdmp');
+    assert.ok(!inspect(captured, { depth: null }).includes('PRIVATE'));
+  });
+
+  it('excludes preview tokens from policy logs as well as the request chronicle', async () => {
+    const token = 'PRIVATE-PREVIEW-TOKEN';
+    await admin.get(`/default/rdmp/preview/${token}.css`);
+    await settle();
+    const logged = events('/default/rdmp/preview/REDACTED.css');
+    assert.equal(logged.length, 1);
+    assert.ok(!inspect(captured, { depth: null }).includes(token));
   });
 
   it('records a migrated translation failure once and redacts credentials in its message and stack', async () => {

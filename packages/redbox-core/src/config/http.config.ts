@@ -181,6 +181,39 @@ function bindMultipartUploadCallbacks(req: Sails.Req): void {
     };
 }
 
+/** Parser errors may contain the entire body in properties, messages, and stacks. */
+function sanitizeBodyParserError(error: unknown): unknown {
+    if (!error) {
+        return error;
+    }
+    const safeError = new Error('Could not parse request body.');
+    safeError.name = 'RequestBodyParserError';
+    // Keep transport metadata, without forwarding the original error or its cause.
+    if (typeof error === 'object') {
+        const source = error as Record<string, unknown>;
+        for (const key of ['status', 'statusCode']) {
+            const value = source[key];
+            if (typeof value === 'number' && Number.isInteger(value) && value >= 400 && value <= 599) {
+                Object.assign(safeError, { [key]: value });
+            }
+        }
+        const types = [
+            'entity.parse.failed',
+            'entity.too.large',
+            'encoding.unsupported',
+            'charset.unsupported',
+            'request.aborted',
+            'request.size.invalid',
+            'stream.encoding.set',
+            'stream.not.readable',
+        ];
+        if (typeof source.type === 'string' && types.includes(source.type)) {
+            Object.assign(safeError, { type: source.type });
+        }
+    }
+    return safeError;
+}
+
 export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
     const normalizedRequestPath = normalizeBodyParserPath(requestPath);
     return configuredSkipPaths.some((configuredSkipPath) => {
@@ -730,7 +763,7 @@ export const http: HttpConfig = {
             // Multipart parser events originate outside the request's async context.
             return skipperMiddleware(req, res, AsyncResource.bind((error?: unknown) => {
                 bindMultipartUploadCallbacks(req);
-                next(error);
+                next(sanitizeBodyParserError(error));
             }));
         },
 
