@@ -8,8 +8,8 @@ import { completeDoiAudit, failDoiAudit, startDoiAudit } from './audit';
 import { IntegrationAuditAction } from '../../model/storage/IntegrationAuditModel';
 import { runEffectProgram } from '../integration-v2/runtime';
 
-export const DoiConfigTag = Context.GenericTag<DoiPublishing>('redbox/DoiConfig');
-export const DoiRunContextTag = Context.GenericTag<DoiRunContext>('redbox/DoiRunContext');
+export const DoiConfigTag = Context.Service<DoiPublishing>('redbox/DoiConfig');
+export const DoiRunContextTag = Context.Service<DoiRunContext>('redbox/DoiRunContext');
 
 type DoiRuntimeAuditOptions = {
   auditContext?: IntegrationAuditContext | null;

@@ -1,6 +1,6 @@
 import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
-import * as Fiber from 'effect/Fiber';
+import type * as Fiber from 'effect/Fiber';
 import { randomUUID } from 'node:crypto';
 import { ActionInterruptedFailure, ActionTimeoutFailure, normalizeActionFailure } from './failure';
 import { retryDelayMs, validateActionExecutionPolicy } from './policy';
@@ -161,14 +161,14 @@ function logActionStart(
  * deterministic.
  */
 function failureCause(cause: Cause.Cause<unknown>): unknown {
-  const failure = Cause.failureOrCause(cause);
-  if (failure._tag === 'Left') {
-    return failure.left;
+  const failure = Cause.findErrorOption(cause);
+  if (failure._tag === 'Some') {
+    return failure.value;
   }
-  if (Cause.isInterruptedOnly(cause)) {
+  if (Cause.hasInterruptsOnly(cause)) {
     return new ActionInterruptedFailure(true);
   }
-  return Cause.squash(failure.right);
+  return Cause.squash(cause);
 }
 
 function runAttempt(action: ActionExecutionAction) {
@@ -178,9 +178,9 @@ function runAttempt(action: ActionExecutionAction) {
     let effect: Effect.Effect<unknown, unknown, never> = Effect.suspend(() => action.invoke());
     if (action.policy?.timeoutMs !== undefined) {
       effect = effect.pipe(
-        Effect.timeoutFail({
+        Effect.timeoutOrElse({
           duration: `${action.policy.timeoutMs} millis`,
-          onTimeout: () => new ActionTimeoutFailure(isCooperativelyCancellable(action)),
+          orElse: () => Effect.fail(new ActionTimeoutFailure(isCooperativelyCancellable(action))),
         })
       );
     }
@@ -343,7 +343,7 @@ export function createActionExecutionOperation(
  * a closed datastore.
  */
 export function createActionExecutionSupervisor(): ActionExecutionDependencies['supervisor'] {
-  const fibers = new Set<Fiber.RuntimeFiber<unknown, unknown>>();
+  const fibers = new Set<Fiber.Fiber<unknown, unknown>>();
   return {
     register(fiber): void {
       fibers.add(fiber);
@@ -353,7 +353,7 @@ export function createActionExecutionSupervisor(): ActionExecutionDependencies['
       const active = Array.from(fibers);
       fibers.clear();
       for (const fiber of active) {
-        Effect.runFork(Fiber.interruptFork(fiber));
+        fiber.interruptUnsafe();
       }
     },
   };
@@ -487,7 +487,7 @@ export function dispatchDetachedActionPlan(
         ),
         Effect.onExit(exit => {
           if (exit._tag === 'Failure') {
-            const interrupted = Cause.isInterruptedOnly(exit.cause);
+            const interrupted = Cause.hasInterruptsOnly(exit.cause);
             const interruptedFields = commonFields(context, action, 1);
             const failure = interrupted
               ? normalizeActionFailure(

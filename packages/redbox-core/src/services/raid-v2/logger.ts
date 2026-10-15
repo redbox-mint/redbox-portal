@@ -1,5 +1,5 @@
 import * as Logger from 'effect/Logger';
-import * as LogLevel from 'effect/LogLevel';
+import * as References from 'effect/References';
 
 export interface RaidLogSink { debug(message: unknown): void; info(message: unknown): void; warn(message: unknown): void; error(message: unknown): void }
 
@@ -14,12 +14,12 @@ function sanitize(value: unknown): unknown {
 }
 
 export function makeLoggerLayer(sink: RaidLogSink) {
-  const logger = Logger.make(({ logLevel, message, annotations }) => {
-    const entry = sanitize({ message, ...Object.fromEntries(annotations) });
-    if (logLevel === LogLevel.Error || logLevel === LogLevel.Fatal) sink.error(entry);
-    else if (logLevel === LogLevel.Warning) sink.warn(entry);
-    else if (logLevel === LogLevel.Debug || logLevel === LogLevel.Trace) sink.debug(entry);
+  const logger = Logger.make(({ logLevel, message, fiber }) => {
+    const entry = sanitize({ message, ...fiber.getRef(References.CurrentLogAnnotations) });
+    if (logLevel === 'Error' || logLevel === 'Fatal') sink.error(entry);
+    else if (logLevel === 'Warn') sink.warn(entry);
+    else if (logLevel === 'Debug' || logLevel === 'Trace') sink.debug(entry);
     else sink.info(entry);
   });
-  return Logger.replace(Logger.defaultLogger, logger);
+  return Logger.layer([logger, Logger.tracerLogger]);
 }

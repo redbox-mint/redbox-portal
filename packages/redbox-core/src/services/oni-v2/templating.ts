@@ -12,7 +12,7 @@ export interface OniTemplatingService {
   jsonata(expression: string, context: AnyRecord): Effect.Effect<unknown, Error>;
 }
 
-export const OniTemplatingServiceTag = Context.GenericTag<OniTemplatingService>('redbox/OniTemplatingService');
+export const OniTemplatingServiceTag = Context.Service<OniTemplatingService>('redbox/OniTemplatingService');
 
 export const liveOniTemplatingService: OniTemplatingService = {
   path: (path, context, defaultValue) => Effect.sync(() => _.get(context, path, defaultValue)),
