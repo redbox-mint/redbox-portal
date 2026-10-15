@@ -1,5 +1,6 @@
 /* oxlint-disable typescript/no-explicit-any */
-import { Effect, Layer } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import Handlebars from 'handlebars';
 import moment from 'moment';
 import numeral from 'numeral';

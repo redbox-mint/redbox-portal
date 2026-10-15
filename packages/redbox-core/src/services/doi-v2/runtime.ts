@@ -1,4 +1,6 @@
-import { Context, Effect, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import type { DoiPublishing, DoiOperationResult, DoiRunContext } from './types';
 import { DoiClientTag, makeClientLayer } from './http';
 import type { IntegrationAuditContext } from '../IntegrationAuditService';

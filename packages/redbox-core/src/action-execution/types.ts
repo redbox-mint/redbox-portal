@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import * as Effect from 'effect/Effect';
 import type { RuntimeFiber } from 'effect/Fiber';
 
 export const ACTION_FAILURE_KINDS = [

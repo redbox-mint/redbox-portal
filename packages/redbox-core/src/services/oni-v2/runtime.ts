@@ -1,4 +1,8 @@
-import { Context, Effect, Layer, Logger, Schedule } from 'effect';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
+import * as Logger from 'effect/Logger';
+import * as Schedule from 'effect/Schedule';
 import type { IntegrationAuditContext } from '../IntegrationAuditService';
 import { IntegrationAuditAction } from '../../model/storage/IntegrationAuditModel';
 import type {
