@@ -4,9 +4,9 @@ const pinoTest = require('pino-test');
 // Custom assert function for pino testing
 function expectFunc(received: {level?: string, msg?: string}, expected: {level?: string, msg?: string}, msg: unknown) {
     const receivedLevel = received.level ?? '';
-    const receivedMsg = receivedLevel === 'blank' ? '' : (received.msg ?? '');
+    const receivedMsg = received.msg ?? '';
     const expectedLevel = expected.level ?? '';
-    const expectedMsg = expectedLevel === 'blank' ? '' : (expected.msg ?? '');
+    const expectedMsg = expected.msg ?? '';
     const actualItem = `LEVEL ${receivedLevel} MSG ${receivedMsg}`;
     const expectedItem = `LEVEL ${expectedLevel} MSG ${expectedMsg}`;
     expect(expectedItem).to.eql(actualItem);
@@ -93,7 +93,6 @@ describe('The custom logger', function () {
 
         await logExpectations(stream, defaultLoggerMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -119,7 +118,6 @@ describe('The custom logger', function () {
         const namespaceMsg = prefix + namespaceLoggerMsg;
         await logExpectations(stream, namespaceMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -151,7 +149,6 @@ describe('The custom logger', function () {
         // default
         await logExpectations(stream, defaultMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -168,7 +165,6 @@ describe('The custom logger', function () {
         // namespace
         await logExpectations(stream, namespaceMsg, [
           // "silent",
-          "blank",
           "fatal",
           "crit",
           "error",
@@ -200,7 +196,6 @@ describe('The custom logger', function () {
         // default
         await logExpectations(stream, defaultMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -216,7 +211,6 @@ describe('The custom logger', function () {
         // namespace
         await logExpectations(stream, namespaceMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -251,7 +245,6 @@ describe('The custom logger', function () {
         // default
         await logExpectations(stream, defaultMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -267,7 +260,6 @@ describe('The custom logger', function () {
         // namespace
         await logExpectations(stream, namespaceMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -287,7 +279,6 @@ describe('The custom logger', function () {
         // default
         await logExpectations(stream, defaultMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             "error",
@@ -303,7 +294,6 @@ describe('The custom logger', function () {
         // namespace
         await logExpectations(stream, namespaceMsg, [
             // "silent",
-            "blank",
             "fatal",
             "crit",
             // "error",

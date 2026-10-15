@@ -1,10 +1,14 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import { Writable } from 'stream';
+import { once } from 'node:events';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import * as sinon from 'sinon';
 import { ILogger, isLogger, logAtLevel, nothingLogger } from '@researchdatabox/sails-ng-common';
 import { CoreBase } from '../../src/CoreBase';
-import { isPinoLogger, log } from '../../src/config/log.config';
+import { isPinoLogger, log, logfmtTransportOptions } from '../../src/config/log.config';
 import { createSinonStubLogger } from '../logger.test';
 
 type LogLine = { level: string; name?: string; msg?: string; [key: string]: unknown };
@@ -127,6 +131,52 @@ describe('log config', function () {
     expect(logger.verbose.calledOnceWithExactly('a')).to.equal(true);
     expect(logger.info.calledOnceWithExactly('b')).to.equal(true);
     expect(logger.warn.calledOnce).to.equal(true);
+  });
+
+  it('keeps blank calls silent for parent, namespace, and sails loggers', function () {
+    const { lines, stream } = createSink();
+    const parent = log.createPinoLogger('info', stream);
+    const child = log.createNamespaceLogger('Example', parent);
+    const captainsLog = require('captains-log');
+    const sailsLog = captainsLog({ custom: parent, inspect: false, level: 'info' });
+
+    parent.blank();
+    child.blank('ignored payload');
+    sailsLog.blank();
+    parent.info('still logs messages');
+
+    expect(lines.map(line => [line.level, line.msg])).to.deep.equal([['info', 'still logs messages']]);
+  });
+
+  it('preserves logfmt field names and string values on one line per event', async function () {
+    const createTransport = require('../../logfmt-transport.cjs');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'logfmt-transport-'));
+    const file = path.join(dir, 'out.log');
+    const transport = await createTransport({ ...logfmtTransportOptions, destination: file, sync: true });
+    try {
+      const logger = log.createPinoLogger('info', transport);
+      const messages = ['plain', '', 'first\nsecond', '\n', 'a\r\nb', 'a\tb', 'quote " slash \\ literal \\n'];
+      for (const message of messages) {
+        logger.info({ nestedValue: { http2Status: 'ok' }, number0: 0, falseValue: false }, message);
+      }
+      const closed = once(transport, 'close');
+      transport.end();
+      await closed;
+
+      const lines = fs.readFileSync(file, 'utf8').trimEnd().split('\n');
+      expect(lines).to.have.length(messages.length);
+      for (const [index, line] of lines.entries()) {
+        expect(line).to.include('nested_value_http_2_status=ok number_0=0 false_value=false');
+        expect(line).to.match(/time=\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d{4}/);
+        const value = line.match(/(?:^| )msg=("(?:\\.|[^"\\])*"|[^ ]*)(?: |$)/);
+        expect(value).to.not.equal(null);
+        const encoded = value![1];
+        expect(encoded.startsWith('"') ? JSON.parse(encoded) : encoded).to.equal(messages[index]);
+      }
+    } finally {
+      transport.destroy();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('keeps structured objects when logging through the sails logger', function () {
