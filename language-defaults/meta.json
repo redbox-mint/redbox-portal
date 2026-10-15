@@ -6124,6 +6124,26 @@
     "description": "Section heading for panel styling in the branding configuration admin UI",
     "contentFormat": "plain"
   },
+  "branding-admin-sidebar-name": {
+    "category": "branding",
+    "description": "Admin sidebar colour group heading",
+    "contentFormat": "plain"
+  },
+  "branding-admin-sidebar-help": {
+    "category": "branding",
+    "description": "Admin sidebar colour group help text",
+    "contentFormat": "plain"
+  },
+  "branding-admin-sidebar-text-color-label": {
+    "category": "branding",
+    "description": "Admin sidebar text colour label",
+    "contentFormat": "plain"
+  },
+  "branding-admin-sidebar-text-color-help": {
+    "category": "branding",
+    "description": "Admin sidebar text colour help text",
+    "contentFormat": "plain"
+  },
   "branding-preview-sample-help": {
     "category": "branding",
     "description": "Preview sample text help",
