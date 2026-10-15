@@ -1,5 +1,6 @@
 import * as crypto from 'node:crypto';
 import * as BrandingServiceModule from '../services/BrandingService';
+import { safeChronicleText } from '../utilities/RequestChronicle';
 
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 
@@ -114,7 +115,9 @@ function applyWebAnalyticsCsp(req: Sails.Req, directives: Record<string, string[
  * See: https://centralcsp.com/docs
  */
 export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
-    sails.log.verbose(`Setting Content Security Policy nonce headers and view local for ${req.path}`);
+    sails.log.verbose(
+        `Setting Content Security Policy nonce headers and view local for ${safeChronicleText(req.path, 500)}`
+    );
 
     // Config can be provided at sails.config.csp or sails.config.security.csp
     const cfg: CspConfig = (sails.config && (sails.config.csp as CspConfig || (sails.config.security && (sails.config.security as unknown as Record<string, unknown>).csp as CspConfig | undefined))) || {};

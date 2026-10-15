@@ -4,6 +4,8 @@ import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as _ from 'lodash';
 import { CoreBase } from './CoreBase';
+import { currentRequestChronicle } from './utilities/RequestChronicleContext';
+import { sanitizeChronicleValue, toChronicleError, toChronicleLogRecord } from './utilities/RequestChronicle';
 
 // Type alias for query objects used with RxJS bindings
 type QueryObject = object;
@@ -30,6 +32,51 @@ export namespace Services.Core {
     protected logHeader: string = '';
 
     protected _loggerNamespaceSuffix: string = 'Service';
+
+    /**
+     * Add safe service summaries to the current HTTP request without passing req.
+     * Outside HTTP requests, emit the same bounded summaries through the namespace logger.
+     * Errors and late work remain visible, and recording never changes service behavior.
+     */
+    protected updateChronicle(
+      info: Record<string, unknown>,
+      errors: unknown[] = [],
+      level: 'debug' | 'info' | 'warn' = 'debug'
+    ): void {
+      const helper = currentRequestChronicle();
+      let safeInfo: unknown;
+      try {
+        if (helper !== undefined) {
+          if (helper.isRunning || errors.length === 0) {
+            helper.addInfo(info, level);
+          }
+        } else {
+          safeInfo = sanitizeChronicleValue(info);
+          if (errors.length === 0 && Object.keys(info).length > 0) {
+            this.logger[level](toChronicleLogRecord({ info: safeInfo }), 'Service operation');
+          }
+        }
+      } catch {
+        // Observability must never change the result of a service operation.
+      }
+      for (const error of errors) {
+        try {
+          if (helper !== undefined) {
+            helper.addError(error, helper.isRunning ? undefined : info);
+          } else {
+            this.logger.error(
+              toChronicleLogRecord({
+                ...(safeInfo !== undefined ? { info: safeInfo } : {}),
+                error: toChronicleError(error),
+              }),
+              'Service operation failed.'
+            );
+          }
+        } catch {
+          // A failed details transport must not suppress error capture.
+        }
+      }
+    }
 
     /**
      * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure

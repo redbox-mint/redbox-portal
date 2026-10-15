@@ -8,9 +8,18 @@ import * as path from 'path';
 import * as sinon from 'sinon';
 import { registerRequestChronicleErrorCapture, requestChronicle } from '../../src/middleware/requestChronicle';
 import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
+import { currentRequestChronicle } from '../../src/utilities/RequestChronicleContext';
+import { Services } from '../../src/CoreService';
 import { createSinonStubLogger } from '../logger.test';
 
 type StubLogger = ReturnType<typeof createSinonStubLogger>;
+
+class HTTPTestService extends Services.Core.Service {
+  async recordOwner(owner: string, wait: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, wait));
+    this.updateChronicle({ serviceOwner: owner });
+  }
+}
 
 describe('requestChronicle middleware', function () {
   let logger: StubLogger;
@@ -31,6 +40,12 @@ describe('requestChronicle middleware', function () {
       const sailsReq = req as unknown as Sails.Req;
       (sailsReq as { path: string }).path = req.url ?? '';
       requestChronicle(sailsReq, res as unknown as Sails.Res, () => {
+        if (req.url?.startsWith('/service/')) {
+          const owner = req.url;
+          const wait = owner === '/service/20' ? 20 : 1;
+          void new HTTPTestService().recordOwner(owner, wait).then(() => res.end('done'));
+          return;
+        }
         if (req.url === '/abort') {
           res.writeHead(200);
           res.write('partial');
@@ -89,6 +104,31 @@ describe('requestChronicle middleware', function () {
     expect(logged[0].record.res).to.deep.equal({ statusCode: 200, completed: true });
     expect(logged[0].record.result).to.include({ outcome: 'success', classification: 'sample' });
     expect(logged[0].record.requestId).to.be.a('string');
+  });
+
+  it('records asynchronous service details on the right event for simultaneous HTTP requests', async function () {
+    await Promise.all([visit('/service/20'), visit('/service/1')]);
+    const logged = events();
+    expect(logged).to.have.length(2);
+    expect(new Set(logged.map(item => item.record.requestId)).size).to.equal(2);
+    for (const item of logged) {
+      expect(item.record.serviceOwner).to.equal(item.record.req.path);
+    }
+    expect(currentRequestChronicle()).to.equal(undefined);
+  });
+
+  it('propagates a downstream exception once and restores context', () => {
+    const req = { options: {}, headers: {}, method: 'GET', path: '/throws' } as Sails.Req;
+    const res = new EventEmitter() as unknown as Sails.Res;
+    const error = new Error('downstream failed');
+    const next = sinon.stub().callsFake(() => {
+      expect(currentRequestChronicle()).to.equal(RequestChronicleHelper.existing(req));
+      throw error;
+    });
+    expect(() => requestChronicle(req, res, next)).to.throw(error);
+    sinon.assert.calledOnce(next);
+    expect(currentRequestChronicle()).to.equal(undefined);
+    sinon.assert.notCalled(logger.warn);
   });
 
   it('logs direct 404 and 500 responses as failures with consistent severity', async function () {

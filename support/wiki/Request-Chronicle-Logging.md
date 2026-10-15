@@ -1,6 +1,6 @@
 # Request Chronicle Logging
 
-A request chronicle is one structured log event per HTTP request. It records what happened during the request, including the request and response, the outcome, the duration, errors, and details added by controllers. The event is logged once, when the request finishes. Use it as the first place to look when investigating a request, instead of relating many separate log lines.
+A request chronicle is one structured log event per HTTP request. It records what happened during the request, including the request and response, the outcome, the duration, errors, and details added by controllers and services. The event is logged once, when the request finishes. Use it as the first place to look when investigating a request, instead of relating many separate log lines.
 
 The approach follows the "wide event" or "canonical log line" pattern.
 
@@ -12,18 +12,22 @@ The approach follows the "wide event" or "canonical log line" pattern.
 | Retention settings and defaults | `packages/redbox-core/src/utilities/RequestChronicleSettings.ts` |
 | HTTP middleware | `packages/redbox-core/src/middleware/requestChronicle.ts` (first in `sails.config.http.middleware.order`) |
 | Controller helpers | `updateChronicle`, `recordBackgroundOperation`, and the `chronicle` option of `sendResp` in `packages/redbox-core/src/CoreController.ts` |
+| Service helper | `updateChronicle` in `packages/redbox-core/src/CoreService.ts` |
+| Async request context | `packages/redbox-core/src/utilities/RequestChronicleContext.ts` |
 | 500 response | `packages/redbox-core/src/responses/serverError.ts` records the error in the event; the bootstrap registers a Sails error listener for failures before response helpers are bound |
 
 ## Lifecycle
 
 1. The `requestChronicle` middleware creates the helper, generates a request id, and records the request method, path, and host. The helper is stored on `req.options.requestChronicleHelper`. It is a class instance, so it survives the Sails route options merge; do not replace it with a plain object. A shared symbol identifies the helper across source and compiled module copies in development.
-2. Controllers, policies, and responses add details and errors while the request is running.
+2. The middleware runs downstream processing in an `AsyncLocalStorage` context. The configured body parser binds its continuation to this context. It also binds completion callbacks registered through `req.file(...).upload(...)`, so streamed multipart uploads retain the context after later socket chunks arrive. Controllers, services, policies, and responses add details and errors while the request is running. Services find the helper through this context without requiring a `req` parameter or storing request state on their shared instances.
 3. The event is concluded exactly once, when the response finishes (`finish`), or when the connection closes first (`close`), which records an aborted request.
 4. The event is classified, then logged at the level for its classification, or discarded.
 
+The configured body parser replaces errors with a safe error before forwarding them to Sails. Raw bodies, parser excerpts, and causes are excluded from both the chronicle and Sails' fallback error logs. Numeric HTTP status metadata and known parser error types are retained. Malformed JSON keeps the existing HTTP 500 fallback response. Policy path messages use the same preview-token redaction as the chronicle.
+
 Failures in the request chronicle are caught. They never fail the request or crash the process.
 
-Requests that do not pass through the HTTP middleware, such as socket requests and `sails.request()`, have no request chronicle. For these requests, details are ignored without warnings, and errors are logged immediately.
+Requests that do not pass through the HTTP middleware, such as socket requests and `sails.request()`, have no request chronicle. Controller details are ignored without warnings and controller errors are logged immediately. Service summaries and errors use the service's namespace logger. Startup work and jobs processed by a separate queue worker also use namespace logging.
 
 ## Outcome, classification, and log level
 
@@ -43,10 +47,12 @@ The **classification** describes why the event was kept, and sets the log level 
 | `client-error` | Status 4xx. Expected client failures, such as not found or validation failures. | `info`, or `warn` if errors were recorded |
 | `aborted` | The connection closed before the response finished, with no status or errors that classify it otherwise. | `info` |
 | `slow` | A successful request that took longer than `slowThresholdMs`. | `warn` |
+| `warning` | A successful, fast request with a service warning. Always retained, even when success sampling is disabled or the path is excluded. | `warn` |
 | `sample` | A sampled successful request. | `info` |
 | `discard` | A successful request that was not sampled. | not logged |
 
 Classification checks the status before the abort state, so a request that sent a 4xx or 5xx status and was then aborted is classified by its status, with the outcome `aborted`.
+Service warnings raise `client-error` and `aborted` events to `warn` without changing their classification or outcome. Errors retain their existing precedence.
 
 ## Retention settings
 
@@ -54,7 +60,7 @@ Configure retention in `sails.config.log.requestChronicle`, for example in `conf
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `successSampleRate` | `0.1` | The fraction (0 to 1) of successful, fast requests that are logged. Failed, aborted, and slow requests are always logged. |
+| `successSampleRate` | `0.1` | The fraction (0 to 1) of successful, fast requests that are logged. Failed, aborted, slow, and warning requests are always logged. |
 | `slowThresholdMs` | `2000` | Successful requests that take longer than this are classified as `slow`. |
 | `successSampleExcludePattern` | static asset file extensions | A case-insensitive regular expression. Successful, fast requests with a matching path are never sampled. |
 
@@ -112,13 +118,45 @@ Passing `errors` to `sendResp` affects the response: if there are no `displayErr
 
 Keys are top-level and a later value replaces an earlier one. Use a prefix for the controller or feature, for example `userLoginSuccess` or `emailProcessStepFailed`.
 
+### Service details
+
+In a service that extends `Services.Core.Service`, use the inherited helper:
+
+```ts
+this.updateChronicle({ namedQueryCollection: collectionName, namedQueryRows: rows });
+this.updateChronicle({ emailSendOutcome: 'failed' }, [error]);
+
+// Retain HTTP warnings; use warn for this summary outside an HTTP request too.
+this.updateChronicle({ solrJobExecution: 'inline' }, [], 'warn');
+```
+
+During HTTP processing, the details join the same event as controller details. Concurrent requests have isolated contexts even though they call the same service instance. Promises, timers, callbacks created in that context, and RxJS work subscribed within it retain the request context. A deferred Observable belongs to the context in which it is subscribed; creating it during a request does not bind later subscriptions to that request. A shared event emitter or queue worker running in a separate async context does not inherit the originating HTTP request.
+
+Outside HTTP processing, summaries are bounded and redacted, then logged at `debug` by default; the optional third argument selects `info` or `warn`. Errors are normalized and logged at `error`, with their sanitized operation details in the same record so the context survives when debug logging is disabled. During HTTP processing, `warn` retains the event and raises its severity to at least `warn`. The helper never changes the service return value or error propagation. An error object recorded by a service and then rethrown to a controller is captured once while the request runs.
+
+Service work started within a request retains that request's helper after the response finishes. Late details use the supplied level (`debug` by default), and late errors use `error` with sanitized operation details in the same record. Both include the original request ID. This does not delay the response or attach late work to another request.
+
+The migrated service summaries include:
+
+- Records: save operation, phase, outcome and problem count; audit action and outcome; datastream count and outcome.
+- RDMP: record IDs, template counts and outcomes, contributor counts, queue phases and job names, attachment counts, and workspace outcomes. Template failures use a generic error and the failing template index, excluding template source and exception excerpts that may contain private values.
+- Users: authentication provider and outcome, email access outcome, hook counts and outcomes, audit action and user ID.
+- Email: template reference, message format, send/notification outcome and hook outcome.
+- Named queries: collection, branding ID, pagination, parameter/result counts and completion/limit outcome.
+- Solr: core, record ID, operation, pagination, result/index-field counts and job outcome.
+- Triggers: record ID, hook/template counts, transition condition flag and validation failure count. Related-template failures retain their validation error class and display errors, with safe record IDs, the operation phase (`lookup`, `template`, `brand`, or `save`), error class, and save outcome instead of template configuration or exception excerpts. A template index is recorded only when rendering fails, so a later lookup, branding, or save failure does not blame a successful template.
+
+Full records, user profiles, login claims, email content, query criteria, parameter values, and hook options are excluded.
+
+For passport authentication, services record outcomes and email access warnings; the controller records errors passed to `done`. This keeps string rejections such as `authorized-email-denied` and `No user found` in the event once, while preserving the callback arguments. A direct email access check that returns `false` retains a warning without adding a separate error.
+
 ### Safe capture rules
 
 Capture identifiers, counts, codes, flags, statuses, revisions, hashes, and timings. Do not capture:
 
 - whole request bodies, results, records, reports, action results, or view locals: record identifiers and counts instead (`summarizeChronicleValue` describes a value's type, length, or key count without its content);
 - message content, such as email bodies and subjects, translation values, or user-entered text;
-- tokens, preview URLs, credentials, or provider authentication details.
+- tokens, stored token/password hashes, preview URLs, credentials, or provider authentication details.
 
 As a safeguard, every value is sanitised and bounded:
 
@@ -155,7 +193,7 @@ Controllers migrated so far: Action, BrandingApp, DynamicAsset, Email, FormVocab
 3. Use `recordBackgroundOperation` for work that is not awaited.
 4. Add tests for the response and the captured details.
 
-Services do not yet add details to the request chronicle; they continue to use their namespace loggers. Propagating request context to services (for example with `AsyncLocalStorage`), and migrating to OpenTelemetry logging once it is stable for JavaScript, are future work.
+The request-facing legacy payload logging in Records, RDMP, Users, Email, NamedQuery, SolrSearch, and Trigger services now uses service summaries. Existing structured audit, validation, concurrency, and lifecycle events remain separate. Other service logging can migrate incrementally using the inherited `updateChronicle(info, errors, level)` helper and the same safe capture rules. Keep startup and independently scheduled job diagnostics useful through the namespace fallback, and test both HTTP and background execution.
 
 ## Namespace loggers
 

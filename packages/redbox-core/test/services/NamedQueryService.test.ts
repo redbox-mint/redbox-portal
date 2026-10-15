@@ -1,4 +1,6 @@
 import {createSinonStubLogger} from "../logger.test";
+import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
+import { runWithRequestChronicle } from '../../src/utilities/RequestChronicleContext';
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
@@ -622,6 +624,21 @@ describe('NamedQueryService', function() {
       }
     });
 
+    it('captures pagination and counts without logging criteria or parameter values', async function() {
+      const item = RequestChronicleHelper.fromReq(mockSails.log, { options: {} } as Sails.Req);
+      item.start();
+      const response = await runWithRequestChronicle(item, () => NamedQueryService.performNamedQueryFromConfig(
+        { collectionName: 'record', mongoQuery: { 'metadata.title': 'PRIVATE TITLE' } },
+        { search: 'PRIVATE SEARCH' },
+        { id: 'brand-1' },
+        0,
+        10
+      ));
+      expect(response.records).to.deep.equal([]);
+      expect(item.data).to.include({ namedQueryCollection: 'record', namedQueryRows: 10, namedQueryParameterCount: 1 });
+      expect(JSON.stringify(item.data)).not.to.include('PRIVATE');
+    });
+
     it('should log when expandRelations is configured for a non-record model', async function() {
       const brand = { id: 'brand-1' };
 
@@ -640,7 +657,7 @@ describe('NamedQueryService', function() {
         true
       );
 
-      expect(mockSails.log.debug.calledWith("expandRelations is only supported for the 'record' collection; ignoring for 'custommodel'")).to.be.true;
+      expect(mockSails.log.debug.calledWithMatch({ info: { namedQueryRelationsIgnored: true } }, 'Service operation')).to.be.true;
     });
 
     it('should expand record relationships when configured', async function() {

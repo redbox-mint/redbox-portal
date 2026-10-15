@@ -7,6 +7,7 @@
  */
 
 import { RequestHandler, Request, Response, NextFunction } from 'express';
+import { AsyncResource } from 'node:async_hooks';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -149,6 +150,70 @@ function resolveBodyParserSkipMatchers(customConfig?: Partial<CustomConfig>): Re
     }
 
     return _cachedBodyParserSkipPathMatchers;
+}
+
+type UploadUpstream = { upload: (...args: unknown[]) => unknown };
+type UploadRequest = Sails.Req & { file?: (...args: unknown[]) => UploadUpstream };
+
+/** Keep streamed upload completion callbacks in the context where upload() was called. */
+function bindMultipartUploadCallbacks(req: Sails.Req): void {
+    const uploadRequest = req as UploadRequest;
+    const file = uploadRequest.file;
+    if (typeof file !== 'function') {
+        return;
+    }
+    const boundUpstreams = new WeakSet<UploadUpstream>();
+    uploadRequest.file = function (this: UploadRequest, ...args: unknown[]) {
+        const upstream = file.apply(this, args);
+        if (upstream && typeof upstream.upload === 'function' && !boundUpstreams.has(upstream)) {
+            const upload = upstream.upload;
+            upstream.upload = function (this: UploadUpstream, ...uploadArgs: unknown[]) {
+                const last = uploadArgs.length - 1;
+                const callback = uploadArgs[last];
+                if (typeof callback === 'function') {
+                    uploadArgs[last] = AsyncResource.bind(callback as (...args: unknown[]) => unknown);
+                }
+                return upload.apply(this, uploadArgs);
+            };
+            boundUpstreams.add(upstream);
+        }
+        return upstream;
+    };
+}
+
+const bodyParserErrorTypes = [
+    'entity.parse.failed',
+    'entity.too.large',
+    'encoding.unsupported',
+    'charset.unsupported',
+    'parameters.too.many',
+    'request.aborted',
+    'request.size.invalid',
+    'stream.encoding.set',
+    'stream.not.readable',
+];
+
+/** Parser errors may contain the entire body in properties, messages, and stacks. */
+function sanitizeBodyParserError(error: unknown): unknown {
+    if (!error) {
+        return error;
+    }
+    const safeError = new Error('Could not parse request body.');
+    safeError.name = 'RequestBodyParserError';
+    // Keep transport metadata, without forwarding the original error or its cause.
+    if (typeof error === 'object') {
+        const source = error as Record<string, unknown>;
+        for (const key of ['status', 'statusCode']) {
+            const value = source[key];
+            if (typeof value === 'number' && Number.isInteger(value) && value >= 400 && value <= 599) {
+                Object.assign(safeError, { [key]: value });
+            }
+        }
+        if (typeof source.type === 'string' && bodyParserErrorTypes.includes(source.type)) {
+            Object.assign(safeError, { type: source.type });
+        }
+    }
+    return safeError;
 }
 
 export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
@@ -697,7 +762,11 @@ export const http: HttpConfig = {
                 // strict: true,
                 // ... more Skipper options here ...
             });
-            return skipperMiddleware(req, res, next);
+            // Multipart parser events originate outside the request's async context.
+            return skipperMiddleware(req, res, AsyncResource.bind((error?: unknown) => {
+                bindMultipartUploadCallbacks(req);
+                next(sanitizeBodyParserError(error));
+            }));
         },
 
         poweredBy: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {

@@ -25,6 +25,7 @@ export const RequestChronicleClassifications = [
   'client-error',
   'aborted',
   'slow',
+  'warning',
   'sample',
   'discard',
 ] as const;
@@ -39,6 +40,7 @@ const classificationLevels: Record<RequestChronicleClassificationsType, 'error' 
   'client-error': 'info',
   aborted: 'info',
   slow: 'warn',
+  warning: 'warn',
   sample: 'info',
   discard: null,
 };
@@ -518,9 +520,11 @@ const helperBrand = Symbol.for('@researchdatabox/redbox-core/RequestChronicleHel
 export class RequestChronicleHelper {
   private readonly [helperBrand] = true;
   #data: RequestChronicle = {};
+  readonly #recordedErrors = new WeakSet<object>();
   #state: ChronicleState = 'pending';
   #startedAt = 0;
   #logged = false;
+  #hasWarnings = false;
   #requestId?: string;
   readonly #settings: RequestChronicleSettings;
   readonly #random: () => number;
@@ -712,13 +716,34 @@ export class RequestChronicleHelper {
    * Record an error.
    * Errors recorded when the chronicle is not running are logged immediately, with the request id.
    * @param error The error.
+   * @param info Safe operation details to include when the error is logged outside a running chronicle.
    */
-  public addError(error?: unknown): void {
+  public addError(error?: unknown, info?: Record<string, unknown>): void {
     this.#safely('addError', () => {
+      // Services may record a failure before rethrowing it to a controller.
+      // Retain that error once while the request runs, without hiding late failures.
+      if (this.isRunning && error !== null && typeof error === 'object') {
+        if (this.#recordedErrors.has(error)) {
+          return;
+        }
+        this.#recordedErrors.add(error);
+      }
       const chronicleError = toChronicleError(error);
       if (!this.isRunning) {
+        let safeInfo: unknown;
+        try {
+          if (info !== undefined) {
+            safeInfo = sanitizeChronicleValue(info);
+          }
+        } catch {
+          // Hostile details must not suppress the error itself.
+        }
         this.logger.error(
-          toChronicleLogRecord({ requestId: this.#requestId, error: chronicleError }),
+          toChronicleLogRecord({
+            requestId: this.#requestId,
+            ...(safeInfo !== undefined ? { info: safeInfo } : {}),
+            error: chronicleError,
+          }),
           this.isFinished
             ? 'Request chronicle: error recorded after the request finished.'
             : 'Request chronicle: error recorded without an active request chronicle.'
@@ -739,11 +764,13 @@ export class RequestChronicleHelper {
   /**
    * Add arbitrary details to the request chronicle.
    * Values are sanitised and size-bounded.
-   * Details added after the chronicle finished are logged at debug level, with the request id.
+   * Warnings retain the request and raise its severity to at least warn.
+   * Details added after the chronicle finished are logged at the supplied level, with the request id.
    * Details added when there is no running chronicle (e.g. socket requests) are ignored.
    * @param info The details to add.
+   * @param level The severity of these details; defaults to debug for late details.
    */
-  public addInfo(info: Record<string, unknown>): void {
+  public addInfo(info: Record<string, unknown>, level: 'debug' | 'info' | 'warn' = 'debug'): void {
     this.#safely('addInfo', () => {
       if (info === null || info === undefined || typeof info !== 'object') {
         return;
@@ -752,12 +779,15 @@ export class RequestChronicleHelper {
         // There is no request chronicle (e.g. socket requests), so there is nothing to relate the details to.
         return;
       }
+      if (this.isRunning && level === 'warn') {
+        this.#hasWarnings = true;
+      }
       const { entries, omitted } = sanitizeChronicleEntries(info);
       if (entries.length === 0) {
         return;
       }
       if (this.isFinished) {
-        this.logger.debug(
+        this.logger[level](
           toChronicleLogRecord({
             requestId: this.#requestId,
             info: Object.fromEntries(entries),
@@ -827,7 +857,7 @@ export class RequestChronicleHelper {
 
   /**
    * Classify this request chronicle.
-   * Keep all failed, aborted, and slow requests, and a sample of the successful requests.
+   * Keep all failed, aborted, slow, and warning requests, and a sample of the successful requests.
    */
   #classify(
     completed: boolean,
@@ -850,6 +880,9 @@ export class RequestChronicleHelper {
     if (durationMs > this.#settings.slowThresholdMs) {
       return 'slow';
     }
+    if (this.#hasWarnings) {
+      return 'warning';
+    }
     const path = this.#data.req?.path;
     if (this.#successSampleExclude !== null && typeof path === 'string' && this.#successSampleExclude.test(path)) {
       return 'discard';
@@ -858,7 +891,10 @@ export class RequestChronicleHelper {
   }
 
   #level(classification: RequestChronicleClassificationsType): 'error' | 'warn' | 'info' | null {
-    if (classification === 'client-error' && this.hasErrors) {
+    if (
+      (classification === 'client-error' && this.hasErrors) ||
+      (this.#hasWarnings && classificationLevels[classification] === 'info')
+    ) {
       return 'warn';
     }
     return classificationLevels[classification];
