@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import supertest from 'supertest';
-import { ControllerExports } from '@researchdatabox/redbox-core';
+import { ControllerExports, Services } from '@researchdatabox/redbox-core';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 type CapturedLog = { level: LogLevel; args: unknown[] };
@@ -13,6 +13,12 @@ type ChronicleEvent = {
   [key: string]: unknown;
 };
 
+class WarningService extends Services.Core.Service {
+  public recordWarning(): void {
+    this.updateChronicle({ serviceWarning: 'retained' }, [], 'warn');
+  }
+}
+
 /**
  * Checks the request chronicle through lifted Sails: the HTTP middleware, routing, policies, and controllers.
  */
@@ -22,6 +28,7 @@ describe('Request chronicle in lifted Sails', function () {
   const virtualPath = '/request-chronicle-virtual-test';
   const translationFailurePath = '/request-chronicle-translation-failure-test';
   const servicePaths = ['/request-chronicle-service-first', '/request-chronicle-service-second'];
+  const warningPath = '/request-chronicle-service-warning';
   const levels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
   let captured: CapturedLog[] = [];
   let originalLog: Partial<Record<LogLevel, (...args: unknown[]) => void>> = {};
@@ -58,6 +65,11 @@ describe('Request chronicle in lifted Sails', function () {
         return res.json({ status: result.status });
       });
     }
+    const warningService = new WarningService();
+    router.bind(warningPath, (_req, res) => {
+      warningService.recordWarning();
+      res.json({ status: true });
+    });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
     await admin
@@ -85,6 +97,7 @@ describe('Request chronicle in lifted Sails', function () {
   after(() => {
     (sails.router as unknown as { unbind(path: string): void }).unbind(virtualPath);
     (sails.router as unknown as { unbind(path: string): void }).unbind(translationFailurePath);
+    (sails.router as unknown as { unbind(path: string): void }).unbind(warningPath);
     for (const servicePath of servicePaths) {
       (sails.router as unknown as { unbind(path: string): void }).unbind(servicePath);
     }
@@ -235,5 +248,25 @@ describe('Request chronicle in lifted Sails', function () {
       0,
       'virtual requests do not produce events'
     );
+  });
+
+  it('retains a successful service warning as one warn event when success sampling is disabled', async () => {
+    const logConfig = sails.config.log as { requestChronicle?: unknown };
+    const settings = logConfig.requestChronicle;
+    logConfig.requestChronicle = { successSampleRate: 0 };
+    try {
+      const response = await anonymous.get(warningPath).expect(200);
+      await settle();
+      assert.deepEqual(response.body, { status: true });
+      const logged = events(warningPath);
+      assert.equal(logged.length, 1);
+      assert.equal(logged[0].level, 'warn');
+      assert.equal(logged[0].event.serviceWarning, 'retained');
+      assert.equal(logged[0].event.result?.classification, 'warning');
+      assert.equal(logged[0].event.result?.outcome, 'success');
+      assert.deepEqual(chronicleWarnings(), []);
+    } finally {
+      logConfig.requestChronicle = settings;
+    }
   });
 });

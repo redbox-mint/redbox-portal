@@ -1453,10 +1453,12 @@ export namespace Services {
       done: DoneCallback
     ) {
       const originalDone = done;
+      let rejectionOutcome: string | undefined;
       done = (error, user, info) => {
         this.updateChronicle(
           {
-            usersAuthOutcome: error ? 'failure' : user ? 'success' : 'rejected',
+            usersOperation: 'openIdConnectAuthVerifyCallback',
+            usersAuthOutcome: rejectionOutcome ?? (error ? 'failure' : user ? 'success' : 'rejected'),
             usersAuthUserId: _.get(user, 'id'),
           },
           error ? [error] : []
@@ -1523,6 +1525,7 @@ export namespace Services {
 
       // This can occur when the claim mappings are incorrect or a login was cancelled
       if (_.isEmpty(userName)) {
+        rejectionOutcome = 'missing-username';
         this.updateChronicle({ usersAuthOutcome: 'missing-username' }, [new Error('OIDC username claim is missing.')]);
         return done(null, null, {
           message: 'Rejected as username does not have a value',
@@ -1582,10 +1585,10 @@ export namespace Services {
                               return done(err, false);
                             }
                             if (_.isEmpty(user)) {
-                              that.updateChronicle(
-                                { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
-                                ['No user found']
-                              );
+                              that.updateChronicle({
+                                usersOperation: 'openIdConnectAuthVerifyCallback',
+                                usersOutcome: 'failed',
+                              });
                               return done('No user found', false);
                             }
 
@@ -1623,10 +1626,10 @@ export namespace Services {
                         return done(err, false);
                       }
                       if (_.isEmpty(user)) {
-                        that.updateChronicle(
-                          { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
-                          ['No user found']
-                        );
+                        that.updateChronicle({
+                          usersOperation: 'openIdConnectAuthVerifyCallback',
+                          usersOutcome: 'failed',
+                        });
                         return done('No user found', false);
                       }
 

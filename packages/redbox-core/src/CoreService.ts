@@ -44,11 +44,17 @@ export namespace Services.Core {
       level: 'debug' | 'info' | 'warn' = 'debug'
     ): void {
       const helper = currentRequestChronicle();
+      let safeInfo: unknown;
       try {
         if (helper !== undefined) {
-          helper.addInfo(info);
-        } else if (Object.keys(info).length > 0) {
-          this.logger[level](toChronicleLogRecord({ info: sanitizeChronicleValue(info) }), 'Service operation');
+          if (helper.isRunning || errors.length === 0) {
+            helper.addInfo(info, level);
+          }
+        } else {
+          safeInfo = sanitizeChronicleValue(info);
+          if (errors.length === 0 && Object.keys(info).length > 0) {
+            this.logger[level](toChronicleLogRecord({ info: safeInfo }), 'Service operation');
+          }
         }
       } catch {
         // Observability must never change the result of a service operation.
@@ -56,9 +62,15 @@ export namespace Services.Core {
       for (const error of errors) {
         try {
           if (helper !== undefined) {
-            helper.addError(error);
+            helper.addError(error, helper.isRunning ? undefined : info);
           } else {
-            this.logger.error(toChronicleLogRecord({ error: toChronicleError(error) }), 'Service operation failed.');
+            this.logger.error(
+              toChronicleLogRecord({
+                ...(safeInfo !== undefined ? { info: safeInfo } : {}),
+                error: toChronicleError(error),
+              }),
+              'Service operation failed.'
+            );
           }
         } catch {
           // A failed details transport must not suppress error capture.

@@ -8,13 +8,23 @@ import { Services as UserServices } from '../../src/services/UsersService';
 import { Services as TriggerServices } from '../../src/services/TriggerService';
 import { Services as RecordsServices } from '../../src/services/RecordsService';
 import { Services as SolrServices } from '../../src/services/SolrSearchService';
-import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
+import { RequestChronicleHelper, RequestChronicleOptions } from '../../src/utilities/RequestChronicle';
 import { currentRequestChronicle, runWithRequestChronicle } from '../../src/utilities/RequestChronicleContext';
 import { createSinonStubLogger } from '../logger.test';
 
 class TestService extends Services.Core.Service {
-  public record(info: Record<string, unknown>, errors: unknown[] = []): void {
-    this.updateChronicle(info, errors);
+  public record(
+    info: Record<string, unknown>,
+    errors: unknown[] = [],
+    level: 'debug' | 'info' | 'warn' = 'debug'
+  ): void {
+    this.updateChronicle(info, errors, level);
+  }
+}
+
+class TestUsers extends UserServices.Users {
+  public verify(...args: Parameters<TestUsers['openIdConnectAuthVerifyCallback']>): void {
+    this.openIdConnectAuthVerifyCallback(...args);
   }
 }
 
@@ -40,9 +50,10 @@ describe('Request chronicles in services', () => {
     Reflect.set(globalThis, 'sails', originalSails);
   });
 
-  function helper(id: string): RequestChronicleHelper {
+  function helper(id: string, options: RequestChronicleOptions = {}): RequestChronicleHelper {
     const item = RequestChronicleHelper.fromReq(logger, { options: {} } as Sails.Req, {
       generateRequestId: () => id,
+      ...options,
     });
     item.start();
     return item;
@@ -92,6 +103,36 @@ describe('Request chronicles in services', () => {
     sinon.assert.calledOnce(logger.error);
   });
 
+  for (const testCase of [
+    { statusCode: 200, completed: true, classification: 'warning', severity: 'warn', outcome: 'success' },
+    { statusCode: 404, completed: true, classification: 'client-error', severity: 'warn', outcome: 'failure' },
+    { statusCode: 500, completed: true, classification: 'error', severity: 'error', outcome: 'failure' },
+    { statusCode: 200, completed: false, classification: 'aborted', severity: 'warn', outcome: 'aborted' },
+  ] as const) {
+    it(`retains a service warning with sampling disabled for a ${testCase.statusCode} ${testCase.outcome} response`, () => {
+      const item = helper('warning', { settings: { successSampleRate: 0 } });
+      item.updateReq({ method: 'GET', path: '/excluded.css' } as Sails.Req);
+      runWithRequestChronicle(item, () => service.record({ solrJobExecution: 'inline' }, [], 'warn'));
+      item.finish({ statusCode: testCase.statusCode, headersSent: true, writableFinished: testCase.completed });
+      item.log();
+      assert.equal(item.data.result?.classification, testCase.classification);
+      assert.equal(item.data.result?.severity, testCase.severity);
+      assert.equal(item.data.result?.outcome, testCase.outcome);
+      assert.equal(item.data.solrJobExecution, 'inline');
+      sinon.assert.calledOnce(logger[testCase.severity]);
+      sinon.assert.notCalled(logger.debug);
+    });
+  }
+
+  it('logs late service warnings at warn with the request ID', () => {
+    const item = helper('late-warning', { settings: { successSampleRate: 0 } });
+    item.finish();
+    item.log();
+    runWithRequestChronicle(item, () => service.record({ solrJobExecution: 'inline' }, [], 'warn'));
+    sinon.assert.calledOnceWithMatch(logger.warn, { requestId: 'late-warning', info: { solrJobExecution: 'inline' } });
+    sinon.assert.notCalled(logger.debug);
+  });
+
   it('logs late failures with the original request ID while another request is running', async () => {
     const first = helper('first');
     const second = helper('second');
@@ -103,17 +144,24 @@ describe('Request chronicles in services', () => {
     await runWithRequestChronicle(second, () => late);
     assert.equal(second.data.errors, undefined);
     sinon.assert.calledOnce(logger.error);
-    sinon.assert.calledWithMatch(logger.error, { requestId: 'first' });
-    sinon.assert.calledWithMatch(logger.debug, { requestId: 'first' });
+    sinon.assert.calledWithMatch(logger.error, { requestId: 'first', info: { serviceOutcome: 'failed' } });
+    sinon.assert.notCalled(logger.debug);
+  });
+
+  it('preserves sanitized summaries through the namespace logger without HTTP context', () => {
+    service.record({ serviceOid: 'oid', password: 'private' });
+    sinon.assert.calledOnceWithMatch(logger.debug, { info: { serviceOid: 'oid', password: 'REDACTED' } });
+    sinon.assert.notCalled(logger.error);
   });
 
   it('preserves sanitized namespace logging without HTTP context', () => {
     service.record({ serviceOid: 'oid', password: 'private', text: 'x'.repeat(10_000) }, [
       new Error('Bearer private-key'),
     ]);
-    sinon.assert.calledOnce(logger.debug);
+    sinon.assert.notCalled(logger.debug);
     sinon.assert.calledOnce(logger.error);
-    const output = JSON.stringify([logger.debug.firstCall.args, logger.error.firstCall.args]);
+    sinon.assert.calledWithMatch(logger.error, { info: { serviceOid: 'oid' } });
+    const output = JSON.stringify(logger.error.firstCall.args);
     assert.ok(!output.includes('private'));
     assert.ok(output.length < 6000);
     assert.equal(currentRequestChronicle(), undefined);
@@ -135,11 +183,23 @@ describe('Request chronicles in services', () => {
     );
   });
 
-  it('retains errors when logging the details fails', () => {
-    logger.debug.throws(new Error('details transport failed'));
-    service.record({ serviceOutcome: 'failed' }, [new Error('operation failed')]);
-    sinon.assert.calledOnce(logger.error);
-  });
+  for (const late of [false, true]) {
+    it(`retains ${late ? 'late' : 'background'} errors when sanitizing details fails`, () => {
+      const item = late ? helper('hostile-late') : undefined;
+      item?.finish();
+      runWithRequestChronicle(item, () =>
+        service.record(
+          {
+            get serviceValue() {
+              throw new Error('getter failed');
+            },
+          },
+          [new Error('operation failed')]
+        )
+      );
+      sinon.assert.calledOnceWithMatch(logger.error, { error: { message: 'operation failed' } });
+    });
+  }
 
   it('shares context with a separately loaded module copy', () => {
     const modulePath = require.resolve('../../src/utilities/RequestChronicleContext');
@@ -303,10 +363,76 @@ describe('Request chronicles in services', () => {
       item.finish();
       rejectWork(new Error('detached hook failed'));
       await delay(0);
-      sinon.assert.calledWithMatch(logger.error, { requestId: 'detached-user-hook' });
+      sinon.assert.calledWithMatch(logger.error, {
+        requestId: 'detached-user-hook',
+        info: { usersOperation: 'triggerPostSaveTriggers', usersOutcome: 'failed' },
+      });
+      sinon.assert.notCalled(logger.debug);
       assert.ok(!JSON.stringify(item.data).includes('PRIVATE'));
     } finally {
       Reflect.set(globalThis, 'chronicleUserHook', originalHook);
+    }
+  });
+
+  describe('OIDC callback capture', () => {
+    const globalNames = ['BrandingService', 'RolesService', 'User'];
+    let originals: unknown[];
+    let users: TestUsers;
+    const oidcConfig = { claimMappings: { username: 'sub' } };
+
+    beforeEach(() => {
+      originals = globalNames.map(name => Reflect.get(globalThis, name));
+      Reflect.set(globalThis, 'BrandingService', {
+        getDefault: () => ({ name: 'default' }),
+        getBrand: () => ({ name: 'default', roles: [] }),
+      });
+      Reflect.set(globalThis, 'RolesService', {
+        getDefAuthenticatedRole: () => ({ name: 'Researcher' }),
+        getNestedRoles: () => [],
+      });
+      users = new TestUsers();
+    });
+
+    afterEach(() => {
+      globalNames.forEach((name, index) => Reflect.set(globalThis, name, originals[index]));
+    });
+
+    it('preserves a missing-username outcome and the original rejection callback arguments', () => {
+      const item = helper('oidc-missing-username');
+      const done = sinon.spy();
+      runWithRequestChronicle(item, () => users.verify(oidcConfig, {}, {}, {}, {}, done));
+      assert.equal(item.data.usersAuthOutcome, 'missing-username');
+      assert.equal(item.data.errors?.length, 1);
+      sinon.assert.calledOnceWithExactly(done, null, null, { message: 'Rejected as username does not have a value' });
+    });
+
+    for (const withPreSaveHook of [false, true]) {
+      it(`records a user-not-found string once ${withPreSaveHook ? 'with' : 'without'} a pre-save hook`, async () => {
+        Reflect.set(globalThis, 'User', {
+          findOne: (_criteria: unknown, callback: (error: unknown, user: unknown) => void) =>
+            callback(null, { id: 'user-1', username: 'test' }),
+          update: () => ({
+            set: () => ({ exec: (callback: (error: unknown, user: unknown) => void) => callback(null, []) }),
+          }),
+        });
+        const config = withPreSaveHook
+          ? {
+              ...oidcConfig,
+              hooks: { onUpdate: { pre: [{ function: '(user) => Promise.resolve(user)', options: {} }] } },
+            }
+          : oidcConfig;
+        const item = helper('oidc-user-not-found');
+        const args = await runWithRequestChronicle(
+          item,
+          () =>
+            new Promise<unknown[]>(resolve => {
+              users.verify(config, {}, {}, {}, { sub: 'test' }, (...callbackArgs) => resolve(callbackArgs));
+            })
+        );
+        assert.deepEqual(args, ['No user found', false, undefined]);
+        assert.equal(item.data.usersAuthOutcome, 'failure');
+        assert.deepEqual(item.data.errors, [{ message: 'No user found' }]);
+      });
     }
   });
 });

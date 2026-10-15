@@ -45,10 +45,12 @@ The **classification** describes why the event was kept, and sets the log level 
 | `client-error` | Status 4xx. Expected client failures, such as not found or validation failures. | `info`, or `warn` if errors were recorded |
 | `aborted` | The connection closed before the response finished, with no status or errors that classify it otherwise. | `info` |
 | `slow` | A successful request that took longer than `slowThresholdMs`. | `warn` |
+| `warning` | A successful, fast request with a service warning. Always retained, even when success sampling is disabled or the path is excluded. | `warn` |
 | `sample` | A sampled successful request. | `info` |
 | `discard` | A successful request that was not sampled. | not logged |
 
 Classification checks the status before the abort state, so a request that sent a 4xx or 5xx status and was then aborted is classified by its status, with the outcome `aborted`.
+Service warnings raise `client-error` and `aborted` events to `warn` without changing their classification or outcome. Errors retain their existing precedence.
 
 ## Retention settings
 
@@ -56,7 +58,7 @@ Configure retention in `sails.config.log.requestChronicle`, for example in `conf
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `successSampleRate` | `0.1` | The fraction (0 to 1) of successful, fast requests that are logged. Failed, aborted, and slow requests are always logged. |
+| `successSampleRate` | `0.1` | The fraction (0 to 1) of successful, fast requests that are logged. Failed, aborted, slow, and warning requests are always logged. |
 | `slowThresholdMs` | `2000` | Successful requests that take longer than this are classified as `slow`. |
 | `successSampleExcludePattern` | static asset file extensions | A case-insensitive regular expression. Successful, fast requests with a matching path are never sampled. |
 
@@ -122,15 +124,15 @@ In a service that extends `Services.Core.Service`, use the inherited helper:
 this.updateChronicle({ namedQueryCollection: collectionName, namedQueryRows: rows });
 this.updateChronicle({ emailSendOutcome: 'failed' }, [error]);
 
-// Use warn for this summary when running outside an HTTP request.
+// Retain HTTP warnings; use warn for this summary outside an HTTP request too.
 this.updateChronicle({ solrJobExecution: 'inline' }, [], 'warn');
 ```
 
 During HTTP processing, the details join the same event as controller details. Concurrent requests have isolated contexts even though they call the same service instance. Promises, timers, callbacks created in that context, and RxJS work subscribed within it retain the request context. A deferred Observable belongs to the context in which it is subscribed; creating it during a request does not bind later subscriptions to that request. A shared event emitter or queue worker running in a separate async context does not inherit the originating HTTP request.
 
-Outside HTTP processing, summaries are bounded and redacted, then logged at `debug` by default; the optional third argument selects `info` or `warn`. Errors are normalized and logged at `error`. The helper never changes the service return value or error propagation. An error object recorded by a service and then rethrown to a controller is captured once while the request runs.
+Outside HTTP processing, summaries are bounded and redacted, then logged at `debug` by default; the optional third argument selects `info` or `warn`. Errors are normalized and logged at `error`, with their sanitized operation details in the same record so the context survives when debug logging is disabled. During HTTP processing, `warn` retains the event and raises its severity to at least `warn`. The helper never changes the service return value or error propagation. An error object recorded by a service and then rethrown to a controller is captured once while the request runs.
 
-Service work started within a request retains that request's helper after the response finishes. Late details use `debug` and late errors use `error`, with the original request ID. This does not delay the response or attach late work to another request.
+Service work started within a request retains that request's helper after the response finishes. Late details use the supplied level (`debug` by default), and late errors use `error` with sanitized operation details in the same record. Both include the original request ID. This does not delay the response or attach late work to another request.
 
 The migrated service summaries include:
 
