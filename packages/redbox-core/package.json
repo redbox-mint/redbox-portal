@@ -72,7 +72,7 @@
     "express": "5.2.1",
     "express-session": "1.19.0",
     "flat": "6.0.1",
-    "flydrive": "2.1.0",
+    "flydrive": "2.2.0",
     "fs-extra": "11.4.1",
     "genson-js": "0.0.8",
     "glob": "13.0.6",
