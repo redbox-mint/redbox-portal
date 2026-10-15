@@ -71,6 +71,19 @@ export namespace Services {
       return configVal as JsonMap;
     }
 
+    private uniqueBrandedConfigFiles(directory: string, hookName: string): Array<{ filePath: string; configKey: string }> {
+      const files = this.walkDirSync(directory, []).map(filePath => ({
+        filePath,
+        configKey: basename(filePath).replace(/\.(?:js|json|ts)$/, '')
+      }));
+      const counts = new Map<string, number>();
+      for (const { configKey } of files) counts.set(configKey, (counts.get(configKey) ?? 0) + 1);
+      for (const [configKey, count] of counts) {
+        if (count > 1) sails.log.error(`${hookName}::Duplicate branded AppConfig key '${configKey}' in '${directory}'; skipping all conflicting files.`);
+      }
+      return files.filter(({ configKey }) => counts.get(configKey) === 1);
+    }
+
     public mergeHookConfig(
       hookName: string,
       configMap: Record<string, unknown> = sails.config as unknown as Record<string, unknown>,
@@ -117,12 +130,11 @@ export namespace Services {
               const brandName = basename(fullPath)
 
               // init-only directory will only create config entries. Intended for initialising config in a new environment that's managed either via API or screens once live.
-              const initFiles = this.walkDirSync(`${fullPath}/init-only`, []);
+              const initFiles = this.uniqueBrandedConfigFiles(`${fullPath}/init-only`, hookName);
               sails.log.verbose(hook_log_header + "::Processing:");
               sails.log.verbose(initFiles);
-              _.each(initFiles, (file_path: string) => {
-                const config_file = require(file_path);
-                const configKey = basename(file_path)
+              _.each(initFiles, ({ filePath, configKey }) => {
+                const config_file = require(filePath);
                 AppConfigService.createConfig(brandName, configKey, config_file).then((config: unknown) => { sails.log.verbose(hook_log_header + "::Configuration created:"); sails.log.verbose(config) })
                   .catch((error: unknown) => { sails.log.verbose(hook_log_header + "::Skipping creation of config as it already exists:"); sails.log.verbose(error) });
               });
@@ -130,16 +142,18 @@ export namespace Services {
 
 
               // Files in override directory are always updated (for config items without management screens)
-              const overrideFiles = this.walkDirSync(`${fullPath}/override`, []);
+              const overrideFiles = this.uniqueBrandedConfigFiles(`${fullPath}/override`, hookName);
               sails.log.verbose(hook_log_header + "::Processing:");
               sails.log.verbose(overrideFiles);
-              _.each(overrideFiles, (file_path: string) => {
-                const config_file = require(file_path);
-                const configKey = basename(file_path)
+              _.each(overrideFiles, ({ filePath, configKey }) => {
+                const config_file = require(filePath);
                 const brand: BrandingModel = BrandingService.getBrand(brandName);
                 AppConfigService.createOrUpdateConfig(brand, configKey, config_file).then((config: unknown) => {
                   sails.log.verbose(hook_log_header + "::Configuration created or updated:");
                   sails.log.verbose(config);
+                }).catch((error: unknown) => {
+                  const category = error instanceof Error && /^[A-Za-z]+Error$/.test(error.name) ? error.name : 'Error';
+                  sails.log.error(`${hook_log_header}::Failed to apply branded AppConfig override '${configKey}' (${category}).`);
                 });
 
 
