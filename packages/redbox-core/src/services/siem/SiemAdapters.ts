@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { STATUS_CODES } from 'node:http';
-import { Effect } from 'effect';
+import * as Effect from 'effect/Effect';
 import type { SiemDestinationConfig } from '../../configmodels/SiemConfiguration';
 import type { SecurityEventAttributes } from '../../waterline-models/SecurityEvent';
 import type { SiemDeliveryResult, SiemPayload } from './SiemTypes';
