@@ -129,6 +129,41 @@ describe('RDMP logging privacy', () => {
       } else sinon.assert.calledOnce(logger.error);
     });
 
+    it(`keeps the completing record and count together after nested ${context} templates`, async () => {
+      const input = record();
+      const { result, helper } = run(() =>
+        firstValueFrom(
+          service.runTemplates(
+            'outer-oid',
+            input,
+            {
+              templates: [
+                {
+                  field: 'metadata.copy',
+                  template: () => {
+                    service.runTemplates('inner-oid', record(), { templates: [] }, {}).subscribe();
+                    return 'completed';
+                  },
+                },
+              ],
+            },
+            {}
+          )
+        )
+      );
+      assert.equal(await result, input);
+      if (helper) {
+        assert.equal(helper.data.rdmpTemplateOid, 'outer-oid');
+        assert.equal(helper.data.rdmpTemplateCount, 1);
+        assert.equal(helper.data.rdmpTemplateOutcome, 'success');
+      } else {
+        sinon.assert.calledWithMatch(logger.debug, {
+          info: { rdmpTemplateOid: 'outer-oid', rdmpTemplateCount: 1, rdmpTemplateOutcome: 'success' },
+        });
+      }
+      assertPrivateDataExcluded(helper);
+    });
+
     for (const method of ['assignPermissions', 'complexAssignPermissions'] as const) {
       it(`excludes record and contributor content during ${context} ${method}`, async () => {
         const input = record();
@@ -189,10 +224,14 @@ describe('RDMP logging privacy', () => {
           function: `({ private: '${description}' })`,
         },
       };
-      const { result, helper } = run(() => service.queuedTriggerSubscriptionHandler({ attrs: { data } }));
+      const { result, helper } = run(() =>
+        service.queuedTriggerSubscriptionHandler({ attrs: { name: 'configured-trigger-job', data } })
+      );
       assert.ok(isObservable(result));
       assert.equal(await firstValueFrom(result), input);
       assertPrivateDataExcluded(helper);
+      if (helper) assert.equal(helper.data.rdmpTriggerJobName, 'configured-trigger-job');
+      else sinon.assert.calledWithMatch(logger.warn, { info: { rdmpTriggerJobName: 'configured-trigger-job' } });
     });
 
     it(`excludes counter templates and generated values from ${context} diagnostics`, async () => {

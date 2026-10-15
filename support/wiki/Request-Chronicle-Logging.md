@@ -139,12 +139,12 @@ Service work started within a request retains that request's helper after the re
 The migrated service summaries include:
 
 - Records: save operation, phase, outcome and problem count; audit action and outcome; datastream count and outcome.
-- RDMP: record IDs, template counts and outcomes, contributor counts, queue phases, attachment counts, and workspace outcomes. Template failures use a generic error and the failing template index, excluding template source and exception excerpts that may contain private values.
+- RDMP: record IDs, template counts and outcomes, contributor counts, queue phases and job names, attachment counts, and workspace outcomes. Template failures use a generic error and the failing template index, excluding template source and exception excerpts that may contain private values.
 - Users: authentication provider and outcome, email access outcome, hook counts and outcomes, audit action and user ID.
 - Email: template reference, message format, send/notification outcome and hook outcome.
 - Named queries: collection, branding ID, pagination, parameter/result counts and completion/limit outcome.
 - Solr: core, record ID, operation, pagination, result/index-field counts and job outcome.
-- Triggers: record ID, hook/template counts, transition condition flag and validation failure count.
+- Triggers: record ID, hook/template counts, transition condition flag and validation failure count. Related-template failures retain their validation error class and display errors, with safe record IDs and template indexes instead of template configuration or exception excerpts.
 
 Full records, user profiles, login claims, email content, query criteria, parameter values, and hook options are excluded.
 

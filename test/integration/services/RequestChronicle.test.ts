@@ -102,9 +102,32 @@ describe('Request chronicle in lifted Sails', function () {
       });
       markUploadStarted();
     });
-    router.bind(rdmpPath, async (_req, res) => {
+    router.bind(rdmpPath, async (req, res) => {
       const record = { metaMetadata: { createdBy: 'admin' }, metadata: { description: 'PRIVATE RDMP DESCRIPTION' } };
       const user = { username: 'admin', token: 'PRIVATE STORED TOKEN HASH' };
+      if (req.query.failure === 'true') {
+        try {
+          await firstValueFrom(
+            RDMPService.runTemplates(
+              'privacy-rdmp',
+              record,
+              {
+                templates: [
+                  {
+                    field: 'metadata.copied',
+                    template: () => {
+                      throw new Error('PRIVATE TEMPLATE FAILURE');
+                    },
+                  },
+                ],
+              },
+              user
+            )
+          );
+        } catch (error) {
+          return res.serverError(error);
+        }
+      }
       const options = { templates: [{ field: 'metadata.copied', template: '<%= record.metadata.description %>' }] };
       await firstValueFrom(RDMPService.runTemplates('privacy-rdmp', record, options, user));
       await firstValueFrom(RDMPService.assignPermissions('privacy-rdmp', record, {}, user));
@@ -256,6 +279,17 @@ describe('Request chronicle in lifted Sails', function () {
     const logged = events('/default/rdmp/preview/REDACTED.css');
     assert.equal(logged.length, 1);
     assert.ok(!inspect(captured, { depth: null }).includes(token));
+  });
+
+  it('retains one RDMP template failure without logging template or user content', async () => {
+    await anonymous.get(rdmpPath).query({ failure: 'true' }).expect(500);
+    await settle();
+    const logged = events(rdmpPath);
+    assert.equal(logged.length, 1);
+    assert.equal(logged[0].event.rdmpTemplateOid, 'privacy-rdmp');
+    assert.equal(logged[0].event.rdmpTemplateOutcome, 'failed');
+    assert.equal(Object.values(logged[0].event.errors ?? {}).length, 1);
+    assert.ok(!inspect(captured, { depth: null }).includes('PRIVATE'));
   });
 
   it('records a migrated translation failure once and redacts credentials in its message and stack', async () => {

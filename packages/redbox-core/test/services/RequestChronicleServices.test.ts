@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
+import { inspect } from 'node:util';
 import * as sinon from 'sinon';
 import { defer, firstValueFrom, from, map, of } from 'rxjs';
 import { Services } from '../../src/CoreService';
 import { Controllers } from '../../src/CoreController';
+import { RBValidationError } from '../../src/model/RBValidationError';
 import { Services as EmailServices } from '../../src/services/EmailService';
 import { Services as UserServices } from '../../src/services/UsersService';
 import { Services as TriggerServices } from '../../src/services/TriggerService';
@@ -356,6 +358,53 @@ describe('Request chronicles in services', () => {
       names.forEach((name, index) => Reflect.set(globalThis, name, originals[index]));
     }
   });
+
+  for (const context of ['http', 'background'] as const) {
+    it(`excludes related-template configuration and exception excerpts during ${context} failures`, async () => {
+      const original = Reflect.get(globalThis, 'RecordsService');
+      const marker = 'PRIVATE RELATED TEMPLATE CONTENT';
+      const update = sinon.stub();
+      Reflect.set(globalThis, 'RecordsService', {
+        getMeta: async () => ({ metaMetadata: { brandId: 'brand' }, metadata: {} }),
+        updateMetaInternal: update,
+      });
+      try {
+        const trigger = new TriggerServices.Trigger();
+        const item = context === 'http' ? helper('related-template-failure') : undefined;
+        await assert.rejects(
+          runWithRequestChronicle(item, () =>
+            trigger.runTemplatesOnRelatedRecord(
+              'source-oid',
+              { metadata: { relatedOid: 'target-oid' } },
+              {
+                forceRun: true,
+                pathToRelatedOid: 'metadata.relatedOid',
+                parseObject: true,
+                templates: [{ field: 'metadata.copy', privateConfig: marker, template: () => marker }],
+              },
+              {}
+            )
+          ),
+          error => {
+            assert.ok(error instanceof RBValidationError);
+            item?.addError(error);
+            assert.ok(
+              !inspect(error, { depth: null }).includes(marker),
+              'Propagated template failures must exclude private config and parser excerpts'
+            );
+            return true;
+          }
+        );
+        sinon.assert.notCalled(update);
+        const output = inspect([item?.data, logger.error.getCalls().map(call => call.args)], { depth: null });
+        assert.ok(!output.includes(marker));
+        if (item) assert.equal(item.data.errors?.length, 1);
+        else sinon.assert.calledOnceWithMatch(logger.error, { info: { triggerRelatedRecordOid: 'target-oid' } });
+      } finally {
+        Reflect.set(globalThis, 'RecordsService', original);
+      }
+    });
+  }
 
   it('preserves datastream results without capturing their contents', async () => {
     const originalStorageManager = Reflect.get(globalThis, 'StorageManagerService');

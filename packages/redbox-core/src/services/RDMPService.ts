@@ -448,10 +448,11 @@ export namespace Services {
       const attrs = (jobObj.attrs ?? {}) as AnyRecord;
       const data = (_.get(attrs, "data", attrs) ?? {}) as AnyRecord;
       const oid = _.get(data, "oid", null);
+      const jobName = typeof attrs.name === 'string' ? attrs.name : undefined;
       const triggerConfiguration = _.get(data, "triggerConfiguration", null);
       const record = _.get(data, "record", null);
       const user = _.get(data, "user", null);
-      this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerPhase: 'processing' });
+      this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'processing' });
       const hookFunctionString = _.get(triggerConfiguration, "function", null);
       if (hookFunctionString != null) {
         const hookFunction = eval(hookFunctionString);
@@ -462,7 +463,11 @@ export namespace Services {
           return firstValueFrom(response);
 
         } else {
-          this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerOutcome: 'invalid-function' }, [], 'warn');
+          this.updateChronicle(
+            { rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerOutcome: 'invalid-function' },
+            [],
+            'warn'
+          );
         }
       }
       return of(record);
@@ -745,7 +750,8 @@ export namespace Services {
 
     public runTemplates(oid: string, record: RecordWithMeta, options: unknown, user: unknown, _response: StorageServiceResponse | null = null) {
 
-      this.updateChronicle({ rdmpTemplateOid: oid, rdmpTemplateCount: _.size(_.get(options, 'templates')) });
+      const summary = { rdmpTemplateOid: oid, rdmpTemplateCount: _.size(_.get(options, 'templates')) };
+      this.updateChronicle(summary);
 
       const optionsObj = options as AnyRecord;
       const parseObject = _.get(optionsObj, 'parseObject', false);
@@ -785,13 +791,13 @@ export namespace Services {
         // Template source and exception messages can contain private record or user values.
         const error = new Error('Failed to run one of the string templates.');
         this.updateChronicle(
-          { rdmpTemplateOid: oid, rdmpTemplateOutcome: 'failed', rdmpTemplateIndex: templateIndex },
+          { ...summary, rdmpTemplateOutcome: 'failed', rdmpTemplateIndex: templateIndex },
           [error]
         );
         return throwError(() => error);
       }
 
-      this.updateChronicle({ rdmpTemplateOutcome: 'success' });
+      this.updateChronicle({ ...summary, rdmpTemplateOutcome: 'success' });
       return of(record);
 
     }

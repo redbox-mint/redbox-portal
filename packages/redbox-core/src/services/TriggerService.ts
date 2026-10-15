@@ -533,13 +533,13 @@ export namespace Services {
 
         if (!_.isEmpty(oidList)) {
           for (const oid of oidList) {
-            let tmplConfig = null;
+            let templateIndex: number | undefined;
             try {
               record = await RecordsService.getMeta(oid);
               if (_.isObject(record)) {
                 const previousMetadata = _.cloneDeep(_.get(record, 'metadata', {}));
-                _.each(templates, (templateConfig: Record<string, unknown>) => {
-                  tmplConfig = templateConfig;
+                _.each(templates, (templateConfig: Record<string, unknown>, index: number) => {
+                  templateIndex = index;
                   const imports = _.extend(
                     {
                       moment: moment,
@@ -614,12 +614,22 @@ export namespace Services {
               } else {
                 this.updateChronicle({ triggerTemplateOutcome: 'record-missing' });
               }
-            } catch (e) {
-              throw new RBValidationError({
-                message: `Failed to run one of the string templates for oid ${oid} relatedOid ${relatedOid}: ${JSON.stringify(tmplConfig)}`,
-                options: { cause: e },
+            } catch {
+              // Template source and exception excerpts can contain private record or user values.
+              const error = new RBValidationError({
+                message: `Failed to run one of the string templates for oid ${oid} relatedOid ${relatedOid}`,
                 displayErrors: [{ title: 'Processing failed', meta: { oid: oid, relatedOid: relatedOid } }],
               });
+              this.updateChronicle(
+                {
+                  triggerRelatedRecordOid: oid,
+                  triggerTemplateSourceOid: relatedOid,
+                  triggerTemplateOutcome: 'failed',
+                  triggerTemplateIndex: templateIndex,
+                },
+                [error]
+              );
+              throw error;
             }
           }
         } else {

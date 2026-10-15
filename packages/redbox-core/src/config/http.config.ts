@@ -181,6 +181,18 @@ function bindMultipartUploadCallbacks(req: Sails.Req): void {
     };
 }
 
+const bodyParserErrorTypes = [
+    'entity.parse.failed',
+    'entity.too.large',
+    'encoding.unsupported',
+    'charset.unsupported',
+    'parameters.too.many',
+    'request.aborted',
+    'request.size.invalid',
+    'stream.encoding.set',
+    'stream.not.readable',
+];
+
 /** Parser errors may contain the entire body in properties, messages, and stacks. */
 function sanitizeBodyParserError(error: unknown): unknown {
     if (!error) {
@@ -197,17 +209,7 @@ function sanitizeBodyParserError(error: unknown): unknown {
                 Object.assign(safeError, { [key]: value });
             }
         }
-        const types = [
-            'entity.parse.failed',
-            'entity.too.large',
-            'encoding.unsupported',
-            'charset.unsupported',
-            'request.aborted',
-            'request.size.invalid',
-            'stream.encoding.set',
-            'stream.not.readable',
-        ];
-        if (typeof source.type === 'string' && types.includes(source.type)) {
+        if (typeof source.type === 'string' && bodyParserErrorTypes.includes(source.type)) {
             Object.assign(safeError, { type: source.type });
         }
     }
