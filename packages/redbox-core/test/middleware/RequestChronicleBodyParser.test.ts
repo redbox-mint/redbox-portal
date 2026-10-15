@@ -10,7 +10,6 @@ import { Controllers } from '../../src/CoreController';
 import { http } from '../../src/config/http.config';
 import { requestChronicle } from '../../src/middleware/requestChronicle';
 import { currentRequestChronicle } from '../../src/utilities/RequestChronicleContext';
-import { RequestChronicle } from '../../src/utilities/RequestChronicle';
 import { createSinonStubLogger } from '../logger.test';
 
 type UploadRequest = Sails.Req & {
@@ -81,12 +80,16 @@ describe('Request chronicle through the configured body parser', () => {
     }
     sinon.assert.calledOnce(logger.error);
     sinon.assert.notCalled(logger.debug);
-    const event = logger.error.firstCall.args[0] as RequestChronicle;
+    const event = logger.error.firstCall.args[0] as {
+      errors?: Record<string, unknown>;
+      result?: { classification?: string };
+      [key: string]: unknown;
+    };
     assert.equal(logger.error.firstCall.args[1], 'Request chronicle');
     assert.equal(event.uploadFileCount, 1);
     assert.equal(event.uploadContextPresent, true);
     assert.equal(event.uploadOutcome, 'failed');
-    assert.equal(event.errors?.length, 1);
+    assert.equal(Object.keys(event.errors ?? {}).length, 1);
     assert.equal(event.result?.classification, 'error');
     assert.ok(!JSON.stringify(event).includes('private-upload-content'));
     assert.ok(!JSON.stringify(event).includes('private-marker'));
