@@ -19,7 +19,7 @@ The approach follows the "wide event" or "canonical log line" pattern.
 ## Lifecycle
 
 1. The `requestChronicle` middleware creates the helper, generates a request id, and records the request method, path, and host. The helper is stored on `req.options.requestChronicleHelper`. It is a class instance, so it survives the Sails route options merge; do not replace it with a plain object. A shared symbol identifies the helper across source and compiled module copies in development.
-2. The middleware runs downstream processing in an `AsyncLocalStorage` context. The configured body parser binds its continuation to this context, including multipart parsing and subsequent upload callbacks. Controllers, services, policies, and responses add details and errors while the request is running. Services find the helper through this context without requiring a `req` parameter or storing request state on their shared instances.
+2. The middleware runs downstream processing in an `AsyncLocalStorage` context. The configured body parser binds its continuation to this context. It also binds completion callbacks registered through `req.file(...).upload(...)`, so streamed multipart uploads retain the context after later socket chunks arrive. Controllers, services, policies, and responses add details and errors while the request is running. Services find the helper through this context without requiring a `req` parameter or storing request state on their shared instances.
 3. The event is concluded exactly once, when the response finishes (`finish`), or when the connection closes first (`close`), which records an aborted request.
 4. The event is classified, then logged at the level for its classification, or discarded.
 

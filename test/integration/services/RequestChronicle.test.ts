@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { setTimeout as delay } from 'node:timers/promises';
 import supertest from 'supertest';
 import { ControllerExports, Controllers, Services } from '@researchdatabox/redbox-core';
 
@@ -50,6 +52,7 @@ describe('Request chronicle in lifted Sails', function () {
   let anonymous: supertest.Agent;
   let admin: supertest.Agent;
   let uploadDirectory: string;
+  let markUploadStarted: () => void = () => {};
 
   before(async () => {
     const app = (sails.hooks.http as { app: Parameters<typeof supertest.agent>[0] }).app;
@@ -94,6 +97,7 @@ describe('Request chronicle in lifted Sails', function () {
         uploadController.recordFailure(req, error);
         res.json({ uploaded: files?.length ?? 0, parserFailed: parserError !== null && parserError !== undefined });
       });
+      markUploadStarted();
     });
     anonymous = supertest.agent(app);
     admin = supertest.agent(app);
@@ -298,10 +302,23 @@ describe('Request chronicle in lifted Sails', function () {
   });
 
   it('captures service details and one rethrown error through multipart parsing and the file upload callback', async () => {
+    const uploadStarted = new Promise<void>(resolve => {
+      markUploadStarted = resolve;
+    });
+    const attachment = Readable.from(
+      (async function* () {
+        yield Buffer.from('PRIVATE UPLOAD CONTENT');
+        await uploadStarted;
+        for (let index = 0; index < 4; index++) {
+          await delay(20);
+          yield Buffer.alloc(256 * 1024, 'x');
+        }
+      })()
+    );
     const response = await anonymous
       .post(uploadPath)
       .field('marker', 'PRIVATE MARKER')
-      .attach('attachment', Buffer.from('PRIVATE UPLOAD CONTENT'), 'test.txt')
+      .attach('attachment', attachment, 'test.txt')
       .expect(200);
     await settle();
     assert.deepEqual(response.body, { uploaded: 1, parserFailed: false });

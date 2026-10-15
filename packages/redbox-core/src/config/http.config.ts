@@ -152,6 +152,35 @@ function resolveBodyParserSkipMatchers(customConfig?: Partial<CustomConfig>): Re
     return _cachedBodyParserSkipPathMatchers;
 }
 
+type UploadUpstream = { upload: (...args: unknown[]) => unknown };
+type UploadRequest = Sails.Req & { file?: (...args: unknown[]) => UploadUpstream };
+
+/** Keep streamed upload completion callbacks in the context where upload() was called. */
+function bindMultipartUploadCallbacks(req: Sails.Req): void {
+    const uploadRequest = req as UploadRequest;
+    const file = uploadRequest.file;
+    if (typeof file !== 'function') {
+        return;
+    }
+    const boundUpstreams = new WeakSet<UploadUpstream>();
+    uploadRequest.file = function (this: UploadRequest, ...args: unknown[]) {
+        const upstream = file.apply(this, args);
+        if (upstream && typeof upstream.upload === 'function' && !boundUpstreams.has(upstream)) {
+            const upload = upstream.upload;
+            upstream.upload = function (this: UploadUpstream, ...uploadArgs: unknown[]) {
+                const last = uploadArgs.length - 1;
+                const callback = uploadArgs[last];
+                if (typeof callback === 'function') {
+                    uploadArgs[last] = AsyncResource.bind(callback as (...args: unknown[]) => unknown);
+                }
+                return upload.apply(this, uploadArgs);
+            };
+            boundUpstreams.add(upstream);
+        }
+        return upstream;
+    };
+}
+
 export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
     const normalizedRequestPath = normalizeBodyParserPath(requestPath);
     return configuredSkipPaths.some((configuredSkipPath) => {
@@ -699,7 +728,10 @@ export const http: HttpConfig = {
                 // ... more Skipper options here ...
             });
             // Multipart parser events originate outside the request's async context.
-            return skipperMiddleware(req, res, AsyncResource.bind(next));
+            return skipperMiddleware(req, res, AsyncResource.bind((error?: unknown) => {
+                bindMultipartUploadCallbacks(req);
+                next(error);
+            }));
         },
 
         poweredBy: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
