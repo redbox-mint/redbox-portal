@@ -6,6 +6,8 @@
     "./services/integration-v2/**/*.ts",
     "./services/doi-v2/**/*.ts",
     "./services/figshare-v2/**/*.ts",
+    "./services/oni-v2/**/*.ts",
+    "./services/OniService.test.ts",
     "./services/raid-v2/**/*.ts",
     "./services/RaidService.test.ts"
   ]
