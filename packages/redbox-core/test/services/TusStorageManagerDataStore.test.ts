@@ -1,7 +1,13 @@
 import { Readable } from 'node:stream';
+import { createRequire } from 'node:module';
 import * as sinon from 'sinon';
 import { Upload, ERRORS } from '@tus/server';
-import { TusStorageManagerDataStore } from '../../src/storage/TusStorageManagerDataStore';
+
+const testRequire = createRequire(__filename);
+const { TusStorageManagerDataStore } = testRequire(
+  '../../src/storage/TusStorageManagerDataStore'
+) as typeof import('../../src/storage/TusStorageManagerDataStore');
+const { createSinonStubLogger } = testRequire('../logger.test') as typeof import('../logger.test');
 
 let expect: Chai.ExpectStatic;
 
@@ -29,7 +35,9 @@ class MemoryDisk {
     return new Uint8Array(this.getBytesBuffer(key));
   }
 
-  public async getMetaData(key: string): Promise<{ contentType?: string; contentLength: number; etag: string; lastModified: Date; }> {
+  public async getMetaData(
+    key: string
+  ): Promise<{ contentType?: string; contentLength: number; etag: string; lastModified: Date }> {
     const object = this.requireObject(key);
     return {
       contentLength: object.data.length,
@@ -86,7 +94,7 @@ class MemoryDisk {
     }
   }
 
-  public async listAll(prefix = ''): Promise<{ paginationToken?: string; objects: Iterable<unknown>; }> {
+  public async listAll(prefix = ''): Promise<{ paginationToken?: string; objects: Iterable<unknown> }> {
     const objects = Array.from(this.objects.entries())
       .filter(([key]) => key.startsWith(prefix))
       .sort(([left], [right]) => left.localeCompare(right))
@@ -128,11 +136,7 @@ describe('TusStorageManagerDataStore', function () {
 
   function createStore(overrides: Record<string, unknown> = {}) {
     const disk = new MemoryDisk();
-    const logger = {
-      verbose: sinon.stub(),
-      warn: sinon.stub(),
-      error: sinon.stub(),
-    };
+    const logger = createSinonStubLogger(sinon);
     const store = new TusStorageManagerDataStore({
       disk: disk as any,
       logger,
@@ -214,10 +218,10 @@ describe('TusStorageManagerDataStore', function () {
     const originalPut = disk.put.bind(disk);
     let markFirstPartWriteStarted: (() => void) | undefined;
     let releaseFirstPartWrite: (() => void) | undefined;
-    const firstPartWriteStarted = new Promise<void>((resolve) => {
+    const firstPartWriteStarted = new Promise<void>(resolve => {
       markFirstPartWriteStarted = resolve;
     });
-    const allowFirstPartWriteToContinue = new Promise<void>((resolve) => {
+    const allowFirstPartWriteToContinue = new Promise<void>(resolve => {
       releaseFirstPartWrite = resolve;
     });
     let firstPartWritePending = true;
@@ -275,15 +279,17 @@ describe('TusStorageManagerDataStore', function () {
       expect(openStreams).to.equal(1);
 
       const source = await originalGetStream(key);
-      return Readable.from((async function* () {
-        try {
-          for await (const chunk of source) {
-            yield chunk;
+      return Readable.from(
+        (async function* () {
+          try {
+            for await (const chunk of source) {
+              yield chunk;
+            }
+          } finally {
+            openStreams -= 1;
           }
-        } finally {
-          openStreams -= 1;
-        }
-      })());
+        })()
+      );
     });
 
     await store.write(Readable.from([Buffer.from('world')]), 'file-5-streams', 6);

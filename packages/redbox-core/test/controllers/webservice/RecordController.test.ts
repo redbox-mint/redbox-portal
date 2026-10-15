@@ -1,3 +1,4 @@
+import { createSinonStubLogger } from '../../logger.test';
 import assert from 'node:assert/strict';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
@@ -274,14 +275,7 @@ describe('Webservice RecordController body source', () => {
           },
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        error: sinon.stub(),
-        warn: sinon.stub(),
-        info: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any)._ = require('lodash');
     (global as any).BrandingService = {
@@ -2731,14 +2725,7 @@ describe('Webservice RecordController getMeta', () => {
           hasViewAccess: sinon.stub().returns(true),
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),

@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import * as Effect from 'effect/Effect';
 import { Services as services } from '../CoreService';
 import type { SiemDeliveryConfig, SiemDestinationConfig, SiemRedactionConfig } from '../configmodels/SiemConfiguration';
 import { DEFAULT_SIEM_DELIVERY, DEFAULT_SIEM_REDACTION, SiemConfiguration, normalizeSiemConfiguration } from '../configmodels/SiemConfiguration';

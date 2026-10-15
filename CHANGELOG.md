@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add optional AWS Secrets Manager storage for registered branding-aware AppConfig credentials.
+- **Upgrade action:** review hook `branded-config/<brand>/override/` files before deployment. Filename extensions are now removed from configuration keys, so previously dormant overrides take effect on every startup and can replace UI-edited settings. Remove obsolete overrides or update their values before upgrading. Legacy dotted/bracketed AppConfig rows are skipped with a warning rather than merged into the active configuration; migrate or remove them explicitly after reviewing their contents. See `support/wiki/AppConfig-Secrets.md` for details.
 - **Breaking:** Dashboard profiles, record-type defaults and overrides were replaced by independent settings for every workflow stage and custom-view step, with a new editor (save, copy from, bulk copy to with preview, revision-checked writes) and API. Retired `/api/dashboard-config` operations return `410`. A one-time migration converts v5.0.1 configuration and stops on material differences; see [Configuring Dashboard Tables](support/wiki/Configuring-Dashboard-Tables.md#upgrading-from-v501).
 - Added concurrent-record modification protection across browser, API v1/v2,
   datastream, internal-writer, and delete/restore/purge paths. Record types can

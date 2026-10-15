@@ -2,28 +2,31 @@ const pino = require('pino');
 const pinoTest = require('pino-test');
 
 // Custom assert function for pino testing
-function expectFunc(received, expected, msg) {
-    const actualItem = `LEVEL ${received.level} MSG ${received.msg}`;
-    const expectedItem = `LEVEL ${expected.level} MSG ${expected.msg}`;
+function expectFunc(received: {level?: string, msg?: string}, expected: {level?: string, msg?: string}, msg: unknown) {
+    const receivedLevel = received.level ?? '';
+    const receivedMsg = received.msg ?? '';
+    const expectedLevel = expected.level ?? '';
+    const expectedMsg = expected.msg ?? '';
+    const actualItem = `LEVEL ${receivedLevel} MSG ${receivedMsg}`;
+    const expectedItem = `LEVEL ${expectedLevel} MSG ${expectedMsg}`;
     expect(expectedItem).to.eql(actualItem);
 }
 
 function logAll(loggerInstance, msg) {
-    // pino defaults
-    loggerInstance.trace(msg);
-    loggerInstance.debug(msg);
-    loggerInstance.info(msg);
-    loggerInstance.warn(msg);
-    loggerInstance.error(msg);
-    loggerInstance.fatal(msg);
-    loggerInstance.silent(msg);
-
-    // additional sails.js levels
-    loggerInstance.silly(msg);
-    loggerInstance.verbose(msg);
-    loggerInstance.log(msg);
-    loggerInstance.crit(msg);
-    // loggerInstance.blank(msg); // blank is the same as silent
+  // See: packages/sails-ng-common/src/logger.model.ts
+  // See: packages/redbox-core/src/config/log.config.ts
+  loggerInstance.silent(msg);
+  loggerInstance.blank(msg);
+  loggerInstance.fatal(msg);
+  loggerInstance.crit(msg);
+  loggerInstance.error(msg);
+  loggerInstance.warn(msg);
+  loggerInstance.info(msg);
+  loggerInstance.log(msg);
+  loggerInstance.debug(msg);
+  loggerInstance.verbose(msg);
+  loggerInstance.trace(msg);
+  loggerInstance.silly(msg);
 }
 
 async function logExpectations(stream, msg, levels) {
@@ -44,10 +47,10 @@ async function logExpectations(stream, msg, levels) {
     } catch (err: any) {
         // AbortError is expected when the stream is closed after consuming all expected items.
         // This happens when pinoTest.consecutive completes successfully and the stream has no more data.
-        // We should NOT fail the test in this case - it's normal behavior.
+        // We should NOT fail the test in this case - it's normal behaviour.
         if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
             console.log(`Stream closed as expected after consuming expected items: ${err}`);
-            // Stream was properly closed - this is expected behavior
+            // Stream was properly closed - this is expected behaviour
             return;
         }
         // For any other error, re-throw to fail the test
@@ -89,18 +92,17 @@ describe('The custom logger', function () {
         logAll(defaultLogger, defaultLoggerMsg);
 
         await logExpectations(stream, defaultLoggerMsg, [
-            "trace",
-            "debug",
-            "info",
-            "warn",
-            "error",
+            // "silent",
             "fatal",
-            //"silent",
-            "silly",
-            "verbose",
-            "log",
             "crit",
-            //"blank",
+            "error",
+            "warn",
+            "info",
+            "log",
+            "debug",
+            "verbose",
+            "trace",
+            "silly",
         ]);
     });
     it("should have expected logs for namespace logger with level 'silly'", async function () {
@@ -115,18 +117,17 @@ describe('The custom logger', function () {
 
         const namespaceMsg = prefix + namespaceLoggerMsg;
         await logExpectations(stream, namespaceMsg, [
-            "trace",
-            "debug",
-            "info",
-            "warn",
-            "error",
-            "fatal",
             // "silent",
-            "silly",
-            "verbose",
-            "log",
+            "fatal",
             "crit",
-            // "blank",
+            "error",
+            "warn",
+            "info",
+            "log",
+            "debug",
+            "verbose",
+            "trace",
+            "silly",
         ]);
     });
 
@@ -147,35 +148,33 @@ describe('The custom logger', function () {
 
         // default
         await logExpectations(stream, defaultMsg, [
-            //  "trace",
-            //  "debug",
-            //  "info",
-            //  "warn",
-            "error",
+            // "silent",
             "fatal",
-            //  "silent",
-            //  "silly",
-            //  "verbose",
-            //  "log",
             "crit",
-            //  "blank",
+            "error",
+            // "warn",
+            // "info",
+            // "log",
+            // "debug",
+            // "verbose",
+            // "trace",
+            // "silly",
         ]);
 
 
         // namespace
         await logExpectations(stream, namespaceMsg, [
-            "trace",
-            "debug",
-            "info",
-            "warn",
-            "error",
-            "fatal",
-            //  "silent",
-            //  "silly",
-            "verbose",
-            "log",
-            "crit",
-            //  "blank",
+          // "silent",
+          "fatal",
+          "crit",
+          "error",
+          "warn",
+          "info",
+          "log",
+          "debug",
+          "verbose",
+          "trace",
+          // "silly",
         ]);
     });
 
@@ -196,34 +195,32 @@ describe('The custom logger', function () {
 
         // default
         await logExpectations(stream, defaultMsg, [
-            "trace",
-            "debug",
-            "info",
-            "warn",
-            "error",
+            // "silent",
             "fatal",
-            //  "silent",
-            //  "silly",
-            "verbose",
-            "log",
             "crit",
-            //  "blank",
+            "error",
+            "warn",
+            "info",
+            "log",
+            "debug",
+            "verbose",
+            // "trace",
+            // "silly",
         ]);
 
         // namespace
         await logExpectations(stream, namespaceMsg, [
-            //  "trace",
-            //  "debug",
-            "info",
-            "warn",
-            "error",
+            // "silent",
             "fatal",
-            //  "silent",
-            //  "silly",
-            //  "verbose",
-            "log",
             "crit",
-            //  "blank",
+            "error",
+            "warn",
+            "info",
+            "log",
+            // "debug",
+            // "verbose",
+            // "trace",
+            // "silly",
         ]);
     });
 
@@ -247,34 +244,32 @@ describe('The custom logger', function () {
 
         // default
         await logExpectations(stream, defaultMsg, [
-            "trace",
-            "debug",
-            "info",
-            "warn",
-            "error",
+            // "silent",
             "fatal",
-            //  "silent",
-            "silly",
-            "verbose",
-            "log",
             "crit",
-            //  "blank",
+            "error",
+            "warn",
+            "info",
+            "log",
+            "debug",
+            "verbose",
+            "trace",
+            "silly",
         ]);
 
         // namespace
         await logExpectations(stream, namespaceMsg, [
-            //  "trace",
-            //  "debug",
-            "info",
-            "warn",
-            "error",
+            // "silent",
             "fatal",
-            //  "silent",
-            //  "silly",
-            //  "verbose",
-            "log",
             "crit",
-            //  "blank",
+            "error",
+            "warn",
+            "info",
+            "log",
+            // "debug",
+            // "verbose",
+            // "trace",
+            // "silly",
         ]);
 
         const namespaceLogger2 = sails.config.log.createNamespaceLogger('ConfigService', defaultLogger, prefix);
@@ -283,34 +278,32 @@ describe('The custom logger', function () {
 
         // default
         await logExpectations(stream, defaultMsg, [
-            "trace",
-            "debug",
-            "info",
-            "warn",
-            "error",
+            // "silent",
             "fatal",
-            //  "silent",
-            "silly",
-            "verbose",
-            "log",
             "crit",
-            //  "blank",
+            "error",
+            "warn",
+            "info",
+            "log",
+            "debug",
+            "verbose",
+            "trace",
+            "silly",
         ]);
 
         // namespace
         await logExpectations(stream, namespaceMsg, [
-            //  "trace",
-            //  "debug",
-            //  "info",
-            //  "warn",
-            //  "error",
+            // "silent",
             "fatal",
-            //  "silent",
-            //  "silly",
-            //  "verbose",
-            //  "log",
             "crit",
-            //  "blank",
+            // "error",
+            // "warn",
+            // "info",
+            // "log",
+            // "debug",
+            // "verbose",
+            // "trace",
+            // "silly",
         ]);
     });
 });

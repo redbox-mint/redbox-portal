@@ -65,6 +65,7 @@ export module Services {
 | `_exportedMethods` | Array of method names to expose via `exports()` |
 | `exports()` | Returns object with bound methods for Sails.js |
 | `logger` | Access to sails.log or fallback console logger |
+| `updateChronicle(info, errors, level)` | Adds safe summaries to the current HTTP request; uses namespace logging for background work. See [Request Chronicle Logging](Request-Chronicle-Logging). |
 | `getObservable()` | Wraps Waterline promises in RxJS Observables |
 
 ## ServiceExports Object
@@ -263,7 +264,7 @@ export module Services {
 
         // Override existing method
         public getMeta(oid: string): Observable<any> {
-            sails.log.info(`Custom getMeta called for: ${oid}`);
+            this.updateChronicle({ recordsReadOid: oid });
             return super.getMeta(oid);
         }
 
@@ -324,7 +325,7 @@ public getRecordWithRelated(oid: string): Observable<any> {
                 : of(record);
         }),
         catchError(error => {
-            sails.log.error(`Error getting record ${oid}:`, error);
+            this.updateChronicle({ recordsReadOid: oid }, [error]);
             throw error;
         })
     );

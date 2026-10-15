@@ -37,6 +37,12 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
     ```
     This spins up the application and dependencies (MongoDB, etc.) using Docker Compose.
 
+Set `STARTUP_TIMING=true` in the app process environment to log elapsed time from
+process start through module loading, shim generation, and completion of the Sails
+lift. Use `STARTUP_TIMING=true npm run dev:run` for the Docker development stack,
+or `STARTUP_TIMING=true node app.js` with the usual database configuration.
+`SHIM_VERBOSE=true` adds loader details.
+
 ### Running Tests
 
 - **Backend Mocha Tests**: `npm run test:mocha`

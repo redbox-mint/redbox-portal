@@ -1,5 +1,6 @@
 import * as sinon from 'sinon';
 import { Controllers } from '../../../src/controllers/webservice/DashboardConfigController';
+import { createSinonStubLogger } from '../../logger.test';
 import { Controllers as AdminControllers } from '../../../src/controllers/DashboardConfigController';
 import { Services } from '../../../src/services/DashboardConfigService';
 
@@ -25,10 +26,12 @@ describe('Webservice DashboardConfigController', () => {
     originalSails = (global as any).sails;
     originalBrandingService = (global as any).BrandingService;
     originalDashboardConfigService = (global as any).DashboardConfigService;
-    (global as any).sails = { log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub(), info: sinon.stub(), warn: sinon.stub(), trace: sinon.stub() } };
+    (global as any).sails = { log: createSinonStubLogger(sinon) };
     (global as any).BrandingService = {
-      getBrand: sinon.stub().callsFake((name: string) => (name === 'default' ? { id: 'brand-1', name: 'default' } : undefined)),
-      getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' })
+      getBrand: sinon
+        .stub()
+        .callsFake((name: string) => (name === 'default' ? { id: 'brand-1', name: 'default' } : undefined)),
+      getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).DashboardConfigService = {
       getTargetCatalogue: sinon.stub().resolves({ targets: [{ key: 'k' }], removed: [], fingerprint: 'fp' }),
@@ -37,7 +40,7 @@ describe('Webservice DashboardConfigController', () => {
       validateTargetSettings: sinon.stub().resolves({ errors: [], warnings: [] }),
       previewCopy: sinon.stub().resolves({ changes: [] }),
       applyCopy: sinon.stub().resolves({ updated: 2 }),
-      preflightLegacyMigration: sinon.stub().resolves([{ brand: { id: 'brand-1', name: 'default' } }])
+      preflightLegacyMigration: sinon.stub().resolves([{ brand: { id: 'brand-1', name: 'default' } }]),
     };
     controller = new Controllers.DashboardConfig();
   });
@@ -52,7 +55,10 @@ describe('Webservice DashboardConfigController', () => {
   it('lists targets for the route brand without profiles', async () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
     await controller.listTargets(request(), {} as Sails.Res);
-    expect((global as any).DashboardConfigService.getTargetCatalogue.firstCall.args[0]).to.deep.equal({ id: 'brand-1', name: 'default' });
+    expect((global as any).DashboardConfigService.getTargetCatalogue.firstCall.args[0]).to.deep.equal({
+      id: 'brand-1',
+      name: 'default',
+    });
     expect(sendResp.firstCall.args[2].data).to.deep.equal({ targets: [{ key: 'k' }], catalogueFingerprint: 'fp' });
   });
 
@@ -66,10 +72,21 @@ describe('Webservice DashboardConfigController', () => {
   it('delegates workflow and view reads and saves with typed targets', async () => {
     sinon.stub(controller as any, 'sendResp');
     await controller.getWorkflowTarget(request({ recordType: 'rdmp', stage: 'draft' }), {} as Sails.Res);
-    await controller.saveViewTarget(request({ view: 'consolidated', step: 'main' }, { expectedRevision: 3, settings: {} }), {} as Sails.Res);
+    await controller.saveViewTarget(
+      request({ view: 'consolidated', step: 'main' }, { expectedRevision: 3, settings: {} }),
+      {} as Sails.Res
+    );
     const svc = (global as any).DashboardConfigService;
-    expect(svc.getTargetSettings.firstCall.args[1]).to.deep.equal({ kind: 'workflow', recordType: 'rdmp', stage: 'draft' });
-    expect(svc.saveTargetSettings.firstCall.args[1]).to.deep.equal({ kind: 'view', view: 'consolidated', step: 'main' });
+    expect(svc.getTargetSettings.firstCall.args[1]).to.deep.equal({
+      kind: 'workflow',
+      recordType: 'rdmp',
+      stage: 'draft',
+    });
+    expect(svc.saveTargetSettings.firstCall.args[1]).to.deep.equal({
+      kind: 'view',
+      view: 'consolidated',
+      step: 'main',
+    });
     expect(svc.saveTargetSettings.firstCall.args[2]).to.deep.equal({ expectedRevision: 3, settings: {} });
   });
 
@@ -81,9 +98,17 @@ describe('Webservice DashboardConfigController', () => {
   });
 
   it('translates typed errors to status codes with structured details', async () => {
-    (global as any).DashboardConfigService.saveTargetSettings = sinon.stub().rejects(new Services.DashboardConfigError('warnings-require-review', 'Review warnings', { warnings: [{ id: 'w1' }], validationFingerprint: 'v' }));
+    (global as any).DashboardConfigService.saveTargetSettings = sinon.stub().rejects(
+      new Services.DashboardConfigError('warnings-require-review', 'Review warnings', {
+        warnings: [{ id: 'w1' }],
+        validationFingerprint: 'v',
+      })
+    );
     const sendResp = sinon.stub(controller as any, 'sendResp');
-    await controller.saveWorkflowTarget(request({ recordType: 'rdmp', stage: 'draft' }, { expectedRevision: 1, settings: {} }), {} as Sails.Res);
+    await controller.saveWorkflowTarget(
+      request({ recordType: 'rdmp', stage: 'draft' }, { expectedRevision: 1, settings: {} }),
+      {} as Sails.Res
+    );
     const response = sendResp.firstCall.args[2];
     expect(response.status).to.equal(409);
     expect(response.displayErrors[0].code).to.equal('warnings-require-review');
@@ -110,7 +135,15 @@ describe('Webservice DashboardConfigController', () => {
   it('exposes the same operations on the CSRF-protected admin controller', () => {
     const admin = new AdminControllers.DashboardConfig();
     const exported = (admin as any)._exportedMethods as string[];
-    expect(exported).to.include.members(['editor', 'listTargets', 'saveWorkflowTarget', 'saveViewTarget', 'validateSettings', 'previewCopy', 'applyCopy']);
+    expect(exported).to.include.members([
+      'editor',
+      'listTargets',
+      'saveWorkflowTarget',
+      'saveViewTarget',
+      'validateSettings',
+      'previewCopy',
+      'applyCopy',
+    ]);
     expect(exported).to.not.include('retiredOperation');
   });
 });

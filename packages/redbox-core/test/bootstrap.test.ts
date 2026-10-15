@@ -1,3 +1,4 @@
+import { createSinonStubLogger } from './logger.test';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
@@ -88,14 +89,7 @@ describe('bootstrap pre-lift setup', function () {
 
     (global as Record<string, unknown>).sails = {
       config: sailsConfig,
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        error: sinon.stub(),
-        warn: sinon.stub(),
-        info: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         laterouteservice: { init },
       },
@@ -126,14 +120,7 @@ describe('bootstrap pre-lift setup', function () {
         appmode: { bootstrapAlways: false },
         apiRoutesHooks: [],
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        error: sinon.stub(),
-        warn: sinon.stub(),
-        info: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
       services: {
         mongostorageservice: { init: storageInit },
         recordschemaservice: { init: recordSchemaInit },

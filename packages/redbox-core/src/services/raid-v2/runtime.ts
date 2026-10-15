@@ -1,5 +1,11 @@
 /* oxlint-disable typescript/no-explicit-any */
-import { Cause, Duration, Effect, Exit, Fiber, Ref, Schedule } from 'effect';
+import * as Cause from 'effect/Cause';
+import * as Duration from 'effect/Duration';
+import * as Effect from 'effect/Effect';
+import * as Exit from 'effect/Exit';
+import * as Fiber from 'effect/Fiber';
+import * as Ref from 'effect/Ref';
+import * as Schedule from 'effect/Schedule';
 import type { RaidCreateRequest } from '@researchdatabox/raido-openapi-generated-node';
 import { RaidHttpError, RaidPersistenceError, RaidQueueError, RaidSourceRecordError, RaidTimeoutError, isRetryable } from './errors';
 import { RaidAuditTag, RaidConfigTag, RaidHttpClientTag, RaidMappingTag, RaidQueueTag, RaidRecordRepositoryTag, RaidRunContextTag } from './tags';

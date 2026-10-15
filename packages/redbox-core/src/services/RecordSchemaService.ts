@@ -77,7 +77,7 @@ import {
 import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
 import type { ConfiguredRecordContractFormCandidate, FormRecordAccessContext } from './FormsService';
-import type { ILogger } from '../Logger';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { isInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
 
 declare const RedboxJavaStorageService: unknown;

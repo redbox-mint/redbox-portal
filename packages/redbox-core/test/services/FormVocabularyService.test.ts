@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -63,16 +65,7 @@ describe('FormVocabularyService', function () {
           serviceName: 'solrsearchservice'
         }
       },
-      log: Object.assign(
-        sinon.stub(),
-        {
-          verbose: sinon.stub(),
-          debug: sinon.stub(),
-          info: sinon.stub(),
-          warn: sinon.stub(),
-          error: sinon.stub()
-        }
-      ),
+      log: createSinonStubLogger(sinon),
       services: {
         solrsearchservice: {
           searchAdvanced: sinon.stub().resolves({ response: { docs: [] } })

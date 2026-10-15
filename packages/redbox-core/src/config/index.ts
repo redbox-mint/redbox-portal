@@ -1,9 +1,12 @@
 /**
  * Config Types Index
- * 
+ *
  * Exports all config interfaces and default values for sails.config typing.
  * These are used by the redbox-core loader to generate shim files in config/.
  */
+
+export * from './appConfigSecrets.config';
+import { appConfigSecrets, AppConfigSecretsConfig } from './appConfigSecrets.config';
 
 // Export individual config interfaces and values
 export * from './api.config';
@@ -188,6 +191,7 @@ export interface PassportConfig {
  * Provides type-safe access to all configuration values
  */
 export interface SailsConfig {
+    appConfigSecrets?: AppConfigSecretsConfig;
     // Core config keys (migrated)
     api: ReDBoxAPIConfig;
     appmode: AppModeConfig;
@@ -292,6 +296,7 @@ export interface SailsConfig {
  * Used by the redbox-core loader for shim generation
  */
 export const Config = {
+    appConfigSecrets,
     api,
     appmode,
     record,

@@ -1,6 +1,7 @@
 import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/UserManagementController';
+import {createSinonStubLogger} from "../../logger.test";
 
 let expect: Chai.ExpectStatic;
 
@@ -35,10 +36,7 @@ describe('Webservice UserManagementController', () => {
         originalRolesService = (global as any).RolesService;
 
         (global as any).sails = {
-            log: {
-                error: sinon.stub(),
-                verbose: sinon.stub()
-            }
+            log: createSinonStubLogger(sinon),
         };
         (global as any).BrandingService = {
             getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })

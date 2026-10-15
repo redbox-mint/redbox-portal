@@ -1,22 +1,28 @@
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
 let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import { FormConfigFrame, RelatedObjectDataFormComponentDefinitionOutline } from '@researchdatabox/sails-ng-common';
-import type { ILogger } from '../../src/Logger';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { RecordsService } from '../../src/RecordsService';
 import { UserModel } from '../../src/model/storage/UserModel';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { RelatedObjectDataInlineFormConfigVisitor } from '../../src/visitor/related-object-data-inline.visitor';
 
 describe('RelatedObjectDataInlineFormConfigVisitor', () => {
-  const logger = Object.fromEntries(['silly','verbose','trace','debug','log','info','warn','error','crit','fatal','silent','blank'].map(key => [key, () => undefined])) as unknown as ILogger;
+  const logger = nothingLogger;
 
   async function resolve(values: unknown[], oidProperty = 'id') {
     const input: FormConfigFrame = {
       name: 'test',
-      componentDefinitions: [{
-        name: 'related',
-        component: { class: 'RelatedObjectDataComponent', config: { dataPath: 'metadata.publications', oidProperty, relatedFields: ['title', 'contributor.name'] } },
-      }],
+      componentDefinitions: [
+        {
+          name: 'related',
+          component: {
+            class: 'RelatedObjectDataComponent',
+            config: { dataPath: 'metadata.publications', oidProperty, relatedFields: ['title', 'contributor.name'] },
+          },
+        },
+      ],
     };
     const form = await new ConstructFormConfigVisitor(logger).start({ data: input });
     const records: Record<string, Record<string, unknown>> = {
@@ -30,16 +36,23 @@ describe('RelatedObjectDataInlineFormConfigVisitor', () => {
         if (!records[oid]) throw new Error('missing');
         return records[oid];
       },
-      hasViewAccess: (_brand: unknown, _user: unknown, _roles: unknown, record: unknown) => record !== records['denied'],
+      hasViewAccess: (_brand: unknown, _user: unknown, _roles: unknown, record: unknown) =>
+        record !== records['denied'],
     } as unknown as RecordsService;
     const user = Object.assign(new UserModel(), { username: 'user' });
-    await new RelatedObjectDataInlineFormConfigVisitor(logger, service).resolve(form, { publications: values }, { user, brand: { name: 'default' } as never });
+    await new RelatedObjectDataInlineFormConfigVisitor(logger, service).resolve(
+      form,
+      { publications: values },
+      { user, brand: { name: 'default' } as never }
+    );
     return (form.componentDefinitions[0] as RelatedObjectDataFormComponentDefinitionOutline).component.config;
   }
 
   it('projects configured fields and buckets denied and failed oids', async () => {
     const config = await resolve([{ id: 'allowed' }, { id: 'denied' }, { id: 'missing' }, { id: 'allowed' }]);
-    expect(config?.relatedObjects).to.deep.equal([{ oid: 'allowed', title: 'Allowed', fields: { title: 'Allowed', contributor: { name: 'Person' } } }]);
+    expect(config?.relatedObjects).to.deep.equal([
+      { oid: 'allowed', title: 'Allowed', fields: { title: 'Allowed', contributor: { name: 'Person' } } },
+    ]);
     expect(config?.accessDeniedOids).to.deep.equal(['denied']);
     expect(config?.failedOids).to.deep.equal(['missing']);
   });
@@ -65,13 +78,15 @@ describe('RelatedObjectDataInlineFormConfigVisitor', () => {
   it('does not report records skipped by the resolution limit as failed', async () => {
     const input: FormConfigFrame = {
       name: 'test',
-      componentDefinitions: [{
-        name: 'related',
-        component: {
-          class: 'RelatedObjectDataComponent',
-          config: { dataPath: 'metadata.publications', relatedFields: ['title'] },
+      componentDefinitions: [
+        {
+          name: 'related',
+          component: {
+            class: 'RelatedObjectDataComponent',
+            config: { dataPath: 'metadata.publications', relatedFields: ['title'] },
+          },
         },
-      }],
+      ],
     };
     const form = await new ConstructFormConfigVisitor(logger).start({ data: input });
     const service = {
@@ -81,8 +96,11 @@ describe('RelatedObjectDataInlineFormConfigVisitor', () => {
     const user = Object.assign(new UserModel(), { username: 'user' });
     const oids = Array.from({ length: 51 }, (_value, index) => `oid-${index}`);
 
-    await new RelatedObjectDataInlineFormConfigVisitor(logger, service)
-      .resolve(form, { publications: oids }, { user, brand: { name: 'default' } as never });
+    await new RelatedObjectDataInlineFormConfigVisitor(logger, service).resolve(
+      form,
+      { publications: oids },
+      { user, brand: { name: 'default' } as never }
+    );
 
     const config = (form.componentDefinitions[0] as RelatedObjectDataFormComponentDefinitionOutline).component.config;
     expect(config?.relatedObjects).to.have.length(50);

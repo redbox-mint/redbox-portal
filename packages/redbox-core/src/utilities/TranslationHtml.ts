@@ -1,15 +1,28 @@
 import domPurify = require('dompurify');
-import { JSDOM } from 'jsdom';
 import {
-  filterTranslationHtmlClasses, getTranslationHtmlClasses, translationHtmlAttributes,
-  filterTranslationColumnWidth, normalizeTranslationTableWidths, translationHtmlSanitizerConfig
+  filterTranslationHtmlClasses,
+  getTranslationHtmlClasses,
+  translationHtmlAttributes,
+  filterTranslationColumnWidth,
+  normalizeTranslationTableWidths,
+  translationHtmlSanitizerConfig,
 } from '@researchdatabox/sails-ng-common';
 
-const translationWindow = new JSDOM('').window;
-const purifier = domPurify(translationWindow);
+let sanitizer: { window: import('jsdom').DOMWindow; purifier: ReturnType<typeof domPurify> } | undefined;
+
+/** Create and cache the DOM and purifier on the first translation HTML sanitisation call. */
+function getSanitizer(): NonNullable<typeof sanitizer> {
+  if (!sanitizer) {
+    const { JSDOM } = require('jsdom') as typeof import('jsdom');
+    const window = new JSDOM('').window;
+    sanitizer = { window, purifier: domPurify(window) };
+  }
+  return sanitizer;
+}
 
 /** Enforce the same presentation policy for editor, REST and bundle writes. */
 export function sanitizeTranslationHtml(content: string, allowedClasses?: unknown): string {
+  const { window: translationWindow, purifier } = getSanitizer();
   const policy = getTranslationHtmlClasses(allowedClasses);
   purifier.addHook('afterSanitizeAttributes', node => {
     if (!('tagName' in node) || typeof node.getAttribute !== 'function') return;
@@ -29,9 +42,10 @@ export function sanitizeTranslationHtml(content: string, allowedClasses?: unknow
     const source = purifier.sanitize(content, {
       ...translationHtmlSanitizerConfig,
       ALLOWED_ATTR: [...translationHtmlAttributes, 'colwidth'],
-      RETURN_DOM: true
+      RETURN_DOM: true,
     });
-    if (!(source instanceof translationWindow.HTMLElement)) throw new Error('HTML sanitization did not return an element');
+    if (!(source instanceof translationWindow.HTMLElement))
+      throw new Error('HTML sanitization did not return an element');
     normalizeTranslationTableWidths(source);
     return purifier.sanitize(source.innerHTML, translationHtmlSanitizerConfig);
   } finally {

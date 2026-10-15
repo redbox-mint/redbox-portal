@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -28,11 +30,7 @@ describe('Webpack Hook', () => {
                     }]
                 }
             },
-            log: {
-                info: sinon.spy(),
-                warn: sinon.spy(),
-                error: sinon.spy()
-            }
+            log: createSinonStubLogger(sinon),
         };
 
         webpackCompilerMock = {

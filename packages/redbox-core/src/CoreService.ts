@@ -1,10 +1,11 @@
 import { bindNodeCallback, bindCallback, Observable } from 'rxjs';
 
-
 // changed to a manual lodash load instead of relying on Sails global object
 // this enables testing of installable hooks that rely on services at load-time (i.e. index.js)
 import * as _ from 'lodash';
-import { ILogger } from './Logger';
+import { CoreBase } from './CoreBase';
+import { currentRequestChronicle } from './utilities/RequestChronicleContext';
+import { sanitizeChronicleValue, toChronicleError, toChronicleLogRecord } from './utilities/RequestChronicle';
 
 // Type alias for query objects used with RxJS bindings
 type QueryObject = object;
@@ -17,11 +18,7 @@ export namespace Services.Core {
    * @remarks Constructors run before Sails is guaranteed to exist. Sails-dependent setup belongs in `init()`.
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
    */
-  export class Service {
-    /**
-     * Exported methods. Must be overridden by the child to add custom methods.
-     */
-    protected _exportedMethods: string[] = [];
+  export class Service extends CoreBase {
     /**
      * Default exported methods.
      * These methods will be accessible.
@@ -29,82 +26,69 @@ export namespace Services.Core {
     private _defaultExportedMethods: string[] = [
       // Sails controller custom config.
       '_config',
-      'convertToType'
+      'convertToType',
     ];
 
     protected logHeader: string = '';
 
-    // Namespaced logger for services
-    private _logger: ILogger | null = null;
+    protected _loggerNamespaceSuffix: string = 'Service';
 
     /**
-     * Get a namespaced logger for this service class.
-     * Uses the class constructor name as the namespace.
-     * Falls back to sails.log if pino namespaced logging is not available.
+     * Add safe service summaries to the current HTTP request without passing req.
+     * Outside HTTP requests, emit the same bounded summaries through the namespace logger.
+     * Errors and late work remain visible, and recording never changes service behavior.
      */
-    protected get logger(): ILogger {
-      if (typeof sails !== 'undefined' && this._logger === null && sails.config?.log?.createNamespaceLogger && sails.config?.log?.customLogger) {
-        const serviceName = this.constructor.name + 'Service';
-        this._logger = sails.config.log.createNamespaceLogger(serviceName, sails.config.log.customLogger);
-      }
-      // Prefer _logger, then sails.log; cast sails.log to ILogger since it implements all required methods
-      if (this._logger !== null) {
-        return this._logger;
-      }
-      
-      if (typeof sails !== 'undefined' && sails.log) {
-        return sails.log as unknown as ILogger;
-      }
-
-      // Fallback logger for when sails is not defined (e.g. during shim generation)
-      return {
-        crit: console.error,
-        error: console.error,
-        warn: console.warn,
-        debug: console.debug,
-        info: console.info,
-        verbose: console.log,
-        silly: console.log,
-        blank: console.log,
-        trace: console.trace,
-        log: console.log,
-        fatal: console.error,
-        silent: () => {}
-      };
-    }
-
-    /**
-     * Registers a Sails hook handler if Sails is available.
-     */
-    protected registerSailsHook(action: 'on', eventName: string, handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean;
-    protected registerSailsHook(action: 'on' | 'after', eventName: string | string[], handler: (...args: unknown[]) => void | Promise<void>): boolean {
-      if (typeof sails === 'undefined') {
-        console.warn(`Sails is undefined so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
-        return false;
-      }
-      if (action === 'on') {
-        if (typeof sails.on !== 'function') {
-          console.warn(`Sails.on is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
-          return false;
+    protected updateChronicle(
+      info: Record<string, unknown>,
+      errors: unknown[] = [],
+      level: 'debug' | 'info' | 'warn' = 'debug'
+    ): void {
+      const helper = currentRequestChronicle();
+      let safeInfo: unknown;
+      try {
+        if (helper !== undefined) {
+          if (helper.isRunning || errors.length === 0) {
+            helper.addInfo(info, level);
+          }
+        } else {
+          safeInfo = sanitizeChronicleValue(info);
+          if (errors.length === 0 && Object.keys(info).length > 0) {
+            this.logger[level](toChronicleLogRecord({ info: safeInfo }), 'Service operation');
+          }
         }
-        sails.on(eventName as string, handler);
-        return true;
+      } catch {
+        // Observability must never change the result of a service operation.
       }
-      if (typeof sails.after !== 'function') {
-        console.warn(`Sails.after is not a function so did not register hook action ${action} eventName ${eventName} handler ${handler}`);
-        return false;
+      for (const error of errors) {
+        try {
+          if (helper !== undefined) {
+            helper.addError(error, helper.isRunning ? undefined : info);
+          } else {
+            this.logger.error(
+              toChronicleLogRecord({
+                ...(safeInfo !== undefined ? { info: safeInfo } : {}),
+                error: toChronicleError(error),
+              }),
+              'Service operation failed.'
+            );
+          }
+        } catch {
+          // A failed details transport must not suppress error capture.
+        }
       }
-      sails.after(eventName, handler);
-      return true;
     }
+
     /**
-    * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
-    * @param q The query object with an exec or similar method
-    * @param method The method to call on q (default: 'exec')
-    * @param type The binding type: 'node' for node-style callbacks, otherwise regular callbacks
-    */
-    protected getObservable<T = unknown>(q: QueryObject, method: string = 'exec', type: string = 'node'): Observable<T> {
+     * Returns an RxJS Observable wrapped nice and tidy for your subscribing pleasure
+     * @param q The query object with an exec or similar method
+     * @param method The method to call on q (default: 'exec')
+     * @param type The binding type: 'node' for node-style callbacks, otherwise regular callbacks
+     */
+    protected getObservable<T = unknown>(
+      q: QueryObject,
+      method: string = 'exec',
+      type: string = 'node'
+    ): Observable<T> {
       const fn = (q as Record<string, (...args: unknown[]) => unknown>)[method];
       if (type == 'node') {
         return bindNodeCallback(fn.bind(q))() as Observable<T>;
@@ -113,33 +97,10 @@ export namespace Services.Core {
     }
 
     /**
-    * Wrapper for straightforward query, no chaining..
-    */
+     * Wrapper for straightforward query, no chaining..
+     */
     protected exec(q: QueryObject, successFn: (value: unknown) => void, errorFn: (error: unknown) => void): void {
       this.getObservable(q).subscribe(successFn, errorFn);
-    }
-
-    constructor() {
-      this.processDynamicImports().then(() => {
-        this.logger.verbose("Dynamic imports imported");
-        this.onDynamicImportsCompleted();
-      });
-    }
-
-    /**
-     * Function that allows async dynamic imports of modules (such as ECMAScript modules).
-     * Called in the constructor and intended to be overridden in sub class to allow imports.
-     */
-    protected async processDynamicImports() {
-      // Override in sub class as needed
-    }
-
-    /**
-     * Function that is called during the construction of the Controller after the dynamic imports are completed.
-     * Intended to be overridden in the sub class
-     */
-    protected onDynamicImportsCompleted() {
-      // Override in sub class as needed
     }
 
     /**
@@ -159,29 +120,26 @@ export namespace Services.Core {
      */
     public exports(): Record<string, unknown> {
       const exportedMethods: Record<string, unknown> = {};
-      if (process.env["sails_redbox__mochaTesting"] === "true") {
+      if (process.env['sails_redbox__mochaTesting'] === 'true') {
         const allProperties = [
           ...Object.getOwnPropertyNames(Object.getPrototypeOf(this)), // Prototype methods
           ...Object.getOwnPropertyNames(this), // Instance properties
         ];
 
-
         const uniqueProperties = Array.from(new Set(allProperties));
-        uniqueProperties.forEach((property) => {
+        uniqueProperties.forEach(property => {
           const value = (this as Record<string, unknown>)[property];
 
           // Check if the property is a function
-          if (typeof value === "function" && property !== "constructor") {
+          if (typeof value === 'function' && property !== 'constructor') {
             exportedMethods[property] = (value as (...args: unknown[]) => unknown).bind(this); // Bind the method to maintain `this` context
           }
-
         });
-        this.logger.error("Exported Methods for Mocha Testing: ", exportedMethods);
+        this.logger.error('Exported Methods for Mocha Testing: ', exportedMethods);
       } else {
         // Merge default array and custom array from child.
         const methods = this._defaultExportedMethods.concat(this._exportedMethods);
         const service = this as Record<string, unknown>;
-
 
         for (let i = 0; i < methods.length; i++) {
           const methodName = methods[i];
@@ -190,14 +148,15 @@ export namespace Services.Core {
           if (typeof member !== 'undefined') {
             // Check that the method shouldn't be private. (Exception for _config, which is a sails config)
             if (methodName[0] !== '_' || methodName === '_config') {
-
               if (_.isFunction(member)) {
                 exportedMethods[methodName] = (member as (...args: unknown[]) => unknown).bind(this);
               } else {
                 exportedMethods[methodName] = member;
               }
             } else {
-              this.logger.error(`The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`);
+              this.logger.error(
+                `The service method "${methodName}" is not public and cannot be exported from ${this.constructor?.name}`
+              );
             }
           } else {
             // _config is optional for Sails services, so we don't log an error if it's missing.
@@ -220,9 +179,14 @@ export namespace Services.Core {
      * @param  user The user that triggered the hook, optional.
      * @return {"true"|"false"} "true" if the condition passed, otherwise "false".
      */
-    protected metTriggerCondition(oid: string | null, record: Record<string, unknown>, options: Record<string, unknown>, user?: unknown): string {
-      const triggerCondition = _.get(options, "triggerCondition", "") as string;
-      const forceRun = _.get(options, "forceRun", false) as boolean;
+    protected metTriggerCondition(
+      oid: string | null,
+      record: Record<string, unknown>,
+      options: Record<string, unknown>,
+      user?: unknown
+    ): string {
+      const triggerCondition = _.get(options, 'triggerCondition', '') as string;
+      const forceRun = _.get(options, 'forceRun', false) as boolean;
       const variables = {
         record: record,
         oid: oid,
@@ -231,20 +195,20 @@ export namespace Services.Core {
           record: record,
           oid: oid,
           user: user || null,
-        }
+        },
       };
 
       if (!user) {
-        this.logger.trace("No user in metTriggerCondition");
+        this.logger.trace('No user in metTriggerCondition');
       }
       if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
         const compiled = _.template(triggerCondition, variables);
         return compiled();
       } else if (forceRun) {
-        return "true";
+        return 'true';
       } else {
         // if trigger condition is not set, fail fast!
-        return "false";
+        return 'false';
       }
     }
 
@@ -266,7 +230,12 @@ export namespace Services.Core {
      * @param appendMappingToSource
      * @returns
      */
-    public convertToType<Type>(source: Record<string, unknown>, dest: Record<string, unknown>, mapping: { [key: string]: string } | undefined, appendMappingToSource: boolean = false): Type {
+    public convertToType<Type>(
+      source: Record<string, unknown>,
+      dest: Record<string, unknown>,
+      mapping: { [key: string]: string } | undefined,
+      appendMappingToSource: boolean = false
+    ): Type {
       let fields = _.mapValues(dest, (val, key) => {
         return key;
       });

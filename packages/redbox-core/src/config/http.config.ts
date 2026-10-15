@@ -7,60 +7,31 @@
  */
 
 import { RequestHandler, Request, Response, NextFunction } from 'express';
-import type { PassportStatic } from 'passport';
+import { AsyncResource } from 'node:async_hooks';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 const skipper = require('skipper');
-
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
-import type { CompanionConfig } from './companion.config';
 import type { CustomConfig } from './custom.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
 import { resolveHookAssetFile } from '../hooks/hookResources';
+import { requestChronicle } from '../middleware/requestChronicle';
+import { RequestChronicleHelper } from '../utilities/RequestChronicle';
 
 // Declare Sails and its config structure
-declare const sails: {
-    config: {
-        appPath: string;
-        passport: PassportStatic; // The passport instance configured by UsersService
-        companion?: CompanionConfig;
-        appUrl?: string;
-        session: {
-            cookie?: {
-                maxAge?: number;
-            };
-        };
-        custom: CustomConfig;
-    };
-    hooks?: {
-        http?: {
-            server?: unknown;
-        };
-    };
-};
+declare const sails: Sails.Application;
 
-// Extended Request interface for custom properties
-interface ExtendedRequest extends Request {
-    options?: {
-        locals?: {
-            branding?: string;
-            portal?: string;
-            [key: string]: unknown;
-        };
-    };
-    [key: string]: unknown;
-}
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
 
 /**
  * Middleware function signature
  */
-export type MiddlewareFunction = (req: Request, res: Response, next: NextFunction) => void;
+export type MiddlewareFunction = (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) => void;
 
 /**
  * Middleware configuration object
@@ -85,6 +56,7 @@ export interface HttpMiddlewareConfig {
     router?: RequestHandler;
     www?: RequestHandler;
     favicon?: RequestHandler;
+    requestChronicle?: MiddlewareFunction;
 
     /** Allow additional custom middleware */
     [key: string]: MiddlewareFunction | RequestHandler | string[] | undefined;
@@ -178,6 +150,70 @@ function resolveBodyParserSkipMatchers(customConfig?: Partial<CustomConfig>): Re
     }
 
     return _cachedBodyParserSkipPathMatchers;
+}
+
+type UploadUpstream = { upload: (...args: unknown[]) => unknown };
+type UploadRequest = Sails.Req & { file?: (...args: unknown[]) => UploadUpstream };
+
+/** Keep streamed upload completion callbacks in the context where upload() was called. */
+function bindMultipartUploadCallbacks(req: Sails.Req): void {
+    const uploadRequest = req as UploadRequest;
+    const file = uploadRequest.file;
+    if (typeof file !== 'function') {
+        return;
+    }
+    const boundUpstreams = new WeakSet<UploadUpstream>();
+    uploadRequest.file = function (this: UploadRequest, ...args: unknown[]) {
+        const upstream = file.apply(this, args);
+        if (upstream && typeof upstream.upload === 'function' && !boundUpstreams.has(upstream)) {
+            const upload = upstream.upload;
+            upstream.upload = function (this: UploadUpstream, ...uploadArgs: unknown[]) {
+                const last = uploadArgs.length - 1;
+                const callback = uploadArgs[last];
+                if (typeof callback === 'function') {
+                    uploadArgs[last] = AsyncResource.bind(callback as (...args: unknown[]) => unknown);
+                }
+                return upload.apply(this, uploadArgs);
+            };
+            boundUpstreams.add(upstream);
+        }
+        return upstream;
+    };
+}
+
+const bodyParserErrorTypes = [
+    'entity.parse.failed',
+    'entity.too.large',
+    'encoding.unsupported',
+    'charset.unsupported',
+    'parameters.too.many',
+    'request.aborted',
+    'request.size.invalid',
+    'stream.encoding.set',
+    'stream.not.readable',
+];
+
+/** Parser errors may contain the entire body in properties, messages, and stacks. */
+function sanitizeBodyParserError(error: unknown): unknown {
+    if (!error) {
+        return error;
+    }
+    const safeError = new Error('Could not parse request body.');
+    safeError.name = 'RequestBodyParserError';
+    // Keep transport metadata, without forwarding the original error or its cause.
+    if (typeof error === 'object') {
+        const source = error as Record<string, unknown>;
+        for (const key of ['status', 'statusCode']) {
+            const value = source[key];
+            if (typeof value === 'number' && Number.isInteger(value) && value >= 400 && value <= 599) {
+                Object.assign(safeError, { [key]: value });
+            }
+        }
+        if (typeof source.type === 'string' && bodyParserErrorTypes.includes(source.type)) {
+            Object.assign(safeError, { type: source.type });
+        }
+    }
+    return safeError;
 }
 
 export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
@@ -423,7 +459,7 @@ export const http: HttpConfig = {
 
     middleware: {
         // Lazy load redboxSession to support async shim generation
-        redboxSession: function (req: Request, res: Response, next: NextFunction) {
+        redboxSession: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             if (!_lazyRedboxSessionMiddleware) {
                 // Initialize the session middleware with the resolved Sails config so environment overrides apply.
                 const resolvedSessionConfig = (sails.config as { redboxSession?: typeof redboxSessionConfigValue }).redboxSession || redboxSessionConfigValue;
@@ -435,15 +471,21 @@ export const http: HttpConfig = {
         // Lazy load passport middleware to use sails.config.passport
         // This ensures we use the same passport instance that has deserializeUser configured
         passportInit: function (req: Request, res: Response, next: NextFunction) {
+            if (typeof sails.config.passport.initialize !== 'function') {
+                throw new Error(`Passport init failed: sails.config.passport.initialize is not a function.`);
+            }
             const middleware = sails.config.passport.initialize() as unknown as RequestHandler;
             return middleware(req, res, next);
         },
         passportSession: function (req: Request, res: Response, next: NextFunction) {
+            if (typeof sails.config.passport.session !== 'function') {
+              throw new Error(`Passport session failed: sails.config.passport.session is not a function.`);
+            }
             const middleware = sails.config.passport.session() as unknown as RequestHandler;
             return middleware(req, res, next);
         },
 
-        companion: function (req: Request, res: Response, next: NextFunction) {
+        companion: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const companionConfig = sails.config.companion;
             if (!companionConfig?.enabled) {
                 return next();
@@ -625,8 +667,8 @@ export const http: HttpConfig = {
             });
         },
 
-        brandingAndPortalAwareStaticRouter: function (req: Request, res: Response, next: NextFunction) {
-            const extendedReq = req as ExtendedRequest;
+        brandingAndPortalAwareStaticRouter: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            const extendedReq = req;
             const existsSync = fs.existsSync;
 
             // Checks the branding and portal parameters if the resource isn't overidden for the required portal and branding,
@@ -677,15 +719,21 @@ export const http: HttpConfig = {
                 if (resolvedPath != null) {
                     req.url = resolvedPath;
                 }
+
+                RequestChronicleHelper.fromReq(sails.log, req).addInfo({
+                    branding: branding ?? extendedReq.options.locals.branding,
+                    portal: portal ?? extendedReq.options.locals.portal,
+                });
             }
             next();
         },
 
-        translate: function (req: Request, res: Response, next: NextFunction) {
+        translate: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             next();
         },
 
         order: [
+            'requestChronicle',
             'cacheControl',
             'redirectNoCacheHeaders',
             'cookieParser',
@@ -703,7 +751,7 @@ export const http: HttpConfig = {
             'favicon',
         ],
 
-        myBodyParser: function (req: Request, res: Response, next: NextFunction) {
+        myBodyParser: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const requestPath = req.originalUrl ?? req.url;
             const normalizedRequestPath = normalizeBodyParserPath(requestPath);
             const skipMatchers = resolveBodyParserSkipMatchers(sails.config.custom);
@@ -714,15 +762,19 @@ export const http: HttpConfig = {
                 // strict: true,
                 // ... more Skipper options here ...
             });
-            return skipperMiddleware(req, res, next);
+            // Multipart parser events originate outside the request's async context.
+            return skipperMiddleware(req, res, AsyncResource.bind((error?: unknown) => {
+                bindMultipartUploadCallbacks(req);
+                next(sanitizeBodyParserError(error));
+            }));
         },
 
-        poweredBy: function (req: Request, res: Response, next: NextFunction) {
+        poweredBy: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             res.set('X-Powered-By', "QCIF");
             return next();
         },
 
-        redirectNoCacheHeaders: function (req: Request, res: Response, next: NextFunction) {
+        redirectNoCacheHeaders: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const originalRedirect = res.redirect;
 
             // Patch the redirect function so that it sets the no-cache headers
@@ -739,13 +791,13 @@ export const http: HttpConfig = {
                     return redirect.call(this, statusOrUrl, urlOrStatus);
                 }
                 return redirect.call(this, urlOrStatus);
-            } as Response['redirect'];
+            };
 
             return next();
         },
 
-        cacheControl: function (req: Request, res: Response, next: NextFunction) {
-            const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
+        cacheControl: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            const sessionTimeoutSeconds = sails.config.session === false || sails.config.session.cookie?.maxAge === undefined ? 31536000 : sails.config.session.cookie.maxAge / 1000;
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
             const isImmutableAsset = isImmutableAssetPath(req.path);
@@ -793,6 +845,8 @@ export const http: HttpConfig = {
                 res.set('Pragma', 'no-cache');
             }
             return next();
-        }
+        },
+
+        requestChronicle: requestChronicle,
     },
 };

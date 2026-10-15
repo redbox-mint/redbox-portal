@@ -2,27 +2,32 @@ import {
   FormConfigFrame,
   QuestionTreeFieldComponentDefinitionOutline,
   QuestionTreeFormComponentDefinitionOutline,
-  QuestionTreeMeta, QuestionTreeOutcome,
-  QuestionTreeOutcomeInfoKey, QuestionTreeQuestion,
+  QuestionTreeMeta,
+  QuestionTreeOutcome,
+  QuestionTreeOutcomeInfoKey,
+  QuestionTreeQuestion,
   RepeatableFieldComponentConfigFrame,
-  TabContentFieldComponentConfigFrame, TabFieldComponentConfigFrame,
+  TabContentFieldComponentConfigFrame,
+  TabFieldComponentConfigFrame,
   handlebarsCompile,
   SimpleInputFormComponentDefinitionFrame,
-} from "@researchdatabox/sails-ng-common";
-import {formConfigExample1} from "./example-data";
-import {logger} from "./helpers";
+  consoleLogger,
+} from '@researchdatabox/sails-ng-common';
+import { formConfigExample1 } from './example-data';
 import {
-  reusableFormDefinitions, VocabInlineFormConfigVisitor,
-  ClientFormConfigVisitor, ConstructFormConfigVisitor, buildRelatedObjectsFieldDefinition,
-} from "../../src";
-
+  reusableFormDefinitions,
+  VocabInlineFormConfigVisitor,
+  ClientFormConfigVisitor,
+  ConstructFormConfigVisitor,
+  buildRelatedObjectsFieldDefinition,
+} from '../../src';
 
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 
-describe("Client Visitor", async () => {
+describe('Client Visitor', async () => {
   it('omits server-only validation operation policy from client form payloads', async function () {
-    const constructVisitor = new ConstructFormConfigVisitor(logger);
+    const constructVisitor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructVisitor.start({
       data: {
         name: 'operation-policy-privacy',
@@ -39,7 +44,7 @@ describe("Client Visitor", async () => {
       },
       formMode: 'edit',
     });
-    const visitor = new ClientFormConfigVisitor(logger);
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
     const clientForm = await visitor.start({ form: constructed, formMode: 'edit' });
 
     expect(clientForm).not.to.have.property('validationOperations');
@@ -49,39 +54,41 @@ describe("Client Visitor", async () => {
   });
 
   it('preserves date-only model configuration and calendar values for the browser', async function () {
-    const constructed = await new ConstructFormConfigVisitor(logger).start({
+    const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
       formMode: 'edit',
       data: {
         name: 'calendar-date-config',
-        componentDefinitions: [{
-          name: 'date',
-          component: { class: 'DateInputComponent', config: { dateFormat: 'DD/MM/YYYY' } },
-          model: { class: 'DateInputModel', config: { dateOnly: true, defaultValue: '2026-09-17' } },
-        }],
+        componentDefinitions: [
+          {
+            name: 'date',
+            component: { class: 'DateInputComponent', config: { dateFormat: 'DD/MM/YYYY' } },
+            model: { class: 'DateInputModel', config: { dateOnly: true, defaultValue: '2026-09-17' } },
+          },
+        ],
       },
     });
-    const clientForm = await new ClientFormConfigVisitor(logger).start({ form: constructed, formMode: 'edit' });
+    const clientForm = await new ClientFormConfigVisitor(consoleLogger).start({ form: constructed, formMode: 'edit' });
     expect(clientForm.componentDefinitions[0].model?.config).to.include({ dateOnly: true, value: '2026-09-17' });
     expect(clientForm.componentDefinitions[0].component.class).to.equal('DateInputComponent');
   });
 
-  describe("Repeatable Component", async () => {
+  describe('Repeatable Component', async () => {
     it(`should preserve repeatable zero-row config in client output`, async function () {
       const args: FormConfigFrame = {
-        name: "repeatable-config-preserve",
+        name: 'repeatable-config-preserve',
         componentDefinitions: [
           {
-            name: "legacy_repeatable",
+            name: 'legacy_repeatable',
             component: {
-              class: "RepeatableComponent",
+              class: 'RepeatableComponent',
               config: {
                 addButtonShow: false,
                 allowZeroRows: true,
                 hideWhenZeroRows: true,
                 elementTemplate: {
-                  name: "",
+                  name: '',
                   component: {
-                    class: "SimpleInputComponent",
+                    class: 'SimpleInputComponent',
                   },
                 },
               },
@@ -90,15 +97,15 @@ describe("Client Visitor", async () => {
         ],
       };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data: args,
-        formMode: "edit",
+        formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const actual = await visitor.start({form: constructed});
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({ form: constructed });
       const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
 
       expect(repeatableConfig.addButtonShow).to.equal(false);
@@ -124,10 +131,7 @@ describe("Client Visitor", async () => {
                   {
                     fieldName: 'contributor_ci_not_rhd',
                     visibilityConditionField: 'project-type',
-                    visibilityConditionValues: [
-                      '@dmpt-project-type-staff-val',
-                      '@dmpt-project-type-other-val',
-                    ],
+                    visibilityConditionValues: ['@dmpt-project-type-staff-val', '@dmpt-project-type-other-val'],
                   },
                 ],
                 elementTemplate: {
@@ -142,15 +146,15 @@ describe("Client Visitor", async () => {
         ],
       };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const actual = await visitor.start({form: constructed});
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({ form: constructed });
       const repeatableConfig = actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame;
 
       expect(repeatableConfig.syncSources).to.deep.equal([
@@ -162,10 +166,7 @@ describe("Client Visitor", async () => {
         {
           fieldName: 'contributor_ci_not_rhd',
           visibilityConditionField: 'project-type',
-          visibilityConditionValues: [
-            '@dmpt-project-type-staff-val',
-            '@dmpt-project-type-other-val',
-          ],
+          visibilityConditionValues: ['@dmpt-project-type-staff-val', '@dmpt-project-type-other-val'],
         },
       ]);
     });
@@ -205,28 +206,28 @@ describe("Client Visitor", async () => {
                       componentDefinitions: [
                         {
                           name: 'name',
-                          component: {class: 'SimpleInputComponent'},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent' },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                         {
                           name: 'rdf:resource',
-                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                         {
                           name: 'type',
-                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                         {
                           name: 'label',
-                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                         {
                           name: 'notation',
-                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                         {
                           name: 'geneaology',
@@ -240,7 +241,7 @@ describe("Client Visitor", async () => {
                                 name: '',
                                 component: {
                                   class: 'SimpleInputComponent',
-                                  config: {type: 'hidden'},
+                                  config: { type: 'hidden' },
                                 },
                                 model: {
                                   class: 'SimpleInputModel',
@@ -268,15 +269,15 @@ describe("Client Visitor", async () => {
         ],
       };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const actual = await visitor.start({form: constructed});
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({ form: constructed });
       const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
 
       expect(value).to.have.length(1);
@@ -321,13 +322,13 @@ describe("Client Visitor", async () => {
                       componentDefinitions: [
                         {
                           name: 'name',
-                          component: {class: 'SimpleInputComponent'},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent' },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                         {
                           name: 'notation',
-                          component: {class: 'SimpleInputComponent', config: {type: 'hidden'}},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                       ],
                     },
@@ -343,15 +344,15 @@ describe("Client Visitor", async () => {
         ],
       };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const actual = await visitor.start({form: constructed});
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({ form: constructed });
       const value = actual.componentDefinitions?.[0]?.model?.config?.value as any[];
 
       expect(value).to.have.length(1);
@@ -388,8 +389,8 @@ describe("Client Visitor", async () => {
                       componentDefinitions: [
                         {
                           name: 'name',
-                          component: {class: 'SimpleInputComponent'},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent' },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                       ],
                     },
@@ -412,15 +413,15 @@ describe("Client Visitor", async () => {
         ],
       };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const actual = await visitor.start({form: constructed});
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({ form: constructed });
       const repeatable = actual.componentDefinitions?.[0];
 
       expect(repeatable.component?.config?.visible).to.equal(false);
@@ -450,8 +451,8 @@ describe("Client Visitor", async () => {
                       componentDefinitions: [
                         {
                           name: 'name',
-                          component: {class: 'SimpleInputComponent'},
-                          model: {class: 'SimpleInputModel', config: {}},
+                          component: { class: 'SimpleInputComponent' },
+                          model: { class: 'SimpleInputModel', config: {} },
                         },
                       ],
                     },
@@ -459,7 +460,7 @@ describe("Client Visitor", async () => {
                   model: {
                     class: 'GroupModel',
                     config: {
-                    // @ts-ignore: testing that null is normalised
+                      // @ts-ignore: testing that null is normalised
                       newEntryValue: null,
                     },
                   },
@@ -470,15 +471,15 @@ describe("Client Visitor", async () => {
         ],
       };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data: args,
         formMode: 'edit',
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const actual = await visitor.start({form: constructed});
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({ form: constructed });
       const repeatable = actual.componentDefinitions?.[0];
       const repeatableValue = repeatable?.model?.config?.value as unknown[] | undefined;
       const repeatableConfig = repeatable?.component?.config as RepeatableFieldComponentConfigFrame | undefined;
@@ -506,20 +507,20 @@ describe("Client Visitor", async () => {
                       componentDefinitions: [
                         {
                           name: 'name',
-                          component: {class: 'TypeaheadInputComponent', config: {valueMode: 'optionObject'}},
+                          component: { class: 'TypeaheadInputComponent', config: { valueMode: 'optionObject' } },
                         },
                         {
-                          name: "dataRecord",
+                          name: 'dataRecord',
                           component: {
-                            "class": "RecordSelectorComponent",
+                            class: 'RecordSelectorComponent',
                             config: {
-                              label: "@dataPublication-selector-label",
-                              columnTitle: "Record title",
-                              recordType: "dataRecord",
-                              workflowState: "",
-                              filterMode: "regex",
-                              filterFields: ["metadata.title"]
-                            }
+                              label: '@dataPublication-selector-label',
+                              columnTitle: 'Record title',
+                              recordType: 'dataRecord',
+                              workflowState: '',
+                              filterMode: 'regex',
+                              filterFields: ['metadata.title'],
+                            },
                           },
                         },
                       ],
@@ -532,20 +533,22 @@ describe("Client Visitor", async () => {
         ],
       };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data: args,
         reusableFormDefs: reusableFormDefinitions,
         formMode: 'edit',
         record: {
-          repeatable1: [{
-            name: {label: "name_label", value: "name_value", sourceType: "namedQuery"},
-            dataRecord: {oid: "abc123", title: "ABC 123 Title"}
-          }]
-        }
+          repeatable1: [
+            {
+              name: { label: 'name_label', value: 'name_value', sourceType: 'namedQuery' },
+              dataRecord: { oid: 'abc123', title: 'ABC 123 Title' },
+            },
+          ],
+        },
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       const actual = await visitor.start({
         form: constructed,
         reusableFormDefs: reusableFormDefinitions,
@@ -553,111 +556,118 @@ describe("Client Visitor", async () => {
       });
 
       expect(actual).to.containSubset({
-        componentDefinitions: [{
-          name: "repeatable1",
-          component: {
-            "class": "RepeatableComponent", config: {
-              elementTemplate: {
-                name: '',
-                component: {
-                  class: 'GroupComponent',
-                  config: {
-                    componentDefinitions: [
-                      {
-                        name: 'name',
-                        component: {class: 'TypeaheadInputComponent', config: {valueMode: 'optionObject'}},
-                      },
-                      {
-                        name: "dataRecord",
-                        component: {
-                          "class": "RecordSelectorComponent",
-                        }
-                      }]
-                  }
+        componentDefinitions: [
+          {
+            name: 'repeatable1',
+            component: {
+              class: 'RepeatableComponent',
+              config: {
+                elementTemplate: {
+                  name: '',
+                  component: {
+                    class: 'GroupComponent',
+                    config: {
+                      componentDefinitions: [
+                        {
+                          name: 'name',
+                          component: { class: 'TypeaheadInputComponent', config: { valueMode: 'optionObject' } },
+                        },
+                        {
+                          name: 'dataRecord',
+                          component: {
+                            class: 'RecordSelectorComponent',
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  model: { class: 'GroupModel', config: { newEntryValue: {} } },
                 },
-                model: {class: "GroupModel", config: {newEntryValue: {}}}
-              }
-            }
+              },
+            },
+            model: {
+              class: 'RepeatableModel',
+              config: {
+                value: [
+                  {
+                    name: { label: 'name_label', value: 'name_value', sourceType: 'namedQuery' },
+                    dataRecord: { oid: 'abc123', title: 'ABC 123 Title' },
+                  },
+                ],
+              },
+            },
           },
-          model: {
-            "class": "RepeatableModel", config: {
-              value: [{
-                name: {label: "name_label", value: "name_value", sourceType: "namedQuery"},
-                dataRecord: {oid: "abc123", title: "ABC 123 Title"}
-              }]
-            }
-          }
-        }]
+        ],
       });
     });
   });
 
-  describe("Repeatable view mode data retention (#4284)", async () => {
-    const dateFormat = "DD/MM/YYYY";
+  describe('Repeatable view mode data retention (#4284)', async () => {
+    const dateFormat = 'DD/MM/YYYY';
     const recordRows = [
       {
-        title: "Initial planning",
-        startDate: "2026-01-15",
-        categories: ["a", "b"],
+        title: 'Initial planning',
+        startDate: '2026-01-15',
+        categories: ['a', 'b'],
       },
       {
-        title: "Final review",
-        startDate: "2026-02-20",
-        categories: ["b"],
+        title: 'Final review',
+        startDate: '2026-02-20',
+        categories: ['b'],
       },
     ];
 
     const buildData = (
-      entriesName = "entries",
+      entriesName = 'entries',
       childDefinitions: any[] = [
         {
-          name: "title",
-          component: {class: "SimpleInputComponent", config: {}},
-          model: {class: "SimpleInputModel", config: {}},
+          name: 'title',
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: {} },
         },
         {
-          name: "startDate",
-          component: {class: "DateInputComponent", config: {dateFormat}},
-          model: {class: "DateInputModel", config: {}},
+          name: 'startDate',
+          component: { class: 'DateInputComponent', config: { dateFormat } },
+          model: { class: 'DateInputModel', config: {} },
         },
         {
-          name: "categories",
+          name: 'categories',
           component: {
-            class: "CheckboxInputComponent",
+            class: 'CheckboxInputComponent',
             config: {
               options: [
-                {value: "a", label: "A"},
-                {value: "b", label: "B"},
+                { value: 'a', label: 'A' },
+                { value: 'b', label: 'B' },
               ],
               multipleValues: true,
             },
           },
-          model: {class: "CheckboxInputModel", config: {}},
+          model: { class: 'CheckboxInputModel', config: {} },
         },
       ],
       repeatableDefinition: Record<string, unknown> = {}
     ): FormConfigFrame => ({
-      name: "repeatable-view-mode-data-retention",
+      name: 'repeatable-view-mode-data-retention',
       componentDefinitions: [
         {
           name: entriesName,
           ...repeatableDefinition,
           component: {
-            class: "RepeatableComponent",
+            class: 'RepeatableComponent',
             config: {
               elementTemplate: {
-                name: "",
+                name: '',
                 component: {
-                  class: "GroupComponent",
+                  class: 'GroupComponent',
                   config: {
                     componentDefinitions: childDefinitions,
                   },
                 },
-                model: {class: "GroupModel", config: {}},
+                model: { class: 'GroupModel', config: {} },
               },
             },
           },
-          model: {class: "RepeatableModel", config: {}},
+          model: { class: 'RepeatableModel', config: {} },
         },
       ],
     });
@@ -667,199 +677,191 @@ describe("Client Visitor", async () => {
       record: Record<string, unknown>,
       userRoles: string[] = []
     ): Promise<FormConfigFrame> => {
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
-        formMode: "view",
+        formMode: 'view',
         reusableFormDefs: reusableFormDefinitions,
         record,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       return await visitor.start({
         form: constructed,
-        formMode: "view",
+        formMode: 'view',
         userRoles,
         reusableFormDefs: reusableFormDefinitions,
       });
     };
 
-    it("should retain grouped repeatable row data when transforming to content in view mode", async function () {
-      const actual = await constructAndVisit(buildData(), {entries: recordRows});
+    it('should retain grouped repeatable row data when transforming to content in view mode', async function () {
+      const actual = await constructAndVisit(buildData(), { entries: recordRows });
       const component = actual.componentDefinitions[0];
-      const config = component.component.config as {content?: unknown; template?: string};
+      const config = component.component.config as { content?: unknown; template?: string };
 
-      expect(component.component.class).to.equal("ContentComponent");
+      expect(component.component.class).to.equal('ContentComponent');
       expect(config.content).to.deep.equal(recordRows);
       expect(config.template).to.contain('(get this "title" "")');
-      expect(config.template).to.contain("formatDate");
-      expect(config.template).to.contain("startDate");
+      expect(config.template).to.contain('formatDate');
+      expect(config.template).to.contain('startDate');
       expect(config.template).to.contain(dateFormat);
-      expect(config.template).to.contain("categories");
+      expect(config.template).to.contain('categories');
     });
 
-    it("should prune constrained grouped repeatable row data in view mode", async function () {
-      const data = buildData("entries", [
+    it('should prune constrained grouped repeatable row data in view mode', async function () {
+      const data = buildData('entries', [
         {
-          name: "title",
-          component: {class: "SimpleInputComponent", config: {}},
-          model: {class: "SimpleInputModel", config: {}},
+          name: 'title',
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: {} },
         },
         {
-          name: "startDate",
-          constraints: {allowModes: ["edit"]},
-          component: {class: "DateInputComponent", config: {dateFormat}},
-          model: {class: "DateInputModel", config: {}},
+          name: 'startDate',
+          constraints: { allowModes: ['edit'] },
+          component: { class: 'DateInputComponent', config: { dateFormat } },
+          model: { class: 'DateInputModel', config: {} },
         },
         {
-          name: "categories",
-          constraints: {authorization: {allowRoles: ["Admin"]}},
+          name: 'categories',
+          constraints: { authorization: { allowRoles: ['Admin'] } },
           component: {
-            class: "CheckboxInputComponent",
+            class: 'CheckboxInputComponent',
             config: {
               options: [
-                {value: "a", label: "A"},
-                {value: "b", label: "B"},
+                { value: 'a', label: 'A' },
+                { value: 'b', label: 'B' },
               ],
               multipleValues: true,
             },
           },
-          model: {class: "CheckboxInputModel", config: {}},
+          model: { class: 'CheckboxInputModel', config: {} },
         },
       ]);
 
-      const actual = await constructAndVisit(data, {entries: recordRows}, ["Librarian"]);
+      const actual = await constructAndVisit(data, { entries: recordRows }, ['Librarian']);
       const component = actual.componentDefinitions[0];
-      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+      const config = component.component.config as { content?: Array<Record<string, unknown>>; template?: string };
 
-      expect(config.content).to.deep.equal([
-        {title: "Initial planning"},
-        {title: "Final review"},
-      ]);
-      expect(config.content?.every(row => "title" in row)).to.equal(true);
-      expect(config.content?.every(row => !("startDate" in row))).to.equal(true);
-      expect(config.content?.every(row => !("categories" in row))).to.equal(true);
+      expect(config.content).to.deep.equal([{ title: 'Initial planning' }, { title: 'Final review' }]);
+      expect(config.content?.every(row => 'title' in row)).to.equal(true);
+      expect(config.content?.every(row => !('startDate' in row))).to.equal(true);
+      expect(config.content?.every(row => !('categories' in row))).to.equal(true);
       expect(config.template).to.not.contain('(get this "startDate"');
       expect(config.template).to.not.contain('(get this "categories"');
     });
 
-    it("should retain grouped repeatable model data when explicit view mode skips repeatable transform", async function () {
+    it('should retain grouped repeatable model data when explicit view mode skips repeatable transform', async function () {
       const actual = await constructAndVisit(
-        buildData("entries", undefined, {constraints: {allowModes: ["view"]}}),
-        {entries: recordRows}
+        buildData('entries', undefined, { constraints: { allowModes: ['view'] } }),
+        { entries: recordRows }
       );
       const component = actual.componentDefinitions[0];
       const stringifiedComponent = JSON.stringify(component);
       const stringifiedDefinitions = JSON.stringify(actual.componentDefinitions);
 
-      expect(component.component.class).to.equal("RepeatableComponent");
-      expect(stringifiedComponent).to.not.contain("SimpleInputComponent");
-      expect(stringifiedComponent).to.not.contain("DateInputComponent");
-      expect(stringifiedComponent).to.not.contain("CheckboxInputComponent");
+      expect(component.component.class).to.equal('RepeatableComponent');
+      expect(stringifiedComponent).to.not.contain('SimpleInputComponent');
+      expect(stringifiedComponent).to.not.contain('DateInputComponent');
+      expect(stringifiedComponent).to.not.contain('CheckboxInputComponent');
       expect(component.model?.config?.value).to.deep.equal(recordRows);
-      expect(stringifiedDefinitions).to.not.contain("constraints");
-      expect(stringifiedDefinitions).to.not.contain("formModeClasses");
+      expect(stringifiedDefinitions).to.not.contain('constraints');
+      expect(stringifiedDefinitions).to.not.contain('formModeClasses');
     });
 
-    it("should strip empty overrides after replaceName inside explicit view repeatable templates", async function () {
-      const rows = [
-        {displayTitle: "Explicit first title"},
-        {displayTitle: "Explicit second title"},
-      ];
+    it('should strip empty overrides after replaceName inside explicit view repeatable templates', async function () {
+      const rows = [{ displayTitle: 'Explicit first title' }, { displayTitle: 'Explicit second title' }];
       const data = buildData(
-        "entries",
+        'entries',
         [
           {
-            name: "legacyTitle",
-            constraints: {allowModes: ["view"]},
-            overrides: {replaceName: "displayTitle"},
-            component: {class: "SimpleInputComponent", config: {}},
-            model: {class: "SimpleInputModel", config: {}},
+            name: 'legacyTitle',
+            constraints: { allowModes: ['view'] },
+            overrides: { replaceName: 'displayTitle' },
+            component: { class: 'SimpleInputComponent', config: {} },
+            model: { class: 'SimpleInputModel', config: {} },
           },
         ],
-        {constraints: {allowModes: ["view"]}}
+        { constraints: { allowModes: ['view'] } }
       );
       const repeatable = data.componentDefinitions[0];
       (repeatable.component.config as RepeatableFieldComponentConfigFrame).elementTemplate.constraints = {
-        allowModes: ["view"],
+        allowModes: ['view'],
       };
 
-      const actual = await constructAndVisit(data, {entries: rows});
+      const actual = await constructAndVisit(data, { entries: rows });
       const stringifiedDefinitions = JSON.stringify(actual.componentDefinitions);
 
-      expect(actual.componentDefinitions[0].component.class).to.equal("RepeatableComponent");
+      expect(actual.componentDefinitions[0].component.class).to.equal('RepeatableComponent');
       expect(actual.componentDefinitions[0].model?.config?.value).to.deep.equal(rows);
-      expect(stringifiedDefinitions).to.not.contain("overrides");
-      expect(stringifiedDefinitions).to.not.contain("constraints");
-      expect(stringifiedDefinitions).to.not.contain("formModeClasses");
+      expect(stringifiedDefinitions).to.not.contain('overrides');
+      expect(stringifiedDefinitions).to.not.contain('constraints');
+      expect(stringifiedDefinitions).to.not.contain('formModeClasses');
     });
 
-    it("should apply an explicit element view override without a default transform", async function () {
-      const data = buildData("entries", undefined, {constraints: {allowModes: ["view"]}});
+    it('should apply an explicit element view override without a default transform', async function () {
+      const data = buildData('entries', undefined, { constraints: { allowModes: ['view'] } });
       const repeatable = data.componentDefinitions[0];
       const elementTemplate = (repeatable.component.config as RepeatableFieldComponentConfigFrame).elementTemplate;
-      elementTemplate.constraints = {allowModes: ["view"]};
-      elementTemplate.overrides = {formModeClasses: {view: {component: "ContentComponent"}}};
+      elementTemplate.constraints = { allowModes: ['view'] };
+      elementTemplate.overrides = { formModeClasses: { view: { component: 'ContentComponent' } } };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
-        formMode: "view",
+        formMode: 'view',
         reusableFormDefs: reusableFormDefinitions,
-        record: {entries: recordRows},
+        record: { entries: recordRows },
       });
       const constructedElement = (
         constructed.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame
       ).elementTemplate;
-      expect(constructedElement.component.class).to.equal("GroupComponent");
+      expect(constructedElement.component.class).to.equal('GroupComponent');
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const formOverride = (
-        visitor as unknown as {formOverride: {defaultTransforms: Record<string, unknown>}}
-      ).formOverride;
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const formOverride = (visitor as unknown as { formOverride: { defaultTransforms: Record<string, unknown> } })
+        .formOverride;
       delete formOverride.defaultTransforms.GroupComponent;
       const actual = await visitor.start({
         form: constructed,
-        formMode: "view",
+        formMode: 'view',
         reusableFormDefs: reusableFormDefinitions,
       });
-      const actualElement = (
-        actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame
-      ).elementTemplate;
+      const actualElement = (actual.componentDefinitions[0].component.config as RepeatableFieldComponentConfigFrame)
+        .elementTemplate;
 
-      expect(actualElement.component.class).to.equal("ContentComponent");
-      expect(JSON.stringify(actualElement)).to.not.contain("overrides");
+      expect(actualElement.component.class).to.equal('ContentComponent');
+      expect(JSON.stringify(actualElement)).to.not.contain('overrides');
     });
 
-    it("should post-process expressions on an identity view override", async function () {
+    it('should post-process expressions on an identity view override', async function () {
       const data: FormConfigFrame = {
-        name: "identity-view-override",
+        name: 'identity-view-override',
         componentDefinitions: [
           {
-            name: "details",
-            constraints: {allowModes: ["view"]},
-            overrides: {formModeClasses: {view: {component: "GroupComponent"}}},
+            name: 'details',
+            constraints: { allowModes: ['view'] },
+            overrides: { formModeClasses: { view: { component: 'GroupComponent' } } },
             component: {
-              class: "GroupComponent",
+              class: 'GroupComponent',
               config: {
                 componentDefinitions: [
                   {
-                    name: "title",
-                    component: {class: "SimpleInputComponent", config: {}},
-                    model: {class: "SimpleInputModel", config: {}},
+                    name: 'title',
+                    component: { class: 'SimpleInputComponent', config: {} },
+                    model: { class: 'SimpleInputModel', config: {} },
                   },
                 ],
               },
             },
-            model: {class: "GroupModel", config: {}},
+            model: { class: 'GroupModel', config: {} },
             expressions: [
               {
-                name: "details-expression",
+                name: 'details-expression',
                 config: {
-                  template: "true",
-                  conditionKind: "jsonpointer",
-                  condition: "/source::field.value.changed",
-                  target: "field.visible",
+                  template: 'true',
+                  conditionKind: 'jsonpointer',
+                  condition: '/source::field.value.changed',
+                  target: 'field.visible',
                 },
               },
             ],
@@ -871,51 +873,48 @@ describe("Client Visitor", async () => {
       const expression = actual.componentDefinitions[0].expressions?.[0];
 
       expect(expression?.config.hasTemplate).to.equal(true);
-      expect(JSON.stringify(actual.componentDefinitions[0])).to.not.contain("overrides");
+      expect(JSON.stringify(actual.componentDefinitions[0])).to.not.contain('overrides');
     });
 
-    it("should retain replaceName row data and template references inside grouped repeatable templates", async function () {
-      const rows = [
-        {displayTitle: "Renamed first title"},
-        {displayTitle: "Renamed second title"},
-      ];
-      const data = buildData("entries", [
+    it('should retain replaceName row data and template references inside grouped repeatable templates', async function () {
+      const rows = [{ displayTitle: 'Renamed first title' }, { displayTitle: 'Renamed second title' }];
+      const data = buildData('entries', [
         {
-          name: "legacyTitle",
-          overrides: {replaceName: "displayTitle"},
-          component: {class: "SimpleInputComponent", config: {}},
-          model: {class: "SimpleInputModel", config: {}},
+          name: 'legacyTitle',
+          overrides: { replaceName: 'displayTitle' },
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: {} },
         },
       ]);
 
-      const actual = await constructAndVisit(data, {entries: rows});
+      const actual = await constructAndVisit(data, { entries: rows });
       const component = actual.componentDefinitions[0];
-      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+      const config = component.component.config as { content?: Array<Record<string, unknown>>; template?: string };
 
       expect(config.content).to.deep.equal(rows);
-      expect(config.content?.every(row => "displayTitle" in row)).to.equal(true);
-      expect(config.content?.every(row => !("legacyTitle" in row))).to.equal(true);
+      expect(config.content?.every(row => 'displayTitle' in row)).to.equal(true);
+      expect(config.content?.every(row => !('legacyTitle' in row))).to.equal(true);
       expect(config.template).to.contain('(get this "displayTitle" "")');
     });
   });
 
-  describe("Custom view templates and url leaf rendering", async () => {
+  describe('Custom view templates and url leaf rendering', async () => {
     const constructAndVisit = async (
       data: FormConfigFrame,
       record: Record<string, unknown>
     ): Promise<FormConfigFrame> => {
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
-        formMode: "view",
+        formMode: 'view',
         reusableFormDefs: reusableFormDefinitions,
         record,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       return await visitor.start({
         form: constructed,
-        formMode: "view",
+        formMode: 'view',
         reusableFormDefs: reusableFormDefinitions,
       });
     };
@@ -924,249 +923,241 @@ describe("Client Visitor", async () => {
       childDefinitions: any[],
       repeatableDefinition: Record<string, unknown> = {}
     ): FormConfigFrame => ({
-      name: "custom-view-templates-and-url-leaf-rendering",
+      name: 'custom-view-templates-and-url-leaf-rendering',
       componentDefinitions: [
         {
-          name: "entries",
+          name: 'entries',
           ...repeatableDefinition,
           component: {
-            class: "RepeatableComponent",
+            class: 'RepeatableComponent',
             config: {
               elementTemplate: {
-                name: "",
+                name: '',
                 component: {
-                  class: "GroupComponent",
+                  class: 'GroupComponent',
                   config: {
                     componentDefinitions: childDefinitions,
                   },
                 },
-                model: {class: "GroupModel", config: {}},
+                model: { class: 'GroupModel', config: {} },
               },
             },
           },
-          model: {class: "RepeatableModel", config: {}},
+          model: { class: 'RepeatableModel', config: {} },
         },
       ],
     });
 
-    it("should replace a top-level view template while retaining generated content", async function () {
+    it('should replace a top-level view template while retaining generated content', async function () {
       const actual = await constructAndVisit(
         {
-          name: "custom-view-template-top-level",
+          name: 'custom-view-template-top-level',
           componentDefinitions: [
             {
-              name: "title",
-              overrides: {formModeClasses: {view: {template: "<h1>{{content}}</h1>"}}},
-              component: {class: "SimpleInputComponent", config: {}},
-              model: {class: "SimpleInputModel", config: {}},
+              name: 'title',
+              overrides: { formModeClasses: { view: { template: '<h1>{{content}}</h1>' } } },
+              component: { class: 'SimpleInputComponent', config: {} },
+              model: { class: 'SimpleInputModel', config: {} },
             },
           ],
         },
-        {title: "Custom Title"}
+        { title: 'Custom Title' }
       );
       const component = actual.componentDefinitions[0];
-      const config = component.component.config as {content?: unknown; template?: string};
+      const config = component.component.config as { content?: unknown; template?: string };
 
-      expect(component.component.class).to.equal("ContentComponent");
-      expect(config.template).to.equal("<h1>{{content}}</h1>");
-      expect(config.content).to.equal("Custom Title");
+      expect(component.component.class).to.equal('ContentComponent');
+      expect(config.template).to.equal('<h1>{{content}}</h1>');
+      expect(config.content).to.equal('Custom Title');
     });
 
-    it("should prune constrained repeatable row data when replacing the view template", async function () {
+    it('should prune constrained repeatable row data when replacing the view template', async function () {
       const template = '<ul>{{#each content}}<li>{{get this "title" ""}}</li>{{/each}}</ul>';
       const actual = await constructAndVisit(
         buildRepeatableData(
           [
             {
-              name: "title",
-              component: {class: "SimpleInputComponent", config: {}},
-              model: {class: "SimpleInputModel", config: {}},
+              name: 'title',
+              component: { class: 'SimpleInputComponent', config: {} },
+              model: { class: 'SimpleInputModel', config: {} },
             },
             {
-              name: "secret",
-              constraints: {allowModes: ["edit"]},
-              component: {class: "SimpleInputComponent", config: {}},
-              model: {class: "SimpleInputModel", config: {}},
+              name: 'secret',
+              constraints: { allowModes: ['edit'] },
+              component: { class: 'SimpleInputComponent', config: {} },
+              model: { class: 'SimpleInputModel', config: {} },
             },
           ],
-          {overrides: {formModeClasses: {view: {template}}}}
+          { overrides: { formModeClasses: { view: { template } } } }
         ),
         {
           entries: [
-            {title: "First title", secret: "First secret"},
-            {title: "Second title", secret: "Second secret"},
+            { title: 'First title', secret: 'First secret' },
+            { title: 'Second title', secret: 'Second secret' },
           ],
         }
       );
       const component = actual.componentDefinitions[0];
-      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+      const config = component.component.config as { content?: Array<Record<string, unknown>>; template?: string };
 
-      expect(component.component.class).to.equal("ContentComponent");
+      expect(component.component.class).to.equal('ContentComponent');
       expect(config.template).to.equal(template);
-      expect(config.content).to.deep.equal([
-        {title: "First title"},
-        {title: "Second title"},
-      ]);
-      expect(config.content?.every(row => "title" in row)).to.equal(true);
-      expect(config.content?.every(row => !("secret" in row))).to.equal(true);
+      expect(config.content).to.deep.equal([{ title: 'First title' }, { title: 'Second title' }]);
+      expect(config.content?.every(row => 'title' in row)).to.equal(true);
+      expect(config.content?.every(row => !('secret' in row))).to.equal(true);
     });
 
-    it("should render url leaves as links inside generated repeatable table templates", async function () {
+    it('should render url leaves as links inside generated repeatable table templates', async function () {
       const actual = await constructAndVisit(
         buildRepeatableData([
           {
-            name: "website",
-            component: {class: "SimpleInputComponent", config: {type: "url"}},
-            model: {class: "SimpleInputModel", config: {}},
+            name: 'website',
+            component: { class: 'SimpleInputComponent', config: { type: 'url' } },
+            model: { class: 'SimpleInputModel', config: {} },
           },
         ]),
         {
-          entries: [
-            {website: "https://example.org"},
-            {website: "https://example.com"},
-          ],
+          entries: [{ website: 'https://example.org' }, { website: 'https://example.com' }],
         }
       );
       const component = actual.componentDefinitions[0];
-      const config = component.component.config as {content?: Array<Record<string, unknown>>; template?: string};
+      const config = component.component.config as { content?: Array<Record<string, unknown>>; template?: string };
 
-      expect(component.component.class).to.equal("ContentComponent");
+      expect(component.component.class).to.equal('ContentComponent');
       expect(config.template).to.contain('target="_blank"');
       expect(config.template).to.contain('<a href="{{default (get this "website" "") ""}}"');
       const renderedTemplate = handlebarsCompile(config.template)({
-        content: [
-          {website: "https://example.org"},
-          {website: "https://example.com"},
-        ],
+        content: [{ website: 'https://example.org' }, { website: 'https://example.com' }],
       });
-      expect(renderedTemplate).to.contain('<a href="https://example.org" target="_blank" rel="noopener noreferrer">https://example.org</a>');
-      expect(renderedTemplate).to.contain('<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>');
-      expect(config.content).to.deep.equal([
-        {website: "https://example.org"},
-        {website: "https://example.com"},
-      ]);
+      expect(renderedTemplate).to.contain(
+        '<a href="https://example.org" target="_blank" rel="noopener noreferrer">https://example.org</a>'
+      );
+      expect(renderedTemplate).to.contain(
+        '<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>'
+      );
+      expect(config.content).to.deep.equal([{ website: 'https://example.org' }, { website: 'https://example.com' }]);
     });
 
-    it("should render standalone url leaves as links in view mode", async function () {
+    it('should render standalone url leaves as links in view mode', async function () {
       const actual = await constructAndVisit(
         {
-          name: "standalone-url-leaf",
+          name: 'standalone-url-leaf',
           componentDefinitions: [
             {
-              name: "website",
-              component: {class: "SimpleInputComponent", config: {type: "url"}},
-              model: {class: "SimpleInputModel", config: {}},
+              name: 'website',
+              component: { class: 'SimpleInputComponent', config: { type: 'url' } },
+              model: { class: 'SimpleInputModel', config: {} },
             },
           ],
         },
-        {website: "https://example.org"}
+        { website: 'https://example.org' }
       );
       const component = actual.componentDefinitions[0];
-      const config = component.component.config as {content?: unknown; template?: string};
+      const config = component.component.config as { content?: unknown; template?: string };
 
-      expect(component.component.class).to.equal("ContentComponent");
+      expect(component.component.class).to.equal('ContentComponent');
       expect(config.template).to.contain('target="_blank"');
       expect(config.template).to.contain('href="{{default content ""}}"');
-      expect(config.content).to.equal("https://example.org");
+      expect(config.content).to.equal('https://example.org');
     });
 
-    it("should retain hidden simple input in view mode", async function () {
+    it('should retain hidden simple input in view mode', async function () {
       const actual = await constructAndVisit(
         {
-          name: "form",
+          name: 'form',
           componentDefinitions: [
             {
-              name: "legacyId",
+              name: 'legacyId',
               overrides: {
                 formModeClasses: {
                   view: {
-                    component: "SimpleInputComponent",
+                    component: 'SimpleInputComponent',
                   },
                 },
               },
               component: {
-                "class": "SimpleInputComponent",
+                class: 'SimpleInputComponent',
                 config: {
                   visible: false,
-                  label: "legacyId",
-                  type: "hidden"
-                }
+                  label: 'legacyId',
+                  type: 'hidden',
+                },
               },
               model: {
-                "class": "SimpleInputModel",
+                class: 'SimpleInputModel',
               },
               layout: {
-                "class": "DefaultLayout",
+                class: 'DefaultLayout',
                 config: {
                   visible: false,
-                  label: "legacyId",
-                  labelRequiredStr: "*",
-                  helpTextVisible: false
-                }
-              }
+                  label: 'legacyId',
+                  labelRequiredStr: '*',
+                  helpTextVisible: false,
+                },
+              },
             },
-          ]
+          ],
         },
-        {},
+        {}
       );
 
       const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
       expect(simpleInput.overrides).to.equal(undefined);
-      expect(simpleInput.model?.class).to.equal("SimpleInputModel");
-      expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+      expect(simpleInput.model?.class).to.equal('SimpleInputModel');
+      expect(simpleInput.component.class).to.equal('SimpleInputComponent');
       expect(simpleInput.component.config?.visible).to.be.false;
-      expect(simpleInput.component.config?.label).to.equal("legacyId");
-      expect(simpleInput.component.config?.type).to.equal("hidden");
-      expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+      expect(simpleInput.component.config?.label).to.equal('legacyId');
+      expect(simpleInput.component.config?.type).to.equal('hidden');
+      expect(simpleInput.layout?.class).to.equal('DefaultLayout');
       expect(simpleInput.layout?.config?.visible).to.be.false;
-      expect(simpleInput.layout?.config?.label).to.equal("legacyId");
+      expect(simpleInput.layout?.config?.label).to.equal('legacyId');
     });
 
-    it("should remove overrides in edit mode", async function () {
+    it('should remove overrides in edit mode', async function () {
       const data: FormConfigFrame = {
-          name: "form",
-          componentDefinitions: [
-            {
-              name: "legacyId",
-              overrides: {
-                formModeClasses: {
-                  view: {
-                    component: "SimpleInputComponent",
-                  },
+        name: 'form',
+        componentDefinitions: [
+          {
+            name: 'legacyId',
+            overrides: {
+              formModeClasses: {
+                view: {
+                  component: 'SimpleInputComponent',
                 },
               },
-              component: {
-                "class": "SimpleInputComponent",
-                config: {
-                  visible: false,
-                  label: "legacyId",
-                  type: "hidden"
-                }
-              },
-              model: {
-                "class": "SimpleInputModel",
-              },
-              layout: {
-                "class": "DefaultLayout",
-                config: {
-                  visible: false,
-                  label: "legacyId",
-                  labelRequiredStr: "*",
-                  helpTextVisible: false
-                }
-              }
             },
-          ]
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                visible: false,
+                label: 'legacyId',
+                type: 'hidden',
+              },
+            },
+            model: {
+              class: 'SimpleInputModel',
+            },
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                visible: false,
+                label: 'legacyId',
+                labelRequiredStr: '*',
+                helpTextVisible: false,
+              },
+            },
+          },
+        ],
       };
-      const formMode = "edit";
-      const constructor = new ConstructFormConfigVisitor(logger);
+      const formMode = 'edit';
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
       const constructed = await constructor.start({
         data,
         formMode,
         reusableFormDefs: reusableFormDefinitions,
       });
 
-      const visitor = new ClientFormConfigVisitor(logger);
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
       const actual = await visitor.start({
         form: constructed,
         formMode,
@@ -1175,34 +1166,34 @@ describe("Client Visitor", async () => {
 
       const simpleInput = actual.componentDefinitions[0] as SimpleInputFormComponentDefinitionFrame;
       expect(simpleInput.overrides).to.equal(undefined);
-      expect(simpleInput.model?.class).to.equal("SimpleInputModel");
-      expect(simpleInput.component.class).to.equal("SimpleInputComponent");
+      expect(simpleInput.model?.class).to.equal('SimpleInputModel');
+      expect(simpleInput.component.class).to.equal('SimpleInputComponent');
       expect(simpleInput.component.config?.visible).to.be.false;
-      expect(simpleInput.component.config?.label).to.equal("legacyId");
-      expect(simpleInput.component.config?.type).to.equal("hidden");
-      expect(simpleInput.layout?.class).to.equal("DefaultLayout");
+      expect(simpleInput.component.config?.label).to.equal('legacyId');
+      expect(simpleInput.component.config?.type).to.equal('hidden');
+      expect(simpleInput.layout?.class).to.equal('DefaultLayout');
       expect(simpleInput.layout?.config?.visible).to.be.false;
-      expect(simpleInput.layout?.config?.label).to.equal("legacyId");
+      expect(simpleInput.layout?.config?.label).to.equal('legacyId');
     });
   });
 
   it(`should create full example form config`, async function () {
     const args = formConfigExample1;
 
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
       data: args,
-      formMode: "edit",
+      formMode: 'edit',
       reusableFormDefs: reusableFormDefinitions,
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({form: constructed});
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed });
 
     const stringified = JSON.stringify(actual);
 
-    expect(stringified).to.not.contain("constraints");
-    expect(stringified).to.not.contain("defaultValue");
+    expect(stringified).to.not.contain('constraints');
+    expect(stringified).to.not.contain('defaultValue');
 
     // top-level form config components
     const formCompDefs = actual.componentDefinitions;
@@ -1210,45 +1201,45 @@ describe("Client Visitor", async () => {
 
     // tab count
     const formCompDefFirstTabs = actual.componentDefinitions[0].component;
-    expect(formCompDefFirstTabs.class).to.eql("TabComponent");
+    expect(formCompDefFirstTabs.class).to.eql('TabComponent');
     expect((formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs).to.have.length(2);
 
     // tab 1 component count
     const tabFirst = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[0];
-    expect(tabFirst.component.class).to.eql("TabContentComponent");
+    expect(tabFirst.component.class).to.eql('TabContentComponent');
     expect((tabFirst.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(15);
 
     // tab 2 component count
     const tabSecond = (formCompDefFirstTabs.config as TabFieldComponentConfigFrame)?.tabs[1];
-    expect(tabSecond.component.class).to.eql("TabContentComponent");
+    expect(tabSecond.component.class).to.eql('TabContentComponent');
     expect((tabSecond.component.config as TabContentFieldComponentConfigFrame)?.componentDefinitions).to.have.length(3);
   });
 
   const cases: {
-    title: string,
+    title: string;
     args: FormConfigFrame;
     expected: FormConfigFrame | {};
   }[] = [
     {
-      title: "create empty form config",
-      args: {name: '', componentDefinitions: []},
+      title: 'create empty form config',
+      args: { name: '', componentDefinitions: [] },
       expected: {},
     },
     {
-      title: "create basic form config",
+      title: 'create basic form config',
       args: {
-        name: "basic-form",
-        type: "rdmp",
+        name: 'basic-form',
+        type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
         defaultComponentConfig: {
           defaultComponentCssClasses: 'row',
         },
-        editCssClasses: "redbox-form form",
+        editCssClasses: 'redbox-form form',
         componentDefinitions: [
           {
             name: 'text_1',
-            component: {class: 'SimpleInputComponent'},
+            component: { class: 'SimpleInputComponent' },
           },
           {
             name: 'text_2',
@@ -1257,13 +1248,13 @@ describe("Client Visitor", async () => {
               config: {
                 label: 'TextField with default wrapper defined',
                 helpText: 'This is a help text',
-              }
+              },
             },
             model: {
               class: 'SimpleInputModel',
               config: {
                 defaultValue: 'hello world 2!',
-              }
+              },
             },
             component: {
               class: 'SimpleInputComponent',
@@ -1288,50 +1279,49 @@ describe("Client Visitor", async () => {
               {
                 name: 'text_2_no_template_expr',
                 config: {
-                  operation: "testing",
+                  operation: 'testing',
                   conditionKind: 'jsonpointer',
                   condition: `/text_1::field.value.changed`,
                   target: `model.value`,
                   runOnFormReady: false,
                 },
               },
-            ]
-          }
-        ]
+            ],
+          },
+        ],
       },
       expected: {
-        name: "basic-form",
-        type: "rdmp",
+        name: 'basic-form',
+        type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
         defaultComponentConfig: {
           defaultComponentCssClasses: 'row',
         },
-        editCssClasses: "redbox-form form",
+        editCssClasses: 'redbox-form form',
         serverSyncOnSave: 'preserveLocalEdits',
-        enabledValidationGroups: ["all"],
+        enabledValidationGroups: ['all'],
         validators: [],
         validationGroups: {
-          all: {description: "Validate all fields with validators.", initialMembership: "all"},
-          none: {description: "Validate none of the fields.", initialMembership: "none"},
+          all: { description: 'Validate all fields with validators.', initialMembership: 'all' },
+          none: { description: 'Validate none of the fields.', initialMembership: 'none' },
         },
         componentDefinitions: [
           {
-            name: "text_1",
+            name: 'text_1',
             component: {
               class: 'SimpleInputComponent',
-              "config": {
-                "autofocus": false,
-                "disabled": false,
-                "editMode": true,
-                "placeholder": "",
-                "readonly": false,
-                "type": "text",
-                "visible": true,
+              config: {
+                autofocus: false,
+                disabled: false,
+                editMode: true,
+                placeholder: '',
+                readonly: false,
+                type: 'text',
+                visible: true,
               },
-
             },
-            model: {class: "SimpleInputModel", config: {}},
+            model: { class: 'SimpleInputModel', config: {} },
           },
           {
             name: 'text_2',
@@ -1349,25 +1339,25 @@ describe("Client Visitor", async () => {
                 readonly: false,
                 visible: true,
                 helpText: 'This is a help text',
-              }
+              },
             },
             model: {
               class: 'SimpleInputModel',
               config: {
                 value: 'hello world 2!',
-              }
+              },
             },
             component: {
               class: 'SimpleInputComponent',
               config: {
-                "autofocus": false,
-                "disabled": false,
-                "editMode": true,
-                "placeholder": "",
-                "readonly": false,
-                "type": "text",
-                "visible": true,
-              }
+                autofocus: false,
+                disabled: false,
+                editMode: true,
+                placeholder: '',
+                readonly: false,
+                type: 'text',
+                visible: true,
+              },
             },
             expressions: [
               {
@@ -1386,29 +1376,29 @@ describe("Client Visitor", async () => {
                 name: 'text_2_no_template_expr',
                 config: {
                   hasTemplate: false,
-                  operation: "testing",
+                  operation: 'testing',
                   conditionKind: 'jsonpointer',
                   condition: `/text_1::field.value.changed`,
                   target: `model.value`,
                   runOnFormReady: false,
                 },
               },
-            ]
-          }
-        ]
-      }
+            ],
+          },
+        ],
+      },
     },
     {
-      title: "remove the component because the user does not have the required roles",
+      title: 'remove the component because the user does not have the required roles',
       args: {
-        name: "remove-item-constraint-roles",
-        type: "rdmp",
+        name: 'remove-item-constraint-roles',
+        type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
         defaultComponentConfig: {
           defaultComponentCssClasses: 'row',
         },
-        editCssClasses: "redbox-form form",
+        editCssClasses: 'redbox-form form',
         componentDefinitions: [
           {
             name: 'text_1',
@@ -1423,13 +1413,13 @@ describe("Client Visitor", async () => {
               config: {
                 label: 'TextField with default wrapper defined',
                 helpText: 'This is a help text',
-              }
+              },
             },
             model: {
               class: 'SimpleInputModel',
               config: {
                 defaultValue: 'hello world 2!',
-              }
+              },
             },
             component: {
               class: 'SimpleInputComponent',
@@ -1440,111 +1430,24 @@ describe("Client Visitor", async () => {
               },
               allowModes: [],
             },
-          }
-        ]
-      },
-      expected: {
-        name: "remove-item-constraint-roles",
-        type: "rdmp",
-        debugValue: true,
-        domElementType: 'form',
-        defaultComponentConfig: {
-          defaultComponentCssClasses: 'row',
-        },
-        editCssClasses: "redbox-form form",
-        serverSyncOnSave: 'preserveLocalEdits',
-        enabledValidationGroups: ["all"],
-        validators: [],
-        validationGroups: {
-          all: {description: "Validate all fields with validators.", initialMembership: "all"},
-          none: {description: "Validate none of the fields.", initialMembership: "none"},
-        },
-        componentDefinitions: [
-          {
-            name: 'text_1',
-            component: {
-              class: 'SimpleInputComponent',
-              config: {
-                "autofocus": false,
-                "disabled": false,
-                "editMode": true,
-                "placeholder": "",
-                "readonly": false,
-                "type": "text",
-                "visible": true,
-              }
-            },
-            model: {class: "SimpleInputModel", config: {}}
-          }
-        ]
-      }
-    },
-    {
-      title: "remove the component because the client does not have the required mode",
-      args: {
-        name: "remove-item-constraint-mode",
-        type: "rdmp",
-        debugValue: true,
-        domElementType: 'form',
-        defaultComponentConfig: {
-          defaultComponentCssClasses: 'row',
-        },
-        editCssClasses: "redbox-form form",
-        componentDefinitions: [
-          {
-            name: 'text_1',
-            component: {
-              class: 'SimpleInputComponent',
-            },
-            model: {
-              class: "SimpleInputModel",
-              config: {
-                validators: [{class: 'required'}]
-              }
-            }
           },
-          {
-            name: 'text_2',
-            layout: {
-              class: 'DefaultLayout',
-              config: {
-                label: 'TextField with default wrapper defined',
-                helpText: 'This is a help text',
-              }
-            },
-            model: {
-              class: 'SimpleInputModel',
-              config: {
-                defaultValue: 'hello world 2!',
-              }
-            },
-            component: {
-              class: 'SimpleInputComponent',
-            },
-            constraints: {
-              authorization: {
-                allowRoles: [],
-              },
-              allowModes: ['edit'],
-            },
-          }
-        ]
+        ],
       },
       expected: {
-        name: "remove-item-constraint-mode",
-        type: "rdmp",
+        name: 'remove-item-constraint-roles',
+        type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
         defaultComponentConfig: {
           defaultComponentCssClasses: 'row',
         },
-        editCssClasses: "redbox-form form",
+        editCssClasses: 'redbox-form form',
         serverSyncOnSave: 'preserveLocalEdits',
-        enabledValidationGroups: ["all"],
+        enabledValidationGroups: ['all'],
         validators: [],
         validationGroups: {
-          all: {description: "Validate all fields with validators.", initialMembership: "all"},
-          none: {description: "Validate none of the fields.", initialMembership: "none"},
+          all: { description: 'Validate all fields with validators.', initialMembership: 'all' },
+          none: { description: 'Validate none of the fields.', initialMembership: 'none' },
         },
         componentDefinitions: [
           {
@@ -1555,59 +1458,148 @@ describe("Client Visitor", async () => {
                 autofocus: false,
                 disabled: false,
                 editMode: true,
-                placeholder: "",
+                placeholder: '',
                 readonly: false,
-                type: "text",
+                type: 'text',
                 visible: true,
               },
             },
-            model: {
-              class: "SimpleInputModel",
-              config: {
-                validators: [{class: 'required'}]
-              }
-            }
+            model: { class: 'SimpleInputModel', config: {} },
           },
-        ]
-      }
+        ],
+      },
     },
     {
-      title: "remove the components nested in repeatable and group components when the constraints are not met",
+      title: 'remove the component because the client does not have the required mode',
       args: {
-        name: "remove-items-constrains-nested",
-        type: "rdmp",
+        name: 'remove-item-constraint-mode',
+        type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
         defaultComponentConfig: {
           defaultComponentCssClasses: 'row',
         },
-        editCssClasses: "redbox-form form",
+        editCssClasses: 'redbox-form form',
+        componentDefinitions: [
+          {
+            name: 'text_1',
+            component: {
+              class: 'SimpleInputComponent',
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                validators: [{ class: 'required' }],
+              },
+            },
+          },
+          {
+            name: 'text_2',
+            layout: {
+              class: 'DefaultLayout',
+              config: {
+                label: 'TextField with default wrapper defined',
+                helpText: 'This is a help text',
+              },
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                defaultValue: 'hello world 2!',
+              },
+            },
+            component: {
+              class: 'SimpleInputComponent',
+            },
+            constraints: {
+              authorization: {
+                allowRoles: [],
+              },
+              allowModes: ['edit'],
+            },
+          },
+        ],
+      },
+      expected: {
+        name: 'remove-item-constraint-mode',
+        type: 'rdmp',
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: 'redbox-form form',
+        serverSyncOnSave: 'preserveLocalEdits',
+        enabledValidationGroups: ['all'],
+        validators: [],
+        validationGroups: {
+          all: { description: 'Validate all fields with validators.', initialMembership: 'all' },
+          none: { description: 'Validate none of the fields.', initialMembership: 'none' },
+        },
+        componentDefinitions: [
+          {
+            name: 'text_1',
+            component: {
+              class: 'SimpleInputComponent',
+              config: {
+                autofocus: false,
+                disabled: false,
+                editMode: true,
+                placeholder: '',
+                readonly: false,
+                type: 'text',
+                visible: true,
+              },
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                validators: [{ class: 'required' }],
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      title: 'remove the components nested in repeatable and group components when the constraints are not met',
+      args: {
+        name: 'remove-items-constrains-nested',
+        type: 'rdmp',
+        debugValue: true,
+        domElementType: 'form',
+        defaultComponentConfig: {
+          defaultComponentCssClasses: 'row',
+        },
+        editCssClasses: 'redbox-form form',
         componentDefinitions: [
           {
             name: 'repeatable_group_1',
             model: {
               class: 'RepeatableModel',
               config: {
-                defaultValue: [{
-                  text_1: "hello world from repeating groups",
-                  text_2: 'hello world 2!',
-                  repeatable_for_admin: ['hello world from repeatable for admin'],
-                  removed_group: {removed_group_text: 'hello world 1!'},
-                }]
-              }
+                defaultValue: [
+                  {
+                    text_1: 'hello world from repeating groups',
+                    text_2: 'hello world 2!',
+                    repeatable_for_admin: ['hello world from repeatable for admin'],
+                    removed_group: { removed_group_text: 'hello world 1!' },
+                  },
+                ],
+              },
             },
             component: {
               class: 'RepeatableComponent',
               config: {
                 elementTemplate: {
-                  name: "",
+                  name: '',
                   model: {
                     class: 'GroupModel',
                     config: {
                       newEntryValue: {
                         text_1: 'hello world 1!',
-                        text_2: "repeatable_group_1 elementTemplate text_2 default"
-                      }
+                        text_2: 'repeatable_group_1 elementTemplate text_2 default',
+                      },
                     },
                   },
                   component: {
@@ -1620,43 +1612,44 @@ describe("Client Visitor", async () => {
                           name: 'text_1',
                           model: {
                             class: 'SimpleInputModel',
-                            config: {}
+                            config: {},
                           },
-                          component: {class: 'SimpleInputComponent'},
-                          constraints: {allowModes: ['edit']},
+                          component: { class: 'SimpleInputComponent' },
+                          constraints: { allowModes: ['edit'] },
                         },
                         {
                           name: 'text_2',
                           model: {
                             class: 'SimpleInputModel',
-                            config: {}
+                            config: {},
                           },
-                          component: {class: 'SimpleInputComponent'},
+                          component: { class: 'SimpleInputComponent' },
                         },
                         {
                           // elementTemplate requires role 'Admin', so repeatable is removed
                           name: 'repeatable_for_admin',
-                          model: {class: 'RepeatableModel', config: {}},
+                          model: { class: 'RepeatableModel', config: {} },
                           component: {
                             class: 'RepeatableComponent',
                             config: {
                               elementTemplate: {
-                                name: "",
+                                name: '',
                                 model: {
                                   class: 'SimpleInputModel',
-                                  config: {}
+                                  config: {},
                                 },
-                                component: {class: 'SimpleInputComponent'},
-                                constraints: {authorization: {allowRoles: ['Admin']}},
-                              }
-                            }
+                                component: { class: 'SimpleInputComponent' },
+                                constraints: { authorization: { allowRoles: ['Admin'] } },
+                              },
+                            },
                           },
                         },
                         {
                           // all group components are removed, so group is removed
-                          name: "removed_group",
+                          name: 'removed_group',
                           model: {
-                            class: 'GroupModel', config: {}
+                            class: 'GroupModel',
+                            config: {},
                           },
                           component: {
                             class: 'GroupComponent',
@@ -1668,25 +1661,25 @@ describe("Client Visitor", async () => {
                                   name: 'removed_group_text',
                                   model: {
                                     class: 'SimpleInputModel',
-                                    config: {}
+                                    config: {},
                                   },
-                                  component: {class: 'SimpleInputComponent'},
-                                  constraints: {allowModes: ['edit']},
+                                  component: { class: 'SimpleInputComponent' },
+                                  constraints: { allowModes: ['edit'] },
                                 },
-                              ]
-                            }
-                          }
-                        }
-                      ]
-                    }
+                              ],
+                            },
+                          },
+                        },
+                      ],
+                    },
                   },
                   layout: {
                     class: 'RepeatableElementLayout',
-                    config: {hostCssClasses: 'row align-items-start'}
+                    config: { hostCssClasses: 'row align-items-start' },
                   },
                   // requires mode view, so is kept
-                  constraints: {authorization: {allowRoles: []}, allowModes: ['view']}
-                }
+                  constraints: { authorization: { allowRoles: [] }, allowModes: ['view'] },
+                },
               },
             },
             layout: {
@@ -1694,33 +1687,33 @@ describe("Client Visitor", async () => {
               config: {
                 label: 'Repeatable TextField with default wrapper defined',
                 helpText: 'Repeatable component help text',
-              }
+              },
             },
           },
-        ]
+        ],
       },
       expected: {
-        name: "remove-items-constrains-nested",
-        type: "rdmp",
+        name: 'remove-items-constrains-nested',
+        type: 'rdmp',
         debugValue: true,
         domElementType: 'form',
         defaultComponentConfig: {
           defaultComponentCssClasses: 'row',
         },
-        editCssClasses: "redbox-form form",
+        editCssClasses: 'redbox-form form',
         serverSyncOnSave: 'preserveLocalEdits',
-        enabledValidationGroups: ["all"],
+        enabledValidationGroups: ['all'],
         validators: [],
         validationGroups: {
-          all: {description: "Validate all fields with validators.", initialMembership: "all"},
-          none: {description: "Validate none of the fields.", initialMembership: "none"},
+          all: { description: 'Validate all fields with validators.', initialMembership: 'all' },
+          none: { description: 'Validate none of the fields.', initialMembership: 'none' },
         },
         componentDefinitions: [
           {
             name: 'repeatable_group_1',
             model: {
               class: 'RepeatableModel',
-              config: {value: [{text_2: 'hello world 2!'}]}
+              config: { value: [{ text_2: 'hello world 2!' }] },
             },
             component: {
               class: 'RepeatableComponent',
@@ -1734,12 +1727,14 @@ describe("Client Visitor", async () => {
                 hideWhenZeroRows: false,
                 visible: true,
                 elementTemplate: {
-                  name: "",
+                  name: '',
                   model: {
                     class: 'GroupModel',
-                    config: {newEntryValue: {
-                        text_2: "repeatable_group_1 elementTemplate text_2 default"
-                      }}
+                    config: {
+                      newEntryValue: {
+                        text_2: 'repeatable_group_1 elementTemplate text_2 default',
+                      },
+                    },
                   },
                   component: {
                     class: 'GroupComponent',
@@ -1756,7 +1751,7 @@ describe("Client Visitor", async () => {
                           name: 'text_2',
                           model: {
                             class: 'SimpleInputModel',
-                            config: {}
+                            config: {},
                           },
                           component: {
                             class: 'SimpleInputComponent',
@@ -1764,16 +1759,16 @@ describe("Client Visitor", async () => {
                               autofocus: false,
                               disabled: false,
                               editMode: true,
-                              placeholder: "",
+                              placeholder: '',
                               readonly: false,
-                              type: "text",
+                              type: 'text',
                               visible: true,
-                            }
+                            },
                           },
                         },
                         // <-- requires role 'Admin', so is removed
-                      ]
-                    }
+                      ],
+                    },
                   },
                   layout: {
                     class: 'RepeatableElementLayout',
@@ -1793,10 +1788,10 @@ describe("Client Visitor", async () => {
                       slotCssClass: 'rb-form-action-slot',
                       visible: true,
                       wrap: true,
-                    }
+                    },
                   },
                   // <-- requires mode view, so is kept, constraints removed
-                }
+                },
               },
             },
             layout: {
@@ -1813,34 +1808,34 @@ describe("Client Visitor", async () => {
                 labelRequiredStr: '*',
                 readonly: false,
                 visible: true,
-              }
+              },
             },
           },
-        ]
-      }
-    }
+        ],
+      },
+    },
   ];
-  cases.forEach(({title, args, expected}) => {
+  cases.forEach(({ title, args, expected }) => {
     it(`should ${title}`, async function () {
-      const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = await constructor.start({data: args, formMode: "edit"});
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
+      const constructed = await constructor.start({ data: args, formMode: 'edit' });
 
-      const visitor = new ClientFormConfigVisitor(logger);
-      const actual = await visitor.start({form: constructed});
+      const visitor = new ClientFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({ form: constructed });
       expect(actual).to.eql(expected);
     });
   });
 
   it(`should result in an empty form config due to roles`, async function () {
     const formConfig: FormConfigFrame = {
-      name: "basic-form",
-      type: "rdmp",
+      name: 'basic-form',
+      type: 'rdmp',
       debugValue: true,
       domElementType: 'form',
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
-      editCssClasses: "redbox-form form",
+      editCssClasses: 'redbox-form form',
       componentDefinitions: [
         {
           name: 'text_2',
@@ -1849,13 +1844,13 @@ describe("Client Visitor", async () => {
             config: {
               label: 'TextField with default wrapper defined',
               helpText: 'This is a help text',
-            }
+            },
           },
           model: {
             class: 'SimpleInputModel',
             config: {
               defaultValue: 'hello world 2!',
-            }
+            },
           },
           component: {
             class: 'SimpleInputComponent',
@@ -1866,22 +1861,22 @@ describe("Client Visitor", async () => {
             },
             allowModes: [],
           },
-        }
-      ]
+        },
+      ],
     };
 
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
       data: formConfig,
-      formMode: "edit",
-      record: {text_2: "text_2_value"}
+      formMode: 'edit',
+      record: { text_2: 'text_2_value' },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
     const actual = await visitor.start({
       form: constructed,
-      formMode: "view",
-      userRoles: ["Librarian"],
+      formMode: 'view',
+      userRoles: ['Librarian'],
     });
     expect(actual).to.eql({});
   });
@@ -1894,87 +1889,95 @@ describe("Client Visitor", async () => {
           name: 'researcher_only_field',
           layout: {
             class: 'DefaultLayout',
-            config: { label: 'Researcher Only' }
+            config: { label: 'Researcher Only' },
           },
           model: {
             class: 'SimpleInputModel',
-            config: { defaultValue: 'res' }
+            config: { defaultValue: 'res' },
           },
           component: {
             class: 'SimpleInputComponent',
-            config: { readonly: true }
+            config: { readonly: true },
           },
           constraints: {
             authorization: {
               allowRoles: ['Researcher'],
-              denyRoles: ['Admin', 'Librarians']
-            }
-          }
+              denyRoles: ['Admin', 'Librarians'],
+            },
+          },
         },
         {
           name: 'deny_only_field',
           layout: {
             class: 'DefaultLayout',
-            config: { label: 'Denied for Admin' }
+            config: { label: 'Denied for Admin' },
           },
           model: {
             class: 'SimpleInputModel',
-            config: { defaultValue: 'deny-only' }
+            config: { defaultValue: 'deny-only' },
           },
           component: {
             class: 'SimpleInputComponent',
-            config: { readonly: false }
+            config: { readonly: false },
           },
           constraints: {
             authorization: {
-              denyRoles: ['Admin']
-            }
-          }
+              denyRoles: ['Admin'],
+            },
+          },
         },
         {
           name: 'admin_edit_field',
           layout: {
             class: 'DefaultLayout',
-            config: { label: 'Admin Edit' }
+            config: { label: 'Admin Edit' },
           },
           model: {
             class: 'SimpleInputModel',
-            config: { defaultValue: 'admin' }
+            config: { defaultValue: 'admin' },
           },
           component: {
             class: 'SimpleInputComponent',
-            config: { readonly: false }
+            config: { readonly: false },
           },
           constraints: {
             authorization: {
-              allowRoles: ['Admin', 'Librarians']
-            }
-          }
-        }
-      ]
+              allowRoles: ['Admin', 'Librarians'],
+            },
+          },
+        },
+      ],
     };
 
     // 1. User with only Researcher role: should see both non-Admin fields, but not admin_edit_field
-    const constructor1 = new ConstructFormConfigVisitor(logger);
+    const constructor1 = new ConstructFormConfigVisitor(consoleLogger);
     const constructed1 = await constructor1.start({ data: structuredClone(formConfig), formMode: 'edit' });
-    const visitor1 = new ClientFormConfigVisitor(logger);
+    const visitor1 = new ClientFormConfigVisitor(consoleLogger);
     const actual1 = await visitor1.start({ form: constructed1, formMode: 'edit', userRoles: ['Researcher'] });
     const fieldNames1 = actual1.componentDefinitions?.map((c: any) => c.name) ?? [];
     expect(fieldNames1).to.deep.equal(['researcher_only_field', 'deny_only_field']);
 
     // 2. User with Admin (has all roles including Researcher): should see admin_edit_field, but NOT researcher_only_field
-    const constructor2 = new ConstructFormConfigVisitor(logger);
+    const constructor2 = new ConstructFormConfigVisitor(consoleLogger);
     const constructed2 = await constructor2.start({ data: structuredClone(formConfig), formMode: 'edit' });
-    const visitor2 = new ClientFormConfigVisitor(logger);
-    const actual2 = await visitor2.start({ form: constructed2, formMode: 'edit', userRoles: ['Admin', 'Librarians', 'Researcher'] });
+    const visitor2 = new ClientFormConfigVisitor(consoleLogger);
+    const actual2 = await visitor2.start({
+      form: constructed2,
+      formMode: 'edit',
+      userRoles: ['Admin', 'Librarians', 'Researcher'],
+    });
     const fieldNames2 = actual2.componentDefinitions?.map((c: any) => c.name) ?? [];
     expect(fieldNames2).to.deep.equal(['admin_edit_field']);
 
     // 3. User with Librarians + Researcher: should see the deny-only and admin fields, but NOT researcher_only_field
-    const constructor3 = new ConstructFormConfigVisitor(logger);
+    const constructor3 = new ConstructFormConfigVisitor(consoleLogger);
     const constructed3 = await constructor3.start({ data: structuredClone(formConfig), formMode: 'edit' });
-    const visitor3 = new ClientFormConfigVisitor(logger);
-    const actual3 = await visitor3.start({ form: constructed3, formMode: 'edit', userRoles: ['Librarians', 'Researcher'] });
+    const visitor3 = new ClientFormConfigVisitor(consoleLogger);
+    const actual3 = await visitor3.start({
+      form: constructed3,
+      formMode: 'edit',
+      userRoles: ['Librarians', 'Researcher'],
+    });
     const fieldNames3 = actual3.componentDefinitions?.map((c: any) => c.name) ?? [];
     expect(fieldNames3).to.deep.equal(['deny_only_field', 'admin_edit_field']);
   });
@@ -1987,11 +1990,11 @@ describe("Client Visitor", async () => {
           name: 'restricted_group',
           layout: {
             class: 'DefaultLayout',
-            config: { label: 'Restricted group' }
+            config: { label: 'Restricted group' },
           },
           model: {
             class: 'GroupModel',
-            config: {}
+            config: {},
           },
           component: {
             class: 'GroupComponent',
@@ -2001,617 +2004,625 @@ describe("Client Visitor", async () => {
                   name: 'nested_field',
                   layout: {
                     class: 'DefaultLayout',
-                    config: { label: 'Nested field' }
+                    config: { label: 'Nested field' },
                   },
                   model: {
                     class: 'SimpleInputModel',
-                    config: { defaultValue: 'nested' }
+                    config: { defaultValue: 'nested' },
                   },
                   component: {
                     class: 'SimpleInputComponent',
-                    config: {}
-                  }
-                }
-              ]
-            }
+                    config: {},
+                  },
+                },
+              ],
+            },
           },
           constraints: {
             authorization: {
-              denyRoles: ['Admin']
-            }
-          }
-        }
-      ]
+              denyRoles: ['Admin'],
+            },
+          },
+        },
+      ],
     };
 
-    const constructor1 = new ConstructFormConfigVisitor(logger);
+    const constructor1 = new ConstructFormConfigVisitor(consoleLogger);
     const constructed1 = await constructor1.start({ data: structuredClone(formConfig), formMode: 'edit' });
-    const visitor1 = new ClientFormConfigVisitor(logger);
+    const visitor1 = new ClientFormConfigVisitor(consoleLogger);
     const actual1 = await visitor1.start({ form: constructed1, formMode: 'edit', userRoles: ['Researcher'] });
     const group = actual1.componentDefinitions?.[0] as any;
     expect(group?.name).to.equal('restricted_group');
     expect(group?.component?.config?.componentDefinitions?.map((c: any) => c.name)).to.deep.equal(['nested_field']);
 
-    const constructor2 = new ConstructFormConfigVisitor(logger);
+    const constructor2 = new ConstructFormConfigVisitor(consoleLogger);
     const constructed2 = await constructor2.start({ data: structuredClone(formConfig), formMode: 'edit' });
-    const visitor2 = new ClientFormConfigVisitor(logger);
+    const visitor2 = new ClientFormConfigVisitor(consoleLogger);
     const actual2 = await visitor2.start({ form: constructed2, formMode: 'edit', userRoles: ['Admin'] });
     expect(actual2).to.eql({});
   });
 
   it(`should keep transformed accordion in view mode`, async function () {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
-      formMode: "view",
+      formMode: 'view',
       data: {
-        name: "form",
+        name: 'form',
         componentDefinitions: [
           {
-            name: "main_tab",
+            name: 'main_tab',
             component: {
-              class: "TabComponent",
+              class: 'TabComponent',
               config: {
                 tabs: [
                   {
-                    name: "tab1",
+                    name: 'tab1',
                     component: {
-                      class: "TabContentComponent",
-                      config: { componentDefinitions: [] }
-                    }
-                  }
-                ]
-              }
+                      class: 'TabContentComponent',
+                      config: { componentDefinitions: [] },
+                    },
+                  },
+                ],
+              },
             },
-            layout: { class: "TabLayout", config: {} }
-          }
-        ]
-      }
+            layout: { class: 'TabLayout', config: {} },
+          },
+        ],
+      },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "view" });
-    expect(actual.componentDefinitions[0].component.class).to.eql("AccordionComponent");
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'view' });
+    expect(actual.componentDefinitions[0].component.class).to.eql('AccordionComponent');
   });
 
   it(`should prune edit-only repeatables nested in transformed tabs for view mode`, async function () {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
-      formMode: "view",
-      record: { finalKeywords: ["alpha", "beta"] },
+      formMode: 'view',
+      record: { finalKeywords: ['alpha', 'beta'] },
       data: {
-        name: "form",
+        name: 'form',
         componentDefinitions: [
           {
-            name: "main_tab",
+            name: 'main_tab',
             component: {
-              class: "TabComponent",
+              class: 'TabComponent',
               config: {
                 tabs: [
                   {
-                    name: "tab1",
+                    name: 'tab1',
                     component: {
-                      class: "TabContentComponent",
+                      class: 'TabContentComponent',
                       config: {
                         componentDefinitions: [
                           {
-                            name: "finalKeywords",
+                            name: 'finalKeywords',
                             constraints: {
                               authorization: { allowRoles: [] },
-                              allowModes: ["edit"],
+                              allowModes: ['edit'],
                             },
                             component: {
-                              class: "RepeatableComponent",
+                              class: 'RepeatableComponent',
                               config: {
                                 elementTemplate: {
-                                  name: "",
-                                  component: { class: "SimpleInputComponent", config: {} },
-                                  model: { class: "SimpleInputModel", config: {} },
+                                  name: '',
+                                  component: { class: 'SimpleInputComponent', config: {} },
+                                  model: { class: 'SimpleInputModel', config: {} },
                                 },
                               },
                             },
                             model: {
-                              class: "RepeatableModel",
+                              class: 'RepeatableModel',
                               config: {},
                             },
                           },
                         ],
-                      }
-                    }
-                  }
-                ]
-              }
+                      },
+                    },
+                  },
+                ],
+              },
             },
-            layout: { class: "TabLayout", config: {} }
-          }
-        ]
-      }
+            layout: { class: 'TabLayout', config: {} },
+          },
+        ],
+      },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "view" });
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'view' });
     const accordion = actual.componentDefinitions[0];
-    expect(accordion.component.class).to.eql("AccordionComponent");
+    expect(accordion.component.class).to.eql('AccordionComponent');
     const panel = (accordion.component.config as any).panels?.[0];
     const nested = panel?.component?.config?.componentDefinitions ?? [];
     expect(nested).to.have.length(0);
   });
 
   it(`should keep explicit view repeatables in view mode`, async function () {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
-      formMode: "view",
-      record: { actions: ["Edit this plan", "Create a data record from this plan"] },
+      formMode: 'view',
+      record: { actions: ['Edit this plan', 'Create a data record from this plan'] },
       data: {
-        name: "form",
+        name: 'form',
         componentDefinitions: [
           {
-            name: "actions",
+            name: 'actions',
             constraints: {
               authorization: { allowRoles: [] },
-              allowModes: ["view"],
+              allowModes: ['view'],
             },
             component: {
-              class: "RepeatableComponent",
+              class: 'RepeatableComponent',
               config: {
                 elementTemplate: {
-                  name: "",
-                  component: { class: "ContentComponent", config: { template: "<div>{{content}}</div>" } },
+                  name: '',
+                  component: { class: 'ContentComponent', config: { template: '<div>{{content}}</div>' } },
                 },
               },
             },
             model: {
-              class: "RepeatableModel",
+              class: 'RepeatableModel',
               config: {},
             },
           },
-        ]
-      }
+        ],
+      },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "view" });
-    expect(actual.componentDefinitions[0].component.class).to.eql("RepeatableComponent");
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'view' });
+    expect(actual.componentDefinitions[0].component.class).to.eql('RepeatableComponent');
   });
 
   it(`should prune edit-only repeatables in view mode before view transforms`, async function () {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
-      formMode: "view",
+      formMode: 'view',
       data: {
-        name: "form",
+        name: 'form',
         componentDefinitions: [
           {
-            name: "project",
+            name: 'project',
             component: {
-              class: "GroupComponent",
+              class: 'GroupComponent',
               config: {
                 componentDefinitions: [
                   {
-                    name: "dc:subject_anzsrc:for-2008",
+                    name: 'dc:subject_anzsrc:for-2008',
                     constraints: {
                       authorization: { allowRoles: [] },
-                      allowModes: ["edit"],
+                      allowModes: ['edit'],
                     },
                     component: {
-                      class: "RepeatableComponent",
+                      class: 'RepeatableComponent',
                       config: {
                         elementTemplate: {
-                          name: "",
+                          name: '',
                           component: {
-                            class: "GroupComponent",
+                            class: 'GroupComponent',
                             config: {
                               componentDefinitions: [
                                 {
-                                  name: "name",
-                                  component: { class: "SimpleInputComponent", config: {} },
-                                  model: { class: "SimpleInputModel", config: {} },
-                                }
-                              ]
-                            }
+                                  name: 'name',
+                                  component: { class: 'SimpleInputComponent', config: {} },
+                                  model: { class: 'SimpleInputModel', config: {} },
+                                },
+                              ],
+                            },
                           },
-                          model: { class: "GroupModel", config: {} }
-                        }
-                      }
+                          model: { class: 'GroupModel', config: {} },
+                        },
+                      },
                     },
-                    model: { class: "RepeatableModel", config: {} }
-                  }
-                ]
-              }
+                    model: { class: 'RepeatableModel', config: {} },
+                  },
+                ],
+              },
             },
-            model: { class: "GroupModel", config: {} }
-          }
-        ]
-      }
+            model: { class: 'GroupModel', config: {} },
+          },
+        ],
+      },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "view" });
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'view' });
     expect(actual.componentDefinitions ?? []).to.have.length(0);
   });
 
   it(`should omit non-renderable fields from group view transforms`, async function () {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
-      formMode: "view",
+      formMode: 'view',
       data: {
-        name: "form",
+        name: 'form',
         componentDefinitions: [
           {
-            name: "contributor",
+            name: 'contributor',
             component: {
-              class: "GroupComponent",
+              class: 'GroupComponent',
               config: {
                 componentDefinitions: [
                   {
-                    name: "name",
-                    component: { class: "SimpleInputComponent", config: {} },
-                    model: { class: "SimpleInputModel", config: { defaultValue: "Mrs First01 Last01" } },
-                    layout: { class: "DefaultLayout", config: { label: "Name" } },
+                    name: 'name',
+                    component: { class: 'SimpleInputComponent', config: {} },
+                    model: { class: 'SimpleInputModel', config: { defaultValue: 'Mrs First01 Last01' } },
+                    layout: { class: 'DefaultLayout', config: { label: 'Name' } },
                   },
                   {
-                    name: "email",
-                    component: { class: "SimpleInputComponent", config: {} },
-                    model: { class: "SimpleInputModel", config: { defaultValue: "first01.last01@example.com" } },
-                    layout: { class: "DefaultLayout", config: { label: "Email" } },
+                    name: 'email',
+                    component: { class: 'SimpleInputComponent', config: {} },
+                    model: { class: 'SimpleInputModel', config: { defaultValue: 'first01.last01@example.com' } },
+                    layout: { class: 'DefaultLayout', config: { label: 'Email' } },
                   },
                   {
-                    name: "given_name",
-                    component: { class: "SimpleInputComponent", config: { type: "hidden" } },
-                    model: { class: "SimpleInputModel", config: { defaultValue: "First01" } },
-                    layout: { class: "DefaultLayout", config: { visible: false } },
+                    name: 'given_name',
+                    component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                    model: { class: 'SimpleInputModel', config: { defaultValue: 'First01' } },
+                    layout: { class: 'DefaultLayout', config: { visible: false } },
                   },
                   {
-                    name: "family_name",
-                    component: { class: "SimpleInputComponent", config: { type: "hidden" } },
-                    model: { class: "SimpleInputModel", config: { defaultValue: "Last01" } },
-                    layout: { class: "DefaultLayout", config: { visible: false } },
+                    name: 'family_name',
+                    component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                    model: { class: 'SimpleInputModel', config: { defaultValue: 'Last01' } },
+                    layout: { class: 'DefaultLayout', config: { visible: false } },
                   },
                   {
-                    name: "nickname",
-                    component: { class: "SimpleInputComponent", config: {} },
-                    model: { class: "SimpleInputModel", config: { defaultValue: "Nick01" } },
-                    layout: { class: "DefaultLayout", config: { label: "Nickname", visible: false } },
+                    name: 'nickname',
+                    component: { class: 'SimpleInputComponent', config: {} },
+                    model: { class: 'SimpleInputModel', config: { defaultValue: 'Nick01' } },
+                    layout: { class: 'DefaultLayout', config: { label: 'Nickname', visible: false } },
                   },
-                ]
-              }
+                ],
+              },
             },
-            model: { class: "GroupModel", config: {} }
-          }
-        ]
-      }
+            model: { class: 'GroupModel', config: {} },
+          },
+        ],
+      },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "view" });
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'view' });
     const transformed = actual.componentDefinitions[0];
 
-    expect(transformed.component.class).to.equal("ContentComponent");
-    const template = (transformed.component.config as { template?: string }).template ?? "";
-    expect(template).to.contain("Name");
-    expect(template).to.contain("Email");
-    expect(template).to.not.contain("given_name");
-    expect(template).to.not.contain("family_name");
-    expect(template).to.not.contain("Nickname");
-    expect(template).to.not.contain("nickname");
+    expect(transformed.component.class).to.equal('ContentComponent');
+    const template = (transformed.component.config as { template?: string }).template ?? '';
+    expect(template).to.contain('Name');
+    expect(template).to.contain('Email');
+    expect(template).to.not.contain('given_name');
+    expect(template).to.not.contain('family_name');
+    expect(template).to.not.contain('Nickname');
+    expect(template).to.not.contain('nickname');
   });
 
   it(`should keep action row groups in view mode`, async function () {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
-      formMode: "view",
+      formMode: 'view',
       data: {
-        name: "form",
+        name: 'form',
         componentDefinitions: [
           {
-            name: "actions",
+            name: 'actions',
             component: {
-              class: "GroupComponent",
+              class: 'GroupComponent',
               config: {
                 componentDefinitions: [
                   {
-                    name: "edit_link",
+                    name: 'edit_link',
                     component: {
-                      class: "ContentComponent",
+                      class: 'ContentComponent',
                       config: {
-                        template: "<a class=\"btn btn-info\">Edit this plan</a>",
+                        template: '<a class="btn btn-info">Edit this plan</a>',
                       },
                     },
-                    layout: { class: "InlineLayout", config: {} },
+                    layout: { class: 'InlineLayout', config: {} },
                   },
                 ],
               },
             },
             model: {
-              class: "GroupModel",
+              class: 'GroupModel',
               config: {},
             },
-            layout: { class: "ActionRowLayout", config: {} },
+            layout: { class: 'ActionRowLayout', config: {} },
           },
-        ]
-      }
+        ],
+      },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "view" });
-    expect(actual.componentDefinitions[0].component.class).to.eql("GroupComponent");
-    expect(actual.componentDefinitions[0].layout?.class).to.eql("ActionRowLayout");
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'view' });
+    expect(actual.componentDefinitions[0].component.class).to.eql('GroupComponent');
+    expect(actual.componentDefinitions[0].layout?.class).to.eql('ActionRowLayout');
   });
 
   it(`should keep tab in edit mode`, async function () {
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
-      formMode: "edit",
+      formMode: 'edit',
       data: {
-        name: "form",
+        name: 'form',
         componentDefinitions: [
           {
-            name: "main_tab",
+            name: 'main_tab',
             component: {
-              class: "TabComponent",
+              class: 'TabComponent',
               config: {
                 tabs: [
                   {
-                    name: "tab1",
+                    name: 'tab1',
                     component: {
-                      class: "TabContentComponent",
-                      config: { componentDefinitions: [] }
-                    }
-                  }
-                ]
-              }
+                      class: 'TabContentComponent',
+                      config: { componentDefinitions: [] },
+                    },
+                  },
+                ],
+              },
             },
-            layout: { class: "TabLayout", config: {} }
-          }
-        ]
-      }
+            layout: { class: 'TabLayout', config: {} },
+          },
+        ],
+      },
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "edit" });
-    expect(actual.componentDefinitions[0].component.class).to.eql("TabComponent");
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'edit' });
+    expect(actual.componentDefinitions[0].component.class).to.eql('TabComponent');
   });
 
-  it("should build the expected form config with question tree", async () => {
+  it('should build the expected form config with question tree', async () => {
     const availableOutcomes: QuestionTreeOutcome[] = [
-      {value: "value1", label: "@outcomes-value1"},
-      {value: "value2", label: "@outcomes-value2"},
+      { value: 'value1', label: '@outcomes-value1' },
+      { value: 'value2', label: '@outcomes-value2' },
     ];
     const availableMeta: QuestionTreeMeta = {
       prop2: {
-        value1: "@outcomes-prop2-value1",
-        value2: "@outcomes-prop2-value2",
+        value1: '@outcomes-prop2-value1',
+        value2: '@outcomes-prop2-value2',
       },
     };
     const questions: QuestionTreeQuestion[] = [
       {
-        id: "question_1",
+        id: 'question_1',
         answersMin: 1,
         answersMax: 1,
-        answers: [{value: "yes"}, {value: "no"}],
-        rules: {op: "true"},
+        answers: [{ value: 'yes' }, { value: 'no' }],
+        rules: { op: 'true' },
       },
       {
-        id: "question_2",
+        id: 'question_2',
         answersMin: 1,
         answersMax: 2,
-        answers: [{value: "yes"}, {value: "no"}],
-        rules: {op: "in", q: "question_1", a: ["no"]}
+        answers: [{ value: 'yes' }, { value: 'no' }],
+        rules: { op: 'in', q: 'question_1', a: ['no'] },
       },
       {
-        id: "question_3",
+        id: 'question_3',
         answersMin: 1,
         answersMax: 2,
-        answers: [{value: "yes"}, {value: "maybe"}, {value: "no"}],
-        rules: {op: "in", q: "question_2", a: ["yes"]}
+        answers: [{ value: 'yes' }, { value: 'maybe' }, { value: 'no' }],
+        rules: { op: 'in', q: 'question_2', a: ['yes'] },
       },
       {
-        id: "question_4",
+        id: 'question_4',
         answersMin: 1,
         answersMax: 1,
         answers: [
           {
-            value: "yes",
-            label: "@answer-yes",
-            outcome: "value1",
-            meta: {prop2: "value2"},
+            value: 'yes',
+            label: '@answer-yes',
+            outcome: 'value1',
+            meta: { prop2: 'value2' },
           },
           {
-            value: "no", label: "No",
-            outcome: "value2",
-            meta: {prop2: "value2"},
+            value: 'no',
+            label: 'No',
+            outcome: 'value2',
+            meta: { prop2: 'value2' },
           },
         ],
         rules: {
-          op: "or", args: [
+          op: 'or',
+          args: [
             {
-              op: "and", args: [
-                {op: "in", q: "question_1", a: ["no"]},
-                {op: "in", q: "question_2", a: ["no"]},
-              ]
+              op: 'and',
+              args: [
+                { op: 'in', q: 'question_1', a: ['no'] },
+                { op: 'in', q: 'question_2', a: ['no'] },
+              ],
             },
             {
-              op: "and", args: [
-                {op: "only", q: "question_1", a: ["no"]},
-                {op: "notin", q: "question_2", a: ["no"]},
-                {op: "in", q: "question_3", a: ["no", "maybe"]},
-              ]
-            }
-          ]
+              op: 'and',
+              args: [
+                { op: 'only', q: 'question_1', a: ['no'] },
+                { op: 'notin', q: 'question_2', a: ['no'] },
+                { op: 'in', q: 'question_3', a: ['no', 'maybe'] },
+              ],
+            },
+          ],
         },
-      }
+      },
     ];
     const formConfig: FormConfigFrame = {
-      name: "form",
+      name: 'form',
       componentDefinitions: [
         {
-          name: "questiontree_1",
+          name: 'questiontree_1',
           component: {
-            class: "QuestionTreeComponent",
+            class: 'QuestionTreeComponent',
             config: {
               availableOutcomes,
               availableMeta,
               questions,
               componentDefinitions: [],
-            }
+            },
           },
-        }
-      ]
+        },
+      ],
     };
     const expected: FormConfigFrame = {
-      name: "form",
+      name: 'form',
       componentDefinitions: [
         {
-          name: "questiontree_1",
+          name: 'questiontree_1',
           component: {
-            class: "QuestionTreeComponent",
+            class: 'QuestionTreeComponent',
             config: {
               availableOutcomes,
               availableMeta,
               questions,
               componentDefinitions: [
                 {
-                  name: "question_1",
+                  name: 'question_1',
                   component: {
-                    class: "RadioInputComponent",
+                    class: 'RadioInputComponent',
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-item-question_1-yes-label"},
-                        {value: "no", label: "@questiontree_1-item-question_1-no-label"},
-                      ]
-                    }
+                        { value: 'yes', label: '@questiontree_1-item-question_1-yes-label' },
+                        { value: 'no', label: '@questiontree_1-item-question_1-no-label' },
+                      ],
+                    },
                   },
                   layout: {
-                    class: "DefaultLayout",
+                    class: 'DefaultLayout',
                     config: {
-                      helpText: "@questiontree_1-item-question_1-help",
+                      helpText: '@questiontree_1-item-question_1-help',
                       visible: true,
-                    }
-                  }
-                },
-                {
-                  name: "question_2",
-                  component: {
-                    class: "CheckboxInputComponent",
-                    config: {
-                      options: [
-                        {value: "yes", label: "@questiontree_1-item-question_2-yes-label"},
-                        {value: "no", label: "@questiontree_1-item-question_2-no-label"},
-                      ]
-                    }
-                  },
-                  layout: {
-                    class: "DefaultLayout",
-                    config: {
-                      helpText: "@questiontree_1-item-question_2-help",
-                      visible: false,
-                    }
+                    },
                   },
                 },
                 {
-                  name: "question_3",
+                  name: 'question_2',
                   component: {
-                    class: "CheckboxInputComponent",
+                    class: 'CheckboxInputComponent',
                     config: {
                       options: [
-                        {value: "yes", label: "@questiontree_1-item-question_3-yes-label"},
-                        {value: "maybe", label: "@questiontree_1-item-question_3-maybe-label"},
-                        {value: "no", label: "@questiontree_1-item-question_3-no-label"}]
-                    }
+                        { value: 'yes', label: '@questiontree_1-item-question_2-yes-label' },
+                        { value: 'no', label: '@questiontree_1-item-question_2-no-label' },
+                      ],
+                    },
                   },
                   layout: {
-                    class: "DefaultLayout",
+                    class: 'DefaultLayout',
                     config: {
-                      helpText: "@questiontree_1-item-question_3-help",
+                      helpText: '@questiontree_1-item-question_2-help',
                       visible: false,
-                    }
+                    },
                   },
                 },
                 {
-                  name: "question_4",
+                  name: 'question_3',
                   component: {
-                    class: "RadioInputComponent",
+                    class: 'CheckboxInputComponent',
                     config: {
                       options: [
-                        {value: "yes", label: "@answer-yes"},
-                        {value: "no", label: "No"},
-                      ]
-                    }
+                        { value: 'yes', label: '@questiontree_1-item-question_3-yes-label' },
+                        { value: 'maybe', label: '@questiontree_1-item-question_3-maybe-label' },
+                        { value: 'no', label: '@questiontree_1-item-question_3-no-label' },
+                      ],
+                    },
                   },
                   layout: {
-                    class: "DefaultLayout",
+                    class: 'DefaultLayout',
                     config: {
-                      helpText: "@questiontree_1-item-question_4-help",
+                      helpText: '@questiontree_1-item-question_3-help',
                       visible: false,
-                    }
+                    },
+                  },
+                },
+                {
+                  name: 'question_4',
+                  component: {
+                    class: 'RadioInputComponent',
+                    config: {
+                      options: [
+                        { value: 'yes', label: '@answer-yes' },
+                        { value: 'no', label: 'No' },
+                      ],
+                    },
+                  },
+                  layout: {
+                    class: 'DefaultLayout',
+                    config: {
+                      helpText: '@questiontree_1-item-question_4-help',
+                      visible: false,
+                    },
                   },
                 },
               ],
-            }
+            },
           },
-        }
-      ]
+        },
+      ],
     };
 
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
       data: formConfig,
-      formMode: "edit",
+      formMode: 'edit',
       reusableFormDefs: reusableFormDefinitions,
     });
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({form: constructed});
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed });
 
     expect(actual).to.containSubset(expected);
     const questionTree = actual.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
   });
 
-  it("should transform question tree answers to content in view mode", async () => {
+  it('should transform question tree answers to content in view mode', async () => {
     const formConfig: FormConfigFrame = {
-      name: "question-tree-view-transform",
+      name: 'question-tree-view-transform',
       componentDefinitions: [
         {
-          name: "questiontree_1",
+          name: 'questiontree_1',
           model: {
-            class: "QuestionTreeModel",
+            class: 'QuestionTreeModel',
             config: {
               defaultValue: {
-                question_1: "no",
-                question_2: ["yes", "maybe"],
+                question_1: 'no',
+                question_2: ['yes', 'maybe'],
                 [QuestionTreeOutcomeInfoKey]: {
-                  outcome: { value: "restricted", label: "@outcome-restricted" },
+                  outcome: { value: 'restricted', label: '@outcome-restricted' },
                   meta: [],
                 },
               },
             },
           },
           component: {
-            class: "QuestionTreeComponent",
+            class: 'QuestionTreeComponent',
             config: {
-              availableOutcomes: [{ value: "restricted", label: "@outcome-restricted" }],
+              availableOutcomes: [{ value: 'restricted', label: '@outcome-restricted' }],
               availableMeta: {},
               questions: [
                 {
-                  id: "question_1",
-                  label: "Primary question",
+                  id: 'question_1',
+                  label: 'Primary question',
                   answersMin: 1,
                   answersMax: 1,
                   answers: [
-                    { value: "yes", label: "Yes" },
-                    { value: "no", label: "No" },
+                    { value: 'yes', label: 'Yes' },
+                    { value: 'no', label: 'No' },
                   ],
-                  rules: { op: "true" },
+                  rules: { op: 'true' },
                 },
                 {
-                  id: "question_2",
+                  id: 'question_2',
                   answersMin: 1,
                   answersMax: 2,
                   answers: [
-                    { value: "yes", label: "Yes" },
-                    { value: "maybe", label: "@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label" },
-                    { value: "no", label: "No" },
+                    { value: 'yes', label: 'Yes' },
+                    {
+                      value: 'maybe',
+                      label: '@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label',
+                    },
+                    { value: 'no', label: 'No' },
                   ],
-                  rules: { op: "in", q: "question_1", a: ["no"] },
+                  rules: { op: 'in', q: 'question_1', a: ['no'] },
                 },
               ],
               componentDefinitions: [],
@@ -2621,10 +2632,10 @@ describe("Client Visitor", async () => {
       ],
     };
 
-    const constructor = new ConstructFormConfigVisitor(logger);
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructor.start({
       data: formConfig,
-      formMode: "view",
+      formMode: 'view',
       reusableFormDefs: reusableFormDefinitions,
     });
 
@@ -2632,47 +2643,47 @@ describe("Client Visitor", async () => {
     if (constructedQuestionTree.model?.config) {
       constructedQuestionTree.model.config.value = {
         [QuestionTreeOutcomeInfoKey]: {
-          outcome: { value: "restricted", label: "@outcome-restricted" },
+          outcome: { value: 'restricted', label: '@outcome-restricted' },
           meta: [],
         },
       };
     }
     const constructedQuestions =
-      ((constructedQuestionTree.component.config as QuestionTreeFieldComponentDefinitionOutline["config"])?.componentDefinitions ?? []);
-    const questionOne = constructedQuestions.find((component) => component.name === "question_1");
-    const questionTwo = constructedQuestions.find((component) => component.name === "question_2");
+      (constructedQuestionTree.component.config as QuestionTreeFieldComponentDefinitionOutline['config'])
+        ?.componentDefinitions ?? [];
+    const questionOne = constructedQuestions.find(component => component.name === 'question_1');
+    const questionTwo = constructedQuestions.find(component => component.name === 'question_2');
     if (questionOne?.model?.config) {
-      questionOne.model.config.value = "no";
+      questionOne.model.config.value = 'no';
     }
     if (questionTwo?.model?.config) {
-      questionTwo.model.config.value = ["yes", "maybe"];
+      questionTwo.model.config.value = ['yes', 'maybe'];
     }
 
-    const visitor = new ClientFormConfigVisitor(logger);
-    const actual = await visitor.start({ form: constructed, formMode: "view" });
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({ form: constructed, formMode: 'view' });
     const transformed = actual.componentDefinitions[0];
 
-    expect(transformed.component.class).to.equal("ContentComponent");
+    expect(transformed.component.class).to.equal('ContentComponent');
     expect(transformed.component.config).to.containSubset({
       content: [
         {
-          questionLabel: "Primary question",
-          answerLabel: "No",
+          questionLabel: 'Primary question',
+          answerLabel: 'No',
         },
         {
-          questionLabel: "@questiontree_1-item-question_2-label",
+          questionLabel: '@questiontree_1-item-question_2-label',
           answerLabels: [
-            { label: "Yes" },
-            { label: "@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label" },
+            { label: 'Yes' },
+            { label: '@questiontree_1-data-not-from-or-about-individuals-data-about-individuals-label' },
           ],
         },
       ],
     });
-    expect((transformed.component.config as { template?: string }).template).to.contain("rb-view-group");
+    expect((transformed.component.config as { template?: string }).template).to.contain('rb-view-group');
   });
 
-  it("should construct the question tree config", async () => {
-
+  it('should construct the question tree config', async () => {
     // question tree component with 3 questions
     // question_1 is the start,
     // question_2 shows only when question_1 is "no", and has an outcome & meta
@@ -2684,98 +2695,107 @@ describe("Client Visitor", async () => {
       defaultComponentConfig: {
         defaultComponentCssClasses: 'row',
       },
-      editCssClasses: "redbox-form form",
+      editCssClasses: 'redbox-form form',
       componentDefinitions: [
         {
-          name: "questiontree_1",
-          model: {class: "QuestionTreeModel", config: {}},
+          name: 'questiontree_1',
+          model: { class: 'QuestionTreeModel', config: {} },
           component: {
-            class: "QuestionTreeComponent",
+            class: 'QuestionTreeComponent',
             config: {
               availableOutcomes: [
-                {value: "outcome1", label: "@outcomes-value1"},
-                {value: "outcome2", label: "@outcomes-value2"},
+                { value: 'outcome1', label: '@outcomes-value1' },
+                { value: 'outcome2', label: '@outcomes-value2' },
               ],
               availableMeta: {
                 prop2: {
-                  prop2Value1: "@outcomes-prop2-value1",
-                  prop2Value2: "@outcomes-prop2-value2",
+                  prop2Value1: '@outcomes-prop2-value1',
+                  prop2Value2: '@outcomes-prop2-value2',
                 },
               },
               questions: [
                 {
-                  id: "question_1",
+                  id: 'question_1',
                   answersMin: 1,
                   answersMax: 1,
-                  answers: [{value: "yes"}, {value: "no"}],
-                  rules: {op: "true"},
+                  answers: [{ value: 'yes' }, { value: 'no' }],
+                  rules: { op: 'true' },
                 },
                 {
-                  id: "question_2",
+                  id: 'question_2',
                   answersMin: 1,
                   answersMax: 2,
-                  answers: [{value: "yes"}, {value: "no", meta: {prop2: "prop2Value1"}, outcome: "outcome1"}],
-                  rules: {op: "in", q: "question_1", a: ["no"]},
+                  answers: [{ value: 'yes' }, { value: 'no', meta: { prop2: 'prop2Value1' }, outcome: 'outcome1' }],
+                  rules: { op: 'in', q: 'question_1', a: ['no'] },
                 },
                 {
-                  id: "question_3",
+                  id: 'question_3',
                   answersMin: 1,
                   answersMax: 1,
-                  answers: [{value: "yes"}, {value: "no"}],
-                  rules: {op: "in", q: "question_2", a: ["yes"]},
+                  answers: [{ value: 'yes' }, { value: 'no' }],
+                  rules: { op: 'in', q: 'question_2', a: ['yes'] },
                 },
               ],
               componentDefinitions: [
                 {
-                  name: "question_1",
+                  name: 'question_1',
                   model: {
-                    class: "RadioInputModel",
+                    class: 'RadioInputModel',
                   },
                   component: {
-                    class: "RadioInputComponent",
+                    class: 'RadioInputComponent',
                     config: {
-                      options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                      options: [
+                        { value: 'yes', label: 'Yes' },
+                        { value: 'no', label: 'No' },
+                      ],
                     },
                   },
                 },
                 {
-                  name: "question_2",
+                  name: 'question_2',
                   model: {
-                    class: "CheckboxInputModel",
+                    class: 'CheckboxInputModel',
                   },
                   component: {
-                    class: "CheckboxInputComponent",
+                    class: 'CheckboxInputComponent',
                     config: {
-                      options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                      options: [
+                        { value: 'yes', label: 'Yes' },
+                        { value: 'no', label: 'No' },
+                      ],
                       multipleValues: true,
                     },
                   },
                 },
                 {
-                  name: "question_3",
+                  name: 'question_3',
                   model: {
-                    class: "RadioInputModel",
+                    class: 'RadioInputModel',
                   },
                   component: {
-                    class: "RadioInputComponent",
+                    class: 'RadioInputComponent',
                     config: {
-                      options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}],
+                      options: [
+                        { value: 'yes', label: 'Yes' },
+                        { value: 'no', label: 'No' },
+                      ],
                     },
                   },
                 },
                 {
                   name: QuestionTreeOutcomeInfoKey,
-                  component: {class: "SimpleInputComponent", config: {type: "hidden"}},
-                  model: {class: "SimpleInputModel", config: {}},
-                }
+                  component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+                  model: { class: 'SimpleInputModel', config: {} },
+                },
               ],
-            }
+            },
           },
         },
         {
-          "name": "data-classification-item-outcome",
-          "component": {"class": "SimpleInputComponent", "config": {}},
-          "model": {"class": "SimpleInputModel", "config": {"validators": [{"class": "required"}]}},
+          name: 'data-classification-item-outcome',
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required' }] } },
           expressions: [
             {
               // Set the component value to the question tree outcome label
@@ -2784,15 +2804,15 @@ describe("Client Visitor", async () => {
                 template: `formData.questiontree_1.${QuestionTreeOutcomeInfoKey}.outcome.($.label ? $.label : $.value)`,
                 conditionKind: 'jsonpointer',
                 condition: `/questiontree_1::field.value.changed`,
-                target: `model.value`
-              }
+                target: `model.value`,
+              },
             },
-          ]
+          ],
         },
         {
-          "name": "data-classification-item-outcome-details",
-          "component": {"class": "SimpleInputComponent", "config": {"type": "hidden"}},
-          "model": {"class": "SimpleInputModel", "config": {}},
+          name: 'data-classification-item-outcome-details',
+          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } },
+          model: { class: 'SimpleInputModel', config: {} },
           expressions: [
             {
               // Set the component value to the question tree outcome meta, using only the labels for each property.
@@ -2848,47 +2868,46 @@ describe("Client Visitor", async () => {
                 })`,
                 conditionKind: 'jsonpointer',
                 condition: `/questiontree_1::field.value.changed`,
-                target: `model.value`
-              }
+                target: `model.value`,
+              },
             },
-          ]
-        }
-      ]
+          ],
+        },
+      ],
     };
 
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({
+      data: serverFormConfig,
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
 
-      const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = await constructor.start({
-        data: serverFormConfig,
-        formMode: "edit",
-        reusableFormDefs: reusableFormDefinitions,
-      });
+    const vocabVisitor = new VocabInlineFormConfigVisitor(consoleLogger);
+    await vocabVisitor.resolveVocabs(constructed, 'default');
 
-      const vocabVisitor = new VocabInlineFormConfigVisitor(logger);
-      await vocabVisitor.resolveVocabs(constructed, 'default');
-
-      const visitor = new ClientFormConfigVisitor(logger);
-      const result = await visitor.start({form: constructed});
-      expect(result.componentDefinitions).to.have.length(3);
-      const qt = result.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
-      expect(qt.component.config?.componentDefinitions).to.have.length(4);
+    const visitor = new ClientFormConfigVisitor(consoleLogger);
+    const result = await visitor.start({ form: constructed });
+    expect(result.componentDefinitions).to.have.length(3);
+    const qt = result.componentDefinitions[0] as QuestionTreeFormComponentDefinitionOutline;
+    expect(qt.component.config?.componentDefinitions).to.have.length(4);
   });
 
-  it("should construct the related publications fields", async () => {
+  it('should construct the related publications fields', async () => {
     const data: FormConfigFrame = {
       name: 'related-objects-test',
       componentDefinitions: [
         ...buildRelatedObjectsFieldDefinition({
-          fieldName: "related_publications",
-          fieldLabel: "@dmpt-related-publication",
-          fieldHelp: "@dmpt-related-publication-help",
-          titleLabel: "@dataPublication-related-publication-title",
-          titlePlaceholder: "Full citation or publication title",
-          urlLabel: "@dataPublication-related-publication-url",
-          urlPlaceholder: "https://doi.org/...",
-          notesLabel: "@dataPublication-related-publication-notes",
-          notesPlaceholder: "Open access, in press, or other context",
-        })
+          fieldName: 'related_publications',
+          fieldLabel: '@dmpt-related-publication',
+          fieldHelp: '@dmpt-related-publication-help',
+          titleLabel: '@dataPublication-related-publication-title',
+          titlePlaceholder: 'Full citation or publication title',
+          urlLabel: '@dataPublication-related-publication-url',
+          urlPlaceholder: 'https://doi.org/...',
+          notesLabel: '@dataPublication-related-publication-notes',
+          notesPlaceholder: 'Open access, in press, or other context',
+        }),
       ],
     };
     const expected: FormConfigFrame = {
@@ -2896,95 +2915,99 @@ describe("Client Visitor", async () => {
       componentDefinitions: [
         {
           component: {
-            "class": "RepeatableComponent",
+            class: 'RepeatableComponent',
             config: {
               addButtonShow: true,
               allowZeroRows: false,
               elementTemplate: {
                 component: {
-                  "class": "GroupComponent",
+                  class: 'GroupComponent',
                   config: {
                     componentDefinitions: [
                       {
                         component: {
-                          "class": "SimpleInputComponent",
+                          class: 'SimpleInputComponent',
                           config: {
-                            label: "@dataPublication-related-publication-title",
-                            placeholder: "Full citation or publication title",
-                            type: "text",
-                            wrapperCssClasses: "rb-form-related-link-inline__field",
-                          }
-                        },
-                        layout: {
-                          "class": "InlineLayout",
-                          config: {label: "@dataPublication-related-publication-title"}
-                        },
-                        model: {"class": "SimpleInputModel"},
-                        name: "related_title",
-                      },
-                      {
-                        component: {
-                          "class": "SimpleInputComponent",
-                          config: {
-                            label: "@dataPublication-related-publication-url",
-                            placeholder: "https://doi.org/...",
-                            type: "text",
-                            wrapperCssClasses: "rb-form-related-link-inline__field",
+                            label: '@dataPublication-related-publication-title',
+                            placeholder: 'Full citation or publication title',
+                            type: 'text',
+                            wrapperCssClasses: 'rb-form-related-link-inline__field',
                           },
                         },
-                        layout: {"class": "InlineLayout", config: {label: "@dataPublication-related-publication-url"}},
-                        model: {"class": "SimpleInputModel"},
-                        name: "related_url",
+                        layout: {
+                          class: 'InlineLayout',
+                          config: { label: '@dataPublication-related-publication-title' },
+                        },
+                        model: { class: 'SimpleInputModel' },
+                        name: 'related_title',
                       },
                       {
                         component: {
-                          "class": "TextAreaComponent",
+                          class: 'SimpleInputComponent',
                           config: {
-                            cols: 20,
-                            label: "@dataPublication-related-publication-notes",
-                            placeholder: "Open access, in press, or other context",
-                            rows: 1,
-                            wrapperCssClasses: "rb-form-related-link-inline__field",
-                          }
+                            label: '@dataPublication-related-publication-url',
+                            placeholder: 'https://doi.org/...',
+                            type: 'text',
+                            wrapperCssClasses: 'rb-form-related-link-inline__field',
+                          },
                         },
                         layout: {
-                          "class": "InlineLayout",
-                          config: {label: "@dataPublication-related-publication-notes"}
+                          class: 'InlineLayout',
+                          config: { label: '@dataPublication-related-publication-url' },
                         },
-                        model: {"class": "TextAreaModel"},
-                        name: "related_notes",
-                      }
+                        model: { class: 'SimpleInputModel' },
+                        name: 'related_url',
+                      },
+                      {
+                        component: {
+                          class: 'TextAreaComponent',
+                          config: {
+                            cols: 20,
+                            label: '@dataPublication-related-publication-notes',
+                            placeholder: 'Open access, in press, or other context',
+                            rows: 1,
+                            wrapperCssClasses: 'rb-form-related-link-inline__field',
+                          },
+                        },
+                        layout: {
+                          class: 'InlineLayout',
+                          config: { label: '@dataPublication-related-publication-notes' },
+                        },
+                        model: { class: 'TextAreaModel' },
+                        name: 'related_notes',
+                      },
                     ],
-                    hostCssClasses: "rb-form-related-link-inline",
-                  }
+                    hostCssClasses: 'rb-form-related-link-inline',
+                  },
                 },
                 layout: {
-                  "class": "RepeatableElementLayout",
+                  class: 'RepeatableElementLayout',
                   config: {
-                    alignment: "end",
-                    containerCssClass: "rb-form-action-row",
-                    hostCssClasses: "rb-form-action-row-layout",
-                    slotCssClass: "rb-form-action-slot",
-                  }
+                    alignment: 'end',
+                    containerCssClass: 'rb-form-action-row',
+                    hostCssClasses: 'rb-form-action-row-layout',
+                    slotCssClass: 'rb-form-action-slot',
+                  },
                 },
                 model: {
-                  "class": "GroupModel", config: {newEntryValue: {}}
+                  class: 'GroupModel',
+                  config: { newEntryValue: {} },
                 },
-                name: "",
-              }
-            }
+                name: '',
+              },
+            },
           },
           layout: {
-            "class": "DefaultLayout",
-            config: {helpText: "@dmpt-related-publication-help", label: "@dmpt-related-publication"}
+            class: 'DefaultLayout',
+            config: { helpText: '@dmpt-related-publication-help', label: '@dmpt-related-publication' },
           },
-          model: {"class": "RepeatableModel"},
-          name: "related_publications"
-        }
-      ]
+          model: { class: 'RepeatableModel' },
+          name: 'related_publications',
+        },
+      ],
     };
 
-    const constructVisitor = new ConstructFormConfigVisitor(logger);
+    const constructVisitor = new ConstructFormConfigVisitor(consoleLogger);
     const constructForm = await constructVisitor.start({
       data,
       formMode: 'edit',
@@ -2992,7 +3015,7 @@ describe("Client Visitor", async () => {
     });
     // expect(constructForm).to.containSubset(expected);
 
-    const clientFormVisitor = new ClientFormConfigVisitor(logger);
+    const clientFormVisitor = new ClientFormConfigVisitor(consoleLogger);
     const clientForm = await clientFormVisitor.start({
       form: constructForm,
       formMode: 'edit',

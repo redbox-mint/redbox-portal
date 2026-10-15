@@ -7,7 +7,7 @@ import type {
   ILogger,
   ReusableFormDefinitions,
 } from '@researchdatabox/sails-ng-common';
-import { FormOverride } from '@researchdatabox/sails-ng-common';
+import { FormOverride, nothingLogger } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
@@ -42,21 +42,7 @@ import { snapshotRecordContractPublicContext, type RecordContractEffectiveForm }
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
-const noopFormOverrideLog = (): void => undefined;
-const FORM_OVERRIDE_LOGGER: ILogger = Object.freeze({
-  silly: noopFormOverrideLog,
-  verbose: noopFormOverrideLog,
-  trace: noopFormOverrideLog,
-  debug: noopFormOverrideLog,
-  log: noopFormOverrideLog,
-  info: noopFormOverrideLog,
-  warn: noopFormOverrideLog,
-  error: noopFormOverrideLog,
-  crit: noopFormOverrideLog,
-  fatal: noopFormOverrideLog,
-  silent: noopFormOverrideLog,
-  blank: noopFormOverrideLog,
-});
+const FORM_OVERRIDE_LOGGER: ILogger = Object.freeze({ ...nothingLogger });
 
 export interface RecordContractCompileRequest {
   readonly form: RecordContractEffectiveForm;
@@ -814,11 +800,7 @@ export class RecordContractCompiler {
     const priorComponents = roleFilteredComponents.get(fieldName) ?? [];
     const isDuplicate = priorComponents.some(priorComponent => {
       const priorRoles = priorComponent.constraints?.authorization?.allowRoles;
-      return (
-        Array.isArray(priorRoles) &&
-        priorRoles.length > 0 &&
-        allowRoles.every(role => !priorRoles.includes(role))
-      );
+      return Array.isArray(priorRoles) && priorRoles.length > 0 && allowRoles.every(role => !priorRoles.includes(role));
     });
     priorComponents.push(component);
     roleFilteredComponents.set(fieldName, priorComponents);

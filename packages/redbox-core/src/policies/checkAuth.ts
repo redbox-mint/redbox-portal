@@ -1,6 +1,7 @@
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as RolesServiceModule from '../services/RolesService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
+import { safeChronicleText } from '../utilities/RequestChronicle';
 import {
   buildRecordSchemaForbiddenProblem,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
@@ -97,7 +98,7 @@ function applyCheckAuth(
       }
     }
   } else {
-    sails.log.verbose('No rules for path:' + req.path);
+    sails.log.verbose('No rules for path:' + safeChronicleText(req.path, 500));
   }
 
   // no rules can proceed...

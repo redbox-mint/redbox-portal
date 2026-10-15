@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import * as Effect from 'effect/Effect';
 import type { OniValueBinding } from '../../configmodels/OniPublishing';
 import type { AnyRecord } from './types';
 import { validateSafeHandlebarsTemplate } from '../integration-v2/bindings';

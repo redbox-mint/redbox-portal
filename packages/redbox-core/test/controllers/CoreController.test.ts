@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { Readable } from 'node:stream';
@@ -49,7 +51,7 @@ describe('CoreController sendResp wrappers', () => {
 
     (global as any).sails = {
       config: {},
-      log: { verbose: sinon.stub(), error: sinon.stub(), debug: sinon.stub() }
+      log: createSinonStubLogger(sinon)
     };
 
     (global as any).TranslationService = { t: (s: any) => s };
