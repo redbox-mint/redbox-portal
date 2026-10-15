@@ -13,6 +13,8 @@ describe('AppConfig per-brand JSON bundles', function () {
   let secrets: Map<string, { arn: string; name?: string; value: string }>;
   let send: sinon.SinonStub;
   let persist: sinon.SinonStub;
+  let modelInfo: sinon.SinonStub;
+  let locks: ReturnType<typeof createBundleLockCollection>;
 
   beforeEach(function () {
     const mockSails = createMockSails();
@@ -26,7 +28,7 @@ describe('AppConfig per-brand JSON bundles', function () {
       return row;
     });
     const globals = globalThis as unknown as Record<string, unknown>;
-    const locks = createBundleLockCollection();
+    locks = createBundleLockCollection();
     globals.BrandingService = { getBrand: () => brand };
     globals.AppConfig = {
       find: async (criteria: { configKey?: string }) => rows.filter(row => !criteria.configKey || row.configKey === criteria.configKey),
@@ -35,7 +37,7 @@ describe('AppConfig per-brand JSON bundles', function () {
       getDatastore: () => ({ manager: { collection: () => locks } })
     };
     sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
-    sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'BundleModel', class: class {}, schema: {}, secretFields: ['connection.token', 'connection.password', 'sites.*.ingestion.adminToken'] });
+    modelInfo = sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'BundleModel', class: class {}, schema: {}, secretFields: ['connection.token', 'connection.password', 'sites.*.ingestion.adminToken'] });
     send = sinon.stub(SecretsManagerClient.prototype, 'send').callsFake(async command => {
       if (command instanceof CreateSecretCommand) {
         const name = command.input.Name!;
@@ -155,6 +157,58 @@ describe('AppConfig per-brand JSON bundles', function () {
     send.resetHistory();
     await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'one' } });
     await otherProcess.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } });
+    expect(send.called).to.equal(false);
+  });
+
+  it('loads during a foreign write and refreshes its untrusted snapshot on the next save', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    const arn = stored('first').arn;
+    const lock = [...locks.documents.values()][0];
+    Object.assign(lock, { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000), cacheToken: 'write-already-dispatched' });
+    const startingProcess = new Services.AppConfigs();
+    send.resetHistory();
+    startingProcess.brandingAppConfigMap.default = await startingProcess.loadAppConfigurationModel('brand1');
+    expect(_.get(startingProcess.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('one');
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    try { await startingProcess.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } }); expect.fail('Expected rejection'); }
+    catch (error) { expect(String(error)).to.contain('update is in progress'); }
+    // The in-flight AWS write finishes after startup's read, without changing
+    // its already-published token again.
+    secrets.get(arn)!.value = JSON.stringify({ format: 'redbox-appconfig-v1', values: { '["first","connection","token"]': 'two' } });
+    delete lock.owner;
+    lock.expiresAt = new Date(0);
+    send.resetHistory();
+    await startingProcess.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } });
+    expect(_.get(startingProcess.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('two');
+    expect(calls(GetSecretValueCommand)).to.equal(1);
+    expect(send.callCount).to.equal(1);
+    send.resetHistory();
+    await startingProcess.createOrUpdateConfig(brand, 'first', { connection: { token: 'two' } });
+    expect(send.called).to.equal(false);
+  });
+
+  it('saves non-secret keys without lock access during a foreign write or with an invalid prefix', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    Object.assign([...locks.documents.values()][0], { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000) });
+    modelInfo.withArgs('ordinary').returns({ modelName: 'Ordinary', class: class {}, schema: {}, secretFields: [] });
+    const lockRead = sinon.spy(locks, 'findOne');
+    sails.config.appConfigSecrets.namePrefix = 'invalid prefix';
+    send.resetHistory();
+    await service.createConfig('default', 'ordinary', { label: 'created' });
+    await service.createOrUpdateConfig(brand, 'ordinary', { label: 'updated' });
+    expect(_.get(service.getAppConfigurationForBrand('default'), 'ordinary.label')).to.equal('updated');
+    expect(lockRead.called).to.equal(false);
+    expect(send.called).to.equal(false);
+  });
+
+  it('skips lock checks when registered secret paths are absent from incoming and existing data', async function () {
+    await service.createConfig('default', 'first', { connection: { token: 'one' } });
+    Object.assign([...locks.documents.values()][0], { owner: 'foreign-writer', expiresAt: new Date(Date.now() + 120_000) });
+    const lockRead = sinon.spy(locks, 'findOne');
+    send.resetHistory();
+    await service.createConfig('default', 'second', { label: 'created' });
+    await service.createOrUpdateConfig(brand, 'second', { label: 'updated' });
+    expect(lockRead.called).to.equal(false);
     expect(send.called).to.equal(false);
   });
 

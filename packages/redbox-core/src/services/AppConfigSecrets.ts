@@ -122,13 +122,19 @@ export class AppConfigSecrets {
   }
 
   /** Mongo-only freshness check before comparisons or hydration during saves/reloads. */
-  async synchronizeBundle(brandId: string): Promise<void> {
+  async synchronizeBundle(brandId: string, purpose: 'save' | 'load' = 'save'): Promise<void> {
     const name = this.bundleName(brandId);
     let lock: BundleLock | null;
     try { lock = await this.lockCollection().findOne({ _id: name }); }
     catch { throw new Error('Unable to coordinate AppConfig secret update'); }
     if (lock?.owner && lock.expiresAt.getTime() > Date.now()) {
-      throw new Error('Another AppConfig secret update is in progress for this brand. Retry shortly.');
+      if (purpose === 'save') throw new Error('Another AppConfig secret update is in progress for this brand. Retry shortly.');
+      // Startup/reload can read the current AWS value during another node's write.
+      // Its snapshot must remain untrusted for a later save, even if that writer
+      // already published its token but has not yet finished its AWS request.
+      this.invalidate(name);
+      this.bundleTokens.delete(name);
+      return;
     }
     this.synchronizeBundleCache(name, lock?.cacheToken ?? '');
   }

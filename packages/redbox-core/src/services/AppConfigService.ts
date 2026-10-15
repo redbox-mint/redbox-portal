@@ -181,17 +181,21 @@ export namespace Services {
       const changes = new Map<string, string | null>();
       const bundledFields: Array<{ field: string[]; key: string }> = [];
       // References are backend-owned. Forms submit only values, masks, or clear markers.
-      for (const field of this.getSecretPaths(configKey, incoming, true)) {
+      const incomingSecretPaths = this.getSecretPaths(configKey, incoming, true);
+      const existingSecretPaths = this.getSecretPaths(configKey, existing);
+      for (const field of incomingSecretPaths) {
         const value: unknown = _.get(incoming, field);
         if (value != null && typeof value !== 'string') {
           throw new Error(`AppConfig secret field '${field.join('.')}' must be a string`);
         }
       }
-      const hasBundledReferences = this.getSecretPaths(configKey, existing).some(field => {
+      const hasBundledReferences = existingSecretPaths.some(field => {
         const value: unknown = _.get(existing, field);
         return isAppConfigSecretReference(value) && value.$appConfigSecret.key !== undefined;
       });
-      if (bundle || hasBundledReferences) await this.getSecretStore().synchronizeBundle(brandId);
+      if ((bundle && (incomingSecretPaths.length > 0 || existingSecretPaths.length > 0)) || hasBundledReferences) {
+        await this.getSecretStore().synchronizeBundle(brandId);
+      }
       const stored = this.mergeSecretFields(configKey, incoming, existing) as AppConfigData;
       for (const field of this.getSecretPaths(configKey, stored, true)) {
         const value: unknown = _.get(stored, field);
@@ -430,7 +434,7 @@ export namespace Services {
         }
       }
       for (const arn of references) this.secretStore?.invalidate(arn);
-      if (hasBundledReferences) await this.getSecretStore().synchronizeBundle(brandId);
+      if (hasBundledReferences) await this.getSecretStore().synchronizeBundle(brandId, 'load');
       for (const appConfigItem of latestAppConfigItems) {
         _.set(appConfiguration, appConfigItem.configKey, await this.hydrateSecretFields(appConfigItem.configKey, appConfigItem.configData));
       }
