@@ -1,4 +1,5 @@
-import { Effect, Layer } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../model/storage/IntegrationAuditModel';
 import type { IntegrationAuditContext } from '../IntegrationAuditService';
 import { RaidAuditTag, RaidRunContextTag } from './tags';

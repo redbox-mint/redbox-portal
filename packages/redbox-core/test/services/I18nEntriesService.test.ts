@@ -501,6 +501,120 @@ describe('I18nEntriesService', function () {
   });
 
   describe('syncEntriesFromBundle', function () {
+    for (const suppliedId of [undefined, 'stale-bundle-id']) {
+      it(`should merge missing keys into the stored bundle when the supplied id is ${suppliedId}`, async function () {
+        const stored = {
+          id: 'stored-bundle',
+          data: { section: { title: 'Custom', storedOnly: 'Keep' }, unrelated: 'Retained' },
+        };
+        const data = {
+          section: { title: 'Default', added: 'New', html: '<p onclick="bad()">Safe</p>', nullish: null },
+          _meta: { 'section.html': { contentFormat: 'html' } },
+        };
+        sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+        mockI18nTranslation.find.resolves([{ key: 'section.title', value: 'Custom' }]);
+        mockI18nBundle.findOne.resolves(stored);
+
+        await I18nEntriesService.syncEntriesFromBundle({
+          id: suppliedId,
+          branding: 'brand-1',
+          locale: 'en',
+          namespace: 'ns',
+          data,
+        });
+
+        expect(mockI18nBundle.findOne.calledOnceWithExactly({ uid: 'brand-1:en:ns' })).to.be.true;
+        expect(mockI18nBundle.updateOne.calledOnceWithExactly({ id: 'stored-bundle' })).to.be.true;
+        expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data).to.deep.equal({
+          section: { title: 'Custom', storedOnly: 'Keep', added: 'New', html: '<p>Safe</p>', nullish: 'section.nullish' },
+          unrelated: 'Retained',
+        });
+        const records = mockI18nTranslation.createEach.firstCall.args[0];
+        expect(records.map(record => record.key)).to.deep.equal(['section.added', 'section.html', 'section.nullish']);
+        expect(records.every(record => record.bundle === 'stored-bundle')).to.be.true;
+        expect(records.find(record => record.key === 'section.html').value).to.equal('<p>Safe</p>');
+        expect(stored.data.section).to.deep.equal({ title: 'Custom', storedOnly: 'Keep' });
+        expect(data.section.html).to.contain('onclick=');
+      });
+    }
+
+    it('should create a missing bundle before seeding a bundle-like object without an id', async function () {
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([]);
+
+      await I18nEntriesService.syncEntriesFromBundle({
+        branding: 'brand-1', locale: 'en', namespace: 'ns', data: { key: 'Value', empty: '' },
+      });
+
+      expect(mockI18nBundle.create.calledOnceWithExactly({
+        branding: 'brand-1', locale: 'en', namespace: 'ns', data: { key: 'Value', empty: '' },
+      })).to.be.true;
+      expect(mockI18nBundle.create.calledBefore(mockI18nTranslation.createEach)).to.be.true;
+      expect(mockI18nTranslation.createEach.firstCall.args[0].every(record => record.bundle === 'new-bundle')).to.be.true;
+      expect(mockI18nBundle.updateOne.called).to.be.false;
+    });
+
+    it('should persist normalised bundle data before a partial entry failure and recover on retry', async function () {
+      const stored = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { html: '<p onclick="bad()">Safe</p>', nullish: null as unknown },
+      };
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({ html: { contentFormat: 'html' } });
+      mockI18nBundle.findOne.resolves(stored);
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().callsFake(async ({ data }) => {
+        stored.data = data;
+        return stored;
+      }) });
+      mockI18nTranslation.find.onFirstCall().resolves([]).onSecondCall().resolves([
+        { key: 'html', value: '<p>Safe</p>', contentFormat: 'html' },
+      ]);
+      const failure = new Error('partial insert');
+      mockI18nTranslation.createEach.onFirstCall().rejects(failure).onSecondCall().resolves([]);
+      let rejected: unknown;
+      try {
+        await I18nEntriesService.syncEntriesFromBundle(stored);
+      } catch (error) {
+        rejected = error;
+      }
+      expect(rejected).to.equal(failure);
+      expect(stored.data).to.deep.equal({ html: '<p>Safe</p>', nullish: 'nullish' });
+
+      await I18nEntriesService.syncEntriesFromBundle(stored);
+
+      expect(mockI18nTranslation.createEach.secondCall.args[0].map(record => record.key)).to.deep.equal(['nullish']);
+      expect(mockI18nBundle.updateOne.calledOnce).to.be.true;
+      expect(stored.data.html).to.equal('<p>Safe</p>');
+    });
+
+    for (const existingBundle of [false, true]) {
+      it(`should reject without seeding or pruning entries if the bundle write fails (existing=${existingBundle})`, async function () {
+        sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+        mockI18nTranslation.find.resolves([{ key: 'obsolete' }]);
+        const prune = sinon.stub(I18nEntriesService, 'deleteEntry').resolves(true);
+        const failure = new Error('bundle write failed');
+        if (existingBundle) {
+          mockI18nBundle.findOne.resolves({ id: 'bundle-1', data: {} });
+          mockI18nBundle.updateOne.returns({ set: sinon.stub().rejects(failure) });
+        } else {
+          mockI18nBundle.create.rejects(failure);
+        }
+        let rejected: unknown;
+        try {
+          await I18nEntriesService.syncEntriesFromBundle({
+            branding: 'brand-1', locale: 'en', namespace: 'ns', data: { added: 'New' },
+          });
+        } catch (error) {
+          rejected = error;
+        }
+        expect(rejected).to.equal(failure);
+        expect(mockI18nTranslation.createEach.called).to.be.false;
+        expect(prune.called).to.be.false;
+      });
+    }
+
     it('should persist the same imported format used to sanitize an overwrite', async function () {
       const bundle = {
         id: 'bundle-1',
@@ -521,44 +635,76 @@ describe('I18nEntriesService', function () {
       expect(mockI18nBundle.create.firstCall.args[0].data.intro).to.equal(saved.value);
     });
 
-    it('should sync entries', async function () {
+    it('should seed missing entries without overwriting custom translations and prune removed keys', async function () {
       const bundle = {
         id: 'bundle-1',
         branding: 'brand-1',
         locale: 'en',
         namespace: 'ns',
-        data: { key: 'value' },
+        data: { existing: 'Default', nested: { added: 'Added' } },
       };
-
-      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
-      mockI18nTranslation.find.returns({
-        sort: sinon.stub().resolves([]),
+      mockI18nBundle.findOne.resolves(bundle);
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({
+        'nested.added': { category: 'General', description: 'New default' },
       });
-      // Actually find in syncEntriesFromBundle is simple find?
-      // const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
-      // It returns a promise. My mockI18nTranslation.find default returns { sort: ... }
-      // If the code awaits it, it gets the object with sort.
-      // But map() expects array.
-
-      // I need to check how find is used in syncEntriesFromBundle.
-      // line 423: const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
-      // It DOES NOT chain sort here.
-      // So await returns the mock return value.
-      // If mock returns { sort: ... }, then existingEntries is { sort: ... }.
-      // Then existingEntries.map(...) fails.
-
-      // I need to handle this.
-      // If I want find to be flexible, I can make it return a thenable that also has sort?
-      // Or I can stub it specifically for this test.
-
-      mockI18nTranslation.find.resolves([]);
-
-      mockI18nTranslation.findOne.resolves(null); // no existing key
-      mockI18nTranslation.create.resolves({});
+      mockI18nTranslation.find.resolves([
+        { id: 'custom-1', key: 'existing', value: 'Custom', contentFormat: 'plain' },
+        { id: 'removed-1', key: 'removed', value: 'Old default' },
+      ]);
+      const prune = sinon.stub(I18nEntriesService, 'deleteEntry').resolves(true);
 
       await I18nEntriesService.syncEntriesFromBundle(bundle);
 
-      expect(mockI18nTranslation.create.called).to.be.true;
+      expect(mockI18nTranslation.createEach.firstCall.args[0]).to.deep.equal([
+        {
+          branding: 'brand-1',
+          bundle: 'bundle-1',
+          key: 'nested.added',
+          locale: 'en',
+          namespace: 'ns',
+          value: 'Added',
+          category: 'General',
+          contentFormat: undefined,
+          description: 'New default',
+        },
+      ]);
+      expect(mockI18nTranslation.findOne.called).to.be.false;
+      expect(mockI18nTranslation.updateOne.called).to.be.false;
+      expect(prune.calledOnceWithExactly(sinon.match.any, 'en', 'ns', 'removed')).to.be.true;
+      expect((global as any).TranslationService.reloadResources.calledOnceWithExactly('brand-1')).to.be.true;
+    });
+
+    it('should leave existing entries untouched when there are no missing keys', async function () {
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([{ key: 'key', value: 'Custom' }]);
+      await I18nEntriesService.syncEntriesFromBundle({
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { key: 'Default' },
+      });
+      expect(mockI18nTranslation.createEach.called).to.be.false;
+      expect(mockI18nTranslation.findOne.called).to.be.false;
+      expect(mockI18nBundle.updateOne.called).to.be.false;
+    });
+
+    it('should normalize nullish values in both the entries and the bundle', async function () {
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([]);
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { nested: { key: null } },
+      };
+      mockI18nBundle.findOne.resolves(bundle);
+      await I18nEntriesService.syncEntriesFromBundle(bundle);
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('nested.key');
+      expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data).to.deep.equal({
+        nested: { key: 'nested.key' },
+      });
     });
 
     it('should preserve empty-string translations', async function () {
@@ -577,8 +723,8 @@ describe('I18nEntriesService', function () {
 
       await I18nEntriesService.syncEntriesFromBundle(bundle);
 
-      expect(mockI18nTranslation.create.called).to.be.true;
-      expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal('');
+      expect(mockI18nTranslation.createEach.called).to.be.true;
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('');
     });
 
     it('should copy contentFormat from bundle metadata', async function () {
@@ -588,7 +734,7 @@ describe('I18nEntriesService', function () {
         locale: 'en',
         namespace: 'ns',
         data: {
-          key: '<p>value</p>',
+          key: '<p onclick="alert(1)">value</p>',
           _meta: {
             key: {
               contentFormat: 'html',
@@ -597,6 +743,7 @@ describe('I18nEntriesService', function () {
         },
       };
 
+      mockI18nBundle.findOne.resolves(bundle);
       sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
       mockI18nTranslation.find.resolves([]);
       mockI18nTranslation.findOne.resolves(null);
@@ -604,8 +751,10 @@ describe('I18nEntriesService', function () {
 
       await I18nEntriesService.syncEntriesFromBundle(bundle);
 
-      expect(mockI18nTranslation.create.called).to.be.true;
-      expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
+      expect(mockI18nTranslation.createEach.called).to.be.true;
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].contentFormat).to.equal('html');
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('<p>value</p>');
+      expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data.key).to.equal('<p>value</p>');
     });
   });
 

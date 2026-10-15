@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
-import { Context, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Layer from 'effect/Layer';
 import type { DoiPublishing, DoiHttpResult, DoiRunContext } from './types';
 
 export class DoiHttpError extends Error {
