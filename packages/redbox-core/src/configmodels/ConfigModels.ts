@@ -94,7 +94,8 @@ export class ConfigModels {
             title: 'Oni Publishing',
             class: OniPublishing,
             schema: ONI_PUBLISHING_SCHEMA,
-            tsGlob: path.join(__dirname, '../../src/configmodels/OniPublishing.ts')
+            tsGlob: path.join(__dirname, '../../src/configmodels/OniPublishing.ts'),
+            secretFields: ['sites.*.ingestion.adminToken']
         }],
         ['doiPublishing', {
             modelName: 'DoiPublishing',

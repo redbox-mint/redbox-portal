@@ -56,6 +56,48 @@ describe('appConfigService', function () {
     }
   });
 
+  it('round-trips AWS references through Mongo insert and update while backend values and admin masks stay consistent', async () => {
+    const { createRequire } = require('node:module');
+    const coreRequire = createRequire(require.resolve('@researchdatabox/redbox-core'));
+    const { SecretsManagerClient, CreateSecretCommand, GetSecretValueCommand } = coreRequire('@aws-sdk/client-secrets-manager');
+    const sinon = require('sinon');
+    const arn = 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:integration';
+    const reference = { $appConfigSecret: { provider: 'aws-secrets-manager', arn } };
+    const originalSecretsConfig = sails.config.appConfigSecrets;
+    const brand = BrandingService.getBrand('default');
+    const key = `appConfigSecretRegression${testStartTime}`;
+    appConfigService.registerConfigModel({ key, modelName: key, class: class {}, schema: {}, secretFields: ['sites.*.ingestion.adminToken'] });
+    sails.config.appConfigSecrets = { provider: 'aws-secrets-manager', region: 'ap-southeast-2', namePrefix: 'integration/appconfig' };
+    const send = sinon.stub(SecretsManagerClient.prototype, 'send').callsFake(async command => {
+      if (command instanceof CreateSecretCommand) return { ARN: arn };
+      if (command instanceof GetSecretValueCommand) return { SecretString: 'integration-token' };
+      throw new Error('Unexpected command');
+    });
+    try {
+      const data = { sites: { 'site.one[2]': { ingestion: { adminToken: 'integration-token', endpoint: 'unchanged' } } } };
+      const created = await appConfigService.createConfig('default', key, data);
+      expect(created.sites['site.one[2]'].ingestion.adminToken).to.equal(APP_CONFIG_SECRET_MASK);
+      let rows = await AppConfig.find({ branding: brand.id, configKey: key });
+      expect(rows[0].configData.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
+      send.resetHistory();
+      await appConfigService.createOrUpdateConfig(brand, key, data);
+      rows = await AppConfig.find({ branding: brand.id, configKey: key });
+      expect(rows).to.have.length(1);
+      expect(rows[0].configData.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
+      expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+      const loaded = await appConfigService.loadAppConfigurationModel(brand.id);
+      expect(loaded[key].sites['site.one[2]'].ingestion.adminToken).to.equal('integration-token');
+      const masked = await appConfigService.getAppConfigByBrandAndKey(brand.id, key);
+      await appConfigService.createOrUpdateConfig(brand, key, masked);
+      expect(appConfigService.getAppConfigurationForBrand('default')[key].sites['site.one[2]'].ingestion)
+        .to.deep.equal({ adminToken: 'integration-token', endpoint: 'unchanged' });
+    } finally {
+      send.restore();
+      sails.config.appConfigSecrets = originalSecretsConfig;
+      await AppConfig.destroy({ branding: brand.id, configKey: key });
+    }
+  });
+
   it('should get the app configuration for a brand', () => {
     const brandName = 'default';
     const appConfig = appConfigService.getAppConfigurationForBrand(brandName);

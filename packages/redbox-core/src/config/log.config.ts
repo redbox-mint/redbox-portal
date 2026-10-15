@@ -54,15 +54,13 @@ export interface LogConfig {
   requestChronicle?: Partial<RequestChronicleSettings>;
 }
 
-/**
- * The options for the default pino-logfmt transport.
- */
+/** The default transport is shipped as CommonJS so Pino workers can load it without a TypeScript loader. */
+export const logfmtTransportTarget = require.resolve('../../logfmt-transport.cjs');
+/** The options for the default logfmt transport. */
 export const logfmtTransportOptions = Object.freeze({
   formatTime: true,
   flattenNestedObjects: true,
   convertToSnakeCase: true,
-  // Keep multi-line values, such as stack traces, on one log line.
-  escapeMultilineStrings: true,
 });
 
 /**
@@ -78,7 +76,7 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     hooks: {
       logMethod(inputArgs: unknown[], method: (...args: unknown[]) => void, level: number) {
         if (level === customLevelBlank) {
-          return method.apply(this, ['']);
+          return;
         } else if (inputArgs.length === 1) {
           return method.apply(this, inputArgs);
         } else if (inputArgs.length >= 2 && _.isString(inputArgs[0]) && !_.isString(inputArgs[1])) {
@@ -101,7 +99,7 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     logger = pino(options, destination);
   } else {
     options.transport = {
-      target: 'pino-logfmt',
+      target: logfmtTransportTarget,
       options: { ...logfmtTransportOptions },
     };
     logger = pino(options);

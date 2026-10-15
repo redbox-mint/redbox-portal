@@ -68,7 +68,7 @@ At startup, a warning is logged if `requestChronicle` is not first in `sails.con
 
 ## Event fields
 
-The default log transport is `pino-logfmt`, which flattens nested objects into snake_case keys joined with `_`. Arrays are logged as objects keyed by index, so they remain readable (for example `errors_0_message`). Multi-line values such as stack traces are escaped onto one line. The table shows the emitted field names, followed by the field in the event object.
+The default logfmt transport (`packages/redbox-core/logfmt-transport.cjs`) flattens nested objects into snake_case keys joined with `_`. Arrays are logged as objects keyed by index, so they remain readable (for example `errors_0_message`). Multi-line values such as stack traces are escaped once onto one line, so logfmt readers recover the original line breaks. Calls to `sails.log.blank()` emit nothing. The table shows the emitted field names, followed by the field in the event object.
 
 | Emitted field | Event field | Description |
 | --- | --- | --- |

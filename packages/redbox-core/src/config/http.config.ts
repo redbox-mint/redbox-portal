@@ -762,7 +762,7 @@ export const http: HttpConfig = {
         },
 
         cacheControl: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
-            const sessionTimeoutSeconds = sails.config.session === false || !sails.config.session.cookie?.maxAge ? 31536000 : sails.config.session.cookie.maxAge / 1000;
+            const sessionTimeoutSeconds = sails.config.session === false || sails.config.session.cookie?.maxAge === undefined ? 31536000 : sails.config.session.cookie.maxAge / 1000;
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
             const isImmutableAsset = isImmutableAssetPath(req.path);

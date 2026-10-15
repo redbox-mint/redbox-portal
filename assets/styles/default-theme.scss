@@ -7280,7 +7280,8 @@ img[src$="images/loading.svg"],
   justify-content: space-between;
   align-items: center;
   padding: 12px 15px;
-  color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
+  // Published themes from before the sidebar token retain their previous text colour.
+  color: var(--rb-admin-sidebar-text-color, var(--rb-panel-branding-background-color, #{$panel-branding-background-color}));
   font-weight: 600;
   text-decoration: none;
   background-color: #fff;
@@ -7314,7 +7315,7 @@ img[src$="images/loading.svg"],
     display: block;
 
     &:hover {
-      color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
+      color: var(--rb-admin-sidebar-text-color, var(--rb-panel-branding-background-color, #{$panel-branding-background-color}));
       text-decoration: underline;
     }
   }
@@ -7329,7 +7330,7 @@ img[src$="images/loading.svg"],
   border-bottom: 1px solid #dee2e6;
 
     a {
-    color: var(--rb-panel-branding-background-color, #{$panel-branding-background-color});
+    color: var(--rb-admin-sidebar-text-color, var(--rb-panel-branding-background-color, #{$panel-branding-background-color}));
     text-decoration: none;
 
     &:hover {
