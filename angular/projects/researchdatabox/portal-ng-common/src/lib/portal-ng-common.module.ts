@@ -1,70 +1,24 @@
-import { NgModule, inject, provideAppInitializer } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
-import { FormsModule } from "@angular/forms";
-import { isEmpty as _isEmpty } from 'lodash-es';
+import { RedboxPortalCoreServicesModule } from './portal-core-services.module';
+import { RedboxPortalRecordsModule } from './portal-records.module';
+import { RedboxPortalRecordTableModule } from './portal-record-table.module';
+import { RedboxPortalReportsModule } from './portal-reports.module';
 
-import { PaginationModule } from 'ngx-bootstrap/pagination';
+export { trimLastSlashFromUrl } from './portal-core-services.module';
 
-import { ConfigService } from './config.service';
-import { UtilityService } from './utility.service';
-import { AppConfigService } from './appconfig.service';
-import { CsrfInterceptor } from './csrf.interceptor';
-import { UserService } from './user.service';
-import { LoggerService } from './logger.service';
-import { RecordService } from './record.service';
-import { TranslationService } from './translation.service';
-import { RecordTableComponent } from './record-table.component';
-import { ReportService } from './report.service';
-import { HeaderSortComponent } from "./header-sort.component";
-import { I18NextPipe } from './i18next.pipe';
-export function trimLastSlashFromUrl(baseUrl: string) {
-  if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
-    var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
-    return trimmedUrl;
-  }
-  return baseUrl;
-}
-
+/**
+ * Compatibility module for existing portal forms and custom hooks.
+ * New apps can import RedboxPortalCoreServicesModule and only the features they use.
+ */
 @NgModule({
-  declarations: [
-    RecordTableComponent,
-    HeaderSortComponent
-  ],
-  providers: [
-    {
-      provide: APP_BASE_HREF,
-      useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),
-      deps: [PlatformLocation]
-    },
-    ConfigService,
-    TranslationService,
-    LoggerService,
-    UtilityService,
-    AppConfigService,
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: CsrfInterceptor,
-      multi: true
-    },
-    UserService,
-    RecordService,
-    ReportService,
-    provideAppInitializer(() => inject(TranslationService).waitForInit())
-  ],
   imports: [
     BrowserModule,
-    HttpClientModule,
-    FormsModule,
-    I18NextPipe,
-    PaginationModule
+    RedboxPortalCoreServicesModule,
+    RedboxPortalRecordsModule,
+    RedboxPortalRecordTableModule,
+    RedboxPortalReportsModule
   ],
-  exports: [
-    I18NextPipe,
-    PaginationModule,
-    RecordTableComponent,
-    HeaderSortComponent,
-  ]
+  exports: [RedboxPortalCoreServicesModule, RedboxPortalRecordTableModule]
 })
-export class RedboxPortalCoreModule { }
+export class RedboxPortalCoreModule {}

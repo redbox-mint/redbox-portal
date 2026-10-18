@@ -5,7 +5,7 @@ import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, RedboxPortalRecordsModule, RedboxPortalRecordTableModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { DeletedRecordsComponent } from './deleted-records.component';
 import {ModalModule} from "ngx-bootstrap/modal";
 
@@ -17,7 +17,9 @@ import {ModalModule} from "ngx-bootstrap/modal";
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
+    RedboxPortalRecordsModule,
+    RedboxPortalRecordTableModule,
     BsDatepickerModule,
     PaginationModule,
     ModalModule,

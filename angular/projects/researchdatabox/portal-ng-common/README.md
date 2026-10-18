@@ -2,6 +2,25 @@
 
 This library contains the core models, services and components for [ReDBox Portal](http://redboxresearchdata.com.au)
 
+## Choosing app imports
+
+Embedded apps should import `RedboxPortalCoreServicesModule` for configuration,
+HTTP/CSRF, logging, utilities, users, app configuration, the translation bootstrap
+barrier and `I18NextPipe`. Root NgModule apps still import `BrowserModule` themselves;
+standalone apps can use `importProvidersFrom(RedboxPortalCoreServicesModule)`.
+
+Add only the features the app uses:
+
+- `RedboxPortalRecordsModule`: `RecordService` providers.
+- `RedboxPortalRecordTableModule`: record tables, sortable headers and pagination.
+- `RedboxPortalReportsModule`: `ReportService` providers.
+- `PaginationModule` from `ngx-bootstrap/pagination`: pagination without record tables.
+
+The feature modules use the core providers from the app's root injector. Existing
+forms and custom hooks can keep importing `RedboxPortalCoreModule`: it retains the
+original providers and exported translation, table, sorting and pagination UI.
+Rebuild this library before building apps against new exports.
+
 
 This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 15.0.0.
 

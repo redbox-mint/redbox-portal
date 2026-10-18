@@ -271,7 +271,7 @@
                 }
               ],
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
@@ -1212,7 +1212,7 @@
                 }
               ],
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
@@ -1297,7 +1297,7 @@
           "configurations": {
             "production": {
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
@@ -1390,7 +1390,7 @@
           "configurations": {
             "production": {
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
@@ -1490,7 +1490,7 @@
                 }
               ],
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
@@ -1745,7 +1745,7 @@
           "configurations": {
             "production": {
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },

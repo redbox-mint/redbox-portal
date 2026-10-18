@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { RouterModule } from '@angular/router'; 
 import { FormlyModule } from '@ngx-formly/core';
@@ -28,7 +28,7 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
     ReactiveFormsModule,
     FormsModule,
     RouterModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
    FormlyModule.forRoot({
     types: [
       { name: 'array', component: ArrayTypeComponent },

@@ -3,7 +3,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { ReportConfigComponent } from './report-config.component';
 import { ReportConfigService } from './report-config.service';
 
@@ -13,7 +13,7 @@ import { ReportConfigService } from './report-config.service';
     BrowserModule,
     FormsModule,
     HttpClientModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreServicesModule
   ],
   providers: [
     ReportConfigService,
