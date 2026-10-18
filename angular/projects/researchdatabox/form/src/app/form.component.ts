@@ -293,6 +293,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   public readonly debugState = inject(FormDebugStateService);
   public readonly debugPanelComponent = signal<Type<unknown> | null>(null);
   private debugPanelLoading = false;
+  private debugPanelTaskCleanup?: () => void;
   private readonly debugPanelPendingTasks = inject(PendingTasks);
   private readonly debugPanelDestroyRef = inject(DestroyRef);
   private readonly serverSyncService = inject(FormServerSyncService);
@@ -443,24 +444,35 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     this.refreshRequestParamsFromUrl();
     this.initEffects();
+    this.debugPanelDestroyRef.onDestroy(() => {
+      this.debugPanelTaskCleanup?.();
+      this.debugPanelTaskCleanup = undefined;
+    });
     effect(() => {
       if (this.debugState.isDebugEnabled() && this.componentsLoaded() &&
           this.componentDefArr.length > 0 && !this.debugPanelComponent() && !this.debugPanelLoading) {
         this.debugPanelLoading = true;
-        void this.debugPanelPendingTasks.run(async () => {
+        this.debugPanelTaskCleanup = this.debugPanelPendingTasks.add();
+        void (async () => {
           try {
-            const { FormDebugPanelComponent } = await import('./form-debug/form-debug-panel.component');
+            const component = await this.loadDebugPanel();
             if (!this.debugPanelDestroyRef.destroyed) {
-              this.debugPanelComponent.set(FormDebugPanelComponent);
+              this.debugPanelComponent.set(component);
             }
           } catch (error) {
             this.loggerService.warn('Unable to load form debug panel.', error);
           } finally {
             this.debugPanelLoading = false;
+            this.debugPanelTaskCleanup?.();
+            this.debugPanelTaskCleanup = undefined;
           }
-        });
+        })();
       }
     });
+  }
+
+  protected async loadDebugPanel(): Promise<Type<unknown>> {
+    return (await import('./form-debug/form-debug-panel.component')).FormDebugPanelComponent;
   }
 
   protected async initComponent(): Promise<void> {
