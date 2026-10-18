@@ -14,7 +14,7 @@
     "roundUpBytes": 10000,
     "preserveOriginalWarnings": true
   },
-  "integrationNote": "All 20 applications rebuilt and remeasured together after the ReportService root-provider compatibility fix. Original and isolated CommonJS measurements are retained separately. Current initial/lazy/gzip fields describe this follow-up; limits are unchanged. Compared with the prior combined measurement, report initial JS grew by 18 bytes and admin-figshare-vocabulary initial gzip grew by 2 bytes; all other measured sizes are unchanged. Original warning targets still cap the calculated 5% warning margin.",
+  "integrationNote": "All 20 applications rebuilt and remeasured together after the ReportService root-provider compatibility fix. Original and isolated CommonJS measurements are retained separately. Current initial/lazy/gzip fields describe this follow-up; limits are unchanged. Compared with the prior combined measurement, report initial JS grew by 18 bytes and admin-figshare-vocabulary initial gzip grew by 2 bytes; all other measured sizes are unchanged. Original warning targets still cap the calculated 5% warning margin. The subsequent F20 date-picker follow-up rebuilt and remeasured only form: initial JS grew by 1,680 bytes and initial gzip by 210 bytes; CSS, lazy bytes and all limits are unchanged. Other applications retain the preceding all-20 measurements.",
   "applications": {
     "local-auth": {
       "baseScriptsOptimized": true,
@@ -228,10 +228,10 @@
       "baseLazyBytes": 691337,
       "isolatedInitialBytes": 3034337,
       "isolatedLazyBytes": 691337,
-      "initialBytes": 1669713,
-      "initialJsBytes": 1564161,
+      "initialBytes": 1671393,
+      "initialJsBytes": 1565841,
       "initialCssBytes": 105552,
-      "initialGzipBytes": 445004,
+      "initialGzipBytes": 445214,
       "lazyBytes": 1565866,
       "originalMaximumWarning": "1800kb",
       "originalMaximumError": "5mb",
@@ -371,5 +371,14 @@
   },
   "finalSourceCommit": "a77d3399216688e894356ad747a04ae30b949abc",
   "measuredAtUtc": "2026-10-18T10:43:10Z",
-  "finalSourceNote": "Follow-up to the combined measurement at 6a44388eb49019b3d6353b780eb512fcb8f481ed. Includes component-generator shared exports, ReportService tree-shakeable root DI with the explicit reports module provider retained, and strict institutional custom-library budget documentation. Both Angular libraries and all 20 applications were rebuilt through the fresh production/stats gate. Angular/shared-package source locks are unchanged; existing dependencies and unchanged shared-package dist were reused without installs. The validation log preserves the earlier combined results separately."
+  "finalSourceNote": "Follow-up to the combined measurement at 6a44388eb49019b3d6353b780eb512fcb8f481ed. Includes component-generator shared exports, ReportService tree-shakeable root DI with the explicit reports module provider retained, and strict institutional custom-library budget documentation. Both Angular libraries and all 20 applications were rebuilt through the fresh production/stats gate. Angular/shared-package source locks are unchanged; existing dependencies and unchanged shared-package dist were reused without installs. The validation log preserves the earlier combined results separately.",
+  "formFollowUp": {
+    "sourceBaseCommit": "b6777f56e7f23a6575c15da601d8953a8af9c40b",
+    "dateInputSourceSha256": "95841b976bfb1ca17ec0eb84690313d63483c1d1f69dba2715663701657a0d38",
+    "mainFiles": [
+      "main-XBL3OJSL.js"
+    ],
+    "measuredAtUtc": "2026-10-18T12:37:21Z",
+    "note": "Form-only production --stats-json --delete-output-path=true rebuild after the F20 DST fix. The exact date-input source hash identifies uncommitted source over sourceBaseCommit at build time. Supersedes only the form measurements above; finalSourceCommit and measuredAtUtc retain the preceding all-20 build provenance. No shared source, dependency locks or budget limits changed."
+  }
 }

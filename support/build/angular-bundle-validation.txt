@@ -609,3 +609,184 @@ Scope and remaining review concerns:
   - No Docker stacks were started, stopped, or modified by this build remediation.
   - Initial pre-remediation measurements were interrupted by a host restart and then exposed missing
     GeoJSON types. Those are excluded from these final results; this final pass follows the clean install.
+
+F20 date-picker follow-up (2026-10-18)
+====================================
+Scope: date-input.component.ts, real-picker component regressions, F20 browser helper,
+and form-only build/evidence refresh. No dependency, shared-runtime or budget changes.
+Source base: b6777f56e7f23a6575c15da601d8953a8af9c40b.
+Built date-input.component.ts SHA-256:
+  95841b976bfb1ca17ec0eb84690313d63483c1d1f69dba2715663701657a0d38
+Production main: main-XBL3OJSL.js.
+
+Investigation and before-fix evidence:
+  - Preserved the supplied 123 PASS / 1 FAIL run before rerunning anything:
+    .tmp/f20-investigation/before-fix-playwright and before-fix-junit.
+    Its coverage result is complete=false, F20 failed at the displayed input assertion.
+  - The preserved Brisbane trace shows the click completing, input still pristine at
+    2026-10-03, picker open with day 3 selected and day 4 hovered. Browser diagnostics
+    are empty. Brisbane has no DST transition; this failure did not emit a selection.
+    ngx-bootstrap 22's hover reducer replaces the day object and its tracked DOM node.
+  - A diagnostic on the original production assets retained the actual day-4 node,
+    hovered the real picker, and verified isConnected true -> false. A click on that
+    detached node leaves 2026-10-03 unchanged; clicking the current locator selects
+    2026-10-04 and closes the picker. Evidence: hover.log, hover-proof/ and
+    hover-sequence.json under .tmp/f20-investigation. This reproduces the lost-node
+    mechanism; the original trace did not record native event targets, so it does
+    not independently prove which native mouse event lost its target.
+  - The original code also passed a complete diagnostic rerun: 124/124, complete=true,
+    zero retries (full-before.log and full-before/). The Brisbane failure is intermittent.
+  - A separate deterministic DST defect reproduced against the original production
+    assets: F20 passed UTC and Brisbane but failed Sydney and Adelaide. Selecting
+    October 4 from October 3 persisted 2026-10-03T23:00:00.000Z rather than
+    2026-10-04T00:00:00.000Z (matrix-before.log and matrix-before/).
+    A real-picker Sydney unit also reproduced the wrong picker emission before the fix
+    (unit-sydney-before.log). ngx retains the previous local clock time when choosing
+    the next day; the changed offset moves a UTC-midnight model away from midnight.
+
+Fix and regression scope:
+  - F20 waits for the hovered day cell to render before a real mouse click, then
+    requires picker closure, exact displayed date, save/reload and exact API timestamp.
+    No force clicks, selection retries, swallowed diagnostics or weakened assertions.
+  - For ordinary robust timestamp fields whose existing value is UTC midnight,
+    actual calendar selections compensate for the timezone-offset difference before
+    the shared picker emission reaches the component and value accessor subscribers.
+    Emission regression assertions reject transient wrong timestamps as well.
+  - Full non-midnight timestamps, programmatic writes, explicit useUtc true/false,
+    timepicker/current-time modes and robustParsing=false retain their prior semantics.
+    dateOnly fields continue to use calendar strings and their separate input control.
+  - Actual calendar interactions cover 3 -> 4 -> 5 -> 3 in October 2026 and April 2027,
+    crossing DST start/end in both directions. F20 saves/reloads every selection and
+    checks typed April dates too. Component tests separately cover timestamp and
+    dateOnly values, dirty/touched state, ISO writeback and explicit picker modes.
+  - F20's title, scenario, ID and the standard 124-test collection remain unchanged.
+    Its timeout is 120s for the expanded save/reload journeys. No date mocking added.
+
+Commands (existing dependencies reused; Node 24.16.0):
+  export PATH=/home/ubuntu/.nvm/versions/node/v24.16.0/bin:$PATH
+  export CHROME_BIN=/home/ubuntu/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux-arm64/chrome-headless-shell
+  cd angular
+  TZ=<zone> CI=true node_modules/.bin/ng test @researchdatabox/form --watch=false --progress=false --browsers=ChromeHeadlessNoSandbox --include=projects/researchdatabox/form/src/app/helpers.spec.ts --include=projects/researchdatabox/form/src/app/component/date-input.component.spec.ts --include=projects/researchdatabox/form/src/app/component/date-input-calendar.component.spec.ts
+  node_modules/.bin/tsc -p projects/researchdatabox/form/tsconfig.app.json --noEmit
+  node_modules/.bin/tsc -p projects/researchdatabox/form/tsconfig.spec.json --noEmit
+  node_modules/.bin/ng build @researchdatabox/form --configuration production --stats-json --delete-output-path=true
+  cd ..
+  node support/build/angular-bundle-stats.cjs form
+
+Focused unit/typecheck results: PASS: 54/54 in each of UTC, Australia/Brisbane, Australia/Sydney and
+Australia/Adelaide (216 successful checks, zero failed). App and spec tsc both PASS.
+Clean logs: unit-{utc,brisbane,sydney,adelaide}-clean.log, form-tsc-final.log and
+form-spec-tsc-clean.log in .tmp/f20-investigation.
+  helpers.spec.ts is deliberately the first include to respect existing test-entry order.
+  Earlier experimental multi-open unit harness runs failed to find the overlay on
+  reopening; final tests use a fresh fixture per transition. The browser regression
+  independently exercises successive real reopen/select/save/reload journeys. Those attempts are preserved in
+  .tmp/f20-investigation/unit-*.log and are excluded from the clean results.
+
+Production build and stats: PASS. Logs: form-build-final.log, form-stats-final.json,
+form-gzip-final.json and production-source-final.json in .tmp/f20-investigation.
+  Initial JS:     1,565,841 bytes (previous 1,564,161; +1,680).
+  Initial CSS:      105,552 bytes (unchanged).
+  Initial total:  1,671,393 bytes (previous 1,669,713; +1,680).
+  Initial gzip:     445,214 bytes (previous 445,004; +210).
+    main-XBL3OJSL.js 427,958 + styles-K5BUJDHB.css 17,256, Node gzipSync level 6.
+  Lazy:           1,565,866 bytes (unchanged).
+  Existing warning/error limits: 1760kb / 1840kb; warning=false, gate passes.
+  Existing CommonJS optimization warnings remain in the complete build log.
+  Only form rebuilt; other 19 apps retain the previous all-20 measurement provenance.
+
+Disposable production-browser setup:
+  Compose project redbox-playwright-full-b677, image redbox-portal:playwright-node24,
+  support/integration-testing/docker-compose.playwright.yml plus
+  .tmp/full-playwright/compose.json. Current core/shared/devhook dist and production
+  Angular output mounted into both assets/angular and .tmp/public/angular. Writable
+  config/api copies are isolated under .tmp/full-playwright. No production config edits.
+  Test-only .sailsrc disk reserve 104857600 bytes because host free space was below
+  the normal 10 GiB threshold. Runner Playwright 1.64.0 and Chromium 153.0.8010.12.
+  Temporary config extends the standard one and points at the installed ARM64 shell.
+
+  Compose environment on every command:
+  COMPOSE_PROJECT_NAME=redbox-playwright-full-b677 RBPORTAL_PLAYWRIGHT_MODE=image RBPORTAL_PLAYWRIGHT_SCENARIOS=true RBPORTAL_PLAYWRIGHT_PORT=18191 RBPORTAL_PLAYWRIGHT_STUB_PORT=18880
+  docker compose -f support/integration-testing/docker-compose.playwright.yml -f .tmp/full-playwright/compose.json up -d redboxportal
+  For the post-fix host suite, dependencies/database were recreated and the portal
+  explicitly force-recreated (--no-deps --force-recreate redboxportal), then health
+  checked. The separate final Node24 setup is described below.
+
+  Browser environment on both commands below:
+  PATH=/home/ubuntu/.nvm/versions/node/v24.16.0/bin:$PATH PLAYWRIGHT_BASE_URL=http://localhost:18191 PLAYWRIGHT_STUB_URL=http://localhost:18880 PLAYWRIGHT_PORTAL_STUB_URL=http://playwright-stubs:18880 PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:18880 PLAYWRIGHT_HOST_BROWSER=true CI=true
+  node_modules/.bin/playwright test --config=.tmp/f20-investigation/matrix.config.ts test/playwright/forms/components-basic.spec.ts --grep F20
+  PLAYWRIGHT_REQUIRE_COMPLETE=true node_modules/.bin/playwright test --config=.tmp/full-playwright/playwright.config.ts
+
+  Matrix config uses projects UTC, Australia/Brisbane, Australia/Sydney,
+  Australia/Adelaide, trace=on, worker=1 and retries=0. Final production result:
+  4/4 PASS, each with all October/April save/reload/API checks; 141949.89 ms.
+  Evidence: matrix-after-clean.log, matrix-after-clean/ and matrix-after-clean-junit/.
+  Its complete=false is expected for a focused F20-only run, not a complete-suite claim.
+  One earlier matrix passed all functional assertions but failed diagnostics for
+  ERR_NETWORK_CHANGED on UTC/Brisbane assets; preserved as matrix-after-network-errors/,
+  with matrix-after.log. No diagnostic suppression was introduced. The clean 4/4 run
+  supersedes it. The unrelated reporting-demo stack was never modified.
+
+The first post-fix unfiltered host run completed 123/124 in 719831.302 ms,
+complete=false, with F20 PASS (18.0s). A05 failed because its report-config main JS
+request returned net::ERR_NETWORK_CHANGED, preventing app startup. No report/form
+code was changed to address that environmental failure. Evidence: full-final.log,
+full-host-network-errors/, full-host-network-errors-junit/ and compose-full-host.log.
+The whole 124-case suite is rerun independently below; individual retries stay zero.
+
+The supplied image tag playwright-node24 was found to report Node 26.8.1. Builds,
+units and the host runner used Node24. For the final run the existing installed
+v24.16.0 binary is bound read-only to /usr/local/bin/node in the disposable portal;
+this avoids any dependency install or image rebuild. The database and all dedicated
+containers were recreated again using --profile ci down --volumes --remove-orphans
+--timeout 20 before up -d redboxportal. Portal health and runtime version verified.
+
+The final runner shares that portal's network namespace to avoid unrelated host
+interface churn. It reuses the existing mcr.microsoft.com/playwright:v1.63.0-noble
+image only for OS/browser libraries; its Node binary, current root node_modules
+(Playwright1.64.0) and Chromium153 shell are explicitly mounted. No installation.
+The temporary container.config.ts changes paths/executable only; standard Brisbane
+locale/timezone, worker=1, retries=0 and every diagnostic assertion remain enabled.
+Exact runner command array: .tmp/f20-investigation/isolated-command.json, generated
+by run-isolated.py. Command inside the runner:
+  PLAYWRIGHT_REQUIRE_COMPLETE=true node node_modules/playwright/cli.js test --config=.tmp/f20-investigation/container.config.ts
+Docker invocation uses --network container:redbox-playwright-full-b677-redboxportal-1,
+--user <host uid:gid>, --volume <repo>:/opt/redbox-portal,
+--volume /home/ubuntu/.nvm/versions/node/v24.16.0/bin/node:/usr/local/bin/node:ro,
+--volume /home/ubuntu/.cache/ms-playwright:/ms-playwright-current:ro,
+--workdir /opt/redbox-portal and --entrypoint node. Browser env is unchanged except
+PLAYWRIGHT_HOST_BROWSER is unset and PLAYWRIGHT_STUB_URL uses the Docker DNS name
+http://playwright-stubs:18880. No host resolver override is needed in this namespace.
+The runner has --rm and its explicit name/Compose project label for owned cleanup.
+
+A first isolated-run setup attempt was stopped before any test body ran because
+recordVideo resolved FFmpeg under the image's old /ms-playwright path. The temporary
+runner now sets PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-current for the mounted aligned
+FFmpeg/browser cache. No installs or source/test changes. The failed setup diagnostics
+are retained in isolated-ffmpeg-setup-failure/ and isolated-ffmpeg-setup-failure.log;
+that aborted attempt has no completed coverage/JUnit result and is excluded from all
+validation counts. An explicit video-recording preflight then passed (video-preflight.log).
+
+Exact final Docker command (existing images/binaries only):
+  docker run --rm --init --network container:redbox-playwright-full-b677-redboxportal-1 --user 1001:1001 --name redbox-playwright-full-b677-runner --label com.docker.compose.project=redbox-playwright-full-b677 --volume /home/ubuntu/work/github/redbox-portal:/opt/redbox-portal --volume /home/ubuntu/.nvm/versions/node/v24.16.0/bin/node:/usr/local/bin/node:ro --volume /home/ubuntu/.cache/ms-playwright:/ms-playwright-current:ro --workdir /opt/redbox-portal --env PLAYWRIGHT_BASE_URL=http://localhost:18191 --env PLAYWRIGHT_STUB_URL=http://playwright-stubs:18880 --env PLAYWRIGHT_PORTAL_STUB_URL=http://playwright-stubs:18880 --env PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:18880 --env PLAYWRIGHT_REQUIRE_COMPLETE=true --env PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 --env PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-current --env CI=true --env TZ=Australia/Brisbane --entrypoint node mcr.microsoft.com/playwright:v1.63.0-noble node_modules/playwright/cli.js test --config=.tmp/f20-investigation/container.config.ts
+
+Final complete production suite: PASS: 124/124, complete=true, status=passed, errors=[],
+  duration 592548.912 ms, zero skipped tests, zero retries.
+  F20 passed in 20205 ms. JUnit: tests=124, failures=0, skipped=0, errors=0.
+  Evidence: .tmp/f20-investigation/full-isolated-final/ (HTML report, per-test
+  diagnostics and coverage), full-isolated-final-junit/, full-isolated.log,
+  compose-full-isolated-final.log and final-setup/. Exact artifact SHA-256 hashes
+  are retained in final-evidence-sha256.json. Metadata identifies source hash,
+  production main, portal/runner versions, image IDs, network mode and test policy.
+Final artifact/log preservation and dedicated stack teardown: PASS. Logs archived before teardown.
+  COMPOSE_PROJECT_NAME=redbox-playwright-full-b677 RBPORTAL_PLAYWRIGHT_MODE=image RBPORTAL_PLAYWRIGHT_SCENARIOS=true RBPORTAL_PLAYWRIGHT_PORT=18191 RBPORTAL_PLAYWRIGHT_STUB_PORT=18880 docker compose -f support/integration-testing/docker-compose.playwright.yml -f .tmp/full-playwright/compose.json --profile ci down --volumes --remove-orphans --timeout 20
+  Dedicated containers, network and volumes are gone (empty project-label listings).
+  Runner used --rm. Teardown log: .tmp/f20-investigation/compose-final-teardown.log.
+  The unrelated redbox-reporting-demo stack was never modified or stopped.
+  Root untracked .angular/ preserved. No push/PR, installs or scaffolding.
+  Final stats gate recheck and git diff --check PASS.
+
+Limits: this is local production-asset acceptance plus targeted component tests, not
+an all-20 rebuild, image rebuild, CircleCI run or broad browser-engine matrix. Historical
+build-owner limitations above describe that earlier work; the complete-suite result
+in this follow-up supersedes its statement that the full suite was not run.

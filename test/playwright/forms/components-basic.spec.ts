@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/test';
 import { field, saveForm } from '../helpers/forms';
+import { verifyDatePickerRoundTrips } from '../helpers/date-picker';
 
 test('F19 components-basic preserve text, numeric-input strings, booleans and choices including empty, false and zero', async ({ adminPage, records }) => {
   const record = await records.create('e2e-components-basic', { title: 'Primitives', text: 'Original', number: '7', description: 'Original paragraph', enabled: false, radio: 'alpha', choice: 'one' });
@@ -31,24 +32,8 @@ test('F19 components-basic preserve text, numeric-input strings, booleans and ch
 });
 
 test('F20 components-date picker and typed entry preserve the selected calendar day across reload', async ({ adminPage, records }) => {
+  test.setTimeout(120_000);
   const record = await records.create('e2e-components-date', { title: 'Calendar', date: '2026-10-03T00:00:00.000Z' });
   await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
-  const date = field(adminPage, 'Review date');
-  await expect(date).toHaveValue('2026-10-03');
-  await adminPage.locator('redbox-date-input .date-input-addon').click();
-  const picker = adminPage.locator('bs-datepicker-container');
-  await expect(picker).toBeVisible();
-  await picker.locator('td span:not(.is-other-month)').filter({ hasText: /^4$/ }).click();
-  await expect(date).toHaveValue('2026-10-04');
-  await saveForm(adminPage);
-  await adminPage.reload();
-  await expect(date).toHaveValue('2026-10-04');
-  expect((await records.read(record.oid)).body).toMatchObject({ date: '2026-10-04T00:00:00.000Z' });
-  await date.fill('2027-04-04');
-  await field(adminPage, 'Title').click();
-  await expect(date).toHaveValue('2027-04-04');
-  await saveForm(adminPage);
-  await adminPage.reload();
-  await expect(date).toHaveValue('2027-04-04');
-  expect((await records.read(record.oid)).body).toMatchObject({ date: '2027-04-04T00:00:00.000Z' });
+  await verifyDatePickerRoundTrips(adminPage, record.oid, records.read);
 });

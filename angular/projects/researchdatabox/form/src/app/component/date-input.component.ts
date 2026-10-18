@@ -369,6 +369,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   private lastValidValue: Date | null = null;
   private ignoreNextBlur: boolean = false;
   private datepickerSelectionInProgress: boolean = false;
+  private preservePickerUtcDate: boolean = false;
   private readonly eventBus = inject(FormComponentEventBus);
 
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
@@ -414,6 +415,9 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
       : !_isEmpty(cfg.bsFullConfig)
         ? cfg.bsFullConfig!
         : defaultPickerConfig;
+    this.preservePickerUtcDate =
+      !this.model?.dateOnly && this.robustParsing && !this.enableTimePicker &&
+      !cfg.bsFullConfig?.withTimepicker && !cfg.bsFullConfig?.initCurrentTime && cfg.bsFullConfig?.useUtc === undefined;
   }
 
   onDateChange(dateValue: DateInputModelValueType) {
@@ -433,6 +437,22 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     }
     if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
       const isDatepickerUserSelection = this.datepickerSelectionInProgress;
+      const previousValue = normalizeDateInputValue(this.formControl?.value, true);
+      const isUtcMidnight = previousValue instanceof Date &&
+        previousValue.getUTCHours() === 0 && previousValue.getUTCMinutes() === 0 &&
+        previousValue.getUTCSeconds() === 0 && previousValue.getUTCMilliseconds() === 0;
+      const offsetChange = isDatepickerUserSelection && this.preservePickerUtcDate && isUtcMidnight
+        ? previousValue.getTimezoneOffset() - dateValue.getTimezoneOffset()
+        : 0;
+      if (offsetChange) {
+        // Robust typed dates are UTC midnight. ngx retains the old local clock
+        // time when choosing a new day, so DST can turn midnight into 23:00 on
+        // the previous UTC day. Adjust the shared picker emission before its
+        // value accessor publishes it too; a later write would expose a wrong
+        // intermediate date. Full timestamps and explicit time/zone modes keep
+        // their existing picker semantics.
+        dateValue.setTime(dateValue.getTime() + offsetChange * 60_000);
+      }
 
       this.lastValidValue = dateValue;
       if (!areDateInputValuesEqual(this.formControl?.value, dateValue)) {

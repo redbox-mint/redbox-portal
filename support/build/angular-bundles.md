@@ -29,14 +29,21 @@ The final combined form and login measurements are:
 
 | App | Original initial JS + CSS | Final initial JS + CSS | Final local gzip estimate |
 | --- | ---: | ---: | ---: |
-| form | 2,928,202 + 105,552 = 3,033,754 | 1,564,161 + 105,552 = 1,669,713 | 445,004 |
+| form | 2,928,202 + 105,552 = 3,033,754 | 1,565,841 + 105,552 = 1,671,393 | 445,214 |
 | local-auth (login) | 1,098,837 + 0 = 1,098,837 | 486,260 + 0 = 486,260 | 148,584 |
 
-All 20 apps were rebuilt after restoring the `ReportService` root provider. Form
-and login sizes are unchanged; report initial JS grew by 18 bytes, and the
-admin-figshare-vocabulary gzip estimate grew by 2 bytes with unchanged raw size.
-The baseline records the validated source commit and follow-up measurement time;
-the validation log preserves the earlier measurements separately.
+The preceding all-20 rebuild restored the `ReportService` root provider. In that
+rebuild, form and login sizes were unchanged; report initial JS grew by 18 bytes,
+and the admin-figshare-vocabulary gzip estimate grew by 2 bytes with unchanged raw
+size.
+
+The baseline retains that all-20 source commit and measurement time. The F20
+date-picker follow-up rebuilt only form with fresh production output and stats:
+initial JS grew by 1,680 bytes and its gzip estimate by 210 bytes. Form CSS,
+lazy bytes and the existing limits are unchanged. The table includes this
+form-only follow-up; `formFollowUp` records its source base and exact component
+SHA-256. Other apps retain their preceding all-20 measurements. The validation
+log preserves the separate build and browser evidence.
 
 Error thresholds allow approximately 10% growth from the final initial total,
 rounded up to 10 kB. Warning thresholds allow approximately 5%, with the same
