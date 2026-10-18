@@ -4,8 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
-import { PaginationModule } from 'ngx-bootstrap/pagination';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import {ModalModule} from "ngx-bootstrap/modal";
 import { BrandingAdminComponent } from './branding-admin.component';
 
@@ -17,9 +16,8 @@ import { BrandingAdminComponent } from './branding-admin.component';
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
     BsDatepickerModule,
-    PaginationModule,
     ModalModule,
     BrandingAdminComponent
   ],

@@ -2,6 +2,7 @@ const { expect } = require('chai');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const ts: typeof import('typescript') = require('typescript');
 const loadTs = require('../support/load-ts.cjs');
 const formComponentGeneratorModule = loadTs(module, '../../src/generators/form-component');
 const pathsModule = loadTs(module, '../../src/utils/paths');
@@ -38,13 +39,14 @@ const RawDefaults = [
 ]
 `
     );
-    writeFile(
-      'packages/sails-ng-common/src/index.ts',
-      `export * from "./config/component/checkbox-tree.model";
-export * from "./config/component/checkbox-tree.outline";
-// validation
-`
-    );
+    // Keep the export graph in sync with the real package. The remaining
+    // dictionary/visitor scaffolds isolate generator wiring from visitor behavior.
+    for (const entrypoint of ['index.ts', 'browser.ts', 'runtime.ts', 'shared.ts']) {
+      writeFile(
+        `packages/sails-ng-common/src/${entrypoint}`,
+        fs.readFileSync(path.resolve(__dirname, '../../../sails-ng-common/src', entrypoint), 'utf-8')
+      );
+    }
     writeFile(
       'packages/sails-ng-common/src/config/visitor/base.outline.ts',
       `import {
@@ -230,6 +232,55 @@ export class FormModule { }
       'utf-8'
     );
     expect(formModule).to.contain('MyWidgetComponent');
+  });
+
+  it('exports generated models and outlines through the Node, browser and runtime entrypoints exactly once', async () => {
+    const generator = new formComponentGeneratorModule.FormComponentGenerator({
+      name: 'my-widget',
+      root: tempRoot,
+      paths: pathsModule.resolvePaths({ root: tempRoot }),
+    });
+    const sourceDir = path.join(tempRoot, 'packages/sails-ng-common/src');
+    const entrypoints = ['index.ts', 'browser.ts', 'runtime.ts'];
+    const originalEntrypoints = entrypoints.map(file => fs.readFileSync(path.join(sourceDir, file), 'utf-8'));
+    await generator.generate();
+    const shared = fs.readFileSync(path.join(sourceDir, 'shared.ts'), 'utf-8');
+    await generator.generate();
+    expect(fs.readFileSync(path.join(sourceDir, 'shared.ts'), 'utf-8')).to.equal(shared);
+    for (const kind of ['model', 'outline']) {
+      expect(shared.split(`export * from "./config/component/my-widget.${kind}";`).length - 1).to.equal(1);
+    }
+
+    const program = ts.createProgram(
+      entrypoints.map(file => path.join(sourceDir, file)),
+      {
+        noEmit: true,
+        noLib: true,
+        types: [],
+      }
+    );
+    const checker = program.getTypeChecker();
+    for (const [i, entrypoint] of entrypoints.entries()) {
+      const entryPath = path.join(sourceDir, entrypoint);
+      expect(fs.readFileSync(entryPath, 'utf-8')).to.equal(originalEntrypoints[i]);
+      const moduleSymbol = checker.getSymbolAtLocation(program.getSourceFile(entryPath)!);
+      const exports = checker.getExportsOfModule(moduleSymbol!);
+      for (const [name, kind] of [
+        ['MyWidgetFieldComponentConfig', 'model'],
+        ['MyWidgetFieldModelDefinition', 'model'],
+        ['MyWidgetMap', 'model'],
+        ['MyWidgetComponentName', 'outline'],
+        ['MyWidgetModelName', 'outline'],
+        ['MyWidgetFieldComponentDefinitionOutline', 'outline'],
+        ['MyWidgetTypes', 'outline'],
+      ]) {
+        const symbol = exports.find(symbol => symbol.name === name);
+        expect(symbol, `${entrypoint} exports ${name}`).to.exist;
+        expect(symbol?.declarations?.map(declaration => declaration.getSourceFile().fileName)).to.deep.equal([
+          path.join(sourceDir, `config/component/my-widget.${kind}.ts`),
+        ]);
+      }
+    }
   });
 
   it('generates companion service when requested', async () => {

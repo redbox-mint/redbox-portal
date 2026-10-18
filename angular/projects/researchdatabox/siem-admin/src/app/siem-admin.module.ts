@@ -3,7 +3,7 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { SiemAdminApiService } from './siem-admin-api.service';
 import { SiemAdminComponent } from './siem-admin.component';
 
@@ -15,7 +15,7 @@ import { SiemAdminComponent } from './siem-admin.component';
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
   ],
   providers: [
     SiemAdminApiService,

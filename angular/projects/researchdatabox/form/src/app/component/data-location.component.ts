@@ -11,16 +11,14 @@ import {
     DataLocationValueType,
     FileUploadSourceType
 } from "@researchdatabox/sails-ng-common";
-import Uppy, { UppyFile } from "@uppy/core";
-import Dashboard from "@uppy/dashboard";
-import Tus from "@uppy/tus";
-import Dropbox from "@uppy/dropbox";
-import GoogleDrive from "@uppy/google-drive";
-import OneDrive from "@uppy/onedrive";
+import type { default as Uppy, UppyFile } from "@uppy/core";
+import type Dashboard from "@uppy/dashboard";
+import type Tus from "@uppy/tus";
 import { Subscription } from "rxjs";
 import { FormComponent } from "../form.component";
 import { FormComponentEventBus, FormSaveSuccessEvent } from "../form-state/events";
 import {FormService} from "../form.service";
+import type { UppyDependencies } from "./file-upload.component";
 
 const pendingOid = "pending-oid";
 
@@ -50,15 +48,6 @@ interface UppyProviderPlugin {
 
 interface TusPlugin extends Tus<UppyMeta, UppyBody> {
     setOptions(options: unknown): void;
-}
-
-interface UppyDependencies {
-    UppyCtor: typeof Uppy;
-    DashboardPlugin: typeof Dashboard;
-    TusPlugin: typeof Tus;
-    DropboxPlugin: typeof Dropbox;
-    GoogleDrivePlugin: typeof GoogleDrive;
-    OneDrivePlugin: typeof OneDrive;
 }
 
 interface DraftLocation {
@@ -127,6 +116,10 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     public editingNotesIndex = -1;
     public editingNotesValue = "";
 
+    public loadingUploader = false;
+    public uploadLoadFailed = false;
+    private destroyed = false;
+    private uppyInitialisation?: Promise<void>;
     private uppy?: Uppy<UppyMeta, UppyBody>;
     private saveSuccessSub?: Subscription;
 
@@ -175,11 +168,11 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
 
     override ngAfterViewInit(): void {
         super.ngAfterViewInit();
-        this.initialiseUppy();
         this.saveSuccessSub = this.eventBus.select$("form.save.success").subscribe((event) => this.onSaveSuccess(event));
     }
 
     ngOnDestroy(): void {
+        this.destroyed = true;
         this.saveSuccessSub?.unsubscribe();
         this.saveSuccessSub = undefined;
         this.destroyUppy();
@@ -272,15 +265,32 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         }
     }
 
-    public openModal(): void {
-        if (!this.isUploadEnabled()) {
+    public async openModal(): Promise<void> {
+        if (!this.isUploadEnabled() || this.destroyed) {
             return;
         }
-        if (!this.uppy) {
-            this.initialiseUppy();
+        this.uploadLoadFailed = false;
+        this.loadingUploader = true;
+        this.requestRender();
+        try {
+            this.uppyInitialisation ??= this.initialiseUppy();
+            await this.uppyInitialisation;
+            // The field may have been removed or disabled while the chunk was in flight.
+            if (!this.destroyed && this.isVisible && this.isUploadEnabled()) {
+                const dashboard = this.uppy?.getPlugin("Dashboard") as Dashboard<UppyMeta, UppyBody>;
+                dashboard?.openModal();
+            }
+        } catch (error) {
+            this.destroyUppy();
+            if (!this.destroyed) {
+                this.uploadLoadFailed = true;
+                this.loggerService.error(`${this.logName}: Failed to load uploader.`, error);
+            }
+        } finally {
+            this.uppyInitialisation = undefined;
+            this.loadingUploader = false;
+            this.requestRender();
         }
-        const dashboardPlugin = this.uppy?.getPlugin("Dashboard") as Dashboard<UppyMeta, UppyBody>;
-        dashboardPlugin?.openModal();
     }
 
     public get attachmentButtonText(): string {
@@ -288,7 +298,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
     }
 
     public isAttachmentButtonDisabled(): boolean {
-        return !this.isUploadEnabled();
+        return !this.isUploadEnabled() || this.loadingUploader;
     }
 
     public startEditNotes(index: number): void {
@@ -362,7 +372,7 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         return item.type === "url";
     }
 
-    private initialiseUppy(): void {
+    private async initialiseUppy(): Promise<void> {
         if (this.uppy || !this.isEditMode()) {
             return;
         }
@@ -370,9 +380,12 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
             return;
         }
 
+        const deps = await this.getUppyDependencies();
+        if (this.destroyed || !this.isVisible || !this.isUploadEnabled()) {
+            return;
+        }
         const currentOid = this.resolveOidForUpload();
         const endpoint = this.buildTusEndpoint(currentOid);
-        const deps = this.getUppyDependencies();
 
         this.uppy = new deps.UppyCtor({
             autoProceed: false,
@@ -411,20 +424,23 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         });
 
         if (this.companionUrl) {
-            if (this.enabledSources.includes("dropbox")) {
+            if (this.enabledSources.includes("dropbox") && deps.DropboxPlugin) {
                 this.uppy.use(deps.DropboxPlugin, { companionUrl: this.companionUrl });
             }
-            if (this.enabledSources.includes("googleDrive")) {
+            if (this.enabledSources.includes("googleDrive") && deps.GoogleDrivePlugin) {
                 this.uppy.use(deps.GoogleDrivePlugin, { companionUrl: this.companionUrl });
                 this.installProviderAuthFallback("GoogleDrive", ["companion-GoogleDrive-auth-token"], ["uppyAuthToken--googledrive", "uppyAuthToken--drive"]);
             }
-            if (this.enabledSources.includes("onedrive")) {
+            if (this.enabledSources.includes("onedrive") && deps.OneDrivePlugin) {
                 this.uppy.use(deps.OneDrivePlugin, { companionUrl: this.companionUrl });
                 this.installProviderAuthFallback("OneDrive", ["companion-OneDrive-auth-token"], ["uppyAuthToken--onedrive"]);
             }
         }
 
         this.uppy.on("upload-success", (file: UppyFile<UppyMeta, UppyBody> | undefined, response: UppySuccessResponse) => {
+            if (this.destroyed) {
+                return;
+            }
             const uploadUrl = this.resolveUploadUrl(response);
             const fileId = this.extractFileId(uploadUrl);
             const oidForUpload = this.resolveOidForUpload();
@@ -790,19 +806,16 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         return resolved.replace(/\/+$/, "");
     }
 
-    private getUppyDependencies(): UppyDependencies {
-        const external = (globalThis as Record<string, unknown>)["__redboxFileUploadUppyDeps"];
-        if (external && typeof external === "object") {
-            return external as UppyDependencies;
+    protected async getUppyDependencies(): Promise<UppyDependencies> {
+        const testDeps = (globalThis as Record<string, unknown>)["__redboxFileUploadUppyDeps"];
+        if (testDeps && typeof testDeps === "object") {
+            const deps = testDeps as UppyDependencies;
+            if (deps.UppyCtor && deps.DashboardPlugin && deps.TusPlugin) {
+                return deps;
+            }
         }
-        return {
-            UppyCtor: Uppy,
-            DashboardPlugin: Dashboard,
-            TusPlugin: Tus,
-            DropboxPlugin: Dropbox,
-            GoogleDrivePlugin: GoogleDrive,
-            OneDrivePlugin: OneDrive
-        };
+        const { loadUppyDependencies } = await import('./file-upload.runtime');
+        return loadUppyDependencies(this.companionUrl ? this.enabledSources : []);
     }
 
     private optionalString(value: unknown): string | undefined {

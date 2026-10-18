@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 
 import { AdminVocabularyComponent } from './admin-vocabulary.component';
 import { VocabularyApiService } from './vocabulary-api.service';
@@ -22,7 +22,7 @@ import { RvaImportComponent } from './rva-import.component';
     BrowserModule,
     A11yModule,
     FormsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
     CommonModule
   ],
   providers: [

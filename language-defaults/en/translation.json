@@ -1421,6 +1421,7 @@
   "admin-configure-branding": "Configure site branding",
   "admin-configure-translation": "Configure site translations",
   "record-table-results-table-header-actions": "Actions",
+  "record-table-templates-unavailable": "The report could not be displayed. Please reload the page to try again.",
   "deleted-records-results-returned_one": "{{count}} deleted record returned",
   "deleted-records-results-returned_other": "{{count}} deleted records returned",
   "deleted-records-retrieving-results": "Retrieving results",

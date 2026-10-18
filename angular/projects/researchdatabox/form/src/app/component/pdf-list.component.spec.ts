@@ -1,3 +1,5 @@
+import { LOCALE_ID } from "@angular/core";
+import { Settings } from "luxon";
 import { TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { FormControl } from "@angular/forms";
@@ -628,4 +630,64 @@ describe("PDFListComponent", () => {
         expect(component.getDownloadAriaLabel(component.pdfAttachments[0], 0)).toContain("@download-current-custom");
         expect(component.getDownloadAriaLabel(component.pdfAttachments[1], 1)).toContain("@download-previous-custom");
     });
+    it("formats offset dates in local time while ordering by filename timestamps", () => {
+        const previousZone = Settings.defaultZone;
+        Settings.defaultZone = 'Australia/Brisbane';
+        try {
+            const component = TestBed.createComponent(PDFListComponent).componentInstance as any;
+            const attachment = component.toAttachmentView({
+                label: 'rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1706781600000.pdf',
+                dateUpdated: '2024-02-01T12:00:00+02:00',
+            });
+            expect(attachment.formattedDateUpdated).toBe('February 1, 2024 8:00 PM');
+            expect(attachment.timestampMs).toBe(1706781600000);
+        } finally {
+            Settings.defaultZone = previousZone;
+        }
+    });
+
+    it("uses a valid filename timestamp for missing or invalid dates without normalising invalid ISO dates", () => {
+        const previousZone = Settings.defaultZone;
+        Settings.defaultZone = 'Australia/Brisbane';
+        try {
+            const component = TestBed.createComponent(PDFListComponent).componentInstance as any;
+            for (const dateUpdated of ['', 'not a date', '2024-02-30T10:00:00Z']) {
+                const attachment = component.toAttachmentView({
+                    label: 'rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1706781600000.pdf', dateUpdated,
+                });
+                expect(attachment.formattedDateUpdated).toBe('February 1, 2024 8:00 PM');
+            }
+            for (const dateUpdated of ['', 'not a date', '2024-02-30T10:00:00Z']) {
+                const attachment = component.toAttachmentView({ label: 'rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf', dateUpdated });
+                expect(attachment.formattedDateUpdated).toBe(dateUpdated);
+                expect(attachment.timestampMs).toBe(0);
+            }
+        } finally {
+            Settings.defaultZone = previousZone;
+        }
+    });
+
+    it("retains RFC date parsing and dateUpdated ordering for legacy labels", () => {
+        const component = TestBed.createComponent(PDFListComponent).componentInstance as any;
+        const attachment = component.toAttachmentView({
+            label: 'rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf',
+            dateUpdated: 'Thu, 01 Feb 2024 10:00:00 GMT',
+        });
+        expect(attachment.timestampMs).toBe(1706781600000);
+        expect(attachment.formattedDateUpdated).not.toContain('Invalid');
+    });
+
+    it("honours the application locale for the date and time", () => {
+        TestBed.overrideProvider(LOCALE_ID, { useValue: 'fr-FR' });
+        const previousZone = Settings.defaultZone;
+        Settings.defaultZone = 'Australia/Brisbane';
+        try {
+            const component = TestBed.createComponent(PDFListComponent).componentInstance as any;
+            const attachment = component.toAttachmentView({ dateUpdated: '2024-02-01T10:00:00Z' });
+            expect(attachment.formattedDateUpdated).toBe('1 février 2024 20:00');
+        } finally {
+            Settings.defaultZone = previousZone;
+        }
+    });
+
 });

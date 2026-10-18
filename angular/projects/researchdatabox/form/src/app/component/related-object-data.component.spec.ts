@@ -10,7 +10,7 @@ describe('RelatedObjectDataComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
       declarations: { RelatedObjectDataComponent },
-      providers: { UtilityService: null, HandlebarsTemplateService: { provide: HandlebarsTemplateService, useValue: {} } },
+      providers: { UtilityService: null, HandlebarsTemplateService: { provide: HandlebarsTemplateService, useValue: { prepareTemplates: async () => {} } } },
     });
     utilityService = TestBed.inject(UtilityService);
   });

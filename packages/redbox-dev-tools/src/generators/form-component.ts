@@ -46,7 +46,7 @@ export class FormComponentGenerator extends Generator {
     }
 
     this.updateSailsNgCommonDictionaries();
-    this.updateSailsNgCommonIndex();
+    this.updateSailsNgCommonSharedExports();
     this.updateBaseVisitors();
     this.updateConcreteVisitors();
     this.updateAngularWiring();
@@ -649,9 +649,10 @@ describe("${serviceClassName}", () => {
     });
   }
 
-  private updateSailsNgCommonIndex(): void {
-    const indexPath = path.join(this.root, 'packages', 'sails-ng-common', 'src', 'index.ts');
-    this.updateTextFile(indexPath, content => {
+  private updateSailsNgCommonSharedExports(): void {
+    // Node, browser and compiler-free runtime entrypoints all re-export shared.
+    const sharedPath = path.join(this.root, 'packages', 'sails-ng-common', 'src', 'shared.ts');
+    this.updateTextFile(sharedPath, content => {
       let updated = content;
       const exportModelLine = `export * from "./config/component/${this.kebabName}.model";`;
       const exportOutlineLine = `export * from "./config/component/${this.kebabName}.outline";`;

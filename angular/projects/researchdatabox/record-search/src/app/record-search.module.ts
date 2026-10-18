@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 
 import { RecordSearchComponent } from './record-search.component';
 import { RecordSearchRefinerComponent } from './record-search-refiner/record-search-refiner.component';
@@ -11,7 +11,7 @@ import { SearchService } from './search.service';
 
 @NgModule({
   declarations: [RecordSearchComponent, RecordSearchRefinerComponent],
-  imports: [BrowserModule, FormsModule, RedboxPortalCoreModule, PaginationModule],
+  imports: [BrowserModule, FormsModule, RedboxPortalCoreServicesModule, PaginationModule],
   providers: [
     SearchService,
     {

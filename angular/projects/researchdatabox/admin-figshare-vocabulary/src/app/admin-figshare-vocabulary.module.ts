@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 
 import { AdminFigshareVocabularyComponent } from './admin-figshare-vocabulary.component';
 import { FigshareVocabularyApiService } from './services/figshare-vocabulary-api.service';
@@ -29,7 +29,7 @@ import { FigshareMappingPickerComponent } from './crosswalks/figshare-mapping-pi
     A11yModule,
     FormsModule,
     ReactiveFormsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
     CommonModule
   ],
   providers: [

@@ -585,6 +585,7 @@ export class CheckboxTreeComponent extends FormFieldBaseComponent<CheckboxTreeMo
       return;
     }
     try {
+      await this.handlebarsTemplateService.prepareTemplates(this.labelTemplate);
       this.compiledItems = await this.getFormComponent.getRecordCompiledItems();
     } catch (error) {
       this.loggerService.warn(`${this.logName}: Unable to load compiled label template, using node labels.`, error);

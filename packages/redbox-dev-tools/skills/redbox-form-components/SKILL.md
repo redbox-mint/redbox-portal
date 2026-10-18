@@ -45,7 +45,7 @@ Use this workflow to add a new form component that is actually usable in form co
 
 - Add `<Component>Types` to `AllTypes` in `packages/sails-ng-common/src/config/dictionary.outline.ts`.
 - Add `<Component>Map` into `AllDefs` and `<Component>Defaults` into `RawDefaults` in `packages/sails-ng-common/src/config/dictionary.model.ts`.
-- Export the new outline/model files in `packages/sails-ng-common/src/index.ts`.
+- Export the new outline/model files in `packages/sails-ng-common/src/shared.ts`; the Node root, browser and compiler-free runtime entrypoints all re-export it.
 
 ## 3) Wire visitor infrastructure
 

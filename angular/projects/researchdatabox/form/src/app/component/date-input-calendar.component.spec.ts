@@ -4,6 +4,8 @@ import { BsDatepickerConfig, BsDatepickerModule } from 'ngx-bootstrap/datepicker
 import { DateInputComponent } from './date-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { setControlValue } from '../form-state/custom-set-value.control';
+import { firstValueFrom } from 'rxjs';
+import { ApplicationRef } from '@angular/core';
 
 describe('DateInputComponent calendar dates', () => {
   beforeEach(async () => {
@@ -44,6 +46,30 @@ describe('DateInputComponent calendar dates', () => {
     expect(control.dirty).toBeTrue();
     expect(control.touched).toBeTrue();
   });
+
+  for (const month of ['2026-10', '2027-04']) {
+    for (const [from, day] of [[3, 4], [4, 5], [5, 3]]) {
+      it(`keeps real calendar selection ${month}-0${from} to day ${day} as a date-only string`, async () => {
+        const { fixture, component, input, control } = await createDateField(`${month}-0${from}`);
+        const shown = firstValueFrom(component.datepicker.onShown);
+        (fixture.nativeElement.querySelector('.date-input-addon') as HTMLElement).click();
+        await shown;
+        fixture.detectChanges();
+        fixture.debugElement.injector.get(ApplicationRef).tick();
+        const target = Array.from(document.querySelectorAll<HTMLElement>('bs-datepicker-container td span:not(.is-other-month)'))
+          .find(element => element.textContent?.trim() === String(day))!;
+        expect(target).withContext(`day ${day}: ${document.querySelector('bs-datepicker-container')?.textContent}`).toBeDefined();
+        target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        target.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(control.value).toBe(`${month}-0${day}`);
+        expect(input.value).toBe(`0${day}/${month.slice(5)}/${month.slice(0, 4)}`);
+        expect(control.dirty).toBeTrue();
+        expect(control.touched).toBeTrue();
+      }, 15_000);
+    }
+  }
 
   it('loads saved and legacy dates and accepts silent model writes without marking edits', async () => {
     const { fixture, control, input } = await createDateField('2026-09-17T00:00:00.000Z');

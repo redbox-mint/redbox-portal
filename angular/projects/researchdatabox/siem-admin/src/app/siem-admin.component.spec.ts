@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import {
   LoggerService,
-  RedboxPortalCoreModule,
+  RedboxPortalCoreServicesModule,
   TranslationService,
   getStubTranslationService,
 } from '@researchdatabox/portal-ng-common';
@@ -69,7 +69,7 @@ describe('SiemAdminComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [SiemAdminComponent],
-      imports: [FormsModule, RedboxPortalCoreModule],
+      imports: [FormsModule, RedboxPortalCoreServicesModule],
       providers: [
         provideZonelessChangeDetection(),
         LoggerService,

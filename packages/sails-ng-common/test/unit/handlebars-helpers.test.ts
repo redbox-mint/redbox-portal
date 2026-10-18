@@ -4,7 +4,8 @@ import {
   handlebarsInstance,
   handlebarsPrecompile,
   handlebarsCompile,
-  handlebarsTemplate
+  handlebarsTemplate,
+  loadMarkdownParser
 } from '../../src';
 
 describe('Shared Handlebars Helpers', async function () {
@@ -374,7 +375,8 @@ describe('Shared Handlebars Helpers', async function () {
     });
 
     describe('markdownToHtml', function () {
-        it('should convert markdown input when output format is markdown', function () {
+        it('should convert markdown input when output format is markdown', async function () {
+            await loadMarkdownParser();
             const result = handlebarsHelperDefinitions.markdownToHtml('**bold**', 'markdown');
             expect(result).to.contain('<strong>bold</strong>');
         });
