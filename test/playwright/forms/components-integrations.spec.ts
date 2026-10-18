@@ -74,12 +74,13 @@ test('F22 components-record-relations replace references and remove related obje
 });
 
 test('F23 components-rich-text preserves supported formatting and rendered content', async ({ adminPage, records }) => {
-  const loaded = await trackFormScripts(adminPage);
+  const { libraries: loaded, scripts } = await trackFormScripts(adminPage);
   const record = await records.create('e2e-components-rich-text', { title: 'Rich text', description: '' });
   await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
   const richText = adminPage.locator('redbox-rich-text-editor');
   const editor = richText.locator('[contenteditable="true"]');
   await editor.fill('Formatted research description');
+  expect(scripts.size).toBeGreaterThan(0);
   expect(loaded.has('richText')).toBe(true);
   expect(loaded.has('upload')).toBe(false);
   await editor.press('ControlOrMeta+a');
@@ -90,8 +91,10 @@ test('F23 components-rich-text preserves supported formatting and rendered conte
   await expect(editor.locator('strong, b')).toHaveText('Formatted research description');
   expect(JSON.stringify((await records.read(record.oid)).body)).toMatch(/<(strong|b)>Formatted research description<\/(strong|b)>/);
   loaded.clear();
+  scripts.clear();
   await adminPage.goto(`/default/rdmp/record/view/${record.oid}`);
   await expect(adminPage.locator('redbox-form strong, redbox-form b')).toHaveText('Formatted research description');
+  expect(scripts.size).toBeGreaterThan(0);
   expect([...loaded]).toEqual([]);
 });
 
@@ -131,14 +134,15 @@ test('F24 components-map draws and edits a point using local tiles and persists 
 });
 
 test('F25 components-files uploads, persists and removes a local attachment', async ({ adminPage, records }) => {
-  const loaded = await trackFormScripts(adminPage);
+  const { libraries: loaded, scripts } = await trackFormScripts(adminPage);
   const record = await records.create('e2e-components-files', { title: 'Files', files: [] });
   await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
   const files = adminPage.locator('redbox-file-upload');
   await expect(files.getByRole('button', { name: /add attachment/i })).toBeVisible();
+  expect(scripts.size).toBeGreaterThan(0);
   expect([...loaded]).toEqual([]);
   await files.getByRole('button', { name: /add attachment/i }).click();
-  const dashboard = adminPage.locator('.uppy-Dashboard');
+  const dashboard = adminPage.getByRole('dialog');
   await expect(dashboard).toBeVisible();
   expect([...loaded]).toEqual(['upload']);
   await dashboard.locator('input[type="file"]').first().setInputFiles('test/playwright/data/regression-notes.txt');
@@ -147,8 +151,10 @@ test('F25 components-files uploads, persists and removes a local attachment', as
   await dashboard.getByRole('button', { name: 'Close Modal', exact: true }).click();
   await saveForm(adminPage);
   loaded.clear();
+  scripts.clear();
   await adminPage.reload();
   await expect(files.getByRole('link', { name: 'regression-notes.txt', exact: true })).toBeVisible();
+  expect(scripts.size).toBeGreaterThan(0);
   expect([...loaded]).toEqual([]);
   expect((await records.read(record.oid)).body).toMatchObject({ files: [expect.objectContaining({ name: 'regression-notes.txt', type: 'attachment', pending: false })] });
   await files.getByRole('button', { name: /remove/i }).click();
@@ -163,7 +169,7 @@ test('F25 components-files uploads, persists and removes a local attachment', as
 test('F23 components-rich-text keeps other fields usable while the editor downloads', async ({ adminPage, records }) => {
   let release!: () => void;
   const gate = new Promise<void>(resolve => release = resolve);
-  const loaded = await trackFormScripts(adminPage, async library => {
+  const { libraries: loaded } = await trackFormScripts(adminPage, async library => {
     if (library === 'richText') await gate;
   });
   const record = await records.create('e2e-components-rich-text', { title: 'Delayed editor', description: '<p>Keep saved text</p>' });
@@ -214,8 +220,54 @@ test('F25 components-files preserves form values after a chunk failure and recov
   // A new document resets the browser's cached module-load rejection.
   await adminPage.reload();
   await files.getByRole('button', { name: /add attachment/i }).click();
-  const dashboard = adminPage.locator('.uppy-Dashboard');
+  const dashboard = adminPage.getByRole('dialog');
   await expect(dashboard).toBeVisible();
   await dashboard.getByRole('button', { name: 'Close Modal', exact: true }).click();
   await expect(files.getByRole('alert')).toHaveCount(0);
+});
+
+test('F23 components-rich-text preserves saved content after a chunk failure and recovers on reload', async ({ adminPage, records, diagnostics }) => {
+  let interrupted = false;
+  await trackFormScripts(adminPage, async (library, url) => {
+    if (library === 'richText' && !interrupted) {
+      interrupted = true;
+      diagnostics.expectFailure({ kind: 'requestfailed', url, message: /ERR_FAILED/, reason: 'Intentionally interrupt the deferred editor download.' });
+      diagnostics.expectFailure({ kind: 'console', message: /Failed to load resource: net::ERR_FAILED/, reason: 'Chromium reports the interrupted module request.' });
+      diagnostics.expectFailure({ kind: 'console', message: /Failed to load editor/, reason: 'The field reports the caught module load failure.' });
+      return 'abort';
+    }
+  });
+  const record = await records.create('e2e-components-rich-text', { title: 'Interrupted editor', description: '<p>Keep saved text</p>' });
+  await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
+  const richText = adminPage.locator('redbox-rich-text-editor');
+  await expect(richText.getByRole('alert')).toContainText('Save your changes and reload');
+  await field(adminPage, 'Title').fill('Saved after interrupted editor');
+  await saveForm(adminPage);
+  expect((await records.read(record.oid)).body).toMatchObject({ title: 'Saved after interrupted editor', description: '<p>Keep saved text</p>' });
+  await adminPage.reload();
+  const editor = richText.locator('[contenteditable="true"]');
+  await expect(editor).toHaveText('Keep saved text');
+  await editor.fill('Edited after recovery');
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(editor).toHaveText('Edited after recovery');
+  await expect(richText.getByRole('alert')).toHaveCount(0);
+});
+
+test('F23 components-rich-text accepts and persists edits after returning from source mode', async ({ adminPage, records }) => {
+  const record = await records.create('e2e-components-rich-text', { title: 'Remount editor', description: '<p>Saved text</p>' });
+  await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
+  const richText = adminPage.locator('redbox-rich-text-editor');
+  const editor = richText.locator('[contenteditable="true"]');
+  await editor.fill('Before source mode');
+  const toggle = richText.locator('[data-source-toggle-button]');
+  await toggle.click();
+  await richText.locator('textarea').fill('<p>From source mode</p>');
+  await toggle.click();
+  await expect(editor).toHaveText('From source mode');
+  await editor.fill('User edit after remount');
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(editor).toHaveText('User edit after remount');
+  expect((await records.read(record.oid)).body).toMatchObject({ description: '<p>User edit after remount</p>' });
 });

@@ -15,13 +15,15 @@ export async function trackFormScripts(
   page: Page,
   beforeResponse?: (library: DeferredLibrary, url: string) => Promise<'abort' | void>,
 ) {
-  const loaded = new Set<DeferredLibrary>();
+  const libraries = new Set<DeferredLibrary>();
+  const scripts = new Set<string>();
   await page.route(url => url.pathname.includes('/angular/form/') && url.pathname.endsWith('.js'), async route => {
+    scripts.add(route.request().url());
     const response = await route.fetch();
     const source = await response.text();
     for (const [library, signature] of Object.entries(signatures)) {
       if (source.includes(signature)) {
-        loaded.add(library as DeferredLibrary);
+        libraries.add(library as DeferredLibrary);
         if (await beforeResponse?.(library as DeferredLibrary, route.request().url()) === 'abort') {
           await route.abort('failed');
           return;
@@ -30,5 +32,7 @@ export async function trackFormScripts(
     }
     await route.fulfill({ response });
   });
-  return loaded;
+  // Callers asserting an empty library set must also assert that form scripts
+  // were intercepted, so a changed asset URL cannot silently pass the check.
+  return { libraries, scripts };
 }
