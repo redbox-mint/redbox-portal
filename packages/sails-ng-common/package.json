@@ -5,16 +5,20 @@
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "files": [
-    "./dist/src"
+    "./dist/src",
+    "./dist/esm"
   ],
   "scripts": {
     "test": "nyc --reporter=text mocha --exit --config test/unit/.mocharc.js dist/test/unit",
     "test:prepare": "mkdir -p support/junit",
     "test:clean": "rm -rf support/junit || true",
-    "compile": "tsc -p tsconfig.prod.json",
+    "compile": "npm run compile:node && npm run compile:browser",
     "compile:clean": "rm -rf dist/ || true",
     "test:compile": "tsc -p tsconfig.test.json",
-    "test:full": "npm run compile:clean && npm run test:clean && npm run test:compile && npm run test:prepare && npm run test"
+    "test:full": "npm run compile:clean && npm run test:clean && npm run test:compile && npm run compile:browser && npm run test:prepare && npm run test && npm run test:browser",
+    "compile:node": "tsc -p tsconfig.prod.json",
+    "compile:browser": "tsc -p tsconfig.browser.json && node scripts/finalize-browser-build.mjs",
+    "test:browser": "node scripts/check-browser-build.mjs"
   },
   "repository": {
     "type": "git",
@@ -45,12 +49,15 @@
     "@types/luxon": "3.7.5",
     "@types/mocha": "10.0.10",
     "@types/node": "26.3.0",
+    "@types/sinon": "21.0.1",
     "chai": "6.2.2",
+    "esbuild": "0.28.2",
     "jsonata": "2.2.2",
     "mocha": "11.8.0",
     "mocha-junit-reporter": "2.2.1",
     "nyc": "18.0.0",
     "serialize-javascript": "7.1.0",
+    "sinon": "22.0.0",
     "typescript": "5.9.3"
   },
   "nyc": {
@@ -68,7 +75,10 @@
       "**/src/internal/plain-record.*",
       "**/src/record-concurrency.model.*",
       "**/src/record-diff.*",
-      "**/src/record-save.model.*"
+      "**/src/record-save.model.*",
+      "**/src/handlebars-helper-definitions.*",
+      "**/src/handlebars-registration.*",
+      "**/src/handlebars-runtime.*"
     ],
     "reporter": [
       "lcov",
@@ -94,5 +104,89 @@
   },
   "peerDependencies": {
     "jsonata": "2.2.2"
+  },
+  "module": "dist/esm/browser.js",
+  "browser": "dist/esm/browser.js",
+  "sideEffects": [
+    "./dist/src/**",
+    "./dist/esm/config/dictionary.model.js"
+  ],
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/esm/browser.d.ts",
+        "default": "./dist/esm/browser.js"
+      },
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./runtime": {
+      "browser": {
+        "types": "./dist/esm/runtime.d.ts",
+        "default": "./dist/esm/runtime.js"
+      },
+      "types": "./dist/src/runtime.d.ts",
+      "default": "./dist/src/runtime.js"
+    },
+    "./handlebars-runtime": {
+      "browser": {
+        "types": "./dist/esm/handlebars-runtime.d.ts",
+        "default": "./dist/esm/handlebars-runtime.js"
+      },
+      "types": "./dist/src/handlebars-runtime.d.ts",
+      "default": "./dist/src/handlebars-runtime.js"
+    },
+    "./record-save.model": {
+      "browser": {
+        "types": "./dist/esm/record-save.model.d.ts",
+        "default": "./dist/esm/record-save.model.js"
+      },
+      "types": "./dist/src/record-save.model.d.ts",
+      "default": "./dist/src/record-save.model.js"
+    },
+    "./record-concurrency.model": {
+      "browser": {
+        "types": "./dist/esm/record-concurrency.model.d.ts",
+        "default": "./dist/esm/record-concurrency.model.js"
+      },
+      "types": "./dist/src/record-concurrency.model.d.ts",
+      "default": "./dist/src/record-concurrency.model.js"
+    },
+    "./record-diff": {
+      "browser": {
+        "types": "./dist/esm/record-diff.d.ts",
+        "default": "./dist/esm/record-diff.js"
+      },
+      "types": "./dist/src/record-diff.d.ts",
+      "default": "./dist/src/record-diff.js"
+    },
+    "./jsonata-helpers": {
+      "browser": {
+        "types": "./dist/esm/jsonata-helpers.d.ts",
+        "default": "./dist/esm/jsonata-helpers.js"
+      },
+      "types": "./dist/src/jsonata-helpers.d.ts",
+      "default": "./dist/src/jsonata-helpers.js"
+    },
+    "./html-helpers": {
+      "browser": {
+        "types": "./dist/esm/html-helpers.d.ts",
+        "default": "./dist/esm/html-helpers.js"
+      },
+      "types": "./dist/src/html-helpers.d.ts",
+      "default": "./dist/src/html-helpers.js"
+    },
+    "./date-format-helpers": {
+      "browser": {
+        "types": "./dist/esm/date-format-helpers.d.ts",
+        "default": "./dist/esm/date-format-helpers.js"
+      },
+      "types": "./dist/src/date-format-helpers.d.ts",
+      "default": "./dist/src/date-format-helpers.js"
+    },
+    "./package.json": "./package.json",
+    "./dist/src/*.js": "./dist/src/*.js",
+    "./dist/src/*": "./dist/src/*.js",
+    "./dist/*": "./dist/*"
   }
 }
