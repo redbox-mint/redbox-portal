@@ -17,7 +17,7 @@ import { createStorageManagerOcflStoreClass } from './flydriveOcflStore';
 import { createRootCollectionCrate } from './crate';
 import { runEffectProgram } from '../integration-v2/runtime';
 
-export const OniDatastreamServiceTag = Context.GenericTag<DatastreamService>('redbox/OniDatastreamService');
+export const OniDatastreamServiceTag = Context.Service<DatastreamService>('redbox/OniDatastreamService');
 
 export function makeOniDatastreamLayer(service: DatastreamService) {
   return Layer.succeed(OniDatastreamServiceTag, service);

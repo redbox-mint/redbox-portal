@@ -9,7 +9,7 @@ type TokenEntry = { token: string; expiresAt: number };
 const tokenCache = new Map<string, TokenEntry>();
 
 function interruptibleRequest<A, E>(run: (signal: AbortSignal) => Promise<A>, mapError: (error: unknown) => E): Effect.Effect<A, E> {
-  return Effect.async<A, E>(resume => {
+  return Effect.callback<A, E>(resume => {
     const controller = new AbortController();
     run(controller.signal).then(
       value => resume(Effect.succeed(value)),
