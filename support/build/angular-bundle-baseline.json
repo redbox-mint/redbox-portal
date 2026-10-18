@@ -1,0 +1,200 @@
+{
+  "baseCommit": "57c12dceeae5b6a8086a80bed8337fdfd74b71bf",
+  "implementationCommit": "90804c55562411c09b52fb1c8ce516365ebe4b22",
+  "environment": {
+    "angular": "22.2.0",
+    "node": "24.16.0",
+    "typescript": "6.0.3",
+    "angularLockSha256": "e3ed90eecb6fc82fbefa5d580381a151d3cc1730a83cc3c0210bb462f9dc54a6",
+    "sharedPackageLockSha256": "a0bf98934899280710bfad848fa51bae3779a9e44310144d1c5fa0323aa34cc2"
+  },
+  "measurement": "Raw initial JavaScript and CSS bytes, including all static imports once; lazy JS/CSS reported separately. Production builds with --stats-json.",
+  "budgetPolicy": {
+    "maximumWarningGrowthPercent": 5,
+    "maximumErrorGrowthPercent": 10,
+    "roundUpBytes": 10000
+  },
+  "integrationNote": "Isolated results retain the base CommonJS shared package and unchanged form source. Remeasure all apps and tighten budgets after merging the shared-package ESM and form performance changes.",
+  "applications": {
+    "local-auth": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1098837,
+      "initialBytes": 1053519,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1110kb",
+      "maximumError": "1160kb"
+    },
+    "export": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1378684,
+      "initialBytes": 1361802,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1430kb",
+      "maximumError": "1500kb"
+    },
+    "dashboard": {
+      "baseScriptsOptimized": false,
+      "baseInitialBytes": 3741707,
+      "initialBytes": 1031259,
+      "baseLazyBytes": 61338,
+      "lazyBytes": 43762,
+      "maximumWarning": "1090kb",
+      "maximumError": "1140kb"
+    },
+    "report": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1401667,
+      "initialBytes": 1383941,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1460kb",
+      "maximumError": "1530kb"
+    },
+    "report-config": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1029889,
+      "initialBytes": 987418,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1040kb",
+      "maximumError": "1090kb"
+    },
+    "manage-users": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1249041,
+      "initialBytes": 1212939,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1280kb",
+      "maximumError": "1340kb"
+    },
+    "record-audit": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1111872,
+      "initialBytes": 1089671,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1150kb",
+      "maximumError": "1200kb"
+    },
+    "admin-vocabulary": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1080919,
+      "initialBytes": 1045716,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1100kb",
+      "maximumError": "1160kb"
+    },
+    "admin-figshare-vocabulary": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1102615,
+      "initialBytes": 1060402,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1120kb",
+      "maximumError": "1170kb"
+    },
+    "dashboard-config-editor": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1141073,
+      "initialBytes": 1104240,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1160kb",
+      "maximumError": "1220kb"
+    },
+    "named-query-editor": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1087372,
+      "initialBytes": 1046192,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1100kb",
+      "maximumError": "1160kb"
+    },
+    "manage-roles": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1191598,
+      "initialBytes": 1155240,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1220kb",
+      "maximumError": "1280kb"
+    },
+    "form": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 3033754,
+      "initialBytes": 3034337,
+      "baseLazyBytes": 691337,
+      "lazyBytes": 691337,
+      "maximumWarning": "3190kb",
+      "maximumError": "3340kb"
+    },
+    "app-config": {
+      "baseScriptsOptimized": false,
+      "baseInitialBytes": 4438072,
+      "initialBytes": 1333017,
+      "baseLazyBytes": 61338,
+      "lazyBytes": 43762,
+      "maximumWarning": "1400kb",
+      "maximumError": "1470kb"
+    },
+    "deleted-records": {
+      "baseScriptsOptimized": false,
+      "baseInitialBytes": 4489456,
+      "initialBytes": 1418661,
+      "baseLazyBytes": 61338,
+      "lazyBytes": 43762,
+      "maximumWarning": "1490kb",
+      "maximumError": "1570kb"
+    },
+    "harvest-runs": {
+      "baseScriptsOptimized": false,
+      "baseInitialBytes": 3851670,
+      "initialBytes": 1090232,
+      "baseLazyBytes": 61338,
+      "lazyBytes": 43762,
+      "maximumWarning": "1150kb",
+      "maximumError": "1200kb"
+    },
+    "branding": {
+      "baseScriptsOptimized": false,
+      "baseInitialBytes": 4571584,
+      "initialBytes": 1378509,
+      "baseLazyBytes": 61338,
+      "lazyBytes": 43762,
+      "maximumWarning": "1450kb",
+      "maximumError": "1520kb"
+    },
+    "translation": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1561010,
+      "initialBytes": 1516051,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1600kb",
+      "maximumError": "1670kb"
+    },
+    "record-search": {
+      "baseScriptsOptimized": true,
+      "baseInitialBytes": 1027110,
+      "initialBytes": 1008194,
+      "baseLazyBytes": 43762,
+      "lazyBytes": 43762,
+      "maximumWarning": "1060kb",
+      "maximumError": "1110kb"
+    },
+    "siem-admin": {
+      "baseScriptsOptimized": false,
+      "baseInitialBytes": 3931530,
+      "initialBytes": 1093370,
+      "baseLazyBytes": 61338,
+      "lazyBytes": 43762,
+      "maximumWarning": "1150kb",
+      "maximumError": "1210kb"
+    }
+  }
+}

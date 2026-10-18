@@ -1,7 +1,12 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
-  (node_modules/.bin/ng b @researchdatabox/${1} --configuration production)
+  if [ "${ANGULAR_BUILD_STATS:-false}" == "true" ] && [ "$1" != "portal-ng-common" ] && [ "$1" != "portal-ng-form-custom" ]; then
+    node_modules/.bin/ng b "@researchdatabox/${1}" --configuration production --stats-json
+    node ../support/build/angular-bundle-stats.cjs "$1"
+  else
+    node_modules/.bin/ng b "@researchdatabox/${1}" --configuration production
+  fi
 }
 export NVM_DIR="$HOME/.nvm"
 [ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"

@@ -22,6 +22,9 @@ jobs:
       - run:
           name: Test Docker tag handling
           command: bash support/build/docker-build-vars.test.sh
+      - run:
+          name: Test Angular bundle stats accounting
+          command: node --test support/build/angular-bundle-stats.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
