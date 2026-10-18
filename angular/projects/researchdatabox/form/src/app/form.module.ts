@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-import { NgModule, isDevMode } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { BrowserModule, Title } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -68,7 +68,6 @@ import { TypeaheadModule } from 'ngx-bootstrap/typeahead';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { TypeaheadInputComponent } from './component/typeahead-input.component';
 import { RichTextEditorComponent } from './component/rich-text-editor.component';
-import { TiptapEditorDirective } from 'ngx-tiptap';
 import { MapComponent } from './component/map.component';
 import { FileUploadComponent } from './component/file-upload.component';
 import { PDFListComponent } from './component/pdf-list.component';
@@ -80,12 +79,11 @@ import { A11yModule } from '@angular/cdk/a11y';
 import { FieldErrorSummaryComponent } from './component/field-error-summary.component';
 import { ConfirmationDialogService } from './confirmation-dialog.service';
 import { ConfirmationDialogComponent } from './component/confirmation-dialog.component';
-import { FormDebugPanelComponent } from './form-debug/form-debug-panel.component';
-import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.component';
-import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
-import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
 import { RecordAuditLauncherComponent } from './record-audit/record-audit-launcher.component';
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
+
+// Angular replaces ngDevMode with false in optimized builds, removing the provider and its code.
+declare const ngDevMode: boolean;
 
 /**
  * Bootstrap-only form application hosted by the server-rendered edit/view
@@ -140,10 +138,6 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
     PublishDataLocationRefreshComponent,
     DataLocationComponent,
     PublishDataLocationSelectorComponent,
-    FormDebugPanelComponent,
-    FormDebugModelTabComponent,
-    FormDebugConfigTabComponent,
-    FormDebugEventsTabComponent,
     ConfirmationDialogComponent,
     FormConflictPresenterComponent,
     RecordAuditLauncherComponent,
@@ -155,7 +149,6 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
     RedboxPortalCoreModule,
     I18NextPipe,
     BrowserAnimationsModule,
-    TiptapEditorDirective,
     BsDatepickerModule,
     TypeaheadModule,
     A11yModule,
@@ -175,7 +168,7 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
     provideStore(),
     provideEffects(),
     provideFormFeature(),
-    provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
+    ...((typeof ngDevMode === 'undefined' || ngDevMode) ? [provideStoreDevtools({ maxAge: 25 })] : []),
   ],
   bootstrap: [FormComponent],
 })

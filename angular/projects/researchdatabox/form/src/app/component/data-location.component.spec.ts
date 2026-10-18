@@ -647,6 +647,7 @@ describe("DataLocationComponent", () => {
         component.onDraftTypeChange("attachment");
         component.updateDraftNotes("uploaded in test");
 
+        await component.openModal();
         fakeUppy.emit("upload-success", {
             name: "test.csv",
             type: "text/csv",
@@ -744,4 +745,27 @@ describe("DataLocationComponent", () => {
 
         expect(loggerService.error).toHaveBeenCalledWith("ensureTusHeadersContainCsrf: failed to load config for CSRF token", failure);
     });
+    it("does not load upload libraries for mounted manual locations", async () => {
+        const loader = spyOn<any>(DataLocationComponent.prototype, 'getUppyDependencies').and.callThrough();
+        const config: FormConfigFrame = {
+            name: 'manual-data-locations',
+            componentDefinitions: [{
+                name: 'dataLocations',
+                component: { class: 'DataLocationComponent' },
+                model: { class: 'DataLocationModel', config: { defaultValue: [] } },
+            }],
+        };
+        const { fixture } = await createFormAndWaitForReady(config, { oid: 'record-1', editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(DataLocationComponent)).componentInstance as DataLocationComponent;
+        component.onDraftTypeChange('url');
+        component.updateDraftLocation('https://example.org/data');
+        component.addLocation();
+        await fixture.whenStable();
+        expect(loader).not.toHaveBeenCalled();
+        expect(component.dataLocations.length).toBe(1);
+        await component.openModal();
+        expect(loader).toHaveBeenCalledTimes(1);
+        expect(fakeUppy.plugins['Dashboard'].openModal).toHaveBeenCalled();
+    });
+
 });

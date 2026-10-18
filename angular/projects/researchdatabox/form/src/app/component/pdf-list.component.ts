@@ -1,4 +1,4 @@
-import { Component, HostListener, Injector, Input, inject, signal, ChangeDetectionStrategy } from "@angular/core";
+import { Component, HostListener, Injector, Input, inject, signal, LOCALE_ID, ChangeDetectionStrategy } from "@angular/core";
 import { FormFieldBaseComponent, FormFieldCompMapEntry, FormFieldModel, HandlebarsTemplateService } from "@researchdatabox/portal-ng-common";
 import {
   DynamicScriptResponse, handlebarsTemplate,
@@ -12,7 +12,7 @@ import {
 import { FormComponent } from "../form.component";
 import { FormService } from "../form.service";
 import { escapeRegExp as _escapeRegExp, isArray as _isArray, isEmpty as _isEmpty, toNumber as _toNumber } from "lodash-es";
-import moment from "moment";
+import { DateTime } from "luxon";
 
 interface PDFListAttachmentView extends RecordAttachment {
     formattedDateUpdated: string;
@@ -57,6 +57,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
 
     private readonly injector = inject(Injector);
     private readonly formService = inject(FormService);
+    private readonly locale = inject(LOCALE_ID);
     private readonly handlebarsTemplateService = inject(HandlebarsTemplateService);
     private compiledItems?: DynamicScriptResponse;
     private fileNameTemplatePath: Array<string | number> = [];
@@ -236,12 +237,12 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
     private toAttachmentView(attachment: RecordAttachment, matchingExpression: RegExp = this.getGeneratedPdfLabelExpression()): PDFListAttachmentView {
         const timestampMs = this.getAttachmentTimestampMs(attachment, matchingExpression);
         const rawDate = String(attachment?.dateUpdated ?? "");
-        const parsed = moment(rawDate);
-        const parsedTimestamp = timestampMs > 0 ? moment(timestampMs) : null;
-        const displayDate = parsed.isValid() ? parsed : parsedTimestamp;
+        const parsed = this.parseAttachmentDate(rawDate);
+        const parsedTimestamp = timestampMs > 0 ? DateTime.fromMillis(timestampMs) : null;
+        const displayDate = parsed.isValid ? parsed : parsedTimestamp;
         return {
             ...attachment,
-            formattedDateUpdated: displayDate?.isValid() ? displayDate.format("LLL") : rawDate,
+            formattedDateUpdated: displayDate?.isValid ? displayDate.toFormat("DDD t", { locale: this.locale }) : rawDate,
             timestampMs,
         };
     }
@@ -253,8 +254,29 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
             return labelTimestampMs;
         }
 
-        const parsed = moment(String(attachment?.dateUpdated ?? ""));
-        return parsed.isValid() ? parsed.valueOf() : 0;
+        const parsed = this.parseAttachmentDate(String(attachment?.dateUpdated ?? ""));
+        return parsed.isValid ? parsed.toMillis() : 0;
+    }
+
+    private parseAttachmentDate(value: string): DateTime {
+        // ISO offsets are converted to local time, as with the previous Moment display.
+        const iso = DateTime.fromISO(value);
+        if (iso.isValid || !value) {
+            return iso;
+        }
+        const sql = DateTime.fromSQL(value);
+        if (sql.isValid) {
+            return sql;
+        }
+        if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+            return iso;
+        }
+        const rfc = DateTime.fromRFC2822(value);
+        if (rfc.isValid) {
+            return rfc;
+        }
+        // Retain legacy Date.toString()/HTTP dates without normalising invalid ISO dates.
+        return DateTime.fromJSDate(new Date(value));
     }
 
     private buildFileName(attachment: RecordAttachment, index: number): string {

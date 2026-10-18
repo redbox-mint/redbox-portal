@@ -235,6 +235,13 @@ describe("RichTextEditorComponent", () => {
 
     expect(formComponent.form?.controls["editableField"].value).toContain("<p>From source</p>");
     expect(richTextComponent.editor?.getHTML()).toContain("<p>From source</p>");
+
+    // Returning from source mode must remount the same editable document.
+    const editor = richTextComponent.editor;
+    toggleButton.click();
+    await fixture.whenStable();
+    expect(richTextComponent.editor).toBe(editor);
+    expect(compiled.querySelector('[contenteditable="true"]')?.textContent).toBe("From source");
   });
 
   it("syncs editor updates to formControl", async () => {
@@ -417,4 +424,88 @@ describe("RichTextEditorComponent", () => {
     await fixture.whenStable();
     expect(richTextComponent.editor?.isEditable).toBe(true);
   });
+  const editableConfig: FormConfigFrame = {
+    name: "lazy-editor",
+    componentDefinitions: [{
+      name: "description",
+      component: { class: "RichTextEditorComponent" },
+      model: { class: "RichTextEditorModel", config: { value: "<p>Saved description</p>" } },
+    }],
+  };
+
+  it("does not request editor dependencies for readonly HTML or hidden fields", async () => {
+    const loader = spyOn<any>(RichTextEditorComponent.prototype, "loadRuntime").and.callThrough();
+    const config = structuredClone(editableConfig);
+    config.componentDefinitions![0].component!.config = { readonly: true };
+    const { fixture } = await createFormAndWaitForReady(config, editModeProps);
+    expect(loader).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain("Saved description");
+    fixture.destroy();
+
+    config.componentDefinitions![0].component!.config = { visible: false };
+    const hidden = await createFormAndWaitForReady(config, editModeProps);
+    expect(loader).not.toHaveBeenCalled();
+    const component = hidden.fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    component.setProperty("visible", true);
+    await hidden.fixture.whenStable();
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(component.editor?.getHTML()).toContain("Saved description");
+
+    const editor = component.editor;
+    component.setProperty("visible", false);
+    await hidden.fixture.whenStable();
+    expect(hidden.fixture.nativeElement.querySelector('[contenteditable="true"]')).toBeNull();
+    component.setProperty("visible", true);
+    await hidden.fixture.whenStable();
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(component.editor).toBe(editor);
+    expect(hidden.fixture.nativeElement.querySelector('[contenteditable="true"]').textContent).toBe("Saved description");
+  });
+
+  it("uses the latest silent model update when editor loading is delayed", async () => {
+    const runtime = await import('./rich-text-editor.runtime');
+    let release!: (runtime: typeof import('./rich-text-editor.runtime')) => void;
+    let component!: RichTextEditorComponent;
+    let started!: () => void;
+    const loading = new Promise<void>(resolve => started = resolve);
+    const deferred = new Promise<typeof runtime>(resolve => release = resolve);
+    spyOn<any>(RichTextEditorComponent.prototype, "loadRuntime").and.callFake(function(this: RichTextEditorComponent) {
+      component = this;
+      started();
+      return deferred;
+    });
+    const ready = createFormAndWaitForReady(editableConfig, editModeProps);
+    await loading;
+    const control = (component as any).formControl;
+    control.setValue("<p>Updated during loading</p>", { emitEvent: false });
+    release(runtime);
+    await ready;
+    expect(component.editor?.getHTML()).toContain("Updated during loading");
+    expect(control.pristine).toBeTrue();
+  });
+
+  it("retains saved content after a load failure and explains how to recover", async () => {
+    spyOn<any>(RichTextEditorComponent.prototype, "loadRuntime").and.rejectWith(new Error("offline"));
+    const { fixture, formComponent } = await createFormAndWaitForReady(editableConfig, editModeProps);
+    const component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain("Unable to load rich text");
+    expect(formComponent.form?.get('description')?.value).toBe("<p>Saved description</p>");
+    expect(component.editorLoadFailed).toBeTrue();
+    expect(component.editor).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain("Save your changes and reload");
+    expect(formComponent.form?.get('description')?.pristine).toBeTrue();
+  });
+
+  it("does not create an editor after destruction during loading", async () => {
+    const runtime = await import('./rich-text-editor.runtime');
+    let component!: RichTextEditorComponent;
+    spyOn<any>(RichTextEditorComponent.prototype, "loadRuntime").and.callFake(function(this: RichTextEditorComponent) {
+      component = this;
+      this.ngOnDestroy();
+      return Promise.resolve(runtime);
+    });
+    await createFormAndWaitForReady(editableConfig, editModeProps);
+    expect(component.editor).toBeNull();
+  });
+
 });

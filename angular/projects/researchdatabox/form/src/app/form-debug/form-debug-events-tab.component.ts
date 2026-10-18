@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, ViewChild, effect, ChangeDetectionStrategy } from '@angular/core';
 import { FormDebugStateService } from './form-debug-state.service';
 
@@ -6,7 +7,8 @@ import { FormDebugStateService } from './form-debug-state.service';
   templateUrl: './form-debug-events-tab.component.html',
   styleUrls: ['./form-debug-events-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  imports: [CommonModule],
+  standalone: true
 })
 export class FormDebugEventsTabComponent implements AfterViewInit {
   @ViewChild('debugEventListContainer', { read: ElementRef, static: false })

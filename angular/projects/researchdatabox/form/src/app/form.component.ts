@@ -18,6 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import {
   Component,
+  DestroyRef,
+  PendingTasks,
+  Type,
   effect,
   ElementRef,
   HostBinding,
@@ -288,6 +291,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   componentsLoaded = signal<boolean>(false);
   readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
+  public readonly debugPanelComponent = signal<Type<unknown> | null>(null);
+  private debugPanelLoading = false;
+  private readonly debugPanelPendingTasks = inject(PendingTasks);
+  private readonly debugPanelDestroyRef = inject(DestroyRef);
   private readonly serverSyncService = inject(FormServerSyncService);
   private readonly recordBaselineState = signal<FormRecordBaselineState | null>(null);
   public readonly recordBaseline = this.recordBaselineState.asReadonly();
@@ -436,6 +443,24 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     this.refreshRequestParamsFromUrl();
     this.initEffects();
+    effect(() => {
+      if (this.debugState.isDebugEnabled() && this.componentsLoaded() &&
+          this.componentDefArr.length > 0 && !this.debugPanelComponent() && !this.debugPanelLoading) {
+        this.debugPanelLoading = true;
+        void this.debugPanelPendingTasks.run(async () => {
+          try {
+            const { FormDebugPanelComponent } = await import('./form-debug/form-debug-panel.component');
+            if (!this.debugPanelDestroyRef.destroyed) {
+              this.debugPanelComponent.set(FormDebugPanelComponent);
+            }
+          } catch (error) {
+            this.loggerService.warn('Unable to load form debug panel.', error);
+          } finally {
+            this.debugPanelLoading = false;
+          }
+        });
+      }
+    });
   }
 
   protected async initComponent(): Promise<void> {

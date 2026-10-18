@@ -24,6 +24,9 @@ class FakeUppy {
                 })
             };
         }
+        if (pluginName.includes("Dashboard")) {
+            this.plugins["Dashboard"] = { openModal: jasmine.createSpy("openModal") };
+        }
         return this;
     }
 
@@ -56,7 +59,7 @@ describe("FileUploadComponent", () => {
             UppyCtor: function () {
                 return fakeUppy;
             },
-            DashboardPlugin: FakePlugin,
+            DashboardPlugin: function DashboardPlugin() { return {}; },
             TusPlugin: function TusPlugin() {
                 return {};
             },
@@ -134,6 +137,7 @@ describe("FileUploadComponent", () => {
 
         const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
 
+        await fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance.openModal();
         expect(fakeUppy.handlers["upload-success"]?.length).toBe(1);
         fakeUppy.emit("upload-success", {
             name: "test.csv",
@@ -182,8 +186,9 @@ describe("FileUploadComponent", () => {
             ]
         };
 
-        await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
 
+        await fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance.openModal();
         const headers = (fakeUppy.plugins["Tus"]?.opts?.headers ?? {}) as Record<string, string>;
         expect(headers["Authorization"]).toBe("Bearer abc");
         expect(headers["X-CSRF-Token"]).toBe("testCsrfValue");
@@ -211,7 +216,8 @@ describe("FileUploadComponent", () => {
             ]
         };
 
-        await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        await fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance.openModal();
         fakeUppy.emit("upload", "upload-local-1", [{ id: "local-1", isRemote: false }]);
 
         const endpoint = String(fakeUppy.plugins["Tus"]?.opts?.endpoint ?? "");
@@ -241,7 +247,8 @@ describe("FileUploadComponent", () => {
             ]
         };
 
-        await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        await fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance.openModal();
         fakeUppy.emit("upload", "upload-remote-1", [{ id: "remote-1", isRemote: true }]);
 
         const endpoint = String(fakeUppy.plugins["Tus"]?.opts?.endpoint ?? "");
@@ -325,6 +332,7 @@ describe("FileUploadComponent", () => {
         };
 
         const { fixture } = await createFormAndWaitForReady(formConfig, { oid: "", editMode: true } as any);
+        await fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance.openModal();
         fixture.destroy();
         expect(fakeUppy.destroy).toHaveBeenCalled();
     });
@@ -363,4 +371,70 @@ describe("FileUploadComponent", () => {
         const link = component.getLocationLink(attachment as any);
         expect(link).toBe("http://mock.com/branding/portal/record/oid-123/attach/file-abc");
     });
+    const uploadConfig: FormConfigFrame = {
+        name: "lazy-upload",
+        componentDefinitions: [{
+            name: "attachments",
+            component: { class: "FileUploadComponent", config: { allowUploadWithoutSave: true } },
+            model: { class: "FileUploadModel", config: { defaultValue: [] } },
+        }],
+    };
+
+    it("keeps the uploader unloaded through mounting and first save", async () => {
+        const loader = spyOn<any>(FileUploadComponent.prototype, "getUppyDependencies").and.callThrough();
+        const { fixture } = await createFormAndWaitForReady(uploadConfig, { oid: "", editMode: true } as any);
+        TestBed.inject(FormComponentEventBus).publish(createFormSaveSuccessEvent({ oid: "saved-oid" }));
+        await fixture.whenStable();
+        expect(loader).not.toHaveBeenCalled();
+        expect(fakeUppy.handlers["upload-success"]).toBeUndefined();
+    });
+
+    it("shares a delayed load, then opens with the current record and CSRF headers", async () => {
+        const deps = (globalThis as any).__redboxFileUploadUppyDeps;
+        let release!: (value: any) => void;
+        const loader = spyOn<any>(FileUploadComponent.prototype, "getUppyDependencies")
+            .and.returnValue(new Promise(resolve => release = resolve));
+        const { fixture, formComponent } = await createFormAndWaitForReady(uploadConfig, { oid: "", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance as FileUploadComponent;
+        const first = component.openModal();
+        const second = component.openModal();
+        expect(component.isAttachmentButtonDisabled()).toBeTrue();
+        formComponent.oid.set("saved-while-loading");
+        release(deps);
+        await Promise.all([first, second]);
+        expect(loader).toHaveBeenCalledTimes(1);
+        expect(fakeUppy.plugins["Tus"].opts.endpoint).toContain("/record/saved-while-loading/attach");
+        expect(fakeUppy.plugins["Tus"].opts.headers["X-CSRF-Token"]).toBe("testCsrfValue");
+        expect(component.loadingUploader).toBeFalse();
+    });
+
+    it("handles a transient loader failure without changing attachments", async () => {
+        const loader = spyOn<any>(FileUploadComponent.prototype, "getUppyDependencies").and.rejectWith(new Error("offline"));
+        const { fixture } = await createFormAndWaitForReady(uploadConfig, { oid: "record-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance as FileUploadComponent;
+        await component.openModal();
+        await fixture.whenStable();
+        expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain("Unable to load attachments");
+        expect(component.attachments).toEqual([]);
+        expect(component.isAttachmentButtonDisabled()).toBeFalse();
+        loader.and.callThrough();
+        await component.openModal();
+        expect(fakeUppy.plugins["Dashboard"].openModal).toHaveBeenCalled();
+        expect(component.uploadLoadFailed).toBeFalse();
+    });
+
+    it("does not create an uploader after destruction during loading", async () => {
+        const deps = (globalThis as any).__redboxFileUploadUppyDeps;
+        let release!: (value: any) => void;
+        spyOn<any>(FileUploadComponent.prototype, "getUppyDependencies")
+            .and.returnValue(new Promise(resolve => release = resolve));
+        const { fixture } = await createFormAndWaitForReady(uploadConfig, { oid: "record-1", editMode: true } as any);
+        const component = fixture.debugElement.query(By.directive(FileUploadComponent)).componentInstance as FileUploadComponent;
+        const pending = component.openModal();
+        fixture.destroy();
+        release(deps);
+        await pending;
+        expect(fakeUppy.handlers["upload-success"]).toBeUndefined();
+    });
+
 });
