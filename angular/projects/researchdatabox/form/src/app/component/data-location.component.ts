@@ -438,6 +438,9 @@ export class DataLocationComponent extends FormFieldBaseComponent<DataLocationMo
         }
 
         this.uppy.on("upload-success", (file: UppyFile<UppyMeta, UppyBody> | undefined, response: UppySuccessResponse) => {
+            if (this.destroyed) {
+                return;
+            }
             const uploadUrl = this.resolveUploadUrl(response);
             const fileId = this.extractFileId(uploadUrl);
             const oidForUpload = this.resolveOidForUpload();

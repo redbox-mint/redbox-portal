@@ -1,4 +1,5 @@
 import { TestBed } from "@angular/core/testing";
+import { PendingTasks } from "@angular/core";
 import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule, type FormComponentProps } from "../helpers.spec";
@@ -428,7 +429,7 @@ describe("RichTextEditorComponent", () => {
     name: "lazy-editor",
     componentDefinitions: [{
       name: "description",
-      component: { class: "RichTextEditorComponent" },
+      component: { class: "RichTextEditorComponent", config: {} },
       model: { class: "RichTextEditorModel", config: { value: "<p>Saved description</p>" } },
     }],
   };
@@ -496,6 +497,93 @@ describe("RichTextEditorComponent", () => {
     expect(formComponent.form?.get('description')?.pristine).toBeTrue();
   });
 
+  for (const property of ['visible', 'readonly', 'disabled'] as const) {
+    it(`respects ${property} changes during loading and resumes with the current value`, async () => {
+      const runtime = await import('./rich-text-editor.runtime');
+      let component!: RichTextEditorComponent;
+      let release!: (value: typeof runtime) => void;
+      let started!: () => void;
+      const loading = new Promise<void>(resolve => started = resolve);
+      const deferred = new Promise<typeof runtime>(resolve => release = resolve);
+      const loader = spyOn<any>(RichTextEditorComponent.prototype, 'loadRuntime').and.callFake(function(this: RichTextEditorComponent) {
+        component = this;
+        started();
+        return deferred;
+      });
+      const config = structuredClone(editableConfig);
+      config.componentDefinitions![0].component!.config = { visible: false };
+      const { fixture } = await createFormAndWaitForReady(config, editModeProps);
+      component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+      component.setProperty('visible', true);
+      await loading;
+      component.setProperty(property, property !== 'visible');
+      component.model!.formControl!.setValue('<p>Updated while waiting</p>', { emitEvent: false });
+      release(runtime);
+      await fixture.whenStable();
+      expect(component.editor).toBeNull();
+      expect(fixture.nativeElement.querySelector('[contenteditable="true"]')).toBeNull();
+
+      component.setProperty(property, property === 'visible');
+      await fixture.whenStable();
+      expect(component.editor?.getHTML()).toBe('<p>Updated while waiting</p>');
+      expect(component.editor?.isEditable).toBeTrue();
+      expect(component.model!.formControl!.pristine).toBeTrue();
+      expect(loader).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('restores editing after readonly and disabled state changes without a render loop', async () => {
+    const { fixture } = await createFormAndWaitForReady(editableConfig, editModeProps);
+    const component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    component.setProperty('readonly', true);
+    component.setDisabled(false);
+    await fixture.whenStable();
+    expect(component.editor?.isEditable).toBeFalse();
+    component.setProperty('readonly', false);
+    await fixture.whenStable();
+    expect(component.editor?.isEditable).toBeTrue();
+    const render = spyOn(component, 'requestRender').and.callThrough();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(render).not.toHaveBeenCalled();
+    component.editor!.commands.insertContent('User edit');
+    await fixture.whenStable();
+    expect(component.model!.formControl!.value).toContain('User edit');
+  });
+
+  it('keeps an empty stored value pristine through readonly and disabled transitions', async () => {
+    const config = structuredClone(editableConfig);
+    config.componentDefinitions![0].model!.config = { value: '<p></p>' };
+    const { fixture } = await createFormAndWaitForReady(config, editModeProps);
+    const component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    const control = component.model!.formControl!;
+    component.setDisabled(true);
+    await fixture.whenStable();
+    component.setDisabled(false);
+    component.setProperty('readonly', true);
+    await fixture.whenStable();
+    component.setProperty('readonly', false);
+    await fixture.whenStable();
+    expect(control.value).toBe('<p></p>');
+    expect(control.pristine).toBeTrue();
+    expect(control.untouched).toBeTrue();
+    expect(component.editor?.isEditable).toBeTrue();
+  });
+
+  it('persists the first user edit after a silent model update to equivalent empty content', async () => {
+    const config = structuredClone(editableConfig);
+    config.componentDefinitions![0].model!.config = { value: '' };
+    const { fixture } = await createFormAndWaitForReady(config, editModeProps);
+    const component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    const control = component.model!.formControl!;
+    control.setValue('<p></p>', { emitEvent: false });
+    await component.syncDisplayFromModel();
+    component.editor!.commands.insertContent('First user edit');
+    await fixture.whenStable();
+    expect(control.value).toBe('<p>First user edit</p>');
+    expect(control.dirty).toBeTrue();
+  });
+
   it("does not create an editor after destruction during loading", async () => {
     const runtime = await import('./rich-text-editor.runtime');
     let component!: RichTextEditorComponent;
@@ -506,6 +594,37 @@ describe("RichTextEditorComponent", () => {
     });
     await createFormAndWaitForReady(editableConfig, editModeProps);
     expect(component.editor).toBeNull();
+  });
+
+  it('releases the Angular pending task when destroyed before a stalled download finishes', async () => {
+    const runtime = await import('./rich-text-editor.runtime');
+    let release!: (value: typeof runtime) => void;
+    let started!: () => void;
+    const loading = new Promise<void>(resolve => started = resolve);
+    const deferred = new Promise<typeof runtime>(resolve => release = resolve);
+    spyOn<any>(RichTextEditorComponent.prototype, 'loadRuntime').and.callFake(() => {
+      started();
+      return deferred;
+    });
+    const config = structuredClone(editableConfig);
+    config.componentDefinitions![0].component!.config = { visible: false };
+    const { fixture } = await createFormAndWaitForReady(config, editModeProps);
+    const component = fixture.debugElement.query(By.directive(RichTextEditorComponent)).componentInstance as RichTextEditorComponent;
+    const tasks = TestBed.inject(PendingTasks);
+    const addTask = tasks.add.bind(tasks);
+    const removeTask = jasmine.createSpy('remove pending editor task');
+    spyOn(tasks, 'add').and.callFake(() => {
+      removeTask.and.callFake(addTask());
+      return removeTask;
+    });
+    component.setProperty('visible', true);
+    await loading;
+    fixture.destroy();
+    expect(removeTask).toHaveBeenCalledTimes(1);
+    release(runtime);
+    await deferred;
+    expect(component.editor).toBeNull();
+    expect(removeTask).toHaveBeenCalledTimes(1);
   });
 
 });

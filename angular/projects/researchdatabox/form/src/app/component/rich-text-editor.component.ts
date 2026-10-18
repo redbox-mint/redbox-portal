@@ -221,6 +221,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   private destroyed = false;
   private configured = false;
   private readonly pendingTasks = inject(PendingTasks);
+  private editorTaskCleanup?: () => void;
   private valueSyncSub?: Subscription;
 
   @ViewChild('editorSurface')
@@ -237,12 +238,19 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   }
 
   ngDoCheck(): void {
-    if (this.runtime && !this.editor && !this.isReadonly && !this.editorLoadFailed && !this.destroyed) {
+    if (this.runtime && this.isVisible && !this.editor && !this.isReadonly && !this.editorLoadFailed && !this.destroyed) {
       this.createEditor(this.formControl.value ?? '');
+    }
+    if (this.editor) {
+      const editable = !this.isReadonly && !this.isDisabled;
+      if (this.editor.isEditable !== editable) {
+        this.editor.setEditable(editable, false);
+      }
     }
     if (this.configured && this.isVisible && (!this.isReadonly || this.outputFormat === 'markdown') &&
         !this.runtime && !this.editorLoading && !this.editorLoadFailed && !this.destroyed) {
-      void this.pendingTasks.run(() => this.loadEditor());
+      this.editorTaskCleanup = this.pendingTasks.add();
+      void this.loadEditor();
     }
   }
 
@@ -262,7 +270,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
       // Model/expression updates may have arrived while the chunk was loading.
       const value = this.formControl.value ?? '';
       this.applyViewValue(value);
-      if (!this.isReadonly) {
+      if (this.isVisible && !this.isReadonly) {
         this.createEditor(value);
       }
     } catch (error) {
@@ -273,6 +281,8 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     } finally {
       this.editorLoading = false;
       this.requestRender();
+      this.editorTaskCleanup?.();
+      this.editorTaskCleanup = undefined;
     }
   }
   private markdownViewEditor: Editor | null = null;
@@ -343,15 +353,15 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     if (value === this.getEditorValue(this.editor)) {
       return;
     }
-    // Guard the onUpdate handler that setContent triggers from writing back to the control.
-    this.skipNextSync = true;
+    // Display synchronisation must not wait for an update event: Tiptap omits
+    // that event when the new value parses to the document it already holds.
     this.setEditorValue(value);
   }
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
     if (this.editor) {
-      this.editor.setEditable(!this.isReadonly && !this.isDisabled);
+      this.editor.setEditable(!this.isReadonly && !this.isDisabled, false);
     }
   }
 
@@ -461,6 +471,8 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.editorTaskCleanup?.();
+    this.editorTaskCleanup = undefined;
     this.valueSyncSub?.unsubscribe();
     this.editor?.destroy();
     this.editor = null;
@@ -530,6 +542,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     }
     this.editor.commands.setContent(value, {
       contentType: this.outputFormat === 'markdown' ? 'markdown' : 'html',
+      emitUpdate: false,
     });
   }
 
