@@ -1,3 +1,138 @@
+Independent-review remediation validation (F1/F2/F3)
+Validated source commit: a77d3399216688e894356ad747a04ae30b949abc
+Follow-up measurements recorded at: 2026-10-18T10:43:10Z
+Base for this remediation: 4ee2397e2eeeee366ce2b59b95d6e805913ae7c8
+Environment: Node 24.16.0, Angular 22.2.0, TypeScript 6.0.3
+Angular lock SHA256: dd44dc849169ff9f89fde4da7b5ae4a409c642e7d5b6e17edf7c02bcc4e3d7d1
+Shared-package lock SHA256: 7c379f01bb98e07b32adcb629c90baa2d3f415d7c0d5a454181e9a57873cf96f
+
+Changes:
+  F1: Component generator registers model/outline exports in shared.ts. Regression
+      uses the actual index/browser/runtime/shared barrels and TypeScript export
+      symbols to prove value and type declarations reach all entrypoints exactly
+      once after repeated generation. The package README and distributed skill
+      now name shared.ts; no other generator assumed this shared-package index.
+  F2: ReportService has providedIn: 'root'; the explicit ReportsModule provider is
+      retained. A custom component consumes real report and record services with
+      the lean form modules and renders a mocked report response. Core CSRF,
+      translation, legacy feature-module and service tests remain passing.
+  F3: Custom institution libraries count against the same 1760kb/1840kb form
+      warning/error limits. Institutions must measure their own production build
+      with BUILD_PORTAL_NG_FORM_CUSTOM=true and explicitly review/update form
+      budgets when necessary. The fresh production helper and stats gate remain
+      mandatory. No default increase, bypass, lock or wiki-submodule change.
+
+Preparation and fresh production gate:
+  Existing dependencies and shared-package dist reused; shared source and both
+  relevant lockfiles are unchanged. No install or worktree creation was performed;
+  no other stack was changed. All outputs below were rebuilt in the shared checkout.
+  PATH=/home/ubuntu/.nvm/versions/node/v24.16.0/bin:$PATH
+  NG_BUILD_MAX_WORKERS=2 NG_PERSISTENT_BUILD_CACHE=0 ANGULAR_BUILD_STATS=true
+  In angular/:
+    node_modules/.bin/ng build @researchdatabox/portal-ng-common --configuration production
+    node_modules/.bin/ng build @researchdatabox/portal-ng-form-custom --configuration production
+  Both libraries: PASS. Custom library is the shipped placeholder.
+  Sourced the actual buildAngularApp function without the install wrapper:
+    source <(sed '/^export NVM_DIR/,$d' ../support/build/compileProductionAngular.sh)
+  Enumerated all projectType=application projects from angular.json; for EACH:
+    buildAngularApp <app>
+    node ../support/build/angular-bundle-stats.cjs <app>
+  This executes ng b @researchdatabox/<app> --configuration production --stats-json
+  --delete-output-path=true followed immediately by the mandatory stats checker.
+  All 20 helper invocations, reports and the final 20-app consistency audit: PASS.
+  Retained stats and per-app logs are in /tmp/redbox-opus-production/ for this run.
+
+Fresh measured raw bytes and local gzip estimates (not network transfer):
+PASS local-auth: JS=486260, CSS=0, initial=486260, lazy=43504, gzip=148584; delta initial=0, lazy=0, gzip=0; warning=false
+PASS export: JS=778663, CSS=18670, initial=797333, lazy=43504, gzip=224339; delta initial=0, lazy=0, gzip=0; warning=false
+PASS dashboard: JS=509584, CSS=0, initial=509584, lazy=43504, gzip=158735; delta initial=0, lazy=0, gzip=0; warning=false
+PASS report: JS=836967, CSS=18670, initial=855637, lazy=43504, gzip=242143; delta initial=18, lazy=0, gzip=0; warning=false
+PASS report-config: JS=420420, CSS=34, initial=420454, lazy=43504, gzip=130219; delta initial=0, lazy=0, gzip=0; warning=false
+PASS manage-users: JS=639795, CSS=6050, initial=645845, lazy=43504, gzip=198729; delta initial=0, lazy=0, gzip=0; warning=true
+PASS record-audit: JS=526513, CSS=39, initial=526552, lazy=43504, gzip=158983; delta initial=0, lazy=0, gzip=0; warning=true
+PASS admin-vocabulary: JS=478091, CSS=99, initial=478190, lazy=43504, gzip=144342; delta initial=0, lazy=0, gzip=0; warning=false
+PASS admin-figshare-vocabulary: JS=491603, CSS=768, initial=492371, lazy=43504, gzip=145742; delta initial=0, lazy=0, gzip=2; warning=false
+PASS dashboard-config-editor: JS=524453, CSS=11871, initial=536324, lazy=43504, gzip=156340; delta initial=0, lazy=0, gzip=0; warning=true
+PASS named-query-editor: JS=476990, CSS=1458, initial=478448, lazy=43504, gzip=143074; delta initial=0, lazy=0, gzip=0; warning=false
+PASS manage-roles: JS=588751, CSS=0, initial=588751, lazy=43504, gzip=186690; delta initial=0, lazy=0, gzip=0; warning=true
+PASS form: JS=1564161, CSS=105552, initial=1669713, lazy=1565866, gzip=445004; delta initial=0, lazy=0, gzip=0; warning=false
+PASS app-config: JS=755239, CSS=8281, initial=763520, lazy=43504, gzip=216251; delta initial=0, lazy=0, gzip=0; warning=false
+PASS deleted-records: JS=876428, CSS=18670, initial=895098, lazy=43504, gzip=252925; delta initial=0, lazy=0, gzip=0; warning=false
+PASS harvest-runs: JS=522565, CSS=0, initial=522565, lazy=43504, gzip=157533; delta initial=0, lazy=0, gzip=0; warning=false
+PASS branding: JS=808571, CSS=76, initial=808647, lazy=43504, gzip=228233; delta initial=0, lazy=0, gzip=0; warning=false
+PASS translation: JS=948658, CSS=503, initial=949161, lazy=43504, gzip=297109; delta initial=0, lazy=0, gzip=0; warning=false
+PASS record-search: JS=441095, CSS=0, initial=441095, lazy=43504, gzip=137632; delta initial=0, lazy=0, gzip=0; warning=false
+PASS siem-admin: JS=530567, CSS=0, initial=530567, lazy=43504, gzip=158750; delta initial=0, lazy=0, gzip=0; warning=false
+PASS all 20 initial outputs exclude the Handlebars compiler/parser; only report retains ReportService; form editor/upload runtimes remain deferred.
+
+  Form initial JS=1564161, CSS=105552, total=1669713, lazy=1565866, gzip=445004:
+  unchanged in every measured field. Initial Uppy CSS remains included as before;
+  editor/upload JavaScript remains lazy. Form built-in dependencies also pass the
+  targeted regressions below. This does not establish external-library fit.
+  Report initial JS grew 18 bytes (836949 -> 836967), initial total 855619 ->
+  855637; gzip is unchanged. Admin-figshare-vocabulary gzip grew 2 bytes
+  (145740 -> 145742) with no raw-size change. All other measurements unchanged.
+  Machine baseline updated with all 20 fresh results and this source commit.
+  Every budget is unchanged. All error limits pass; the same four original
+  warnings remain (manage-users, record-audit, dashboard-config-editor, manage-roles).
+  Emitted report API error strings occur only in the report app, providing a
+  direct check that ReportService is removed from unused apps including form.
+  Initial JS contribution audit found no Handlebars compiler/parser in any app.
+
+Tests and checks:
+  In packages/redbox-dev-tools/:
+    TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ../../node_modules/mocha/bin/_mocha --config .mocharc.js --exit 'test/**/*.test.ts'
+    PASS: 52 tests (entire dev-tools suite).
+    TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register ../../node_modules/mocha/bin/_mocha --no-config --exit --timeout 5000 'test/generators/*.test.ts'
+    PASS: 23 generator tests after final test typing/formatting, including 3 form-component tests.
+  From repository root:
+    node_modules/.bin/tsc -p packages/redbox-dev-tools/tsconfig.json --noEmit
+    PASS.
+    node --test support/build/angular-bundle-stats.test.cjs
+    PASS: 8 tests.
+    node_modules/.bin/prettier --check packages/redbox-dev-tools/src/generators/form-component.ts packages/redbox-dev-tools/test/generators/form-component.test.ts
+    PASS.
+    node_modules/.bin/oxlint packages/redbox-dev-tools/src/generators/form-component.ts angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts angular/projects/researchdatabox/portal-ng-common/src/lib/portal-modules.spec.ts
+    PASS (configured lint rules ignore the spec file).
+    git diff --check
+    PASS.
+  In angular/, CI=true, the Node/build settings above and
+  CHROME_BIN=/home/ubuntu/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux-arm64/chrome-headless-shell:
+    node_modules/.bin/ng test @researchdatabox/portal-ng-common --watch=false --progress=false --browsers=ChromeHeadlessNoSandbox --karma-config=/tmp/redbox-opus-portal-ng-common-karma.cjs
+    PASS: 130 common-library tests, including the added custom-form root DI case.
+    node_modules/.bin/ng test @researchdatabox/report --watch=false --progress=false --browsers=ChromeHeadlessNoSandbox --karma-config=/tmp/redbox-opus-report-karma.cjs
+    PASS: 1 report-app test.
+    node_modules/.bin/ng test @researchdatabox/form --watch=false --progress=false --browsers=ChromeHeadlessNoSandbox --karma-config=/tmp/redbox-opus-form-karma.cjs --include=projects/researchdatabox/form/src/app/form.component.spec.ts --include=projects/researchdatabox/form/src/app/form-component.integration.spec.ts
+    PASS: 94 targeted form tests.
+  Temporary Karma wrappers only load the standard project config and set its
+  absolute basePath plus separate ports 9888 (common), 9889 (form), 9890 (report).
+
+Validation limits and additional findings:
+  - The first npm test attempt in dev-tools could not find its package-local Mocha
+    executable; the identical configured suite passed via the existing root Mocha
+    executable above. No dependency install was used to work around this.
+  - The F1 regression uses actual entrypoint/export files and existing isolated
+    dictionary/visitor fixtures. A broader full-source fixture probe exposed older
+    generator drift before reaching exports: updateSailsNgCommonDictionaries
+    expects a standalone four-space semicolon, whereas current AllTypes ends on
+    the last member's line. Several concrete-visitor generator paths also still
+    name sails-ng-common/src/config/visitor, although those visitors live in
+    redbox-core/src/visitor. Those independent generator issues are unchanged;
+    full current-repository generation is not claimed by the focused regression.
+  - Existing Angular builder deprecations, CommonJS and component-style warnings
+    were not suppressed. A form-test loading.svg 404 did not fail any test.
+  - No new full-package 411-test run, prior 152-case form selection, seven-case
+    production-browser run, full Playwright run or Docker/CircleCI execution is
+    claimed here. Their earlier evidence is historical, retained below.
+  - No external institution library was available for measurement. The documented
+    policy requires its own reviewed production measurement and limits.
+  - The implementation commit above was self-reviewed; the parent will review
+    the diff and start the next independent review. No Opus task was launched.
+
+Historical integrated validation follows verbatim; its ReportService migration
+concern is superseded by F2 and the fresh tests/measurements above.
+===============================================================================
+
 Angular bundle remediation validation
 Validated source commit: 6a44388eb49019b3d6353b780eb512fcb8f481ed
 Includes original integrated ESM/deferred form/module work plus:

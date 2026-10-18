@@ -32,6 +32,12 @@ The final combined form and login measurements are:
 | form | 2,928,202 + 105,552 = 3,033,754 | 1,564,161 + 105,552 = 1,669,713 | 445,004 |
 | local-auth (login) | 1,098,837 + 0 = 1,098,837 | 486,260 + 0 = 486,260 | 148,584 |
 
+All 20 apps were rebuilt after restoring the `ReportService` root provider. Form
+and login sizes are unchanged; report initial JS grew by 18 bytes, and the
+admin-figshare-vocabulary gzip estimate grew by 2 bytes with unchanged raw size.
+The baseline records the validated source commit and follow-up measurement time;
+the validation log preserves the earlier measurements separately.
+
 Error thresholds allow approximately 10% growth from the final initial total,
 rounded up to 10 kB. Warning thresholds allow approximately 5%, with the same
 rounding, capped at the **original** warning target. Existing 500 kB targets are

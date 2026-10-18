@@ -14,7 +14,7 @@
     "roundUpBytes": 10000,
     "preserveOriginalWarnings": true
   },
-  "integrationNote": "All 20 applications remeasured together. Original and isolated CommonJS measurements retained separately; current initialBytes/lazyBytes and limits are final combined measurements. Original warning targets cap the calculated 5% warning margin; remaining warning regressions are recorded rather than relaxed.",
+  "integrationNote": "All 20 applications rebuilt and remeasured together after the ReportService root-provider compatibility fix. Original and isolated CommonJS measurements are retained separately. Current initial/lazy/gzip fields describe this follow-up; limits are unchanged. Compared with the prior combined measurement, report initial JS grew by 18 bytes and admin-figshare-vocabulary initial gzip grew by 2 bytes; all other measured sizes are unchanged. Original warning targets still cap the calculated 5% warning margin.",
   "applications": {
     "local-auth": {
       "baseScriptsOptimized": true,
@@ -75,8 +75,8 @@
       "baseLazyBytes": 43762,
       "isolatedInitialBytes": 1383941,
       "isolatedLazyBytes": 43762,
-      "initialBytes": 855619,
-      "initialJsBytes": 836949,
+      "initialBytes": 855637,
+      "initialJsBytes": 836967,
       "initialCssBytes": 18670,
       "initialGzipBytes": 242143,
       "lazyBytes": 43504,
@@ -163,7 +163,7 @@
       "initialBytes": 492371,
       "initialJsBytes": 491603,
       "initialCssBytes": 768,
-      "initialGzipBytes": 145740,
+      "initialGzipBytes": 145742,
       "lazyBytes": 43504,
       "originalMaximumWarning": "500kb",
       "originalMaximumError": "10mb",
@@ -369,7 +369,7 @@
     "angularLockSha256": "e3ed90eecb6fc82fbefa5d580381a151d3cc1730a83cc3c0210bb462f9dc54a6",
     "sharedPackageLockSha256": "a0bf98934899280710bfad848fa51bae3779a9e44310144d1c5fa0323aa34cc2"
   },
-  "finalSourceCommit": "6a44388eb49019b3d6353b780eb512fcb8f481ed",
-  "measuredAtUtc": "2026-10-18T09:28:08.140Z",
-  "finalSourceNote": "Integrated original ESM/deferred form/module split, module/stats fixes c0e6da398, shared runtime remediation 9ce96953a, explicit GeoJSON types 778d83333, form lifecycle remediation cb455347b, debug-panel task cleanup 2ad2d319a, and root-lock-only installation fix a6555c678. Owner commits cherry-picked without source edits by build owner. Form rebuilt after the final debug-panel change; other apps do not consume form sources. Root-lock-only follow-up does not change Angular/shared-package dependency locks or emitted runtime code."
+  "finalSourceCommit": "a77d3399216688e894356ad747a04ae30b949abc",
+  "measuredAtUtc": "2026-10-18T10:43:10Z",
+  "finalSourceNote": "Follow-up to the combined measurement at 6a44388eb49019b3d6353b780eb512fcb8f481ed. Includes component-generator shared exports, ReportService tree-shakeable root DI with the explicit reports module provider retained, and strict institutional custom-library budget documentation. Both Angular libraries and all 20 applications were rebuilt through the fresh production/stats gate. Angular/shared-package source locks are unchanged; existing dependencies and unchanged shared-package dist were reused without installs. The validation log preserves the earlier combined results separately."
 }
