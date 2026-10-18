@@ -19,6 +19,11 @@ Add only the features the app uses:
 The feature modules use the core providers from the app's root injector. Existing
 forms and custom hooks can keep importing `RedboxPortalCoreModule`: it retains the
 original providers and exported translation, table, sorting and pagination UI.
+As before, the compatibility module imports `BrowserModule` and `FormsModule`
+internally without re-exporting their directives. Hooks using browser/common or
+template-driven form directives must still import the relevant Angular modules.
+The built-in form app uses core services and records without the report or
+record-table features.
 Rebuild this library before building apps against new exports.
 
 

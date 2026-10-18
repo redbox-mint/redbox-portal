@@ -22,7 +22,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
 import {
   I18NextPipe,
-  RedboxPortalCoreModule,
+  RedboxPortalCoreServicesModule,
+  RedboxPortalRecordsModule,
   trimLastSlashFromUrl,
   RecordAuditModule,
 } from '@researchdatabox/portal-ng-common';
@@ -146,7 +147,8 @@ declare const ngDevMode: boolean;
     CommonModule,
     BrowserModule,
     ReactiveFormsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
+    RedboxPortalRecordsModule,
     I18NextPipe,
     BrowserAnimationsModule,
     BsDatepickerModule,

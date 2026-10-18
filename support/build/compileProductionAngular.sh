@@ -1,9 +1,15 @@
 #! /bin/bash
 set -e
 function buildAngularApp() {
-  if [ "${ANGULAR_BUILD_STATS:-false}" == "true" ] && [ "$1" != "portal-ng-common" ] && [ "$1" != "portal-ng-form-custom" ]; then
-    node_modules/.bin/ng b "@researchdatabox/${1}" --configuration production --stats-json
+  if [ "$1" != "portal-ng-common" ] && [ "$1" != "portal-ng-form-custom" ]; then
+    # Never allow a previous successful build's stats/output to satisfy this
+    # gate. Angular cleans outputPath before emitting the production build.
+    # Generate stats for every image build; retain diagnostics only on request.
+    node_modules/.bin/ng b "@researchdatabox/${1}" --configuration production --stats-json --delete-output-path=true
     node ../support/build/angular-bundle-stats.cjs "$1"
+    if [ "${ANGULAR_BUILD_STATS:-false}" != "true" ]; then
+      rm -f "../assets/angular/${1}/browser-stats.json" "../assets/angular/${1}/stats.json"
+    fi
   else
     node_modules/.bin/ng b "@researchdatabox/${1}" --configuration production
   fi
