@@ -2,6 +2,7 @@ import * as Context from 'effect/Context';
 import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
 import * as Logger from 'effect/Logger';
+import * as References from 'effect/References';
 import * as Schedule from 'effect/Schedule';
 import type { IntegrationAuditContext } from '../IntegrationAuditService';
 import { IntegrationAuditAction } from '../../model/storage/IntegrationAuditModel';
@@ -16,9 +17,9 @@ import { buildOniRoCrate } from './crate';
 import { makeOniAuditLayer, OniAuditService, OniAuditServiceTag } from './audit';
 import { runEffectProgram } from '../integration-v2/runtime';
 
-export const OniConfigTag = Context.GenericTag<ResolvedOniPublishingConfigData>('redbox/OniConfig');
-export const OniRunContextTag = Context.GenericTag<OniRunContext>('redbox/OniRunContext');
-export const OniRepositoryTag = Context.GenericTag<OniOcflRepository>('redbox/OniRepository');
+export const OniConfigTag = Context.Service<ResolvedOniPublishingConfigData>('redbox/OniConfig');
+export const OniRunContextTag = Context.Service<OniRunContext>('redbox/OniRunContext');
+export const OniRepositoryTag = Context.Service<OniOcflRepository>('redbox/OniRepository');
 
 type OniRuntimeOptions = {
   auditContext?: IntegrationAuditContext | null;
@@ -34,15 +35,15 @@ type OniLoggerSink = {
 };
 
 export function makeOniLoggerLayer(logger: OniLoggerSink) {
-  const effectLogger = Logger.make<unknown, void>(({ logLevel, message, annotations }) => {
-    const details = Object.fromEntries(annotations);
+  const effectLogger = Logger.make<unknown, void>(({ logLevel, message, fiber }) => {
+    const details = fiber.getRef(References.CurrentLogAnnotations);
     const output = Object.keys(details).length === 0 ? [message] : [message, details];
-    if (logLevel.label === 'ERROR' || logLevel.label === 'FATAL') logger.error?.(...output);
-    else if (logLevel.label === 'WARN') logger.warn?.(...output);
-    else if (logLevel.label === 'DEBUG' || logLevel.label === 'TRACE') logger.debug?.(...output);
+    if (logLevel === 'Error' || logLevel === 'Fatal') logger.error?.(...output);
+    else if (logLevel === 'Warn') logger.warn?.(...output);
+    else if (logLevel === 'Debug' || logLevel === 'Trace') logger.debug?.(...output);
     else logger.info?.(...output);
   });
-  return Logger.replace(Logger.defaultLogger, effectLogger);
+  return Logger.layer([effectLogger, Logger.tracerLogger]);
 }
 
 export function makeRuntimeLayer(
@@ -151,14 +152,14 @@ export async function runPublishDatasetProgram(
       },
     }).pipe(
       Effect.timeout(`${options.operationTimeoutMs ?? 120_000} millis`),
-      Effect.retry(Schedule.exponential('100 millis').pipe(Schedule.intersect(Schedule.recurs(2)))),
+      Effect.retry(Schedule.max([Schedule.exponential('100 millis'), Schedule.recurs(2)])),
       Effect.tapError(error =>
         Effect.sync(() => {
           audit.fail(writeAudit, error, {
             message: 'Oni OCFL write failed.',
             responseSummary: { phase: 'write-ocfl', site: resolvedRunContext.siteName, rootId: crate.rootId },
           });
-        }).pipe(Effect.zipRight(Effect.logError('Oni OCFL write failed after retries', error)))
+        }).pipe(Effect.andThen(Effect.logError('Oni OCFL write failed after retries', error)))
       )
     );
     yield* writeOperation;

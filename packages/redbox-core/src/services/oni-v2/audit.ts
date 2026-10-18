@@ -16,7 +16,7 @@ export interface OniAuditService {
   fail(ctx: IntegrationAuditContext | null | undefined, error: unknown, details: Record<string, unknown>): void;
 }
 
-export const OniAuditServiceTag = Context.GenericTag<OniAuditService>('redbox/OniAuditService');
+export const OniAuditServiceTag = Context.Service<OniAuditService>('redbox/OniAuditService');
 
 type IntegrationAuditCollaborator = Pick<
   IntegrationAuditServices.IntegrationAuditService,

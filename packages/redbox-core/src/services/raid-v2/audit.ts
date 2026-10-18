@@ -13,7 +13,7 @@ export interface AuditAdapter {
 export function makeAuditLayer(adapter?: AuditAdapter) {
   return Layer.effect(RaidAuditTag, Effect.gen(function* () {
     const context = yield* RaidRunContextTag;
-    const bestEffort = <A>(fn: () => A, fallback: A): Effect.Effect<A> => Effect.try({ try: fn, catch: () => fallback }).pipe(Effect.catchAll(() => Effect.succeed(fallback)));
+    const bestEffort = <A>(fn: () => A, fallback: A): Effect.Effect<A> => Effect.try({ try: fn, catch: () => fallback }).pipe(Effect.catch(() => Effect.succeed(fallback)));
     return {
       start(action: string, summary: Record<string, unknown> = {}, parent?: IntegrationAuditContext | null) {
         if (!adapter) return Effect.succeed(null);

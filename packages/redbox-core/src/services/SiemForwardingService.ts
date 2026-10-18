@@ -103,7 +103,7 @@ export namespace Services {
         catch: () => new SiemAdapterError('SIEM event could not be safely serialized'),
       }).pipe(Effect.flatMap((redactedEvent) => buildSiemPayload([redactedEvent], destination)),
         Effect.flatMap((payload) => deliverSiemPayload(payload, destination)));
-      return Effect.runPromise(program.pipe(Effect.catchAll((error) => Effect.succeed<SiemDeliveryResult>({
+      return Effect.runPromise(program.pipe(Effect.catch((error) => Effect.succeed<SiemDeliveryResult>({
         status: 'failed',
         httpStatusCode: error instanceof SiemHttpError ? error.statusCode : undefined,
         responseSummary: error instanceof SiemHttpError ? error.responseSummary : undefined,

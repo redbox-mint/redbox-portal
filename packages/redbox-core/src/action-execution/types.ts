@@ -1,5 +1,5 @@
 import * as Effect from 'effect/Effect';
-import type { RuntimeFiber } from 'effect/Fiber';
+import type { Fiber } from 'effect/Fiber';
 
 export const ACTION_FAILURE_KINDS = [
   'configuration',
@@ -117,7 +117,7 @@ export interface ActionExecutionLogger {
 }
 
 export interface ActionExecutionSupervisor {
-  register?: (fiber: RuntimeFiber<unknown, unknown>) => void;
+  register?: (fiber: Fiber<unknown, unknown>) => void;
   interruptAll?: () => void;
 }
 

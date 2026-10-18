@@ -114,7 +114,7 @@ export interface FigshareClient {
   listAccountCategories(): Promise<FigshareCategory[]>;
 }
 
-export const FigshareClientTag = Context.GenericTag<FigshareClient>('redbox/FigshareClient');
+export const FigshareClientTag = Context.Service<FigshareClient>('redbox/FigshareClient');
 
 function getRetryDelay(baseDelayMs: number, maxDelayMs: number, attempt: number): number {
   const delay = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, Math.max(0, attempt - 1)));
