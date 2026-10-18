@@ -1,0 +1,476 @@
+Angular bundle remediation validation
+Validated source commit: 6a44388eb49019b3d6353b780eb512fcb8f481ed
+Includes original integrated ESM/deferred form/module work plus:
+  c0e6da3987b370b424c28778f45426da91179e54 (module/stats fixes)
+  9ce96953aaa1999b84ccc7925ab60f5507e819d3 (shared runtime; cherry-picked)
+  778d83333bc0c61b18b36d2e07377f38eec81b24 (explicit GeoJSON types; cherry-picked)
+  cb455347b8a4aa6a1895afd955bcd07199d50494 (form lifecycle; cherry-picked)
+  2ad2d319ad945f73d3e2d4ddb11237cbd740ce0f (debug-panel task cleanup; cherry-picked)
+  a6555c678b1147e15f63cbd3dba7fda6a77a814e (root-lock-only installation fix; cherry-picked)
+  7d6172c608b0d6061c7650b88d2f7df98d1fd433 (form browser coverage; test-only cherry-pick)
+Measurement recorded at: 2026-10-18T09:28:08.140Z
+Environment: Node 24.16.0, Angular 22.2.0, TypeScript 6.0.3
+Angular lock SHA256: dd44dc849169ff9f89fde4da7b5ae4a409c642e7d5b6e17edf7c02bcc4e3d7d1
+Shared-package lock SHA256: 7c379f01bb98e07b32adcb629c90baa2d3f415d7c0d5a454181e9a57873cf96f
+
+Preparation and production validation:
+  npm --prefix angular ci --ignore-scripts --strict-peer-deps --no-audit (PASS)
+  npm --prefix packages/sails-ng-common run compile:clean && npm --prefix packages/sails-ng-common run compile (PASS)
+  ng build @researchdatabox/portal-ng-common --configuration production (PASS)
+  ng build @researchdatabox/portal-ng-form-custom --configuration production (PASS)
+  Node 24.16.0 selected through PATH; NG_BUILD_MAX_WORKERS=2; NG_PERSISTENT_BUILD_CACHE=0.
+  Shared-package dependencies reused from a matching-lockfile sibling tree via hardlinks;
+  generated dist cleaned and rebuilt here. Angular dependencies installed fresh after the type/lock fix.
+  The real buildAngularApp function from compileProductionAngular.sh was sourced without its
+  installation wrapper and run for every application with ANGULAR_BUILD_STATS=true:
+    ng b @researchdatabox/<app> --configuration production --stats-json --delete-output-path=true
+    node ../support/build/angular-bundle-stats.cjs <app>
+  Each helper invocation and subsequent JSON report completed with exit 0.
+  After measuring, limits were tightened and all 20 emitted builds checked again with final budgets.
+  Form was rebuilt after the final debug-panel cleanup. Other apps do not import form sources.
+  The root-lock-only follow-up does not change Angular/shared-package locks or emitted runtime code.
+
+Final raw bytes and local gzip estimates (JS+CSS; not live network transfer):
+  PASS local-auth: JS=486260, CSS=0, initial=486260, lazy=43504, gzip=148584; warning=500kb, error=540kb
+  PASS export: JS=778663, CSS=18670, initial=797333, lazy=43504, gzip=224339; warning=840kb, error=880kb
+  PASS dashboard: JS=509584, CSS=0, initial=509584, lazy=43504, gzip=158735; warning=540kb, error=570kb
+  PASS report: JS=836949, CSS=18670, initial=855619, lazy=43504, gzip=242143; warning=900kb, error=950kb
+  PASS report-config: JS=420420, CSS=34, initial=420454, lazy=43504, gzip=130219; warning=450kb, error=470kb
+  PASS manage-users: JS=639795, CSS=6050, initial=645845, lazy=43504, gzip=198729; warning=500kb, error=720kb [original warning exceeded]
+  PASS record-audit: JS=526513, CSS=39, initial=526552, lazy=43504, gzip=158983; warning=500kb, error=580kb [original warning exceeded]
+  PASS admin-vocabulary: JS=478091, CSS=99, initial=478190, lazy=43504, gzip=144342; warning=500kb, error=530kb
+  PASS admin-figshare-vocabulary: JS=491603, CSS=768, initial=492371, lazy=43504, gzip=145740; warning=500kb, error=550kb
+  PASS dashboard-config-editor: JS=524453, CSS=11871, initial=536324, lazy=43504, gzip=156340; warning=500kb, error=590kb [original warning exceeded]
+  PASS named-query-editor: JS=476990, CSS=1458, initial=478448, lazy=43504, gzip=143074; warning=500kb, error=530kb
+  PASS manage-roles: JS=588751, CSS=0, initial=588751, lazy=43504, gzip=186690; warning=500kb, error=650kb [original warning exceeded]
+  PASS form: JS=1564161, CSS=105552, initial=1669713, lazy=1565866, gzip=445004; warning=1760kb, error=1840kb
+  PASS app-config: JS=755239, CSS=8281, initial=763520, lazy=43504, gzip=216251; warning=810kb, error=840kb
+  PASS deleted-records: JS=876428, CSS=18670, initial=895098, lazy=43504, gzip=252925; warning=940kb, error=990kb
+  PASS harvest-runs: JS=522565, CSS=0, initial=522565, lazy=43504, gzip=157533; warning=550kb, error=580kb
+  PASS branding: JS=808571, CSS=76, initial=808647, lazy=43504, gzip=228233; warning=850kb, error=890kb
+  PASS translation: JS=948658, CSS=503, initial=949161, lazy=43504, gzip=297109; warning=1000kb, error=1050kb
+  PASS record-search: JS=441095, CSS=0, initial=441095, lazy=43504, gzip=137632; warning=470kb, error=490kb
+  PASS siem-admin: JS=530567, CSS=0, initial=530567, lazy=43504, gzip=158750; warning=560kb, error=590kb
+
+Budget assertions: all 20 final error limits pass; no original warning limit raised; all component-style budgets unchanged.
+Initial import-graph audit: zero Handlebars compiler/parser inputs in the initial outputs of all 20 apps.
+Warning margin: 5% rounded up to 10,000 bytes, capped at original warning; error margin: 10% rounded up to 10,000 bytes.
+
+Angular native initial and lazy chunk tables from the final production builds:
+
+local-auth:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-YL3PEZTP.js    | main          | 485.64 kB |               129.96 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-5INURTSO.css | styles        |   0 bytes |                 0 bytes
+
+                    | Initial total | 486.26 kB |               130.57 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+export:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-HDS6IWD3.js    | main          | 778.04 kB |               188.56 kB
+styles-R3PNT4FG.css | styles        |  18.67 kB |                 2.95 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+
+                    | Initial total | 797.33 kB |               192.12 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+dashboard:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-FIPGYMLO.js    | main          | 508.48 kB |               138.31 kB
+chunk-IFGU66OU.js   | -             |   1.10 kB |               489 bytes
+styles-5INURTSO.css | styles        |   0 bytes |                 0 bytes
+
+                    | Initial total | 509.58 kB |               138.80 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-L27O7KNH.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+report:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-QKECG334.js    | main          | 835.85 kB |               203.19 kB
+styles-R3PNT4FG.css | styles        |  18.67 kB |                 2.95 kB
+chunk-IFGU66OU.js   | -             |   1.10 kB |               489 bytes
+
+                    | Initial total | 855.62 kB |               206.63 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-L27O7KNH.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+report-config:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-56EN2RIH.js    | main          | 419.80 kB |               114.05 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-NAQHL752.css | styles        |  34 bytes |                34 bytes
+
+                    | Initial total | 420.45 kB |               114.70 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+manage-users:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-N5INZHYJ.js    | main          | 638.70 kB |               169.87 kB
+styles-2QRA2Y43.css | styles        |   6.05 kB |                 1.44 kB
+chunk-IFGU66OU.js   | -             |   1.10 kB |               489 bytes
+
+                    | Initial total | 645.85 kB |               171.80 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-L27O7KNH.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] bundle initial exceeded maximum budget. Budget 500.00 kB was not met by 145.84 kB with a total of 645.85 kB.
+  ▲ [WARNING] Module 'lodash' used by 'projects/researchdatabox/manage-users/src/app/manage-users.component.ts' is not ESM
+  ▲ [WARNING] Module 'owasp-password-strength-test' used by 'projects/researchdatabox/manage-users/src/app/forms.ts' is not ESM
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+record-audit:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-5T2CFVI5.js    | main          | 525.89 kB |               138.67 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-CSKVNTJZ.css | styles        |  39 bytes |                39 bytes
+
+                    | Initial total | 526.55 kB |               139.33 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+admin-vocabulary:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-GCHEM6WY.js    | main          | 477.47 kB |               125.83 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-LHRUX4ZI.css | styles        |  99 bytes |                99 bytes
+
+                    | Initial total | 478.19 kB |               126.54 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+admin-figshare-vocabulary:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-7MEIFG6J.js    | main          | 490.99 kB |               126.54 kB
+styles-ILVZBWCG.css | styles        | 768 bytes |               768 bytes
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+
+                    | Initial total | 492.37 kB |               127.92 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+dashboard-config-editor:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-3BGK3TFX.js    | main          | 523.84 kB |               133.44 kB
+styles-IMU7EHBU.css | styles        |  11.87 kB |                 2.33 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+
+                    | Initial total | 536.32 kB |               136.39 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] angular:styles/component:css;59387147e712f685;/home/ubuntu/.t3/worktrees/redbox-portal/t3-3d070d47/angular/projects/researchdatabox/dashboard-config-editor/src/app/column-editor/column-editor.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 884 bytes with a total of 2.88 kB.
+  ▲ [WARNING] angular:styles/component:css;2088a2570051bdf4;/home/ubuntu/.t3/worktrees/redbox-portal/t3-3d070d47/angular/projects/researchdatabox/dashboard-config-editor/src/app/rule-set-editor/rule-set-editor.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 756 bytes with a total of 2.76 kB.
+  ▲ [WARNING] angular:styles/component:css;d251003e3741c3ad;/home/ubuntu/.t3/worktrees/redbox-portal/t3-3d070d47/angular/projects/researchdatabox/dashboard-config-editor/src/app/format-rules-editor/filters-editor.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 862 bytes with a total of 2.86 kB.
+  ▲ [WARNING] angular:styles/component:css;9412047e639e26a4;/home/ubuntu/.t3/worktrees/redbox-portal/t3-3d070d47/angular/projects/researchdatabox/dashboard-config-editor/src/app/format-rules-editor/grouping-editor.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 338 bytes with a total of 2.34 kB.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+named-query-editor:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-TRBV6SPJ.js    | main          | 476.37 kB |               124.08 kB
+styles-ZB6FPEYH.css | styles        |   1.46 kB |               519 bytes
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+
+                    | Initial total | 478.45 kB |               125.22 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+manage-roles:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-NODZY3PG.js    | main          | 587.65 kB |               161.45 kB
+chunk-IFGU66OU.js   | -             |   1.10 kB |               489 bytes
+styles-5INURTSO.css | styles        |   0 bytes |                 0 bytes
+
+                    | Initial total | 588.75 kB |               161.94 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-L27O7KNH.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'lodash' used by 'projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts' is not ESM
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+form:
+Initial chunk files | Names                      |  Raw size | Estimated transfer size
+main-SRO7WDE7.js    | main                       |   1.56 MB |               346.98 kB
+styles-K5BUJDHB.css | styles                     | 105.55 kB |                14.92 kB
+
+                    | Initial total              |   1.67 MB |               361.90 kB
+
+Lazy chunk files    | Names                      |  Raw size | Estimated transfer size
+chunk-DJbRGV_p.js   | rich-text-editor-runtime   | 530.15 kB |               133.01 kB
+chunk-Ds7RG_Ks.js   | file-upload-runtime        | 311.92 kB |                80.43 kB
+chunk-CKnGOA8T.js   | -                          | 252.98 kB |                37.02 kB
+chunk-Csi1V8hS.js   | Vector                     |  64.25 kB |                17.47 kB
+chunk-B04nHVrq.js   | Map                        |  57.54 kB |                14.12 kB
+chunk-QzzDrcdI.js   | marked-esm                 |  43.56 kB |                11.88 kB
+chunk-w9k964z3.js   | -                          |  32.03 kB |                 8.47 kB
+chunk-mpA7jFS7.js   | form-debug-panel-component |  24.61 kB |                 5.50 kB
+chunk-D2XofvwZ.js   | -                          |  19.74 kB |                 5.44 kB
+chunk-BNTHsOfT.js   | -                          |  16.28 kB |                 5.31 kB
+chunk-Cg-XG5sC.js   | -                          |  15.38 kB |                 4.05 kB
+chunk-GS8TOln8.js   | XYZ                        |  15.05 kB |                 4.39 kB
+chunk-C93iY5Gv.js   | togeojson-es               |  14.98 kB |                 4.58 kB
+chunk-D6X__1DH.js   | Tile                       |  14.85 kB |                 5.04 kB
+chunk-DHlraLMJ.js   | -                          |  14.47 kB |                 4.60 kB
+...and 43 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'mime-match' used by 'node_modules/@uppy/core/lib/Restricter.js' is not ESM
+  ▲ [WARNING] Module 'lodash/throttle.js' used by 'node_modules/@uppy/core/lib/Uppy.js' is not ESM
+  ▲ [WARNING] Module 'namespace-emitter' used by 'node_modules/@uppy/core/lib/Uppy.js' is not ESM
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'classnames' used by 'node_modules/@uppy/dashboard/lib/components/Dashboard.js' is not ESM
+  ▲ [WARNING] Module 'lodash/debounce.js' used by 'node_modules/@uppy/dashboard/lib/utils/createSuperFocus.js' is not ESM
+  ▲ [WARNING] Module 'url-parse' used by 'node_modules/tus-js-client/lib.esm/upload.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+app-config:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-APLCJAS7.js    | main          | 754.58 kB |               178.73 kB
+styles-RWNBTZK3.css | styles        |   8.28 kB |                 1.61 kB
+chunk-LSIHGRHO.js   | -             | 656 bytes |               656 bytes
+
+                    | Initial total | 763.52 kB |               181.00 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-A5XJFIJX.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+deleted-records:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-AX5ITK3X.js    | main          | 875.33 kB |               212.19 kB
+styles-R3PNT4FG.css | styles        |  18.67 kB |                 2.95 kB
+chunk-IFGU66OU.js   | -             |   1.10 kB |               489 bytes
+
+                    | Initial total | 895.10 kB |               215.63 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-L27O7KNH.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+harvest-runs:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-F3KBKUZ6.js    | main          | 521.95 kB |               137.52 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-5INURTSO.css | styles        |   0 bytes |                 0 bytes
+
+                    | Initial total | 522.57 kB |               138.14 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+branding:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-YOB6T6IB.js    | main          | 807.95 kB |               194.38 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-DPDPKJCC.css | styles        |  76 bytes |                76 bytes
+
+                    | Initial total | 808.65 kB |               195.07 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+translation:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-YUUYPOCF.js    | main          | 948.04 kB |               245.30 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-SGHHVLGT.css | styles        | 503 bytes |               503 bytes
+
+                    | Initial total | 949.16 kB |               246.43 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+record-search:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-C47SAM3G.js    | main          | 440.48 kB |               120.55 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-5INURTSO.css | styles        |   0 bytes |                 0 bytes
+
+                    | Initial total | 441.10 kB |               121.17 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+siem-admin:
+Initial chunk files | Names         |  Raw size | Estimated transfer size
+main-NUYCJZRY.js    | main          | 529.95 kB |               138.28 kB
+chunk-7CGTOI24.js   | -             | 618 bytes |               618 bytes
+styles-5INURTSO.css | styles        |   0 bytes |                 0 bytes
+
+                    | Initial total | 530.57 kB |               138.90 kB
+
+Lazy chunk files    | Names         |  Raw size | Estimated transfer size
+chunk-DVN63CXE.js   | marked-esm    |  43.50 kB |                11.97 kB
+
+Application bundle generation complete.
+  ▲ [WARNING] Module 'handlebars' used by '../packages/sails-ng-common/dist/esm/handlebars-browser-compiler.js' is not ESM
+  ▲ [WARNING] Module 'handlebars/runtime.js' used by '../packages/sails-ng-common/dist/esm/handlebars-runtime.js' is not ESM
+  ▲ [WARNING] Module '@jsonjoy.com/json-pointer' used by '../packages/sails-ng-common/dist/esm/config/names/naming-helpers.js' is not ESM
+  ▲ [WARNING] Module 'jsonata' used by '../packages/sails-ng-common/dist/esm/jsonata-helpers.js' is not ESM
+
+Stats accounting tests:
+  node --test support/build/angular-bundle-stats.test.cjs
+✔ initial size includes shared static JS and CSS once and excludes lazy features (38.794856ms)
+✔ supports named injected entry bundles and extracted entry CSS (0.974724ms)
+✔ rejects missing or incomplete stats instead of reporting a misleading small bundle (0.985284ms)
+✔ matches Angular decimal budget units (0.448962ms)
+✔ validates Angular 22 stats against emitted files, budgets and production optimisation (14.500146ms)
+✔ accepts mixed-case URL-safe hashes of different lengths and reports JS/CSS separately (0.455922ms)
+✔ requires configured entries and does not confuse a non-injected named style with a hash (2.501572ms)
+✔ checks injected custom bundles, disabled defaults, all initial budgets and ambiguous stats (19.101847ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 292.398488
+
+Common library / module regression tests:
+  CI=true CHROME_BIN=<Playwright Chromium headless shell> ng test @researchdatabox/portal-ng-common --watch=false --progress=false --browsers=ChromeHeadlessNoSandbox --karma-config=<temporary wrapper>
+  Temporary Karma wrapper only sets a separate port (9887) and the normal project basePath.
+TOTAL: 129 SUCCESS
+
+Owner-supplied form validation (not rerun by this build owner):
+  152/152 targeted ChromeHeadless units, including 2/2 final debug-panel lifecycle specs: PASS.
+  7/7 targeted real-production browser cases: PASS (editor/map persistence, TUS upload/remove,
+  delayed editor, editor/uploader download failures, source-mode editor remount).
+  Final form tsc: PASS. Full 124-case Playwright suite was not run.
+  Browser validation used a disposable Compose project and a temporary numeric 100 MiB disk reserve
+  because the default 10 GiB exceeded host free disk. No production configuration change.
+
+Scope and remaining review concerns:
+  - Preserved original warning targets still exceeded: manage-users, record-audit, dashboard-config-editor, manage-roles.
+  - Existing component-style and CommonJS optimization warnings are preserved above, not silenced.
+  - Builds cover the shipped custom-form placeholder, not external institution custom-form libraries.
+    External components relying on the host form injector for ReportService need review; the legacy
+    RedboxPortalCoreModule itself still provides records/reports and retains all its original exports.
+  - Functional editor/upload/browser coverage is supplied by the form owner; this build remediation
+    does not claim to replace those tests. The common-library suite above was run here.
+  - Local gzip estimates exclude HTTP headers and server/network behavior; no original gzip remeasurement here.
+  - Standalone stats checks prove file-size consistency, not source freshness. The production helper
+    first rebuilds with delete-output-path=true and stops on build/check errors.
+  - Full Docker/CircleCI execution was not repeated locally; its Dockerfile calls the validated production
+    helper for every app and CI separately runs the stats regression suite.
+  - No Docker stacks were started, stopped, or modified by this build remediation.
+  - Initial pre-remediation measurements were interrupted by a host restart and then exposed missing
+    GeoJSON types. Those are excluded from these final results; this final pass follows the clean install.
