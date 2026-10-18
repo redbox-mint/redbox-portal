@@ -2,7 +2,7 @@ import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { MockPlatformLocation } from '@angular/common/testing';
 import { HTTP_INTERCEPTORS, HttpClient, HttpContext } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { ApplicationInitStatus, Component, provideZonelessChangeDetection } from '@angular/core';
+import { ApplicationInitStatus, Component, inject, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { BrowserModule, By } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -39,6 +39,21 @@ class LegacyHookComponent {
     recordTableAction: jasmine.createSpy('recordTableAction').and.resolveTo(),
     headerSortChanged: jasmine.createSpy('headerSortChanged')
   };
+}
+
+@Component({
+  standalone: false,
+  template: `<span>{{ reportTitle }}</span>`
+})
+class CustomFormReportComponent {
+  readonly reports = inject(ReportService);
+  readonly records = inject(RecordService);
+  reportTitle = '';
+
+  async loadReport() {
+    const report = await this.reports.getReportConfig('custom-form-report');
+    this.reportTitle = report.title;
+  }
 }
 
 for (const imports of [[RedboxPortalCoreServicesModule], [RedboxPortalCoreModule],
@@ -85,7 +100,7 @@ for (const imports of [[RedboxPortalCoreServicesModule], [RedboxPortalCoreModule
 }
 
 describe('Optional portal features', () => {
-  it('keeps records and reports out of the lean core injector', () => {
+  it('keeps record providers opt-in for the lean core injector', () => {
     TestBed.configureTestingModule({
       imports: [RedboxPortalCoreServicesModule],
       providers: [
@@ -94,7 +109,34 @@ describe('Optional portal features', () => {
       ]
     });
     expect(TestBed.inject(RecordService, null)).toBeNull();
-    expect(TestBed.inject(ReportService, null)).toBeNull();
+  });
+
+  it('supports custom components injecting reports with the lean form modules', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RedboxPortalCoreServicesModule, RedboxPortalRecordsModule],
+      declarations: [CustomFormReportComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClientTesting(),
+        { provide: PlatformLocation, useValue: new MockPlatformLocation({ appBaseHref: '/portal/' }) },
+        { provide: ConfigService, useValue: getStubConfigService() },
+        { provide: TranslationService, useValue: getStubTranslationService() }
+      ]
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CustomFormReportComponent);
+    const component = fixture.componentInstance;
+    expect(component.records).toBe(TestBed.inject(RecordService));
+    expect(component.reports).toBe(TestBed.inject(ReportService));
+    await component.reports.waitForInit();
+    const loaded = component.loadReport();
+    const http = TestBed.inject(HttpTestingController);
+    const request = http.expectOne(`${component.reports.brandingAndPortalUrl}/admin/getReport?name=custom-form-report`);
+    expect(request.request.method).toBe('GET');
+    request.flush({ title: 'Custom form report' });
+    await loaded;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Custom form report');
+    http.verify();
   });
 
   it('allows apps to opt into record and report providers', () => {

@@ -13,7 +13,7 @@ Add only the features the app uses:
 
 - `RedboxPortalRecordsModule`: `RecordService` providers.
 - `RedboxPortalRecordTableModule`: record tables, sortable headers and pagination.
-- `RedboxPortalReportsModule`: `ReportService` providers.
+- `RedboxPortalReportsModule`: explicit `ReportService` providers, retained for compatibility.
 - `PaginationModule` from `ngx-bootstrap/pagination`: pagination without record tables.
 
 The feature modules use the core providers from the app's root injector. Existing
@@ -22,8 +22,10 @@ original providers and exported translation, table, sorting and pagination UI.
 As before, the compatibility module imports `BrowserModule` and `FormsModule`
 internally without re-exporting their directives. Hooks using browser/common or
 template-driven form directives must still import the relevant Angular modules.
-The built-in form app uses core services and records without the report or
-record-table features.
+The built-in form app uses core services and records without importing report or
+record-table modules. `ReportService` also has a tree-shakeable root provider, so
+custom form components can continue injecting it through the host form injector.
+Unused report code can still be removed from production bundles.
 Rebuild this library before building apps against new exports.
 
 

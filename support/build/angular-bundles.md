@@ -39,6 +39,17 @@ preserved even when the final app still exceeds them: the JSON records `warning`
 and the validation log lists those outstanding warnings. Do not increase a
 budget solely to silence a regression.
 
+Institutional custom form libraries count against the **same** form initial
+bundle limits when `BUILD_PORTAL_NG_FORM_CUSTOM=true`. The built-in baseline uses
+the shipped placeholder and does not guarantee that an external library fits.
+The default form warning/error limits remain `1760kb` / `1840kb`; there is no
+environment bypass or automatic increase for custom libraries. Each institution
+must measure its production build with its own library and explicitly review and
+update the form's `maximumWarning` / `maximumError` limits in
+`angular/angular.json` when needed. Record the measured sizes and reason for that
+change. The production helper's fresh build and stats gate remain mandatory with
+the reviewed limits.
+
 To inspect a specific app after compiling `sails-ng-common` and the Angular
 libraries:
 
