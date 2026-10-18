@@ -1,9 +1,10 @@
-import {FormConfigFrame, handlebarsCompile, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
+import {FormConfigFrame, FormFieldComponentStatus, handlebarsCompile, handlebarsPrecompile, handlebarsTemplate, loadMarkdownParser} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
 import { UtilityService, HandlebarsTemplateService, TranslationService } from "@researchdatabox/portal-ng-common";
+import { FormControl, FormGroup } from '@angular/forms';
 
 
 
@@ -12,10 +13,13 @@ describe('ContentComponent', () => {
   let translationService: any;
   let lastTemplateContext: any;
   let dynamicAssetOptions: DynamicAssetOptions
-  const mockHandlebarsTemplateService = {};
+  let mockHandlebarsTemplateService: jasmine.SpyObj<HandlebarsTemplateService>;
 
   beforeEach(async () => {
     lastTemplateContext = undefined;
+    mockHandlebarsTemplateService = jasmine.createSpyObj('HandlebarsTemplateService', ['prepareTemplates']);
+    mockHandlebarsTemplateService.prepareTemplates.and.callFake(templates =>
+      HandlebarsTemplateService.prototype.prepareTemplates.call({ loadMarkdownParser } as any, templates));
     await createTestbedModule({
       declarations: {"ContentComponent": ContentComponent, "SimpleInputComponent": SimpleInputComponent},
       providers: {
@@ -43,10 +47,9 @@ describe('ContentComponent', () => {
               if (context?.content === 'USE_MISSING_TRANSLATION_TEMPLATE') {
                 return context?.translationService?.t?.('@missing.translation.key') ?? '';
               }
-              if (context?.content === 'USE_MARKDOWN_TEMPLATE') {
-                return context?.outputFormat === 'markdown'
-                  ? '<h2>Hi <strong>How does this render</strong></h2><table><tbody><tr><td>and</td><td>not</td><td>something</td></tr></tbody></table>'
-                  : context?.content;
+              if (context?.outputFormat === 'markdown') {
+                const spec = new Function('return ' + handlebarsPrecompile('{{{markdownToHtml content outputFormat}}}'))();
+                return extra?.libraries?.handlebars?.(spec)(context);
               }
               return handlebarsCompile('<h3>{{content}}</h3>')(context);
             default:
@@ -63,6 +66,92 @@ describe('ContentComponent', () => {
     let component = fixture.componentInstance;
     expect(utilityService.getDynamicImport).not.toHaveBeenCalled();
     expect(component).toBeDefined();
+  });
+
+  function createMarkdownContent(template = '{{{markdownToHtml content outputFormat}}}') {
+    const fixture = TestBed.createComponent(ContentComponent);
+    const component = fixture.componentInstance;
+    component.componentDefinition = { class: 'ContentComponent', config: {
+      content: '**first**', outputFormat: 'markdown', template,
+    } };
+    const spec = new Function('return ' + handlebarsPrecompile(template))();
+    const evaluate = jasmine.createSpy('evaluate').and.callFake((_key, context, extra) =>
+      extra.libraries.handlebars(spec)(context));
+    const form = new FormGroup({ description: new FormControl('**initial**') });
+    const formComponent = {
+      getRecordCompiledItems: async () => ({ evaluate }), form, formConfigMeta: {},
+      trimmedParams: { oid: () => 'oid', branding: () => 'default', portal: () => 'rdmp' },
+    };
+    Object.defineProperty(component, 'getFormComponent', { get: () => formComponent });
+    Object.defineProperty(component, 'formComponent', { get: () => formComponent });
+    return { fixture, component, evaluate, form };
+  }
+
+  it('keeps initial content blank and busy until the parser is ready, then renders HTML', async () => {
+    let ready!: () => void;
+    mockHandlebarsTemplateService.prepareTemplates.and.returnValue(new Promise<void>(resolve => ready = resolve));
+    const { component, evaluate, fixture } = createMarkdownContent();
+    const initialisation = (component as any).initData();
+    expect(component.isContentLoading()).toBeTrue();
+    expect(component.content).toBe('');
+    expect(evaluate).not.toHaveBeenCalled();
+    await loadMarkdownParser();
+    ready();
+    await initialisation;
+    fixture.detectChanges();
+    expect(component.isContentLoading()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('strong')?.textContent).toBe('first');
+  });
+
+  it('prepares literal Markdown templates without an outputFormat and rerenders form values', async () => {
+    const { component, form } = createMarkdownContent('{{{markdownToHtml formData.description "markdown"}}}');
+    delete (component.componentDefinition!.config as any).outputFormat;
+    await (component as any).initData();
+    expect(component.content).toContain('<strong>initial</strong>');
+    form.controls.description.setValue('**updated**');
+    expect(component.content).toContain('<strong>updated</strong>');
+    component.ngOnDestroy();
+    form.controls.description.setValue('**destroyed**');
+    expect(component.content).toContain('<strong>updated</strong>');
+  });
+
+  it('reports parser errors without publishing raw Markdown and permits reinitialisation', async () => {
+    const { component, evaluate } = createMarkdownContent();
+    mockHandlebarsTemplateService.prepareTemplates.and.rejectWith(new Error('chunk unavailable'));
+    await expectAsync((component as any).initData()).toBeRejectedWithError('chunk unavailable');
+    expect(component.status()).toBe(FormFieldComponentStatus.ERROR);
+    expect(component.content).toBe('');
+    expect(component.isContentLoading()).toBeFalse();
+    expect(evaluate).not.toHaveBeenCalled();
+    mockHandlebarsTemplateService.prepareTemplates.and.callFake(() => loadMarkdownParser());
+    await (component as any).initData();
+    expect(component.content).toContain('<strong>first</strong>');
+  });
+
+  it('does not render or subscribe after destruction during a pending parser load', async () => {
+    let ready!: () => void;
+    mockHandlebarsTemplateService.prepareTemplates.and.returnValue(new Promise<void>(resolve => ready = resolve));
+    const { component, fixture, evaluate } = createMarkdownContent();
+    const initialisation = (component as any).initData();
+    fixture.destroy();
+    ready();
+    await initialisation;
+    expect(evaluate).not.toHaveBeenCalled();
+    expect(component.content).toBe('');
+  });
+
+  it('does not replace newer content when an older preparation completes later', async () => {
+    let ready!: () => void;
+    mockHandlebarsTemplateService.prepareTemplates.and.returnValue(new Promise<void>(resolve => ready = resolve));
+    const { component, evaluate } = createMarkdownContent();
+    const olderInitialisation = (component as any).initData();
+    component.componentDefinition = { class: 'ContentComponent', config: { content: 'Newer content' } };
+    await (component as any).initData();
+    ready();
+    await olderInitialisation;
+    expect(component.content).toBe('Newer content');
+    expect(component.isContentLoading()).toBeFalse();
+    expect(evaluate).not.toHaveBeenCalled();
   });
   it('should render TextField component', async () => {
     // arrange
@@ -140,7 +229,7 @@ describe('ContentComponent', () => {
           component: {
             class: 'ContentComponent',
             config: {
-              content: 'USE_MARKDOWN_TEMPLATE',
+              content: '## Hi **How does this render**\n\n| a | b | c |\n| --- | --- | --- |\n| and | not | something |',
               outputFormat: 'markdown',
               template: '{{{markdownToHtml content outputFormat}}}'
             }

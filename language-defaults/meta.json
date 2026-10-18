@@ -5474,6 +5474,11 @@
     "description": "Column heading for action links in record tables",
     "contentFormat": "plain"
   },
+  "record-table-templates-unavailable": {
+    "category": "record",
+    "description": "Shown when a report's template dependencies could not be loaded",
+    "contentFormat": "plain"
+  },
   "deleted-records-results-returned_one": {
     "category": "deleted",
     "description": "Result count message for a single row on the deleted records admin page",

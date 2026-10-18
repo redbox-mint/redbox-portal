@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import { build } from 'esbuild';
 
 const packageDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -107,12 +108,18 @@ try {
     assert.equal(api.handlebarsHelperDefinitions.markdownToHtml('text', 'markdown'), 'text');
     const loading = api.loadMarkdownParser();
     assert.equal(api.loadMarkdownParser(), loading, 'concurrent requests must share one import');
-    await loading;
+    if (fail) await assert.rejects(loading, /unavailable chunk/);
+    else await loading;
     assert.equal(globalThis.markdownEvaluations, 1);
     assert.equal(
       api.handlebarsHelperDefinitions.markdownToHtml('text', 'markdown'),
       fail ? 'text' : '<parsed>text</parsed>'
     );
+    if (fail) {
+      const retry = api.loadMarkdownParser();
+      assert.notEqual(retry, loading, 'a failed request must not permanently cache its promise');
+      await assert.rejects(retry, /unavailable chunk/);
+    }
   }
 
   const browser = await import(new URL('../dist/esm/browser.js', import.meta.url));
@@ -122,8 +129,67 @@ try {
     Object.keys(node).sort(),
     'browser and Node named exports must stay compatible'
   );
+  const runtime = await import(new URL('../dist/esm/handlebars-runtime.js', import.meta.url));
+  assert.equal(runtime.handlebarsInstance().compile, undefined);
   assert.equal(typeof node.handlebarsInstance().compile, 'function');
-  assert.equal(browser.handlebarsInstance().compile, undefined);
+  require('handlebars').registerHelper('directCompilerHook', value => `direct:${value}`);
+  const compiler = browser.handlebarsInstance();
+  assert.equal(compiler, browser.handlebarsInstance());
+  assert.equal(typeof compiler.compile, 'function');
+  assert.equal(typeof compiler.precompile, 'function');
+  assert.equal(compiler.helpers, runtime.handlebarsInstance().helpers);
+  assert.equal(compiler.partials, runtime.handlebarsInstance().partials);
+  assert.equal(compiler.decorators, runtime.handlebarsInstance().decorators);
+  compiler.registerHelper('explicitCompilerHook', value => `hook:${value}`);
+  compiler.registerPartial('explicitCompilerPartial', '{{explicitCompilerHook name}}');
+  try {
+    assert.equal(compiler.compile('{{directCompilerHook name}}')({ name: 'Ada' }), 'direct:Ada');
+    assert.equal(compiler.compile('{{> explicitCompilerPartial}}')({ name: 'Ada' }), 'hook:Ada');
+    const partialSpec = Function(`return ${compiler.precompile('{{> explicitCompilerPartial}}')}`)();
+    assert.equal(runtime.handlebarsTemplate(partialSpec)({ name: 'Ada' }), 'hook:Ada');
+    const spec = Function(`return ${compiler.precompile('{{explicitCompilerHook name}}')}`)();
+    const originalFunction = globalThis.Function;
+    try {
+      globalThis.Function = () => { throw new Error('CSP forbids dynamic code generation'); };
+      assert.equal(runtime.handlebarsTemplate(spec)({ name: 'Ada' }), 'hook:Ada');
+    } finally {
+      globalThis.Function = originalFunction;
+    }
+    runtime.handlebarsInstance().registerHelper('explicitCompilerHook', value => `updated:${value}`);
+    assert.equal(compiler.compile('{{explicitCompilerHook name}}')({ name: 'Ada' }), 'updated:Ada');
+  } finally {
+    compiler.unregisterHelper('explicitCompilerHook');
+    compiler.unregisterPartial('explicitCompilerPartial');
+    compiler.unregisterHelper('directCompilerHook');
+  }
+  // A new Node process proves import/HTML do not preload Marked and the very
+  // first synchronous server Markdown render contains HTML, without a timer.
+  execFileSync(process.execPath, ['-e', `
+    const assert = require('node:assert/strict');
+    const api = require('@researchdatabox/sails-ng-common');
+    const loaded = () => Object.keys(require.cache).some(path => path.endsWith('/marked-parser.cjs'));
+    assert.equal(loaded(), false);
+    const render = api.handlebarsCompile('{{{markdownToHtml content outputFormat}}}');
+    assert.equal(render({ content: '<b>html</b>', outputFormat: 'html' }), '<b>html</b>');
+    assert.equal(render({ content: '', outputFormat: 'markdown' }), '');
+    assert.equal(loaded(), false);
+    assert.equal(render({ content: '**first**', outputFormat: 'markdown' }), '<p><strong>first</strong></p>\\n');
+    assert.equal(loaded(), true);
+  `], { cwd: packageDirectory, stdio: 'pipe' });
+  // Resolve the actual browser export condition in an isolated process, without
+  // the CommonJS API sharing Handlebars' vendor singleton with this test runner.
+  execFileSync(process.execPath, ['--conditions=browser', '--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import { handlebarsInstance as full } from '@researchdatabox/sails-ng-common';
+    import { handlebarsInstance as runtime, handlebarsHelperDefinitions, loadMarkdownParser }
+      from '@researchdatabox/sails-ng-common/handlebars-runtime';
+    assert.equal(runtime().compile, undefined);
+    assert.equal(full().helpers, runtime().helpers);
+    assert.equal(runtime().helpers.markdownToHtml, handlebarsHelperDefinitions.markdownToHtml);
+    await loadMarkdownParser();
+    assert.equal(full().compile('{{{markdownToHtml content "markdown"}}}')({ content: '**browser**' }),
+      '<p><strong>browser</strong></p>\\n');
+  `], { cwd: packageDirectory, stdio: 'pipe' });
   assert.deepEqual(
     [...browser.FieldComponentDefinitionMap.keys()],
     [...node.FieldComponentDefinitionMap.keys()],

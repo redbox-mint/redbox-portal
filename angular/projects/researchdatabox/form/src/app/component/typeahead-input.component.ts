@@ -540,6 +540,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return;
     }
     try {
+      await this.handlebarsTemplateService.prepareTemplates(this.labelTemplate);
       this.compiledItems = await this.getFormComponent.getRecordCompiledItems();
     } catch (error) {
       this.loggerService.warn(

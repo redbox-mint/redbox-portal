@@ -17,7 +17,12 @@ export type HandlebarsRuntime = Omit<
   | 'JavaScriptCompiler'
   | 'Parser'
   | 'Visitor'
->;
+  | 'create'
+  | 'noConflict'
+> & {
+  create(): HandlebarsRuntime;
+  noConflict(): HandlebarsRuntime;
+};
 const instance = Runtime as unknown as HandlebarsRuntime;
 
 /** CSP-safe instance for precompiled templates and hook helper registration. */

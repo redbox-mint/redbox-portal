@@ -12,6 +12,7 @@ function rewriteModuleSpecifiers(source, filename) {
     if (!node || !ts.isStringLiteralLike(node)) return;
     let specifier = node.text;
     if (specifier === 'lodash') specifier = 'lodash-es';
+    else if (specifier === './markdown-parser') specifier = './markdown-parser.browser.js';
     else if (specifier.startsWith('.') && !/\.(?:js|mjs|cjs|json)$/i.test(specifier)) specifier += '.js';
     if (specifier !== node.text) edits.push({ start: node.getStart(file) + 1, end: node.getEnd() - 1, specifier });
   }

@@ -1,4 +1,4 @@
-import {Component, inject, Injector, Input, ChangeDetectionStrategy, signal} from '@angular/core';
+import {Component, inject, DestroyRef, Input, ChangeDetectionStrategy, signal} from '@angular/core';
 import { Subscription } from "rxjs";
 import {FormFieldBaseComponent, HandlebarsTemplateService, TranslationService} from '@researchdatabox/portal-ng-common';
 import {FormComponent} from "../form.component";
@@ -39,7 +39,7 @@ import {
   template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <span class="rb-form-content" [class.rb-form-rich-text-content]="isRichTextContent" [innerHtml]="content"></span>
+      <span class="rb-form-content" [class.rb-form-rich-text-content]="isRichTextContent" [attr.aria-busy]="isContentLoading()" [innerHtml]="content"></span>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
     }
   `,
@@ -52,6 +52,9 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   public get content(): string { return this.contentValue(); }
   public set content(value: string) { this.contentValue.set(value); }
   public isRichTextContent = false;
+  public readonly isContentLoading = signal(false);
+  private renderVersion = 0;
+  private readonly contentDestroyRef = inject(DestroyRef);
   protected formValueChangesSub?: Subscription;
   protected formBindTimeoutId?: ReturnType<typeof setTimeout>;
 
@@ -68,10 +71,13 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   protected override async initData(): Promise<void> {
+    const version = ++this.renderVersion;
+    this.formValueChangesSub?.unsubscribe();
+    if (this.formBindTimeoutId) clearTimeout(this.formBindTimeoutId);
+    this.isContentLoading.set(false);
     const config = this.componentDefinition?.config as ContentFieldComponentConfig;
 
     const template = config?.template ?? '';
-    const hasContent = config?.content !== null && config?.content !== undefined;
     const content = config?.content ?? '';
     this.isRichTextContent = !!config?.outputFormat;
     const contentIsTranslationCode = (config as { contentIsTranslationCode?: boolean } | undefined)?.contentIsTranslationCode === true;
@@ -83,8 +89,12 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       // If there is both a content and template, retrieve the template and provide the content as context.
       const name = this.name;
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
+      this.content = '';
+      this.isContentLoading.set(true);
       try {
+        await this.handlebarsTemplateService.prepareTemplates(template);
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
+        if (version !== this.renderVersion || this.contentDestroyRef.destroyed) return;
         const renderTemplate = (formData: Record<string, unknown> = {}) => {
           // Build the variables available to the template.
           const context = this.buildTemplateContext(config, formData);
@@ -95,6 +105,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
         renderTemplate(initialForm?.getRawValue?.() ?? initialForm?.value ?? {});
 
         const bindRenderToForm = (attempt = 0) => {
+          if (version !== this.renderVersion || this.contentDestroyRef.destroyed) return;
           const maxAttempts = 100;
           const form = this.getFormComponent.form;
           if (!form) {
@@ -113,9 +124,13 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
         bindRenderToForm();
         this.loggerService.debug(`${this.logName}: Set content component '${name}' at ${JSON.stringify(templateLineagePath)} from handlebars template ${JSON.stringify({content, template})}`);
       } catch (error) {
+        if (version !== this.renderVersion || this.contentDestroyRef.destroyed) return;
         this.loggerService.error(`${this.logName}: Error loading content component '${name}' at ${JSON.stringify(templateLineagePath)}`, error);
         this.status.set(FormFieldComponentStatus.ERROR);
         this.content = '';
+        throw error;
+      } finally {
+        if (version === this.renderVersion) this.isContentLoading.set(false);
       }
     } else if (content && !template && guessType(content) === "string") {
       // If there is content and no template, and the content is a string, display the content.
@@ -171,6 +186,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   ngOnDestroy(): void {
+    this.renderVersion++;
     if (this.formBindTimeoutId) {
       clearTimeout(this.formBindTimeoutId);
     }

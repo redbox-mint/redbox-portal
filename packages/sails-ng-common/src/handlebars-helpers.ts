@@ -1,13 +1,11 @@
-import Handlebars from 'handlebars';
 import { normaliseVisual } from './config/names/naming-helpers';
-import { registerHandlebarsHelpers } from './handlebars-registration';
+import { handlebarsInstance as compilerInstance } from './handlebars-browser-compiler';
 
 export { handlebarsHelperDefinitions, loadMarkdownParser } from './handlebars-helper-definitions';
 
 /** The original full compiler instance for Node/CommonJS callers. */
 export function handlebarsInstance() {
-  registerHandlebarsHelpers(Handlebars);
-  return Handlebars;
+  return compilerInstance();
 }
 
 export function handlebarsPrecompile(input: unknown, options?: PrecompileOptions): TemplateSpecification {

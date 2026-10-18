@@ -317,6 +317,7 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
         }
 
         try {
+            await this.handlebarsTemplateService.prepareTemplates(this.fileNameTemplate);
             this.compiledItems = await this.getFormComponent.getRecordCompiledItems();
         } catch (error) {
             this.loggerService.warn(`${this.logName}: Unable to load compiled PDF filename template. Falling back to the default PDF filename.`, error);

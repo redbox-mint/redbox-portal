@@ -28,6 +28,8 @@ import {
 } from 'lodash';
 import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
+import { getMarkdownParser } from './markdown-parser';
+export { loadMarkdownParser } from './markdown-parser';
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
   return (
@@ -49,35 +51,6 @@ function resolveDateFormatArg(formatOrOptions?: string | Record<string, unknown>
     return undefined;
   }
   return undefined;
-}
-
-type MarkdownParser = (value: string) => string;
-let cachedMarkedParser: MarkdownParser | null = null;
-let markedParserLoading: Promise<void> | undefined;
-
-/**
- * Load Markdown only when requested. Await this before rendering a Markdown
- * template when the first render must contain HTML. Failed loads keep the
- * synchronous helper's existing pass-through fallback.
- */
-export function loadMarkdownParser(): Promise<void> {
-  markedParserLoading ??= import('marked')
-    .then(markedModule => {
-      const parse = markedModule.marked?.parse ?? markedModule.parse;
-      if (typeof parse === 'function') {
-        cachedMarkedParser = value => {
-          const result = parse(value);
-          return typeof result === 'string' ? result : value;
-        };
-      }
-    })
-    .catch(() => { /* Preserve pass-through rendering if the chunk cannot load. */ });
-  return markedParserLoading;
-}
-
-function resolveMarkedParser(): MarkdownParser | null {
-  void loadMarkdownParser();
-  return cachedMarkedParser;
 }
 
 function isPrimitiveMetadataValue(value: unknown): boolean {
@@ -690,7 +663,7 @@ export const handlebarsHelperDefinitions = {
       return '';
     }
     if (outputFormat === 'markdown') {
-      const parser = resolveMarkedParser();
+      const parser = getMarkdownParser();
       if (parser) {
         return parser(input);
       }

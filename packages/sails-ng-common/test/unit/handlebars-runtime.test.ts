@@ -43,6 +43,20 @@ describe('Handlebars runtime compatibility', () => {
     assert.equal(compilerInstance().compile('{{toUpper name}}')({ name: 'Ada' }), 'ADA');
   });
 
+  it('shares hook registrations between focused and root Node APIs', () => {
+    const runtime = handlebarsInstance();
+    const compiler = compilerInstance();
+    assert.equal(runtime.helpers, compiler.helpers);
+    assert.equal(runtime.partials, compiler.partials);
+    assert.equal(runtime.decorators, compiler.decorators);
+    runtime.registerHelper('sharedNodeHook', value => `shared:${value}`);
+    try {
+      assert.equal(compiler.compile('{{sharedNodeHook name}}')({ name: 'Ada' }), 'shared:Ada');
+    } finally {
+      runtime.unregisterHelper('sharedNodeHook');
+    }
+  });
+
   it('supports deterministic Markdown rendering after explicitly awaiting its parser', async () => {
     await loadMarkdownParser();
     assert.equal(handlebarsHelperDefinitions.markdownToHtml('**bold**', 'markdown'), '<p><strong>bold</strong></p>\n');

@@ -13,19 +13,25 @@ including `handlebarsInstance().compile`, `handlebarsCompile`, and
 
 Browser bundlers resolve the ESM entry through the `browser` export condition
 (with `module` and `browser` fields for older bundlers). The public named exports
-remain available. The browser `handlebarsInstance()` exposes the Handlebars
-runtime for helper/partial registration and precompiled template execution;
-it does not expose a compiler. Browser code that explicitly needs compilation
-must import `handlebarsCompile` or `handlebarsPrecompile`. These exports retain
-the compiler only when used, and share the runtime's custom helper, partial,
-and decorator registries. Compilation still requires CSP permission for dynamic
-code generation; production templates should remain server-precompiled.
+remain available. The root `handlebarsInstance()` preserves the full synchronous
+Handlebars API, including `compile`, `precompile`, `parse`, and `create`, and returns
+one stable instance. Explicit compiler use retains the compiler. Registration-only
+or precompiled-template consumers should import `handlebarsInstance` from
+`@researchdatabox/sails-ng-common/handlebars-runtime` (or `/runtime`) to keep the
+compiler out of their bundles. Root compilation and the focused runtime share
+helper, partial, and decorator registries, including later hook overrides.
+Explicit compiler access also enables the runtime fallback for registered string
+partials. Runtime-only callers should register precompiled partials to keep CSP
+compatibility and compiler removal.
+`handlebarsCompile` and `handlebarsPrecompile` remain supported. Compilation still
+requires CSP permission for dynamic code generation; production templates remain
+server-precompiled.
 
 Focused subpaths are available for `handlebars-runtime`, `runtime`,
 `record-save.model`, `record-concurrency.model`, `record-diff`, `jsonata-helpers`,
 `html-helpers`, and `date-format-helpers`. The `runtime` entry preserves the
-shared API except for Handlebars compile/precompile exports. Prefer the focused
-subpaths for new consumers that only need one contract or helper.
+shared API with a compiler-free Handlebars instance and no compile/precompile
+exports. Prefer the focused subpaths for new consumers that only need one contract or helper.
 
 The ESM build uses the same pinned Lodash functions through `lodash-es`.
 The build finalizer rewrites only TypeScript-parsed module specifiers and adds
@@ -47,14 +53,10 @@ overrides. There is no blanket `sideEffects: false` declaration.
 
 ## Markdown loading and integration
 
-Importing the package, registering helpers, and rendering HTML or empty Markdown
-does not load Marked. The first non-empty Markdown helper call starts one cached
-dynamic import. The synchronous `markdownToHtml` helper returns its input until
-the parser is ready, and also falls back to the input if the chunk fails to load.
-Its return type and sanitization responsibilities are unchanged.
-
-For HTML on the first Markdown render, the rendering owner must await the loader
-after detecting Markdown content, before executing its precompiled template:
+Importing the package, registering helpers, and calling the helper with HTML or
+empty Markdown does not load Marked. Browser Markdown uses one cached dynamic
+import. Direct synchronous helper calls retain their input fallback while loading;
+rendering owners must prepare their templates before publishing helper HTML:
 
 ```ts
 import { loadMarkdownParser } from '@researchdatabox/sails-ng-common/handlebars-runtime';
@@ -62,14 +64,41 @@ import { loadMarkdownParser } from '@researchdatabox/sails-ng-common/handlebars-
 if (outputFormat === 'markdown' && content) {
   await loadMarkdownParser();
 }
-// Execute the template using the existing runtime and sanitize its output.
+// Execute the precompiled template using the existing runtime and sanitize output.
 ```
 
-This is an integration requirement for the form/content workstream: moving
-loading off module evaluation removes the old incidental preload. The package
-cannot make synchronous Handlebars rendering await a chunk. This change does not
-edit form components or the template service; callers that do not await can
-display raw Markdown on their first render. Do not preload Marked globally.
+The portal's `HandlebarsTemplateService.prepareTemplates(configuredTemplates)`
+awaits the loader when template source references `markdownToHtml`, including
+literal formats in generated nested view templates. This intentionally prepares
+Markdown-capable templates even when their current data is empty or HTML, so
+later synchronous renders are ready too. It does not run during global service
+initialization. Content (including related-object content), dashboard row/group
+rules and filters, report table columns, typeahead/tree labels, PDF filenames,
+and button redirect templates all prepare before their first execution.
+Content stays blank and `aria-busy` while preparing, uses the normal field error
+state on failure, and renders current form values after loading. Subscriptions
+continue to render synchronously. Stale or destroyed content cannot publish a
+pending render. Dashboard preparation failures show the existing unavailable
+state; report tables show an alert without rendering cells; label/file/redirect
+consumers retain their existing error fallbacks.
+
+Browser hook rendering owners should likewise call `prepareTemplates` with their
+source templates, or explicitly await `loadMarkdownParser()` when Markdown is
+hidden inside a custom helper or precompiled partial. The loader rejects failed
+loads so owners can display errors and retry preparation; synchronous direct
+helper calls still catch background loading errors and return their input.
+Sanitization remains the rendering owner's responsibility.
+
+Node/CommonJS and Node ESM imports preserve synchronous rendering without an async
+migration. The build emits a private CommonJS Marked module, loaded with `require`
+only on the first nonempty Markdown helper call. This also works on supported
+Node 20 versions without `require(ESM)`. Email, report/export, named-query, loader,
+DOI/Figshare/Oni binding and external hook callers keep their existing synchronous
+compile/template APIs. Server precompilation in `TemplateService` never executes
+the helper and does not load the parser. Server callers still need appropriate
+sanitization when rendering untrusted HTML. The browser finalizer selects the
+separate dynamic-import implementation; the Node parser stays out of browser
+bundles.
 
 ## Verification and measured effect
 
@@ -77,6 +106,9 @@ From this package, run `npm ci --ignore-scripts`, `npm run compile`, and
 `npm run test:full`. Tests cover CommonJS behavior, browser ESM resolution,
 runtime execution without dynamic code generation, custom helper/partial
 registration, focused exports, and Markdown demand/loading/failure behavior.
+`test:compile` emits both output trees (including the Node parser), so CI paths that only compile tests also
+produce usable browser artifacts. The CircleCI package job runs the browser
+checks after Mocha.
 The browser build check inspects retained output bytes rather than every parsed
 input, so an unused compatibility compiler import does not produce a false
 failure. `npm pack --dry-run` verifies both output trees are included.
@@ -112,3 +144,12 @@ Build verification adds pinned development dependencies `esbuild` 0.28.2,
 tests self-contained. The package lock also repairs missing glob/minimatch
 transitives that prevented a clean install at the baseline. Runtime dependency
 versions are unchanged.
+
+## Remediation validation
+
+The follow-up to `7fcae93a3` restores the root instance compiler contract and
+completes rendering-owner Markdown preparation. Original measurements above
+are from the initial implementation, before this follow-up. Regression coverage
+also checks pending/error/destruction handling, generated literal Markdown
+formats, form value rerenders, compiler/runtime registry identity, and fresh
+synchronous Node rendering with no incidental parser preload.
