@@ -31,6 +31,7 @@ import {
 // The runtime modules are loaded on demand by `loadMapDependencies()` below
 // so a record without a map field never pays the cost of OpenLayers, terra-draw,
 // terra-draw-openlayers-adapter or @tmcw/togeojson.
+import type * as GeoJSON from 'geojson';
 import type OLMap from 'ol/Map.js';
 import type OLInteraction from 'ol/interaction/Interaction.js';
 import type OLView from 'ol/View.js';

@@ -67,6 +67,7 @@
     "@angular-devkit/schematics": "22.2.0",
     "@angular/compiler-cli": "22.2.0",
     "@schematics/angular": "22.2.0",
+    "@types/geojson": "7946.0.16",
     "@types/jasmine": "7.0.0",
     "@types/lodash": "4.17.24",
     "@types/lodash-es": "4.17.12",
