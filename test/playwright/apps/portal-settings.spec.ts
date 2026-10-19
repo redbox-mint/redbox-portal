@@ -33,6 +33,7 @@ test('A18 edits a dedicated translation, reopens it and verifies the form uses a
   const recordUrl = `/default/rdmp/record/edit/${record.oid}`;
   await adminPage.goto(recordUrl);
   const label = adminPage.locator('label').filter({ hasText: original.existed ? String((original.value as { value: unknown }).value) : key }).first();
+  await expect(label).toBeVisible();
   const originalLabel = await label.innerText();
   await expect(field(adminPage, originalLabel)).toHaveValue('Translation sample');
   resources.track({ kind: 'translation-restoration', id: path, cleanup: async () => {
