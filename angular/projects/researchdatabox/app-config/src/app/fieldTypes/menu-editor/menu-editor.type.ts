@@ -10,6 +10,7 @@
  */
 import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { MenuItem } from './menu-item.interface';
 
 @Component({
@@ -46,7 +47,7 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     item: {}
   };
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor(private cdr: ChangeDetectorRef, private translationService: TranslationService) {
     super();
   }
 
@@ -323,12 +324,8 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
 
   // Preview helpers
   getResolvedLabel(labelKey: string): string {
-    if (!this.resolveTranslations) return labelKey;
-    // Simple label resolution - in production this would use TranslationService
-    return labelKey
-      .replace(/^menu-/, '')
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, char => char.toUpperCase());
+    if (!this.resolveTranslations || !labelKey) return labelKey;
+    return String(this.translationService.t(labelKey));
   }
 
   getAuthenticatedItems(): MenuItem[] {

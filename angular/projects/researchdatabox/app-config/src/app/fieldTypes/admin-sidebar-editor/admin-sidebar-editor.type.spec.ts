@@ -1,12 +1,21 @@
 import { ChangeDetectorRef } from '@angular/core';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup } from '@angular/forms';
 import { AdminSidebarEditorTypeComponent } from './admin-sidebar-editor.type';
 import { AdminSidebarHeader, AdminSidebarSection, AdminSidebarItem } from './admin-sidebar-item.interface';
 
 describe('AdminSidebarEditorTypeComponent', () => {
+  const translationService = {
+    t: (key: string) => ({
+      'menu-admin': 'Administration',
+      'menu-rolemgmt': 'Role management',
+      'menu-create-rdmp': 'Create a new RDMP'
+    } as Record<string, string>)[key] ?? key
+  } as unknown as TranslationService;
+
   const setup = (model: { header?: AdminSidebarHeader; sections?: AdminSidebarSection[]; footerLinks?: any[] } = {}) => {
     const cdr = { detectChanges: jasmine.createSpy('detectChanges') } as unknown as ChangeDetectorRef;
-    const component = new AdminSidebarEditorTypeComponent(cdr);
+    const component = new AdminSidebarEditorTypeComponent(cdr, translationService);
     Object.defineProperty(component, 'key', { value: 'header' });
     Object.defineProperty(component, 'model', { value: model });
 
@@ -24,6 +33,18 @@ describe('AdminSidebarEditorTypeComponent', () => {
 
     return { component, parentForm };
   };
+
+  it('resolves preview labels using the application translations', () => {
+    const { component } = setup();
+    expect(component.getResolvedLabel('menu-rolemgmt')).toBe('Role management');
+    expect(component.getResolvedLabel('menu-create-rdmp')).toBe('Create a new RDMP');
+    expect(component.getResolvedLabel('Untranslated literal')).toBe('Untranslated literal');
+    expect(component.getResolvedLabel('missing-key')).toBe('missing-key');
+    expect(component.getResolvedLabel('')).toBe('');
+
+    component.resolveTranslations = false;
+    expect(component.getResolvedLabel('menu-rolemgmt')).toBe('menu-rolemgmt');
+  });
 
   it('initializes default header when missing', () => {
     const { component } = setup({ sections: [], footerLinks: [] });
@@ -296,7 +317,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
 
     expect(visibleSections.length).toBe(1);
     expect(component.getVisibleItems(visibleSections[0]).length).toBe(1);
-    expect(component.getResolvedLabel('menu-admin')).toBe('Admin');
+    expect(component.getResolvedLabel('menu-admin')).toBe('Administration');
     
     // Test with resolveTranslations = false
     component.resolveTranslations = false;
@@ -321,7 +342,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
 
   it('updates header without parent control', () => {
     const cdr = { detectChanges: jasmine.createSpy('detectChanges') } as unknown as ChangeDetectorRef;
-    const component = new AdminSidebarEditorTypeComponent(cdr);
+    const component = new AdminSidebarEditorTypeComponent(cdr, translationService);
     Object.defineProperty(component, 'key', { value: 'header' });
     Object.defineProperty(component, 'model', { value: { header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' } } });
     Object.defineProperty(component, 'formControl', { value: new FormControl() }); // No parent
