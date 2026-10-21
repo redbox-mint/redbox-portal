@@ -1,9 +1,10 @@
+import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { HarvestRunApiService } from './harvest-run-api.service';
 import { HarvestRunsComponent } from './harvest-runs.component';
 
@@ -15,7 +16,8 @@ import { HarvestRunsComponent } from './harvest-runs.component';
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
+    PaginationModule,
   ],
   providers: [
     HarvestRunApiService,

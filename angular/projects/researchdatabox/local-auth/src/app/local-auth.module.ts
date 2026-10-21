@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { RouterModule } from '@angular/router'; 
 
@@ -15,7 +15,7 @@ import { LocalAuthComponent } from './local-auth.component';
     BrowserModule,
     ReactiveFormsModule,
     RouterModule,
-    RedboxPortalCoreModule
+    RedboxPortalCoreServicesModule
   ],
   providers: [
     {

@@ -43,6 +43,7 @@ export abstract class ButtonBaseComponent extends FormFieldBaseComponent<undefin
     ];
 
     try {
+      await this.handlebarsTemplateService.prepareTemplates(redirectLocation);
       const compiledItems = await this.getFormComponent.getRecordCompiledItems();
       const context = this.getTemplateContext();
       const extra = {libraries: {handlebars: handlebarsTemplate}};

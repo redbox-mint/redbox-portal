@@ -3,6 +3,14 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
+      "luxon": [
+        "./node_modules/@types/luxon",
+        "./node_modules/luxon/build/es6/luxon.mjs"
+      ],
+      "lodash-es": [
+        "./node_modules/@types/lodash-es",
+        "./node_modules/lodash-es/lodash.js"
+      ],
       "@researchdatabox/portal-ng-common": [
         "./dist/researchdatabox/portal-ng-common"
       ],
@@ -22,6 +30,7 @@
     "declaration": false,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
+    "customConditions": ["browser"],
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",

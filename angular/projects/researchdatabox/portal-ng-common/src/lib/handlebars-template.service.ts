@@ -25,7 +25,7 @@ import { LoggerService } from './logger.service';
 import { isArray as _isArray } from 'lodash-es';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
-import {buildKeyString, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
+import {buildKeyString, handlebarsTemplate, loadMarkdownParser} from '@researchdatabox/sails-ng-common';
 
 export type DashboardTemplateTarget =
     | { kind: 'workflow'; recordType: string; stage: string }
@@ -60,6 +60,24 @@ export class HandlebarsTemplateService extends HttpClientService {
         await super.waitForInit();
         this.enableCsrfHeader();
         return this;
+    }
+
+    /**
+     * Prepare configured templates before their synchronous execution. Includes
+     * nested row/rule configurations and literal Markdown formats in generated
+     * view templates; checking only context.outputFormat would miss those.
+     * This does not load Markdown for pages with no Markdown-capable templates.
+     */
+    public async prepareTemplates(templates: unknown): Promise<void> {
+        const usesMarkdown = (value: unknown): boolean => {
+            if (typeof value === 'string') return /\bmarkdownToHtml\b/.test(value);
+            return value !== null && typeof value === 'object' && Object.values(value).some(usesMarkdown);
+        };
+        if (usesMarkdown(templates)) await this.loadMarkdownParser();
+    }
+
+    protected loadMarkdownParser(): Promise<void> {
+        return loadMarkdownParser();
     }
 
     /**

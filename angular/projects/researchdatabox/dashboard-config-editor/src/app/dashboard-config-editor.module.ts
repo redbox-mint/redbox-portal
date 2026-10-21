@@ -2,7 +2,7 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 
 import { DashboardConfigEditorComponent } from './dashboard-config-editor.component';
 import { DashboardConfigApiService } from './dashboard-config-api.service';
@@ -33,7 +33,7 @@ import { TemplatePreviewService } from './template-preview/template-preview.serv
   imports: [
     BrowserModule,
     FormsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
     CommonModule
   ],
   providers: [

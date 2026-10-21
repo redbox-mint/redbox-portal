@@ -65,6 +65,7 @@
         <button
           type="button"
           class="btn btn-info UppyModalOpenerBtn"
+          [attr.aria-busy]="loadingUploader"
           [class.disabled]="isAttachmentButtonDisabled()"
           [disabled]="isAttachmentButtonDisabled()"
           (click)="openModal()"
@@ -73,6 +74,13 @@
         </button>
       </div>
     </div>
+  }
+
+  @if (loadingUploader) {
+    <span role="status">{{ 'loading-alt-text' | i18next }}</span>
+  }
+  @if (uploadLoadFailed) {
+    <div role="alert">{{ 'Unable to load attachments. Save your changes and reload this page.' | i18next }}</div>
   }
 
   <ng-container *ngTemplateOutlet="getTemplateRef('after')" />

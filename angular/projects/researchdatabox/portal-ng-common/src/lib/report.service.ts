@@ -34,7 +34,7 @@ import { ReportDto, ReportResultDto } from '@researchdatabox/sails-ng-common';
  * 
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo B</a>
  */
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class ReportService extends HttpClientService {
   constructor(
     @Inject(HttpClient) protected override http: HttpClient, 

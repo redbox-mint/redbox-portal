@@ -11,6 +11,7 @@
 import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener, ChangeDetectionStrategy } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './admin-sidebar-item.interface';
 
 @Component({
@@ -53,7 +54,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
     item: {}
   };
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor(private cdr: ChangeDetectorRef, private translationService: TranslationService) {
     super();
   }
 
@@ -466,13 +467,8 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   // ============ Preview Helpers ============
   
   getResolvedLabel(labelKey: string): string {
-    if (!this.resolveTranslations) return labelKey;
-    // Simple label resolution - in production this would use TranslationService
-    return labelKey
-      .replace(/^menu-/, '')
-      .replace(/^admin-/, '')
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, char => char.toUpperCase());
+    if (!this.resolveTranslations || !labelKey) return labelKey;
+    return String(this.translationService.t(labelKey));
   }
 
   getVisibleSections(): AdminSidebarSection[] {

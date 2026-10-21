@@ -18,6 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import {
   Component,
+  DestroyRef,
+  PendingTasks,
+  Type,
   effect,
   ElementRef,
   HostBinding,
@@ -288,6 +291,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   componentsLoaded = signal<boolean>(false);
   readonly error = this.facade.error;
   public readonly debugState = inject(FormDebugStateService);
+  public readonly debugPanelComponent = signal<Type<unknown> | null>(null);
+  private debugPanelLoading = false;
+  private debugPanelTaskCleanup?: () => void;
+  private readonly debugPanelPendingTasks = inject(PendingTasks);
+  private readonly debugPanelDestroyRef = inject(DestroyRef);
   private readonly serverSyncService = inject(FormServerSyncService);
   private readonly recordBaselineState = signal<FormRecordBaselineState | null>(null);
   public readonly recordBaseline = this.recordBaselineState.asReadonly();
@@ -436,6 +444,35 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     this.refreshRequestParamsFromUrl();
     this.initEffects();
+    this.debugPanelDestroyRef.onDestroy(() => {
+      this.debugPanelTaskCleanup?.();
+      this.debugPanelTaskCleanup = undefined;
+    });
+    effect(() => {
+      if (this.debugState.isDebugEnabled() && this.componentsLoaded() &&
+          this.componentDefArr.length > 0 && !this.debugPanelComponent() && !this.debugPanelLoading) {
+        this.debugPanelLoading = true;
+        this.debugPanelTaskCleanup = this.debugPanelPendingTasks.add();
+        void (async () => {
+          try {
+            const component = await this.loadDebugPanel();
+            if (!this.debugPanelDestroyRef.destroyed) {
+              this.debugPanelComponent.set(component);
+            }
+          } catch (error) {
+            this.loggerService.warn('Unable to load form debug panel.', error);
+          } finally {
+            this.debugPanelLoading = false;
+            this.debugPanelTaskCleanup?.();
+            this.debugPanelTaskCleanup = undefined;
+          }
+        })();
+      }
+    });
+  }
+
+  protected async loadDebugPanel(): Promise<Type<unknown>> {
+    return (await import('./form-debug/form-debug-panel.component')).FormDebugPanelComponent;
   }
 
   protected async initComponent(): Promise<void> {

@@ -78,7 +78,8 @@ describe('DashboardComponent', () => {
       { name: 'draft', config: { workflow: { stage: 'draft', stageLabel: 'Draft' }, displayIndex: 1 } },
     ]);
     recordService.getRecords.and.resolveTo(records);
-    templates = jasmine.createSpyObj('HandlebarsTemplateService', ['loadDashboardTargetTemplates', 'buildDashboardTemplateKeyPrefix', 'compileAndRunTemplate', 'waitForInit', 'isInitializing']);
+    templates = jasmine.createSpyObj('HandlebarsTemplateService', ['prepareTemplates', 'loadDashboardTargetTemplates', 'buildDashboardTemplateKeyPrefix', 'compileAndRunTemplate', 'waitForInit', 'isInitializing']);
+    templates.prepareTemplates.and.resolveTo();
     templates.loadDashboardTargetTemplates.and.resolveTo(true);
     templates.buildDashboardTemplateKeyPrefix.and.callFake((b: string, t: any, fp: string) => [b, t.kind, t.recordType ?? t.view, t.stage ?? t.step, fp]);
     templates.compileAndRunTemplate.and.callFake((_tpl: string, ctx: any, key: string[]) => `${key.join('|')}:${ctx?.metadata?.title ?? ''}`);
@@ -108,6 +109,29 @@ describe('DashboardComponent', () => {
           review: { settings: settings('Review title', {}, { searchable: false, showStageTitle: false }), fingerprint: 'fp-review' },
         },
       });
+    });
+
+    it('waits for Markdown readiness before evaluating rows', async () => {
+      let ready!: () => void;
+      templates.prepareTemplates.and.returnValue(new Promise<void>(resolve => ready = resolve));
+      const component = create();
+      const initialisation = init(component);
+      // Wait until the settings and compiled module have arrived.
+      for (let i = 0; i < 10 && !templates.prepareTemplates.calls.count(); i++) await Promise.resolve();
+      expect(templates.prepareTemplates).toHaveBeenCalled();
+      expect(templates.compileAndRunTemplate).not.toHaveBeenCalled();
+      ready();
+      await initialisation;
+      expect(templates.compileAndRunTemplate).toHaveBeenCalled();
+    });
+
+    it('shows settings unavailable if Markdown loading fails instead of retaining raw Markdown rows', async () => {
+      templates.prepareTemplates.and.rejectWith(new Error('chunk unavailable'));
+      const component = create();
+      await init(component);
+      expect(component.settingsUnavailable).toBeTrue();
+      expect(templates.compileAndRunTemplate).not.toHaveBeenCalled();
+      expect(component.records).toEqual({});
     });
 
     it('loads each stage from one settings snapshot and pins templates to its fingerprint', async () => {

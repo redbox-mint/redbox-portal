@@ -38,12 +38,7 @@ import { provideEffects } from '@ngrx/effects';
 import { FormStateFacade } from './form-state/facade/form-state.facade';
 import { FormComponentEventBus } from './form-state/events/form-component-event-bus.service';
 import { FormComponentFocusRequestCoordinator } from './form-state/events/form-component-focus-request-coordinator.service';
-import { TiptapEditorDirective } from 'ngx-tiptap';
 import { A11yModule } from '@angular/cdk/a11y';
-import { FormDebugPanelComponent } from './form-debug/form-debug-panel.component';
-import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.component';
-import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
-import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
 import { ConfirmationDialogComponent } from './component/confirmation-dialog.component';
 import { ConfirmationDialogService } from './confirmation-dialog.service';
 import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
@@ -247,10 +242,6 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
         FormBaseWrapperDirective: FormBaseWrapperDirective,
         FieldErrorSummaryComponent: FieldErrorSummaryComponent,
         FormComponent: FormComponent,
-        FormDebugPanelComponent: FormDebugPanelComponent,
-        FormDebugModelTabComponent: FormDebugModelTabComponent,
-        FormDebugConfigTabComponent: FormDebugConfigTabComponent,
-        FormDebugEventsTabComponent: FormDebugEventsTabComponent,
         ConfirmationDialogComponent: ConfirmationDialogComponent,
         FormConflictPresenterComponent: FormConflictPresenterComponent,
         RecordAuditLauncherComponent: RecordAuditLauncherComponent,
@@ -264,7 +255,6 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
         ReactiveFormsModule: ReactiveFormsModule,
         RedboxPortalCoreModule: RedboxPortalCoreModule,
         I18NextPipe: I18NextPipe,
-        TiptapEditorDirective: TiptapEditorDirective,
         A11yModule: A11yModule,
         RecordAuditModule: RecordAuditModule,
       },

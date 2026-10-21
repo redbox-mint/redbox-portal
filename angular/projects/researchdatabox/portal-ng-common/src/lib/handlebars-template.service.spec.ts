@@ -5,7 +5,7 @@ import { HandlebarsTemplateService } from './handlebars-template.service';
 import { ConfigService } from './config.service';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
-import { handlebarsPrecompile } from "@researchdatabox/sails-ng-common";
+import { handlebarsPrecompile, loadMarkdownParser } from "@researchdatabox/sails-ng-common";
 
 describe('HandlebarsTemplateService', () => {
   let service: HandlebarsTemplateService;
@@ -35,6 +35,37 @@ describe('HandlebarsTemplateService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  describe('prepareTemplates', () => {
+    it('does not load Markdown for HTML and ordinary templates', async () => {
+      const load = spyOn<any>(service, 'loadMarkdownParser').and.resolveTo();
+      await service.prepareTemplates([{ template: '<b>{{title}}</b>' }, null, '']);
+      expect(load).not.toHaveBeenCalled();
+    });
+
+    it('waits for Markdown in nested rules and generated literal-format templates', async () => {
+      let ready!: () => void;
+      const load = spyOn<any>(service, 'loadMarkdownParser').and.returnValue(new Promise<void>(resolve => ready = resolve));
+      let prepared = false;
+      const preparation = service.prepareTemplates({ tableConfig: { rowRulesConfig: [{ rules: [
+        { renderItemTemplate: '{{{markdownToHtml metadata.description "markdown"}}}' }
+      ] }] } }).then(() => prepared = true);
+      await Promise.resolve();
+      expect(load).toHaveBeenCalledTimes(1);
+      expect(prepared).toBeFalse();
+      ready();
+      await preparation;
+      expect(prepared).toBeTrue();
+    });
+
+    it('surfaces parser load failures and allows the owner to retry', async () => {
+      const load = spyOn<any>(service, 'loadMarkdownParser').and.rejectWith(new Error('chunk unavailable'));
+      const template = '{{{markdownToHtml content outputFormat}}}';
+      await expectAsync(service.prepareTemplates(template)).toBeRejectedWithError('chunk unavailable');
+      load.and.callFake(loadMarkdownParser);
+      await service.prepareTemplates(template);
+    });
   });
 
   describe('loadDashboardTargetTemplates', () => {

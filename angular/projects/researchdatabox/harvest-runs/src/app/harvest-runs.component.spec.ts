@@ -1,7 +1,8 @@
+import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { APP_BASE_HREF } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { LoggerService, RedboxPortalCoreServicesModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { HarvestRunApiService } from './harvest-run-api.service';
 import { HarvestRunsComponent } from './harvest-runs.component';
 
@@ -31,7 +32,7 @@ describe('HarvestRunsComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [HarvestRunsComponent],
-      imports: [FormsModule, RedboxPortalCoreModule],
+      imports: [FormsModule, RedboxPortalCoreServicesModule, PaginationModule],
       providers: [
         LoggerService,
         {

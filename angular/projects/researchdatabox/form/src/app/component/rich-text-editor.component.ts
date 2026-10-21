@@ -1,11 +1,6 @@
-import { Component, CSP_NONCE, inject, Input, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-import { Editor, type AnyExtension } from '@tiptap/core';
-import { Table } from '@tiptap/extension-table';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import TableRow from '@tiptap/extension-table-row';
-import { Markdown } from '@tiptap/markdown';
-import StarterKit from '@tiptap/starter-kit';
+import { Component, CSP_NONCE, inject, Input, OnDestroy, DoCheck, ElementRef, ViewChild, PendingTasks, ChangeDetectionStrategy } from '@angular/core';
+import type { Editor, AnyExtension } from '@tiptap/core';
+import type * as RichTextRuntime from './rich-text-editor.runtime';
 import { Subscription } from 'rxjs';
 import {
   FormFieldBaseComponent,
@@ -130,8 +125,16 @@ type RichTextEditorChain = {
               (input)="onSourceValueChange($any($event.target).value)"
             ></textarea>
           } @else if (editor) {
-            <div class="redbox-rich-text-editor-surface" tiptapEditor [editor]="editor"></div>
+            <div #editorSurface class="redbox-rich-text-editor-surface"></div>
           }
+        </div>
+      }
+      @if (editorLoading) {
+        <span role="status">{{ 'loading-alt-text' | i18next }}</span>
+      }
+      @if (editorLoadFailed) {
+        <div role="alert">
+          {{ 'Unable to load rich text. Save your changes and reload this page.' | i18next }}
         </div>
       }
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
@@ -198,7 +201,7 @@ type RichTextEditorChain = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class RichTextEditorComponent extends FormFieldBaseComponent<string> implements OnDestroy {
+export class RichTextEditorComponent extends FormFieldBaseComponent<string> implements DoCheck, OnDestroy {
   protected override logName = RichTextEditorComponentName;
 
   public editor: Editor | null = null;
@@ -212,7 +215,76 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   public isSourceMode = false;
   public sourceValue = '';
 
+  public editorLoading = false;
+  public editorLoadFailed = false;
+  private runtime?: typeof RichTextRuntime;
+  private destroyed = false;
+  private configured = false;
+  private readonly pendingTasks = inject(PendingTasks);
+  private editorTaskCleanup?: () => void;
   private valueSyncSub?: Subscription;
+
+  @ViewChild('editorSurface')
+  private set editorSurface(surface: ElementRef<HTMLElement> | undefined) {
+    if (!surface || !this.editor) {
+      return;
+    }
+    // Move the existing editor DOM when returning from source mode or a hidden tab.
+    const element = this.editor.options.element;
+    if (element instanceof HTMLElement) {
+      surface.nativeElement.append(...Array.from(element.childNodes));
+    }
+    this.editor.setOptions({ element: surface.nativeElement });
+  }
+
+  ngDoCheck(): void {
+    if (this.runtime && this.isVisible && !this.editor && !this.isReadonly && !this.editorLoadFailed && !this.destroyed) {
+      this.createEditor(this.formControl.value ?? '');
+    }
+    if (this.editor) {
+      const editable = !this.isReadonly && !this.isDisabled;
+      if (this.editor.isEditable !== editable) {
+        this.editor.setEditable(editable, false);
+      }
+    }
+    if (this.configured && this.isVisible && (!this.isReadonly || this.outputFormat === 'markdown') &&
+        !this.runtime && !this.editorLoading && !this.editorLoadFailed && !this.destroyed) {
+      this.editorTaskCleanup = this.pendingTasks.add();
+      void this.loadEditor();
+    }
+  }
+
+  protected loadRuntime(): Promise<typeof RichTextRuntime> {
+    return import('./rich-text-editor.runtime');
+  }
+
+  private async loadEditor(): Promise<void> {
+    this.editorLoading = true;
+    this.requestRender();
+    try {
+      const runtime = await this.loadRuntime();
+      if (this.destroyed) {
+        return;
+      }
+      this.runtime = runtime;
+      // Model/expression updates may have arrived while the chunk was loading.
+      const value = this.formControl.value ?? '';
+      this.applyViewValue(value);
+      if (this.isVisible && !this.isReadonly) {
+        this.createEditor(value);
+      }
+    } catch (error) {
+      if (!this.destroyed) {
+        this.editorLoadFailed = true;
+        this.loggerService.error(`${this.logName}: Failed to load editor.`, error);
+      }
+    } finally {
+      this.editorLoading = false;
+      this.requestRender();
+      this.editorTaskCleanup?.();
+      this.editorTaskCleanup = undefined;
+    }
+  }
   private markdownViewEditor: Editor | null = null;
   private skipNextSync = false;
   private readonly cspNonce = inject(CSP_NONCE, { optional: true });
@@ -233,7 +305,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     const initialValue = this.formControl.value ?? '';
     this.sourceValue = initialValue;
     this.renderedViewHtml = this.toViewHtml(initialValue);
-    this.createEditor(initialValue);
+    this.configured = true;
   }
 
   protected override async initEventHandlers() {
@@ -281,15 +353,15 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     if (value === this.getEditorValue(this.editor)) {
       return;
     }
-    // Guard the onUpdate handler that setContent triggers from writing back to the control.
-    this.skipNextSync = true;
+    // Display synchronisation must not wait for an update event: Tiptap omits
+    // that event when the new value parses to the document it already holds.
     this.setEditorValue(value);
   }
 
   public override setDisabled(disabled: boolean, opts?: ModifyOptions): void {
     super.setDisabled(disabled, opts);
     if (this.editor) {
-      this.editor.setEditable(!this.isReadonly && !this.isDisabled);
+      this.editor.setEditable(!this.isReadonly && !this.isDisabled, false);
     }
   }
 
@@ -398,6 +470,9 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.editorTaskCleanup?.();
+    this.editorTaskCleanup = undefined;
     this.valueSyncSub?.unsubscribe();
     this.editor?.destroy();
     this.editor = null;
@@ -409,7 +484,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     this.editor?.destroy();
     this.editor = null;
     try {
-      this.editor = new Editor({
+      this.editor = new this.runtime!.Editor({
         extensions: this.buildExtensions(),
         injectNonce: this.resolveCspNonce(),
         contentType: this.outputFormat === 'markdown' ? 'markdown' : 'html',
@@ -421,6 +496,8 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
             class: 'redbox-rich-text-prosemirror',
           },
         },
+        onSelectionUpdate: () => this.requestRender(),
+        onTransaction: () => this.requestRender(),
         onUpdate: ({ editor }) => {
           const value = this.getEditorValue(editor);
           this.renderedViewHtml = this.toViewHtml(value);
@@ -440,21 +517,12 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     } catch (error) {
       this.loggerService.error(`${this.logName}: Failed to create editor instance.`, error);
       this.editor = null;
+      this.editorLoadFailed = true;
     }
   }
 
   private buildExtensions(): AnyExtension[] {
-    const extensions: AnyExtension[] = [
-      StarterKit,
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableHeader,
-      TableCell,
-    ];
-    if (this.outputFormat === 'markdown') {
-      extensions.push(Markdown);
-    }
-    return extensions;
+    return this.runtime!.buildExtensions(this.outputFormat);
   }
 
   private getEditorValue(editor: Editor): string {
@@ -474,6 +542,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     }
     this.editor.commands.setContent(value, {
       contentType: this.outputFormat === 'markdown' ? 'markdown' : 'html',
+      emitUpdate: false,
     });
   }
 
@@ -500,6 +569,9 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
     if (this.outputFormat !== 'markdown') {
       return value;
     }
+    if (!this.runtime) {
+      return `<pre>${escapeHtmlText(value)}</pre>`;
+    }
     try {
       const mdEditor = this.getOrCreateMarkdownViewEditor();
       mdEditor.commands.setContent(value, { contentType: 'markdown' });
@@ -512,7 +584,7 @@ export class RichTextEditorComponent extends FormFieldBaseComponent<string> impl
 
   private getOrCreateMarkdownViewEditor(): Editor {
     if (!this.markdownViewEditor) {
-      this.markdownViewEditor = new Editor({
+      this.markdownViewEditor = new this.runtime!.Editor({
         extensions: this.buildExtensions(),
         injectNonce: this.resolveCspNonce(),
         contentType: 'markdown',

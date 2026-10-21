@@ -1,7 +1,7 @@
 import { LOCALE_ID, inject as inject_1, provideAppInitializer } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common'; 
-import { RedboxPortalCoreModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, getStubReportService } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, RedboxPortalReportsModule, RedboxPortalRecordTableModule, UtilityService, LoggerService, TranslationService, ConfigService, ReportService, getStubConfigService, getStubTranslationService, getStubReportService } from '@researchdatabox/portal-ng-common';
 import { ReportFilterDto, ReportDto, ReportResultDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
@@ -67,7 +67,7 @@ describe('ReportComponent', () => {
         FormsModule,
         BsDatepickerModule,
         PaginationModule,
-        RedboxPortalCoreModule
+        RedboxPortalCoreServicesModule, RedboxPortalReportsModule, RedboxPortalRecordTableModule
       ],
       providers: [
         {

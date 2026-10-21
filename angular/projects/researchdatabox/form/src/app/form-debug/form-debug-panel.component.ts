@@ -1,3 +1,7 @@
+import { FormDebugEventsTabComponent } from './form-debug-events-tab.component';
+import { FormDebugConfigTabComponent } from './form-debug-config-tab.component';
+import { FormDebugModelTabComponent } from './form-debug-model-tab.component';
+import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormDebugStateService } from './form-debug-state.service';
 
@@ -6,7 +10,8 @@ import { FormDebugStateService } from './form-debug-state.service';
   templateUrl: './form-debug-panel.component.html',
   styleUrls: ['./form-debug-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  imports: [CommonModule, FormDebugModelTabComponent, FormDebugConfigTabComponent, FormDebugEventsTabComponent],
+  standalone: true
 })
 export class FormDebugPanelComponent implements OnInit {
   mode = signal<'dock' | 'overlay' | 'sheet'>('dock');

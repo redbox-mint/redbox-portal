@@ -3,9 +3,12 @@ import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { DateInputComponent, parseFreeTextDate } from './date-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormComponent } from '../form.component';
 import { By } from '@angular/platform-browser';
 import { FormComponentEventBus, FormComponentEventType } from '../form-state';
+import { firstValueFrom } from 'rxjs';
+import { ApplicationRef } from '@angular/core';
 
 describe('parseFreeTextDate', () => {
   it('should parse exact match for configured format', () => {
@@ -69,6 +72,104 @@ describe('DateInputComponent', () => {
     const fixture = TestBed.createComponent(DateInputComponent);
     const component = fixture.componentInstance;
     expect(component).toBeDefined();
+  });
+
+  async function clickCalendarDay(fixture: ComponentFixture<FormComponent>, day: number): Promise<void> {
+    const component = fixture.debugElement.query(By.directive(DateInputComponent)).componentInstance as DateInputComponent;
+    const shown = firstValueFrom(component.datepicker.onShown);
+    (fixture.nativeElement.querySelector('.date-input-addon') as HTMLElement).click();
+    await shown;
+    fixture.detectChanges();
+    fixture.debugElement.injector.get(ApplicationRef).tick();
+    const target = Array.from(document.querySelectorAll<HTMLElement>('bs-datepicker-container td span:not(.is-other-month)'))
+      .find(element => element.textContent?.trim() === String(day))!;
+    expect(target).withContext(`day ${day}: ${document.querySelector('bs-datepicker-container')?.textContent}`).toBeDefined();
+    target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    target.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
+
+  for (const month of ['2026-10', '2027-04']) {
+    for (const [from, day] of [[3, 4], [4, 5], [5, 3]]) {
+      it(`keeps real calendar selection ${month}-0${from} to day ${day} at UTC midnight`, async () => {
+        const { fixture, formComponent } = await createFormAndWaitForReady({
+          name: 'date-picker-writeback', componentDefinitions: [{ name: 'date',
+            model: { class: 'DateInputModel', config: { value: `${month}-0${from}T00:00:00.000Z` } },
+            component: { class: 'DateInputComponent', config: { dateFormat: 'YYYY-MM-DD' } },
+          }],
+        });
+        const component = fixture.debugElement.query(By.directive(DateInputComponent)).componentInstance as DateInputComponent;
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        const control = component.formControl;
+        const observed: string[] = [];
+        control.valueChanges.subscribe(value => observed.push(value instanceof Date ? value.toISOString() : String(value)));
+        await clickCalendarDay(fixture, day);
+        const expected = `${month}-0${day}`;
+        expect(input.value).toBe(expected);
+        expect((control.value as Date).toISOString()).toBe(`${expected}T00:00:00.000Z`);
+        expect(observed.length).toBeGreaterThan(0);
+        expect(observed.every(value => value === `${expected}T00:00:00.000Z`)).toBeTrue();
+        expect(control.dirty).toBeTrue();
+        expect(control.touched).toBeTrue();
+        expect(formComponent.form?.dirty).toBeTrue();
+        await setControlValue(control, `${expected}T00:00:00.000Z`, { emitEvent: false });
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(input.value).toBe(expected);
+        expect(control.valid).toBeTrue();
+      }, 15_000);
+    }
+  }
+
+  for (const config of [
+    { enableTimePicker: true },
+    { bsFullConfig: { dateInputFormat: 'YYYY-MM-DD', useUtc: false } },
+    { bsFullConfig: { dateInputFormat: 'YYYY-MM-DD', useUtc: true } },
+    { robustParsing: false },
+  ]) {
+    it(`preserves timestamp clock time for an explicitly configured picker ${JSON.stringify(config)}`, async () => {
+      const initial = new Date('2026-10-03T00:00:00.000Z');
+      const { fixture } = await createFormAndWaitForReady({
+        name: 'configured-date-picker', componentDefinitions: [{ name: 'date',
+          model: { class: 'DateInputModel', config: { value: initial } },
+          component: { class: 'DateInputComponent', config: { dateFormat: 'YYYY-MM-DD', ...config } },
+        }],
+      });
+      const component = fixture.debugElement.query(By.directive(DateInputComponent)).componentInstance as DateInputComponent;
+      const utcPicker = 'bsFullConfig' in config && config.bsFullConfig?.useUtc;
+      // Explicit useUtc retains ngx's existing UTC-as-local value conversion.
+      const displayedInitial = utcPicker
+        ? new Date(2026, 9, 3, initial.getUTCHours(), initial.getUTCMinutes())
+        : initial;
+      expect(component.formControl.value).toEqual(displayedInitial);
+      expect(component.formControl.pristine).toBeTrue();
+      await clickCalendarDay(fixture, 4);
+      const expected = new Date(2026, 9, 4,
+        utcPicker ? initial.getUTCHours() : initial.getHours(),
+        utcPicker ? initial.getUTCMinutes() : initial.getMinutes());
+      expect(component.formControl.value).toEqual(expected);
+      expect(component.enableTimePicker).toBe(!!('enableTimePicker' in config && config.enableTimePicker));
+    });
+  }
+
+  it('preserves full programmatic timestamps and their local clock time on a calendar edit', async () => {
+    const initial = new Date('2026-10-03T10:15:00.000Z');
+    const { fixture } = await createFormAndWaitForReady({
+      name: 'timestamp-date-picker', componentDefinitions: [{ name: 'date',
+        model: { class: 'DateInputModel', config: { value: initial } },
+        component: { class: 'DateInputComponent', config: { dateFormat: 'YYYY-MM-DD' } },
+      }],
+    });
+    const component = fixture.debugElement.query(By.directive(DateInputComponent)).componentInstance as DateInputComponent;
+    const written = '2026-10-03T10:15:00.789Z';
+    await setControlValue(component.formControl, written, { emitEvent: false });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect((component.formControl.value as Date).toISOString()).toBe(written);
+    expect(component.formControl.pristine).toBeTrue();
+    await clickCalendarDay(fixture, 4);
+    expect(component.formControl.value).toEqual(new Date(2026, 9, 4, initial.getHours(), initial.getMinutes()));
   });
 
   for (const serverDay of [3, 4]) {

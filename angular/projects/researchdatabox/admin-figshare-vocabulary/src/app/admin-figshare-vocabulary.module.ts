@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import {
-  RedboxPortalCoreModule,
+  RedboxPortalCoreServicesModule,
   trimLastSlashFromUrl,
   PublicationVocabularyApiService,
 } from '@researchdatabox/portal-ng-common';
@@ -30,7 +30,7 @@ import { FigshareMappingPickerComponent } from './crosswalks/figshare-mapping-pi
     FigshareCrosswalkEditorComponent,
     FigshareMappingPickerComponent,
   ],
-  imports: [BrowserModule, A11yModule, FormsModule, ReactiveFormsModule, RedboxPortalCoreModule, CommonModule],
+  imports: [BrowserModule, A11yModule, FormsModule, ReactiveFormsModule, RedboxPortalCoreServicesModule, CommonModule],
   providers: [
     FigshareVocabularyApiService,
     PublicationVocabularyApiService,

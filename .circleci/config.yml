@@ -22,6 +22,9 @@ jobs:
       - run:
           name: Test Docker tag handling
           command: bash support/build/docker-build-vars.test.sh
+      - run:
+          name: Test Angular bundle stats accounting
+          command: node --test support/build/angular-bundle-stats.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -545,6 +548,7 @@ jobs:
             npm run test:prepare
             npx nyc --no-clean --report-dir ./coverage/sails-ng-common --reporter=lcov --exclude-after-remap=false \
               npx mocha --config test/unit/.mocharc.js --exit dist/test/unit/**/*.test.js
+            npm run test:browser
       - run:
           name: Upload Mocha code coverage
           command: |

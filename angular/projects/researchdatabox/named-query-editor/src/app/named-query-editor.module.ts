@@ -3,7 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 
 import { NamedQueryEditorComponent } from './named-query-editor.component';
 import { NamedQueryApiService } from './named-query-api.service';
@@ -30,7 +30,7 @@ import { RelatedFilterEditorComponent } from './related-filter-editor/related-fi
     BrowserModule,
     A11yModule,
     FormsModule,
-    RedboxPortalCoreModule,
+    RedboxPortalCoreServicesModule,
     CommonModule
   ],
   providers: [

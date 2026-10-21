@@ -2,7 +2,7 @@ import { LOCALE_ID, inject as inject_1, provideAppInitializer, provideZonelessCh
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
 import {
-  RedboxPortalCoreModule,
+  RedboxPortalCoreServicesModule, RedboxPortalRecordsModule, RedboxPortalRecordTableModule,
   UtilityService,
   LoggerService,
   TranslationService,
@@ -76,7 +76,7 @@ describe('DeletedRecordsComponent', () => {
         BsDatepickerModule,
         PaginationModule,
         ModalModule,
-        RedboxPortalCoreModule
+        RedboxPortalCoreServicesModule, RedboxPortalRecordsModule, RedboxPortalRecordTableModule
       ],
       providers: [
         provideZonelessChangeDetection(),

@@ -22,7 +22,7 @@ import {
   DashboardModeContext,
   DashboardRuntimeSettings
 } from '@researchdatabox/portal-ng-common';
-import { handlebarsInstance } from '@researchdatabox/sails-ng-common';
+import { handlebarsInstance } from '@researchdatabox/sails-ng-common/handlebars-runtime';
 import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, has as _has } from 'lodash-es';
 
 /**
@@ -198,6 +198,13 @@ export class DashboardComponent extends BaseComponent {
       for (const state of Object.values(states)) {
         const loaded = await this.handlebarsTemplateService.loadDashboardTargetTemplates(this.branding, this.portal, state.target, state.fingerprint);
         consistent = consistent && loaded;
+        try {
+          await this.handlebarsTemplateService.prepareTemplates(state.settings);
+        } catch (error) {
+          this.loggerService.error('Dashboard Markdown parser is unavailable', error);
+          this.settingsUnavailable = true;
+          return false;
+        }
       }
       if (consistent) {
         this.stepState = { ...this.stepState, ...states };

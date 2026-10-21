@@ -25,7 +25,7 @@ export function integrationComponentForm(names: ScenarioNames, id: string): Form
       { name: 'relatedDetails', component: { class: 'RelatedObjectDataComponent', config: { dataPath: 'related', oidProperty: 'oid', relatedFields: ['translated'], template: '{{#each relatedObjects}}<p>{{title}}: {{fields.translated}}</p>{{/each}}' } } },
     );
   } else if (id === 'components-rich-text') {
-    fields.push({ name: 'description', component: { class: 'RichTextEditorComponent', config: { toolbar: ['bold', 'italic', 'bulletList', 'undo', 'redo'] } }, model: { class: 'RichTextEditorModel', config: { defaultValue: '' } } });
+    fields.push({ name: 'description', component: { class: 'RichTextEditorComponent', config: { showSourceToggle: true, toolbar: ['bold', 'italic', 'bulletList', 'undo', 'redo'] } }, model: { class: 'RichTextEditorModel', config: { defaultValue: '' } } });
   } else if (id === 'components-map') {
     fields.push({ name: 'geometry', component: { class: 'MapComponent', config: {
       center: [-34.9, 138.6], zoom: 8, enabledModes: ['point', 'polygon', 'select'], enableImport: true,

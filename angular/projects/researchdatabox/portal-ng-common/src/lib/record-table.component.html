@@ -1,4 +1,7 @@
-@if (isReady && dataSource) {
+@if (templatesUnavailable) {
+  <div class="alert alert-warning" role="alert">{{ 'record-table-templates-unavailable' | i18next }}</div>
+}
+@if (isReady && dataSource && !templatesUnavailable) {
   @if (dataSource.getCurrentPage(); as currentPage) {
     <div class="row">
       @if (columnConfig) {

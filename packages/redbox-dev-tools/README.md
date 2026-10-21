@@ -213,6 +213,9 @@ npx @researchdatabox/redbox-dev-tools migrate-form-config \
 
 Generate end-to-end scaffold for a new form component in Angular and `sails-ng-common`.
 
+Generated model and outline exports are registered in `sails-ng-common/src/shared.ts`,
+which is re-exported by the Node root, browser and compiler-free runtime entrypoints.
+
 ```bash
 npx @researchdatabox/redbox-dev-tools generate form-component my-widget --app form
 ```

@@ -48,6 +48,7 @@ import {HeaderSortComponent} from "./header-sort.component";
     standalone: false
 })
 export class RecordTableComponent extends BaseComponent {
+  public templatesUnavailable = false;
   // row/column config
   @Input() columnConfig: RecordPropViewMetaDto[] = null as any;
   // the data source
@@ -93,6 +94,13 @@ export class RecordTableComponent extends BaseComponent {
     if (hasTemplates && !this.reportName) {
       this.loggerService.error(`RecordTableComponent requires reportName when using Handlebars templates!`);
       throw new Error(`RecordTableComponent requires reportName when using Handlebars templates!`);
+    }
+    this.templatesUnavailable = false;
+    try {
+      await this.handlebarsTemplateService.prepareTemplates(this.columnConfig);
+    } catch (error) {
+      this.templatesUnavailable = true;
+      this.loggerService.error('RecordTableComponent: Could not prepare report templates', error);
     }
   }
 
