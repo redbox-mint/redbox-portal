@@ -1,0 +1,24 @@
+# Publication vocabulary contracts and administration
+
+PUB-22/23 add provider-neutral sources, namespaced string target identities, immutable approved crosswalk snapshots and a Mongo-backed administration service. The embedded administration UI and institutional release acceptance remain PUB-24/25. Stage 1 processing and its existing sealed Figshare response format are unchanged.
+
+`vocab.publicationAdministrationEnabled` defaults to `false`, independently of publication processing. Before enabling this setting, drain legacy vocabulary writes started while administration was disabled and deploy matching code/settings to every application process. An empty admission list cannot certify quiescence of older or disabled processes; stopping/draining those processes is a deployment gate. Conversion does not enable publication destinations. A committed conversion remains authoritative when the administration switch is turned off; frozen references and legacy binding delegates continue to resolve from shared data.
+
+Use the normal administrative loader, which disables queue startup:
+
+```sh
+node support/publication/admin.js convert-vocabularies --brand BRAND_ID --username ADMIN
+node support/publication/admin.js convert-vocabularies --brand BRAND_ID --username ADMIN --apply --reason 'Reviewed vocabulary inventory'
+```
+
+The command requires a current administrator belonging to the explicit brand. Dry-run returns counts, the inventory fingerprint and identity preservation, without copying data or creating a control row. Apply drains admitted legacy vocabulary writers, permanently fences their writes, copies/verifies evidence and commits authority. An interrupted copy is resumable with the same command. Source drift or unknown/future authority stops conversion with retained evidence. Crashed legacy writer admissions require an explicit, audited CLI settlement after their processes have stopped: pass `--parameters` with `settledWriterIds` from dry-run, `settlementEvidence` naming the reviewed evidence and `confirmLegacyWritersStopped: true`, together with `--apply --reason`. Admissions are never cleared merely because a timer elapsed. Keep the administration switch enabled consistently across the deployed process set during this transition.
+
+Conversion preserves source/crosswalk IDs, every mapping ID/revision, current approval pointers, attribution/timestamps, historical target flags, category aliases and import/audit evidence. The legacy collections remain evidence and are not renamed or dropped. Imported local and mirror vocabularies retain their IDs. Legacy category-row IDs remain permanent aliases in target evidence. A committed journal prevents a repeated converter from replacing newer shared edits. There is no reverse converter or legacy fallback after commitment.
+
+The `PublicationVocabularyService` supports source import, target search, draft editing, optimistic versions, approval, resolution and snapshots. Routes are registered under `/:branding/:portal/api/publication-vocabularies` with the existing contract validation and Admin policy. Figshare catalogue reads use configured credentials and retain separate public/account scopes; a request cannot supply a URL or token. `FigshareVocabularyService` and existing routes delegate after conversion, retaining their response shapes and reviewed import proposals. An interrupted preview apply remains visibly unfinished rather than automatically repeating partially applied changes; its import and draft evidence can be inspected through shared administration.
+
+A generic binding calls `resolvePublicationCrosswalkBinding` with the caller's mapping context and a resolver. Outputs are `targetId`, `value`, `sourceId` or `label`, always strings. Numeric category conversion is confined to the Figshare compatibility/provider adapter. Generic source import cannot claim the reserved Figshare provider/namespace.
+
+An approved revision contains immutable local-code aliases, mapping edges, target descriptions, approval attribution and audit references. `snapshot()` implements the PUB-04 snapshot contract; `resolveFrozenReference()` uses its explicit revision ID, including after later approvals, catalogue retirement, local edits, archival or disabling administration. Unpinned Figshare-compatible resolution uses current catalogue retirement/labels and the approved mapping revision. Stage 1's sealed Figshare responses are replayed directly and never reconstructed from current catalogue data.
+
+Source imports and crosswalk edits use native Mongo compare-and-swap. Approved snapshots are never edited or evicted. Aggregate writes stop before 8 MiB with a clear partition/archive error; an import supports up to 20,000 terms and a draft up to 10,000 edges. These limits retain evidence instead of silently truncating history. Institutional rehearsal, matching UI delivery and explicit release activation remain external gates.

@@ -88,7 +88,11 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
-    await Promise.all([this.loadSources(), this.loadCrosswalks()]);
+    if (!this.sharedAdministrationEnabled) await Promise.all([this.loadSources(), this.loadCrosswalks()]);
+  }
+
+  get sharedAdministrationEnabled(): boolean {
+    return this.api.sharedAdministrationEnabled;
   }
 
   get totalSources(): number {

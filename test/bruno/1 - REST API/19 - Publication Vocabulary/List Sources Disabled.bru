@@ -1,0 +1,21 @@
+meta {
+  name: List Publication Vocabulary Sources Disabled
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/publication-vocabularies/sources
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Shared vocabulary administration is disabled by default", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+}

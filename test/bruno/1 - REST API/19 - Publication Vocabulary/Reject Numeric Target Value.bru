@@ -1,0 +1,35 @@
+meta {
+  name: Reject Numeric Publication Target Value
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/default/rdmp/api/publication-vocabularies/sources/import
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "provider": "fixture",
+    "scope": "public",
+    "catalogueId": "subjects",
+    "namespace": "urn:test:subjects",
+    "displayName": "Subjects",
+    "importId": "invalid-numeric-value",
+    "terms": [{ "id": "urn%3Atest%3Asubjects:42", "namespace": "urn:test:subjects", "value": 42, "sourceId": "42", "label": "Subject", "selectable": true }]
+  }
+}
+
+tests {
+  test("Target identity is validated as a string at the route boundary", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

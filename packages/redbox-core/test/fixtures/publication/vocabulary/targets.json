@@ -1,0 +1,18 @@
+[
+  {
+    "id": "figshare%3Abrand%3Apublic%3A1:42",
+    "namespace": "figshare:brand:public:1",
+    "value": "42",
+    "sourceId": "300101",
+    "label": "Applied mathematics",
+    "selectable": true
+  },
+  {
+    "id": "https%3A%2F%2Fexample.org%2Fsubjects:https%3A%2F%2Fexample.org%2Fsubject%2FMath",
+    "namespace": "https://example.org/subjects",
+    "value": "https://example.org/subject/Math",
+    "sourceId": "Math",
+    "label": "Mathematics",
+    "selectable": true
+  }
+]

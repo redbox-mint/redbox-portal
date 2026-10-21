@@ -1,0 +1,673 @@
+@if (isReady) {
+  <div class="container-fluid py-3" [attr.aria-busy]="busy">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <h1 class="h4">{{ '@publication-vocabulary-title' | i18next }}</h1>
+        <p class="text-muted">{{ '@publication-vocabulary-subtitle' | i18next }}</p>
+      </div>
+      <button type="button" class="btn btn-outline-secondary" [disabled]="busy || dirty" (click)="reload()">
+        {{ '@publication-vocabulary-reload' | i18next }}
+      </button>
+    </div>
+    @if (error) {
+      <div class="alert alert-danger" role="alert">{{ error | i18next }}</div>
+    }
+    @if (message) {
+      <div class="alert alert-success" role="status">{{ message | i18next }}</div>
+    }
+    @if (busy) {
+      <p role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+    }
+    @if (capabilities) {
+      <nav class="nav nav-tabs mb-3" [attr.aria-label]="'@publication-vocabulary-title' | i18next">
+        <button
+          type="button"
+          class="nav-link"
+          [class.active]="tab === 'sources'"
+          [disabled]="busy || dirty"
+          (click)="showTab('sources')"
+        >
+          {{ 'figshare-vocab-tab-sources' | i18next }}
+        </button>
+        <button
+          type="button"
+          class="nav-link"
+          [class.active]="tab === 'crosswalks'"
+          [disabled]="busy || dirty"
+          (click)="showTab('crosswalks')"
+        >
+          {{ 'figshare-vocab-tab-crosswalks' | i18next }}
+        </button>
+        @if (capabilities.snapshotImport || capabilities.figshareScopes.length) {
+          <button
+            type="button"
+            class="nav-link"
+            [class.active]="tab === 'import'"
+            [disabled]="busy || dirty"
+            (click)="showTab('import')"
+          >
+            {{ '@publication-vocabulary-import' | i18next }}
+          </button>
+        }
+        <button
+          type="button"
+          class="nav-link"
+          [class.active]="tab === 'legacy-history'"
+          [disabled]="busy || dirty"
+          (click)="showLegacyHistory()"
+        >
+          {{ '@publication-vocabulary-legacy-history' | i18next }}
+        </button>
+      </nav>
+      @if (!active && (tab === 'sources' || tab === 'crosswalks')) {
+        <div class="d-flex gap-3 mb-3">
+          <label
+            >{{ '@publication-vocabulary-provider' | i18next }}
+            <select class="form-select" [ngModel]="providerFilter" (ngModelChange)="changeProvider($event)">
+              <option value="">{{ '@publication-vocabulary-all' | i18next }}</option>
+              @for (provider of providers; track provider) {
+                <option [value]="provider">{{ provider }}</option>
+              }
+            </select>
+          </label>
+          @if (tab === 'crosswalks') {
+            <label
+              >{{ '@publication-vocabulary-source' | i18next }}
+              <select class="form-select" [(ngModel)]="sourceFilter">
+                <option value="">{{ '@publication-vocabulary-all' | i18next }}</option>
+                @for (source of filteredSources; track source.id) {
+                  <option [value]="source.id">{{ sourceLabel(source.id) }}</option>
+                }
+              </select>
+            </label>
+            <label
+              >{{ '@publication-vocabulary-status' | i18next }}
+              <select class="form-select" [(ngModel)]="statusFilter">
+                <option value="">{{ '@publication-vocabulary-all' | i18next }}</option>
+                @for (status of ['draft', 'approved', 'archived']; track status) {
+                  <option [value]="status">{{ '@publication-vocabulary-' + status | i18next }}</option>
+                }
+              </select>
+            </label>
+          }
+        </div>
+      }
+      @if (tab === 'sources') {
+        <div class="table-responsive figshare-panel">
+          <table class="table align-middle">
+            <caption>
+              {{
+                '@publication-vocabulary-source-list' | i18next
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th>{{ '@publication-vocabulary-source' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-provider' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-namespace' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-actions' | i18next }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (source of filteredSources; track source.id) {
+                <tr>
+                  <td>
+                    {{ source.displayName
+                    }}<small class="d-block"
+                      >{{ source.scope }} · {{ source.catalogueId }} · v{{ source.version }}</small
+                    >
+                    @if (source.archived) {
+                      <span class="badge text-bg-secondary">{{ '@publication-vocabulary-archived' | i18next }}</span>
+                    }
+                  </td>
+                  <td>{{ source.provider }}</td>
+                  <td class="text-break">
+                    {{ source.namespace }}<small class="d-block">{{ source.id }}</small>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      [disabled]="busy"
+                      (click)="showSourceHistory(source)"
+                    >
+                      {{ '@publication-vocabulary-import-history' | i18next }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4">{{ '@publication-vocabulary-empty' | i18next }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (historySource) {
+          <section class="figshare-panel">
+            <h2 class="h5">
+              {{ '@publication-vocabulary-import-history' | i18next }} · {{ historySource.displayName }}
+            </h2>
+            @if (historyLoading) {
+              <p role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
+            }
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>{{ '@publication-vocabulary-identity' | i18next }}</th>
+                  <th>{{ '@publication-vocabulary-date' | i18next }}</th>
+                  <th>{{ '@publication-vocabulary-actor' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (run of importHistory; track run.id) {
+                  <tr>
+                    <td class="text-break">{{ run.id }}</td>
+                    <td>{{ formatDate(run.at) }}</td>
+                    <td>{{ run.actor }}</td>
+                  </tr>
+                } @empty {
+                  @if (!historyLoading) {
+                    <tr>
+                      <td colspan="3">{{ '@publication-vocabulary-empty' | i18next }}</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      }
+      @if (tab === 'crosswalks' && !active) {
+        <div class="figshare-panel table-responsive">
+          <table class="table align-middle">
+            <caption>
+              {{
+                '@publication-vocabulary-crosswalk-list' | i18next
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th>{{ '@publication-vocabulary-name' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-source' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-revisions' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-actions' | i18next }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredCrosswalks; track row.id) {
+                <tr>
+                  <td>
+                    {{ row.name
+                    }}<small class="d-block"
+                      >{{ row.id }} · {{ '@publication-vocabulary-' + row.status | i18next }}</small
+                    >
+                  </td>
+                  <td>{{ vocabularyName(row.localVocabularyId) }} → {{ sourceLabel(row.sourceId) }}</td>
+                  <td>
+                    {{ '@publication-vocabulary-working' | i18next }} {{ row.workingRevision }} ·
+                    {{ '@publication-vocabulary-approved' | i18next }} {{ row.approvedRevision || '—' }}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary"
+                      [disabled]="busy"
+                      (click)="openCrosswalk(row.id)"
+                    >
+                      {{ '@publication-vocabulary-open' | i18next }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4">{{ '@publication-vocabulary-empty' | i18next }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (capabilities.editMappings) {
+          <form class="figshare-panel" (ngSubmit)="createCrosswalk()">
+            <h2 class="h5">{{ '@publication-vocabulary-create-crosswalk' | i18next }}</h2>
+            <fieldset [disabled]="busy">
+              <div class="row g-3">
+                <label class="col-md-6"
+                  >{{ '@publication-vocabulary-name' | i18next
+                  }}<input class="form-control" name="crosswalkName" [(ngModel)]="name" required maxlength="200"
+                /></label>
+                <label class="col-md-6"
+                  >{{ '@publication-vocabulary-local-vocabulary' | i18next
+                  }}<select class="form-select" name="localVocabulary" [(ngModel)]="localVocabularyId" required>
+                    <option value=""></option>
+                    @for (vocabulary of vocabularies; track vocabulary.id) {
+                      <option [value]="vocabulary.id">{{ vocabulary.name }}</option>
+                    }
+                  </select></label
+                >
+                <label class="col-md-6"
+                  >{{ '@publication-vocabulary-source' | i18next
+                  }}<select class="form-select" name="targetSource" [(ngModel)]="newSourceId" required>
+                    <option value=""></option>
+                    @for (source of filteredSources; track source.id) {
+                      @if (!source.archived) {
+                        <option [value]="source.id">{{ sourceLabel(source.id) }}</option>
+                      }
+                    }
+                  </select></label
+                >
+                <label class="col-md-6"
+                  >{{ '@publication-vocabulary-code-matching' | i18next
+                  }}<select class="form-select" name="normalizer" [(ngModel)]="normalizer">
+                    <option value="exact-v1">{{ '@publication-vocabulary-case-sensitive' | i18next }}</option>
+                    <option value="figshare-code-v1">
+                      {{ '@publication-vocabulary-figshare-matching' | i18next }}
+                    </option>
+                  </select></label
+                >
+              </div>
+              <button
+                type="submit"
+                class="btn btn-primary mt-3"
+                [disabled]="!name.trim() || !newSourceId || !localVocabularyId"
+              >
+                {{ '@publication-vocabulary-create-crosswalk' | i18next }}
+              </button>
+            </fieldset>
+          </form>
+        }
+      }
+      @if (active) {
+        <section class="figshare-panel">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h2 class="h5">{{ active.name }}</h2>
+              <p>{{ sourceLabel(active.sourceId) }}</p>
+              <p class="small text-break">{{ active.id }} · {{ active.localVocabularyId }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-link align-self-start"
+              [disabled]="busy || dirty"
+              (click)="showTab('crosswalks')"
+            >
+              {{ '@publication-vocabulary-back' | i18next }}
+            </button>
+          </div>
+          <p>{{ '@publication-vocabulary-approval-help' | i18next }}</p>
+          @if (dirty) {
+            <p class="alert alert-warning" role="status">{{ '@publication-vocabulary-unsaved' | i18next }}</p>
+          }
+          <label
+            >{{ '@publication-vocabulary-revision' | i18next }}
+            <select
+              class="form-select mb-3"
+              [ngModel]="revisionNumber"
+              (ngModelChange)="selectRevision($event)"
+              [disabled]="busy || dirty"
+            >
+              @for (row of active.revisions; track row.revision) {
+                <option [ngValue]="row.revision">
+                  {{ row.revision }} ·
+                  {{
+                    (row.approvedAt ? '@publication-vocabulary-approved' : '@publication-vocabulary-draft') | i18next
+                  }}
+                  · {{ row.approvedBy || '—' }} · {{ formatDate(row.approvedAt) }}
+                </option>
+              }
+            </select>
+          </label>
+          @if (revision; as snapshot) {
+            <dl class="row small">
+              <dt class="col-sm-2">{{ '@publication-vocabulary-approval' | i18next }}</dt>
+              <dd class="col-sm-10">{{ snapshot.approvedBy || '—' }} · {{ formatDate(snapshot.approvedAt) || '—' }}</dd>
+              <dt class="col-sm-2">{{ '@publication-vocabulary-audit' | i18next }}</dt>
+              <dd class="col-sm-10 text-break">{{ snapshot.auditReferences.join(', ') || '—' }}</dd>
+            </dl>
+          }
+          <label class="d-block"
+            >{{ '@publication-vocabulary-search-mappings' | i18next
+            }}<input
+              class="form-control"
+              [ngModel]="mappingSearch"
+              (ngModelChange)="mappingSearch = $event; mappingOffset = 0"
+          /></label>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>{{ '@publication-vocabulary-local-term' | i18next }}</th>
+                  <th>{{ '@publication-vocabulary-target-term' | i18next }}</th>
+                  <th>{{ '@publication-vocabulary-status' | i18next }}</th>
+                  <th>{{ '@publication-vocabulary-actions' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (mapping of visibleMappings; track mapping.id) {
+                  <tr>
+                    <td>{{ localLabel(mapping.localEntryId) }}</td>
+                    <td class="text-break">
+                      {{ targetLabel(mapping.targetId) }}<small class="d-block">{{ mapping.targetId }}</small>
+                      @if (target(mapping.targetId)?.historical) {
+                        <span class="figshare-badge figshare-badge--historical">{{
+                          '@publication-vocabulary-historical' | i18next
+                        }}</span>
+                      }
+                    </td>
+                    <td>{{ '@publication-vocabulary-' + mapping.status | i18next }}</td>
+                    <td>
+                      @if (canEdit) {
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          [disabled]="busy"
+                          (click)="removeMapping(mapping.id)"
+                        >
+                          {{ '@publication-vocabulary-remove' | i18next }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4">{{ '@publication-vocabulary-empty' | i18next }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex gap-2 align-items-center mb-3">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              [disabled]="mappingOffset === 0"
+              (click)="mappingOffset = mappingOffset - 50"
+            >
+              {{ '@publication-vocabulary-previous' | i18next }}
+            </button>
+            <span>{{ mappingOffset + visibleMappings.length }} / {{ matchingMappings.length }}</span
+            ><button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              [disabled]="mappingOffset + 50 >= matchingMappings.length"
+              (click)="mappingOffset = mappingOffset + 50"
+            >
+              {{ '@publication-vocabulary-next' | i18next }}
+            </button>
+          </div>
+          @if (canEdit) {
+            <fieldset [disabled]="busy || pickerLoading">
+              <legend class="h6">{{ '@publication-vocabulary-add-mapping' | i18next }}</legend>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="d-block"
+                    >{{ '@publication-vocabulary-search-local' | i18next
+                    }}<input class="form-control" [(ngModel)]="localSearch"
+                  /></label>
+                  <label class="d-block mt-2"
+                    >{{ '@publication-vocabulary-local-term' | i18next
+                    }}<select class="form-select" [(ngModel)]="selectedLocalId">
+                      <option value=""></option>
+                      @for (local of localPage.data; track local.id) {
+                        <option [value]="local.id">
+                          {{ local.label }} · {{ local.value }} · {{ local.codes.join(', ') }}
+                        </option>
+                      }
+                    </select></label
+                  >
+                  <button
+                    type="button"
+                    class="btn btn-link"
+                    [disabled]="localPage.meta.offset === 0"
+                    (click)="searchPicker(localPage.meta.offset - 50, targetPage.meta.offset)"
+                  >
+                    {{ '@publication-vocabulary-previous' | i18next }}</button
+                  ><span>{{ localPage.meta.total }}</span
+                  ><button
+                    type="button"
+                    class="btn btn-link"
+                    [disabled]="localPage.meta.offset + 50 >= localPage.meta.total"
+                    (click)="searchPicker(localPage.meta.offset + 50, targetPage.meta.offset)"
+                  >
+                    {{ '@publication-vocabulary-next' | i18next }}
+                  </button>
+                </div>
+                <div class="col-md-6">
+                  <label class="d-block"
+                    >{{ '@publication-vocabulary-search-target' | i18next
+                    }}<input class="form-control" [(ngModel)]="targetSearch"
+                  /></label>
+                  <label class="d-block mt-2"
+                    >{{ '@publication-vocabulary-target-term' | i18next
+                    }}<select class="form-select" [(ngModel)]="selectedTargetId">
+                      <option value=""></option>
+                      @for (term of targetPage.data; track term.id) {
+                        <option [value]="term.id" [disabled]="!term.selectable || term.historical">
+                          {{ term.label }} · {{ term.value }} · {{ term.sourceId
+                          }}{{ term.historical ? ' (' + ('@publication-vocabulary-historical' | i18next) + ')' : '' }}
+                        </option>
+                      }
+                    </select></label
+                  >
+                  <button
+                    type="button"
+                    class="btn btn-link"
+                    [disabled]="targetPage.meta.offset === 0"
+                    (click)="searchPicker(localPage.meta.offset, targetPage.meta.offset - 50)"
+                  >
+                    {{ '@publication-vocabulary-previous' | i18next }}</button
+                  ><span>{{ targetPage.meta.total }}</span
+                  ><button
+                    type="button"
+                    class="btn btn-link"
+                    [disabled]="targetPage.meta.offset + 50 >= targetPage.meta.total"
+                    (click)="searchPicker(localPage.meta.offset, targetPage.meta.offset + 50)"
+                  >
+                    {{ '@publication-vocabulary-next' | i18next }}
+                  </button>
+                </div>
+              </div>
+              <label class="d-block my-2"
+                ><input type="checkbox" [(ngModel)]="includeHistorical" />
+                {{ '@publication-vocabulary-show-historical' | i18next }}</label
+              >
+              <button type="button" class="btn btn-outline-secondary me-2" (click)="searchPicker()">
+                {{ '@publication-vocabulary-search' | i18next }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                [disabled]="!selectedLocalId || !selectedTargetId"
+                (click)="addMapping()"
+              >
+                {{ '@publication-vocabulary-add-mapping' | i18next }}
+              </button>
+            </fieldset>
+          }
+          <div class="d-flex gap-2 mt-3">
+            @if (dirty) {
+              <button type="button" class="btn btn-primary" [disabled]="busy || !canEdit" (click)="saveDraft()">
+                {{ '@publication-vocabulary-save-draft' | i18next }}</button
+              ><button type="button" class="btn btn-outline-secondary" [disabled]="busy" (click)="discardChanges()">
+                {{ '@publication-vocabulary-discard' | i18next }}
+              </button>
+            }
+            @if (canApprove && !confirmingApproval) {
+              <button type="button" class="btn btn-success" (click)="confirmingApproval = true">
+                {{ '@publication-vocabulary-approve-revision' | i18next }}
+              </button>
+            }
+          </div>
+          @if (confirmingApproval) {
+            <div class="alert alert-warning mt-3">
+              <p>
+                {{ '@publication-vocabulary-confirm-approval' | i18next }} {{ active.workingRevision }} ·
+                {{ mappings.length }}
+              </p>
+              <button type="button" class="btn btn-success me-2" [disabled]="!canApprove" (click)="approve()">
+                {{ '@publication-vocabulary-confirm' | i18next }}</button
+              ><button
+                type="button"
+                class="btn btn-outline-secondary"
+                [disabled]="busy"
+                (click)="confirmingApproval = false"
+              >
+                {{ '@publication-vocabulary-cancel' | i18next }}
+              </button>
+            </div>
+          }
+        </section>
+      }
+      @if (tab === 'legacy-history') {
+        <section class="figshare-panel">
+          <h2 class="h5">{{ '@publication-vocabulary-legacy-history' | i18next }}</h2>
+          <p>{{ '@publication-vocabulary-legacy-history-help' | i18next }}</p>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>{{ '@publication-vocabulary-identity' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-status' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-scope' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-actor' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-date' | i18next }}</th>
+                <th>{{ '@publication-vocabulary-actions' | i18next }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (run of legacyRuns; track run.id) {
+                <tr>
+                  <td>{{ run.id }}</td>
+                  <td>{{ 'figshare-vocab-run-state-' + run.state | i18next }}</td>
+                  <td>{{ run.scope }} · {{ run.taxonomyId }}</td>
+                  <td>{{ run.appliedBy || run.requestedBy }}</td>
+                  <td>{{ formatDate(run.appliedAt || undefined) }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      [disabled]="busy"
+                      (click)="showLegacyPreview(run.id)"
+                    >
+                      {{ '@publication-vocabulary-open' | i18next }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6">{{ '@publication-vocabulary-empty' | i18next }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <button
+            type="button"
+            class="btn btn-outline-secondary me-2"
+            [disabled]="busy || legacyOffset === 0"
+            (click)="showLegacyHistory(legacyOffset - 50)"
+          >
+            {{ '@publication-vocabulary-previous' | i18next }}
+          </button>
+          <span>{{ legacyOffset + legacyRuns.length }} / {{ legacyTotal }}</span
+          ><button
+            type="button"
+            class="btn btn-outline-secondary ms-2"
+            [disabled]="busy || legacyOffset + 50 >= legacyTotal"
+            (click)="showLegacyHistory(legacyOffset + 50)"
+          >
+            {{ '@publication-vocabulary-next' | i18next }}
+          </button>
+          @if (legacyPreview) {
+            <h3 class="h6 mt-3">{{ legacyPreview.runId }} · {{ legacyPreview.state }}</h3>
+            <dl>
+              @for (entry of legacyPreview.summary | keyvalue; track entry.key) {
+                <dt>{{ 'figshare-vocab-change-' + entry.key | i18next }}</dt>
+                <dd>{{ entry.value }}</dd>
+              }
+            </dl>
+          }
+        </section>
+      }
+      @if (tab === 'import') {
+        <p class="alert alert-info">{{ '@publication-vocabulary-import-help' | i18next }}</p>
+        @if (capabilities.snapshotImport) {
+          <section class="figshare-panel">
+            <h2 class="h5">{{ '@publication-vocabulary-snapshot' | i18next }}</h2>
+            <p>{{ '@publication-vocabulary-snapshot-help' | i18next }}</p>
+            <label class="d-block"
+              >{{ '@publication-vocabulary-snapshot-json' | i18next
+              }}<textarea
+                class="form-control font-monospace"
+                rows="10"
+                [ngModel]="snapshotText"
+                (ngModelChange)="editSnapshot($event)"
+                [disabled]="busy"
+              ></textarea>
+            </label>
+            @if (snapshotError) {
+              <p class="text-danger" role="alert">{{ snapshotError | i18next }}</p>
+            }
+            <button
+              type="button"
+              class="btn btn-outline-primary mt-2"
+              [disabled]="busy || !snapshotText.trim()"
+              (click)="reviewSnapshot()"
+            >
+              {{ '@publication-vocabulary-review' | i18next }}
+            </button>
+            @if (reviewedImport) {
+              <div class="alert alert-info mt-3">
+                <p>
+                  {{ reviewedImport.displayName }} · {{ reviewedImport.provider }} · {{ reviewedImport.scope }} ·
+                  {{ reviewedImport.catalogueId }} · {{ reviewedImport.terms.length }}
+                  {{ '@publication-vocabulary-terms' | i18next }}
+                </p>
+                <p class="text-break">{{ reviewedImport.namespace }}</p>
+                <button type="button" class="btn btn-primary" [disabled]="busy" (click)="importSnapshot()">
+                  {{ '@publication-vocabulary-import-reviewed' | i18next }}
+                </button>
+              </div>
+            }
+          </section>
+        }
+        @if (capabilities.figshareScopes.length) {
+          <section class="figshare-panel">
+            <h2 class="h5">{{ '@publication-vocabulary-figshare-import' | i18next }}</h2>
+            <label
+              >{{ '@publication-vocabulary-scope' | i18next
+              }}<select
+                class="form-select"
+                [(ngModel)]="figshareScope"
+                (ngModelChange)="resetFigshare()"
+                [disabled]="busy"
+              >
+                @for (scope of capabilities.figshareScopes; track scope) {
+                  <option [value]="scope">{{ 'figshare-vocab-scope-' + scope | i18next }}</option>
+                }
+              </select></label
+            >
+            <button type="button" class="btn btn-outline-secondary mx-2" [disabled]="busy" (click)="discoverFigshare()">
+              {{ '@publication-vocabulary-discover' | i18next }}
+            </button>
+            <label
+              >{{ '@publication-vocabulary-catalogue' | i18next
+              }}<select class="form-select" [(ngModel)]="taxonomyId" [disabled]="busy">
+                <option value=""></option>
+                @for (taxonomy of taxonomies; track taxonomy.taxonomyId) {
+                  <option [value]="taxonomy.taxonomyId">{{ taxonomy.title }} · {{ taxonomy.taxonomyId }}</option>
+                }
+              </select></label
+            >
+            <button
+              type="button"
+              class="btn btn-primary mx-2"
+              [disabled]="busy || !taxonomyId"
+              (click)="importFigshare()"
+            >
+              {{ '@publication-vocabulary-import-catalogue' | i18next }}
+            </button>
+          </section>
+        }
+      }
+    }
+  </div>
+}

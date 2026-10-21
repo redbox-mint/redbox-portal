@@ -1,0 +1,21 @@
+meta {
+  name: List Publication Crosswalks Disabled
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/publication-vocabularies/crosswalks
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Disabled administration does not disclose crosswalks", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+}

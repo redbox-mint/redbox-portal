@@ -1,0 +1,25 @@
+meta {
+  name: Reject Guest Publication Vocabulary Administration
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/api/publication-vocabularies/sources
+  auth: none
+}
+
+headers {
+  X-ReDBox-Api-Version: 2.0
+}
+
+settings {
+  followRedirects: false
+}
+
+tests {
+  test("Vocabulary administration requires an administrator", function () {
+    expect(res.getStatus()).to.equal(302);
+    expect(res.getHeader("location")).to.include("/default/rdmp/user/login");
+  });
+}

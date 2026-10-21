@@ -1,3 +1,4 @@
+import { PublicationVocabularyError } from '../../services/publication-vocabulary/contracts';
 import { FigshareVocabularyError } from '../../services/figshare-v2/vocabulary-errors';
 
 export interface FigshareVocabularyErrorResponse {
@@ -14,6 +15,8 @@ export interface FigshareVocabularyErrorResponse {
  * or raw request configuration.
  */
 export function toFigshareVocabularyErrorResponse(error: unknown): FigshareVocabularyErrorResponse {
+  if (error instanceof PublicationVocabularyError)
+    return { status: error.status, title: 'Publication vocabulary', detail: error.message };
   if (error instanceof FigshareVocabularyError) {
     switch (error.code) {
       case 'relationship-boundary':

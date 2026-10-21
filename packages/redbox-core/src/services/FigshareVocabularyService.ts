@@ -1,3 +1,5 @@
+import { sharedFigshareVocabulary, SharedFigshareVocabulary } from './publication-vocabulary/legacy-api';
+import { withLegacyVocabularyWriter } from './publication-vocabulary/legacy';
 import { Services as services } from '../CoreService';
 import {
   FigshareVocabularyCategoryAttributes,
@@ -284,6 +286,12 @@ export namespace Services {
       'resolveCrosswalkValues',
       'bootstrapData'
     ];
+
+    private async requireShared(ctx: ActorContext): Promise<SharedFigshareVocabulary> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (!shared) throw new RelationshipBoundaryError('Shared vocabulary conversion is not committed');
+      return shared;
+    }
 
     // ── Infrastructure helpers ────────────────────────────────────────
 
@@ -593,6 +601,14 @@ export namespace Services {
     }
 
     public async createPreview(input: CreatePreviewInput, ctx: ActorContext): Promise<SyncPreview> {
+      return withLegacyVocabularyWriter(
+        ctx.brandId,
+        () => this.legacyCreatePreview(input, ctx),
+        async () => (await this.requireShared(ctx)).createPreview(input)
+      );
+    }
+
+    private async legacyCreatePreview(input: CreatePreviewInput, ctx: ActorContext): Promise<SyncPreview> {
       await this.pruneExpiredRuns(ctx.brandId);
 
       const scope = this.assertScope(input?.scope);
@@ -697,9 +713,18 @@ export namespace Services {
     }
 
     public async getPreview(runId: string, query: PreviewPageQuery, ctx: ActorContext): Promise<PagedPreview> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared && await shared.hasPreview(runId)) return shared.getPreview(runId, query);
+
       const run = await this.requireRun(runId, ctx.brandId);
       if ((run.state === 'previewed' || run.state === 'fetching') && new Date(run.expiresAt).getTime() <= Date.now()) {
-        await this.transitionRun(String(run.id), String(run.state), 'expired');
+        if (!shared) {
+          await withLegacyVocabularyWriter(
+            ctx.brandId,
+            () => this.transitionRun(String(run.id), String(run.state), 'expired'),
+            async () => {}
+          );
+        }
         throw new PreviewExpiredError();
       }
 
@@ -786,6 +811,14 @@ export namespace Services {
     }
 
     public async applyPreview(runId: string, decisions: ApplyDecisions, ctx: ActorContext): Promise<ApplyResult> {
+      return withLegacyVocabularyWriter(
+        ctx.brandId,
+        () => this.legacyApplyPreview(runId, decisions, ctx),
+        async () => (await this.requireShared(ctx)).applyPreview(runId, decisions)
+      );
+    }
+
+    private async legacyApplyPreview(runId: string, decisions: ApplyDecisions, ctx: ActorContext): Promise<ApplyResult> {
       const run = await this.requireRun(runId, ctx.brandId);
 
       if (run.state === 'applied') {
@@ -1345,6 +1378,9 @@ export namespace Services {
       query: { q?: string; scope?: string; limit?: number; offset?: number },
       ctx: ActorContext
     ): Promise<{ data: unknown[]; meta: { total: number; limit: number; offset: number } }> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.listSources(query);
+
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
       const where: Record<string, unknown> = { branding: ctx.brandId };
       if (query?.scope === 'public' || query?.scope === 'account') {
@@ -1364,6 +1400,9 @@ export namespace Services {
     }
 
     public async getSource(sourceId: string, ctx: ActorContext): Promise<unknown> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.getSource(sourceId);
+
       return this.describeSource(await this.requireSource(sourceId, ctx.brandId));
     }
 
@@ -1377,6 +1416,9 @@ export namespace Services {
       query: { q?: string; includeHistorical?: boolean; selectableOnly?: boolean; limit?: number; offset?: number },
       ctx: ActorContext
     ): Promise<{ data: SourceCategoryOption[]; meta: { total: number; limit: number; offset: number } }> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.listSourceCategories(sourceId, query);
+
       const source = await this.requireSource(sourceId, ctx.brandId);
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
 
@@ -1450,6 +1492,9 @@ export namespace Services {
       query: { sourceId?: string; limit?: number; offset?: number },
       ctx: ActorContext
     ): Promise<{ data: unknown[]; meta: { total: number; limit: number; offset: number } }> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.listSyncRuns(query);
+
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
       const where: Record<string, unknown> = { branding: ctx.brandId };
       const sourceId = String(query?.sourceId ?? '').trim();
@@ -1484,6 +1529,18 @@ export namespace Services {
      * draft identity crosswalk. Later mirror synchronisation never edits clone terms.
      */
     public async cloneMirror(
+      sourceId: string,
+      cloneInput: { name: string; slug?: string },
+      ctx: ActorContext
+    ): Promise<{ localVocabularyId: string; crosswalkId: string; entries: number }> {
+      return withLegacyVocabularyWriter(
+        ctx.brandId,
+        () => this.legacyCloneMirror(sourceId, cloneInput, ctx),
+        async () => (await this.requireShared(ctx)).cloneMirror(sourceId, cloneInput)
+      );
+    }
+
+    private async legacyCloneMirror(
       sourceId: string,
       cloneInput: { name: string; slug?: string },
       ctx: ActorContext
@@ -1605,6 +1662,9 @@ export namespace Services {
       query: { q?: string; status?: string; localVocabularyId?: string; sourceId?: string; limit?: number; offset?: number },
       ctx: ActorContext
     ): Promise<{ data: CrosswalkSummary[]; meta: { total: number; limit: number; offset: number } }> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.listCrosswalks(query);
+
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
       const where: Record<string, unknown> = { branding: ctx.brandId };
       if (query?.status) {
@@ -1630,6 +1690,9 @@ export namespace Services {
     }
 
     public async getCrosswalk(crosswalkId: string, ctx: ActorContext): Promise<CrosswalkSummary> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.getCrosswalk(crosswalkId);
+
       return this.describeCrosswalk(await this.requireCrosswalk(crosswalkId, ctx.brandId));
     }
 
@@ -1692,6 +1755,17 @@ export namespace Services {
       input: { name: string; localVocabularyId: string; sourceId: string },
       ctx: ActorContext
     ): Promise<CrosswalkSummary> {
+      return withLegacyVocabularyWriter(
+        ctx.brandId,
+        () => this.legacyCreateCrosswalk(input, ctx),
+        async () => (await this.requireShared(ctx)).createCrosswalk(input)
+      );
+    }
+
+    private async legacyCreateCrosswalk(
+      input: { name: string; localVocabularyId: string; sourceId: string },
+      ctx: ActorContext
+    ): Promise<CrosswalkSummary> {
       const name = String(input?.name ?? '').trim();
       if (!name) {
         throw new CatalogueInvalidError('name is required');
@@ -1724,6 +1798,9 @@ export namespace Services {
       query: { q?: string; mapped?: string; revision?: number; limit?: number; offset?: number },
       ctx: ActorContext
     ): Promise<{ data: CrosswalkLocalEntryOption[]; meta: { total: number; limit: number; offset: number; revision: number } }> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.listLocalEntries(crosswalkId, query);
+
       const crosswalk = await this.requireCrosswalk(crosswalkId, ctx.brandId);
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
       const revision = Number(query?.revision ?? crosswalk.workingRevision);
@@ -1776,6 +1853,9 @@ export namespace Services {
       query: { status?: string; q?: string; revision?: number; limit?: number; offset?: number },
       ctx: ActorContext
     ): Promise<{ data: unknown[]; meta: { total: number; limit: number; offset: number; revision: number } }> {
+      const shared = await sharedFigshareVocabulary(ctx);
+      if (shared) return shared.listMappings(crosswalkId, query);
+
       const crosswalk = await this.requireCrosswalk(crosswalkId, ctx.brandId);
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset);
       const revision = Number(query?.revision ?? crosswalk.workingRevision);
@@ -1833,6 +1913,18 @@ export namespace Services {
      * revision so publishing continues against the previous approved snapshot.
      */
     public async saveMappings(
+      crosswalkId: string,
+      input: { revision: number; changes: CrosswalkMappingChange[] },
+      ctx: ActorContext
+    ): Promise<CrosswalkSummary> {
+      return withLegacyVocabularyWriter(
+        ctx.brandId,
+        () => this.legacySaveMappings(crosswalkId, input, ctx),
+        async () => (await this.requireShared(ctx)).saveMappings(crosswalkId, input)
+      );
+    }
+
+    private async legacySaveMappings(
       crosswalkId: string,
       input: { revision: number; changes: CrosswalkMappingChange[] },
       ctx: ActorContext
@@ -1986,6 +2078,14 @@ export namespace Services {
      * crosswalkId; publishing immediately follows the newly approved revision.
      */
     public async approveCrosswalk(crosswalkId: string, revision: number, ctx: ActorContext): Promise<CrosswalkSummary> {
+      return withLegacyVocabularyWriter(
+        ctx.brandId,
+        () => this.legacyApproveCrosswalk(crosswalkId, revision, ctx),
+        async () => (await this.requireShared(ctx)).approveCrosswalk(crosswalkId, revision)
+      );
+    }
+
+    private async legacyApproveCrosswalk(crosswalkId: string, revision: number, ctx: ActorContext): Promise<CrosswalkSummary> {
       const crosswalk = await this.requireCrosswalk(crosswalkId, ctx.brandId);
       if (Number(revision) !== Number(crosswalk.workingRevision)) {
         throw new CrosswalkRevisionError();
@@ -2075,26 +2175,33 @@ export namespace Services {
 
     /** Report the Figshare publishing bindings that select this crosswalk. */
     public async getCrosswalkUsage(crosswalkId: string, ctx: ActorContext): Promise<CrosswalkUsage[]> {
-      const crosswalk = await this.requireCrosswalk(crosswalkId, ctx.brandId);
+      const shared = await sharedFigshareVocabulary(ctx);
+      const crosswalk = shared
+        ? await shared.getCrosswalk(crosswalkId)
+        : await this.requireCrosswalk(crosswalkId, ctx.brandId);
       const appConfigService = sails.services?.appconfigservice as {
         getAppConfigurationForBrand?: (name: string) => Record<string, unknown> | undefined;
       } | undefined;
       const brandName = this.resolveBrandName(ctx.brandId);
       const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName);
-      const figsharePublishing = brandConfig?.figsharePublishing;
-      const found: Array<{ bindingPath: string; outputs?: string; sourceVocabularyId?: string }> = [];
-      this.collectCrosswalkBindings(figsharePublishing, String(crosswalk.id), [], found);
-      return found.map((binding) => ({
-        brandName,
-        configKey: 'figsharePublishing',
-        bindingPath: binding.bindingPath,
-        outputs: binding.outputs,
-        sourceVocabularyId: binding.sourceVocabularyId
-      }));
+      return ['figsharePublishing', 'publicationPublishing'].flatMap((configKey) => {
+        const found: Array<{ bindingPath: string; outputs?: string; sourceVocabularyId?: string }> = [];
+        this.collectCrosswalkBindings(brandConfig?.[configKey], String(crosswalk.id), [], found);
+        return found.map((binding) => ({ brandName, configKey, ...binding }));
+      });
     }
 
     /** Draft crosswalks are deleted; approved ones archive to protect AppConfig references. */
     public async deleteCrosswalk(crosswalkId: string, ctx: ActorContext): Promise<void> {
+      return withLegacyVocabularyWriter(ctx.brandId, () => this.legacyDeleteCrosswalk(crosswalkId, ctx), async () => {
+        const shared = await this.requireShared(ctx);
+        if ((await this.getCrosswalkUsage(crosswalkId, ctx)).length > 0)
+          throw new RelationshipBoundaryError('This crosswalk is selected by a publishing configuration. Remove or replace the reference first.');
+        return shared.deleteCrosswalk(crosswalkId);
+      });
+    }
+
+    private async legacyDeleteCrosswalk(crosswalkId: string, ctx: ActorContext): Promise<void> {
       const crosswalk = await this.requireCrosswalk(crosswalkId, ctx.brandId);
       const usage = await this.getCrosswalkUsage(crosswalkId, ctx);
       if (usage.length > 0) {
@@ -2233,6 +2340,14 @@ export namespace Services {
      * the stable narrow surface over {@link resolveCrosswalkValues}.
      */
     public async resolveCategories(input: ResolveCategoriesInput): Promise<ResolveCategoriesResult> {
+      const shared = typeof PublicationVocabularyService === 'undefined'
+        ? null
+        : await PublicationVocabularyService.legacyResolve({ ...input, outputs: 'categoryId' });
+      if (shared) return {
+        categoryIds: shared.values.filter((value): value is number => typeof value === 'number'),
+        unresolvedCodes: shared.unresolvedCodes,
+        historicalTargets: shared.historicalTargets
+      };
       const resolution = await this.resolveCrosswalkTargets(input);
       const categoryIds = new Set<number>(resolution.matches.map((match) => match.category.categoryId));
       return {
@@ -2248,6 +2363,10 @@ export namespace Services {
      * reported separately so the caller can decide whether they are fatal.
      */
     public async resolveCrosswalkValues(input: ResolveCrosswalkValuesInput): Promise<ResolveCrosswalkValuesResult> {
+      const shared = typeof PublicationVocabularyService === 'undefined'
+        ? null
+        : await PublicationVocabularyService.legacyResolve(input);
+      if (shared) return shared;
       const outputs: CrosswalkOutput = input?.outputs || 'categoryId';
       const resolution = await this.resolveCrosswalkTargets(input);
       const base = {
@@ -2369,6 +2488,10 @@ export namespace Services {
         return;
       }
 
+      if (typeof PublicationVocabularyService !== 'undefined' && await PublicationVocabularyService.converted(brandId)) {
+        sails.log.verbose('Shared vocabulary conversion is committed; catalogue administration owns subsequent imports');
+        return;
+      }
       const ctx: ActorContext = { brandId, userId: BOOTSTRAP_ACTOR };
       for (const item of imports) {
         await this.processBootstrapImport(item, ctx);
@@ -2417,6 +2540,14 @@ export namespace Services {
     }
 
     private async runBootstrapImport(
+      input: { scope: FigshareCategoryScope; taxonomyId: string; localCloneName: string; item: BootstrapFigshareImportItem },
+      ctx: ActorContext
+    ): Promise<void> {
+      // Keep the admission until the actual import settles, even when the caller's timeout has elapsed.
+      return withLegacyVocabularyWriter(ctx.brandId, () => this.legacyRunBootstrapImport(input, ctx), async () => {});
+    }
+
+    private async legacyRunBootstrapImport(
       input: { scope: FigshareCategoryScope; taxonomyId: string; localCloneName: string; item: BootstrapFigshareImportItem },
       ctx: ActorContext
     ): Promise<void> {

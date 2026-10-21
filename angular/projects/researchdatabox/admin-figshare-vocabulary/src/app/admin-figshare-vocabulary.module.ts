@@ -3,8 +3,13 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { APP_BASE_HREF, PlatformLocation, CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import {
+  RedboxPortalCoreModule,
+  trimLastSlashFromUrl,
+  PublicationVocabularyApiService,
+} from '@researchdatabox/portal-ng-common';
 
+import { PublicationVocabularyAdminComponent } from './shared/publication-vocabulary-admin.component';
 import { AdminFigshareVocabularyComponent } from './admin-figshare-vocabulary.component';
 import { FigshareVocabularyApiService } from './services/figshare-vocabulary-api.service';
 import { FigshareSourceListComponent } from './sources/figshare-source-list.component';
@@ -17,29 +22,24 @@ import { FigshareMappingPickerComponent } from './crosswalks/figshare-mapping-pi
 @NgModule({
   declarations: [
     AdminFigshareVocabularyComponent,
+    PublicationVocabularyAdminComponent,
     FigshareSourceListComponent,
     FigshareImportWizardComponent,
     FigshareSyncPreviewComponent,
     FigshareCrosswalkListComponent,
     FigshareCrosswalkEditorComponent,
-    FigshareMappingPickerComponent
+    FigshareMappingPickerComponent,
   ],
-  imports: [
-    BrowserModule,
-    A11yModule,
-    FormsModule,
-    ReactiveFormsModule,
-    RedboxPortalCoreModule,
-    CommonModule
-  ],
+  imports: [BrowserModule, A11yModule, FormsModule, ReactiveFormsModule, RedboxPortalCoreModule, CommonModule],
   providers: [
     FigshareVocabularyApiService,
+    PublicationVocabularyApiService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),
-      deps: [PlatformLocation]
-    }
+      deps: [PlatformLocation],
+    },
   ],
-  bootstrap: [AdminFigshareVocabularyComponent]
+  bootstrap: [AdminFigshareVocabularyComponent],
 })
 export class AdminFigshareVocabularyModule {}

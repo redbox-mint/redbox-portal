@@ -2,7 +2,12 @@ import { Inject, Injectable } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
+import {
+  ConfigService,
+  HttpClientService,
+  UtilityService,
+  sharedVocabularyAdministrationEnabled,
+} from '@researchdatabox/portal-ng-common';
 
 export type FigshareScope = 'public' | 'account';
 
@@ -221,7 +226,7 @@ export class FigshareVocabularyApiService extends HttpClientService {
   private getJsonRequestOptions(): JsonRequestOptions {
     return {
       ...(this.reqOptsJsonBodyOnly as { responseType: 'json'; observe: 'body' }),
-      context: this.httpContext
+      context: this.httpContext,
     };
   }
 
@@ -248,6 +253,10 @@ export class FigshareVocabularyApiService extends HttpClientService {
       }
     }
     return params;
+  }
+
+  public get sharedAdministrationEnabled(): boolean {
+    return sharedVocabularyAdministrationEnabled(this.getConfig());
   }
 
   private get figshareUrl(): string {
@@ -277,24 +286,30 @@ export class FigshareVocabularyApiService extends HttpClientService {
   }
 
   /** Search the mirrored categories of a source for the manual mapping picker. */
-  public async listSourceCategories(sourceId: string, query: {
-    q?: string;
-    includeHistorical?: boolean;
-    selectableOnly?: boolean;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<PagedResult<FigshareSourceCategory>> {
+  public async listSourceCategories(
+    sourceId: string,
+    query: {
+      q?: string;
+      includeHistorical?: boolean;
+      selectableOnly?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<PagedResult<FigshareSourceCategory>> {
     const response = await firstValueFrom(
       this.http.get(`${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}/categories`, {
         ...this.getJsonRequestOptions(),
-        params: this.toParams(query)
+        params: this.toParams(query),
       })
     );
     return this.unwrapList<FigshareSourceCategory>(response);
   }
 
-  public async listSyncRuns(sourceId?: string): Promise<PagedResult<FigshareSyncRunSummary>> {
-    const params: Record<string, string> = {};
+  public async listSyncRuns(
+    sourceId?: string,
+    query: { limit?: number; offset?: number } = {}
+  ): Promise<PagedResult<FigshareSyncRunSummary>> {
+    const params: Record<string, string> = this.toParams(query);
     if (sourceId) {
       params['sourceId'] = sourceId;
     }
@@ -308,11 +323,12 @@ export class FigshareVocabularyApiService extends HttpClientService {
     const response = await firstValueFrom(
       this.http.get(`${this.brandingAndPortalUrl}/api/vocabulary`, {
         ...this.getJsonRequestOptions(),
-        params: { limit: '200' }
+        params: { limit: '200' },
       })
     );
-    return this.unwrapList<FigshareLocalVocabulary>(response).records
-      .filter((vocabulary) => vocabulary.source !== 'external');
+    return this.unwrapList<FigshareLocalVocabulary>(response).records.filter(
+      vocabulary => vocabulary.source !== 'external'
+    );
   }
 
   public async createPreview(input: {
@@ -331,30 +347,47 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return this.unwrap<FigsharePreview>(response as ApiResponse<FigsharePreview>);
   }
 
-  public async createSourcePreview(sourceId: string, body: { localVocabularyId?: string; crosswalkId?: string }): Promise<FigsharePreview> {
+  public async createSourcePreview(
+    sourceId: string,
+    body: { localVocabularyId?: string; crosswalkId?: string }
+  ): Promise<FigsharePreview> {
     const response = await firstValueFrom(
-      this.http.post(`${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}/preview`, body, this.getJsonRequestOptions())
+      this.http.post(
+        `${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}/preview`,
+        body,
+        this.getJsonRequestOptions()
+      )
     );
     return this.unwrap<FigsharePreview>(response as ApiResponse<FigsharePreview>);
   }
 
-  public async cloneSource(sourceId: string, body: { name: string; slug?: string }): Promise<{ localVocabularyId: string; crosswalkId: string; entries: number }> {
+  public async cloneSource(
+    sourceId: string,
+    body: { name: string; slug?: string }
+  ): Promise<{ localVocabularyId: string; crosswalkId: string; entries: number }> {
     const response = await firstValueFrom(
-      this.http.post(`${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}/clone`, body, this.getJsonRequestOptions())
+      this.http.post(
+        `${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}/clone`,
+        body,
+        this.getJsonRequestOptions()
+      )
     );
     return this.unwrap(response as ApiResponse<{ localVocabularyId: string; crosswalkId: string; entries: number }>);
   }
 
-  public async getPreview(runId: string, query: {
-    view?: 'proposals' | 'diff';
-    changeClass?: string;
-    matchType?: string;
-    q?: string;
-    unresolvedOnly?: boolean;
-    historicalOnly?: boolean;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<FigsharePagedPreview> {
+  public async getPreview(
+    runId: string,
+    query: {
+      view?: 'proposals' | 'diff';
+      changeClass?: string;
+      matchType?: string;
+      q?: string;
+      unresolvedOnly?: boolean;
+      historicalOnly?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<FigsharePagedPreview> {
     const params: Record<string, string> = {};
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value !== null && value !== '') {
@@ -364,25 +397,34 @@ export class FigshareVocabularyApiService extends HttpClientService {
     const response = await firstValueFrom(
       this.http.get(`${this.figshareUrl}/previews/${encodeURIComponent(runId)}`, {
         ...this.getJsonRequestOptions(),
-        params
+        params,
       })
     );
     return this.unwrap<FigsharePagedPreview>(response as ApiResponse<FigsharePagedPreview>);
   }
 
-  public async applyPreview(runId: string, body: {
-    remoteHash: string;
-    expectedRevision?: number;
-    approvedProposalIds: string[];
-    manualMappings?: Array<{ localEntryId?: string; localEntryKey?: string; figshareSourceIds: string[] }>;
-  }): Promise<FigshareApplyResult> {
+  public async applyPreview(
+    runId: string,
+    body: {
+      remoteHash: string;
+      expectedRevision?: number;
+      approvedProposalIds: string[];
+      manualMappings?: Array<{ localEntryId?: string; localEntryKey?: string; figshareSourceIds: string[] }>;
+    }
+  ): Promise<FigshareApplyResult> {
     const response = await firstValueFrom(
-      this.http.post(`${this.figshareUrl}/previews/${encodeURIComponent(runId)}/apply`, body, this.getJsonRequestOptions())
+      this.http.post(
+        `${this.figshareUrl}/previews/${encodeURIComponent(runId)}/apply`,
+        body,
+        this.getJsonRequestOptions()
+      )
     );
     return this.unwrap<FigshareApplyResult>(response as ApiResponse<FigshareApplyResult>);
   }
 
-  public async listCrosswalks(query: { status?: string; sourceId?: string; localVocabularyId?: string } = {}): Promise<PagedResult<FigshareCrosswalkSummary>> {
+  public async listCrosswalks(
+    query: { status?: string; sourceId?: string; localVocabularyId?: string } = {}
+  ): Promise<PagedResult<FigshareCrosswalkSummary>> {
     const params: Record<string, string> = {};
     for (const [key, value] of Object.entries(query)) {
       if (value) {
@@ -402,18 +444,27 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return this.unwrap<FigshareCrosswalkSummary>(response as ApiResponse<FigshareCrosswalkSummary>);
   }
 
-  public async getCrosswalkUsage(id: string): Promise<Array<{ brandName: string; configKey: string; bindingPath: string; outputs?: string }>> {
+  public async getCrosswalkUsage(
+    id: string
+  ): Promise<Array<{ brandName: string; configKey: string; bindingPath: string; outputs?: string }>> {
     const response = await firstValueFrom(
       this.http.get(`${this.crosswalkUrl}/${encodeURIComponent(id)}/usage`, this.getJsonRequestOptions())
     );
-    return this.unwrap(response as ApiResponse<Array<{ brandName: string; configKey: string; bindingPath: string; outputs?: string }>>) ?? [];
+    return (
+      this.unwrap(
+        response as ApiResponse<Array<{ brandName: string; configKey: string; bindingPath: string; outputs?: string }>>
+      ) ?? []
+    );
   }
 
-  public async listMappings(id: string, query: { q?: string; status?: string; revision?: number; limit?: number; offset?: number } = {}): Promise<PagedResult<FigshareCrosswalkMapping>> {
+  public async listMappings(
+    id: string,
+    query: { q?: string; status?: string; revision?: number; limit?: number; offset?: number } = {}
+  ): Promise<PagedResult<FigshareCrosswalkMapping>> {
     const response = await firstValueFrom(
       this.http.get(`${this.crosswalkUrl}/${encodeURIComponent(id)}/mappings`, {
         ...this.getJsonRequestOptions(),
-        params: this.toParams(query)
+        params: this.toParams(query),
       })
     );
     return this.unwrapList<FigshareCrosswalkMapping>(response);
@@ -423,26 +474,38 @@ export class FigshareVocabularyApiService extends HttpClientService {
    * Search the local vocabulary terms of a crosswalk. Unlike the mapping list this
    * includes terms that have no target yet, so they can be mapped for the first time.
    */
-  public async listCrosswalkLocalEntries(id: string, query: {
-    q?: string;
-    mapped?: 'mapped' | 'unmapped';
-    revision?: number;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<PagedResult<FigshareCrosswalkLocalEntry>> {
+  public async listCrosswalkLocalEntries(
+    id: string,
+    query: {
+      q?: string;
+      mapped?: 'mapped' | 'unmapped';
+      revision?: number;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<PagedResult<FigshareCrosswalkLocalEntry>> {
     const response = await firstValueFrom(
       this.http.get(`${this.crosswalkUrl}/${encodeURIComponent(id)}/local-entries`, {
         ...this.getJsonRequestOptions(),
-        params: this.toParams(query)
+        params: this.toParams(query),
       })
     );
     return this.unwrapList<FigshareCrosswalkLocalEntry>(response);
   }
 
-  public async saveMappings(id: string, body: {
-    revision: number;
-    changes: Array<{ op: 'add' | 'remove'; localEntryId: string; figshareCategoryId: string; matchType?: string; status?: string }>;
-  }): Promise<FigshareCrosswalkSummary> {
+  public async saveMappings(
+    id: string,
+    body: {
+      revision: number;
+      changes: Array<{
+        op: 'add' | 'remove';
+        localEntryId: string;
+        figshareCategoryId: string;
+        matchType?: string;
+        status?: string;
+      }>;
+    }
+  ): Promise<FigshareCrosswalkSummary> {
     const response = await firstValueFrom(
       this.http.put(`${this.crosswalkUrl}/${encodeURIComponent(id)}/mappings`, body, this.getJsonRequestOptions())
     );
@@ -451,7 +514,11 @@ export class FigshareVocabularyApiService extends HttpClientService {
 
   public async approveCrosswalk(id: string, revision: number): Promise<FigshareCrosswalkSummary> {
     const response = await firstValueFrom(
-      this.http.post(`${this.crosswalkUrl}/${encodeURIComponent(id)}/approve`, { revision }, this.getJsonRequestOptions())
+      this.http.post(
+        `${this.crosswalkUrl}/${encodeURIComponent(id)}/approve`,
+        { revision },
+        this.getJsonRequestOptions()
+      )
     );
     return this.unwrap<FigshareCrosswalkSummary>(response as ApiResponse<FigshareCrosswalkSummary>);
   }

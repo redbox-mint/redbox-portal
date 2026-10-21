@@ -1,0 +1,21 @@
+meta {
+  name: Publication Vocabulary Source History Disabled
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/api/publication-vocabularies/sources/missing/history
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Shared vocabulary administration stays disabled", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+}

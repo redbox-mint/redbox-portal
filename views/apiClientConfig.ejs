@@ -3,6 +3,7 @@ let i18NextOpts = sails.config.i18n.next.init;
 i18NextOpts.backend = undefined;
 let defaultConfig = {
   baseUrl: sails.config.appUrl,
+  publicationVocabularyAdministrationEnabled: String(sails.config.vocab?.publicationAdministrationEnabled).trim().toLowerCase() === 'true',
   branding: req.session.branding,
   portal: req.session.portal,
   vocabRootUrl: sails.config.vocab.clientUri,
