@@ -17,7 +17,7 @@ For durable worker processing, migration, impersonation and recovery, see [Queue
 ## Before You Start
 
 - You need an admin login for the portal.
-- The screen is available under `Admin -> menu-figsharepublishingconfiguration`.
+- The screen is not in the default admin sidebar. Open it by URL, or add it to the brand's `adminSidebar` configuration while the brand still uses legacy processing.
 - Changes are stored as brand AppConfig and only take effect when `Enabled` is turned on.
 - Do not store raw production API tokens in git. The service supports environment variable references such as `$FIGSHARE_TOKEN`.
 

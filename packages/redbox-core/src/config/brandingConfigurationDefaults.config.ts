@@ -309,16 +309,6 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
         { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
         { id: 'siem', labelKey: 'menu-siemconfiguration', href: '/admin/siem' },
         {
-          id: 'figsharepublishing',
-          labelKey: 'menu-figsharepublishingconfiguration',
-          href: '/admin/appconfig/edit/figsharePublishing',
-        },
-        {
-          id: 'onipublishing',
-          labelKey: 'menu-onipublishingconfiguration',
-          href: '/admin/appconfig/edit/oniPublishing',
-        },
-        {
           id: 'publicationpublishing',
           labelKey: 'menu-publicationpublishingconfiguration',
           href: '/admin/appconfig/edit/publicationPublishing',
