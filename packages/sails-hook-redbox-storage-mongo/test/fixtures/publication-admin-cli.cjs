@@ -15,9 +15,10 @@ global.sails = {
   on() {},
   emit() {},
 };
+require('ts-node').register({ project: resolve(__dirname, '../tsconfig.json'), transpileOnly: true });
 const core = require(resolve(__dirname, '../../../redbox-core/dist'));
-const { Services } = require('../../dist/services/MongoStorageService');
-const { storage } = require('../../dist/config/storage');
+const { Services } = require('../../src/services/MongoStorageService');
+const { storage } = require('../../src/config/storage');
 const configuration = JSON.parse(process.env.PUB15_CLI_CONFIGURATION);
 const originalLoad = Module._load;
 let connection;

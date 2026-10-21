@@ -40,10 +40,10 @@ function assertPublicationApi(value: unknown): asserts value is PublicationApi {
     assert.equal(typeof Reflect.get(value, method), 'function');
 }
 import { Services as RecordServices } from '@researchdatabox/redbox-core/dist/services/RecordsService.js';
-import { Services } from '../../dist/services/MongoStorageService';
+import { Services } from '../../src/services/MongoStorageService';
 import { Services as WorkflowServices } from '@researchdatabox/redbox-core/dist/services/WorkflowStepsService.js';
-import { publicationSource } from '../../dist/services/publicationSourcePersistence';
-import { storage } from '../../dist/config/storage';
+import { publicationSource } from '../../src/services/publicationSourcePersistence';
+import { storage } from '../../src/config/storage';
 
 if (process.env.CI && !process.env.MONGO_TEST_URL)
   throw new Error('CI requires MONGO_TEST_URL for PUB-17 hook acceptance');
