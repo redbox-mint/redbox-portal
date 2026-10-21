@@ -467,9 +467,11 @@ export async function buildOniRoCrate(input: OniCrateBuildInput): Promise<OniCra
     });
   }
 
-  const datasetUrl = buildDatasetUrl(input.config, input.site.publicUrl, input.site.useCleanUrl, input.oid);
+  const datasetUrl =
+    input.datasetUrl ?? buildDatasetUrl(input.config, input.site.publicUrl, input.site.useCleanUrl, input.oid);
 
-  const now = new Date().toISOString();
+  const now = input.publicationTimestamp ?? new Date().toISOString();
+  if (!Number.isFinite(Date.parse(now))) throw new Error('Invalid Oni publication timestamp');
   const rootId = generateArcpId(input.config.rootCollection.targetRepoNamespace, input.oid);
   const extraContext: AnyRecord = {};
   const attachments = getSelectedAttachments(input.record, input.config);

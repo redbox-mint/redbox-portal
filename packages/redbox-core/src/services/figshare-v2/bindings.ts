@@ -1,10 +1,9 @@
-import _ from 'lodash';
-import { handlebarsCompile, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
 import { CrosswalkBinding, ValueBinding } from '../../configmodels/FigsharePublishing';
 import { AnyRecord } from './types';
-import { validateSafeHandlebarsTemplate } from '../integration-v2/bindings';
+import { evaluateSimpleBinding, validateSafeHandlebarsTemplate } from '../integration-v2/bindings';
 import { BindingContext } from './context';
 import { toSourceCodeCandidates } from './categories';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export interface CrosswalkBindingResult {
   values: Array<number | string>;
@@ -15,7 +14,7 @@ export interface CrosswalkBindingResult {
   historicalTargets: Array<{ code: string; categoryId: number; sourceId: string }>;
 }
 
-interface CrosswalkResolver {
+export interface CrosswalkResolver {
   resolveCrosswalkValues?: (input: {
     brandId: string;
     crosswalkId: string;
@@ -29,7 +28,10 @@ interface CrosswalkResolver {
     historicalTargets: Array<{ code: string; categoryId: number; sourceId: string }>;
   }>;
 }
-
+export type FigshareCrosswalkRequest = Parameters<NonNullable<CrosswalkResolver['resolveCrosswalkValues']>>[0];
+export const figshareCrosswalkResolver = new AsyncLocalStorage<
+  NonNullable<CrosswalkResolver['resolveCrosswalkValues']>
+>();
 
 export function validateHandlebarsTemplate(template: string): void {
   validateSafeHandlebarsTemplate(template, 'Figshare');
@@ -71,9 +73,11 @@ export async function resolveCrosswalkBinding(
 
   // Reached through the sails global rather than an import, to avoid a module cycle
   // between this file and FigshareVocabularyService.
-  const service = (typeof FigshareVocabularyService === 'undefined'
-    ? undefined
-    : FigshareVocabularyService) as CrosswalkResolver | undefined;
+  const service = figshareCrosswalkResolver.getStore()
+    ? { resolveCrosswalkValues: figshareCrosswalkResolver.getStore() }
+    : ((typeof FigshareVocabularyService === 'undefined' ? undefined : FigshareVocabularyService) as
+        | CrosswalkResolver
+        | undefined);
   if (typeof service?.resolveCrosswalkValues !== 'function') {
     throw new Error('FigshareVocabularyService.resolveCrosswalkValues is unavailable');
   }
@@ -84,7 +88,7 @@ export async function resolveCrosswalkBinding(
     sourceVocabularyId,
     codes: sourceCodes,
     // `||` not `??`: an unset select in the config editor arrives as an empty string.
-    outputs: binding.outputs || 'categoryId'
+    outputs: binding.outputs || 'categoryId',
   });
 
   return { ...resolution, sourceCodes };
@@ -104,22 +108,8 @@ export async function evaluateBinding(
     return undefined;
   }
 
-  if (binding.kind === 'path') {
-    const value = _.get(target, binding.path, binding.defaultValue);
-    return value ?? binding.defaultValue;
-  }
-
-  if (binding.kind === 'handlebars') {
-    validateHandlebarsTemplate(binding.template);
-    const compiled = handlebarsCompile(binding.template);
-    const value = compiled(target);
-    return value === '' ? binding.defaultValue : value;
-  }
-
-  if (binding.kind === 'jsonata') {
-    const value = await jsonataCompileAndEvaluate(binding.expression, target);
-    return value ?? binding.defaultValue;
-  }
+  if (binding.kind === 'path' || binding.kind === 'handlebars' || binding.kind === 'jsonata')
+    return evaluateSimpleBinding(binding, target, 'Figshare');
 
   if (binding.kind === 'crosswalk') {
     const resolution = await resolveCrosswalkBinding(binding, target, context);
@@ -128,7 +118,7 @@ export async function evaluateBinding(
     if (resolution.historicalTargets.length > 0) {
       sails.log.warn(
         `Figshare crosswalk binding omitted historical targets: ${resolution.historicalTargets
-          .map((historicalTarget) => `${historicalTarget.code} → ${historicalTarget.sourceId}`)
+          .map(historicalTarget => `${historicalTarget.code} → ${historicalTarget.sourceId}`)
           .join(', ')}`
       );
     }

@@ -106,9 +106,9 @@ describe('Oni Flydrive OCFL store', () => {
     expect(disk.put.calledOnce).to.equal(true);
     expect(disk.putStream.calledOnce).to.equal(true);
     expect(disk.copy.calledOnceWith('oni/a.txt', 'oni/b.txt')).to.equal(true);
-    expect(await store.createReadable('/repo/a.txt')).to.equal(disk.getStream.returnValues[0]);
+    expect(await store.createReadable('/repo/a.txt')).to.be.instanceOf(ReadableStream);
 
-    disk.get.rejects(Object.assign(new Error('cannot read file'), { code: 'CANNOT_READ_FILE' }));
+    disk.get.rejects(new Error('cannot read file', { cause: Object.assign(new Error('missing'), { code: 'ENOENT' }) }));
     try {
       await store.readFile('/repo/missing', 'utf8');
       expect.fail('Expected ENOENT');
@@ -134,7 +134,7 @@ describe('Oni Flydrive OCFL store', () => {
     await store.writeFile('/repo/stream=a', Readable.from('streamed'));
     const stat = await store.stat('/repo/meta=data');
     expect(stat.size).to.equal(12);
-    expect(await store.createReadable('/repo/read=stream')).to.equal(driver.getStream.returnValues[0]);
+    expect(await store.createReadable('/repo/read=stream')).to.be.instanceOf(ReadableStream);
     expect(await store.readdir('/repo/folder')).to.deep.equal(['a=b.txt']);
     await store.copyFile('/repo/source=a', '/repo/target=b');
     await store.move('/repo/source=a', '/repo/target=b');

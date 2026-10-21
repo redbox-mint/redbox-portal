@@ -19,6 +19,7 @@ import {
 import { setSyncState } from './config';
 import { getSelectedDataLocations } from './plan';
 import { ILogger } from '@researchdatabox/sails-ng-common';
+import { figshareExecution } from './execution';
 
 type IDisk = StorageManagerServices.IDisk;
 
@@ -50,7 +51,9 @@ interface DatastreamResponse {
   size?: number;
 }
 
-export async function getAttachmentStream(oid: string, fileId: string): Promise<DatastreamResponse> {
+export async function getAttachmentStream(oid: string, fileId: string, live = false): Promise<DatastreamResponse> {
+  const execution = figshareExecution.getStore();
+  if (!live && execution?.attachment) return execution.attachment(oid, fileId);
   const datastreamService = getDatastreamService();
   if (datastreamService == null) {
     throw new Error('Datastream service is not configured');
@@ -66,13 +69,21 @@ export async function getAttachmentStream(oid: string, fileId: string): Promise<
 }
 
 /** Identify stored attachment bytes without reading them, when the datastream service supports it. */
-export async function getAttachmentFingerprint(oid: string, fileId: string): Promise<string | undefined> {
+export async function getAttachmentFingerprint(oid: string, fileId: string, live = false): Promise<string | undefined> {
+  const execution = figshareExecution.getStore();
+  if (!live && execution?.attachmentFingerprint) return execution.attachmentFingerprint(oid, fileId);
   const datastreamService = getDatastreamService();
   const fingerprint = datastreamService?.getDatastreamFingerprint;
   if (typeof fingerprint !== 'function') {
     return undefined;
   }
-  return (await (fingerprint as (oid: string, fileId: string) => Promise<string | undefined>).call(datastreamService, oid, fileId)) || undefined;
+  return (
+    (await (fingerprint as (oid: string, fileId: string) => Promise<string | undefined>).call(
+      datastreamService,
+      oid,
+      fileId
+    )) || undefined
+  );
 }
 
 async function ensureAttachmentDatastream(oid: string, fileId: string): Promise<void> {

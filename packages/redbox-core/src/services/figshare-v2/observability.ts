@@ -21,8 +21,9 @@ export function withSpan<T>(name: string, runContext: FigshareRunContext, attrib
       span.setStatus({ code: SpanStatusCode.OK });
       return result;
     } catch (error) {
-      span.recordException(error as Error);
-      span.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : String(error) });
+      // Transport/provider exceptions can contain signed URLs, credentials and private payloads.
+      span.recordException({ name: 'FigshareOperationError', message: 'Figshare operation failed' });
+      span.setStatus({ code: SpanStatusCode.ERROR });
       throw error;
     } finally {
       span.end();

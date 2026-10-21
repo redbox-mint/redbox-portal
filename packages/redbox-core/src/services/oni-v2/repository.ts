@@ -1,7 +1,7 @@
 import type { OniPublishingSiteConfig } from '../../configmodels/OniPublishing';
 import type { DatastreamService } from '../../DatastreamService';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import * as Context from 'effect/Context';
 import * as Effect from 'effect/Effect';
 import * as Layer from 'effect/Layer';
@@ -9,17 +9,21 @@ import {
   OcflModuleAdapter,
   OcflStorageAdapter,
   OniCrateBuildResult,
-  OniOcflRepository,
+  OniOcflRecoveryRepository,
+  OniOcflCommitExpectation,
   OniPublishInput,
   ResolvedOniPublishingConfigData,
 } from './types';
 import { createStorageManagerOcflStoreClass } from './flydriveOcflStore';
 import { createRootCollectionCrate } from './crate';
 import { runEffectProgram } from '../integration-v2/runtime';
+import { ocflObjectReader, readOniOcflObject, reconcileOniOcflCommit, sha256 } from './ocflReconciliation';
+import { OniWriter } from './writer';
 
-export const OniDatastreamServiceTag = Context.Service<DatastreamService>('redbox/OniDatastreamService');
+type OniDatastreamReader = Pick<DatastreamService, 'getDatastream'>;
+export const OniDatastreamServiceTag = Context.Service<OniDatastreamReader>('redbox/OniDatastreamService');
 
-export function makeOniDatastreamLayer(service: DatastreamService) {
+export function makeOniDatastreamLayer(service: OniDatastreamReader) {
   return Layer.succeed(OniDatastreamServiceTag, service);
 }
 
@@ -99,15 +103,36 @@ async function ensureStorageRoot(storage: OcflStorageAdapter): Promise<void> {
   }
 }
 
-class FlydriveOniRepository implements OniOcflRepository {
+class FlydriveOniRepository implements OniOcflRecoveryRepository {
   private storagePromise: Promise<OcflStorageAdapter> | null = null;
+  private inspectionStore?: InstanceType<ReturnType<typeof createStorageManagerOcflStoreClass>>;
+  private writer?: OniWriter;
+  private quiesced = false;
+
+  async writerQuiesced(): Promise<boolean> {
+    return this.quiesced;
+  }
+
+  private async write(run: () => Promise<void>): Promise<void> {
+    if (this.writer) throw new Error('Concurrent Oni repository writers are forbidden');
+    const writer = new OniWriter();
+    this.writer = writer;
+    this.quiesced = false;
+    try {
+      await run();
+    } finally {
+      this.quiesced = await writer.settle();
+      this.writer = undefined;
+    }
+  }
 
   constructor(
     private readonly config: ResolvedOniPublishingConfigData,
     private readonly site: OniPublishingSiteConfig,
-    private readonly datastreamLayer: Layer.Layer<DatastreamService>,
+    private readonly datastreamLayer: Layer.Layer<OniDatastreamReader>,
     private readonly storageManager: StorageManagerServices.StorageManager = resolveStorageManager(),
-    private readonly loadOcflModule: () => Promise<OcflModuleAdapter> = importOcflModule
+    private readonly loadOcflModule: () => Promise<OcflModuleAdapter> = importOcflModule,
+    private readonly canonicalStorageIdentity?: string
   ) {}
 
   private async getStorage(): Promise<OcflStorageAdapter> {
@@ -123,7 +148,22 @@ class FlydriveOniRepository implements OniOcflRepository {
     this.storagePromise = (async () => {
       const ocfl = await this.loadOcflModule();
       const disk = await resolveStorageDisk(this.storageManager, storageConfig.diskName);
-      const storeClass = createStorageManagerOcflStoreClass(ocfl.OcflStore);
+      const BaseStore = createStorageManagerOcflStoreClass(ocfl.OcflStore);
+      const tracked = <T>(run: () => Promise<T>): Promise<T> => (this.writer ? this.writer.track(run) : run());
+      const storeClass = class extends BaseStore {
+        override writeFile(...args: Parameters<InstanceType<typeof BaseStore>['writeFile']>) {
+          return tracked(() => super.writeFile(...args));
+        }
+        override copyFile(...args: Parameters<InstanceType<typeof BaseStore>['copyFile']>) {
+          return tracked(() => super.copyFile(...args));
+        }
+        override move(...args: Parameters<InstanceType<typeof BaseStore>['move']>) {
+          return tracked(() => super.move(...args));
+        }
+        override remove(...args: Parameters<InstanceType<typeof BaseStore>['remove']>) {
+          return tracked(() => super.remove(...args));
+        }
+      };
       const storeOptions = {
         disk,
         root: storageConfig.rootPath,
@@ -131,6 +171,7 @@ class FlydriveOniRepository implements OniOcflRepository {
         prefix: storageConfig.prefix,
         keyEncoding: storageConfig.keyEncoding,
       };
+      this.inspectionStore = new storeClass(storeOptions);
       const flydriveOcfl =
         typeof ocfl.implementOcfl === 'function'
           ? ocfl.implementOcfl(storeClass, storeOptions)
@@ -154,10 +195,62 @@ class FlydriveOniRepository implements OniOcflRepository {
   }
 
   async ensureStorageRoot(): Promise<void> {
-    await ensureStorageRoot(await this.getStorage());
+    await this.write(async () => ensureStorageRoot(await this.getStorage()));
+  }
+
+  async inspectStorageRoot(): Promise<'present' | 'absent'> {
+    const storage = await this.getStorage();
+    try {
+      await storage.load();
+      return 'present';
+    } catch (error) {
+      if (!isInvalidStorageRootError(error)) throw error;
+      const store = this.inspectionStore;
+      if (!store) throw new Error('OCFL inspection store unavailable');
+      // Invalid root is not proof of absence. Partial initialization, arbitrary
+      // retained bytes, failed listings and unfinished workspace evidence refuse.
+      for (const path of [this.site.storage.rootPath, this.site.storage.workspacePath].filter(Boolean)) {
+        if (await store.hasDirectoryEntries(path))
+          throw new Error('OCFL storage root or workspace contains unverified content');
+      }
+      return 'absent';
+    }
+  }
+
+  async readObject(objectId: string) {
+    const storage = await this.getStorage();
+    await storage.load();
+    const object = ocflObjectReader(storage.object(objectId));
+    const store = this.inspectionStore;
+    if (!store) throw new Error('OCFL inspection store unavailable');
+    const storageIdentity = this.canonicalStorageIdentity ?? sha256(JSON.stringify(this.site.storage));
+    return readOniOcflObject(object, objectId, storageIdentity, this.config.metadata.jsonldFilename, async () => {
+      const files: string[] = [];
+      for await (const file of await store.list(object.root, { recursive: true })) files.push(file.path);
+      const workspaceEntries: string[] = [];
+      if (object.workspace) {
+        // S3-compatible stores can retain empty prefixes after all keys are
+        // deleted. Stored bytes, rather than empty prefixes, indicate a writer.
+        for await (const file of await store.list(object.workspace, { recursive: true }))
+          workspaceEntries.push(file.path);
+      }
+      return {
+        files,
+        rootEntries: await store.readdir(object.root),
+        workspaceEntries,
+      };
+    });
+  }
+
+  async reconcileCommit(input: OniOcflCommitExpectation) {
+    return reconcileOniOcflCommit(input, () => this.readObject(input.prior.objectId));
   }
 
   async ensureRootCollection(config: ResolvedOniPublishingConfigData, _site?: OniPublishingSiteConfig): Promise<void> {
+    await this.write(() => this.writeRootCollection(config));
+  }
+
+  private async writeRootCollection(config: ResolvedOniPublishingConfigData): Promise<void> {
     const storage = await this.getStorage();
     const rootCollectionObject = storage.object(config.rootCollection.rootCollectionId);
     try {
@@ -175,6 +268,10 @@ class FlydriveOniRepository implements OniOcflRepository {
   }
 
   async writeDatasetObject(crate: OniCrateBuildResult, input: OniPublishInput): Promise<void> {
+    await this.write(() => this.writeDataset(crate, input));
+  }
+
+  private async writeDataset(crate: OniCrateBuildResult, input: OniPublishInput): Promise<void> {
     const storage = await this.getStorage();
     const object = storage.object(crate.rootId);
     const crateJson = JSON.stringify(crate.crateJson, null, 2);
@@ -191,7 +288,7 @@ class FlydriveOniRepository implements OniOcflRepository {
           }).pipe(Effect.provide(this.datastreamLayer))
         );
         if (datastream.readstream != null) {
-          await transaction.write(attachment.logicalPath, datastream.readstream as Readable);
+          await transaction.write(attachment.logicalPath, Readable.toWeb(new Readable().wrap(datastream.readstream)));
         } else {
           const body = datastream.body ?? '';
           await transaction.write(
@@ -208,10 +305,11 @@ class FlydriveOniRepository implements OniOcflRepository {
 export function createOniRepository(
   config: ResolvedOniPublishingConfigData,
   site: OniPublishingSiteConfig,
-  datastreamService: DatastreamService,
+  datastreamService: OniDatastreamReader,
   storageManager?: StorageManagerServices.StorageManager,
-  loadOcflModule?: () => Promise<OcflModuleAdapter>
-): OniOcflRepository {
+  loadOcflModule?: () => Promise<OcflModuleAdapter>,
+  canonicalStorageIdentity?: string
+): OniOcflRecoveryRepository {
   const storageDriver = getStorageDriver(site.storage);
   if (storageDriver !== 'flydrive') {
     throw new Error(
@@ -223,6 +321,7 @@ export function createOniRepository(
     site,
     makeOniDatastreamLayer(datastreamService),
     storageManager,
-    loadOcflModule
+    loadOcflModule,
+    canonicalStorageIdentity
   );
 }

@@ -8,6 +8,7 @@ import { makeClientLayer, FigshareClient, FigshareClientTag } from './http';
 import { buildMetadataPayload, syncMetadataPhase } from './metadata';
 import { FigshareArticle, FigshareFile, FigsharePublicationPlan, FigshareRunContext, RecordModel } from './types';
 import { runEffectProgram } from '../integration-v2/runtime';
+import { figsharePublicationContext } from './publication-context';
 
 export const FigshareConfigTag = Context.Service<ResolvedFigsharePublishingConfigData>('redbox/FigshareConfig');
 export const FigshareRunContextTag = Context.Service<FigshareRunContext>('redbox/FigshareRunContext');
@@ -69,6 +70,7 @@ export async function runBuildMetadataPayload(
   config: ResolvedFigsharePublishingConfigData,
   record: RecordModel
 ): Promise<Record<string, unknown>> {
+  if (figsharePublicationContext.getStore()?.preflight) return buildMetadataPayload(config, record);
   const runContext: FigshareRunContext = {
     recordOid: record.redboxOid ?? record.id ?? '',
     brandId: String(record.metaMetadata?.brandId ?? 'default'),

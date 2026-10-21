@@ -28,6 +28,9 @@ import type {
 import { makeOniAuditService } from './oni-v2/audit';
 import { ingestOniRepository, type OniIngestionResult } from './oni-v2/ingestion';
 import { createRecordMetadataDelta } from '../RecordsService';
+import { oniPublicationContext } from './oni-v2/publication-context';
+import type { OniPublicationHooks } from './oni-v2/publication-source';
+import { projectOniPublication } from './oni-v2/publication-projection';
 
 export namespace Services {
   /**
@@ -35,7 +38,7 @@ export namespace Services {
    * an OCFL object using the per-brand oniPublishing app-config.
    */
   export class OniService extends services.Core.Service {
-    protected override _exportedMethods: string[] = ['exportDataset', 'init', 'getConfig'];
+    protected override _exportedMethods: string[] = ['exportDataset', 'init', 'getConfig', 'publicationAdapterHooks'];
 
     constructor() {
       super();
@@ -48,7 +51,39 @@ export namespace Services {
     }
 
     public getConfig(record?: OniRecordModel) {
-      return resolveOniPublishingConfig(record);
+      return oniPublicationContext.getStore()?.configuration ?? resolveOniPublishingConfig(record);
+    }
+
+    /** Bind the real service instance, preserving configuration/repository override dispatch. */
+    public publicationAdapterHooks(): OniPublicationHooks {
+      return {
+        configuration: (record, configuration) =>
+          oniPublicationContext.run({ configuration }, () => {
+            const result = this.getConfig(record);
+            if (!result) throw new Error('Oni override disabled the approved destination');
+            return result;
+          }),
+        repository: (configuration, site, datastream, repositoryNamespace) =>
+          oniPublicationContext.run({ configuration, datastream, repositoryNamespace }, () => {
+            const repository = this.createRepository(configuration, site);
+            if (
+              !('readObject' in repository) ||
+              typeof repository.readObject !== 'function' ||
+              !('reconcileCommit' in repository) ||
+              typeof repository.reconcileCommit !== 'function'
+            )
+              throw new Error('Oni repository override must implement verified recovery reads');
+            return repository as import('./oni-v2/types').OniOcflRecoveryRepository;
+          }),
+        datastream: () => {
+          const name = String(sails.config?.record?.datastreamService ?? '');
+          const service = sails.services?.[name];
+          if (!service || typeof service.getDatastream !== 'function')
+            throw new Error('Oni datastream service is unavailable');
+          return service as Pick<DatastreamService, 'getDatastream' | 'getDatastreamFingerprint'>;
+        },
+        project: projectOniPublication,
+      };
     }
 
     private asError(error: unknown): Error {
@@ -162,6 +197,9 @@ export namespace Services {
       config: ResolvedOniPublishingConfigData,
       site: OniPublishingSiteConfig
     ): OniOcflRepository {
+      const shared = oniPublicationContext.getStore();
+      if (shared?.datastream)
+        return createOniRepository(config, site, shared.datastream, undefined, undefined, shared.repositoryNamespace);
       const serviceName = String(sails.config?.record?.datastreamService ?? '');
       const datastreamService = serviceName
         ? (sails.services?.[serviceName] as unknown as DatastreamService | undefined)
@@ -230,6 +268,19 @@ export namespace Services {
 
     public async exportDataset(oid: string, record: unknown, options: unknown, user: unknown): Promise<OniRecordModel> {
       const recordObj = this.ensureRecord(record);
+      if (
+        typeof PublicationService !== 'undefined' &&
+        typeof PublicationService.acceptProviderRequest === 'function' &&
+        (await PublicationService.acceptProviderRequest(
+          'oni',
+          'OniService.exportDataset',
+          oid,
+          { ...recordObj },
+          options,
+          user
+        ))
+      )
+        return recordObj;
       const optionsObj = options != null && typeof options === 'object' ? (options as AnyRecord) : {};
       if (this.metTriggerCondition(oid, recordObj as AnyRecord, optionsObj, user) !== 'true') {
         sails.log.debug(`Not publishing: ${oid}, condition not met: ${String(optionsObj.triggerCondition ?? '')}`);

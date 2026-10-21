@@ -140,6 +140,18 @@ export async function runPublishDatasetProgram(
     );
     const writeOperation = Effect.tryPromise({
       try: async () => {
+        const brandId = String(input.record.metaMetadata?.brandId ?? '');
+        if (
+          typeof PublicationService !== 'undefined' &&
+          typeof PublicationService.assertLegacyPublicationAllowed === 'function'
+        )
+          await PublicationService.assertLegacyPublicationAllowed(brandId, input.oid);
+        if (
+          typeof PublicationService !== 'undefined' &&
+          typeof PublicationService.hasSharedAuthority === 'function' &&
+          (await PublicationService.hasSharedAuthority(brandId))
+        )
+          throw new Error('Legacy Oni writes are fenced by shared publication authority');
         await resolvedRepository.ensureStorageRoot();
         await resolvedRepository.ensureRootCollection(
           resolvedConfig,

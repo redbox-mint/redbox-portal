@@ -1,4 +1,4 @@
-import { figshareExecution, workerClient, transportGuardedMethods } from './execution';
+import { figshareExecution, workerClient, transportGuardedMethods, assertFigshareMutationAuthority } from './execution';
 import type { FigshareOperation } from '../../configmodels/FigsharePublishing';
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 import * as Context from 'effect/Context';
@@ -20,68 +20,28 @@ import {
   FigshareCategory,
 } from './types';
 import { logEvent, withSpan } from './observability';
-import { redactObject } from '../../utilities/RedactionUtils';
 
 export class FigshareHttpError extends Error {
   statusCode?: number;
   responseBody?: unknown;
 
-  constructor(message: string, options: { statusCode?: number; responseBody?: unknown; cause?: unknown } = {}) {
+  constructor(message: string, options: { statusCode?: number; responseBody?: unknown } = {}) {
     super(message);
     this.name = 'FigshareHttpError';
     this.statusCode = options.statusCode;
-    this.responseBody = options.responseBody;
-    if (options.cause != null) {
-      (this as Error & { cause?: unknown }).cause = options.cause;
-    }
+    // Available to reconciliation without being serialized by ordinary error logging.
+    Object.defineProperty(this, 'responseBody', { value: options.responseBody, enumerable: false });
   }
 }
 
-/** Keep Axios request/config internals out of logs while retaining validation errors. */
-export function describeFigshareHttpFailure(error: AxiosError, token: string): Record<string, string | undefined> {
-  const body = error.response?.data;
-  const details = body != null && typeof body === 'object' ? body as Record<string, unknown> : {};
-  const safeText = (value: unknown): string | undefined => {
-    if (typeof value !== 'string') return undefined;
-    const withoutToken = token ? value.replaceAll(token, '[REDACTED]') : value;
-    return withoutToken.slice(0, 500);
-  };
+/** Export bounded transport categories only; provider validation text can echo private source values. */
+export function describeFigshareHttpFailure(error: AxiosError, _token: string): Record<string, string | undefined> {
+  const codes = ['ERR_BAD_REQUEST', 'ERR_BAD_RESPONSE', 'ECONNABORTED', 'ETIMEDOUT', 'ERR_NETWORK',
+    'ERR_CANCELED', 'ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'];
   return {
-    errorName: safeText(error.name),
-    errorCode: safeText(error.code),
-    responseCode: safeText(details.code),
-    responseMessage: safeText(details.message)
+    errorName: 'FigshareHttpError',
+    errorCode: codes.includes(error.code ?? '') ? error.code : undefined
   };
-}
-
-function isReadablePayload(payload: unknown): payload is { pipe: (...args: unknown[]) => unknown } {
-  return payload != null && typeof payload === 'object' && typeof (payload as { pipe?: unknown }).pipe === 'function';
-}
-
-function getContentType(headers?: Record<string, unknown>): string {
-  const contentTypeHeader = headers == null
-    ? undefined
-    : headers['Content-Type'] ?? headers['content-type'];
-  return typeof contentTypeHeader === 'string' ? contentTypeHeader.toLowerCase() : '';
-}
-
-function sanitizePayloadForLogging(payload: unknown, headers?: Record<string, unknown>): unknown {
-  const contentType = getContentType(headers);
-  if (Buffer.isBuffer(payload)) {
-    return {
-      type: 'buffer',
-      byteLength: payload.length,
-      contentType: contentType || undefined
-    };
-  }
-  if (isReadablePayload(payload) || contentType.includes('application/octet-stream')) {
-    return {
-      type: isReadablePayload(payload) ? 'stream' : 'binary',
-      contentType: contentType || undefined,
-      payloadClass: payload != null && typeof payload === 'object' ? payload.constructor?.name : undefined
-    };
-  }
-  return redactObject(payload);
 }
 
 function assertNumericPathId(label: string, value: string): string {
@@ -155,7 +115,7 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
   const url = options.url ?? `${config.connection.baseUrl.replace(/\/+$/, '')}${path}`;
   const accountApi = (url === `${config.connection.baseUrl.replace(/\/+$/, '')}/account` || url.startsWith(`${config.connection.baseUrl.replace(/\/+$/, '')}/account/`));
   const operation = options.operation ?? (/\/files(?:[/?]|$)/.test(url) ? 'assets' : /\/embargo$/.test(url) ? 'embargo' : /\/publish$/.test(url) ? 'publish' : methodLower === 'get' ? 'read' : 'metadata');
-  const discovery = options.path === '/account' || options.path?.startsWith('/account/institution/') || options.path === '/account/licenses' || options.path === '/account/categories';
+  const discovery = options.path === '/account' || options.path === '/account/institution/accounts/search' || options.path === '/account/licenses' || options.path === '/account/categories';
   const actor = discovery ? 'token' : execution?.recovery ? 'owner' : config.impersonation?.operations[operation];
   const owner = accountApi && options.anonymous !== true && (execution?.recovery || config.impersonation?.enabled) && actor === 'owner' && execution?.binding?.ownerId !== execution?.binding?.accountId ? execution?.binding?.ownerId : undefined;
   if (accountApi && config.impersonation?.enabled && actor === 'owner' && !execution?.binding?.ownerId) throw new Error('Figshare operation requires a resolved owner');
@@ -170,14 +130,15 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
   const attempts = execution && methodLower !== 'get' ? 1 : retryConfig.maxAttempts;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     if (execution?.signal.aborted) throw new Error('Figshare request cancelled after lease loss');
-    if (execution && methodLower !== 'get' && !url.includes('/institution/accounts/search')) await execution.guard(operation);
+    if (!execution && methodLower !== 'get' && !discovery)
+      await assertFigshareMutationAuthority(runContext.brandId, runContext.recordOid);
+    if (execution && methodLower !== 'get' && !discovery) await execution.guard(operation);
     try {
       return await withSpan(`figshare.http.${method.toLowerCase()}`, runContext, {
         'http.method': method,
-        'http.url': url
+        'http.route': path || 'external-upload'
       }, async () => {
-        const sanitizedPayload = sanitizePayloadForLogging(options.payload, options.headers);
-        logEvent('debug', `Figshare V2 request ${method} ${path}`, runContext, { attempt, payload: sanitizedPayload });
+        logEvent('debug', `Figshare V2 request ${method} ${path}`, runContext, { attempt });
         const response = await axios({
           method,
           url,
@@ -209,10 +170,9 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
       if (!retryable || attempt === attempts) {
         // Wrap instead of rethrowing the raw AxiosError: axios errors carry the full
         // request config (including the Authorization header) and must not propagate.
-        throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path || url}`, {
+        throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path || 'external-upload'}`, {
           statusCode: status == null ? undefined : Number(status),
-          responseBody: axiosErr?.response?.data,
-          cause: error
+          responseBody: axiosErr?.response?.data
         });
       }
       await new Promise((resolve) => setTimeout(resolve, getRetryDelay(retryConfig.baseDelayMs, retryConfig.maxDelayMs, attempt)));

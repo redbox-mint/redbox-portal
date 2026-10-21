@@ -1195,7 +1195,7 @@ describe('OniService', function () {
       await primitiveStore.readFile('/ocfl/missing.txt');
       throw new Error('Expected primitiveStore.readFile to throw');
     } catch (error) {
-      expect((error as NodeJS.ErrnoException).code).to.equal('ENOENT');
+      expect(error).to.equal('Object was not found');
     }
 
     let thrown: unknown = undefined;

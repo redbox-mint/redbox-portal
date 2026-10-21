@@ -1,5 +1,5 @@
 import { dispatchFigshare, runFigshareWorker, getSyncStore, importRecordIntent } from './figshare-v2/worker';
-import { workerClient } from './figshare-v2/execution';
+import { workerClient, assertFigshareMutationAuthority } from './figshare-v2/execution';
 import { buildMetadataPayload as buildLocalMetadataPayload } from './figshare-v2/metadata';
 import { Services as services } from '../CoreService';
 import { resolveFigsharePublishingConfig, getBrandName, getSyncState, setSyncState } from './figshare-v2/config';
@@ -18,6 +18,8 @@ import {
   ensureNoFileUploadInProgress as ensureNoUploadsInProgress,
 } from './figshare-v2/runtime';
 import { FigshareClient, makeFixtureClient, makeLiveClient } from './figshare-v2/http';
+import { figsharePublicationContext } from './figshare-v2/publication-context';
+import type { PublicationFigshareService } from './figshare-v2/publication-source';
 import { RBValidationError } from '../model/RBValidationError';
 import {
   RecordModel,
@@ -30,7 +32,6 @@ import {
   FigshareJob,
   AssetSyncResult,
 } from './figshare-v2/types';
-
 
 export namespace Services {
   export class FigshareService extends services.Core.Service {
@@ -56,6 +57,7 @@ export namespace Services {
       'requestFigshareCleanup',
       'dispatchSyncJob',
       'syncRecordJob',
+      'publicationAdapterHooks',
     ];
 
     private _msgPrefix!: string;
@@ -215,7 +217,9 @@ export namespace Services {
       triggerSource: string = 'manual'
     ) {
       const runContext = createRunContext(record, config, jobId, triggerSource);
-      return workerClient(config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext));
+      return workerClient(
+        config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext)
+      );
     }
 
     public preparePublication(record: RecordModel, jobId?: string): FigsharePublicationPlan {
@@ -231,19 +235,41 @@ export namespace Services {
     }
 
     public async syncMetadata(record: RecordModel, plan?: FigsharePublicationPlan): Promise<FigshareArticle> {
+      await assertFigshareMutationAuthority(record.metaMetadata?.brandId, record.redboxOid ?? record.id);
       const config = this.assertConfig(record, 'syncMetadata');
       const rm = record as RecordModel;
 
       const publicationPlan = plan ?? this.preparePublication(rm);
+      const publication = figsharePublicationContext.getStore();
+      if (publication) {
+        if (publication.preflight || !publicationPlan.articleId)
+          throw new Error('Shared Figshare metadata requires a verified article');
+        const client = workerClient(
+          this.makeClient(config, rm, publicationPlan.syncState.correlationId, 'syncMetadata')
+        );
+        const payload = publication.payload ?? (await this.buildMetadataPayload(config, rm));
+        return client.updateArticle(publicationPlan.articleId, payload);
+      }
       // The runtime program handles the curation lock and upload-in-progress checks.
       const runContext = createRunContext(rm, config, publicationPlan.syncState.correlationId, 'syncMetadata');
       return runSyncMetadataProgram(config, runContext, rm, publicationPlan);
+    }
+
+    /** Bind the real hook instance so inherited payload/client/config overrides remain active. @internal */
+    public publicationAdapterHooks(): PublicationFigshareService {
+      return {
+        getConfig: this.getConfig.bind(this),
+        buildMetadataPayload: this.buildMetadataPayload.bind(this),
+        makeClient: this.makeClient.bind(this),
+        syncMetadata: this.syncMetadata.bind(this),
+      };
     }
 
     public async syncAssets(
       record: RecordModel,
       article: FigshareArticle
     ): Promise<AssetSyncResult & Record<string, unknown>> {
+      await assertFigshareMutationAuthority(record.metaMetadata?.brandId, record.redboxOid ?? record.id);
       const config = this.assertConfig(record, 'syncAssets');
       const rm = record as RecordModel;
 
@@ -253,6 +279,7 @@ export namespace Services {
     }
 
     public async syncEmbargo(record: RecordModel, articleId: string): Promise<Record<string, unknown>> {
+      await assertFigshareMutationAuthority(record.metaMetadata?.brandId, record.redboxOid ?? record.id);
       const config = this.assertConfig(record, 'syncEmbargo');
       const rm = record as RecordModel;
 
@@ -261,6 +288,7 @@ export namespace Services {
     }
 
     public async publishIfNeeded(record: RecordModel, articleId: string): Promise<FigsharePublishResult> {
+      await assertFigshareMutationAuthority(record.metaMetadata?.brandId, record.redboxOid ?? record.id);
       const config = this.assertConfig(record, 'publishIfNeeded');
       const rm = record as RecordModel;
 
@@ -311,7 +339,9 @@ export namespace Services {
       const brand = getBrandName(record);
       if (!config || config.processing?.enabled || this.warnedDisabledBrands.has(brand)) return;
       this.warnedDisabledBrands.add(brand);
-      sails.log.warn(`Figshare legacy hook for brand ${brand} cannot synchronise articles while figsharePublishing.processing.enabled is false; enable queued processing after completing the migration checks.`);
+      sails.log.warn(
+        `Figshare legacy hook for brand ${brand} cannot synchronise articles while figsharePublishing.processing.enabled is false; enable queued processing after completing the migration checks.`
+      );
     }
 
     private readonly warnedAliases = new Set<string>();
@@ -321,7 +351,25 @@ export namespace Services {
       sails.log.warn(`Figshare ${name} is deprecated; configure ${replacement}.`);
     }
 
-    public async validateFigshareRecord(oid: string | null, record: RecordModel, options: Record<string, unknown> = {}, user?: unknown): Promise<RecordModel> {
+    public async validateFigshareRecord(
+      oid: string | null,
+      record: RecordModel,
+      options: Record<string, unknown> = {},
+      user?: unknown
+    ): Promise<RecordModel> {
+      if (
+        typeof PublicationService !== 'undefined' &&
+        typeof PublicationService.acceptProviderRequest === 'function' &&
+        (await PublicationService.acceptProviderRequest(
+          'figshare',
+          'FigshareService.validateFigshareRecord',
+          oid,
+          { ...record },
+          options,
+          user
+        ))
+      )
+        return record;
       if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) return record;
       const config = resolveFigsharePublishingConfig(record, { requireToken: false });
       if (!config) return record;
@@ -331,41 +379,108 @@ export namespace Services {
     }
 
     public async wakeFigshareRecord(oid: string, record?: RecordModel): Promise<RecordModel | undefined> {
+      if (
+        typeof PublicationService !== 'undefined' &&
+        typeof PublicationService.forwardLegacyProviderJob === 'function' &&
+        (await PublicationService.forwardLegacyProviderJob('figshare', oid))
+      )
+        return record;
       const fresh = await RecordsService.getMeta(oid);
       const config = fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false });
-      if (!fresh || !config?.processing?.enabled || config.processingError || fresh.figshareSyncIntent?.readiness === 'initialising') return record;
+      if (
+        !fresh ||
+        !config?.processing?.enabled ||
+        config.processingError ||
+        fresh.figshareSyncIntent?.readiness === 'initialising'
+      )
+        return record;
       const store = getSyncStore();
       await store.ensureIndexes();
       await importRecordIntent(store, fresh);
       const state = await store.get(oid);
       if (state?.nextActionAt != null) {
-        await AgendaQueueService.schedule('Figshare-SyncRecord', `in ${Math.min(config.processing.coalesceMs, 900000)} milliseconds`, { oid, brandId: fresh.metaMetadata.brandId });
+        await AgendaQueueService.schedule(
+          'Figshare-SyncRecord',
+          `in ${Math.min(config.processing.coalesceMs, 900000)} milliseconds`,
+          { oid, brandId: fresh.metaMetadata.brandId }
+        );
       }
       return record;
     }
-    public async dispatchSyncJob(): Promise<void> { await dispatchFigshare(); }
-    public async syncRecordJob(job: FigshareJob): Promise<void> { await runFigshareWorker(this, job); }
+    public async dispatchSyncJob(): Promise<void> {
+      if (typeof PublicationService !== 'undefined' && typeof PublicationService.dispatch === 'function')
+        await PublicationService.dispatch();
+      await dispatchFigshare();
+    }
+    public async syncRecordJob(job: FigshareJob): Promise<void> {
+      const data = job.attrs?.data;
+      if (
+        data?.oid &&
+        typeof PublicationService !== 'undefined' &&
+        typeof PublicationService.forwardLegacyProviderJob === 'function' &&
+        (await PublicationService.forwardLegacyProviderJob('figshare', data.oid, data.brandId, true))
+      )
+        return;
+      await runFigshareWorker(this, job);
+    }
 
-    public createUpdateFigshareArticle(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown) {
+    public createUpdateFigshareArticle(
+      oid: string | null,
+      record: RecordModel,
+      options: Record<string, unknown>,
+      user: unknown
+    ) {
       this.deprecate('createUpdateFigshareArticle', 'validateFigshareRecord');
       this.warnDisabledProcessing(record);
       return this.validateFigshareRecord(oid, record, options, user);
     }
-    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, _options?: Record<string, unknown>, _user?: UserModel) {
+    public async uploadFilesToFigshareArticle(
+      oid: string,
+      record: RecordModel,
+      _options?: Record<string, unknown>,
+      _user?: UserModel
+    ) {
+      if (
+        typeof PublicationService !== 'undefined' &&
+        typeof PublicationService.acceptProviderRequest === 'function' &&
+        (await PublicationService.acceptProviderRequest(
+          'figshare',
+          'FigshareService.uploadFilesToFigshareArticle',
+          oid,
+          { ...record },
+          _options,
+          _user
+        ))
+      )
+        return record;
       this.deprecate('uploadFilesToFigshareArticle', 'wakeFigshareRecord');
       this.warnDisabledProcessing(record);
       return this.wakeFigshareRecord(oid, record);
     }
-    public requestFigshareCleanup(_oid: string, record: RecordModel, _options?: Record<string, unknown>, _user?: UserModel) {
+    public requestFigshareCleanup(
+      _oid: string,
+      record: RecordModel,
+      _options?: Record<string, unknown>,
+      _user?: UserModel
+    ) {
       // RecordsService recognises this configured hook and commits cleanup-only intent.
       return record;
     }
-    public deleteFilesFromRedboxTrigger(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
+    public deleteFilesFromRedboxTrigger(
+      oid: string,
+      record: RecordModel,
+      options: Record<string, unknown>,
+      user: UserModel
+    ) {
       this.deprecate('deleteFilesFromRedboxTrigger', 'requestFigshareCleanup');
       this.warnDisabledProcessing(record);
       return this.requestFigshareCleanup(oid, record, options, user);
     }
-    public async syncRecordWithFigshare(record: RecordModel, _jobId?: string, _triggerSource?: string): Promise<RecordModel> {
+    public async syncRecordWithFigshare(
+      record: RecordModel,
+      _jobId?: string,
+      _triggerSource?: string
+    ): Promise<RecordModel> {
       this.deprecate('syncRecordWithFigshare', 'wakeFigshareRecord');
       this.warnDisabledProcessing(record);
       await this.wakeFigshareRecord(record.redboxOid ?? record.id, record);
@@ -385,11 +500,12 @@ export namespace Services {
     public queueDeleteFiles(oid: string, _user: UserModel, _brandId: string, _articleId: string) {
       return this.wakeFigshareRecord(oid);
     }
-    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(_job: Record<string, unknown>): Promise<void> {
+    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(
+      _job: Record<string, unknown>
+    ): Promise<void> {
       // Observation is durable and scheduled by the worker. Legacy scanners only redeliver it.
       await this.dispatchSyncJob();
     }
-
   }
 }
 

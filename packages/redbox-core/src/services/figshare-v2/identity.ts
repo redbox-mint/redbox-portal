@@ -6,13 +6,23 @@ import { FigshareHttpError } from './http';
 import { getRecordField, type RecordModel, type FigshareArticle } from './types';
 import { FigshareRepairRequired } from './execution';
 
-export function apiNamespace(config: FigsharePublishingConfigData): string { return config.connection.baseUrl.replace(/\/+$/, ''); }
-export async function resolveCreationOwner(client: FigshareClient, config: FigsharePublishingConfigData, record: RecordModel, accountId: string): Promise<string> {
+export function apiNamespace(config: FigsharePublishingConfigData): string {
+  return new URL(config.connection.baseUrl).href.replace(/\/+$/, '');
+}
+export async function resolveCreationOwner(
+  client: FigshareClient,
+  config: FigsharePublishingConfigData,
+  record: RecordModel,
+  accountId: string
+): Promise<string> {
   const policy = config.impersonation;
   if (!policy?.enabled) return accountId;
   const institutionalId = String(getRecordField(record, policy.institutionalIdPath) ?? '').trim();
-  const email = String(getRecordField(record, policy.emailPath) ?? '').trim().toLowerCase();
-  if (!institutionalId && !(policy.allowEmailFallback && email)) throw new FigshareRepairRequired('Figshare owner institutional identifier is missing');
+  const email = String(getRecordField(record, policy.emailPath) ?? '')
+    .trim()
+    .toLowerCase();
+  if (!institutionalId && !(policy.allowEmailFallback && email))
+    throw new FigshareRepairRequired('Figshare owner institutional identifier is missing');
   const field = institutionalId ? 'institution_user_id' : 'email';
   const value = institutionalId || email;
   const candidates = [];
@@ -27,7 +37,8 @@ export async function resolveCreationOwner(client: FigshareClient, config: Figsh
   }
   if (candidates.length !== 1) throw new FigshareRepairRequired('Figshare owner lookup must match exactly one account');
   const match = candidates[0];
-  if (institutionalId && email && match.email && match.email.toLowerCase() !== email) throw new FigshareRepairRequired('Conflicting Figshare owner identity evidence');
+  if (institutionalId && email && match.email && match.email.toLowerCase() !== email)
+    throw new FigshareRepairRequired('Conflicting Figshare owner identity evidence');
   if (!/^\d+$/.test(String(match.id))) throw new FigshareRepairRequired('Figshare owner account ID is invalid');
   return String(match.id); // Never user_id: that is the author identity.
 }
@@ -35,7 +46,10 @@ export const provisionalTitle = (token: string): string => `ReDBox draft ${token
 export function newCreateOperation(binding: FigshareBinding): FigshareCreateOperation {
   return { token: randomUUID(), binding: { ...binding }, startedAt: new Date().toISOString(), outcome: 'submitted' };
 }
-export async function recoverCreate(client: FigshareClient, operation: FigshareCreateOperation): Promise<FigshareArticle | null> {
+export async function recoverCreate(
+  client: FigshareClient,
+  operation: FigshareCreateOperation
+): Promise<FigshareArticle | null> {
   if (!client.listArticles) throw new FigshareRepairRequired('Client cannot reconcile uncertain creation');
   const matches: FigshareArticle[] = [];
   for (let page = 1; ; page++) {
@@ -43,7 +57,11 @@ export async function recoverCreate(client: FigshareClient, operation: FigshareC
     for (const candidate of articles) {
       if (candidate.title !== provisionalTitle(operation.token)) continue;
       const verified = await client.getArticle(String(candidate.id));
-      if (verified.title === provisionalTitle(operation.token)) matches.push(verified);
+      if (verified.title === provisionalTitle(operation.token)) {
+        if (verified.account_id != null && String(verified.account_id) !== operation.binding.ownerId)
+          throw new FigshareRepairRequired('Create token belongs to a different owner account');
+        matches.push(verified);
+      }
     }
     if (articles.length < 100) break;
     if (page === 10000) throw new FigshareRepairRequired('Create reconciliation did not terminate');
@@ -54,4 +72,6 @@ export async function recoverCreate(client: FigshareClient, operation: FigshareC
 export function observedPublished(article: FigshareArticle): boolean {
   return article.is_public === true && typeof article.published_date === 'string' && article.published_date.length > 0;
 }
-export function isMissingArticle(error: unknown): boolean { return error instanceof FigshareHttpError && error.statusCode === 404; }
+export function isMissingArticle(error: unknown): boolean {
+  return error instanceof FigshareHttpError && error.statusCode === 404;
+}

@@ -144,3 +144,42 @@ export async function ingestOniRepository(
     searchItems: Number(search.count ?? 0),
   };
 }
+
+/** Shared adapter persists the acknowledged request before waiting for repository readiness. */
+export async function requestOniIndex(
+  type: OniIndexType,
+  config: OniIngestionConfig,
+  signal?: AbortSignal
+): Promise<void> {
+  validateConfig(config);
+  const force = config.forceReindex ? '?force=true' : '';
+  await axios.post(`${normalizeApiUrl(config.apiUrl)}/admin/index/${type}${force}`, undefined, {
+    headers: { Authorization: `Bearer ${config.adminToken}`, Accept: 'application/json' },
+    timeout: Math.min(config.timeoutMs, 15_000),
+    signal,
+  });
+}
+
+export async function waitForOniIndex(
+  type: OniIndexType,
+  config: OniIngestionConfig,
+  signal?: AbortSignal
+): Promise<OniIndexState> {
+  validateConfig(config);
+  return waitForIndex(
+    type,
+    config,
+    {
+      post: (url, data, options) => axios.post(url, data, { ...options, signal }),
+      get: (url, options) => axios.get(url, { ...options, signal }),
+    },
+    { Authorization: `Bearer ${config.adminToken}`, Accept: 'application/json' },
+    async milliseconds => {
+      signal?.throwIfAborted();
+      await defaultDelay(milliseconds);
+      signal?.throwIfAborted();
+    },
+    Date.now,
+    Date.now() + config.timeoutMs
+  );
+}

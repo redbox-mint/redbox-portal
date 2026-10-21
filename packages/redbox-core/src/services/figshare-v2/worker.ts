@@ -86,6 +86,12 @@ export function projectionPaths(config: ResolvedFigsharePublishingConfigData): s
 
 /** Source import never acknowledges before durable state exists. Queue delivery is disposable. */
 export async function importRecordIntent(store: FigshareSyncStore, record: RecordModel): Promise<void> {
+  if (
+    typeof PublicationService !== 'undefined' &&
+    typeof PublicationService.hasSharedAuthority === 'function' &&
+    (await PublicationService.hasSharedAuthority(record.metaMetadata.brandId))
+  )
+    return;
   const intent = record.figshareSyncIntent;
   if (!intent?.pending || intent.readiness !== 'ready') return;
   const storage = RecordsService.getFigshareIntentStorage();
@@ -104,7 +110,18 @@ export async function dispatchFigshare(): Promise<void> {
   if (!storage.pendingFigshareIntents) return;
   const store = getSyncStore();
   await store.ensureIndexes();
-  if (storage.recoverStaleFigshareIntents) {
+  // The legacy recovery API scans all brands. Once any brand cuts over, it must not rewrite retained legacy evidence.
+  let sharedBrand = false;
+  if (
+    typeof PublicationService !== 'undefined' &&
+    typeof PublicationService.hasSharedAuthority === 'function' &&
+    typeof BrandingService.getAvailable === 'function'
+  )
+    for (const name of BrandingService.getAvailable()) {
+      const brand = BrandingService.getBrand(name);
+      if (brand && (await PublicationService.hasSharedAuthority(brand.id))) sharedBrand = true;
+    }
+  if (!sharedBrand && storage.recoverStaleFigshareIntents) {
     const recovered = await storage.recoverStaleFigshareIntents(
       new Date(Date.now() - STALE_INITIALISING_MS).toISOString()
     );
@@ -115,6 +132,12 @@ export async function dispatchFigshare(): Promise<void> {
     const page = await storage.pendingFigshareIntents(100, afterOid);
     for (const record of page) {
       try {
+        if (
+          typeof PublicationService !== 'undefined' &&
+          typeof PublicationService.hasSharedAuthority === 'function' &&
+          (await PublicationService.hasSharedAuthority(record.metaMetadata.brandId))
+        )
+          continue;
         const config = resolveFigsharePublishingConfig(record, { requireToken: false });
         if (config?.processing?.enabled && !config.processingError) await importRecordIntent(store, record);
       } catch (error) {
@@ -132,6 +155,12 @@ export async function dispatchFigshare(): Promise<void> {
     if (!page.length) break;
     for (const due of page) {
       seen.add(due.oid);
+      if (
+        typeof PublicationService !== 'undefined' &&
+        typeof PublicationService.hasSharedAuthority === 'function' &&
+        (await PublicationService.hasSharedAuthority(due.brandId))
+      )
+        continue;
       if (!(await store.dispatchClaim(due.oid))) continue;
       try {
         const fresh = await RecordsService.getMeta(due.oid);
@@ -156,6 +185,12 @@ export async function runFigshareWorker(
 ): Promise<void> {
   const { oid, brandId } = job.attrs?.data ?? {};
   if (!oid || !brandId) return;
+  if (
+    typeof PublicationService !== 'undefined' &&
+    typeof PublicationService.forwardLegacyProviderJob === 'function' &&
+    (await PublicationService.forwardLegacyProviderJob('figshare', oid, brandId, true))
+  )
+    return;
   let record = await RecordsService.getMeta(oid);
   if (!record) {
     const existing = await store.get(oid);
@@ -237,6 +272,17 @@ export async function runFigshareWorker(
     return currentExecutionEligible(recordType, policies, oid, current);
   };
   const assertCurrent = async () => {
+    if (
+      typeof PublicationService !== 'undefined' &&
+      typeof PublicationService.assertLegacyPublicationAllowed === 'function'
+    )
+      await PublicationService.assertLegacyPublicationAllowed(brandId, oid);
+    if (
+      typeof PublicationService !== 'undefined' &&
+      typeof PublicationService.hasSharedAuthority === 'function' &&
+      (await PublicationService.hasSharedAuthority(brandId))
+    )
+      throw new FigshareWaiting('shared_publication_authority');
     await store.assertOwner(oid, owner);
     if (abort.signal.aborted) throw new FigshareLeaseLost();
     const fresh = await RecordsService.getMeta(oid);
