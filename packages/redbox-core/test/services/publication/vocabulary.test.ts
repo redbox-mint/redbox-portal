@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { MongoClient, ObjectId, type Db } from 'mongodb';
+import { MongoClient, type Db } from 'mongodb';
 import { of } from 'rxjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { mkdtemp, writeFile, readFile, rm, cp, mkdir } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { createServer } from 'node:http';
 import { PublicationVocabularyStore } from '../../../src/services/publication-vocabulary/store';
 import { convertPublicationVocabulary } from '../../../src/services/publication-vocabulary/conversion';
@@ -34,6 +32,15 @@ import { Services as SharedServices } from '../../../src/services/PublicationVoc
 import { Services as LegacyServices } from '../../../src/services/FigshareVocabularyService';
 import { withLegacyVocabularyWriter } from '../../../src/services/publication-vocabulary/legacy';
 import { insertLegacyVocabularyRow, vocabularyEntries } from '../../../src/services/publication-vocabulary/mongo';
+
+import {
+  crosswalkId,
+  sourceId,
+  localId,
+  localEntryId,
+  categoryIds,
+  seedLegacyVocabulary,
+} from '../../fixtures/publication/legacyVocabulary';
 
 const actor = { brandId: 'brand', userId: 'admin' };
 const sourceInput = (): PublicationSourceImport => {
@@ -99,12 +106,6 @@ describeMongo('Shared vocabulary conversion and immutable approvals (PUB-22/23, 
   let db: Db;
   let store: PublicationVocabularyStore;
   const saved = new Map<string, unknown>();
-  const crosswalkId = new ObjectId('0123456789abcdef01234567');
-  const sourceId = new ObjectId('1123456789abcdef01234567');
-  const localId = new ObjectId('2123456789abcdef01234567');
-  const mirrorId = new ObjectId('3123456789abcdef01234567');
-  const localEntryId = new ObjectId('4123456789abcdef01234567');
-  const categoryIds = [new ObjectId('5123456789abcdef01234567'), new ObjectId('6123456789abcdef01234567')];
   class TestService extends SharedServices.PublicationVocabulary {
     protected override getStore() {
       return store;
@@ -161,106 +162,7 @@ describeMongo('Shared vocabulary conversion and immutable approvals (PUB-22/23, 
     await client.close();
   });
   async function seed() {
-    await db.collection('figsharevocabularysource').insertOne({
-      _id: sourceId,
-      branding: 'brand',
-      vocabulary: mirrorId,
-      scope: 'account',
-      taxonomyId: '1',
-      displayName: 'Account taxonomy',
-      createdBy: 'importer',
-      updatedBy: 'importer',
-      lastSyncRun: 'run-1',
-      remoteHash: 'remote-original',
-    });
-    await db.collection('vocabulary').insertMany([
-      { _id: localId, branding: 'brand', name: 'Local codes', source: 'local' },
-      { _id: mirrorId, branding: 'brand', name: 'Mirror', source: 'external', readOnly: true },
-    ]);
-    const mirrors = [new ObjectId(), new ObjectId()];
-    await db.collection('vocabularyentry').insertMany([
-      {
-        _id: localEntryId,
-        vocabulary: localId,
-        value: '300101',
-        valueLower: '300101',
-        identifier: 'https://example.org/for/300101',
-        label: 'Local mathematics',
-      },
-      { _id: mirrors[0], vocabulary: mirrorId, value: '300101', label: 'Mathematics' },
-      { _id: mirrors[1], vocabulary: mirrorId, value: 'removed', label: 'Historical subject' },
-    ]);
-    await db.collection('figsharevocabularycategory').insertMany(
-      categoryIds.map((id, index) => ({
-        _id: id,
-        source: sourceId,
-        entry: mirrors[index],
-        sourceId: index ? 'removed' : '300101',
-        categoryId: index ? 99 : 42,
-        taxonomyId: '1',
-        selectable: true,
-        historical: index === 1,
-        firstSeenAt: '2025-01-01T00:00:00Z',
-        lastSeenAt: '2026-01-01T00:00:00Z',
-        contentHash: `hash-${index}`,
-      }))
-    );
-    await db.collection('figsharevocabularycrosswalk').insertOne({
-      _id: crosswalkId,
-      branding: 'brand',
-      name: 'Approved mappings',
-      localVocabulary: localId,
-      figshareSource: sourceId,
-      status: 'approved',
-      workingRevision: 2,
-      approvedRevision: 1,
-      approvedAt: '2025-06-01T00:00:00Z',
-      approvedBy: 'departed-approver',
-      updatedBy: 'editor',
-    });
-    await db.collection('figsharevocabularycrosswalkmapping').insertMany([
-      {
-        crosswalk: crosswalkId,
-        revision: 1,
-        localEntry: localEntryId,
-        figshareCategory: categoryIds[0],
-        status: 'approved',
-        matchType: 'manual',
-        approvedAt: '2025-06-01T00:00:00Z',
-        approvedBy: 'departed-approver',
-        evidence: { auditId: 'audit-original' },
-      },
-      {
-        crosswalk: crosswalkId,
-        revision: 1,
-        localEntry: localEntryId,
-        figshareCategory: categoryIds[1],
-        status: 'approved',
-        matchType: 'manual',
-        approvedAt: '2025-06-01T00:00:00Z',
-        approvedBy: 'departed-approver',
-      },
-      {
-        crosswalk: crosswalkId,
-        revision: 2,
-        localEntry: localEntryId,
-        figshareCategory: categoryIds[1],
-        status: 'proposed',
-        matchType: 'manual',
-      },
-    ]);
-    await db.collection('figsharevocabularysyncrun').insertOne({
-      branding: 'brand',
-      source: sourceId,
-      scope: 'account',
-      taxonomyId: '1',
-      state: 'applied',
-      requestedBy: 'importer',
-      appliedBy: 'importer',
-      appliedAt: '2026-01-01T00:00:00Z',
-      result: { auditId: 'import-audit' },
-      normalizedSnapshot: [{ categoryId: 42 }],
-    });
+    await seedLegacyVocabulary(db);
   }
   const conversion = { brandId: 'brand', actor: 'admin', apply: true, reason: 'Verified vocabulary cutover' };
   const request = {
@@ -276,66 +178,6 @@ describeMongo('Shared vocabulary conversion and immutable approvals (PUB-22/23, 
     assert.equal(await store.sources.countDocuments(), 0);
     assert.equal(JSON.stringify(report).includes('departed-approver'), false);
     assert.match(JSON.stringify(report), /"identity":"preserved"/);
-  });
-  it('PUB-25 rehearses the CLI after interrupted crosswalk copying and compares complete legacy, approval and audit inventories', async () => {
-    await seed();
-    const runner = require(`${process.cwd()}/../../support/publication/rehearse.js`);
-    const directory = await mkdtemp(join(tmpdir(), 'pub25-rehearsal-'));
-    try {
-      await writeFile(
-        join(directory, 'baseline.json'),
-        JSON.stringify(await runner.inventory(db, runner.legacyCollections))
-      );
-      await assert.rejects(
-        convertPublicationVocabulary(db, conversion, async step => {
-          if (step === `crosswalk:${crosswalkId}`) throw new Error('Interrupted after copying approval history');
-        }),
-        /Interrupted/
-      );
-      let closed = 0;
-      const summary = await runner.main(
-        [
-          '--disposable-copy',
-          '--brand',
-          'brand',
-          '--username',
-          'admin',
-          '--stage',
-          '2',
-          '--baseline',
-          join(directory, 'baseline.json'),
-          '--evidence',
-          join(directory, 'evidence'),
-          '--apply',
-          '--reason',
-          'Disposable PUB25 history rehearsal',
-        ],
-        async () => ({
-          vocabularyService: service,
-          close: async () => {
-            closed++;
-          },
-        })
-      );
-      assert.equal(summary.legacyUnchanged, true);
-      assert.equal(summary.replayUnchanged, true);
-      assert.equal(summary.vocabulary.approvals, 1);
-      assert.equal(summary.vocabulary.mappings, 3);
-      assert.equal(summary.vocabulary.imports, 1);
-      assert.equal(closed, 1);
-      assert.deepEqual(
-        JSON.parse(await readFile(join(directory, 'evidence/before.json'), 'utf8')),
-        JSON.parse(await readFile(join(directory, 'evidence/after.json'), 'utf8'))
-      );
-      if (process.env.PUBLICATION_REHEARSAL_EVIDENCE) {
-        await mkdir(process.env.PUBLICATION_REHEARSAL_EVIDENCE, { recursive: true, mode: 0o700 });
-        await cp(join(directory, 'evidence'), join(process.env.PUBLICATION_REHEARSAL_EVIDENCE, 'vocabulary'), {
-          recursive: true,
-        });
-      }
-    } finally {
-      await rm(directory, { recursive: true, force: true });
-    }
   });
   it('PUB-25 keeps configured Figshare credentials out of catalogue, revision and history evidence', async () => {
     await convertPublicationVocabulary(db, conversion);
