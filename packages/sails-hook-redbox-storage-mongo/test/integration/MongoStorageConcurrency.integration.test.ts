@@ -18,12 +18,18 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
   let records: any;
   let tombstones: any;
   let identities: any;
+  const originalRecord = Reflect.get(globalThis, 'Record');
+  const originalDeletedRecord = Reflect.get(globalThis, 'DeletedRecord');
 
   before(async function () {
     client = new MongoClient(mongoUrl!, { serverSelectionTimeoutMS: 5_000 });
     await client.connect();
     databaseName = `redbox_concurrency_test_${process.pid}_${Date.now()}`;
     const db = client.db(databaseName);
+    // Native discovery evaluates these Waterline globals even when a collection
+    // is already cached. Supply the actual disposable datastore at that boundary.
+    Reflect.set(globalThis, 'Record', { tableName: 'record', getDatastore: () => ({ manager: db }) });
+    Reflect.set(globalThis, 'DeletedRecord', { tableName: 'deletedrecord', getDatastore: () => ({ manager: db }) });
     records = db.collection('record');
     tombstones = db.collection('deletedrecord');
     identities = db.collection('recordidentity');
@@ -42,6 +48,10 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
   });
 
   after(async function () {
+    if (originalRecord === undefined) Reflect.deleteProperty(globalThis, 'Record');
+    else Reflect.set(globalThis, 'Record', originalRecord);
+    if (originalDeletedRecord === undefined) Reflect.deleteProperty(globalThis, 'DeletedRecord');
+    else Reflect.set(globalThis, 'DeletedRecord', originalDeletedRecord);
     if (client) {
       // This database is uniquely named and created only by this test run.
       await client.db(databaseName).dropDatabase();
@@ -226,20 +236,23 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
       },
     });
 
+    const purgeOperation = lifecycleOperation('purge', 5, 6);
+    const restoreOperation = lifecycleOperation('restore', 5, 6);
     const claimed = await firstService.updateTombstone(
       { id: 'brand-1' },
       oid,
-      { lifecycleState: 'purge-pending' },
-      { precondition: { expectedRevision: 5, requireRevision: true } }
+      { lifecycleState: 'purge-pending', lifecycleOperation: purgeOperation },
+      { precondition: { expectedRevision: 5, requireRevision: true }, lifecycle: { expectedState: 'deleted' } }
     );
     const stale = await secondService.updateTombstone(
       { id: 'brand-1' },
       oid,
-      { lifecycleState: 'restore-pending' },
-      { precondition: { expectedRevision: 5, requireRevision: true } }
+      { lifecycleState: 'restore-pending', lifecycleOperation: restoreOperation },
+      { precondition: { expectedRevision: 5, requireRevision: true }, lifecycle: { expectedState: 'deleted' } }
     );
     const removed = await firstService.removeTombstone({ id: 'brand-1' }, oid, {
       precondition: { expectedRevision: 6, requireRevision: true },
+      lifecycle: { expectedState: 'purge-pending', operationId: purgeOperation.operationId },
     });
 
     expect(claimed).to.include({ applicationState: 'applied', committedRevision: 6 });

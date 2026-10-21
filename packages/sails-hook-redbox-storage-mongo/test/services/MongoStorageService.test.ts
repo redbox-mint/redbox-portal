@@ -259,6 +259,7 @@ describe('MongoStorageService', function () {
       createIndexes: sandbox.stub().resolves([]),
     };
     const auditCollection = { createIndex: sandbox.stub().resolves('redboxOid_1_createdAt_1') };
+    const integrationAuditCollection = { createIndexes: sandbox.stub().resolves([]) };
     mockDb.collection.callsFake((name: string, options?: any) => {
       if (options?.strict) {
         return { ok: 1 };
@@ -277,6 +278,7 @@ describe('MongoStorageService', function () {
       if (name === 'recordaudit') {
         return auditCollection;
       }
+      if (name === 'integrationaudit') return integrationAuditCollection;
       return deletedCollection;
     });
 
@@ -287,6 +289,22 @@ describe('MongoStorageService', function () {
     expect(service.deletedRecordCol).to.equal(deletedCollection);
     expect(service.recordIdentityCol).to.equal(identityCollection);
     expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
+    expect(
+      integrationAuditCollection.createIndexes.calledOnceWithExactly([
+        { key: { redboxOid: 1, integrationName: 1, destinationId: 1, startedAt: -1, dateCreated: -1 } },
+        { key: { redboxOid: 1, startedAt: -1, dateCreated: -1 } },
+        { key: { redboxOid: 1, destinationId: 1, startedAt: -1, dateCreated: -1 } },
+      ])
+    ).to.be.true;
+    expect(
+      recordCollection.createIndex.calledWithExactly(
+        { 'metaMetadata.brandId': 1 },
+        {
+          name: 'publication_approved_sources',
+          partialFilterExpression: { 'publicationSource.approvals.0': { $exists: true } },
+        }
+      )
+    ).to.be.true;
     expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
     expect(deletedCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.deletedRecordIndices)).to.be
       .true;
@@ -797,6 +815,7 @@ describe('MongoStorageService', function () {
     mockSails.config.storage.mongodb.indices = [];
     const recordCollection = {
       indexes: sandbox.stub().resolves([]),
+      createIndex: sandbox.stub().resolves(),
       createIndexes: sandbox.stub().resolves([]),
     };
     const auditCollection = { createIndex: sandbox.stub().resolves('redboxOid_1_createdAt_1') };
@@ -813,6 +832,7 @@ describe('MongoStorageService', function () {
   it('logs audit index creation failures without throwing', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([]),
+      createIndex: sandbox.stub().resolves(),
       createIndexes: sandbox.stub().resolves([]),
     };
     const auditCollection = { createIndex: sandbox.stub().rejects(new Error('audit index failed')) };
@@ -1112,6 +1132,7 @@ describe('MongoStorageService', function () {
     expect(response.committedRecord.metadata).to.deep.equal({ title: 'Updated' });
     expect(recordCollection.findOneAndUpdate.firstCall.args[0]).to.deep.equal({
       $and: [{ redboxOid: 'oid-1', 'metaMetadata.brandId': 'brand-1' }, { revision: 4 }],
+      publicationSource: { $exists: false },
     });
     expect(recordCollection.findOneAndUpdate.firstCall.args[1].$inc).to.deep.equal({ revision: 1, recordVersion: 1 });
     expect(recordCollection.findOneAndUpdate.firstCall.args[1].$set).to.not.have.property('revision');
@@ -1119,7 +1140,9 @@ describe('MongoStorageService', function () {
 
   it('certifies stale and deleted CAS no-match outcomes without a fallback write', async function () {
     recordCollection.findOneAndUpdate.resolves(null);
-    recordCollection.findOne.onFirstCall().resolves({
+    // Publication admission reads source state before dispatch; the subsequent
+    // no-match classification must observe the same authoritative stale record.
+    recordCollection.findOne.resolves({
       redboxOid: 'oid-1',
       revision: 8,
       metaMetadata: { brandId: 'brand-1' },
@@ -3022,6 +3045,22 @@ describe('MongoStorageService', function () {
     expect(query.sort.calledOnce).to.be.true;
     expect(query.skip.calledOnceWith(5)).to.be.true;
     expect(query.limit.calledOnceWith(5)).to.be.true;
+  });
+
+  it('excludes replaced publication history in both integration status counts and pages', async function () {
+    const query = {
+      sort: sandbox.stub().returnsThis(),
+      skip: sandbox.stub().returnsThis(),
+      limit: sandbox.stub().returnsThis(),
+      then: (resolve: (rows: unknown[]) => unknown) => Promise.resolve(resolve([])),
+    };
+    IntegrationAudit.find.returns(query);
+    const params = { oid: 'oid-1', excludeDestinationAudits: true, excludedIntegrationNames: ['figshare', 'oni'] };
+    await service.getIntegrationAudit(params);
+    await service.countIntegrationAudit(params);
+    const expected = { redboxOid: 'oid-1', destinationId: null, integrationName: { nin: ['figshare', 'oni'] } };
+    expect(IntegrationAudit.find.firstCall.args[0]).to.deep.equal(expected);
+    expect(IntegrationAudit.count.firstCall.args[0]).to.deep.equal(expected);
   });
 
   it('counts integration-audit queries using ISO string criteria for startedAt', async function () {

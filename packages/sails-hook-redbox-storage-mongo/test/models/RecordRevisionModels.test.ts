@@ -56,6 +56,15 @@ describe('record revision Waterline models', function () {
     );
   });
 
+  it('strips protected publication state on ordinary Waterline create and update', function () {
+    expect(RecordWLDef.attributes.publicationSource).to.include({ type: 'json' });
+    for (const hook of ['beforeCreate', 'beforeUpdate'] as const) {
+      expect(
+        runHook(RecordWLDef, hook, { publicationSource: { schemaVersion: 1, revision: 999 }, metadata: {} })
+      ).not.to.have.property('publicationSource');
+    }
+  });
+
   it('declares wrapper-authoritative tombstone revision and lifecycle fields', function () {
     expect(DeletedRecordWLDef.attributes.revision.defaultsTo).to.equal(INITIAL_RECORD_REVISION);
     expect(DeletedRecordWLDef.attributes.lifecycleState.defaultsTo).to.equal('deleted');

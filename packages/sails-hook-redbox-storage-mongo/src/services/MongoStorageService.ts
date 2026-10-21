@@ -36,6 +36,7 @@ import {
   RecordAuditModel,
   RecordAuditParams,
   IntegrationAuditModel,
+  IntegrationAuditAction,
   IntegrationAuditParams,
   RecordModel,
   type DeletedRecordModel,
@@ -47,6 +48,31 @@ import {
   RoleModel,
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,
+  PUBLICATION_STORAGE_CAPABILITY_VERSION,
+  PublicationAdminControl,
+  PublicationMigrationStore,
+  publicationRecordDigest,
+  publicationContentDigest,
+  publicationWorkflowContent,
+  publicationWorkflowSnapshot,
+  PublicationStagingFence,
+  PublicationStaging,
+  reopenPublicationSource,
+  PublicationStagingAdmissionDenied,
+  publicationStagedReferences,
+  publicationRecordAttachmentIds,
+  assertPublicationWorkflowDecision,
+  assertRegisteredPublicationContentReplacement,
+  currentPublicationCompletion,
+  publicationReplacementReady,
+  PublicationSyncStore,
+  publicationCompletionReference,
+  PUBLICATION_COMPLETION_FENCE,
+  assertFullPublicationStorageCapability,
+  type PublicationSaveCompletion,
+  type PublicationAcknowledgement,
+  type PublicationRecoveryResult,
+  type PublicationProjection,
   INITIAL_RECORD_REVISION,
   RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   isCanonicalSaveRequestId,
@@ -87,6 +113,19 @@ import {
   validateRecordSchemaDigest,
   validateRecordSchemaReferenceInput,
 } from './recordSchemaPersistence';
+
+import {
+  publicationSource,
+  emptyPublicationSource,
+  preparePublicationSource,
+  invalidatePublicationSourceStage,
+  mutatePublicationSource,
+  recordPublicationSuccess,
+  readyPublicationSave,
+  boundedPublicationScan,
+  acknowledgePublicationSource,
+  summarizePublicationSource,
+} from './publicationSourcePersistence';
 
 const { flatten } = transforms;
 const UTF8_BOM = '\uFEFF';
@@ -132,6 +171,8 @@ type StorageInitializationErrorClassification =
   | 'unexpected-error'
   | 'non-error';
 const RECORD_IDENTITY_COLLECTION = 'recordidentity';
+// Native source, workflow and lifecycle acknowledgements must survive a process/host crash.
+const NATIVE_RECORD_COLLECTION_OPTIONS: mongodb.CollectionOptions = { writeConcern: { w: 'majority', j: true } };
 
 declare const Record: WaterlineModel;
 declare const DeletedRecord: WaterlineModel;
@@ -374,6 +415,13 @@ export namespace Services {
       'getLifecycleTombstones',
       'getMeta',
       'setRecordFields',
+      'recordPublicationSaveSuccess',
+      'readyPublicationIntent',
+      'abandonPublicationIntent',
+      'pendingPublicationIntents',
+      'recoverPublicationIntents',
+      'acknowledgePublicationIntent',
+      'setPublicationRecordFields',
       'scanFigshareRecords',
       'findFigshareArticleRecords',
       'readyFigshareIntent',
@@ -462,7 +510,7 @@ export namespace Services {
         const manager = model.getDatastore()?.manager as Db | undefined;
         if (manager && typeof manager.collection === 'function') {
           this.db = manager;
-          this[cacheKey] = manager.collection<MongoRecordDocument>(model.tableName);
+          this[cacheKey] = manager.collection<MongoRecordDocument>(model.tableName, NATIVE_RECORD_COLLECTION_OPTIONS);
           return this[cacheKey];
         }
       } catch {
@@ -485,7 +533,10 @@ export namespace Services {
         const manager = (this.db ?? (Record.getDatastore()?.manager as Db | undefined)) as Db | undefined;
         if (manager && typeof manager.collection === 'function') {
           this.db = manager;
-          this.recordIdentityCol = manager.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
+          this.recordIdentityCol = manager.collection<MongoRecordDocument>(
+            RECORD_IDENTITY_COLLECTION,
+            NATIVE_RECORD_COLLECTION_OPTIONS
+          );
           return this.recordIdentityCol;
         }
       } catch {
@@ -515,7 +566,17 @@ export namespace Services {
         typeof this.getNativeRecordCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.find === 'function';
-      return supported ? { recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } : {};
+      // The publication contract is independent of record-type strict mode. Readiness
+      // still requires the durable identity/lifecycle infrastructure used by its writes.
+      return supported
+        ? {
+            recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
+            ...(typeof this.getNativeRecordCollection()?.updateOne === 'function' &&
+            typeof this.getNativeRecordCollection()?.find === 'function'
+              ? { publication: PUBLICATION_STORAGE_CAPABILITY_VERSION, publicationContentReplacement: 1 as const }
+              : {}),
+          }
+        : {};
     }
 
     private createMutationResponse(oid: string, options?: RecordStorageMutationOptions): StorageMutationResponse {
@@ -971,16 +1032,28 @@ export namespace Services {
         await Record.destroyOne({ redboxOid: uuid });
       }
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
-      this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName, NATIVE_RECORD_COLLECTION_OPTIONS);
       await this.recordCol.createIndex({
         'figshareSyncIntent.pending': 1,
         'figshareSyncIntent.readiness': 1,
         'figshareSyncIntent.requestedAt': 1,
       });
-      this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
-      this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
+      this.deletedRecordCol = this.db.collection<MongoRecordDocument>(
+        DeletedRecord.tableName,
+        NATIVE_RECORD_COLLECTION_OPTIONS
+      );
+      this.recordIdentityCol = this.db.collection<MongoRecordDocument>(
+        RECORD_IDENTITY_COLLECTION,
+        NATIVE_RECORD_COLLECTION_OPTIONS
+      );
       this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
       this.recordSchemaReferenceCol = this.db.collection<MongoRecordDocument>(RecordSchemaReference.tableName);
+      await this.recordCol.createIndex({ 'metaMetadata.brandId': 1, 'publicationSource.pending': 1, redboxOid: 1 });
+      await this.recordCol.createIndex({
+        'metaMetadata.brandId': 1,
+        'publicationSource.initialising': 1,
+        redboxOid: 1,
+      });
       await this.createIndices(this.db);
       await this.createRecordSchemaIndices();
       this._requiredIndicesReady = true;
@@ -1018,6 +1091,20 @@ export namespace Services {
         { key: { redboxOid: 1 }, unique: true },
       ];
       await db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION).createIndexes(recordIdentityIndices);
+      await db.collection(Record.tableName).createIndex(
+        { 'metaMetadata.brandId': 1 },
+        {
+          name: 'publication_approved_sources',
+          partialFilterExpression: { 'publicationSource.approvals.0': { $exists: true } },
+        }
+      );
+      await db
+        .collection('integrationaudit')
+        .createIndexes([
+          { key: { redboxOid: 1, integrationName: 1, destinationId: 1, startedAt: -1, dateCreated: -1 } },
+          { key: { redboxOid: 1, startedAt: -1, dateCreated: -1 } },
+          { key: { redboxOid: 1, destinationId: 1, startedAt: -1, dateCreated: -1 } },
+        ]);
     }
 
     private async createRecordSchemaIndices(): Promise<void> {
@@ -1560,7 +1647,48 @@ export namespace Services {
       return date;
     }
 
+    private async publicationAdmission(
+      brand: BrandingModel | null | undefined,
+      options: RecordStorageMutationOptions | undefined,
+      write: () => Promise<StorageMutationResponse>
+    ): Promise<StorageMutationResponse> {
+      // Revocation only removes authority. It must remain available to the
+      // administrator holding the exclusive gate and never admits new work.
+      if (options?.publicationIntent?.kind === 'revoke' && !options.figshareIntent) return write();
+      if (!options?.publicationIntent && !options?.figshareIntent) return write();
+      const brandId = this.brandIdOf(brand);
+      if (!brandId) throw new Error('Publication source acceptance requires an explicit brand');
+      const db: Db = Record.getDatastore().manager;
+      const control = new PublicationAdminControl(db);
+      const token = await control.admit(brandId);
+      try {
+        const authority = await new PublicationMigrationStore(db).get(brandId);
+        if (authority?.authority === 'preparing' || (authority?.authority === 'shared' && options.figshareIntent))
+          throw new Error('Publication cutover fences legacy/shared source acceptance');
+      } catch (error) {
+        await control.finishAdmission(brandId, token);
+        throw error;
+      }
+      // An ambiguous dispatch can still commit later. Its admission never expires;
+      // the migration CLI requires explicit writer settlement before releasing it.
+      const result = await write();
+      if (result.applicationState !== 'unknown') await control.finishAdmission(brandId, token);
+      return result;
+    }
+
     public async create(
+      brand: BrandingModel,
+      record: JsonMap,
+      recordType: unknown,
+      user?: unknown,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      return this.publicationAdmission(brand, options, () =>
+        this.createAdmitted(brand, record, recordType, user, options)
+      );
+    }
+
+    private async createAdmitted(
       _brand: BrandingModel,
       record: JsonMap,
       _recordType: unknown,
@@ -1586,6 +1714,20 @@ export namespace Services {
       serverRecord.revision = INITIAL_RECORD_REVISION;
       serverRecord.recordVersion = 1;
       delete serverRecord.figshareSyncIntent;
+      delete serverRecord.publicationSource;
+      delete serverRecord.publicationIntent;
+      if (options?.publicationIntent) {
+        assertFullPublicationStorageCapability(this);
+        const publicationBrand = this.brandIdOf(_brand);
+        if (!publicationBrand || _.get(serverRecord, 'metaMetadata.brandId') !== publicationBrand)
+          return this.notApplied(response, 'brand-mismatch', 'Publication writes require a matching brand');
+        serverRecord.publicationSource = preparePublicationSource(
+          serverRecord,
+          emptyPublicationSource(),
+          options.publicationIntent,
+          new Date().toISOString()
+        );
+      }
       if (options?.figshareIntent) {
         const { saveToken, readiness, intents } = options.figshareIntent;
         const requestedAt = new Date().toISOString();
@@ -1627,10 +1769,14 @@ export namespace Services {
 
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
-        await records.insertOne(serverRecord);
+        await this.withPublicationStagingAdmission(serverRecord, () => records.insertOne(serverRecord));
         this.committed(response, serverRecord, 'updated');
         sails.log.verbose(`${this.logHeader} Record created...`);
       } catch (err) {
+        if (err instanceof PublicationStagingAdmissionDenied) {
+          await this.releaseUnusedRecordIdentity(String(record.redboxOid), claimedIncarnationId);
+          return this.notApplied(response, 'stale-revision', err.message);
+        }
         if (this.isDuplicateKeyError(err)) {
           // Another writer owns this OID's state, so its ledger row is correct.
           return this.notApplied(response, 'lifecycle-conflict', 'The record OID already exists');
@@ -1667,6 +1813,18 @@ export namespace Services {
       user?: UserModel,
       options?: RecordStorageMutationOptions
     ): Promise<StorageMutationResponse> {
+      return this.publicationAdmission(brand, options, () =>
+        this.updateMetaAdmitted(brand, oid, record, user, options)
+      );
+    }
+
+    private async updateMetaAdmitted(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      record: JsonMap,
+      user?: UserModel,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
       const response = this.createMutationResponse(oid, options);
       const expectedRevision = this.expectedRevision(options, response);
       if (expectedRevision === null) return response;
@@ -1693,6 +1851,8 @@ export namespace Services {
         'revision',
         'recordVersion',
         'figshareSyncIntent',
+        'publicationSource',
+        'publicationIntent',
         'incarnationId',
         'lifecycleOperationId',
         'dateCreated',
@@ -1713,7 +1873,7 @@ export namespace Services {
         return this.notApplied(response, 'brand-mismatch', 'Record was not found');
       }
 
-      const update: JsonMap | JsonMap[] = options?.figshareIntent
+      let update: JsonMap | JsonMap[] = options?.figshareIntent
         ? (() => {
             const intent = options.figshareIntent;
             const requestedAt = new Date().toISOString();
@@ -1746,13 +1906,85 @@ export namespace Services {
           };
 
       const selector: JsonMap = this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision);
+      let publicationReferences: JsonMap = { ...candidate, redboxOid: oid, metaMetadata: { brandId: activeBrandId } };
+      if (!activeBrandId && publicationRecordAttachmentIds(candidate.metadata).length) {
+        const observed = await collection.findOne({ redboxOid: oid });
+        publicationReferences.metaMetadata = { brandId: observed?.metaMetadata?.brandId };
+      }
+      if (options?.publicationIntent) {
+        assertFullPublicationStorageCapability(this);
+        if (!activeBrandId) throw new Error('Publication writes require a brand identity');
+        const current = await collection.findOne(this.activeIdentity(brand, oid));
+        if (!current) return this.notApplied(response, await this.classifyActiveNoMatch(brand, oid, expectedRevision));
+        const prior =
+          current.publicationSource === undefined
+            ? emptyPublicationSource()
+            : publicationSource(current.publicationSource);
+        if (
+          options.publicationIntent.expectedPriorRecordDigest !== undefined &&
+          options.publicationIntent.expectedPriorRecordDigest !== publicationRecordDigest(current)
+        )
+          return this.notApplied(response, 'stale-revision', 'Publication source snapshot changed during preparation');
+        // Preparation is conditional on the exact snapshot, even for permissive record types.
+        // Never rebase a prepared approval onto another writer's content.
+        if (options.publicationIntent.expectedSourceRevision !== prior.revision)
+          return this.notApplied(response, 'stale-revision', 'Publication source preparation is stale');
+        if (
+          ['approval', 'revoke'].includes(options.publicationIntent.kind) &&
+          publicationRecordDigest({ ...current, ...candidate }) !== publicationRecordDigest(current)
+        )
+          throw new Error('Approval-only writes cannot change source content');
+        const workflowDecision = options.publicationIntent.workflowDecisionId ? prior.workflowDecision : undefined;
+        if (
+          options.publicationIntent.kind === 'preserve' &&
+          publicationContentDigest(publicationWorkflowContent({ ...current, ...candidate }, workflowDecision)) !==
+            publicationContentDigest(publicationWorkflowContent(current, workflowDecision))
+        )
+          throw new Error('Publication preservation cannot change source content');
+        const source = preparePublicationSource(
+          { ...current, ...candidate },
+          prior,
+          options.publicationIntent,
+          new Date().toISOString()
+        );
+        publicationReferences = { ...current, ...candidate, publicationSource: source };
+        if (options.publicationIntent.kind === 'preserve') {
+          const previousDigest = publicationRecordDigest(current);
+          const nextDigest = publicationRecordDigest({ ...current, ...candidate });
+          for (const save of source.saves)
+            if (save.recordDigest === previousDigest) {
+              save.recordDigest = nextDigest;
+              if (save.successfulSaveEvidence) save.successfulSaveEvidence.recordDigest = nextDigest;
+            }
+        }
+        selector.publicationSource = current.publicationSource ?? { $exists: false };
+        const snapshotRevision = current.revision ?? INITIAL_RECORD_REVISION;
+        if (expectedRevision !== undefined && expectedRevision !== snapshotRevision)
+          return this.notApplied(response, 'stale-revision');
+        Object.assign(selector, this.mutationSelector(this.activeIdentity(brand, oid), snapshotRevision));
+        selector.recordVersion = current.recordVersion ?? { $exists: false };
+        update = [...this.recordUpdatePipeline(update), { $set: { publicationSource: { $literal: source } } }];
+      } else {
+        // No caller flag grants a whole-record maintenance exemption. Narrow
+        // publication projections use setPublicationRecordFields instead.
+        const observed = await collection.findOne(this.activeIdentity(brand, oid));
+        selector.publicationSource = observed?.publicationSource ?? { $exists: false };
+        if (observed?.publicationSource !== undefined) {
+          const source = publicationSource(observed.publicationSource);
+          nextRecordRevision(source.revision);
+          for (const intent of Object.values(source.intents)) nextRecordRevision(intent.generation);
+          update = [...this.recordUpdatePipeline(update), invalidatePublicationSourceStage];
+        }
+      }
       if (options?.expectedVersion != null)
         selector.recordVersion = options.expectedVersion === 0 ? { $in: [0, null] } : options.expectedVersion;
       const result = await this.commitConditionalMutation({
         response,
         kind: 'updated',
         dispatch: () =>
-          collection.findOneAndUpdate(selector, update, { returnDocument: 'after', includeResultMetadata: false }),
+          this.withPublicationStagingAdmission(publicationReferences, () =>
+            collection.findOneAndUpdate(selector, update, { returnDocument: 'after', includeResultMetadata: false })
+          ),
         classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
         expectedRevision,
         onDispatchError: err => {
@@ -1771,6 +2003,75 @@ export namespace Services {
       if (options?.expectedVersion != null && result.applicationState === 'not-applied')
         throw new RecordWriteConflict();
       return result;
+    }
+
+    private async withPublicationStagingAdmission<T>(value: unknown, run: () => Promise<T>): Promise<T> {
+      if (
+        !publicationStagedReferences(value).length &&
+        (!value || typeof value !== 'object' || !publicationRecordAttachmentIds(value).length)
+      )
+        return run();
+      const db = this.db ?? (Record.getDatastore()?.manager as Db | undefined);
+      if (!db) throw new Error('Publication staging reference datastore is unavailable');
+      const fence = new PublicationStagingFence(db);
+      if (value && typeof value === 'object' && !Array.isArray(value))
+        return fence.admitRecord(value as Record<string, unknown>, run);
+      return fence.admit(value, run);
+    }
+
+    /** Deletion must not erase the only used-target evidence before the one-time ledger backfill. */
+    private async retainPublicationDestinations(value: unknown): Promise<void> {
+      if (!value || typeof value !== 'object' || Array.isArray(value))
+        throw new Error('Publication record snapshot is unavailable');
+      const record = value as JsonMap;
+      if (record.publicationSource === undefined) return;
+      const source = publicationSource(record.publicationSource);
+      if (!source.approvals.length) return;
+      const db = this.db ?? (Record.getDatastore()?.manager as Db | undefined);
+      if (!db) throw new Error('Publication destination datastore is unavailable');
+      const brandId = _.get(record, 'metaMetadata.brandId');
+      if (typeof brandId !== 'string' || !brandId.trim()) throw new Error('Publication source brand is unavailable');
+      const store = new PublicationSyncStore(db);
+      if (await store.destinationLedgerReady(brandId)) return;
+      await db.collection('publicationdestination').createIndex({ brandId: 1, destinationId: 1 }, { unique: true });
+      for (const approval of source.approvals) {
+        const sealed = await reopenPublicationSource(
+          brandId,
+          approval.source,
+          new PublicationStaging(
+            approval.source.disk,
+            StorageManagerService.disk(approval.source.disk),
+            new PublicationStagingFence(db)
+          )
+        );
+        if (sealed.oid !== record.redboxOid || sealed.sourceRevision !== approval.sourceRevision)
+          throw new Error('Publication source identity mismatch');
+        for (const id of approval.destinationIds) {
+          const target = approval.targetFingerprints[id];
+          const providerId = sealed.adapterContracts[id]?.providerId;
+          if (!target || !providerId || sealed.targets[id] !== target)
+            throw new Error('Publication destination identity mismatch');
+          // Await majority/journal acknowledgement before removing the original evidence.
+          // Never mark the brand backfill complete from this single source.
+          await store.reserveDestination(brandId, id, providerId, target);
+        }
+      }
+    }
+
+    private recordUpdatePipeline(update: JsonMap | JsonMap[]): JsonMap[] {
+      if (Array.isArray(update)) return update;
+      const values = update.$set as JsonMap;
+      const increments = update.$inc as JsonMap;
+      return [
+        {
+          $set: {
+            ...Object.fromEntries(Object.entries(values).map(([key, value]) => [key, { $literal: value }])),
+            ...Object.fromEntries(
+              Object.entries(increments).map(([key, value]) => [key, { $add: [{ $ifNull: [`$${key}`, 0] }, value] }])
+            ),
+          },
+        },
+      ];
     }
 
     /**
@@ -1797,6 +2098,8 @@ export namespace Services {
       try {
         document = this.mutationDocument(await dispatch());
       } catch (err) {
+        if (err instanceof PublicationStagingAdmissionDenied)
+          return this.notApplied(response, 'stale-revision', err.message);
         onDispatchError?.(err);
         return this.unknownMutation(response, this.getErrorMessage(err));
       }
@@ -1842,6 +2145,7 @@ export namespace Services {
             'Durable record identity ownership is unavailable'
           );
         }
+        if (current) await this.retainPublicationDestinations(current);
       } catch (error) {
         return this.unknownMutation(response, this.getErrorMessage(error));
       }
@@ -1927,9 +2231,11 @@ export namespace Services {
       (candidate.deletedRecordMetadata as JsonMap).incarnationId = incarnationId;
 
       try {
-        await collection.insertOne(candidate);
+        await this.withPublicationStagingAdmission(candidate, () => collection.insertOne(candidate));
         return this.committed(response, candidate, 'updated', expectedRevision);
       } catch (error) {
+        if (error instanceof PublicationStagingAdmissionDenied)
+          return this.notApplied(response, 'stale-revision', error.message);
         if (!this.isDuplicateKeyError(error)) {
           return this.unknownMutation(response, this.getErrorMessage(error));
         }
@@ -2054,10 +2360,12 @@ export namespace Services {
         response,
         kind: 'updated',
         dispatch: () =>
-          collection.findOneAndUpdate(
-            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options),
-            { $set: candidate, $inc: { revision: 1 } },
-            { returnDocument: 'after', includeResultMetadata: false }
+          this.withPublicationStagingAdmission(candidate, () =>
+            collection.findOneAndUpdate(
+              this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options),
+              { $set: candidate, $inc: { revision: 1 } },
+              { returnDocument: 'after', includeResultMetadata: false }
+            )
           ),
         classify: () => this.classifyLifecycleTombstoneNoMatch(brand, oid, expectedRevision, options),
         expectedRevision,
@@ -2097,6 +2405,7 @@ export namespace Services {
             'Durable record identity ownership is unavailable'
           );
         }
+        if (current?.deletedRecordMetadata) await this.retainPublicationDestinations(current.deletedRecordMetadata);
       } catch (error) {
         return this.unknownMutation(response, this.getErrorMessage(error));
       }
@@ -2209,6 +2518,21 @@ export namespace Services {
       if (this.unsafeCandidateField(restored) !== undefined) {
         return this.notApplied(response, 'lifecycle-conflict', 'Restored record contains an unsupported field');
       }
+      if (restored.publicationSource !== undefined) {
+        const source = publicationSource(restored.publicationSource);
+        source.revision = nextRecordRevision(source.revision);
+        source.pending = false;
+        source.initialising = false;
+        for (const approval of source.approvals) approval.revokedAt ??= new Date().toISOString();
+        for (const intent of Object.values(source.intents)) {
+          intent.generation = nextRecordRevision(intent.generation);
+          intent.pending = false;
+        }
+        for (const save of source.saves) {
+          if (save.outcome === 'initialising' || save.outcome === 'ready') save.outcome = 'quarantined';
+        }
+        restored.publicationSource = source;
+      }
       const candidate = {
         ...restored,
         redboxOid: oid,
@@ -2218,9 +2542,11 @@ export namespace Services {
         lastSaveDate: new Date().toISOString(),
       };
       try {
-        await records.insertOne(candidate);
+        await this.withPublicationStagingAdmission(candidate, () => records.insertOne(candidate));
         return this.committed(response, candidate, 'updated', expectedRevision);
       } catch (error) {
+        if (error instanceof PublicationStagingAdmissionDenied)
+          return this.notApplied(response, 'stale-revision', error.message);
         if (!this.isDuplicateKeyError(error)) {
           return this.unknownMutation(response, this.getErrorMessage(error));
         }
@@ -2286,19 +2612,320 @@ export namespace Services {
       allowedPaths: string[]
     ): Promise<RecordFieldWriteResult> {
       assertRecordFieldPaths(fields, allowedPaths);
-      const result = await this.recordCol.findOneAndUpdate(
-        {
-          ...this.mutationSelector({ redboxOid: oid }, undefined),
-          recordVersion: expectedVersion === 0 ? { $in: [0, null] } : expectedVersion,
-        },
-        {
-          $set: { ...fields, lastSaveDate: new Date().toISOString() },
-          $inc: { recordVersion: 1, revision: 1 },
-        },
-        { returnDocument: 'after', includeResultMetadata: false }
+      const observed = await this.recordCol.findOne({ redboxOid: oid });
+      if (observed?.publicationSource !== undefined) publicationSource(observed.publicationSource);
+      const candidate = _.cloneDeep(observed ?? { redboxOid: oid });
+      for (const [path, value] of Object.entries(fields)) _.set(candidate, path, value);
+      const result = await this.withPublicationStagingAdmission(candidate, () =>
+        this.recordCol.findOneAndUpdate(
+          {
+            publicationSource: observed?.publicationSource ?? { $exists: false },
+            ...this.mutationSelector({ redboxOid: oid }, undefined),
+            recordVersion: expectedVersion === 0 ? { $in: [0, null] } : expectedVersion,
+          },
+          observed?.publicationSource !== undefined
+            ? [
+                ...this.recordUpdatePipeline({
+                  $set: { ...fields, lastSaveDate: new Date().toISOString() },
+                  $inc: { recordVersion: 1, revision: 1 },
+                }),
+                invalidatePublicationSourceStage,
+              ]
+            : { $set: { ...fields, lastSaveDate: new Date().toISOString() }, $inc: { recordVersion: 1, revision: 1 } },
+          { returnDocument: 'after', includeResultMetadata: false }
+        )
       );
       return { updated: result != null, recordVersion: result?.recordVersion };
     }
+    public async recordPublicationSaveSuccess(
+      brandId: string,
+      oid: string,
+      saveToken: string,
+      completion: PublicationSaveCompletion
+    ): Promise<boolean> {
+      assertFullPublicationStorageCapability(this);
+      return mutatePublicationSource(this.recordCol, brandId, oid, (record, state) =>
+        recordPublicationSuccess(record, state, saveToken, completion)
+      );
+    }
+    public async readyPublicationIntent(brandId: string, oid: string, saveToken: string): Promise<boolean> {
+      assertFullPublicationStorageCapability(this);
+      return mutatePublicationSource(this.recordCol, brandId, oid, (record, state) => {
+        const save = state.saves.find(entry => entry.token === saveToken);
+        return save !== undefined && readyPublicationSave(record, state, save);
+      });
+    }
+    public async abandonPublicationIntent(brandId: string, oid: string, saveToken: string): Promise<boolean> {
+      assertFullPublicationStorageCapability(this);
+      return mutatePublicationSource(this.recordCol, brandId, oid, (_record, state) => {
+        const save = state.saves.find(entry => entry.token === saveToken);
+        if (!save || save.outcome !== 'initialising') return false;
+        save.outcome = 'abandoned';
+        for (const intent of save.intents) {
+          const approval = state.approvals.find(
+            entry => entry.id === intent.approvalId && entry.epoch === intent.approvalEpoch
+          );
+          if (approval) approval.revokedAt ??= new Date().toISOString();
+          const current = state.intents[intent.destinationId];
+          if (current?.generation === intent.generation && current.approvalId === intent.approvalId)
+            current.pending = false;
+        }
+        return true;
+      });
+    }
+    public async pendingPublicationIntents(brandId: string, limit: number, afterOid = ''): Promise<RecordModel[]> {
+      assertFullPublicationStorageCapability(this);
+      if (!brandId) throw new Error('Publication scans require a brand identity');
+      const records = await this.recordCol
+        .find<RecordModel>({
+          'metaMetadata.brandId': brandId,
+          'publicationSource.pending': true,
+          redboxOid: { $gt: afterOid },
+        })
+        .sort({ redboxOid: 1 })
+        .limit(boundedPublicationScan(limit))
+        .toArray();
+      for (const record of records) publicationSource(record.publicationSource);
+      return records;
+    }
+    public async recoverPublicationIntents(
+      brandId: string,
+      staleBefore: string,
+      limit: number,
+      afterOid = ''
+    ): Promise<PublicationRecoveryResult> {
+      assertFullPublicationStorageCapability(this);
+      if (!brandId || !Number.isFinite(Date.parse(staleBefore)))
+        throw new Error('Publication recovery requires a brand and valid cutoff');
+      const records = await this.recordCol
+        .find({ 'metaMetadata.brandId': brandId, 'publicationSource.initialising': true, redboxOid: { $gt: afterOid } })
+        .sort({ redboxOid: 1 })
+        .limit(boundedPublicationScan(limit))
+        .toArray();
+      const result: PublicationRecoveryResult = { scanned: records.length, ready: 0, quarantined: 0 };
+      for (const record of records) {
+        let ready = 0,
+          quarantined = 0;
+        await mutatePublicationSource(this.recordCol, brandId, record.redboxOid, (current, state) => {
+          ready = 0;
+          quarantined = 0;
+          for (const save of state.saves) {
+            if (save.outcome !== 'initialising' || save.requestedAt >= staleBefore) continue;
+            if (readyPublicationSave(current, state, save)) ready++;
+            else {
+              save.outcome = 'quarantined';
+              quarantined++;
+            }
+          }
+          return ready + quarantined > 0;
+        });
+        result.ready += ready;
+        result.quarantined += quarantined;
+        result.afterOid = record.redboxOid;
+      }
+      return result;
+    }
+    public async acknowledgePublicationIntent(
+      brandId: string,
+      oid: string,
+      acknowledgement: PublicationAcknowledgement
+    ): Promise<boolean> {
+      assertFullPublicationStorageCapability(this);
+      return mutatePublicationSource(this.recordCol, brandId, oid, (_record, state) =>
+        acknowledgePublicationSource(state, acknowledgement)
+      );
+    }
+    public async setPublicationRecordFields(projection: PublicationProjection): Promise<RecordFieldWriteResult> {
+      assertFullPublicationStorageCapability(this);
+      const { brandId, oid, fields, allowedPaths, expectedRevision } = projection;
+      if (!brandId || !oid || !isRecordRevision(expectedRevision) || expectedRevision === Number.MAX_SAFE_INTEGER)
+        throw new Error('Publication projections require exact record coordinates');
+      assertRecordFieldPaths(fields, allowedPaths);
+      if (Object.keys(fields).some(path => !path.startsWith('metadata.')))
+        throw new Error('Publication outputs must be metadata child paths');
+      const current = await this.recordCol.findOne(
+        this.mutationSelector({ redboxOid: oid, 'metaMetadata.brandId': brandId }, expectedRevision)
+      );
+      if (!current?.publicationSource) return { updated: false };
+      const source = publicationSource(current.publicationSource);
+      const approval = source.approvals.find(
+        entry => entry.id === projection.approvalId && entry.epoch === projection.approvalEpoch && !entry.revokedAt
+      );
+      const intent = source.intents[projection.destinationId];
+      const workflow = projection.workflowDecision;
+      const replacement = projection.contentReplacement;
+      if (replacement) {
+        assertRegisteredPublicationContentReplacement(replacement);
+        if (
+          workflow ||
+          Object.keys(fields).length ||
+          allowedPaths.length ||
+          replacement.sourceRevision !== projection.sourceRevision ||
+          replacement.approvalId !== projection.approvalId ||
+          replacement.approvalEpoch !== projection.approvalEpoch ||
+          replacement.generation !== projection.generation ||
+          replacement.destinationId !== projection.destinationId ||
+          !_.isEqual(approval?.source, replacement.source) ||
+          !_.isEqual(_.get(current, replacement.path), replacement.before)
+        )
+          return { updated: false };
+        // This is deliberately inside the expected-revision write, after loading authoritative source state.
+        // New/changed source obligations also change publicationSource and lose the final record CAS.
+        const rows = await new PublicationSyncStore(this.db).forRecord(brandId, oid);
+        const row = rows.find(row => row.destinationId === projection.destinationId);
+        if (
+          !row ||
+          row.providerId !== replacement.providerId ||
+          !currentPublicationCompletion(current, row) ||
+          !publicationReplacementReady(current, rows)
+        )
+          return { updated: false };
+        const admission = new PublicationStagingFence(this.db, PUBLICATION_COMPLETION_FENCE);
+        for (const sibling of rows.filter(row => {
+          const request = source.intents[row.destinationId];
+          return request?.sourceRevision === source.revision && request.generation === row.sourceGeneration;
+        })) {
+          const reference = publicationCompletionReference(sibling);
+          await admission.registerDecision(reference);
+          // The permanent per-generation decision interlocks with store.request admissions.
+          // New source generations still require the record/source CAS and get different fence identities.
+          if (
+            !(await admission.deleteIfUnreferenced(
+              reference,
+              async () =>
+                !publicationReplacementReady(current, await new PublicationSyncStore(this.db).forRecord(brandId, oid)),
+              async () => {}
+            ))
+          )
+            return { updated: false };
+        }
+        if (
+          source.contentReplacements?.some(
+            change => change.sourceRevision === source.revision && change.path === replacement.path
+          )
+        )
+          return { updated: false };
+        source.contentReplacements = [...(source.contentReplacements ?? []), _.cloneDeep(replacement)];
+      }
+      if (workflow) {
+        if (Object.keys(fields).length || allowedPaths.length)
+          throw new Error('Workflow decisions cannot project arbitrary metadata');
+        const decision = workflow.decision;
+        assertPublicationWorkflowDecision(decision);
+        const previous = source.workflowDecision;
+        if (workflow.operation === 'claim') {
+          if (
+            decision.status !== 'started' ||
+            decision.sourceRevision !== source.revision ||
+            (previous?.sourceRevision === source.revision &&
+              (previous.status !== 'completed' ||
+                previous.approvals.every(item => {
+                  const request = source.intents[item.destinationId];
+                  return (
+                    request?.approvalId === item.approvalId &&
+                    request.approvalEpoch === item.epoch &&
+                    request.generation === item.generation
+                  );
+                }))) ||
+            !_.isEqual(publicationWorkflowSnapshot(current, Object.keys(decision.before)), decision.before) ||
+            decision.approvals.some(item => {
+              const grant = source.approvals.find(
+                entry => entry.id === item.approvalId && entry.epoch === item.epoch && !entry.revokedAt
+              );
+              const request = source.intents[item.destinationId];
+              return (
+                !grant ||
+                grant.sourceRevision !== source.revision ||
+                !grant.destinationIds.includes(item.destinationId) ||
+                !grant.workflowRules?.some(rule => _.isEqual(rule, decision.rule)) ||
+                request?.generation !== item.generation ||
+                request.approvalId !== item.approvalId ||
+                request.approvalEpoch !== item.epoch
+              );
+            })
+          )
+            return { updated: false };
+        } else if (workflow.operation === 'finish') {
+          if (
+            !previous ||
+            previous.id !== decision.id ||
+            !['completed', 'failed'].includes(decision.status) ||
+            !_.isEqual(
+              _.omit(previous, ['status', 'finishedAt', 'reason']),
+              _.omit(decision, ['status', 'finishedAt', 'reason'])
+            )
+          )
+            return { updated: false };
+          if (previous.status === 'failed' && decision.status !== 'failed') return { updated: false };
+          if (previous.finishedAt)
+            return { updated: _.isEqual(previous, decision), recordVersion: current.recordVersion };
+        } else throw new Error('Unknown publication workflow operation');
+        source.workflowDecision = _.cloneDeep(decision);
+        source.workflowDecisionId = decision.id;
+      }
+      if (
+        workflow?.operation !== 'finish' &&
+        (source.revision !== projection.sourceRevision ||
+          !approval ||
+          approval.sourceRevision !== source.revision ||
+          !approval.destinationIds.includes(projection.destinationId) ||
+          intent?.generation !== projection.generation ||
+          intent.approvalId !== approval.id ||
+          intent.approvalEpoch !== approval.epoch ||
+          (!source.saves.some(
+            save =>
+              save.outcome === 'ready' &&
+              save.intents.some(
+                entry => entry.destinationId === intent.destinationId && entry.generation === intent.generation
+              )
+          ) &&
+            intent.pending))
+      )
+        return { updated: false };
+      const projected = _.cloneDeep(current);
+      for (const [path, value] of Object.entries(fields)) _.set(projected, path, value);
+      if (replacement) _.set(projected, replacement.path, _.cloneDeep(replacement.after));
+      const bookkeeping: JsonMap = {};
+      if (projection.persistenceIdentity) {
+        if (!projection.persistenceIdentity.username?.trim() || projection.persistenceIdentity.userType !== 'local')
+          throw new Error('Publication projection requires the current local service identity');
+        bookkeeping['metaMetadata.lastSavedBy'] = projection.persistenceIdentity.username;
+        bookkeeping['metaMetadata.lastSaveDate'] = new Date().toISOString();
+        for (const [path, value] of Object.entries(bookkeeping)) _.set(projected, path, value);
+      }
+      const beforeDigest = publicationRecordDigest(current);
+      const afterDigest = publicationRecordDigest(projected);
+      for (const save of source.saves) {
+        if (save.sourceRevision === source.revision && save.recordDigest === beforeDigest) {
+          save.recordDigest = afterDigest;
+          if (save.successfulSaveEvidence) save.successfulSaveEvidence.recordDigest = afterDigest;
+        }
+      }
+      const assignments: JsonMap = {
+        ...fields,
+        ...(replacement ? { [replacement.path]: _.cloneDeep(replacement.after) } : {}),
+        ...bookkeeping,
+        publicationSource: source,
+        lastSaveDate: new Date().toISOString(),
+      };
+      if (projection.workflowDecisionId !== undefined) {
+        if (!projection.workflowDecisionId.trim() || projection.workflowDecisionId.length > 2048)
+          throw new Error('Invalid workflow decision identity');
+        source.workflowDecisionId = projection.workflowDecisionId;
+      }
+      summarizePublicationSource(source);
+      const result = await this.recordCol.findOneAndUpdate(
+        {
+          _id: current._id,
+          publicationSource: current.publicationSource,
+          ...this.mutationSelector({ redboxOid: oid, 'metaMetadata.brandId': brandId }, expectedRevision),
+        },
+        { $set: assignments, $inc: { revision: 1, recordVersion: 1 } },
+        { returnDocument: 'after', includeResultMetadata: false }
+      );
+      return { updated: result !== null, recordVersion: result?.recordVersion };
+    }
+
     public async readyFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
       const result = await this.recordCol.updateOne({ redboxOid: oid, ...figshareSaveFilter(saveToken) }, [
         {
@@ -3539,6 +4166,15 @@ export namespace Services {
 
     private sanitizeIntegrationAudit(audit: IntegrationAuditModel): Partial<IntegrationAuditModel> {
       const payload: Partial<IntegrationAuditModel> = {
+        eventId: audit.eventId,
+        episodeId: audit.episodeId,
+        destinationId: audit.destinationId,
+        providerId: audit.providerId,
+        approvalId: audit.approvalId,
+        approvalEpoch: audit.approvalEpoch,
+        sourceRevision: audit.sourceRevision,
+        sourceGeneration: audit.sourceGeneration,
+        operationId: audit.operationId,
         redboxOid: audit.redboxOid,
         brandId: audit.brandId,
         integrationName: audit.integrationName,
@@ -3558,6 +4194,18 @@ export namespace Services {
         responseSummary: this.toJsonSafe(audit.responseSummary) as Record<string, unknown> | undefined,
       };
 
+      for (const key of [
+        'eventId',
+        'episodeId',
+        'destinationId',
+        'providerId',
+        'approvalId',
+        'approvalEpoch',
+        'sourceRevision',
+        'sourceGeneration',
+        'operationId',
+      ] as const)
+        if (payload[key] === undefined) delete payload[key];
       if (_.isUndefined(payload.requestSummary)) {
         delete payload.requestSummary;
       }
@@ -3648,8 +4296,40 @@ export namespace Services {
       const payload = this.sanitizeIntegrationAudit(audit);
       try {
         sails.log.verbose(`${this.logHeader} Saving Integration Audit to DB...`);
-        const savedAudit = await IntegrationAudit.create(payload);
-        response.oid = String(savedAudit._id ?? '');
+        if (audit.integrationAction === IntegrationAuditAction.publicationEpisode && audit.eventId) {
+          if (
+            !/^[a-f0-9]{64}$/.test(audit.eventId) ||
+            !audit.brandId ||
+            !audit.destinationId ||
+            !audit.providerId ||
+            !audit.approvalId ||
+            !audit.sourceGeneration ||
+            !audit.episodeId
+          )
+            throw new Error('Publication audit requires complete episode correlation');
+          const db = IntegrationAudit.getDatastore().manager as Db;
+          const _id = new mongodb.ObjectId(audit.eventId.slice(0, 24));
+          try {
+            await db.collection('integrationaudit').updateOne(
+              { _id, eventId: audit.eventId },
+              {
+                $setOnInsert: { ...payload, dateCreated: new Date().toISOString() },
+              },
+              { upsert: true }
+            );
+          } catch (error) {
+            if (
+              !(error instanceof mongodb.MongoServerError) ||
+              error.code !== 11000 ||
+              !(await db.collection('integrationaudit').findOne({ _id, eventId: audit.eventId }))
+            )
+              throw error;
+          }
+          response.oid = _id.toHexString();
+        } else {
+          const savedAudit = await IntegrationAudit.create(payload);
+          response.oid = String(savedAudit._id ?? '');
+        }
         response.success = true;
         sails.log.verbose(`${this.logHeader} Integration Audit created...`);
       } catch (err) {
@@ -3685,8 +4365,13 @@ export namespace Services {
         sails.log.error(msg);
         throw new Error(msg);
       }
+      if (params.excludeDestinationAudits && params.destinationId) return [];
 
       const criteria: Record<string, unknown> = { redboxOid: oid };
+      if (params.brandId) criteria.or = [{ brandId: params.brandId }, { brandId: null }];
+      if (params.destinationId) criteria.destinationId = params.destinationId;
+      else if (params.excludeDestinationAudits) criteria.destinationId = null;
+      if (params.excludedIntegrationNames?.length) criteria.integrationName = { nin: params.excludedIntegrationNames };
       if (!_.isEmpty(params.status)) {
         criteria['status'] = params.status;
       }
@@ -3716,8 +4401,13 @@ export namespace Services {
         sails.log.error(msg);
         throw new Error(msg);
       }
+      if (params.excludeDestinationAudits && params.destinationId) return 0;
 
       const criteria: Record<string, unknown> = { redboxOid: oid };
+      if (params.brandId) criteria.or = [{ brandId: params.brandId }, { brandId: null }];
+      if (params.destinationId) criteria.destinationId = params.destinationId;
+      else if (params.excludeDestinationAudits) criteria.destinationId = null;
+      if (params.excludedIntegrationNames?.length) criteria.integrationName = { nin: params.excludedIntegrationNames };
       if (!_.isEmpty(params.status)) {
         criteria['status'] = params.status;
       }

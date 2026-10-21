@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [],
+  "include": [
+    "./integration/PublicationRelease.test.ts",
+    "./integration/PublicationMigration.test.ts",
+    "./integration/PublicationWorkflow.test.ts",
+    "./setup.ts",
+    "../src/**/*.ts"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "rootDir": "../../..", "strict": true },
+  "include": [
+    "./integration/PublicationHook.test.ts",
+    "./fixtures/publicationHook.ts",
+    "./fixtures/accessionServer.ts"
+  ],
+  "exclude": []
+}

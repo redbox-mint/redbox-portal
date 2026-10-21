@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [],
+  "include": ["./integration/OniPublication.test.ts", "./setup.ts", "../src/**/*.ts"]
+}

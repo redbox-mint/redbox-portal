@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./integration/FigsharePublication.test.ts", "./setup.ts"],
+  "exclude": []
+}

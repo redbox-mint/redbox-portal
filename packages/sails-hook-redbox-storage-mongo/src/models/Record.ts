@@ -20,6 +20,7 @@ export type JsonMap = Record<string, unknown>;
  */
 const normalizeServerRevision = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   record.revision = INITIAL_RECORD_REVISION;
+  delete record.publicationSource;
   delete record.incarnationId;
   delete record.lifecycleOperationId;
   proceed();
@@ -32,6 +33,7 @@ const normalizeServerRevision = (record: Record<string, unknown>, proceed: (err?
  */
 const stripServerRevision = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   delete record.revision;
+  delete record.publicationSource;
   delete record.incarnationId;
   delete record.lifecycleOperationId;
   proceed();
@@ -74,6 +76,9 @@ export class RecordClass {
 
   @Attr({ type: 'json' })
   public figshareSyncIntent?: JsonMap;
+
+  @Attr({ type: 'json' })
+  public publicationSource?: JsonMap;
 
   @Attr({ type: 'number', defaultsTo: 0 })
   public recordVersion?: number;

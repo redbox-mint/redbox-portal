@@ -25,9 +25,9 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
   let previousRecord: unknown;
   before(async () => {
     previousRecord = Reflect.get(globalThis, 'Record');
-    Reflect.set(globalThis, 'Record', {});
     client = new MongoClient(process.env.MONGO_TEST_URL!);
     await client.connect();
+    Reflect.set(globalThis, 'Record', { tableName: 'record', getDatastore: () => ({ manager: client.db(database) }) });
     service = new Services.MongoStorageService();
     service.recordCol = client.db(database).collection('record');
   });

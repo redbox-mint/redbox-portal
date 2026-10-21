@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [],
+  "include": ["./integration/PublicationWorkflow.test.ts", "./setup.ts", "../src/**/*.ts"]
+}

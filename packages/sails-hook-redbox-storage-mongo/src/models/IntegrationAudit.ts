@@ -10,6 +10,33 @@ export class IntegrationAuditClass {
   public brandId?: string;
 
   @Attr({ type: 'string' })
+  public eventId?: string;
+
+  @Attr({ type: 'string' })
+  public episodeId?: string;
+
+  @Attr({ type: 'string' })
+  public destinationId?: string;
+
+  @Attr({ type: 'string' })
+  public providerId?: string;
+
+  @Attr({ type: 'string' })
+  public approvalId?: string;
+
+  @Attr({ type: 'string' })
+  public operationId?: string;
+
+  @Attr({ type: 'number' })
+  public approvalEpoch?: number;
+
+  @Attr({ type: 'number' })
+  public sourceRevision?: number;
+
+  @Attr({ type: 'number' })
+  public sourceGeneration?: number;
+
+  @Attr({ type: 'string' })
   public integrationName?: string;
 
   @Attr({ type: 'string' })
