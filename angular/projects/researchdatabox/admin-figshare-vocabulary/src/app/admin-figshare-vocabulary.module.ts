@@ -9,7 +9,6 @@ import {
   PublicationVocabularyApiService,
 } from '@researchdatabox/portal-ng-common';
 
-import { PublicationVocabularyAdminComponent } from './shared/publication-vocabulary-admin.component';
 import { AdminFigshareVocabularyComponent } from './admin-figshare-vocabulary.component';
 import { FigshareVocabularyApiService } from './services/figshare-vocabulary-api.service';
 import { FigshareSourceListComponent } from './sources/figshare-source-list.component';
@@ -22,7 +21,6 @@ import { FigshareMappingPickerComponent } from './crosswalks/figshare-mapping-pi
 @NgModule({
   declarations: [
     AdminFigshareVocabularyComponent,
-    PublicationVocabularyAdminComponent,
     FigshareSourceListComponent,
     FigshareImportWizardComponent,
     FigshareSyncPreviewComponent,

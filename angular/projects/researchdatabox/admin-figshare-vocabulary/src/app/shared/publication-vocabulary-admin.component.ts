@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
+import { KeyValuePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   BaseComponent,
+  I18NextPipe,
   TranslationService,
   PublicationVocabularyApiService,
   PublicationVocabularyCapabilities,
@@ -74,7 +77,8 @@ const emptyPage = <T>(): PublicationVocabularyPage<T> => ({ data: [], meta: { to
   selector: 'publication-vocabulary-admin',
   templateUrl: './publication-vocabulary-admin.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  standalone: true,
+  imports: [FormsModule, KeyValuePipe, I18NextPipe],
 })
 export class PublicationVocabularyAdminComponent extends BaseComponent {
   tab: 'sources' | 'crosswalks' | 'import' | 'legacy-history' = 'sources';

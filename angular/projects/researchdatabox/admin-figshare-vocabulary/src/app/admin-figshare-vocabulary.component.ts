@@ -1,4 +1,4 @@
-import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy, Type } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   FigshareCrosswalkMapping,
@@ -27,6 +27,7 @@ const MAPPING_PAGE_SIZE = 50;
   standalone: false,
 })
 export class AdminFigshareVocabularyComponent extends BaseComponent {
+  protected sharedAdministrationComponent?: Type<BaseComponent>;
   public view: FigshareView = 'sources';
   public message = '';
   public error = '';
@@ -88,7 +89,17 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
-    if (!this.sharedAdministrationEnabled) await Promise.all([this.loadSources(), this.loadCrosswalks()]);
+    if (this.sharedAdministrationEnabled) {
+      try {
+        this.sharedAdministrationComponent = (
+          await import('./shared/publication-vocabulary-admin.component')
+        ).PublicationVocabularyAdminComponent;
+      } catch {
+        this.error = '@publication-vocabulary-request-failed';
+      }
+    } else {
+      await Promise.all([this.loadSources(), this.loadCrosswalks()]);
+    }
   }
 
   get sharedAdministrationEnabled(): boolean {

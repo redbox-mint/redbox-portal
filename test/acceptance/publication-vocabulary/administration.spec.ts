@@ -234,4 +234,27 @@ if (process.env.PUB24_EXPECT_LEGACY === 'true') {
     await page.goto(adminPath);
     await expect(page.locator('publication-vocabulary-admin')).toBeVisible();
   });
+
+  test('shows a reload message when the shared administration bundle cannot load', async ({ page }) => {
+    let blocked = false;
+    const bundles = '**/angular/admin-figshare-vocabulary/**/chunk-*.js';
+    await page.route(bundles, async route => {
+      const response = await route.fetch();
+      if ((await response.text()).includes('"publication-vocabulary-admin"')) {
+        blocked = true;
+        await route.abort('failed');
+      } else {
+        await route.fulfill({ response });
+      }
+    });
+    await page.goto(adminPath);
+    await expect(page.locator('admin-figshare-vocabulary').getByRole('alert')).toHaveText(
+      'The request could not be completed. Check your connection and reload before trying again.'
+    );
+    expect(blocked).toBe(true);
+    await expect(page.locator('publication-vocabulary-admin')).toHaveCount(0);
+    await page.unroute(bundles);
+    await page.reload();
+    await expect(page.locator('publication-vocabulary-admin')).toBeVisible();
+  });
 }

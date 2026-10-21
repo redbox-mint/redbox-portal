@@ -1,5 +1,9 @@
 @if (isReady && sharedAdministrationEnabled) {
-  <publication-vocabulary-admin></publication-vocabulary-admin>
+  @if (sharedAdministrationComponent) {
+    <ng-container [ngComponentOutlet]="sharedAdministrationComponent"></ng-container>
+  } @else {
+    <div class="alert alert-danger" role="alert">{{ error | i18next }}</div>
+  }
 } @else if (isReady) {
   <div class="container-fluid py-3">
     <div class="d-flex flex-wrap justify-content-between align-items-start mb-3">
@@ -184,4 +188,6 @@
       }
     }
   </div>
+} @else {
+  <p role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
 }
