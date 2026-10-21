@@ -8,6 +8,7 @@ export type SurfaceKind =
   | 'service'
   | 'ajax-controller'
   | 'webservice-controller'
+  | 'publication-contract'
   | 'form-config'
   | 'form-component';
 

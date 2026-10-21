@@ -16,6 +16,11 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Architecture Overview](https://github.com/redbox-mint/redbox-portal/wiki/Architecture-Overview)**: High-level system structure and key components.
 - **[Coding Standards and Conventions](https://github.com/redbox-mint/redbox-portal/wiki/Coding-Standards-and-Conventions)**: Shared language and style expectations.
 - **[Configuration Guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide)**: Portal configuration and environment settings.
+- **[Shared Publication Configuration](Shared-Publication-Configuration)**: Named destinations, approval/auto-sync, fixed targets, all/any workflow and status.
+- **[Shared Publication Operations](Shared-Publication-Operations)**: One-way cutover, quarantine, evidence-preserving CLI recovery and activation gates.
+- **[Shared Publication Vocabularies](Shared-Publication-Vocabularies)**: Separate stage-2 conversion, frozen approvals, legacy aliases and activation.
+- **[Publication Provider Development](Publication-Provider-Development)**: Supported hook registration and validated adapter examples.
+- **[Configuring Oni Publishing](Configuring-Oni-Publishing)**: Durable acceptance, OCFL recovery, indexing and unverified visibility.
 - **[Configuring Figshare Publishing](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing)**: Admin guide for the Figshare publishing AppConfig screen.
 - **[Migrating from the Legacy Mint Harvest Endpoint](https://github.com/redbox-mint/redbox-portal/wiki/Migrating-from-the-Legacy-Mint-Harvest-Endpoint)**: Migration guide for moving harvest integrations to the new records and harvest-runs endpoints.
 - **[Configuring Solr](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Solr)**: Solr connection, schema initialisation, and metadata-to-index mapping.

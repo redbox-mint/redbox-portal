@@ -90,8 +90,9 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">\n' : ''}<title>${e
 }
 
 function memberTable(surface: SurfaceContract): string {
-  if (!surface.members.length) return '<p class="empty-state">This contract has no published members.</p>';
-  return `<div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Member</th><th scope="col">Contract</th><th scope="col">Default</th><th scope="col">Purpose</th></tr></thead><tbody>${surface.members
+  const members = surface.members.filter(member => member.lifecycle !== 'internal');
+  if (!members.length) return '<p class="empty-state">This contract has no published members.</p>';
+  return `<div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Member</th><th scope="col">Contract</th><th scope="col">Default</th><th scope="col">Purpose</th></tr></thead><tbody>${members
     .map(
       member =>
         `<tr><td data-label="Member"><code>${escapeHtml(member.name)}</code></td><td data-label="Contract"><code>${escapeHtml(member.signature ?? member.type ?? '')}</code></td><td data-label="Default"><code>${escapeHtml(member.defaultValue ?? '')}</code></td><td data-label="Purpose">${prose(member.description ?? '')}<p class="cell-link"><a href="${member.source.url}">Open the source</a></p></td></tr>`
@@ -145,13 +146,7 @@ ${surface.documentation.extensionSemantics ? `<aside class="callout"><p class="c
   );
 }
 
-function indexPage(
-  title: string,
-  lede: string,
-  section: Section,
-  surfaces: SurfaceContract[],
-  resource = ''
-): string {
+function indexPage(title: string, lede: string, section: Section, surfaces: SurfaceContract[], resource = ''): string {
   return layout(
     title,
     `<div class="page-head">
@@ -584,6 +579,7 @@ export function renderSite(outputDirectory: string, catalogue: Catalogue): void 
     <li><a href="artifacts/catalogue.json" download>Catalogue in JSON</a></li>
     <li><a href="artifacts/catalogue.md" download>Catalogue in Markdown</a></li>
     <li><a href="schemas/form-config.schema.json" download>FormConfig JSON schema</a></li>
+    <li><a href="schemas/publication-publishing.schema.json" download>PublicationPublishing envelope JSON schema</a> (provider validation is also required)</li>
   </ul></article>
 </div>`,
       '.',

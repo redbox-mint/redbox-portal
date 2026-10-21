@@ -9,5 +9,10 @@
     "rootDir": "../../..",
     "types": ["node"]
   },
-  "include": ["hook-override.ts", "record-contract-contributor.ts"]
+  "include": [
+    "hook-override.ts",
+    "record-contract-contributor.ts",
+    "publication-provider.ts",
+    "publication-vocabulary.ts"
+  ]
 }

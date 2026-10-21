@@ -148,7 +148,11 @@ function surfaceFromClass(
       ? methods.filter(method =>
           ['exports', 'init', 'sendResp', 'getObservable', 'convertToType'].includes(nodeName(method) ?? '')
         )
-      : methods.filter(method => exported.has(nodeName(method) ?? ''));
+      : methods.filter(
+          method =>
+            exported.has(nodeName(method) ?? '') ||
+            ts.getJSDocTags(method).some(tag => tag.tagName.text.toLowerCase() === 'extensionpoint')
+        );
   return {
     id,
     name,
@@ -161,7 +165,9 @@ function surfaceFromClass(
       see: docs.see,
     },
     source: sourceLocation(declaration),
-    members: selected.map(method => methodContract(checker, id, method, docs.lifecycle)),
+    members: selected
+      .map(method => methodContract(checker, id, method, docs.lifecycle))
+      .filter(member => member.lifecycle !== 'internal'),
     routes,
   };
 }
@@ -440,7 +446,7 @@ function extractForms(program: ts.Program, checker: ts.TypeChecker): SurfaceCont
   return forms;
 }
 
-function basicSurface(
+export function basicSurface(
   checker: ts.TypeChecker,
   program: ts.Program,
   relativePath: string,
@@ -465,8 +471,14 @@ function basicSurface(
       members.push({
         id: `${id}.${property.name}`,
         name: property.name,
-        lifecycle: docs.lifecycle,
-        type: normalizeType(checker.typeToString(checker.getTypeOfSymbolAtLocation(property, member))),
+        lifecycle: parseDocumentation(member, docs.lifecycle).lifecycle,
+        type: normalizeType(
+          checker.typeToString(
+            checker.getTypeOfSymbolAtLocation(property, member),
+            member,
+            ts.TypeFormatFlags.NoTruncation
+          )
+        ),
         optional: Boolean(property.flags & ts.SymbolFlags.Optional),
         description: ts.displayPartsToString(property.getDocumentationComment(checker)) || undefined,
         source: sourceLocation(member),
@@ -485,11 +497,11 @@ function basicSurface(
       see: docs.see,
     },
     source: sourceLocation(declaration),
-    members,
+    members: members.filter(member => member.lifecycle !== 'internal'),
   };
 }
 
-function diagnosticsFor(surfaces: SurfaceContract[]): DocumentationDiagnostic[] {
+export function diagnosticsFor(surfaces: SurfaceContract[]): DocumentationDiagnostic[] {
   const findings: DocumentationDiagnostic[] = [];
   for (const surface of surfaces) {
     if (surface.lifecycle === 'unclassified') {
@@ -518,7 +530,9 @@ function diagnosticsFor(surfaces: SurfaceContract[]): DocumentationDiagnostic[] 
         message: `${surface.name} does not explain its extension or override semantics.`,
         source: surface.source,
       });
-    for (const member of surface.lifecycle === 'unclassified' ? [] : surface.members) {
+    for (const member of surface.lifecycle === 'unclassified'
+      ? []
+      : surface.members.filter(member => member.lifecycle !== 'internal')) {
       if (!member.description)
         findings.push({
           code: 'undocumented-member',
@@ -567,6 +581,32 @@ function diagnosticsFor(surfaces: SurfaceContract[]): DocumentationDiagnostic[] 
   return findings;
 }
 
+export function extractPublicationContracts(program: ts.Program): SurfaceContract[] {
+  const checker = program.getTypeChecker();
+  const surfaces: SurfaceContract[] = [];
+  for (const relativePath of [
+    'packages/redbox-core/src/services/publication/contracts.ts',
+    'packages/redbox-core/src/configmodels/PublicationPublishing.ts',
+    'packages/redbox-core/src/services/publication-vocabulary/contracts.ts',
+  ]) {
+    const file = sourceFile(program, relativePath);
+    for (const declaration of file.statements) {
+      if (!ts.isInterfaceDeclaration(declaration) && !ts.isTypeAliasDeclaration(declaration)) continue;
+      if (!ts.getJSDocTags(declaration).some(tag => tag.tagName.text.toLowerCase() === 'extensionpoint')) continue;
+      const contract = basicSurface(
+        checker,
+        program,
+        relativePath,
+        declaration.name.text,
+        `publication-contract:${declaration.name.text}`,
+        'publication-contract'
+      );
+      if (contract) surfaces.push(contract);
+    }
+  }
+  return surfaces;
+}
+
 export function extractCatalogue(program: ts.Program): ExtractionResult {
   const checker = program.getTypeChecker();
   const routes = extractRoutes(program);
@@ -599,6 +639,7 @@ export function extractCatalogue(program: ts.Program): ExtractionResult {
   if (hook) surfaces.push(hook);
   if (baseService) surfaces.push(baseService);
   if (baseController) surfaces.push(baseController);
+  surfaces.push(...extractPublicationContracts(program));
   surfaces.push(
     ...extractRegisteredClasses(
       program,

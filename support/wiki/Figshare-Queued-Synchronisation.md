@@ -1,114 +1,63 @@
 # Queued Figshare synchronisation
 
-Eligible record saves now commit a protected `figshareSyncIntent` with the record. The save performs local validation; it does not create, update, upload or publish remotely. A Mongo dispatcher imports ready intents into `FigshareSync`, acknowledges only the imported generation, and sends ordinary `Figshare-SyncRecord` jobs containing only OID and brand ID. Missing or duplicate deliveries are recoverable from durable state.
+For a brand committed to shared authority, Figshare runs through `PublicationService`, alongside Oni and hook providers. Source saves validate/seal a revision and fixed destinations; workers reconcile and mutate later. Protected `publicationSource` and destination-keyed `PublicationSync` rows are authoritative. Queue messages are identifier-only wake-ups, so lost/duplicate delivery does not grant or lose approval.
 
-```mermaid
-flowchart LR
-  Save[Validate and save] --> Intent[Atomic source intent]
-  Intent --> Ready[Attachments and synchronous hooks complete]
-  Ready --> Dispatch[Mongo dispatcher]
-  Ready --> Wake[Post-save wake-up]
-  Wake --> Worker[Worker acquires record lease]
-  Dispatch --> Worker
-  Worker --> Remote[Reconcile and synchronise Figshare]
-  Remote --> Observe[Observe publication and access]
-  Observe --> Project[Guarded links and workflow projection]
+Read [shared configuration](Shared-Publication-Configuration) and [one-way cutover/recovery](Shared-Publication-Operations) before enabling processing. Unmigrated brands retain the legacy `figshareSyncIntent`/`FigshareSync` path and `figsharePublishing` settings. Committed brands use `publicationPublishing`; missing/disabled config never restores legacy authority.
+
+## Source hooks and workflow
+
+Existing Figshare validation/upload/create-update/wake aliases delegate to trusted shared acceptance for migrated brands. They return records without inline remote mutation. Events and destination choices come from configured source policies and migration assignments, never job article IDs/users or arbitrary hook options. Compatibility calls inside a save participate in its tracker; standalone calls reload and conditionally accept committed content only. Failed or ambiguous saves cannot become runnable by age.
+
+Review old eligible-save triggers explicitly: `approval` authorizes one sealed revision and whole fixed set, while `auto-sync` authorizes fresh eligible revisions. Separate grant-stage/requester checks from current continuation restrictions. Changing mapped content or selected bytes invalidates older work. Status/link projections and the expected internal stage change preserve unchanged siblings. Local explicit approval rejects the entire set on validation failure; auto-sync failures are isolated per destination.
+
+Shared workflow rules replace provider-owned transition jobs. `all` requires current completion from every fixed member, including disabled/archived members. `any` advances once on a currently eligible completion while unfinished approved siblings continue. It does not reapply their original grant-stage gate. Neither mode compensates by withdrawing successful remote publications. Current access, continuation, source/configuration identity and revocation still apply.
+
+## Account, owner and remote identity
+
+The destination records the actual token account ID separately from author `user_id` and create-as-owner identity. Impersonation retains operation-specific owner/token behavior. CI lookup uses institutional identifier first and exact email fallback only when permitted and the identifier is absent. Conflicting/ambiguous identifiers fail closed. Changing the CI never transfers an existing article.
+
+Creation journals a provisional-title token and original API/account/owner context before transport. Exact-token recovery pages that context, verifies a unique result and retains hidden-create/failed-response evidence. A missing/404/invisible article or expired lease never permits a blind second create. API namespace/article identity has one managing owner across brands and destinations. Referenced destinations cannot be repointed; use a new destination ID for a different account/environment.
+
+## Processing and files
+
+`Publication-Dispatch` scans Mongo every 30 seconds and queues `Publication-SyncRecord` with brand/OID/destination only. The shared worker owns destination leases, heartbeat, retries, approval checks and operation journals. Before each mutation it verifies current authority, selected bytes, material mapping, target, edit permissions and provider locks. A lost owner cannot checkpoint or send another mutation; already-sent calls may finish and require read-only reconciliation.
+
+The adapter retains actual customized metadata payload hashes, unmanaged custom fields and foreign files. Curation locks freeze metadata, assets, embargo and publication together. Both automatic publication modes wait for confirmed uploads; `manual` never submits publication. Review, manual-publication, upload and embargo waits consume no transport-failure attempt. Bounded durable retries and transport retries remain separate.
+
+Selected bytes are sealed/staged with identities and checksum-backed managed receipts. Unchanged attachments can reuse verified identities; changes under the same filename do not establish equivalence or ownership. Deselection removes only receipt-owned remote files. Interrupted upload initialization/parts retain uncertainty and require verified repair before another uploader continues. Do not adopt files by name.
+
+After provider-confirmed completion for the current approved generation, the shared framework replaces receipt-owned selected attachments at the configured `record.dataLocationsPath` with verified public Figshare download URLs. Unselected attachments, unrelated entries and their order are preserved. The adapter declares the narrow `attachment-to-url` post-completion content replacement capability; attachment fields are never status/link maintenance outputs. The conditional record write rechecks current destination obligations, including unimported or pending sibling work, and retries conflicts by reloading/revalidating. A durable admission fence for each destination generation seals the final completion decision against concurrent byte-consuming requests; read-only observations remain available. A new publication request uses a new generation rather than resuming byte-consuming work for the replaced generation. An unfinished sibling retains the attachments even after an `any` workflow transition; the dispatcher revisits replacement after it completes. The exact before/after array, source reference, approval/epoch, generation, destination, deterministic mutation ID and timestamp are retained in protected record evidence. This internal replacement preserves approval and does not republish the completed destination. Later user edits still invalidate approval normally.
+
+Hosted-file publishing must be enabled (`attachments.assets.enableHostedFiles`, corresponding to legacy `assets.enableHostedFiles`) and public file accessibility must be verified before replacement. Embargoed/unavailable downloads defer replacement and schedule read-only maintenance; confirmed publication and workflow completion remain separate. Existing manual/automatic publication choices are unchanged. `assets.staging.cleanupPolicy` keeps its existing upload-temporary-file meaning: `deleteAfterSuccess` deletes those temporary copies after upload; `retainForRetry` retains them on success. Failed uploads clean up their temporary copies under either setting. It is not an on/off switch for record replacement or original-byte cleanup. Shared durable recovery staging always follows reference retention rules.
+
+Replacement itself deletes no bytes. Figshare preparation retains a verified, durable staged copy before original bytes become reclaimable. The scheduled `Publication-StagingCleanup` path considers originals after `max(one hour, processing.cleanupMs)`, scans current and deleted records and every retained source/recovery manifest, and retains originals if recovery still depends on live bytes or evidence is unreadable/unknown. Durable admission pins never expire automatically. Cleanup installs an irreversible original-attachment tombstone before removal through the configured datastream service; retries finish interrupted removal without reopening admission. Source/lifecycle writes that would reintroduce a tombstoned attachment are rejected. Staged recovery bytes remain protected by their own manifest/reference fence. Pre-existing sources without registered original-byte identities are retained conservatively.
+
+## Publication and status
+
+Submission, acceptance and provider-confirmed publication are distinct. Uncertain publish calls are reconciled before another mutation. A private article during institutional/manual processing is a normal wait, not a failed publication. A readiness recovery clears only its own error episode; it cannot erase an exhausted source-sync failure.
+
+Integration Status shows each named destination and current source separately, including ready work not yet imported. Confirmed Figshare publication counts for workflow only with matching current approval/source/binding and no unresolved work for that destination. Embargo/accessibility remains separate evidence. An old article URL or historical audit success cannot complete newer content. Logical audit episodes remain bounded across repeated waiting polls.
+
+## Operations and customer hooks
+
+Use the shared CLI for committed brands:
+
+```bash
+node support/publication/admin.js inspect --brand BRAND --username ADMIN --oid OID --destination DEST
+node support/publication/admin.js reconcile --brand BRAND --username ADMIN --oid OID --destination DEST
+node support/publication/admin.js repair --brand BRAND --username ADMIN --oid OID --destination DEST --repair bind-file --parameters '{"receipt":"RECEIPT_KEY","fileId":"789"}'
 ```
 
-## Enablement and source hooks
+The repair above is a dry-run. Apply only after reviewing the result, with `--apply --reason 'INC-123 verified receipt/checksum'`. See the [complete recovery runbook](Shared-Publication-Operations) for account/owner linking, settlement attestations, multipart recovery, evidence reconciliation, pause/resume, revocation and quarantine release. Repairs refuse active relevant leases, retain journals/receipts and do not grant approval or publish. No recovery requires hand-editing Mongo.
 
-Both `figsharePublishing.enabled` and `figsharePublishing.processing.enabled` must be true. Processing defaults to false to support controlled migration. Update existing brand AppConfig as well as hook defaults: stored AppConfig overrides package defaults.
+Existing Figshare operator command names forward when given explicit brand, destination and OID:
 
-Configure `validateFigshareRecord` as the pre-save hook and `wakeFigshareRecord` as the post-save hook. Use `requestFigshareCleanup` where only local reference cleanup is authorised. Keep the same business trigger conditions as the previous deployment. Old `createUpdateFigshareArticle`, `uploadFilesToFigshareArticle`, and `deleteFilesFromRedboxTrigger` names are compatibility aliases; they no longer mutate Figshare inline. Old job adapters discard record snapshots and wake existing durable obligations.
-
-A hook with a requester-dependent `triggerCondition` needs a separate, user-independent `executionCondition`. For example:
-
-```javascript
-{
-  function: 'sails.services.figshareservice.validateFigshareRecord',
-  options: {
-    policyId: 'publication-sync',
-    triggerCondition: '<%= user.username !== "migration" && record.workflow.stage === "queued" %>',
-    executionCondition: '<%= record.workflow.stage === "queued" %>'
-  }
-}
+```bash
+node support/figshare/admin.js bind-file --brand BRAND --destination DEST --oid OID --username ADMIN --receipt RECEIPT_KEY --file-id 789
 ```
 
-Without an explicit `policyId`, a hook's default ID is its event, phase and function name (for example `onUpdate.pre.validateFigshareRecord`), so rearranging other hooks keeps queued work eligible. Assign explicit `policyId` values when the same Figshare hook function appears more than once in a phase; a warning is logged until you do. Source authorisation is recorded at save time; workers resolve that policy against the current hook configuration and current record. The service identity is not used to reauthorise the original requester. Explicit maintenance writes preserve pending intent without originating new requests.
+Unmigrated Figshare commands retain their legacy service path. The legacy `migrate` command cannot perform shared cutover; use `support/publication/admin.js migrate`. There is no rollback to legacy consumers after shared authority commits. Pause, retain evidence and repair forward.
 
-## Processing settings
+Customer subclasses must review `getConfig`, `buildMetadataPayload`, `makeClient` and `syncMetadata` against the shared adapter. The actual service instance is used for these supported compatibility seams, so custom payloads and client context must participate in the sealed plan and recovery hashes. Hooks expecting immediate new article fields require adaptation to asynchronous status. Stage 1 retains Figshare vocabulary/crosswalk IDs, approved revisions and administration; broader vocabulary conversion is a later release.
 
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| `processing.enabled` | false | Cutover/pause switch |
-| `coalesceMs` | 5000 | Delay for the post-save acceleration job |
-| `leaseMs` / `heartbeatMs` | 120000 / 20000 | Lease duration and full-phase renewal; lease must cover at least three heartbeats |
-| `maxAttempts` / `retryBaseMs` | 5 / 60000 | Bounded exponential retry for real failures |
-| `observationMs` | 120000 | Quiet readiness/publication polling |
-| `cleanupMs` | 300000 | Initial cleanup deadline |
-| `serviceUsername` / `serviceUserType` | empty | Per-brand local service identity with edit access; falls back to the configured workflow-transition identity |
-
-When a millisecond observation/cleanup setting is absent, the existing `queue.publishAfterUploadDelay` / `uploadedFilesCleanupDelay` supplies it. Relative numeric millisecond, second, minute, hour, day and week strings are supported. Convert other legacy phrases to explicit millisecond settings before enabling processing.
-
-The dispatcher recurs every 30 seconds on Mongo even when ordinary workers use SQS. Delays live in state, so they are not limited by SQS's delivery-delay ceiling. A short dispatch cooldown controls duplicate deliveries without consuming the obligation. Agenda history archival excludes active, unfinished and recurring jobs and rechecks that condition when deleting.
-
-## Identity and impersonation
-
-`impersonation.enabled` controls optional impersonation. Configure the CI identifier/email paths and the operation map (`create`, `recovery`, `read`, `metadata`, `assets`, `embargo`, `publish`) to `owner` or `token`. Owner lookup uses institutional ID first; exact email fallback is allowed only when that identifier is absent and `allowEmailFallback` is true. Ambiguous, conflicting or unmatched supplied identifiers fail closed. Figshare account `id` is used for impersonation; author `user_id` remains an author identity.
-
-Creation first persists a unique provisional-title token and original API/account/owner context. It POSTs a minimal draft, verifies its identity, and saves the ID before replacing the provisional title with the customer's actual metadata. Recovery pages through the original owner's account and accepts only one exact verified token match. A hidden article created despite HTTP 400 retains the failed outcome and recovered identity. A corrected save updates that article. Missing visibility, a 404, or lease expiry never authorises a second create.
-
-Bindings are exclusive by API namespace and article ID, independent of owner. CI changes do not transfer an article. Changing the API environment or token account requires reconciliation. JSON mutations carry impersonation in the body; GET/DELETE use query parameters. Account discovery uses the token identity. Binary uploader traffic receives neither API credentials nor impersonation parameters.
-
-## Worker, files and publication
-
-Every mutation checks lease ownership, current source generation, current configuration, current policy eligibility and the remote curation lock. Heartbeats run through slow HTTP calls and multipart parts. Losing ownership aborts transport where possible and prevents further checkpoints or mutations. Since a remote call can finish despite cancellation, the successor reconciles persisted operation evidence.
-
-The actual customised metadata payload is hashed, including customer overrides. Relevant remote fields are compared before sending updates; unmanaged custom fields are retained. Curation locks freeze metadata, files, embargo and publication together. Both automatic publish modes wait for confirmed upload completion; `manual` never submits publication.
-
-Managed files have durable staged-content SHA256/MD5, size and ownership receipts. Receipts also record the datastream fingerprint (storage ETag, size and modification time), so later syncs skip staging and hashing an unchanged attachment; datastream services without fingerprints re-hash each time. Changed bytes under the same filename create a replacement; deliberate deselection deletes only receipt-owned remote files. Foreign files and uncertain upload initialisations are retained. A worker that still holds its lease may resume its own failed upload on retry. Uploads interrupted by a stopped process or lost lease are reported as needing repair, and need an explicit verified operator decision before resumption; age is not deletion authority.
-
-Cleanup requires observed publication, no embargo, a matching public downloadable file and matching current local bytes. It conditionally replaces attachment references with URLs and keeps receipt references so the next sync retains the hosted files. **Local attachment bytes are retained. Cleanup does not reclaim storage.**
-
-Publication submission, acceptance and confirmed publication are separate. A request whose outcome is uncertain is never resubmitted automatically; it is reported as needing repair. A newer eligible source save supersedes an unconfirmed request once a read shows it did not publish and no curation lock is held, so changes made after a curator returns an article are synchronised and resubmitted. Review/manual-publication/upload waits do not consume failure budgets or open audits on every poll. A logical sync has one audit context; terminal failures and confirmed publication have bounded events. The access-checked Integration Status endpoint overlays current queued/waiting/retrying state, including an unimported ready intent. Researchers can see pending Figshare status after reload, with publication and embargo details.
-
-A successful account read returning a private article is an expected readiness wait, including while university staff process it manually. The legacy workflow-transition job delegates to the durable dispatcher; it does not write a failed audit for each unmet public-state check. Repeated checks leave the record queued and retain local attachment bytes. A recovered polling error is cleared when readiness is checked successfully, resetting that retry episode; a terminal failure of unfinished source synchronisation remains visible. Historical audits are retained, and neither a readiness check nor a waiting status approves or publishes an article.
-
-Workflow transitions require confirmed publication, no unresolved upload or newer pending sync, current eligibility and current service permissions. Background snapshot writes carry an expected record version through every synchronous persistence step; attachment-changing background transitions are rejected before datastream effects. **Master still allows a later stale ordinary save to overwrite a workflow transition.** This change does not introduce general optimistic concurrency.
-
-## Operator commands
-
-Run from the deployed portal using its normal environment, config and dependencies:
-
-```sh
-node support/figshare/admin.js inspect --username ADMIN --oid OID
-node support/figshare/admin.js reconcile --username ADMIN --oid OID
-node support/figshare/admin.js migrate --username ADMIN
-node support/figshare/admin.js link --username ADMIN --oid OID --article-id ID [--owner-id ACCOUNT_ID]
-node support/figshare/admin.js resume --username ADMIN --oid OID
-node support/figshare/admin.js abandon-create --username ADMIN --oid OID
-node support/figshare/admin.js reset-publish --username ADMIN --oid OID
-```
-
-Commands are dry-run by default; add `--apply` to a reviewed correction. `inspect` and `reconcile` remain read-only. They require a current administrator; per-record operations also check edit access. The CLI loads the normal application with queue startup disabled in that process. Pause workers across all deployed processes before migration/repair; leases additionally reject repairs against active workers. No command publishes or transfers ownership.
-
-- `link` verifies accessible identity and exclusive binding. With owner-based reads, supply `--owner-id` for an unbound article or a different relink target. Use the Figshare owner account ID, not the author user ID. The command reads as that owner and checks the returned article owner before saving the binding. An existing verified binding supplies the owner for the same article; changing the current CI never changes that owner. A supplied owner conflicting with a verified binding is rejected. `relink` is the explicit alternative for an existing different article; unresolved publication or managed receipts block an unsafe change.
-- `resume` requests another sync under an existing authorised source policy. It preserves create/publish/upload uncertainty and previous failure history.
-- `abandon-create` discards an unresolved create only when `reconcile` finds no article carrying its token in the owning account. A visible match must be linked instead. Run `resume` (or save the record) afterwards to create a fresh article.
-- `reset-publish` discards an unconfirmed publication request after a read shows it did not publish and no curation lock is held. Run `resume` (or save the record) afterwards to request publication again. A newer eligible source save does this automatically.
-- `bind-file --receipt KEY --file-id ID` verifies a completed file's size and computed MD5 against the persisted receipt.
-- `resume-upload --receipt KEY --file-id ID` verifies size and supplied MD5 and explicitly permits resuming that upload. Stop the previous uploader first. Completed parts are skipped; no second file is initialised.
-- `migrate` scans legacy IDs/states, reports duplicate bindings and uncertain creates, verifies accessible article identity and imports observed publication. Repeated runs preserve receipts and identities. It schedules observation without inferring file ownership from filenames or publishing legacy records. Records without an authorised source policy need an eligible save before sync or automatic workflow transition. Uncertain creates and duplicate bindings are quarantined for operator reconciliation.
-
-## Cutover and rollback
-
-1. Back up record and core databases. Record the deployed core, Mongo storage hook, CQU hook and stored per-brand AppConfig versions.
-2. Pause old workers, schedules and source traffic as appropriate. Drain in-flight mutations; do not run old and new consumers concurrently against the same records.
-3. Deploy core, matching Mongo storage package, model shims and customer hook together with processing disabled. Verify service identity and account context. Ensure new Mongo indexes can be created.
-4. Run and review migration dry-run. Resolve duplicate legacy article IDs and uncertain creates; apply verified backfill. Legacy files without receipts remain unmanaged.
-5. Enable one staging brand. Verify create-as-owner/update-as-token with distinct account/author IDs, hidden-create recovery, slow uploads, curation, review, manual publication, embargo access and workflow permissions against the institution's real Figshare environment.
-6. Enable production processing only after staging acceptance. Observe queue/source lag, lease renewals, waiting reasons, retry episodes and repair-required records. Save latency should no longer include remote mutation time.
-
-To pause or roll back, disable processing and stop consumers, wait for in-flight leases/calls to settle, and preserve all intents, bindings, checkpoints and receipts. Do not restore the old inline publisher over unresolved new operations. Inspect/reconcile them before resuming a compatible worker. Never delete sync state to force a retry.
-
-See [implementation verification](../figshare/VERIFICATION.md) for automated evidence and the remaining environment-specific release gates.
+See [technical contracts](Figshare-Service-Technical-Guide), [provider configuration](Configuring-Figshare-Publishing) and [provider development](Publication-Provider-Development).

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "processing": {
+    "enabled": false,
+    "serviceUsername": "publication-worker",
+    "serviceUserType": "local",
+    "stagingDisk": "publication-staging",
+    "coalesceMs": 5000,
+    "leaseMs": 120000,
+    "heartbeatMs": 20000,
+    "maxAttempts": 5,
+    "retryBaseMs": 60000,
+    "observationMs": 120000,
+    "cleanupMs": 300000
+  },
+  "destinations": {
+    "figshare-main": {
+      "provider": "figshare",
+      "displayName": "Institutional Figshare",
+      "enabled": false,
+      "archived": false,
+      "connection": {
+        "baseUrl": "https://api.figshare.com/v2",
+        "frontEndUrl": "https://institution.example.test",
+        "accountId": "12345",
+        "token": "$FIGSHARE_TOKEN"
+      },
+      "mapping": {
+        "metadata": {
+          "title": { "kind": "path", "path": "metadata.title" },
+          "description": { "kind": "path", "path": "metadata.description" }
+        }
+      },
+      "attachments": {
+        "selection": {
+          "attachmentMode": "selectedOnly",
+          "urlMode": "selectedOnly",
+          "selectedFlagPath": "selected"
+        },
+        "assets": { "enableHostedFiles": true, "enableLinkFiles": false }
+      },
+      "writeBack": {
+        "articleId": "metadata.publications.figshare.articleId",
+        "articleUrls": ["metadata.publications.figshare.url"],
+        "status": "metadata.publications.figshare.status",
+        "error": "metadata.publications.figshare.error",
+        "syncState": "metadata.publications.figshare.syncState",
+        "allFilesUploaded": "metadata.publications.figshare.allFilesUploaded"
+      },
+      "providerOptions": { "article": { "publishMode": "manual" } }
+    },
+    "oni-research": {
+      "provider": "oni",
+      "displayName": "Research repository",
+      "enabled": false,
+      "archived": false,
+      "connection": {
+        "label": "Research OCFL",
+        "publicUrl": "https://data.example.test/publication",
+        "useCleanUrl": false,
+        "storage": {
+          "driver": "flydrive",
+          "diskName": "oniPublic",
+          "prefix": "ocfl/research",
+          "rootPath": "/ocfl/research",
+          "workspacePath": "/ocfl-work/research",
+          "tempDir": "/tmp/oni-research",
+          "keyEncoding": "flydrive"
+        },
+        "ingestion": {
+          "enabled": true,
+          "apiUrl": "https://oni-api.example.test/api",
+          "adminToken": "EXAMPLE_ONLY_REPLACE_IN_APPCONFIG",
+          "forceReindex": false,
+          "pollIntervalMs": 500,
+          "timeoutMs": 120000
+        }
+      },
+      "mapping": {},
+      "attachments": { "attachmentMode": "selectedOnly", "selectedFlagPath": "selected" },
+      "writeBack": {
+        "citationUrlPath": "metadata.publications.oni.url",
+        "citationDoiPath": "metadata.publications.oni.doi",
+        "publicationErrorPath": "metadata.publications.oni.error"
+      },
+      "providerOptions": {
+        "rootCollection": { "targetRepoNamespace": "https://data.example.test/" }
+      }
+    }
+  },
+  "sourcePolicies": [
+    {
+      "id": "approve-publication",
+      "version": 1,
+      "mode": "approval",
+      "recordType": "dataPublication",
+      "event": "onTransitionWorkflow",
+      "destinations": ["figshare-main", "oni-research"],
+      "grantCondition": "<%= record.workflow.stage === 'queued' %>",
+      "continuationCondition": "<%= true %>"
+    },
+    {
+      "id": "sync-published-changes",
+      "version": 1,
+      "mode": "auto-sync",
+      "recordType": "dataPublication",
+      "event": "onUpdate",
+      "destinations": ["figshare-main", "oni-research"],
+      "grantCondition": "<%= record.workflow.stage === 'published' %>",
+      "continuationCondition": "<%= true %>"
+    }
+  ],
+  "workflow": {
+    "rules": [
+      {
+        "id": "publication-complete",
+        "version": 1,
+        "recordType": "dataPublication",
+        "destinations": ["figshare-main", "oni-research"],
+        "completion": "all",
+        "targetStage": "published"
+      }
+    ]
+  }
+}

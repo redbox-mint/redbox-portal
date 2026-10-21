@@ -1,6 +1,12 @@
 # Configuring Figshare Publishing
 
-This guide explains the Figshare publishing AppConfig screen at:
+For shared-authority brands, use [Shared Publication Configuration](Shared-Publication-Configuration) and the existing `publicationPublishing` AppConfig editor. This page retains the provider field/binding and stage-1 crosswalk reference. The screenshots and top-level legacy layout below describe `figsharePublishing` for unmigrated brands.
+
+Shared destinations place Connection in `connection`, Metadata/Authors/Categories in `mapping`, Selection/Assets in `attachments`, and Article/Impersonation/Embargo/Record options in `providerOptions`. Register disjoint central `writeBack` outputs, including default status/error/state fields when using several Figshare destinations. The [validated two-provider example](https://github.com/redbox-mint/redbox-portal/blob/master/support/documentation/examples/publication/configuration.json) checks these boundaries against the actual schemas/adapters.
+
+For shared processing, source policy and central all/any workflow replace eligible-save authorization and provider transition-job scheduling. Saves do not wait for new article fields; current destination status confirms remote publication separately from embargo/accessibility. Used destinations retain their target identity. Review customer overrides, immediate-field callers and attachment-cleanup dependencies using the [one-way operations runbook](Shared-Publication-Operations).
+
+The legacy provider screen is at:
 
 `http://localhost:1500/default/rdmp/admin/appconfig/edit/figsharePublishing`
 
@@ -118,7 +124,7 @@ These settings tell Redbox where to store figshare-related state inside a record
 | `Data Locations Path` | Path to the record's file/link array used for asset sync. |
 | `Status Path` | Path where sync status such as `syncing`, `published`, or `failed` is written. |
 | `Error Path` | Path where the last error message is stored. |
-| `Sync State Path` | Legacy state projection path; authoritative state is now in FigshareSync. |
+| `Sync State Path` | Legacy state projection path; authoritative state is in legacy FigshareSync before cutover and destination-keyed PublicationSync afterwards. |
 | `All Files Uploaded Path` | Optional path that is set to `yes` after uploaded Redbox attachments have been replaced with Figshare URLs. |
 
 Defaults shown in the current screen:
@@ -353,7 +359,7 @@ This section controls file and URL handling.
 |---|---|
 | `Storage Disk` | StorageManager disk that staged attachments are written to. Defaults to `figshare-staging`. |
 | `Storage Key Prefix` | Key prefix applied to staged objects on that disk. Defaults to `figshare/`. |
-| `Cleanup Policy` | Legacy staging policy. The queued worker removes temporary staged copies after each attempt and retains source attachment bytes for reconciliation. |
+| `Cleanup Policy` | Upload-temporary-file policy: `deleteAfterSuccess` deletes on success; `retainForRetry` retains on success. It does not disable record attachment replacement. Shared preparation uses `processing.stagingDisk`; original-byte cleanup requires post-completion replacement and its separate recovery/reference fence. See [queued synchronisation](Figshare-Queued-Synchronisation). |
 
 Recommendation:
 
@@ -374,7 +380,7 @@ This section maps record access-rights data onto Figshare embargo settings.
 
 ### Queue
 
-These values control delayed Agenda jobs.
+These legacy values control delayed Agenda jobs. Shared destinations use the central processing durations instead.
 
 | Option | What it means |
 |---|---|
@@ -389,7 +395,7 @@ Examples:
 
 ### Workflow
 
-This section is for optional follow-up workflow transitions once Figshare reaches a certain state.
+This is the legacy provider workflow section. Shared brands use publicationPublishing.workflow.rules with current confirmed completion and fixed all/any destination sets; the reconstructed provider transition job is disabled.
 
 | Option | What it means |
 |---|---|
@@ -477,6 +483,10 @@ Then provide the real token through environment management in the deployment pla
 | Record never transitions workflow | Transition job is disabled or target article state is never reached | Check `Workflow -> Transition Job` settings and the article field/value pair |
 
 ## Save Process
+
+For a shared destination, submitting AppConfig validates settings; it does not approve a record or contact Figshare. Test the configured source policy with a committed non-production record and inspect its named destination status. New article fields appear asynchronously after guarded worker projection. Complete the one-way cutover and institutional staging gates before enabling processing.
+
+Legacy provider form checks:
 
 After editing:
 

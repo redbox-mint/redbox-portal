@@ -2,6 +2,9 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import Ajv from 'ajv';
+import { PublicationService, PUBLICATION_PUBLISHING_SCHEMA } from '@researchdatabox/redbox-core';
+import { publicationVocabularyApiRoutes } from '@researchdatabox/redbox-core/dist/api-routes/groups/publication-vocabulary';
+import { subjectImport } from '../examples/publication-vocabulary';
 import {
   CATALOGUE_SCHEMA_VERSION,
   Catalogue,
@@ -172,6 +175,35 @@ async function validateExamples(
   const hookExample = fs
     .readFileSync(path.join(repositoryRoot, 'support/documentation/examples/hook-override.ts'), 'utf8')
     .trim();
+  const publicationExample = fs.readFileSync(
+    path.join(repositoryRoot, 'support/documentation/examples/publication/configuration.json'),
+    'utf8'
+  );
+  const publication = new PublicationService.Services.Publication();
+  const checked = publication.validateConfiguration(JSON.parse(publicationExample));
+  if (!checked.valid)
+    throw new Error(`Publication configuration example failed: ${checked.issues.map(issue => issue.code).join(', ')}`);
+  const publicationProviderExample = fs.readFileSync(
+    path.join(repositoryRoot, 'support/documentation/examples/publication-provider.ts'),
+    'utf8'
+  );
+  const importRoute = publicationVocabularyApiRoutes.find(route => route.action === 'importSource');
+  if (!importRoute?.request?.body?.content['application/json'].schema?.safeParse(subjectImport).success)
+    throw new Error('Publication vocabulary import example failed route validation');
+  const vocabularyExample = fs.readFileSync(
+    path.join(repositoryRoot, 'support/documentation/examples/publication-vocabulary.ts'),
+    'utf8'
+  );
+  for (const surface of surfaces) {
+    if (surface.id === 'publication-contract:PublicationPublishingConfigData')
+      surface.example = publicationExample.trim();
+    if (['service:PublicationService', 'publication-contract:PublicationProvider'].includes(surface.id))
+      surface.example = publicationProviderExample.trim();
+    if (surface.source.file === 'packages/redbox-core/src/services/publication-vocabulary/contracts.ts')
+      surface.example = vocabularyExample.trim();
+  }
+  const publicationSchemaPath = path.join(siteDirectory, 'schemas/publication-publishing.schema.json');
+  fs.writeFileSync(publicationSchemaPath, `${JSON.stringify(PUBLICATION_PUBLISHING_SCHEMA, null, 2)}\n`);
   for (const surface of surfaces.filter(candidate =>
     [
       'hook-protocol:defineRedboxHook',

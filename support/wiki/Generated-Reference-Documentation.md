@@ -23,11 +23,13 @@ Use `npm run docs:audit` when only the advisory health artifacts are required. I
 - `.tmp/documentation-health/documentation-health.json`
 - `.tmp/documentation-health/documentation-health.md`
 
-Use `npm run docs:test` for lifecycle parsing and inheritance tests.
+Use `npm run docs:test` for lifecycle/inheritance, publication classification and validated configuration/provider example tests. Run `npm run validate:api-routes` alongside these checks after contract or route changes.
 
 ## Classification metadata
 
-Only explicitly classified contracts are published. Add `@extensionPoint` to a supported service, controller, hook protocol, form contract, or form component. Combine it with `@experimental` or `@deprecated` for those lifecycle states. Mark non-public contracts with `@internal`. Registered surfaces without a lifecycle tag remain unpublished and appear as `unclassified` in the health report.
+Only explicitly classified contracts are published. `@public` alone is TypeDoc visibility, not a supported-extension classification. Add `@extensionPoint` to a supported service, controller, hook protocol, form contract, or form component. Combine it with `@experimental` or `@deprecated` for those lifecycle states. Mark non-public contracts with `@internal`. Registered surfaces without a lifecycle tag remain unpublished and appear as `unclassified` in the health report.
+
+Internal service members are excluded even when their container is supported. Explicitly tagged protected registration methods are included without becoming Sails shim actions.
 
 The `@extensionPoint` text should explain how hooks extend or replace the contract. Use `@remarks` for important caveats and canonical GitHub Wiki URLs in `@see` tags for longer guidance. Validated examples live in `support/documentation/examples` rather than source comments.
 
@@ -38,6 +40,7 @@ The site contains searchable HTML plus:
 - `artifacts/catalogue.json`: versioned normalized catalogue for agents and tools.
 - `artifacts/catalogue.md`: concise human-readable catalogue.
 - `schemas/form-config.schema.json`: downloadable FormConfig JSON Schema.
+- `schemas/publication-publishing.schema.json`: unified PublicationPublishing envelope schema. Provider schemas and semantic validation are also required; the envelope alone does not validate remote settings or authorize work.
 - `api/`: independent REST API reference.
 
 The generated form contract includes `FormConfig.validationOperations` and the
@@ -54,6 +57,27 @@ REST reference is expected to include `If-Match`, successful `ETag` headers,
 form fingerprints, and the typed 409/412/428 response variants. Run both
 `npm run validate:api-routes` and `npm run docs:audit` after changing these
 contracts.
+
+The publication reference publishes `PublicationService`'s supported hook/registration
+surface and the classified provider, execution, preparation, repair and configuration
+contracts. Host-owned source-save, worker, migration, authority and administration
+methods are internal. Provider/configuration examples come from
+`support/documentation/examples/publication-provider.ts` and
+`support/documentation/examples/publication/configuration.json`. Tests and generation
+validate the latter against the actual unified schema and registered Figshare/Oni
+adapters; generation fails on an invalid publication example. The published schema
+is the configuration envelope, complemented by adapter schemas/semantic checks.
+See [provider development](Publication-Provider-Development),
+[configuration](Shared-Publication-Configuration) and
+[cutover/recovery](Shared-Publication-Operations).
+
+Stage 2 additionally publishes the namespaced target, catalogue source, local code,
+mapping edge, immutable revision, crosswalk, actor, import and resolution contracts
+from `services/publication-vocabulary/contracts.ts`. The typed
+`support/documentation/examples/publication-vocabulary.ts` fixture is compiled and
+its URI import is validated against the actual API schema during generation/tests.
+Explicit revision pins and string outputs are retained. The administration switch
+and forward-only conversion have their own [release runbook](Shared-Publication-Vocabularies).
 
 The TypeDoc reflection model is an internal intermediate under `.tmp/documentation-intermediate` and is not published.
 
