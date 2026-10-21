@@ -1,4 +1,10 @@
-import type { RecordFieldWriteResult } from './RecordWriteOptions';
+import type {
+  PublicationAcknowledgement,
+  PublicationSaveCompletion,
+  PublicationRecoveryResult,
+  PublicationProjection,
+  RecordFieldWriteResult,
+} from './RecordWriteOptions';
 import { Readable } from 'node:stream';
 import { DeletedRecordModel, RecordModel } from './model';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
@@ -47,7 +53,7 @@ export interface StorageService {
     user?: unknown,
     options?: RecordStorageMutationOptions
   ): Promise<StorageMutationResponse>;
-  /** An absent declaration is unsupported for strict concurrency. */
+  /** An absent declaration is unsupported for strict concurrency and publication. */
   getCapabilities?(): StorageServiceCapabilities;
   /** Atomic active removal primitive used by staged lifecycle orchestration. */
   removeActiveRecord?(
@@ -102,6 +108,28 @@ export interface StorageService {
   /** Promote pending intents whose save stopped before readiness finalisation, so the dispatcher can recover them. */
   recoverStaleFigshareIntents?(staleBefore: string): Promise<number>;
   acknowledgeFigshareIntent?(oid: string, generation: number): Promise<boolean>;
+  /** Persist successful tracker completion separately from readiness so interrupted finalisation is recoverable. */
+  recordPublicationSaveSuccess?(
+    brandId: string,
+    oid: string,
+    saveToken: string,
+    completion: PublicationSaveCompletion
+  ): Promise<boolean>;
+  readyPublicationIntent?(brandId: string, oid: string, saveToken: string): Promise<boolean>;
+  abandonPublicationIntent?(brandId: string, oid: string, saveToken: string): Promise<boolean>;
+  pendingPublicationIntents?(brandId: string, limit: number, afterOid?: string): Promise<RecordModel[]>;
+  recoverPublicationIntents?(
+    brandId: string,
+    staleBefore: string,
+    limit: number,
+    afterOid?: string
+  ): Promise<PublicationRecoveryResult>;
+  acknowledgePublicationIntent?(
+    brandId: string,
+    oid: string,
+    acknowledgement: PublicationAcknowledgement
+  ): Promise<boolean>;
+  setPublicationRecordFields?(projection: PublicationProjection): Promise<RecordFieldWriteResult>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
   /** @deprecated Whole-record permission rewrites must use RecordsService.mutateMetaInternal(). */

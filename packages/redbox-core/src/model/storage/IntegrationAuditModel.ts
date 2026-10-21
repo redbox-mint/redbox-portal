@@ -6,6 +6,7 @@ export enum IntegrationAuditName {
 }
 
 export enum IntegrationAuditAction {
+  publicationEpisode = 'publicationEpisode',
   syncRecordWithFigshare = 'syncRecordWithFigshare',
   publishAfterUploadFilesJob = 'publishAfterUploadFilesJob',
   cleanupUploadedFilesJob = 'cleanupUploadedFilesJob',
@@ -44,7 +45,17 @@ export enum IntegrationAuditStatus {
 export class IntegrationAuditModel {
   redboxOid: string = '';
   brandId?: string;
-  integrationName: IntegrationAuditName = IntegrationAuditName.figshare;
+  /** Optional shared-publication correlation; legacy rows remain valid and untouched. */
+  eventId?: string;
+  episodeId?: string;
+  destinationId?: string;
+  providerId?: string;
+  approvalId?: string;
+  approvalEpoch?: number;
+  sourceRevision?: number;
+  sourceGeneration?: number;
+  operationId?: string;
+  integrationName: string = IntegrationAuditName.figshare;
   declare integrationAction: IntegrationAuditAction;
   triggeredBy?: string;
   declare status: IntegrationAuditStatus;

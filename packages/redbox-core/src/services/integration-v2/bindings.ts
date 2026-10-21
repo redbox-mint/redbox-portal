@@ -1,4 +1,55 @@
 import Handlebars from 'handlebars';
+import _ from 'lodash';
+import jsonata from 'jsonata';
+import { handlebarsCompile, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
+
+export type PathBinding = { kind: 'path'; path: string; defaultValue?: unknown };
+export type HandlebarsBinding = { kind: 'handlebars'; template: string; defaultValue?: unknown };
+export type JsonataBinding = { kind: 'jsonata'; expression: string; defaultValue?: unknown };
+export type SimpleValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
+
+export function validateSimpleBinding(binding: SimpleValueBinding, integrationName: string): void {
+  if (binding.kind === 'path') {
+    if (
+      !binding.path.trim() ||
+      _.toPath(binding.path).some(part => ['__proto__', 'prototype', 'constructor'].includes(part))
+    )
+      throw new Error(`Invalid ${integrationName} binding path`);
+  } else if (binding.kind === 'handlebars') validateSafeHandlebarsTemplate(binding.template, integrationName);
+  else if (binding.kind === 'jsonata' && binding.expression.trim()) jsonata(binding.expression);
+  else throw new Error(`Invalid ${integrationName} binding`);
+}
+
+export function evaluatePath(path: string, target: object, defaultValue?: unknown): unknown {
+  return _.get(target, path, defaultValue);
+}
+
+export function evaluateHandlebars(
+  template: string,
+  target: object,
+  integrationName: string,
+  noEscape = false
+): string {
+  validateSafeHandlebarsTemplate(template, integrationName);
+  return handlebarsCompile(template, { noEscape })(target);
+}
+
+export async function evaluateJsonata(expression: string, target: object): Promise<unknown> {
+  return jsonataCompileAndEvaluate(expression, target);
+}
+
+export async function evaluateSimpleBinding(
+  binding: SimpleValueBinding,
+  target: object,
+  integrationName: string
+): Promise<unknown> {
+  if (binding.kind === 'path') return evaluatePath(binding.path, target, binding.defaultValue) ?? binding.defaultValue;
+  if (binding.kind === 'handlebars') {
+    const value = evaluateHandlebars(binding.template, target, integrationName);
+    return value === '' ? binding.defaultValue : value;
+  }
+  return (await evaluateJsonata(binding.expression, target)) ?? binding.defaultValue;
+}
 
 export const DEFAULT_ALLOWED_HANDLEBARS_HELPERS = new Set(['default', 'join', 'lower', 'upper', 'trim', 'formatDate']);
 

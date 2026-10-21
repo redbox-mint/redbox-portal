@@ -20,6 +20,7 @@ import { reportsApiRoutes } from './groups/reports';
 import { searchApiRoutes } from './groups/search';
 import { translationApiRoutes } from './groups/translation';
 import { userApiRoutes } from './groups/users';
+import { publicationVocabularyApiRoutes } from './groups/publication-vocabulary';
 import { vocabularyApiRoutes } from './groups/vocabulary';
 import { namedQueryApiRoutes } from './groups/named-query';
 import { siemApiRoutes } from './groups/siem';
@@ -38,6 +39,7 @@ const coreApiRouteGroups = [
   formApiRoutes,
   harvestRunApiRoutes,
   vocabularyApiRoutes,
+  publicationVocabularyApiRoutes,
   figshareVocabularyApiRoutes,
   figshareCrosswalkApiRoutes,
   recordTypeApiRoutes,

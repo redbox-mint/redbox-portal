@@ -129,6 +129,9 @@ export async function coreBootstrap(): Promise<void> {
   await sails.services.translationservice.bootstrap();
   sails.log.verbose('Translation service, bootstrapped.');
 
+  // Register provider schemas and secret metadata before AppConfig caches schemas.
+  await sails.services.publicationservice.bootstrap();
+
   // Initialise the applicationConfig for all the brands
   await sails.services.appconfigservice.bootstrap();
   // bind convenience function to sails.config so that configuration access syntax is consistent

@@ -32,6 +32,8 @@ import * as I18nEntriesServiceModule from './I18nEntriesService';
 import * as NamedQueryServiceModule from './NamedQueryService';
 import * as NavigationServiceModule from './NavigationService';
 import * as OniServiceModule from './OniService';
+import * as PublicationServiceModule from './PublicationService';
+import * as PublicationVocabularyServiceModule from './PublicationVocabularyService';
 import * as OrcidServiceModule from './OrcidService';
 import * as PathRulesServiceModule from './PathRulesService';
 import * as RaidServiceModule from './RaidService';
@@ -91,6 +93,8 @@ export { I18nEntriesServiceModule as I18nEntriesService };
 export { NamedQueryServiceModule as NamedQueryService };
 export { NavigationServiceModule as NavigationService };
 export { OniServiceModule as OniService };
+export { PublicationServiceModule as PublicationService };
+export { PublicationVocabularyServiceModule as PublicationVocabularyService };
 export { OrcidServiceModule as OrcidService };
 export { PathRulesServiceModule as PathRulesService };
 export { RaidServiceModule as RaidService };
@@ -235,6 +239,9 @@ export const ServiceExports = {
   get FigshareService() {
     return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
   },
+  get PublicationVocabularyService() {
+    return getOrCreateService('PublicationVocabularyService', () => new PublicationVocabularyServiceModule.Services.PublicationVocabulary().exports());
+  },
   get FigshareVocabularyService() {
     return getOrCreateService('FigshareVocabularyService', () =>
       new FigshareVocabularyServiceModule.Services.FigshareVocabularyService().exports()
@@ -285,6 +292,11 @@ export const ServiceExports = {
   },
   get NavigationService() {
     return getOrCreateService('NavigationService', () => new NavigationServiceModule.Services.Navigation().exports());
+  },
+  get PublicationService() {
+    return getOrCreateService('PublicationService', () =>
+      new PublicationServiceModule.Services.Publication().exports()
+    );
   },
   get OniService() {
     return getOrCreateService('OniService', () => new OniServiceModule.Services.OniService().exports());

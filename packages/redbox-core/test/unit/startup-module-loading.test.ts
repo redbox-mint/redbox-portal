@@ -4,7 +4,9 @@ import path from 'node:path';
 
 describe('startup module loading', function () {
   it('loads core without a browser DOM or the full Effect barrel, then sanitizes on first use', function () {
-    this.timeout(15000);
+    // This cold subprocess transpiles the complete core source graph. Keep its
+    // DOM/Effect assertions independent of CPU contention during package suites.
+    this.timeout(45000);
     const packagePath = path.resolve(__dirname, '../..');
     const result = spawnSync(
       process.execPath,
@@ -30,7 +32,7 @@ describe('startup module loading', function () {
         cwd: packagePath,
         encoding: 'utf8',
         env: { ...process.env, TS_NODE_PROJECT: path.join(packagePath, 'test/tsconfig.json') },
-        timeout: 12000,
+        timeout: 30000,
       }
     );
     assert.equal(result.status, 0, result.error?.message ?? result.stderr);

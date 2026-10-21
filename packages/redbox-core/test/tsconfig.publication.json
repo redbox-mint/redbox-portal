@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "./services/publication/**/*.ts",
+    "./fixtures/publication/**/*.ts",
+    "./setup.ts",
+    "../src/**/*.ts",
+    "../src/**/*.d.ts"
+  ]
+}

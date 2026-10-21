@@ -87,6 +87,8 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api/users/:id/disable', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/users/:id/enable', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/figshare-vocabularies(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/api/publication-vocabularies(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/publication-vocabularies(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/figshare-crosswalks(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/dashboard-config(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/named-query(/*)', role: 'Admin', can_update: true },

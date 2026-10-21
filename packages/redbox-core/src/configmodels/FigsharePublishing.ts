@@ -13,26 +13,13 @@ export type FigshareArticleItemType =
   | 'code'
   | 'metadata';
 
-export interface PathBinding {
-  kind: 'path';
-  path: string;
-  defaultValue?: unknown;
-}
-
-export interface HandlebarsBinding {
-  kind: 'handlebars';
-  template: string;
-  defaultValue?: unknown;
-}
-
-export interface JsonataBinding {
-  kind: 'jsonata';
-  expression: string;
-  defaultValue?: unknown;
-}
-
-/** The binding kinds that read a value straight out of the evaluation target. */
-export type SimpleValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
+import type { SimpleValueBinding } from '../services/integration-v2/bindings';
+export type {
+  PathBinding,
+  HandlebarsBinding,
+  JsonataBinding,
+  SimpleValueBinding,
+} from '../services/integration-v2/bindings';
 
 /** What a crosswalk binding emits for each resolved mapping. */
 export type FigshareCrosswalkOutput = 'categoryId' | 'label' | 'sourceId';
@@ -170,14 +157,31 @@ export interface FigshareProcessingConfig {
   serviceUserType: string;
 }
 export const DEFAULT_FIGSHARE_PROCESSING: FigshareProcessingConfig = {
-  enabled: false, coalesceMs: 5000, leaseMs: 120000, heartbeatMs: 20000,
-  maxAttempts: 5, retryBaseMs: 60000, observationMs: 120000, cleanupMs: 300000,
-  serviceUsername: '', serviceUserType: ''
+  enabled: false,
+  coalesceMs: 5000,
+  leaseMs: 120000,
+  heartbeatMs: 20000,
+  maxAttempts: 5,
+  retryBaseMs: 60000,
+  observationMs: 120000,
+  cleanupMs: 300000,
+  serviceUsername: '',
+  serviceUserType: '',
 };
 export const DEFAULT_FIGSHARE_IMPERSONATION: FigshareImpersonationConfig = {
-  enabled: false, institutionalIdPath: 'metadata.contributor_ci.dc_identifier',
-  emailPath: 'metadata.contributor_ci.email', allowEmailFallback: false,
-  operations: { create: 'owner', recovery: 'owner', metadata: 'token', assets: 'token', embargo: 'token', publish: 'token', read: 'token' }
+  enabled: false,
+  institutionalIdPath: 'metadata.contributor_ci.dc_identifier',
+  emailPath: 'metadata.contributor_ci.email',
+  allowEmailFallback: false,
+  operations: {
+    create: 'owner',
+    recovery: 'owner',
+    metadata: 'token',
+    assets: 'token',
+    embargo: 'token',
+    publish: 'token',
+    read: 'token',
+  },
 };
 
 export interface FigsharePublishingConfigData {
@@ -546,24 +550,46 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
       default: false,
     },
     processing: {
-      type: 'object', title: 'Background Processing',
+      type: 'object',
+      title: 'Background Processing',
       description: 'Enable only after migration, indexes and worker cutover. Local attachment bytes are retained.',
       properties: {
         enabled: { type: 'boolean', default: false },
-        ...Object.fromEntries((['coalesceMs', 'leaseMs', 'heartbeatMs', 'maxAttempts', 'retryBaseMs', 'observationMs', 'cleanupMs'] as const).map(key => [key, { type: 'integer', minimum: 1, default: DEFAULT_FIGSHARE_PROCESSING[key] }])),
+        ...Object.fromEntries(
+          (
+            [
+              'coalesceMs',
+              'leaseMs',
+              'heartbeatMs',
+              'maxAttempts',
+              'retryBaseMs',
+              'observationMs',
+              'cleanupMs',
+            ] as const
+          ).map(key => [key, { type: 'integer', minimum: 1, default: DEFAULT_FIGSHARE_PROCESSING[key] }])
+        ),
         serviceUsername: { type: 'string', title: 'Local Service Username' },
-        serviceUserType: { type: 'string', title: 'Local Service User Type' }
-      }
+        serviceUserType: { type: 'string', title: 'Local Service User Type' },
+      },
     },
     impersonation: {
-      type: 'object', title: 'Figshare Ownership',
+      type: 'object',
+      title: 'Figshare Ownership',
       properties: {
         enabled: { type: 'boolean', default: false },
         institutionalIdPath: { type: 'string', default: DEFAULT_FIGSHARE_IMPERSONATION.institutionalIdPath },
         emailPath: { type: 'string', default: DEFAULT_FIGSHARE_IMPERSONATION.emailPath },
         allowEmailFallback: { type: 'boolean', default: false },
-        operations: { type: 'object', properties: Object.fromEntries(Object.entries(DEFAULT_FIGSHARE_IMPERSONATION.operations).map(([key, value]) => [key, { type: 'string', enum: ['token', 'owner'], default: value }])) }
-      }
+        operations: {
+          type: 'object',
+          properties: Object.fromEntries(
+            Object.entries(DEFAULT_FIGSHARE_IMPERSONATION.operations).map(([key, value]) => [
+              key,
+              { type: 'string', enum: ['token', 'owner'], default: value },
+            ])
+          ),
+        },
+      },
     },
     connection: {
       type: 'object',

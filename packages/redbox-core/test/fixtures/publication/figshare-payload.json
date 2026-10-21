@@ -1,0 +1,11 @@
+{
+  "title": "Coastal observations",
+  "description": "Hourly measurements &amp; methods",
+  "keywords": ["coast", "ocean"],
+  "defined_type": "dataset",
+  "categories": [10],
+  "license": 1,
+  "custom_fields": {
+    "Empty preserved": ""
+  }
+}

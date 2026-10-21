@@ -1,0 +1,169 @@
+{
+  "datasetUrl": "https://repository.example.test/publication-baseline",
+  "rootId": "arcp://name,uts_public_data_repo/publication-baseline",
+  "rootCollectionId": "arcp://name,data_repo/root_collection",
+  "dataRecordOid": "data-baseline",
+  "attachments": [
+    {
+      "fileId": "file-1",
+      "name": "observations.csv",
+      "logicalPath": "files/file-1/observations.csv",
+      "source": {
+        "type": "attachment",
+        "selected": true,
+        "fileId": "file-1",
+        "name": "observations.csv"
+      },
+      "encodingFormat": "text/csv"
+    }
+  ],
+  "crateJson": {
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+      {
+        "@id": "ro-crate-metadata.json",
+        "@type": "CreativeWork",
+        "about": {
+          "@id": "arcp://name,uts_public_data_repo/publication-baseline"
+        },
+        "conformsTo": {
+          "@id": "https://w3id.org/ro/crate/1.1"
+        }
+      },
+      {
+        "@id": "arcp://name,data_repo/root_collection",
+        "@type": ["Dataset", "RepositoryCollection"],
+        "identifier": "root_collection",
+        "name": "",
+        "description": "This is a sample data portal. For any questions, please get in touch with us at info@redboxresearchdata.com.au",
+        "license": {
+          "@id": "http://creativecommons.org/licenses/by/4.0",
+          "@type": "OrganizationReuseLicense",
+          "name": "Attribution 4.0 International (CC BY 4.0)",
+          "description": "You are free to share (copy and redistribute the material in any medium or format) and adapt (remix, transform and build upon the material for any purpose, even commercially)."
+        }
+      },
+      {
+        "@id": "https://www.redboxresearchdata.com.au",
+        "@type": "Organization",
+        "identifier": "https://www.redboxresearchdata.com.au",
+        "name": "ReDBox Research Data"
+      },
+      {
+        "@id": "http://creativecommons.org/licenses/by/4.0",
+        "@type": "OrganizationReuseLicense",
+        "name": "Attribution 4.0 International (CC BY 4.0)",
+        "description": "You are free to share (copy and redistribute the material in any medium or format) and adapt (remix, transform and build upon the material for any purpose, even commercially)."
+      },
+      {
+        "@id": "https://orcid.org/0000-0002-1825-0097",
+        "@type": "Person",
+        "name": "Ada Lovelace",
+        "givenName": "Ada",
+        "familyName": "Lovelace",
+        "email": "creator@example.test",
+        "affiliation": {
+          "@id": "https://www.redboxresearchdata.com.au",
+          "@type": "Organization",
+          "identifier": "https://www.redboxresearchdata.com.au",
+          "name": "ReDBox Research Data"
+        }
+      },
+      {
+        "@id": "mailto:manager@example.test",
+        "@type": "ContactPoint",
+        "name": "Data Manager",
+        "email": "manager@example.test",
+        "contactType": "Data Manager",
+        "identifier": "manager@example.test"
+      },
+      {
+        "@id": "manager@example.test",
+        "@type": "Person",
+        "name": "Data Manager",
+        "email": "manager@example.test",
+        "contactPoint": {
+          "@id": "mailto:manager@example.test"
+        }
+      },
+      {
+        "conformsTo": {
+          "@id": "https://w3id.org/ldac/profile#Object"
+        },
+        "name": "Coastal observations",
+        "description": "Hourly measurements & methods",
+        "dateCreated": "2026-01-02T03:04:05.000Z",
+        "keywords": ["coast", "ocean"],
+        "publisher": {
+          "@id": "https://www.redboxresearchdata.com.au",
+          "@type": "Organization",
+          "identifier": "https://www.redboxresearchdata.com.au",
+          "name": "ReDBox Research Data"
+        },
+        "license": [
+          {
+            "@id": "http://creativecommons.org/licenses/by/4.0",
+            "@type": "OrganizationReuseLicense",
+            "name": "Attribution 4.0 International (CC BY 4.0)",
+            "description": "You are free to share (copy and redistribute the material in any medium or format) and adapt (remix, transform and build upon the material for any purpose, even commercially)."
+          }
+        ],
+        "@id": "arcp://name,uts_public_data_repo/publication-baseline",
+        "@type": ["Dataset", "RepositoryObject"],
+        "identifier": "publication-baseline",
+        "yearCreated": "2026",
+        "datePublished": "2026-02-03T04:05:06.000Z",
+        "yearPublished": "2026",
+        "memberOf": {
+          "@id": "arcp://name,data_repo/root_collection"
+        },
+        "hasPart": [
+          {
+            "@id": "files/file-1/observations.csv"
+          }
+        ],
+        "author": [
+          {
+            "@id": "https://orcid.org/0000-0002-1825-0097"
+          }
+        ],
+        "contributor": [
+          {
+            "@id": "manager@example.test"
+          }
+        ]
+      },
+      {
+        "@id": "files/file-1/observations.csv",
+        "@type": ["File"],
+        "name": "observations.csv",
+        "encodingFormat": "text/csv"
+      },
+      {
+        "@id": "history1",
+        "@type": "CreateAction",
+        "name": "Create",
+        "description": "Data record created",
+        "endTime": "2026-01-02T03:04:05.000Z",
+        "object": {
+          "@id": "arcp://name,uts_public_data_repo/publication-baseline"
+        },
+        "agent": {
+          "@id": "https://orcid.org/0000-0002-1825-0097"
+        }
+      },
+      {
+        "@id": "history2",
+        "@type": "UpdateAction",
+        "name": "Publish",
+        "endTime": "2026-02-03T04:05:06.000Z",
+        "object": {
+          "@id": "arcp://name,uts_public_data_repo/publication-baseline"
+        },
+        "agent": {
+          "@id": "https://orcid.org/0000-0002-1825-0097"
+        }
+      }
+    ]
+  }
+}

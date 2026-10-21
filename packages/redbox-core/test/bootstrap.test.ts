@@ -505,6 +505,7 @@ describe('record schema bootstrap lifecycle', function () {
         i18nentriesservice: { bootstrap: immediate },
         translationservice: { bootstrap: immediate },
         appconfigservice: { bootstrap: immediate },
+        publicationservice: { bootstrap: immediate },
         figsharevocabularyservice: { bootstrapData: immediate },
         agendaqueueservice: { init: immediate },
         workspacetypesservice: { bootstrap: () => of(undefined) },

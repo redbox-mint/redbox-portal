@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./services/oni-v2/reconciliation.test.ts", "./setup.ts", "../src/**/*.ts", "../src/**/*.d.ts"]
+}

@@ -81,6 +81,8 @@ export interface VocabServiceLookupResponse {
 }
 
 export interface VocabConfig {
+    /** Stage 2 administration requires an explicit per-brand conversion before use. */
+    publicationAdministrationEnabled?: boolean;
     clientUri: string;
     collectionUri: string;
     userRootUri: string;
@@ -107,6 +109,7 @@ const geonamesDefaultParams = "timeAllowed=1000&rows=7&fq=((feature_class:P AND 
 const geonamesCountryParams = "timeAllowed=1000&rows=7&fq=feature_class:A AND feature_code:COUNTRY";
 
 export const vocab: VocabConfig = {
+    publicationAdministrationEnabled: false,
     clientUri: 'vocab',
     collectionUri: 'collection',
     userRootUri: 'user/find',

@@ -1,8 +1,10 @@
+import type { PublicationSourceState } from '../../services/publication/contracts';
 import type { FigshareSourceIntent } from './FigshareSyncModel';
 
 export interface RecordModel {
   [key: string]: unknown;
   redboxOid: string;
+  publicationSource?: PublicationSourceState;
   figshareSyncIntent?: FigshareSourceIntent;
   recordVersion?: number;
   /** Server-owned monotonic aggregate revision. */

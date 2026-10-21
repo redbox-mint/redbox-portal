@@ -26,6 +26,9 @@ function matchRoutePath(routePath: string, requestPath: string): boolean {
 }
 
 function getContractAliasPath(routePath: string): string | undefined {
+  const vocabularyPath = '/:branding/:portal/publication-vocabularies';
+  if (routePath === vocabularyPath || routePath.startsWith(`${vocabularyPath}/`))
+    return routePath.replace('/publication-vocabularies', '/api/publication-vocabularies');
   const reportConfigAdminPath = '/:branding/:portal/admin/report-config';
   if (routePath === reportConfigAdminPath || routePath.startsWith(`${reportConfigAdminPath}/`)) {
     return routePath.replace('/admin/report-config', '/api/report-config');
@@ -56,12 +59,15 @@ export function resolveApiRouteForRequest(req: Sails.Req): ApiRouteDefinition | 
     }
   }
 
-  const requestPath = typeof req.path === 'string' && req.path.trim() !== ''
-    ? req.path.trim()
-    : typeof req.originalUrl === 'string'
-      ? req.originalUrl.split('?')[0]
-      : '';
-  const matchingRoutes = getCachedRoutes().filter(route => route.method === method && matchRoutePath(route.path, requestPath));
+  const requestPath =
+    typeof req.path === 'string' && req.path.trim() !== ''
+      ? req.path.trim()
+      : typeof req.originalUrl === 'string'
+        ? req.originalUrl.split('?')[0]
+        : '';
+  const matchingRoutes = getCachedRoutes().filter(
+    route => route.method === method && matchRoutePath(route.path, requestPath)
+  );
 
   if (matchingRoutes.length === 1) {
     return matchingRoutes[0];

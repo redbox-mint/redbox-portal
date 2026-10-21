@@ -179,11 +179,15 @@ export type AuthConfig = AuthBootstrapConfig & BrandAuthConfig;
  * Passport strategy config with authenticate method
  */
 export interface PassportConfig {
-    authenticate: (
-        strategy: string,
-        options?: Record<string, unknown>
-    ) => (req: Request, res: Response, next?: NextFunction) => void;
-    [strategyName: string]: unknown;
+  authenticate: {
+    (strategy: string, options?: Record<string, unknown>): (req: Request, res: Response, next?: NextFunction) => void;
+    (
+      strategy: string,
+      options: Record<string, unknown>,
+      callback: (error: unknown, user: Record<string, unknown> | false | null) => void
+    ): (req: Request, res: Response, next?: NextFunction) => void;
+  };
+  [strategyName: string]: unknown;
 }
 
 /**

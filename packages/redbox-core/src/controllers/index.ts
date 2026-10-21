@@ -31,6 +31,7 @@ import * as WSAdminControllerModule from './webservice/AdminController';
 import * as WSAppConfigControllerModule from './webservice/AppConfigController';
 import * as WSBrandingControllerModule from './webservice/BrandingController';
 import * as WSExportControllerModule from './webservice/ExportController';
+import * as WSPublicationVocabularyControllerModule from './webservice/PublicationVocabularyController';
 import * as WSFigshareCrosswalkControllerModule from './webservice/FigshareCrosswalkController';
 import * as WSFigshareVocabularyControllerModule from './webservice/FigshareVocabularyController';
 import * as WSFormManagementControllerModule from './webservice/FormManagementController';
@@ -87,6 +88,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get AppConfigController() { return getOrCreate('WS_AppConfigController', () => new WSAppConfigControllerModule.Controllers.AppConfig().exports()); },
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
     get ExportController() { return getOrCreate('WS_ExportController', () => new WSExportControllerModule.Controllers.Export().exports()); },
+    get PublicationVocabularyController() { return getOrCreate('WS_PublicationVocabularyController', () => new WSPublicationVocabularyControllerModule.Controllers.PublicationVocabulary().exports()); },
     get FigshareCrosswalkController() { return getOrCreate('WS_FigshareCrosswalkController', () => new WSFigshareCrosswalkControllerModule.Controllers.FigshareCrosswalk().exports()); },
     get FigshareVocabularyController() { return getOrCreate('WS_FigshareVocabularyController', () => new WSFigshareVocabularyControllerModule.Controllers.FigshareVocabulary().exports()); },
     get FormManagementController() { return getOrCreate('WS_FormManagementController', () => new WSFormManagementControllerModule.Controllers.FormManagement().exports()); },
@@ -132,6 +134,7 @@ export const ControllerNames = [
 ];
 
 export const WebserviceControllerNames = [
+    'PublicationVocabularyController',
     'AdminController',
     'AppConfigController',
     'BrandingController',

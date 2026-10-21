@@ -1,5 +1,17 @@
 import { prepareSourceIntent } from './figshare-v2/source-intent';
 import { assertRecordFieldPaths } from '../RecordWriteOptions';
+import { publicationContentDigest, publicationRecordDigest, publicationDigest } from './publication/canonical';
+import { publicationWorkflowWriteIntent, publicationWorkflowTransitionActive } from './publication/workflow';
+import {
+  createPublicationSaveSession,
+  publicationHookContext,
+  publicationState,
+  preparePublicationSave,
+  abandonPublicationSave,
+  publicationPreparationDigest,
+  assertPublicationSavePolicies,
+  type PublicationSaveSession,
+} from './publication/save';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -498,6 +510,9 @@ export namespace Services {
       { expression: string; fn: (...args: unknown[]) => unknown }
     >();
     private readonly saveHookOperations = new WeakMap<RecordSaveTracker, ActionExecutionOperation>();
+    private readonly publicationSessions = new WeakMap<RecordSaveContext, PublicationSaveSession>();
+    private readonly publicationOperations = new WeakMap<ActionExecutionOperation, PublicationSaveSession>();
+    private readonly publicationSessionOption = Symbol('publication-save-session');
     private readonly deferredSavePostHookDispatches = new WeakMap<
       ActionExecutionOperation,
       DeferredSavePostHookDispatch[]
@@ -534,6 +549,9 @@ export namespace Services {
       operation: ActionExecutionOperation
     ): ActionExecutionOperation {
       this.saveHookOperations.set(tracker, operation);
+      const session = createPublicationSaveSession();
+      this.publicationSessions.set(tracker.context, session);
+      this.publicationOperations.set(operation, session);
       this.deferredSavePostHookDispatches.set(operation, []);
       return operation;
     }
@@ -569,7 +587,20 @@ export namespace Services {
       return new RecordHookCoordinator({
         operation,
         dependencies: this.hookExecutionDependencies(),
-        resolveHook: (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase),
+        resolveHook: (hook, mode, phase) => {
+          const fn = this.configuredHookFunction(hook, mode, phase);
+          const session = this.publicationOperations.get(operation);
+          if (!session) return fn;
+          return (...args: unknown[]) => {
+            const actor = args[3];
+            if (!session.user && actor && typeof actor === 'object') session.user = { ...actor };
+            const options = _.get(hook, 'options');
+            return publicationHookContext.run(
+              { session, event: mode, phase, options: options && typeof options === 'object' ? options : {} },
+              () => fn(...args)
+            );
+          };
+        },
         ...(enforceAuthoritativeOid && operation.mode !== 'onDelete'
           ? {
               normalizeRecord: (candidate: AnyRecord) =>
@@ -1285,7 +1316,34 @@ export namespace Services {
       // contract while the authoritative in-memory snapshot retains them.
       _.unset(storageCandidate, 'id');
       _.unset(storageCandidate, '_id');
-      return await this.storageService.updateMeta(brand, oid, storageCandidate, user, options);
+      const session: PublicationSaveSession | undefined = options
+        ? Reflect.get(options, this.publicationSessionOption)
+        : undefined;
+      if (options && !options.publicationIntent && (session?.prepared || publicationWorkflowTransitionActive(oid))) {
+        const current = await this.storageService.getMeta(oid);
+        const prior: AnyRecord = { ...current };
+        options.publicationIntent =
+          publicationWorkflowWriteIntent(storageCandidate, prior, oid) ??
+          (session?.prepared
+            ? {
+                kind:
+                  publicationContentDigest(prior) === publicationContentDigest(storageCandidate)
+                    ? 'preserve'
+                    : 'content',
+                expectedSourceRevision: publicationState(prior)?.revision ?? 0,
+                saveToken: randomUUID(),
+                approvals: [],
+                expectedRecordDigest: publicationRecordDigest(storageCandidate),
+                expectedPriorRecordDigest: publicationRecordDigest(prior),
+              }
+            : undefined);
+      }
+      const response = await this.storageService.updateMeta(brand, oid, storageCandidate, user, options);
+      if (session?.prepared && response.applicationState === 'applied') {
+        session.lastWrittenDigest = publicationRecordDigest(storageCandidate);
+        if (options?.publicationIntent?.approvals.length) session.tokens.push(options.publicationIntent.saveToken);
+      }
+      return response;
     }
 
     private async createStorageCandidate(
@@ -1303,6 +1361,13 @@ export namespace Services {
       _.unset(storageCandidate, 'id');
       _.unset(storageCandidate, '_id');
       const adapterResponse = await this.storageService.create(brand, storageCandidate, recordType, user, options);
+      const session: PublicationSaveSession | undefined = options
+        ? Reflect.get(options, this.publicationSessionOption)
+        : undefined;
+      if (session?.prepared && adapterResponse.applicationState === 'applied') {
+        session.lastWrittenDigest = publicationRecordDigest(storageCandidate);
+        if (options?.publicationIntent?.approvals.length) session.tokens.push(options.publicationIntent.saveToken);
+      }
       return this.routeBoundStorageResponse(adapterResponse, createOid);
     }
 
@@ -1326,7 +1391,7 @@ export namespace Services {
       expectedRevision?: number,
       requireRevision = false
     ): RecordStorageMutationOptions {
-      return {
+      const options: RecordStorageMutationOptions = {
         precondition: {
           requireRevision,
           ...(expectedRevision !== undefined ? { expectedRevision } : {}),
@@ -1334,6 +1399,9 @@ export namespace Services {
         requestId: context.requestId,
         resolution: this.effectiveConcurrencyResolution(context),
       };
+      const session = this.publicationSessions.get(context);
+      if (session) Reflect.set(options, this.publicationSessionOption, session);
+      return options;
     }
 
     private concurrencyMetadata(
@@ -1726,9 +1794,7 @@ export namespace Services {
         return { status: 'unknown' };
       }
       const deletions = await Promise.allSettled(
-        datastreams.map(datastream =>
-          this.datastreamService.removeDatastream(oid, new Datastream(datastream), brandId)
-        )
+        datastreams.map(datastream => this.datastreamService.removeDatastream(oid, new Datastream(datastream), brandId))
       );
       let remaining: AnyRecord[];
       try {
@@ -2794,8 +2860,165 @@ export namespace Services {
       return { figshareIntent: intent };
     }
 
-    getFigshareIntentStorage() {
+    private async preparePublicationSaveIntent(
+      tracker: RecordSaveTracker,
+      record: AnyRecord,
+      original: AnyRecord | undefined,
+      recordType: unknown,
+      events: string[],
+      user: AnyRecord
+    ): Promise<RecordStorageMutationOptions> {
+      const session = this.publicationSessions.get(tracker.context)!;
+      if (original) {
+        const transition = publicationWorkflowWriteIntent(record, original, String(record.redboxOid));
+        if (transition) return { publicationIntent: transition };
+      }
+      if (typeof PublicationService !== 'undefined' && typeof PublicationService.prepareSourceRequest === 'function') {
+        const prepared = await PublicationService.prepareSourceRequest(
+          session,
+          record,
+          original,
+          [...new Set([...events, ...session.events])],
+          user,
+          this.storageService
+        );
+        if (prepared) return { publicationIntent: prepared.intent };
+      }
+      return this.prepareFigshareSaveIntent(tracker, record, recordType, events, user);
+    }
+
+    private async finishPublicationSave(tracker: RecordSaveTracker, committed: AnyRecord): Promise<void> {
+      const session = this.publicationSessions.get(tracker.context);
+      const prepared = session?.prepared;
+      if (!session || !prepared) return;
+      let completionDispatched = false;
+      try {
+        if (!tracker.result.isComplete()) {
+          await abandonPublicationSave(this.storageService, session);
+          return;
+        }
+        if (publicationRecordDigest(committed) !== session.lastWrittenDigest)
+          throw new Error('Publication source changed before save finalisation');
+        if (!prepared.policyIds.length && !session.events.length) return;
+        // Revalidate sealed dependencies and synchronous hook output. This grants only the
+        // policies observed at the original event, against the final committed snapshot.
+        const runtime = await prepared.runtime.refresh();
+        assertPublicationSavePolicies(prepared, runtime);
+        const final = await preparePublicationSave({
+          session,
+          runtime,
+          record: committed,
+          original: committed,
+          events: [...new Set([...prepared.events, ...session.events])],
+          user: session.user!,
+          brandId: prepared.brandId,
+          oid: prepared.oid,
+          policyIds: [
+            ...new Set([
+              ...prepared.policyIds,
+              ...prepared.runtime.configuration.sourcePolicies
+                .filter(policy => session.events.includes(policy.event))
+                .map(policy => policy.id),
+            ]),
+          ],
+        });
+        for (const [key, source] of Object.entries(final.sealed)) {
+          const previous = prepared.sealed[key];
+          if (
+            previous &&
+            publicationDigest(previous.configurationDigests) !== publicationDigest(source.configurationDigests)
+          )
+            throw new Error('Material publication configuration changed during the save');
+        }
+        let unchanged = publicationContentDigest(committed) === prepared.contentDigest;
+        if (unchanged) {
+          for (const [key, source] of Object.entries(final.sealed)) {
+            const previous = prepared.sealed[key];
+            if (!previous) {
+              unchanged = false;
+              continue;
+            }
+            if (publicationPreparationDigest(previous) !== publicationPreparationDigest(source))
+              throw new Error('Publication dependencies changed during the save');
+          }
+          unchanged = unchanged && Object.keys(final.sealed).length === Object.keys(prepared.sealed).length;
+        }
+        let token = prepared.intent.saveToken;
+        if (!unchanged) {
+          const response = await this.storageService.updateMeta(
+            BrandingService.getBrandById(final.brandId),
+            final.oid,
+            { ...committed },
+            session.user,
+            {
+              publicationIntent: final.intent,
+              precondition: { requireRevision: true, expectedRevision: this.recordRevision(committed) },
+            }
+          );
+          if (response.applicationState !== 'applied')
+            throw new Error('Publication source changed during finalisation');
+          await abandonPublicationSave(this.storageService, session);
+          token = final.intent.saveToken;
+          session.tokens = final.intent.approvals.length ? [token] : [];
+        }
+        if (!final.intent.approvals.length) {
+          await abandonPublicationSave(this.storageService, session);
+          return;
+        }
+        const current = await this.storageService.getMeta(final.oid);
+        const snapshot: AnyRecord = { ...current };
+        if (!current || publicationRecordDigest(snapshot) !== final.intent.expectedRecordDigest)
+          throw new Error('Publication committed content changed during finalisation');
+        completionDispatched = true;
+        const marked = await this.storageService.recordPublicationSaveSuccess!(final.brandId, final.oid, token, {
+          evidenceId: session.id,
+          sourceRevision: publicationState(snapshot)!.revision,
+          recordDigest: publicationRecordDigest(snapshot),
+        });
+        if (!marked || !(await this.storageService.readyPublicationIntent!(final.brandId, final.oid, token)))
+          throw new Error('Publication save readiness could not be confirmed');
+        Object.assign(committed, snapshot);
+        if (typeof PublicationService !== 'undefined' && typeof PublicationService.wakeRecord === 'function')
+          void PublicationService.wakeRecord(final.brandId, final.oid).catch(() =>
+            sails.log.warn('Publication wake-up failed; durable scan will recover')
+          );
+      } catch (error) {
+        // A lost success-marker/readiness response is recovered from durable evidence.
+        // It is not a known failed synchronous save and must not be overwritten as abandoned.
+        if (!completionDispatched) await abandonPublicationSave(this.storageService, session);
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'post-save',
+            'Your record was saved, but publication approval could not be completed.',
+            'processing',
+            'publication-finalisation-failed'
+          )
+        );
+        sails.log.warn('Publication save finalisation failed; protected evidence retained', {
+          error_type: safeExceptionType(error),
+        });
+      } finally {
+        session.closed = true;
+      }
+    }
+
+    getPublicationStorage() {
       return this.storageService;
+    }
+
+    /** Prepare the queue-disabled administration process without startup recovery or a ready event. @internal */
+    async preparePublicationAdministration(): Promise<void> {
+      if (process.env.REDBOX_PUBLICATION_ADMIN !== 'true')
+        throw new Error('Publication administration requires the queue-disabled loader');
+      this.getServices();
+      for (const service of new Set([this.storageService, this.datastreamService])) {
+        const init = service && Reflect.get(service, 'init');
+        if (typeof init === 'function') await init.call(service);
+      }
+    }
+
+    getFigshareIntentStorage() {
+      return this.getPublicationStorage();
     }
 
     async setRecordFields(
@@ -2896,7 +3119,7 @@ export namespace Services {
         }
       }
 
-      const finalRevision = this.recordRevision(persistedRecord);
+      let finalRevision = this.recordRevision(persistedRecord);
       const concurrency = tracker.result.concurrency;
       if (concurrency?.mode && finalRevision !== undefined) {
         tracker.setConcurrencyMetadata({
@@ -2925,6 +3148,15 @@ export namespace Services {
           });
         }
       }
+      await this.finishPublicationSave(tracker, persistedRecord);
+      finalRevision = this.recordRevision(persistedRecord);
+      if (concurrency?.mode && finalRevision !== undefined)
+        tracker.setConcurrencyMetadata({
+          ...concurrency,
+          revision: finalRevision,
+          currentRevision: finalRevision,
+          entityTag: formatRecordEntityTag(oid, finalRevision),
+        });
       let auditTimer: ReturnType<typeof setTimeout> | undefined;
       const submitAudit = (detachedFinalization: DetachedAuditFinalization = 'complete'): void => {
         if (operation?.detachedAuditFinalized) {
@@ -3792,6 +4024,8 @@ export namespace Services {
       'create',
       'updateMeta',
       'getFigshareIntentStorage',
+      'getPublicationStorage',
+      'preparePublicationAdministration',
       'setRecordFields',
       'updateMetaInternal',
       'mutateMetaInternal',
@@ -4389,18 +4623,36 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      let publicationOptions: RecordStorageMutationOptions;
+      try {
+        publicationOptions = await this.preparePublicationSaveIntent(
+          tracker,
+          recordObj,
+          undefined,
+          recordTypeObj,
+          ['onCreate', ...(targetStepName ? ['onTransitionWorkflow'] : [])],
+          userObj
+        );
+      } catch (error) {
+        await this.markAttachmentPlanState(
+          createOid,
+          createAttachmentPlan,
+          'cancelled',
+          'publication-preparation-failed'
+        );
+        tracker.recordPrimaryNotApplied(
+          this.saveProblemFromError(error, 'pre-save', 'Publication approval could not be prepared.')
+        );
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
+      }
+
       // save the record ...
 
       try {
         createResponse = await this.createStorageCandidate(brandObj, createOid, recordObj, recordTypeObj, userObj, {
           ...this.recordMutationOptions(tracker.context),
-          ...this.prepareFigshareSaveIntent(
-            tracker,
-            recordObj,
-            recordTypeObj,
-            ['onCreate', ...(targetStepName ? ['onTransitionWorkflow'] : [])],
-            userObj
-          ),
+          ...publicationOptions,
         });
       } catch (error) {
         await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'unknown', 'primary-persistence-unknown');
@@ -5546,20 +5798,31 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      let publicationOptions: RecordStorageMutationOptions;
+      try {
+        publicationOptions = await this.preparePublicationSaveIntent(
+          tracker,
+          recordObj,
+          originalRecord,
+          recordType,
+          maintenance ? [] : ['onUpdate', ...(transitionRequested ? ['onTransitionWorkflow'] : [])],
+          userObj
+        );
+      } catch (error) {
+        await this.markAttachmentPlanState(oid, updateAttachmentPlan, 'cancelled', 'publication-preparation-failed');
+        tracker.recordPrimaryNotApplied(
+          this.saveProblemFromError(error, 'pre-save', 'Publication approval could not be prepared.')
+        );
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
+      }
+
       // Primary metadata is the commit boundary.  Physical attachment work
       // must not run until this mutation is explicitly confirmed applied.
       try {
         const adapterResponse = await this.updateStorageCandidate(brandObj, oid, recordObj, userObj, {
           ...this.recordMutationOptions(tracker.context, expectedRevision, expectedRevision !== undefined),
-          ...(maintenance
-            ? {}
-            : this.prepareFigshareSaveIntent(
-                tracker,
-                recordObj,
-                recordType,
-                ['onUpdate', ...(transitionRequested ? ['onTransitionWorkflow'] : [])],
-                userObj
-              )),
+          ...publicationOptions,
         });
         updateResponse = this.routeBoundStorageResponse(adapterResponse, oid);
       } catch (error) {
@@ -8147,7 +8410,9 @@ export namespace Services {
             sails.log.error('Failed to emit record audit security event');
           });
         }
-      } catch { sails.log.error('Failed to emit record audit security event'); }
+      } catch {
+        sails.log.error('Failed to emit record audit security event');
+      }
       return response;
     }
 

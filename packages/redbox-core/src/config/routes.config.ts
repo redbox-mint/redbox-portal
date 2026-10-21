@@ -6,6 +6,7 @@
  */
 
 import { buildMergedApiRouteConfig } from '../api-routes';
+import { publicationVocabularyApiRoutes } from '../api-routes/groups/publication-vocabulary';
 
 export interface RouteTargetObject {
   controller?: string;
@@ -429,6 +430,12 @@ export const routes: RoutesConfig = {
   },
 
   ...buildMergedApiRouteConfig(),
+  ...Object.fromEntries(
+    publicationVocabularyApiRoutes.map(route => [
+      `${route.method} ${route.path.replace('/api/publication-vocabularies', '/publication-vocabularies')}`,
+      { controller: route.controller, action: route.action, csrf: true },
+    ])
+  ),
 
   // Translation routes
   'get /:branding/:portal/locales/:lng/:ns.json': {

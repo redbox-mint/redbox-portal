@@ -37,10 +37,7 @@ export interface OniDefaultIriPrefs {
 
 export type OniBindingKind = 'path' | 'handlebars' | 'jsonata';
 
-export type OniValueBinding =
-  | { kind: 'path'; path: string; defaultValue?: unknown }
-  | { kind: 'handlebars'; template: string; defaultValue?: unknown }
-  | { kind: 'jsonata'; expression: string; defaultValue?: unknown };
+export type OniValueBinding = import('../services/integration-v2/bindings').SimpleValueBinding;
 
 // Keep name normalization in the configurable default bindings. Meaningful full
 // names win; each name part prefers camelCase and falls back to snake_case.

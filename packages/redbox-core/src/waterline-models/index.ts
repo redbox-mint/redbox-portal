@@ -14,6 +14,9 @@ export * from './FigshareVocabularyCrosswalkMapping';
 export * from './FigshareVocabularySource';
 export * from './FigshareVocabularySyncRun';
 export * from './FigshareSync';
+export * from './PublicationSync';
+export * from './PublicationMigration';
+export * from './PublicationResourceLease';
 export * from './Form';
 export * from './HarvestRecordEvent';
 export * from './HarvestRun';
@@ -56,6 +59,9 @@ import { FigshareVocabularyCrosswalkMappingWLDef } from './FigshareVocabularyCro
 import { FigshareVocabularySourceWLDef } from './FigshareVocabularySource';
 import { FigshareVocabularySyncRunWLDef } from './FigshareVocabularySyncRun';
 import { FigshareSyncWLDef } from './FigshareSync';
+import { PublicationMigrationWLDef } from './PublicationMigration';
+import { PublicationSyncWLDef } from './PublicationSync';
+import { PublicationResourceLeaseWLDef } from './PublicationResourceLease';
 import { FormWLDef } from './Form';
 import { HarvestRecordEventWLDef } from './HarvestRecordEvent';
 import { HarvestRunWLDef } from './HarvestRun';
@@ -101,6 +107,9 @@ export const WaterlineModels = {
   FigshareVocabularySource: FigshareVocabularySourceWLDef,
   FigshareVocabularySyncRun: FigshareVocabularySyncRunWLDef,
   FigshareSync: FigshareSyncWLDef,
+  PublicationSync: PublicationSyncWLDef,
+  PublicationMigration: PublicationMigrationWLDef,
+  PublicationResourceLease: PublicationResourceLeaseWLDef,
   Form: FormWLDef,
   HarvestRecordEvent: HarvestRecordEventWLDef,
   HarvestRun: HarvestRunWLDef,

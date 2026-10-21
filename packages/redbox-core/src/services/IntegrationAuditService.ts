@@ -12,13 +12,27 @@ import {
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { redactObject } from '../utilities/RedactionUtils';
 import { StorageService } from '../StorageService';
+import type { PublicationSyncModel } from '../model/storage/PublicationSyncModel';
+import { publicationAuditEntries } from './publication/audit';
 
 type AnyRecord = Record<string, unknown>;
+type PublicationAuditIdentity = Pick<
+  IntegrationAuditModel,
+  | 'eventId'
+  | 'episodeId'
+  | 'destinationId'
+  | 'providerId'
+  | 'approvalId'
+  | 'approvalEpoch'
+  | 'sourceRevision'
+  | 'sourceGeneration'
+  | 'operationId'
+>;
 
-export type IntegrationAuditContext = {
+export type IntegrationAuditContext = PublicationAuditIdentity & {
   redboxOid: string;
   brandId?: string;
-  integrationName: IntegrationAuditName;
+  integrationName: string;
   integrationAction: IntegrationAuditAction;
   triggeredBy?: string;
   traceId: string;
@@ -44,7 +58,7 @@ export type IntegrationAuditTraceEvent = Record<string, unknown> & {
   hasChildren: boolean;
 };
 
-export type IntegrationAuditTraceRecord = {
+export type IntegrationAuditTraceRecord = PublicationAuditIdentity & {
   id: string;
   traceId: string;
   status: string;
@@ -78,7 +92,7 @@ export type IntegrationStatusRecordContext = {
   workflowStage?: string;
 };
 
-export type IntegrationStatusSummary = {
+export type IntegrationStatusSummary = PublicationAuditIdentity & {
   integrationName: string;
   status: string;
   integrationAction?: string;
@@ -102,9 +116,9 @@ export type IntegrationOutcomeMapper = (
   ctx: IntegrationStatusRecordContext
 ) => IntegrationOutcome | undefined;
 
-type IntegrationAuditOptions = {
+type IntegrationAuditOptions = PublicationAuditIdentity & {
   brandId?: string;
-  integrationName?: IntegrationAuditName;
+  integrationName?: string;
   triggeredBy?: string;
   requestSummary?: Record<string, unknown>;
   message?: string;
@@ -134,6 +148,7 @@ export namespace Services {
       'getStatusSummaryWithOutcomes',
       'registerOutcomeMapper',
       'storeIntegrationAudit',
+      'recordPublicationAudit',
     ];
 
     constructor() {
@@ -183,7 +198,11 @@ export namespace Services {
       };
     }
 
-    private resolveTraceContext(opts: IntegrationAuditOptions): { traceId: string; spanId: string; parentSpanId?: string } {
+    private resolveTraceContext(opts: IntegrationAuditOptions): {
+      traceId: string;
+      spanId: string;
+      parentSpanId?: string;
+    } {
       const activeTraceContext = this.extractTraceContext();
       return {
         traceId: this.getString(opts.traceId) ?? activeTraceContext.traceId,
@@ -241,6 +260,20 @@ export namespace Services {
       };
     }
 
+    private publicationIdentity(value: PublicationAuditIdentity): PublicationAuditIdentity {
+      return {
+        eventId: value.eventId,
+        episodeId: value.episodeId,
+        destinationId: value.destinationId,
+        providerId: value.providerId,
+        approvalId: value.approvalId,
+        approvalEpoch: value.approvalEpoch,
+        sourceRevision: value.sourceRevision,
+        sourceGeneration: value.sourceGeneration,
+        operationId: value.operationId,
+      };
+    }
+
     private buildAuditEntry(
       ctx: IntegrationAuditContext,
       status: IntegrationAuditStatus,
@@ -255,6 +288,7 @@ export namespace Services {
       } = {}
     ): IntegrationAuditModel {
       return new IntegrationAuditModel({
+        ...this.publicationIdentity(ctx),
         redboxOid: ctx.redboxOid,
         brandId: ctx.brandId,
         integrationName: ctx.integrationName,
@@ -331,7 +365,11 @@ export namespace Services {
 
     private enqueueNotification(entry: IntegrationAuditModel): void {
       if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success) return;
-      this.safeQueueNow('IntegrationNotificationService-Dispatch', entry, 'Failed to enqueue integration notification.');
+      this.safeQueueNow(
+        'IntegrationNotificationService-Dispatch',
+        entry,
+        'Failed to enqueue integration notification.'
+      );
     }
 
     private queueOrPersist(entry: IntegrationAuditModel): void {
@@ -342,10 +380,15 @@ export namespace Services {
       this.safeQueueNow(this.storeJobName, entry, 'Failed to queue integration audit entry.');
     }
 
-    public startAudit(oid: string, action: IntegrationAuditAction, opts: IntegrationAuditOptions = {}): IntegrationAuditContext {
+    public startAudit(
+      oid: string,
+      action: IntegrationAuditAction,
+      opts: IntegrationAuditOptions = {}
+    ): IntegrationAuditContext {
       const startedAt = new Date().toISOString();
       const traceContext = this.resolveTraceContext(opts);
       const ctx: IntegrationAuditContext = {
+        ...this.publicationIdentity(opts),
         redboxOid: oid,
         brandId: opts.brandId,
         integrationName: opts.integrationName ?? IntegrationAuditName.figshare,
@@ -400,11 +443,25 @@ export namespace Services {
       this.queueOrPersist(entry);
     }
 
+    /** Idempotent projection of a durable publication episode; no payload or prepared input is copied. @internal */
+    public async recordPublicationAudit(row: PublicationSyncModel): Promise<void> {
+      if (!this.storageService) this.getStorageService();
+      if (!this.storageService.createIntegrationAudit) throw new Error('Publication audit storage is unavailable');
+      const entries = publicationAuditEntries(row);
+      const pending =
+        row.audit?.exported === 'terminal' ? [] : row.audit?.exported === 'started' ? entries.slice(1) : entries;
+      for (const entry of pending) {
+        const response = await this.storageService.createIntegrationAudit(entry);
+        if (!response?.success) throw new Error('Publication audit persistence failed; durable episode retained');
+      }
+    }
+
     public async getAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult> {
       const rows = (await this.storageService.getIntegrationAudit(params)) as Record<string, unknown>[];
-      const total = typeof this.storageService.countIntegrationAudit === 'function'
-        ? await this.storageService.countIntegrationAudit(params)
-        : rows.length;
+      const total =
+        typeof this.storageService.countIntegrationAudit === 'function'
+          ? await this.storageService.countIntegrationAudit(params)
+          : rows.length;
       return { rows, total };
     }
 
@@ -479,8 +536,9 @@ export namespace Services {
           if (statusDiff !== 0) {
             return statusDiff;
           }
-          const completedDiff = this.getTimestampValue(right.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
-            - this.getTimestampValue(left.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt');
+          const completedDiff =
+            this.getTimestampValue(right.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt') -
+            this.getTimestampValue(left.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt');
           if (completedDiff !== 0) {
             return completedDiff;
           }
@@ -488,9 +546,7 @@ export namespace Services {
         })[0];
         const preferredRow = preferredEntry?.row ?? {};
         const earliestRow = sortedSpanRows[0]?.row ?? {};
-        const parentSpanId = sortedSpanRows
-          .map(entry => this.getString(entry.row['parentSpanId']))
-          .find(Boolean);
+        const parentSpanId = sortedSpanRows.map(entry => this.getString(entry.row['parentSpanId'])).find(Boolean);
         const startedTimes = sortedSpanRows
           .map(entry => this.getString(entry.row['startedAt']))
           .filter(Boolean)
@@ -503,14 +559,22 @@ export namespace Services {
           .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
           .filter(value => Number.isFinite(value.ts))
           .sort((left, right) => right.ts - left.ts);
-        const startedAt = startedTimes[0]?.raw ?? this.getString(earliestRow['startedAt']) ?? this.getString(preferredRow['startedAt']) ?? '';
+        const startedAt =
+          startedTimes[0]?.raw ??
+          this.getString(earliestRow['startedAt']) ??
+          this.getString(preferredRow['startedAt']) ??
+          '';
         const completedAt = completedTimes[0]?.raw ?? this.getString(preferredRow['completedAt']);
         const startedAtMs = startedTimes[0]?.ts;
         const completedAtMs = completedTimes[0]?.ts;
         const durationMs =
-          Number.isFinite(startedAtMs) && Number.isFinite(completedAtMs) && (completedAtMs as number) >= (startedAtMs as number)
+          Number.isFinite(startedAtMs) &&
+          Number.isFinite(completedAtMs) &&
+          (completedAtMs as number) >= (startedAtMs as number)
             ? (completedAtMs as number) - (startedAtMs as number)
-            : (_.isNumber(preferredRow['durationMs']) ? preferredRow['durationMs'] as number : undefined);
+            : _.isNumber(preferredRow['durationMs'])
+              ? (preferredRow['durationMs'] as number)
+              : undefined;
 
         return {
           ...(earliestRow as Record<string, unknown>),
@@ -582,9 +646,7 @@ export namespace Services {
     }
 
     private deriveTraceStatus(events: IntegrationAuditTraceEvent[]): string {
-      const statuses = events
-        .map(event => this.getString(event['status'])?.toLowerCase())
-        .filter(Boolean);
+      const statuses = events.map(event => this.getString(event['status'])?.toLowerCase()).filter(Boolean);
       if (statuses.some(status => status === IntegrationAuditStatus.failed)) {
         return IntegrationAuditStatus.failed;
       }
@@ -614,18 +676,23 @@ export namespace Services {
       const startedAtMs = startedTimes[0]?.ts;
       const completedAtMs = completedTimes[0]?.ts;
       const traceDuration =
-        Number.isFinite(startedAtMs) && Number.isFinite(completedAtMs) && (completedAtMs as number) >= (startedAtMs as number)
+        Number.isFinite(startedAtMs) &&
+        Number.isFinite(completedAtMs) &&
+        (completedAtMs as number) >= (startedAtMs as number)
           ? (completedAtMs as number) - (startedAtMs as number)
           : undefined;
       const actions = Array.from(
-        new Set(
-          events
-            .map(event => this.getString(event['integrationAction']))
-            .filter(Boolean)
-        )
+        new Set(events.map(event => this.getString(event['integrationAction'])).filter(Boolean))
       ) as string[];
       const rootSpanId = events.find(event => _.isEmpty(event.parentSpanId))?.spanId;
-      const newestRow = [...rows].sort((left, right) => this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left))[0] ?? {};
+      const newestRow =
+        [...rows].sort(
+          (left, right) =>
+            this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left) ||
+            this.getStatusRank(right['status']) - this.getStatusRank(left['status']) ||
+            this.getTimestampValue(right, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt') -
+              this.getTimestampValue(left, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
+        )[0] ?? {};
 
       return {
         id: traceId,
@@ -635,6 +702,7 @@ export namespace Services {
         completedAt: latestCompletedAt,
         durationMs: traceDuration,
         triggeredBy: this.getString(newestRow['triggeredBy']) ?? this.getString(rows[0]?.['triggeredBy']),
+        ...this.publicationIdentity(newestRow),
         integrationName: this.getString(newestRow['integrationName']) ?? this.getString(rows[0]?.['integrationName']),
         actions,
         eventCount: events.length,
@@ -656,6 +724,10 @@ export namespace Services {
         while (rows.length < totalRows) {
           const queryParams = new IntegrationAuditParams();
           queryParams.oid = params.oid;
+          queryParams.brandId = params.brandId;
+          queryParams.destinationId = params.destinationId;
+          queryParams.excludedIntegrationNames = params.excludedIntegrationNames;
+          queryParams.excludeDestinationAudits = params.excludeDestinationAudits;
           queryParams.dateFrom = params.dateFrom;
           queryParams.dateTo = params.dateTo;
           if (params.integrationName && !params.integrationName.includes(',')) {
@@ -677,7 +749,7 @@ export namespace Services {
           page += 1;
         }
 
-        return rows;
+        return this.filterAuditRows(rows, params);
       }
 
       const rows: Record<string, unknown>[] = [];
@@ -686,6 +758,10 @@ export namespace Services {
       while (true) {
         const queryParams = new IntegrationAuditParams();
         queryParams.oid = params.oid;
+        queryParams.brandId = params.brandId;
+        queryParams.destinationId = params.destinationId;
+        queryParams.excludedIntegrationNames = params.excludedIntegrationNames;
+        queryParams.excludeDestinationAudits = params.excludeDestinationAudits;
         queryParams.dateFrom = params.dateFrom;
         queryParams.dateTo = params.dateTo;
         if (params.integrationName && !params.integrationName.includes(',')) {
@@ -702,12 +778,22 @@ export namespace Services {
         page += 1;
       }
 
-      return rows;
+      return this.filterAuditRows(rows, params);
+    }
+
+    private filterAuditRows(rows: AnyRecord[], params: IntegrationAuditParams): AnyRecord[] {
+      return rows.filter(
+        row =>
+          (!params.brandId || !row.brandId || row.brandId === params.brandId) &&
+          (!params.destinationId || row.destinationId === params.destinationId)
+      );
     }
 
     public async getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditTraceLogResult> {
       const queryParams = new IntegrationAuditParams();
       queryParams.oid = params.oid;
+      queryParams.brandId = params.brandId;
+      queryParams.destinationId = params.destinationId;
       queryParams.dateFrom = params.dateFrom;
       queryParams.dateTo = params.dateTo;
 
@@ -717,20 +803,26 @@ export namespace Services {
       }
       const traceRows = new Map<string, Record<string, unknown>[]>();
       allRows.forEach((row, index) => {
-        const traceId = this.getString(row['traceId']) ?? `${params.oid}:missing-trace:${this.getTraceFallbackIdentity(row, index)}`;
-        const existing = traceRows.get(traceId) ?? [];
+        const traceId =
+          this.getString(row['traceId']) ?? `${params.oid}:missing-trace:${this.getTraceFallbackIdentity(row, index)}`;
+        const groupId = JSON.stringify([traceId, row['brandId'] ?? params.brandId ?? '', row['destinationId'] ?? '']);
+        const existing = traceRows.get(groupId) ?? [];
         existing.push(row);
-        traceRows.set(traceId, existing);
+        traceRows.set(groupId, existing);
       });
 
-      let groupedRows = Array.from(traceRows.entries()).map(([traceId, rows]) => this.buildTraceRecord(traceId, rows));
+      let groupedRows = Array.from(traceRows.entries()).map(([traceId, rows]) =>
+        this.buildTraceRecord(this.getString(rows[0]?.['traceId']) ?? traceId, rows)
+      );
       if (!_.isEmpty(params.integrationName)) {
         const integrationNameFilters = String(params.integrationName)
           .split(',')
           .map(name => name.trim().toLowerCase())
           .filter(Boolean);
         if (integrationNameFilters.length > 0) {
-          groupedRows = groupedRows.filter(row => integrationNameFilters.some(name => (row.integrationName ?? '').toLowerCase().includes(name)));
+          groupedRows = groupedRows.filter(row =>
+            integrationNameFilters.some(name => (row.integrationName ?? '').toLowerCase().includes(name))
+          );
         }
       }
       if (!_.isEmpty(params.status)) {
@@ -804,6 +896,10 @@ export namespace Services {
     public async getStatusSummary(params: IntegrationAuditParams): Promise<IntegrationStatusSummary[]> {
       const queryParams = new IntegrationAuditParams();
       queryParams.oid = params.oid;
+      queryParams.brandId = params.brandId;
+      queryParams.destinationId = params.destinationId;
+      queryParams.excludedIntegrationNames = params.excludedIntegrationNames;
+      queryParams.excludeDestinationAudits = params.excludeDestinationAudits;
       queryParams.dateFrom = params.dateFrom;
       queryParams.dateTo = params.dateTo;
       if (params.integrationName && !params.integrationName.includes(',')) {
@@ -819,24 +915,31 @@ export namespace Services {
       allRows.forEach((row, index) => {
         const integrationName = this.getString(row['integrationName']) ?? 'unknown';
         const fallbackTs = this.getTimestampValue(row as Record<string, unknown>, 'dateCreated', 'createdAt');
-        const traceId = this.getString(row['traceId']) ?? `${params.oid}:${integrationName}:missing-trace:${fallbackTs}:${this.getTraceFallbackIdentity(row, index)}`;
-        const existing = rowsByTrace.get(traceId) ?? [];
+        const traceId =
+          this.getString(row['traceId']) ??
+          `${params.oid}:${integrationName}:missing-trace:${fallbackTs}:${this.getTraceFallbackIdentity(row, index)}`;
+        const groupId = JSON.stringify([traceId, row['brandId'] ?? params.brandId ?? '', row['destinationId'] ?? '']);
+        const existing = rowsByTrace.get(groupId) ?? [];
         existing.push(row);
-        rowsByTrace.set(traceId, existing);
+        rowsByTrace.set(groupId, existing);
       });
 
       const traces = Array.from(rowsByTrace.entries()).map(([traceId, rows]) => {
-        const built = this.buildTraceRecord(traceId, rows);
-        const newestRow = [...rows].sort((left, right) => {
-          const tsDiff = this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left);
-          if (tsDiff !== 0) return tsDiff;
-          const statusDiff = this.getStatusRank(right['status']) - this.getStatusRank(left['status']);
-          if (statusDiff !== 0) return statusDiff;
-          return this.getTimestampValue(right, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
-            - this.getTimestampValue(left, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt');
-        })[0] ?? {};
+        const built = this.buildTraceRecord(this.getString(rows[0]?.['traceId']) ?? traceId, rows);
+        const newestRow =
+          [...rows].sort((left, right) => {
+            const tsDiff = this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left);
+            if (tsDiff !== 0) return tsDiff;
+            const statusDiff = this.getStatusRank(right['status']) - this.getStatusRank(left['status']);
+            if (statusDiff !== 0) return statusDiff;
+            return (
+              this.getTimestampValue(right, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt') -
+              this.getTimestampValue(left, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
+            );
+          })[0] ?? {};
         return {
-          traceId,
+          ...this.publicationIdentity(built),
+          traceId: built.traceId,
           integrationName: built.integrationName ?? this.getString(newestRow['integrationName']) ?? '',
           status: built.status,
           integrationAction: this.getString(newestRow['integrationAction']),
@@ -851,7 +954,10 @@ export namespace Services {
       let filteredTraces = traces;
       if (!_.isEmpty(params.integrationName)) {
         const rawFilter = String(params.integrationName).trim();
-        const names = rawFilter.split(',').map(n => n.trim().toLowerCase()).filter(Boolean);
+        const names = rawFilter
+          .split(',')
+          .map(n => n.trim().toLowerCase())
+          .filter(Boolean);
         if (names.length > 0) {
           filteredTraces = traces.filter(trace => names.includes((trace.integrationName ?? '').toLowerCase()));
         }
@@ -859,9 +965,9 @@ export namespace Services {
 
       const grouped = new Map<string, IntegrationStatusSummary>();
       filteredTraces.forEach(trace => {
-        const name = trace.integrationName;
+        const name = JSON.stringify([trace.integrationName, trace.destinationId ?? '']);
         const existing = grouped.get(name);
-        if (!existing || (this.getRowSortTimestamp(trace as unknown as Record<string, unknown>) > this.getRowSortTimestamp(existing as unknown as Record<string, unknown>))) {
+        if (!existing || this.getRowSortTimestamp({ ...trace }) > this.getRowSortTimestamp({ ...existing })) {
           grouped.set(name, trace);
         }
       });
@@ -869,7 +975,12 @@ export namespace Services {
       return Array.from(grouped.values());
     }
 
-    private makeOutcome(name: string, state: string, severity: IntegrationOutcomeSeverity, withHelp?: boolean): IntegrationOutcome {
+    private makeOutcome(
+      name: string,
+      state: string,
+      severity: IntegrationOutcomeSeverity,
+      withHelp?: boolean
+    ): IntegrationOutcome {
       return {
         state,
         severity,
@@ -884,16 +995,21 @@ export namespace Services {
     }
 
     private isDoiUpdateAction(action?: string): boolean {
-      return action === IntegrationAuditAction.updateDoi
-        || action === IntegrationAuditAction.updateDoiRequest
-        || action === IntegrationAuditAction.updateDoiTriggerSync;
+      return (
+        action === IntegrationAuditAction.updateDoi ||
+        action === IntegrationAuditAction.updateDoiRequest ||
+        action === IntegrationAuditAction.updateDoiTriggerSync
+      );
     }
 
     /**
      * Maps a DOI audit summary to a user-facing outcome. The DOI state DataCite returned takes
      * precedence over the requested event, which takes precedence over the record's workflow stage.
      */
-    private mapDoiOutcome(s: IntegrationStatusSummary, ctx: IntegrationStatusRecordContext): IntegrationOutcome | undefined {
+    private mapDoiOutcome(
+      s: IntegrationStatusSummary,
+      ctx: IntegrationStatusRecordContext
+    ): IntegrationOutcome | undefined {
       const status = s.status;
       const kr = s.keyResult ?? {};
       const event = kr['event'] as string | undefined;
@@ -904,7 +1020,7 @@ export namespace Services {
         // Treat the run as an update when the audit action says so, or when the
         // record already has a DOI (a create-style trigger re-running over an
         // existing DOI is really an update).
-        return (this.isDoiUpdateAction(s.integrationAction) || doiKnown)
+        return this.isDoiUpdateAction(s.integrationAction) || doiKnown
           ? this.makeOutcome('doi', 'updating', 'in-progress')
           : this.makeOutcome('doi', 'in-progress', 'in-progress');
       }
@@ -940,7 +1056,10 @@ export namespace Services {
       return undefined;
     }
 
-    private mapFigshareOutcome(s: IntegrationStatusSummary, _ctx: IntegrationStatusRecordContext): IntegrationOutcome | undefined {
+    private mapFigshareOutcome(
+      s: IntegrationStatusSummary,
+      _ctx: IntegrationStatusRecordContext
+    ): IntegrationOutcome | undefined {
       const status = s.status;
       const kr = s.keyResult ?? {};
 
@@ -971,7 +1090,9 @@ export namespace Services {
      * is matched case-insensitively; the last registration for a name wins.
      */
     public registerOutcomeMapper(integrationName: string, mapper: IntegrationOutcomeMapper): void {
-      const key = String(integrationName ?? '').trim().toLowerCase();
+      const key = String(integrationName ?? '')
+        .trim()
+        .toLowerCase();
       if (_.isEmpty(key) || typeof mapper !== 'function') {
         sails.log.warn(`${this.logHeader} Ignoring invalid outcome mapper registration for '${integrationName}'.`);
         return;
@@ -980,15 +1101,23 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} Registered outcome mapper for '${key}'.`);
     }
 
-    public async getStatusSummaryWithOutcomes(params: IntegrationAuditParams, ctx: IntegrationStatusRecordContext): Promise<IntegrationStatusSummary[]> {
+    public async getStatusSummaryWithOutcomes(
+      params: IntegrationAuditParams,
+      ctx: IntegrationStatusRecordContext
+    ): Promise<IntegrationStatusSummary[]> {
       const summaries = await this.getStatusSummary(params);
 
       const rawFilter = String(params.integrationName ?? '').trim();
-      const requestedNames = rawFilter ? rawFilter.split(',').map(n => n.trim().toLowerCase()).filter(Boolean) : [];
+      const requestedNames = rawFilter
+        ? rawFilter
+            .split(',')
+            .map(n => n.trim().toLowerCase())
+            .filter(Boolean)
+        : [];
 
       summaries.forEach(s => {
         const mapper = this.outcomeMappers[s.integrationName.toLowerCase()];
-        if (mapper) {
+        if (mapper && !s.destinationId) {
           s.outcome = mapper(s, ctx);
         }
         // Backfill doi from ctx.citationDoi for doi summaries in draft-assigned/registered/published states without a doi yet
@@ -1002,7 +1131,7 @@ export namespace Services {
       });
 
       // Synthesis: add rows for requested integration names with zero audit rows
-      if (requestedNames.length > 0) {
+      if (requestedNames.length > 0 && !params.destinationId) {
         const existingNames = new Set(summaries.map(s => s.integrationName.toLowerCase()));
         for (const name of requestedNames) {
           if (!existingNames.has(name) && this.outcomeMappers[name]) {

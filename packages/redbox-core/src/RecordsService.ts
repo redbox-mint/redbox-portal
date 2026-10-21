@@ -331,6 +331,7 @@ export interface RecordsService {
     context?: RecordSaveContext
   ): Promise<RecordSaveResponse>;
   getFigshareIntentStorage(): import('./StorageService').StorageService;
+  getPublicationStorage(): import('./StorageService').StorageService;
   setRecordFields(
     oid: string,
     fields: AnyRecord,

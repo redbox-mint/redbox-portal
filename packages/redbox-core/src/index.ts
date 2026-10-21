@@ -63,6 +63,11 @@ export type {
 } from './RecordHttpConcurrency';
 export { normalizeAttachmentStagingFileId } from './AttachmentStagingIdentity';
 export {
+  PUBLICATION_STORAGE_CAPABILITY_VERSION,
+  PUBLICATION_STORAGE_CAPABILITY_METHODS,
+  PublicationStorageCapabilityError,
+  hasFullPublicationStorageCapability,
+  assertFullPublicationStorageCapability,
   INITIAL_RECORD_REVISION,
   RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   RecordConcurrencyCapabilityError,
@@ -280,3 +285,43 @@ export * from './api-routes';
 
 export * from './RecordWriteOptions';
 export * from './model/storage/FigshareSyncModel';
+
+export * from './services/publication/contracts';
+export * from './services/publication/operations';
+export * from './services/publication/configuration';
+export * from './configmodels/PublicationPublishing';
+export * from './model/storage/PublicationSyncModel';
+
+export * from './model/storage/PublicationResourceLeaseModel';
+export * from './services/publication/store';
+export * from './services/publication/dispatcher';
+export * from './services/publication/execution';
+export * from './services/publication/worker';
+export * from './services/publication/writeback';
+export * from './services/publication/content-replacement';
+export * from './services/publication/completion-fence';
+export * from './services/publication/workflow';
+export * from './services/publication/resource-store';
+export * from './services/publication/ownership';
+
+export * from './services/publication/source';
+export * from './services/publication/staging';
+export * from './services/publication/staging-fence';
+export * from './services/publication/staging-cleanup';
+export * from './services/publication/attachment-cleanup';
+export * from './services/publication/canonical';
+
+export * from './services/publication/registry';
+
+export * from './services/publication/admin';
+export * from './services/publication/admin-control';
+
+export * from './model/storage/PublicationMigrationModel';
+export * from './services/publication/migration-store';
+
+export * from './services/publication/migration';
+export * from './services/publication/migration-configuration';
+
+export * from './services/publication-vocabulary/contracts';
+export { resolvePublicationVocabulary } from './services/publication-vocabulary/resolution';
+export * from './services/publication-vocabulary/bindings';

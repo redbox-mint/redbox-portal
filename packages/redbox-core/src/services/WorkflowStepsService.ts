@@ -22,7 +22,8 @@ import { Services as services } from '../CoreService';
 import type { WorkflowStageDefinition } from '../config/workflow.config';
 import type { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import type { WorkflowStepModel } from '../model/storage/WorkflowStepModel';
-
+import { cloneDeep, get, isEqual } from 'lodash';
+import { publicationWorkflowSnapshot } from './publication/workflow';
 
 type RecordTypeLike = Partial<RecordTypeModel> & { id?: string; name?: string };
 
@@ -34,75 +35,97 @@ export namespace Services {
    *
    */
   export class WorkflowSteps extends services.Core.Service {
-
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'get',
       'getFirst',
+      'preparePublicationTransition',
       'getAllForRecordType',
-      'getAllForRecordTypeIncludingHidden'
+      'getAllForRecordTypeIncludingHidden',
     ];
 
     public async bootstrap(recordTypes: RecordTypeLike[]): Promise<unknown[]> {
-      let workflows = await WorkflowStep.find({}) as unknown as unknown[];
+      let workflows = (await WorkflowStep.find({})) as unknown as unknown[];
       if (sails.config.appmode.bootstrapAlways) {
         await WorkflowStep.destroy({});
         workflows = [];
       }
-      
-          this.logger.debug(`WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
-          if (_.isEmpty(workflows)) {
-            this.logger.verbose("Bootstrapping workflow definitions... ");
-            const wfSteps: Record<string, Array<{ recordType: RecordTypeLike; workflow: string }>> = {};
-            _.forEach(recordTypes, (recordType: RecordTypeLike) => {
-              const recordTypeName = recordType.name;
-              if (!recordTypeName) {
-                return;
-              }
-              this.logger.verbose("Processing recordType: " + recordTypeName);
-              wfSteps[recordTypeName] = []
-              _.forOwn(sails.config.workflow[recordTypeName], (_workflowConf: unknown, workflowName: string) => {
-                if (workflowName != null) {
-                  this.logger.verbose("workflow step added to list: " + workflowName)
-                  wfSteps[recordTypeName].push({ "recordType": recordType, "workflow": workflowName });
-                }
-              });
-            });
-            
-        
-          this.logger.verbose(`wfSteps: `);
-          this.logger.verbose(JSON.stringify(wfSteps));
-          const workflowSteps: unknown[] = [];
-          for(const recordTypeName in wfSteps) {
-            const workflowStepsObject = wfSteps[recordTypeName] as Array<{ recordType: RecordTypeLike; workflow: string }>;
-            for (const workflowStep of workflowStepsObject){
-              const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]] as WorkflowStageDefinition & { hidden?: boolean };
-              const form = _.get(workflowConf,'config.form','');
-              if(form == '') {
-                _.set(workflowConf.config,'form','generated-view-only');
-              }
-              const obs = await firstValueFrom(this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf.hidden));
-              workflowSteps.push(obs);
-            };
+
+      this.logger.debug(
+        `WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`
+      );
+      if (_.isEmpty(workflows)) {
+        this.logger.verbose('Bootstrapping workflow definitions... ');
+        const wfSteps: Record<string, Array<{ recordType: RecordTypeLike; workflow: string }>> = {};
+        _.forEach(recordTypes, (recordType: RecordTypeLike) => {
+          const recordTypeName = recordType.name;
+          if (!recordTypeName) {
+            return;
           }
-          
-          return workflowSteps;
+          this.logger.verbose('Processing recordType: ' + recordTypeName);
+          wfSteps[recordTypeName] = [];
+          _.forOwn(sails.config.workflow[recordTypeName], (_workflowConf: unknown, workflowName: string) => {
+            if (workflowName != null) {
+              this.logger.verbose('workflow step added to list: ' + workflowName);
+              wfSteps[recordTypeName].push({ recordType: recordType, workflow: workflowName });
+            }
+          });
+        });
+
+        this.logger.verbose(`wfSteps: `);
+        this.logger.verbose(JSON.stringify(wfSteps));
+        const workflowSteps: unknown[] = [];
+        for (const recordTypeName in wfSteps) {
+          const workflowStepsObject = wfSteps[recordTypeName] as Array<{
+            recordType: RecordTypeLike;
+            workflow: string;
+          }>;
+          for (const workflowStep of workflowStepsObject) {
+            const workflowConf = sails.config.workflow[recordTypeName][
+              workflowStep['workflow']
+            ] as WorkflowStageDefinition & { hidden?: boolean };
+            const form = _.get(workflowConf, 'config.form', '');
+            if (form == '') {
+              _.set(workflowConf.config, 'form', 'generated-view-only');
+            }
+            const obs = await firstValueFrom(
+              this.create(
+                workflowStep['recordType'],
+                workflowStep['workflow'],
+                workflowConf.config,
+                workflowConf.starting == true,
+                workflowConf.hidden
+              )
+            );
+            workflowSteps.push(obs);
+          }
         }
-        return workflows;
+
+        return workflowSteps;
+      }
+      return workflows;
     }
 
-
-
-    public create(recordType: RecordTypeLike, name: string, workflowConf: unknown, starting: boolean, hidden: boolean = false) {
+    public create(
+      recordType: RecordTypeLike,
+      name: string,
+      workflowConf: unknown,
+      starting: boolean,
+      hidden: boolean = false
+    ) {
       const recordTypeId = recordType.id as string;
-      return super.getObservable(WorkflowStep.create({
-        name: name,
-        config: workflowConf,
-        recordType: recordTypeId,
-        starting: starting,
-        hidden: hidden
-      })).pipe(switchMap((created) => from(this.initialiseDashboardSettings(recordType).then(() => created))));
+      return super
+        .getObservable(
+          WorkflowStep.create({
+            name: name,
+            config: workflowConf,
+            recordType: recordTypeId,
+            starting: starting,
+            hidden: hidden,
+          })
+        )
+        .pipe(switchMap(created => from(this.initialiseDashboardSettings(recordType).then(() => created))));
     }
 
     /**
@@ -127,12 +150,38 @@ export namespace Services {
       return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id as string, name: name }));
     }
 
+    /** Resolve the real stage and freeze only the fields changed by the standard workflow projection. @internal */
+    public async preparePublicationTransition(record: Record<string, unknown>, targetStage: string) {
+      const brandId = get(record, 'metaMetadata.brandId');
+      const typeName = get(record, 'metaMetadata.type');
+      if (typeof brandId !== 'string' || typeof typeName !== 'string')
+        throw new Error('Workflow source identity unavailable');
+      const brand = BrandingService.getBrandById(brandId);
+      const type = brand && (await firstValueFrom(RecordTypesService.get(brand, typeName)));
+      const step = type && (await firstValueFrom(this.get(type, targetStage)));
+      if (!step || get(step, 'config.workflow.stage') !== targetStage || typeof get(step, 'config.form') !== 'string')
+        throw new Error('Publication target workflow stage is unavailable');
+      const projected = cloneDeep(record);
+      RecordsService.transitionWorkflowStepMetadata(projected, step);
+      const original = publicationWorkflowSnapshot(record);
+      const expected = publicationWorkflowSnapshot(projected);
+      const paths = Object.keys(expected).filter(path => !isEqual(original[path], expected[path]));
+      if (!paths.includes('workflow')) throw new Error('Publication workflow transition has no stage change');
+      return {
+        step,
+        before: publicationWorkflowSnapshot(record, paths),
+        after: publicationWorkflowSnapshot(projected, paths),
+      };
+    }
+
     public getAllForRecordType(recordType?: RecordTypeLike | null): Observable<WorkflowStepModel[]> {
       if (!recordType?.id) {
         this.logger.warn('WorkflowStepsService.getAllForRecordType called without a valid record type id');
         return of([] as WorkflowStepModel[]);
       }
-      return super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } }));
+      return super.getObservable<WorkflowStepModel[]>(
+        WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } })
+      );
     }
 
     /**

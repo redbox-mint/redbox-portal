@@ -31,3 +31,5 @@ export * from './groups/export';
 export * from './groups/notifications';
 export * from './groups/named-query';
 export * from './groups/siem';
+
+export * from './groups/publication-vocabulary';

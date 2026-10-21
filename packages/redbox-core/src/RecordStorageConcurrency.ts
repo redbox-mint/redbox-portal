@@ -48,6 +48,10 @@ export type StorageMutationNonApplicationReason =
 export interface StorageServiceCapabilities {
   /** Versioned token for the complete strict record-concurrency contract. */
   recordConcurrency?: typeof RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION;
+  /** Independent complete atomic publication source contract. */
+  publication?: typeof PUBLICATION_STORAGE_CAPABILITY_VERSION;
+  /** Conditional, registered post-completion attachment replacement with current-obligation revalidation. */
+  publicationContentReplacement?: 1;
 }
 
 export interface StorageCapabilityProvider {
@@ -153,4 +157,46 @@ export function normalizeRecordStorageMutationOptions(
     };
   }
   return normalized;
+}
+
+export const PUBLICATION_STORAGE_CAPABILITY_VERSION = 1 as const;
+export const PUBLICATION_STORAGE_CAPABILITY_METHODS = [
+  'create',
+  'updateMeta',
+  'recordPublicationSaveSuccess',
+  'readyPublicationIntent',
+  'abandonPublicationIntent',
+  'pendingPublicationIntents',
+  'recoverPublicationIntents',
+  'acknowledgePublicationIntent',
+  'setPublicationRecordFields',
+] as const;
+
+/** Version declaration and every operation are required; method presence alone never certifies support. */
+export function hasFullPublicationStorageCapability(service: unknown): boolean {
+  try {
+    if (service === null || (typeof service !== 'object' && typeof service !== 'function')) return false;
+    const getCapabilities = Reflect.get(service, 'getCapabilities');
+    if (typeof getCapabilities !== 'function') return false;
+    const capabilities: unknown = getCapabilities.call(service);
+    return (
+      capabilities !== null &&
+      typeof capabilities === 'object' &&
+      Reflect.get(capabilities, 'publication') === PUBLICATION_STORAGE_CAPABILITY_VERSION &&
+      PUBLICATION_STORAGE_CAPABILITY_METHODS.every(method => typeof Reflect.get(service, method) === 'function')
+    );
+  } catch {
+    return false;
+  }
+}
+export class PublicationStorageCapabilityError extends Error {
+  readonly code = 'publication-storage-capability-unavailable' as const;
+  constructor() {
+    super('The configured storage adapter must certify the complete publication capability version 1.');
+    this.name = 'PublicationStorageCapabilityError';
+  }
+}
+/** Call at enablement, source acceptance, dispatch and worker lookup. */
+export function assertFullPublicationStorageCapability(service: unknown): void {
+  if (!hasFullPublicationStorageCapability(service)) throw new PublicationStorageCapabilityError();
 }
