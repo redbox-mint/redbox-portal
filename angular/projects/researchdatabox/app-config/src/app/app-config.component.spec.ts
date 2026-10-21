@@ -3,7 +3,15 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { APP_BASE_HREF, CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AppConfigComponent } from './app-config.component';
-import { UtilityService, LoggerService, UserService, TranslationService, ConfigService, AppConfigService } from '@researchdatabox/portal-ng-common';
+import {
+  UtilityService,
+  LoggerService,
+  UserService,
+  TranslationService,
+  ConfigService,
+  AppConfigService,
+  I18NextPipe,
+} from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService } from '../../../portal-ng-common/src/lib/helper.spec';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
@@ -61,7 +69,9 @@ function findFieldByKey(fields: FormlyFieldConfig[] | undefined, key: string): F
 describe('AppConfigComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
-    translationService = getStubTranslationService();
+    translationService = getStubTranslationService({
+      '@app-config-save-error': 'Configuration failed to save. Review destination settings and try again.',
+    });
     appConfigService = getStubAppConfigService();
     await TestBed.configureTestingModule({
       declarations: [
@@ -73,9 +83,10 @@ describe('AppConfigComponent', () => {
         AdminSidebarEditorTypeComponent,
         HomePanelsEditorTypeComponent,
         ValueBindingEditorTypeComponent,
-        FigshareCategoryMappingEditorTypeComponent
+        FigshareCategoryMappingEditorTypeComponent,
       ],
       imports: [
+        I18NextPipe,
         ReactiveFormsModule,
         CommonModule,
         FormlyModule.forRoot({
@@ -88,42 +99,41 @@ describe('AppConfigComponent', () => {
             { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
             { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
             { name: 'value-binding-editor', component: ValueBindingEditorTypeComponent },
-            { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
+            { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent },
           ],
         }),
-        FormlyBootstrapModule
+        FormlyBootstrapModule,
       ],
       providers: [
         provideZonelessChangeDetection(),
         {
           provide: AppConfigService,
-          useValue: appConfigService
+          useValue: appConfigService,
         },
         FormBuilder,
         {
           provide: APP_BASE_HREF,
-          useValue: 'base'
+          useValue: 'base',
         },
         LoggerService,
         UtilityService,
         {
           provide: TranslationService,
-          useValue: translationService
+          useValue: translationService,
         },
         {
           provide: ConfigService,
-          useValue: configService
+          useValue: configService,
         },
         {
           provide: UserService,
-          useValue: userService
-        }
-      ]
+          useValue: userService,
+        },
+      ],
     }).compileComponents();
     TestBed.inject(FormBuilder);
     TestBed.inject(LoggerService);
     TestBed.inject(UtilityService);
-
   });
   it('Check form submission success', async () => {
     const fixture = TestBed.createComponent(AppConfigComponent);
@@ -134,10 +144,12 @@ describe('AppConfigComponent', () => {
     await app.waitForInit();
     await fixture.whenStable();
     app.configKey = 'test';
-    app.model = { "enabled": true, "title": "Test Title", "message": "Test Message" };
+    app.model = { enabled: true, title: 'Test Title', message: 'Test Message' };
     await app.onSubmit(app.model);
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('.alert-success')?.textContent).toContain('Configuration saved successfully');
+    expect(fixture.nativeElement.querySelector('.alert-success')?.textContent).toContain(
+      'Configuration saved successfully'
+    );
     expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
   });
   it('Check form submission failure', async () => {
@@ -149,7 +161,7 @@ describe('AppConfigComponent', () => {
     await app.waitForInit();
     await fixture.whenStable();
     app.configKey = 'fail';
-    app.model = { "enabled": true, "title": "Test Title", "message": "Test Message" };
+    app.model = { enabled: true, title: 'Test Title', message: 'Test Message' };
     await app.onSubmit(app.model);
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('.alert-danger')?.textContent).toContain('Configuration failed to save');
@@ -166,7 +178,7 @@ describe('AppConfigComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const compiled = fixture.debugElement.nativeElement;
-    
+
     // There should be a checkbox rendered
     const checkbox = compiled.querySelector('input[type="checkbox"]');
     expect(checkbox).toBeTruthy();
@@ -176,12 +188,11 @@ describe('AppConfigComponent', () => {
     // There should be a text area rendered
     const textArea = compiled.querySelector('textarea');
     expect(textArea).toBeTruthy();
-    
+
     // There should be a submit button
     const button = compiled.querySelector('button');
     expect(button).toBeTruthy();
-    expect(button.textContent).toBe('Submit')
-    
+    expect(button.textContent).toBe('Submit');
   });
 
   it('renders boolean fields with the checkbox next to the label', async () => {
@@ -225,13 +236,15 @@ describe('AppConfigComponent', () => {
   it('applies the checkbox type to boolean array items', async () => {
     const fixture = TestBed.createComponent(AppConfigComponent);
     const app = fixture.componentInstance;
-    const fields: FormlyFieldConfig[] = [{
-      key: 'flags',
-      type: 'array',
-      fieldArray: {
-        type: 'boolean'
-      }
-    }];
+    const fields: FormlyFieldConfig[] = [
+      {
+        key: 'flags',
+        type: 'array',
+        fieldArray: {
+          type: 'boolean',
+        },
+      },
+    ];
 
     (app as any).applyCheckboxType(fields);
 
@@ -356,11 +369,9 @@ describe('AppConfigComponent', () => {
     expect(compiled.textContent).toContain('publicationYear');
     expect(compiled.textContent).toContain('Field Key');
   });
-
 });
 
 export function getStubAppConfigService(recordData: any = {}) {
-
   return {
     lastSavedModel: undefined as any,
     waitForInit: function () {
@@ -383,16 +394,16 @@ export function getStubAppConfigService(recordData: any = {}) {
                   type: 'object',
                   properties: {
                     labelKey: { type: 'string' },
-                    href: { type: 'string' }
-                  }
-                }
-              }
-            }
+                    href: { type: 'string' },
+                  },
+                },
+              },
+            },
           },
           model: {
             showSearch: true,
-            items: []
-          }
+            items: [],
+          },
         };
       }
       if (configKey === 'homePanels') {
@@ -414,18 +425,18 @@ export function getStubAppConfigService(recordData: any = {}) {
                         type: 'object',
                         properties: {
                           labelKey: { type: 'string' },
-                          href: { type: 'string' }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+                          href: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           model: {
-            panels: []
-          }
+            panels: [],
+          },
         };
       }
       if (configKey === 'adminSidebar') {
@@ -438,8 +449,8 @@ export function getStubAppConfigService(recordData: any = {}) {
                 type: 'object',
                 properties: {
                   titleKey: { type: 'string' },
-                  iconClass: { type: 'string' }
-                }
+                  iconClass: { type: 'string' },
+                },
               },
               sections: {
                 type: 'array',
@@ -454,12 +465,12 @@ export function getStubAppConfigService(recordData: any = {}) {
                         type: 'object',
                         properties: {
                           labelKey: { type: 'string' },
-                          href: { type: 'string' }
-                        }
-                      }
-                    }
-                  }
-                }
+                          href: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
               },
               footerLinks: {
                 type: 'array',
@@ -467,20 +478,20 @@ export function getStubAppConfigService(recordData: any = {}) {
                   type: 'object',
                   properties: {
                     labelKey: { type: 'string' },
-                    href: { type: 'string' }
-                  }
-                }
-              }
-            }
+                    href: { type: 'string' },
+                  },
+                },
+              },
+            },
           },
           model: {
             header: {
               titleKey: 'menu-admin',
-              iconClass: 'fa fa-cog'
+              iconClass: 'fa fa-cog',
             },
             sections: [],
-            footerLinks: []
-          }
+            footerLinks: [],
+          },
         };
       }
       if (configKey === 'figsharePublishing') {
@@ -496,11 +507,11 @@ export function getStubAppConfigService(recordData: any = {}) {
                     type: 'object',
                     widget: {
                       formlyConfig: {
-                        type: 'value-binding-editor'
-                      }
-                    }
-                  }
-                }
+                        type: 'value-binding-editor',
+                      },
+                    },
+                  },
+                },
               },
               categories: {
                 type: 'object',
@@ -509,22 +520,22 @@ export function getStubAppConfigService(recordData: any = {}) {
                     type: 'array',
                     widget: {
                       formlyConfig: {
-                        type: 'figshare-category-mapping-editor'
-                      }
-                    }
-                  }
-                }
-              }
-            }
+                        type: 'figshare-category-mapping-editor',
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           model: {
             metadata: {
-              title: { kind: 'path', path: 'metadata.title' }
+              title: { kind: 'path', path: 'metadata.title' },
             },
             categories: {
-              mappingTable: []
-            }
-          }
+              mappingTable: [],
+            },
+          },
         };
       }
       if (configKey === 'booleanWithoutTitle') {
@@ -533,12 +544,12 @@ export function getStubAppConfigService(recordData: any = {}) {
           schema: {
             type: 'object',
             properties: {
-              enabled: { type: 'boolean' }
-            }
+              enabled: { type: 'boolean' },
+            },
           },
           model: {
-            enabled: true
-          }
+            enabled: true,
+          },
         };
       }
       if (configKey === 'doiPublishing') {
@@ -564,15 +575,15 @@ export function getStubAppConfigService(recordData: any = {}) {
                       maxDelayMs: { type: 'number' },
                       retryOnStatusCodes: {
                         type: 'array',
-                        items: { type: 'number' }
+                        items: { type: 'number' },
                       },
                       retryOnMethods: {
                         type: 'array',
-                        items: { type: 'string' }
-                      }
-                    }
-                  }
-                }
+                        items: { type: 'string' },
+                      },
+                    },
+                  },
+                },
               },
               operations: {
                 type: 'object',
@@ -580,8 +591,8 @@ export function getStubAppConfigService(recordData: any = {}) {
                   createEvent: { type: 'string' },
                   updateEvent: { type: 'string' },
                   allowDeleteDraft: { type: 'boolean' },
-                  allowStateChange: { type: 'boolean' }
-                }
+                  allowStateChange: { type: 'boolean' },
+                },
               },
               profiles: {
                 type: 'array',
@@ -598,25 +609,25 @@ export function getStubAppConfigService(recordData: any = {}) {
                           type: 'object',
                           widget: {
                             formlyConfig: {
-                              type: 'value-binding-editor'
-                            }
-                          }
+                              type: 'value-binding-editor',
+                            },
+                          },
                         },
                         publicationYear: {
                           type: 'object',
                           widget: {
                             formlyConfig: {
-                              type: 'value-binding-editor'
-                            }
-                          }
+                              type: 'value-binding-editor',
+                            },
+                          },
                         },
                         publisher: {
                           type: 'object',
                           widget: {
                             formlyConfig: {
-                              type: 'value-binding-editor'
-                            }
-                          }
+                              type: 'value-binding-editor',
+                            },
+                          },
                         },
                         creators: {
                           type: 'array',
@@ -629,12 +640,12 @@ export function getStubAppConfigService(recordData: any = {}) {
                                 type: 'object',
                                 widget: {
                                   formlyConfig: {
-                                    type: 'value-binding-editor'
-                                  }
-                                }
-                              }
-                            }
-                          }
+                                    type: 'value-binding-editor',
+                                  },
+                                },
+                              },
+                            },
+                          },
                         },
                         titles: {
                           type: 'array',
@@ -645,12 +656,12 @@ export function getStubAppConfigService(recordData: any = {}) {
                                 type: 'object',
                                 widget: {
                                   formlyConfig: {
-                                    type: 'value-binding-editor'
-                                  }
-                                }
-                              }
-                            }
-                          }
+                                    type: 'value-binding-editor',
+                                  },
+                                },
+                              },
+                            },
+                          },
                         },
                         types: {
                           type: 'object',
@@ -659,40 +670,40 @@ export function getStubAppConfigService(recordData: any = {}) {
                               type: 'object',
                               widget: {
                                 formlyConfig: {
-                                  type: 'value-binding-editor'
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
+                                  type: 'value-binding-editor',
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
                     },
                     writeBack: {
                       type: 'object',
                       properties: {
                         citationUrlPath: { type: 'string' },
-                        citationDoiPath: { type: 'string' }
-                      }
+                        citationDoiPath: { type: 'string' },
+                      },
                     },
                     validation: {
                       type: 'object',
                       widget: {
                         formlyConfig: {
-                          hide: true
-                        }
+                          hide: true,
+                        },
                       },
                       properties: {
                         requireUrl: { type: 'boolean' },
                         requirePublisher: { type: 'boolean' },
                         requirePublicationYear: { type: 'boolean' },
                         requireCreators: { type: 'boolean' },
-                        requireTitles: { type: 'boolean' }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+                        requireTitles: { type: 'boolean' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           model: {
             enabled: true,
@@ -707,14 +718,14 @@ export function getStubAppConfigService(recordData: any = {}) {
                 baseDelayMs: 500,
                 maxDelayMs: 4000,
                 retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
-                retryOnMethods: ['get', 'put', 'patch', 'delete']
-              }
+                retryOnMethods: ['get', 'put', 'patch', 'delete'],
+              },
             },
             operations: {
               createEvent: 'publish',
               updateEvent: 'publish',
               allowDeleteDraft: true,
-              allowStateChange: true
+              allowStateChange: true,
             },
             profiles: [
               {
@@ -725,69 +736,72 @@ export function getStubAppConfigService(recordData: any = {}) {
                   url: { kind: 'path', path: 'record.metadata.url' },
                   publicationYear: { kind: 'path', path: 'record.metadata.year' },
                   publisher: { kind: 'path', path: 'record.metadata.publisher' },
-                  creators: [{
-                    sourcePath: 'metadata.creators',
-                    itemMode: 'array',
-                    name: { kind: 'path', path: 'item.name' }
-                  }],
-                  titles: [{
-                    title: { kind: 'path', path: 'record.metadata.title' }
-                  }],
+                  creators: [
+                    {
+                      sourcePath: 'metadata.creators',
+                      itemMode: 'array',
+                      name: { kind: 'path', path: 'item.name' },
+                    },
+                  ],
+                  titles: [
+                    {
+                      title: { kind: 'path', path: 'record.metadata.title' },
+                    },
+                  ],
                   types: {
-                    resourceTypeGeneral: { kind: 'path', path: 'record.metadata.type' }
-                  }
+                    resourceTypeGeneral: { kind: 'path', path: 'record.metadata.type' },
+                  },
                 },
                 writeBack: {
                   citationUrlPath: 'metadata.citation_url',
-                  citationDoiPath: 'metadata.citation_doi'
+                  citationDoiPath: 'metadata.citation_doi',
                 },
                 validation: {
                   requireUrl: true,
                   requirePublisher: true,
                   requirePublicationYear: true,
                   requireCreators: true,
-                  requireTitles: true
-                }
-              }
-            ]
-          }
+                  requireTitles: true,
+                },
+              },
+            ],
+          },
         };
       }
       return {
-        fieldOrder: ["enabled", "title", "message"],
+        fieldOrder: ['enabled', 'title', 'message'],
         schema: {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "title": "Enabled"
+          type: 'object',
+          properties: {
+            enabled: {
+              type: 'boolean',
+              title: 'Enabled',
             },
-            "title": {
-              "type": "string"
+            title: {
+              type: 'string',
             },
-            "message": {
-              "type": "textarea"
-            }
-          }
+            message: {
+              type: 'textarea',
+            },
+          },
         },
         model: {
           enabled: true,
           title: '',
-          message: ''
-        }
-      }
+          message: '',
+        },
+      };
     },
     saveAppConfig: function (configKey: string, model: any) {
       this.lastSavedModel = model;
-      if (configKey === "fail") {
+      if (configKey === 'fail') {
         return Promise.reject('Failure');
       }
       return new Promise((resolve, reject) => {
         resolve({
-          success: true
+          success: true,
         });
       });
-    }
-
-  }
+    },
+  };
 }

@@ -3,7 +3,7 @@ import { ValueBindingEditorTypeComponent } from './value-binding-editor.type';
 import {
   FigshareCrosswalkApiService,
   FigshareCrosswalkOption,
-  FigshareLocalVocabularyOption
+  FigshareLocalVocabularyOption,
 } from '../../services/figshare-crosswalk-api.service';
 
 /**
@@ -16,7 +16,7 @@ import {
 describe('ValueBindingEditorTypeComponent', () => {
   const VOCABULARIES: FigshareLocalVocabularyOption[] = [
     { id: 'vocab-1', name: 'figgy', slug: 'figgy', source: 'local' },
-    { id: 'vocab-2', name: 'other', slug: 'other', source: 'local' }
+    { id: 'vocab-2', name: 'other', slug: 'other', source: 'local' },
   ];
 
   function crosswalkOption(overrides: Partial<FigshareCrosswalkOption> = {}): FigshareCrosswalkOption {
@@ -35,7 +35,7 @@ describe('ValueBindingEditorTypeComponent', () => {
       approvedMappingCount: 50,
       workingMappingCount: 50,
       historicalTargetCount: 0,
-      ...overrides
+      ...overrides,
     };
   }
 
@@ -55,8 +55,8 @@ describe('ValueBindingEditorTypeComponent', () => {
         path: new FormControl(''),
         template: new FormControl(''),
         expression: new FormControl(''),
-        defaultValue: new FormControl('')
-      })
+        defaultValue: new FormControl(''),
+      }),
     });
   }
 
@@ -67,7 +67,7 @@ describe('ValueBindingEditorTypeComponent', () => {
       path: new FormControl(''),
       template: new FormControl(''),
       expression: new FormControl(''),
-      defaultValue: new FormControl('')
+      defaultValue: new FormControl(''),
     });
   }
 
@@ -76,7 +76,7 @@ describe('ValueBindingEditorTypeComponent', () => {
       waitForInit: () => Promise.resolve(),
       getCrosswalkAdminUrl: () => '/admin/figshareVocabularies',
       listAllLocalVocabularies: () => Promise.resolve(VOCABULARIES),
-      listAllApprovedCrosswalks: () => Promise.resolve(crosswalks)
+      listAllApprovedCrosswalks: () => Promise.resolve(crosswalks),
     } as unknown as FigshareCrosswalkApiService;
   }
 
@@ -101,9 +101,12 @@ describe('ValueBindingEditorTypeComponent', () => {
     Object.defineProperty(component, 'model', { value: model });
     Object.defineProperty(component, 'formControl', { value: formControl });
     Object.defineProperty(component, 'field', {
-      value: { key: 'categories', props: allowCrosswalk ? { allowCrosswalk: true } : {} }
+      value: { key: 'categories', props: allowCrosswalk ? { allowCrosswalk: true } : {} },
     });
-    Object.defineProperty(component, 'props', { value: allowCrosswalk ? { allowCrosswalk: true } : {} });
+    Object.defineProperty(component, 'props', {
+      value: allowCrosswalk ? { allowCrosswalk: true } : {},
+      configurable: true,
+    });
 
     return { component, formControl, model };
   }
@@ -113,7 +116,7 @@ describe('ValueBindingEditorTypeComponent', () => {
     source: { kind: 'path', path: 'metadata.forCodes' },
     sourceVocabularyId: 'vocab-1',
     crosswalkId: 'crosswalk-1',
-    outputs: 'categoryId'
+    outputs: 'categoryId',
   });
 
   describe('kind gating', () => {
@@ -183,7 +186,7 @@ describe('ValueBindingEditorTypeComponent', () => {
         source: { kind: 'path', path: 'metadata.forCodes' },
         sourceVocabularyId: 'vocab-1',
         crosswalkId: 'crosswalk-1',
-        outputs: 'categoryId'
+        outputs: 'categoryId',
       });
     });
 
@@ -201,7 +204,7 @@ describe('ValueBindingEditorTypeComponent', () => {
         sourceVocabularyId: 'vocab-1',
         crosswalkId: 'crosswalk-1',
         outputs: 'label',
-        defaultValue: 'x'
+        defaultValue: 'x',
       });
     });
 
@@ -219,7 +222,7 @@ describe('ValueBindingEditorTypeComponent', () => {
 
     it('emits blank crosswalk ids so a half-configured binding still round-trips', async () => {
       const { component, model } = setup({
-        model: { kind: 'crosswalk', source: { kind: 'path', path: 'metadata.forCodes' } }
+        model: { kind: 'crosswalk', source: { kind: 'path', path: 'metadata.forCodes' } },
       });
 
       await component.ngOnInit();
@@ -229,7 +232,7 @@ describe('ValueBindingEditorTypeComponent', () => {
         source: { kind: 'path', path: 'metadata.forCodes' },
         sourceVocabularyId: '',
         crosswalkId: '',
-        outputs: 'categoryId'
+        outputs: 'categoryId',
       });
     });
 
@@ -250,8 +253,7 @@ describe('ValueBindingEditorTypeComponent', () => {
       await component.ngOnInit();
       component.updateField('path', 'metadata.title');
 
-      expect(Object.keys(formControl.value).sort())
-        .toEqual(['defaultValue', 'expression', 'kind', 'path', 'template']);
+      expect(Object.keys(formControl.value).sort()).toEqual(['defaultValue', 'expression', 'kind', 'path', 'template']);
       expect(formControl.get('path')?.value).toBe('metadata.title');
     });
 
@@ -268,7 +270,7 @@ describe('ValueBindingEditorTypeComponent', () => {
         path: 'metadata.forCodes',
         template: '',
         expression: '',
-        defaultValue: ''
+        defaultValue: '',
       });
     });
   });
@@ -330,7 +332,7 @@ describe('ValueBindingEditorTypeComponent', () => {
     it('filters offered crosswalks by the selected vocabulary', async () => {
       const { component } = setup({
         model: crosswalkModel(),
-        crosswalks: [crosswalkOption(), crosswalkOption({ id: 'crosswalk-2', localVocabularyId: 'vocab-2' })]
+        crosswalks: [crosswalkOption(), crosswalkOption({ id: 'crosswalk-2', localVocabularyId: 'vocab-2' })],
       });
       await component.ngOnInit();
 
@@ -340,7 +342,7 @@ describe('ValueBindingEditorTypeComponent', () => {
     it('offers every crosswalk when no vocabulary is selected', async () => {
       const { component } = setup({
         model: { kind: 'crosswalk', source: { kind: 'path', path: 'a' } },
-        crosswalks: [crosswalkOption(), crosswalkOption({ id: 'crosswalk-2', localVocabularyId: 'vocab-2' })]
+        crosswalks: [crosswalkOption(), crosswalkOption({ id: 'crosswalk-2', localVocabularyId: 'vocab-2' })],
       });
       await component.ngOnInit();
 
@@ -394,7 +396,7 @@ describe('ValueBindingEditorTypeComponent', () => {
 
     it('asks for a vocabulary, then a crosswalk', async () => {
       const { component } = setup({
-        model: { kind: 'crosswalk', source: { kind: 'path', path: 'metadata.forCodes' } }
+        model: { kind: 'crosswalk', source: { kind: 'path', path: 'metadata.forCodes' } },
       });
       await component.ngOnInit();
 
@@ -414,7 +416,7 @@ describe('ValueBindingEditorTypeComponent', () => {
     it('flags a crosswalk with no approved revision', async () => {
       const { component } = setup({
         model: crosswalkModel(),
-        crosswalks: [crosswalkOption({ approvedRevision: null })]
+        crosswalks: [crosswalkOption({ approvedRevision: null })],
       });
       await component.ngOnInit();
 
@@ -435,5 +437,32 @@ describe('ValueBindingEditorTypeComponent', () => {
 
       expect(component.summarySource).toBe('metadata.codes');
     });
+  });
+  it('keeps Figshare bindings limited to Figshare sources when shared options are available (PUB-24)', async () => {
+    const { component } = setup({
+      model: crosswalkModel(),
+      crosswalks: [
+        crosswalkOption({ provider: 'figshare' }),
+        crosswalkOption({ id: 'uri', provider: 'test', sourceId: 'subjects' }),
+      ],
+    });
+    await component.ngOnInit();
+    expect(component.crosswalkOptions.map(row => row.id)).toEqual(['crosswalk-1']);
+    expect(component.value.outputs).toBe('categoryId');
+  });
+  it('preserves string outputs and explicit revision references for a generic provider schema (PUB-24)', async () => {
+    const model = { ...crosswalkModel(), outputs: 'value', revision: 1 };
+    const { component } = setup({ model, crosswalks: [crosswalkOption({ provider: 'test', sourceId: 'subjects' })] });
+    Object.defineProperty(component, 'props', {
+      value: { allowCrosswalk: true, crosswalkOutputs: ['targetId', 'value', 'sourceId', 'label'] },
+      configurable: true,
+    });
+    await component.ngOnInit();
+    component.updateSourceField('path', 'metadata.CaseSensitive');
+    expect(model.outputs).toBe('value');
+    expect(model.revision).toBe(1);
+    expect(component.crosswalkOptions.length).toBe(1);
+    component.providerFilter = 'figshare';
+    expect(component.crosswalkOptions).toEqual([]);
   });
 });

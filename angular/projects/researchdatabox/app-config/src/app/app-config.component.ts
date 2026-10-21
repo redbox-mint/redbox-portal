@@ -21,34 +21,41 @@ import { Component, ElementRef, Inject, ChangeDetectionStrategy } from '@angular
 import { DOCUMENT } from '@angular/common';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 
-import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
+import {
+  BaseComponent,
+  UtilityService,
+  LoggerService,
+  TranslationService,
+  AppConfigService,
+} from '@researchdatabox/portal-ng-common';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
 import { JSONSchema7 } from 'json-schema';
+import {
+  configurePublicationFields,
+  publicationEditorSchema,
+} from './fieldTypes/publication-destinations/publication-fields';
 import { AppConfig } from '@researchdatabox/portal-ng-common';
 /**
  * Application Config  Component
  *
  */
 @Component({
-    selector: 'app-config',
-    templateUrl: './app-config.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+  selector: 'app-config',
+  templateUrl: './app-config.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class AppConfigComponent extends BaseComponent {
-
   window: any;
   form = new FormGroup({});
   model = {};
-  fields: FormlyFieldConfig[] = [
-   
-  ];
+  fields: FormlyFieldConfig[] = [];
   configKey: any;
   formSaving: boolean = false;
   formSaveSuccessful: boolean = false;
   formSaveUnsuccessful: boolean = false;
-
+  formSaveError = '';
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -69,8 +76,11 @@ export class AppConfigComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
-    let result: AppConfig = await this.appConfigService.getAppConfigForm(this.configKey)
-    const jsonObject: JSONSchema7 = result.schema as JSONSchema7;
+    let result: AppConfig = await this.appConfigService.getAppConfigForm(this.configKey);
+    const jsonObject =
+      this.configKey === 'publicationPublishing'
+        ? publicationEditorSchema(result.schema as JSONSchema7)
+        : (structuredClone(result.schema) as JSONSchema7);
     const fieldOrder = result.fieldOrder;
     const originalProperties = jsonObject.properties ? { ...jsonObject.properties } : undefined;
     jsonObject.properties = {};
@@ -89,12 +99,14 @@ export class AppConfigComponent extends BaseComponent {
       throw error;
     }
 
-    this.fields = [generatedField];
+    this.fields = [
+      this.configKey === 'publicationPublishing' ? configurePublicationFields(generatedField) : generatedField,
+    ];
     this.applyCheckboxType(this.fields);
-    
+
     // Apply custom widget types for specific config models
     this.applyCustomWidgetTypes(this.fields);
-    
+
     this.model = result.model;
     this.loggerService.debug(`AppConfig initialised.`);
   }
@@ -131,7 +143,7 @@ export class AppConfigComponent extends BaseComponent {
       this.applyWidgetTypeToField(fields, 'items', 'menu-editor');
       this.hideFieldByKey(fields, 'showSearch');
     }
-    
+
     // Admin sidebar config: Use admin-sidebar-editor for the header field
     // The editor handles all three fields (header, sections, footerLinks) in a unified UI
     if (this.configKey === 'adminSidebar') {
@@ -179,12 +191,36 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
-  async onSubmit(model: any): Promise<void> {
+  private maskSavedSecrets(fields: FormlyFieldConfig[]): void {
+    for (const field of fields) {
+      if (field.props?.type === 'password' && typeof field.formControl?.value === 'string' && field.formControl.value) {
+        // Match AppConfigService's placeholder so a failed reload cannot turn a
+        // subsequent save into a credential replacement with a cosmetic mask.
+        field.formControl.setValue('__REDACTED__');
+      }
+      if (field.fieldGroup) this.maskSavedSecrets(field.fieldGroup);
+    }
+  }
+
+  async onSubmit(model: object): Promise<void> {
+    if (this.form.invalid || this.formSaving) {
+      this.form.markAllAsTouched();
+      this.formSaveUnsuccessful = true;
+      this.formSaveError = '@app-config-validation-error';
+      this.requestRender();
+      return;
+    }
     this.formSaving = true;
     this.formSaveUnsuccessful = false;
     this.formSaveSuccessful = false;
+    this.formSaveError = '';
+    let saved = false;
     try {
       await this.appConfigService.saveAppConfig(this.configKey, model);
+      saved = true;
+      if (this.configKey === 'publicationPublishing') this.maskSavedSecrets(this.fields);
+      // Reload server-masked values after saving so replacement credentials never remain in the editor.
+      if (this.configKey === 'publicationPublishing') await this.initComponent();
       this.formSaveSuccessful = true;
       setTimeout(() => {
         this.formSaveSuccessful = false;
@@ -193,8 +229,14 @@ export class AppConfigComponent extends BaseComponent {
     } catch (error: unknown) {
       this.formSaveSuccessful = false;
       this.formSaveUnsuccessful = true;
+      this.formSaveError = saved
+        ? '@publication-config-reload-error'
+        : this.configKey === 'publicationPublishing'
+          ? '@publication-config-save-error'
+          : '@app-config-save-error';
     } finally {
       this.formSaving = false;
+      this.requestRender();
     }
   }
 }

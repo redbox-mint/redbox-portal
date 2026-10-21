@@ -1,11 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { APP_BASE_HREF } from '@angular/common';
-import { ConfigService, LoggerService, UtilityService, getStubConfigService } from '@researchdatabox/portal-ng-common';
+import {
+  ConfigService,
+  LoggerService,
+  UtilityService,
+  getStubConfigService,
+  PublicationVocabularyApiService,
+} from '@researchdatabox/portal-ng-common';
 import {
   FigshareCrosswalkApiService,
   FigshareCrosswalkOption,
-  FigshareLocalVocabularyOption
+  FigshareLocalVocabularyOption,
 } from './figshare-crosswalk-api.service';
 
 /**
@@ -33,7 +39,7 @@ describe('FigshareCrosswalkApiService', () => {
       approvedMappingCount: 50,
       workingMappingCount: 50,
       historicalTargetCount: 0,
-      ...overrides
+      ...overrides,
     };
   }
 
@@ -49,8 +55,8 @@ describe('FigshareCrosswalkApiService', () => {
         LoggerService,
         UtilityService,
         { provide: ConfigService, useValue: getStubConfigService() },
-        { provide: APP_BASE_HREF, useValue: '/base' }
-      ]
+        { provide: APP_BASE_HREF, useValue: '/base' },
+      ],
     });
 
     service = TestBed.inject(FigshareCrosswalkApiService);
@@ -65,7 +71,7 @@ describe('FigshareCrosswalkApiService', () => {
   it('requests approved crosswalks with the default paging', async () => {
     const promise = service.listApprovedCrosswalks();
 
-    const req = httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks'));
+    const req = httpMock.expectOne(request => request.url.includes('/api/figshare-crosswalks'));
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('status')).toBe('approved');
     expect(req.request.params.get('limit')).toBe('200');
@@ -78,7 +84,7 @@ describe('FigshareCrosswalkApiService', () => {
   it('restricts the request to one local vocabulary when supplied', async () => {
     const promise = service.listApprovedCrosswalks('  vocab-2  ');
 
-    const req = httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks'));
+    const req = httpMock.expectOne(request => request.url.includes('/api/figshare-crosswalks'));
     expect(req.request.params.get('localVocabularyId')).toBe('vocab-2');
     req.flush({ data: { records: [] } });
 
@@ -88,7 +94,7 @@ describe('FigshareCrosswalkApiService', () => {
   it('ignores a blank local vocabulary filter', async () => {
     const promise = service.listApprovedCrosswalks('   ');
 
-    const req = httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks'));
+    const req = httpMock.expectOne(request => request.url.includes('/api/figshare-crosswalks'));
     expect(req.request.params.get('localVocabularyId')).toBeNull();
     req.flush({ data: { records: [] } });
 
@@ -98,10 +104,12 @@ describe('FigshareCrosswalkApiService', () => {
   it('unwraps an unenveloped list response', async () => {
     const promise = service.listApprovedCrosswalks();
 
-    httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks')).flush({
-      summary: { numFound: 1 },
-      records: [crosswalk()]
-    });
+    httpMock
+      .expectOne(request => request.url.includes('/api/figshare-crosswalks'))
+      .flush({
+        summary: { numFound: 1 },
+        records: [crosswalk()],
+      });
 
     expect(await promise).toEqual([crosswalk()]);
   });
@@ -109,7 +117,7 @@ describe('FigshareCrosswalkApiService', () => {
   it('returns an empty list for a response with no records', async () => {
     const promise = service.listApprovedCrosswalks();
 
-    httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks')).flush({ data: {} });
+    httpMock.expectOne(request => request.url.includes('/api/figshare-crosswalks')).flush({ data: {} });
 
     expect(await promise).toEqual([]);
   });
@@ -117,7 +125,7 @@ describe('FigshareCrosswalkApiService', () => {
   it('returns an empty list for a null response', async () => {
     const promise = service.listApprovedCrosswalks();
 
-    httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks')).flush(null);
+    httpMock.expectOne(request => request.url.includes('/api/figshare-crosswalks')).flush(null);
 
     expect(await promise).toEqual([]);
   });
@@ -125,7 +133,7 @@ describe('FigshareCrosswalkApiService', () => {
   it('drops external mirrors from the local vocabulary options', async () => {
     const promise = service.listLocalVocabularies();
 
-    const req = httpMock.expectOne((request) => request.url.includes('/api/vocabulary'));
+    const req = httpMock.expectOne(request => request.url.includes('/api/vocabulary'));
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('limit')).toBe('200');
     req.flush({
@@ -133,63 +141,138 @@ describe('FigshareCrosswalkApiService', () => {
         records: [
           vocabulary({ id: 'vocab-1', source: 'local' }),
           vocabulary({ id: 'vocab-2', source: 'rva' }),
-          vocabulary({ id: 'vocab-3', source: 'external' })
-        ]
-      }
+          vocabulary({ id: 'vocab-3', source: 'external' }),
+        ],
+      },
     });
 
     const result = await promise;
-    expect(result.map((option) => option.id)).toEqual(['vocab-1', 'vocab-2']);
+    expect(result.map(option => option.id)).toEqual(['vocab-1', 'vocab-2']);
   });
 
   it('memoises the crosswalk list across callers', async () => {
     const first = service.listAllApprovedCrosswalks();
     const second = service.listAllApprovedCrosswalks();
 
-    httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks')).flush({
-      data: { records: [crosswalk()] }
-    });
+    httpMock
+      .expectOne(request => request.url.includes('/api/figshare-crosswalks'))
+      .flush({
+        data: { records: [crosswalk()] },
+      });
 
     expect(await first).toEqual([crosswalk()]);
     expect(await second).toEqual([crosswalk()]);
-    httpMock.expectNone((request) => request.url.includes('/api/figshare-crosswalks'));
+    httpMock.expectNone(request => request.url.includes('/api/figshare-crosswalks'));
   });
 
   it('memoises the local vocabulary list across callers', async () => {
     const first = service.listAllLocalVocabularies();
     const second = service.listAllLocalVocabularies();
 
-    httpMock.expectOne((request) => request.url.includes('/api/vocabulary')).flush({
-      data: { records: [vocabulary()] }
-    });
+    httpMock
+      .expectOne(request => request.url.includes('/api/vocabulary'))
+      .flush({
+        data: { records: [vocabulary()] },
+      });
 
     expect(await first).toEqual([vocabulary()]);
     expect(await second).toEqual([vocabulary()]);
-    httpMock.expectNone((request) => request.url.includes('/api/vocabulary'));
+    httpMock.expectNone(request => request.url.includes('/api/vocabulary'));
   });
 
   it('re-fetches both lists after refresh', async () => {
     const initial = service.listAllApprovedCrosswalks();
-    httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks')).flush({
-      data: { records: [crosswalk()] }
-    });
+    httpMock
+      .expectOne(request => request.url.includes('/api/figshare-crosswalks'))
+      .flush({
+        data: { records: [crosswalk()] },
+      });
     await initial;
 
     service.refresh();
 
     const refetched = service.listAllApprovedCrosswalks();
-    httpMock.expectOne((request) => request.url.includes('/api/figshare-crosswalks')).flush({
-      data: { records: [crosswalk({ id: 'crosswalk-2' })] }
-    });
+    httpMock
+      .expectOne(request => request.url.includes('/api/figshare-crosswalks'))
+      .flush({
+        data: { records: [crosswalk({ id: 'crosswalk-2' })] },
+      });
 
-    expect((await refetched).map((option) => option.id)).toEqual(['crosswalk-2']);
+    expect((await refetched).map(option => option.id)).toEqual(['crosswalk-2']);
 
     const vocabs = service.listAllLocalVocabularies();
-    httpMock.expectOne((request) => request.url.includes('/api/vocabulary')).flush({ data: { records: [] } });
+    httpMock.expectOne(request => request.url.includes('/api/vocabulary')).flush({ data: { records: [] } });
     expect(await vocabs).toEqual([]);
   });
 
   it('builds the brand scoped crosswalk admin url', () => {
     expect(service.getCrosswalkAdminUrl()).toContain('/admin/integrations/figshare/vocabularies');
+  });
+});
+
+describe('Shared AppConfig crosswalk options (PUB-24)', () => {
+  it('includes a retained approved pointer on a newer draft and excludes archived or foreign sources', async () => {
+    const shared = jasmine.createSpyObj<PublicationVocabularyApiService>('SharedApi', [
+      'waitForInit',
+      'crosswalks',
+      'sources',
+    ]);
+    shared.waitForInit.and.resolveTo(shared);
+    const row = {
+      id: 'crosswalk',
+      name: 'URI mappings',
+      sourceId: 'subjects',
+      localVocabularyId: 'local',
+      normalizer: 'exact-v1' as const,
+      version: 3,
+      status: 'draft' as const,
+      workingRevision: 2,
+      approvedRevision: 1,
+    };
+    shared.crosswalks.and.resolveTo([
+      row,
+      { ...row, id: 'foreign', sourceId: 'other' },
+      { ...row, id: 'archived', status: 'archived' },
+    ]);
+    shared.sources.and.resolveTo([
+      {
+        id: 'subjects',
+        provider: 'test',
+        namespace: 'subjects',
+        scope: 'public',
+        catalogueId: 'subjects',
+        displayName: 'Subjects',
+        version: 2,
+        archived: false,
+      },
+    ]);
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [
+        FigshareCrosswalkApiService,
+        UtilityService,
+        LoggerService,
+        { provide: PublicationVocabularyApiService, useValue: shared },
+        { provide: APP_BASE_HREF, useValue: '/base' },
+        {
+          provide: ConfigService,
+          useValue: getStubConfigService({
+            csrfToken: 'csrf',
+            baseUrl: '',
+            branding: 'default',
+            portal: 'rdmp',
+            publicationVocabularyAdministrationEnabled: true,
+          }),
+        },
+      ],
+    });
+    const service = TestBed.inject(FigshareCrosswalkApiService);
+    await service.waitForInit();
+    const options = await service.listApprovedCrosswalks('local');
+    expect(options.map(option => option.id)).toEqual(['crosswalk']);
+    expect(options[0].provider).toBe('test');
+    expect(options[0].approvedRevision).toBe(1);
+    expect(service.getCrosswalkAdminUrl()).toBe('/base/default/rdmp/admin/integrations/figshare/vocabularies');
+    TestBed.inject(HttpTestingController).verify();
   });
 });

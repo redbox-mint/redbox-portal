@@ -1,8 +1,14 @@
-import { Inject, Injectable } from '@angular/core';
+import { Inject, Injectable, Optional } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
+import {
+  ConfigService,
+  HttpClientService,
+  UtilityService,
+  PublicationVocabularyApiService,
+  sharedVocabularyAdministrationEnabled,
+} from '@researchdatabox/portal-ng-common';
 
 export interface FigshareCrosswalkOption {
   id: string;
@@ -18,9 +24,11 @@ export interface FigshareCrosswalkOption {
   figshareSourceName: string;
   scope: string;
   taxonomyId: string;
-  approvedMappingCount: number;
-  workingMappingCount: number;
-  historicalTargetCount: number;
+  provider?: string;
+  sourceId?: string;
+  approvedMappingCount?: number;
+  workingMappingCount?: number;
+  historicalTargetCount?: number;
 }
 
 export interface FigshareLocalVocabularyOption {
@@ -53,7 +61,8 @@ export class FigshareCrosswalkApiService extends HttpClientService {
     @Inject(HttpClient) http: HttpClient,
     @Inject(APP_BASE_HREF) rootContext: string,
     @Inject(UtilityService) utilService: UtilityService,
-    @Inject(ConfigService) configService: ConfigService
+    @Inject(ConfigService) configService: ConfigService,
+    @Optional() @Inject(PublicationVocabularyApiService) private sharedApi?: PublicationVocabularyApiService
   ) {
     super(http, rootContext, utilService, configService);
   }
@@ -61,13 +70,18 @@ export class FigshareCrosswalkApiService extends HttpClientService {
   public override async waitForInit(): Promise<this> {
     await super.waitForInit();
     this.enableCsrfHeader();
+    if (this.sharedAdministrationEnabled && this.sharedApi) await this.sharedApi.waitForInit();
     return this;
+  }
+
+  public get sharedAdministrationEnabled(): boolean {
+    return sharedVocabularyAdministrationEnabled(this.getConfig());
   }
 
   private getJsonRequestOptions(): JsonRequestOptions {
     return {
       ...(this.reqOptsJsonBodyOnly as { responseType: 'json'; observe: 'body' }),
-      context: this.httpContext
+      context: this.httpContext,
     };
   }
 
@@ -88,19 +102,23 @@ export class FigshareCrosswalkApiService extends HttpClientService {
    * by local vocabulary client-side, so the unfiltered list is fetched once.
    */
   public async listAllApprovedCrosswalks(): Promise<FigshareCrosswalkOption[]> {
-    this.crosswalksPromise = this.crosswalksPromise ?? this.listApprovedCrosswalks().catch((error) => {
-      this.crosswalksPromise = undefined;
-      throw error;
-    });
+    this.crosswalksPromise =
+      this.crosswalksPromise ??
+      this.listApprovedCrosswalks().catch(error => {
+        this.crosswalksPromise = undefined;
+        throw error;
+      });
     return this.crosswalksPromise;
   }
 
   /** Local vocabulary options, memoised across binding editors. */
   public async listAllLocalVocabularies(): Promise<FigshareLocalVocabularyOption[]> {
-    this.vocabulariesPromise = this.vocabulariesPromise ?? this.listLocalVocabularies().catch((error) => {
-      this.vocabulariesPromise = undefined;
-      throw error;
-    });
+    this.vocabulariesPromise =
+      this.vocabulariesPromise ??
+      this.listLocalVocabularies().catch(error => {
+        this.vocabulariesPromise = undefined;
+        throw error;
+      });
     return this.vocabulariesPromise;
   }
 
@@ -112,14 +130,40 @@ export class FigshareCrosswalkApiService extends HttpClientService {
 
   /** Approved, same-brand crosswalks. Optionally restricted to one local vocabulary. */
   public async listApprovedCrosswalks(localVocabularyId?: string): Promise<FigshareCrosswalkOption[]> {
+    if (this.sharedAdministrationEnabled) {
+      if (!this.sharedApi) throw new Error('Shared vocabulary API is unavailable');
+      const [crosswalks, sources] = await Promise.all([this.sharedApi.crosswalks(), this.sharedApi.sources()]);
+      return crosswalks
+        .filter(
+          row =>
+            !!row.approvedRevision &&
+            row.status !== 'archived' &&
+            (!localVocabularyId?.trim() || row.localVocabularyId === localVocabularyId.trim())
+        )
+        .flatMap(row => {
+          const source = sources.find(source => source.id === row.sourceId && !source.archived);
+          return source
+            ? [
+                {
+                  ...row,
+                  provider: source.provider,
+                  sourceId: source.id,
+                  localVocabularyName: '',
+                  figshareSourceId: source.id,
+                  figshareSourceName: source.displayName,
+                  scope: source.scope,
+                  taxonomyId: source.catalogueId,
+                },
+              ]
+            : [];
+        });
+    }
     const url = `${this.brandingAndPortalUrl}/api/figshare-crosswalks`;
     const params: Record<string, string> = { status: 'approved', limit: '200' };
     if (localVocabularyId && localVocabularyId.trim()) {
       params['localVocabularyId'] = localVocabularyId.trim();
     }
-    const response = await firstValueFrom(
-      this.http.get(url, { ...this.getJsonRequestOptions(), params })
-    );
+    const response = await firstValueFrom(this.http.get(url, { ...this.getJsonRequestOptions(), params }));
     return this.unwrapRecords<FigshareCrosswalkOption>(response);
   }
 
@@ -129,8 +173,9 @@ export class FigshareCrosswalkApiService extends HttpClientService {
     const response = await firstValueFrom(
       this.http.get(url, { ...this.getJsonRequestOptions(), params: { limit: '200' } })
     );
-    return this.unwrapRecords<FigshareLocalVocabularyOption>(response)
-      .filter((vocabulary) => vocabulary.source !== 'external');
+    return this.unwrapRecords<FigshareLocalVocabularyOption>(response).filter(
+      vocabulary => vocabulary.source !== 'external'
+    );
   }
 
   public getCrosswalkAdminUrl(): string {

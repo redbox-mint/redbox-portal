@@ -6645,64 +6645,64 @@
     "contentFormat": "plain"
   },
   "@validator-error-min": {
-    "category":  "validator",
-    "description":  "Error message for a failed min validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed min validator",
+    "contentFormat": "plain"
   },
   "@validator-error-max": {
-    "category":  "validator",
-    "description":  "Error message for a failed max validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed max validator",
+    "contentFormat": "plain"
   },
   "@validator-error-min-length": {
-    "category":  "validator",
-    "description":  "Error message for a failed min-length validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed min-length validator",
+    "contentFormat": "plain"
   },
   "@validator-error-max-length": {
-    "category":  "validator",
-    "description":  "Error message for a failed max-length validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed max-length validator",
+    "contentFormat": "plain"
   },
   "@validator-error-aggregate-max-length": {
-    "category":  "validator",
-    "description":  "Error message showing the maximum and actual character lengths of joined repeatable values",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message showing the maximum and actual character lengths of joined repeatable values",
+    "contentFormat": "plain"
   },
   "@validator-error-required": {
-    "category":  "validator",
-    "description":  "Error message for a failed required validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed required validator",
+    "contentFormat": "plain"
   },
   "@validator-error-required-true": {
-    "category":  "validator",
-    "description":  "Error message for a failed required-true validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed required-true validator",
+    "contentFormat": "plain"
   },
   "@validator-error-email": {
-    "category":  "validator",
-    "description":  "Error message for a failed email validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed email validator",
+    "contentFormat": "plain"
   },
   "@validator-error-pattern": {
-    "category":  "validator",
-    "description":  "Error message for a failed pattern validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed pattern validator",
+    "contentFormat": "plain"
   },
   "@validator-error-different-values": {
-    "category":  "validator",
-    "description":  "Error message for a failed different-values validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed different-values validator",
+    "contentFormat": "plain"
   },
   "@validator-error-orcid": {
-    "category":  "validator",
-    "description":  "Error message for a failed orcid validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed orcid validator",
+    "contentFormat": "plain"
   },
   "@validator-error-url": {
-    "category":  "validator",
-    "description":  "Error message for a failed url validator",
-    "contentFormat":  "plain"
+    "category": "validator",
+    "description": "Error message for a failed url validator",
+    "contentFormat": "plain"
   },
   "@validator-error-doi": {
     "category": "validator",
@@ -7242,6 +7242,831 @@
   "menu-siemconfiguration": {
     "category": "siem",
     "description": "Admin navigation label and page title for SIEM configuration",
+    "contentFormat": "plain"
+  },
+  "@publication-config-destinations": {
+    "category": "publication",
+    "description": "Publication destinations",
+    "contentFormat": "plain"
+  },
+  "@publication-config-identity-help": {
+    "category": "publication",
+    "description": "Destination IDs and providers are permanent. Create a new ID for a different remote target. Disable or archive a destination to retain its publication history.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-secret-help": {
+    "category": "publication",
+    "description": "The masked value keeps the stored credential. Enter a replacement to rotate it. Credentials are masked again after saving.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-json-help": {
+    "category": "publication",
+    "description": "Edit this provider configuration as a JSON object. Keep existing binding and crosswalk references when changing mappings.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-json-error": {
+    "category": "publication",
+    "description": "Enter a valid JSON object before saving.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-provider-unknown": {
+    "category": "publication",
+    "description": "This provider is not registered. Restore its provider package or ask an administrator to repair this destination before saving.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-provider-unavailable": {
+    "category": "publication",
+    "description": "Processing is unavailable for this provider. Configure the destination while disabled; install an execution and reconciliation adapter before enabling it.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-empty": {
+    "category": "publication",
+    "description": "No publication destinations are configured.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-destination-id": {
+    "category": "publication",
+    "description": "New destination ID",
+    "contentFormat": "plain"
+  },
+  "@publication-config-provider": {
+    "category": "publication",
+    "description": "Provider",
+    "contentFormat": "plain"
+  },
+  "@publication-config-add": {
+    "category": "publication",
+    "description": "Add destination",
+    "contentFormat": "plain"
+  },
+  "@publication-config-id-invalid": {
+    "category": "publication",
+    "description": "Use a lowercase letter followed by lowercase letters, numbers or hyphens, up to 64 characters.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-id-duplicate": {
+    "category": "publication",
+    "description": "This destination ID already exists. Choose a different ID; several destinations may use the same provider.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-validation-error": {
+    "category": "publication",
+    "description": "Correct the highlighted configuration fields before saving.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-save-error": {
+    "category": "publication",
+    "description": "Configuration failed to save. Check destination settings, credentials, mapping references and workflow destinations, then try again. Ask an administrator to check migration readiness before enabling processing.",
+    "contentFormat": "plain"
+  },
+  "@publication-status-load-error": {
+    "category": "publication",
+    "description": "Publication status could not be loaded. Reload the page to try again; contact an administrator if the problem continues.",
+    "contentFormat": "plain"
+  },
+  "@publication-filter-provider": {
+    "category": "publication",
+    "description": "Provider",
+    "contentFormat": "plain"
+  },
+  "@publication-filter-destination": {
+    "category": "publication",
+    "description": "Destination",
+    "contentFormat": "plain"
+  },
+  "@publication-filter-all": {
+    "category": "publication",
+    "description": "All",
+    "contentFormat": "plain"
+  },
+  "@publication-next-check": {
+    "category": "publication",
+    "description": "Next status check:",
+    "contentFormat": "plain"
+  },
+  "@publication-link-current": {
+    "category": "publication",
+    "description": "Open current publication",
+    "contentFormat": "plain"
+  },
+  "@publication-link-historical": {
+    "category": "publication",
+    "description": "Open publication (current request is not confirmed)",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-historical": {
+    "category": "publication",
+    "description": "Earlier completion evidence does not confirm the current request.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-deposit-confirmed": {
+    "category": "publication",
+    "description": "Deposit confirmed.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-deposit-unverified": {
+    "category": "publication",
+    "description": "Deposit has not been confirmed.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-publication-confirmed": {
+    "category": "publication",
+    "description": "Publication confirmed.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-publication-published": {
+    "category": "publication",
+    "description": "Publication confirmed.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-publication-unverified": {
+    "category": "publication",
+    "description": "Publication has not been confirmed.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-publication-private": {
+    "category": "publication",
+    "description": "The remote item is private.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-publication-pending": {
+    "category": "publication",
+    "description": "Remote publication is pending.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-ingestion-confirmed": {
+    "category": "publication",
+    "description": "Repository indexing completed after this deposit.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-ingestion-not_required": {
+    "category": "publication",
+    "description": "Repository indexing is not required for this destination.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-ingestion-pending": {
+    "category": "publication",
+    "description": "Repository indexing is pending.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-ingestion-unverified": {
+    "category": "publication",
+    "description": "Repository indexing has not been confirmed.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-visibility-verified": {
+    "category": "publication",
+    "description": "Visibility of this object has been verified.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-visibility-unverified": {
+    "category": "publication",
+    "description": "Public visibility of this object has not been verified. Repository indexing alone does not confirm discoverability.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-embargoed": {
+    "category": "publication",
+    "description": "An embargo applies to the remote item.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-accessible": {
+    "category": "publication",
+    "description": "Access to the remote item is confirmed.",
+    "contentFormat": "plain"
+  },
+  "@publication-evidence-inaccessible": {
+    "category": "publication",
+    "description": "The remote item is not currently accessible.",
+    "contentFormat": "plain"
+  },
+  "@integration-status-name-oni": {
+    "category": "publication",
+    "description": "Oni repository",
+    "contentFormat": "plain"
+  },
+  "@publication-live-queued": {
+    "category": "publication",
+    "description": "Queued",
+    "contentFormat": "plain"
+  },
+  "@publication-live-running": {
+    "category": "publication",
+    "description": "Processing",
+    "contentFormat": "plain"
+  },
+  "@publication-live-waiting": {
+    "category": "publication",
+    "description": "Waiting",
+    "contentFormat": "plain"
+  },
+  "@publication-live-retrying": {
+    "category": "publication",
+    "description": "Retry scheduled",
+    "contentFormat": "plain"
+  },
+  "@publication-live-completed": {
+    "category": "publication",
+    "description": "Completed",
+    "contentFormat": "plain"
+  },
+  "@publication-live-failed": {
+    "category": "publication",
+    "description": "Failed",
+    "contentFormat": "plain"
+  },
+  "@publication-live-repair_required": {
+    "category": "publication",
+    "description": "Administrator action required",
+    "contentFormat": "plain"
+  },
+  "@publication-live-superseded": {
+    "category": "publication",
+    "description": "Source changed",
+    "contentFormat": "plain"
+  },
+  "@publication-live-revoked": {
+    "category": "publication",
+    "description": "Approval revoked",
+    "contentFormat": "plain"
+  },
+  "@publication-live-paused": {
+    "category": "publication",
+    "description": "Processing paused",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-migration-quarantine": {
+    "category": "publication",
+    "description": "Migration requires administrator review before publication can continue. Ask an administrator to inspect and resolve the retained publication evidence.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-historical-observation": {
+    "category": "publication",
+    "description": "Historical publication only. No current publication request is authorized. Save and approve the intended content to publish a new revision.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-queued": {
+    "category": "publication",
+    "description": "Your request is saved and waiting for publication processing.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-saving": {
+    "category": "publication",
+    "description": "Waiting for the record save to finish.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-paused": {
+    "category": "publication",
+    "description": "Processing is disabled or this destination is archived. Ask an administrator to review the destination settings.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-configuration": {
+    "category": "publication",
+    "description": "Ask an administrator to repair this destination configuration before resuming processing.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-configuration-changed": {
+    "category": "publication",
+    "description": "The destination settings have changed. Ask an administrator to review the target and approve the current content again.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-save-unverified": {
+    "category": "publication",
+    "description": "The record save outcome could not be verified. Ask an administrator to inspect it before resuming publication.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-save-abandoned": {
+    "category": "publication",
+    "description": "The record save did not complete. Save and approve the intended content again.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-revoked": {
+    "category": "publication",
+    "description": "Approval was revoked. A new approval is needed before publication can continue.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-source-changed": {
+    "category": "publication",
+    "description": "The content has changed. Save and approve the current content before publishing.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-completion-unverified": {
+    "category": "publication",
+    "description": "Current publication completion has not been confirmed. Earlier links do not prove completion.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-preparation": {
+    "category": "publication",
+    "description": "The content or mapping could not be prepared. Review required fields and mapping configuration before approving again.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-busy": {
+    "category": "publication",
+    "description": "Waiting for another repository operation to finish.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-manual": {
+    "category": "publication",
+    "description": "Waiting for publication in the destination. Complete the remote publication step, then check status again.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-curation": {
+    "category": "publication",
+    "description": "Waiting for the destination curation process. Check the review status in the destination.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-embargo": {
+    "category": "publication",
+    "description": "Waiting for the configured embargo conditions.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-uploads": {
+    "category": "publication",
+    "description": "Waiting for attachment uploads to complete.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-ingestion": {
+    "category": "publication",
+    "description": "Waiting for repository indexing. Ask an administrator to check the ingestion service if this persists.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-repair": {
+    "category": "publication",
+    "description": "Ask an administrator to inspect and repair this destination before resuming. The current request is not confirmed complete.",
+    "contentFormat": "plain"
+  },
+  "@publication-reason-waiting": {
+    "category": "publication",
+    "description": "Waiting for the destination. Check its publication or review status; contact an administrator if this persists.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-setting-name": {
+    "category": "publication",
+    "description": "New setting name",
+    "contentFormat": "plain"
+  },
+  "@publication-config-setting-invalid": {
+    "category": "publication",
+    "description": "Enter a unique name starting with a letter, using letters, numbers, hyphens or underscores.",
+    "contentFormat": "plain"
+  },
+  "@publication-config-setting-add": {
+    "category": "publication",
+    "description": "Add setting",
+    "contentFormat": "plain"
+  },
+  "@publication-config-reload-error": {
+    "category": "publication",
+    "description": "Configuration was saved, but refreshed settings could not be loaded. Credentials have been masked. Reload the page before making further changes.",
+    "contentFormat": "plain"
+  },
+  "@publication-filter-empty": {
+    "category": "publication",
+    "description": "No publication destinations match these filters.",
+    "contentFormat": "plain"
+  },
+  "@app-config-validation-error": {
+    "category": "app-config",
+    "description": "Correct the highlighted configuration fields before saving.",
+    "contentFormat": "plain"
+  },
+  "@app-config-save-error": {
+    "category": "app-config",
+    "description": "Configuration failed to save. Check the settings and try again.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-title": {
+    "category": "publication-vocabulary",
+    "description": "Publication vocabularies and crosswalks",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-subtitle": {
+    "category": "publication-vocabulary",
+    "description": "Manage provider catalogues, draft mappings and immutable approved revisions.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-reload": {
+    "category": "publication-vocabulary",
+    "description": "Reload",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-import": {
+    "category": "publication-vocabulary",
+    "description": "Import source",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-provider": {
+    "category": "publication-vocabulary",
+    "description": "Provider",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-all": {
+    "category": "publication-vocabulary",
+    "description": "All",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-source": {
+    "category": "publication-vocabulary",
+    "description": "Target source",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-status": {
+    "category": "publication-vocabulary",
+    "description": "Status",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-draft": {
+    "category": "publication-vocabulary",
+    "description": "Draft",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-approved": {
+    "category": "publication-vocabulary",
+    "description": "Approved",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-archived": {
+    "category": "publication-vocabulary",
+    "description": "Archived",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-proposed": {
+    "category": "publication-vocabulary",
+    "description": "Proposed",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-rejected": {
+    "category": "publication-vocabulary",
+    "description": "Rejected",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-actions": {
+    "category": "publication-vocabulary",
+    "description": "Actions",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-namespace": {
+    "category": "publication-vocabulary",
+    "description": "Namespace",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-source-list": {
+    "category": "publication-vocabulary",
+    "description": "Shared vocabulary sources",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-import-history": {
+    "category": "publication-vocabulary",
+    "description": "Import history",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-identity": {
+    "category": "publication-vocabulary",
+    "description": "Identity",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-date": {
+    "category": "publication-vocabulary",
+    "description": "Date",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-actor": {
+    "category": "publication-vocabulary",
+    "description": "Actor",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-empty": {
+    "category": "publication-vocabulary",
+    "description": "No results.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-name": {
+    "category": "publication-vocabulary",
+    "description": "Name",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-revisions": {
+    "category": "publication-vocabulary",
+    "description": "Revisions",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-working": {
+    "category": "publication-vocabulary",
+    "description": "Working",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-open": {
+    "category": "publication-vocabulary",
+    "description": "Open",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-crosswalk-list": {
+    "category": "publication-vocabulary",
+    "description": "Shared crosswalks",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-create-crosswalk": {
+    "category": "publication-vocabulary",
+    "description": "Create crosswalk",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-local-vocabulary": {
+    "category": "publication-vocabulary",
+    "description": "Local vocabulary",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-code-matching": {
+    "category": "publication-vocabulary",
+    "description": "Code matching",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-case-sensitive": {
+    "category": "publication-vocabulary",
+    "description": "Exact, case-sensitive codes",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-figshare-matching": {
+    "category": "publication-vocabulary",
+    "description": "Figshare code normalization (legacy compatibility)",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-back": {
+    "category": "publication-vocabulary",
+    "description": "Back to crosswalks",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-approval-help": {
+    "category": "publication-vocabulary",
+    "description": "Publishing continues to use the approved revision until you explicitly approve a saved draft. Earlier approvals remain available in revision history.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-unsaved": {
+    "category": "publication-vocabulary",
+    "description": "Unsaved mappings. Save the draft or discard changes before leaving this editor.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-revision": {
+    "category": "publication-vocabulary",
+    "description": "Revision",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-approval": {
+    "category": "publication-vocabulary",
+    "description": "Approval",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-audit": {
+    "category": "publication-vocabulary",
+    "description": "Audit references",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-search-mappings": {
+    "category": "publication-vocabulary",
+    "description": "Search mappings",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-local-term": {
+    "category": "publication-vocabulary",
+    "description": "Local term",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-target-term": {
+    "category": "publication-vocabulary",
+    "description": "Target term",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-historical": {
+    "category": "publication-vocabulary",
+    "description": "Historical",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-remove": {
+    "category": "publication-vocabulary",
+    "description": "Remove mapping",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-previous": {
+    "category": "publication-vocabulary",
+    "description": "Previous",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-next": {
+    "category": "publication-vocabulary",
+    "description": "Next",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-add-mapping": {
+    "category": "publication-vocabulary",
+    "description": "Add mapping",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-search-local": {
+    "category": "publication-vocabulary",
+    "description": "Search local terms",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-search-target": {
+    "category": "publication-vocabulary",
+    "description": "Search target terms",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-show-historical": {
+    "category": "publication-vocabulary",
+    "description": "Show historical targets (read only)",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-search": {
+    "category": "publication-vocabulary",
+    "description": "Search terms",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-save-draft": {
+    "category": "publication-vocabulary",
+    "description": "Save draft",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-discard": {
+    "category": "publication-vocabulary",
+    "description": "Discard changes",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-approve-revision": {
+    "category": "publication-vocabulary",
+    "description": "Approve working revision",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-confirm-approval": {
+    "category": "publication-vocabulary",
+    "description": "Approve this saved revision and all its non-rejected mappings? Revision and mapping count:",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-confirm": {
+    "category": "publication-vocabulary",
+    "description": "Confirm approval",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-cancel": {
+    "category": "publication-vocabulary",
+    "description": "Cancel",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-import-help": {
+    "category": "publication-vocabulary",
+    "description": "Importing refreshes a source. Missing terms become historical; existing approval snapshots keep their original terms and attribution.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-snapshot": {
+    "category": "publication-vocabulary",
+    "description": "Reviewed catalogue snapshot",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-snapshot-help": {
+    "category": "publication-vocabulary",
+    "description": "Supply provider, scope, catalogueId, namespace, displayName and terms. Each term needs value, sourceId, label and selectable. Values may be URIs or opaque strings; namespaced target IDs are derived without numeric conversion. Use the configured import for Figshare.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-snapshot-json": {
+    "category": "publication-vocabulary",
+    "description": "Catalogue snapshot (JSON)",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-review": {
+    "category": "publication-vocabulary",
+    "description": "Review snapshot",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-terms": {
+    "category": "publication-vocabulary",
+    "description": "terms",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-import-reviewed": {
+    "category": "publication-vocabulary",
+    "description": "Import reviewed snapshot",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-figshare-import": {
+    "category": "publication-vocabulary",
+    "description": "Configured Figshare catalogue",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-scope": {
+    "category": "publication-vocabulary",
+    "description": "Scope",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-discover": {
+    "category": "publication-vocabulary",
+    "description": "Discover catalogues",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-catalogue": {
+    "category": "publication-vocabulary",
+    "description": "Catalogue",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-import-catalogue": {
+    "category": "publication-vocabulary",
+    "description": "Import catalogue",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-conversion-required": {
+    "category": "publication-vocabulary",
+    "description": "Shared administration requires a verified vocabulary conversion for this brand. Complete the supported conversion procedure, then reload.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-conflict": {
+    "category": "publication-vocabulary",
+    "description": "The source or crosswalk changed. Your changes have not been applied. Discard local edits and reload to review the latest version before trying again.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-access-denied": {
+    "category": "publication-vocabulary",
+    "description": "Your session or administrator access is no longer valid. Sign in again before continuing.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-unavailable": {
+    "category": "publication-vocabulary",
+    "description": "This source, crosswalk or local vocabulary is unavailable for the current brand. Reload to review available items.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-request-failed": {
+    "category": "publication-vocabulary",
+    "description": "The request could not be completed. Check your connection and reload before trying again.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-invalid-snapshot": {
+    "category": "publication-vocabulary",
+    "description": "The snapshot is invalid. Check source identity, required term fields and unique string values. Figshare must use its configured catalogue import.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-figshare-unavailable": {
+    "category": "publication-vocabulary",
+    "description": "The configured Figshare catalogue could not be reached. Check the publishing settings for this brand and try again.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-draft-saved": {
+    "category": "publication-vocabulary",
+    "description": "Draft mappings saved. The previously approved revision is unchanged.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-imported": {
+    "category": "publication-vocabulary",
+    "description": "Source imported. Review and approve any draft mapping changes separately.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-approved-crosswalk": {
+    "category": "publication-vocabulary",
+    "description": "Approved crosswalk",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-open-crosswalks": {
+    "category": "publication-vocabulary",
+    "description": "Open publication crosswalks",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-output-help": {
+    "category": "publication-vocabulary",
+    "description": "Choose the string value required by this provider: namespaced targetId, value, sourceId or label.",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-binding-provider": {
+    "category": "publication-vocabulary",
+    "description": "Crosswalk provider",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-binding-source": {
+    "category": "publication-vocabulary",
+    "description": "Crosswalk target source",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-legacy-history": {
+    "category": "publication-vocabulary",
+    "description": "Figshare import history",
+    "contentFormat": "plain"
+  },
+  "@publication-vocabulary-legacy-history-help": {
+    "category": "publication-vocabulary",
+    "description": "Original import runs and previews remain available for reference. Apply new imports through shared source administration.",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-change-proposed": {
+    "category": "figshare-vocabulary",
+    "description": "Proposed mappings",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-change-preselected": {
+    "category": "figshare-vocabulary",
+    "description": "Preselected mappings",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-change-unresolved": {
+    "category": "figshare-vocabulary",
+    "description": "Unresolved local terms",
+    "contentFormat": "plain"
+  },
+  "figshare-vocab-change-historicalWarnings": {
+    "category": "figshare-vocabulary",
+    "description": "Historical target warnings",
     "contentFormat": "plain"
   }
 }

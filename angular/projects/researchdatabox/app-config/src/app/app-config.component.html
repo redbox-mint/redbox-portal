@@ -2,15 +2,17 @@
 @if (isReady) {
   <form [formGroup]="form" (ngSubmit)="onSubmit(model)">
     <formly-form [form]="form" [fields]="fields" [model]="model"></formly-form>
-    <button type="submit" class="btn btn-default">Submit</button>
+    <button type="submit" class="btn btn-default" [disabled]="formSaving">Submit</button>
   </form>
   @if (formSaving) {
-    <p class="alert-info text-16 padding-10 mt-2">Configuration is being saved <i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i></p>
+    <p class="alert-info text-16 padding-10 mt-2">
+      Configuration is being saved <i class="fa fa-spinner fa-pulse fa-1x fa-fw"></i>
+    </p>
   }
   @if (formSaveSuccessful) {
     <p class="alert-success text-16 padding-10 mt-2">Configuration saved successfully</p>
   }
   @if (formSaveUnsuccessful) {
-    <p class="alert-danger text-16 padding-10 mt-2">Configuration failed to save. Please try again.</p>
+    <p class="alert-danger text-16 padding-10 mt-2">{{ formSaveError | i18next }}</p>
   }
 }

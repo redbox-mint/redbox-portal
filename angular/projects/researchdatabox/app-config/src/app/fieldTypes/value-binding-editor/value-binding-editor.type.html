@@ -113,7 +113,9 @@
       </div>
       } @if (sourceKind === 'handlebars') {
       <div class="mb-0">
-        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-template'">Handlebars Template</label>
+        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-template'"
+          >Handlebars Template</label
+        >
         <textarea
           [attr.id]="fieldKey + '-source-template'"
           class="form-control form-control-sm"
@@ -124,7 +126,9 @@
       </div>
       } @if (sourceKind === 'jsonata') {
       <div class="mb-0">
-        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-expression'">JSONata Expression</label>
+        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-expression'"
+          >JSONata Expression</label
+        >
         <textarea
           [attr.id]="fieldKey + '-source-expression'"
           class="form-control form-control-sm"
@@ -137,7 +141,9 @@
     </div>
 
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-vocabulary'">Source Vocabulary</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-vocabulary'"
+        >Source Vocabulary</label
+      >
       <select
         class="form-select form-select-sm"
         [attr.id]="fieldKey + '-source-vocabulary'"
@@ -154,8 +160,36 @@
       <div class="form-text small">Record codes are resolved against entries of exactly this vocabulary.</div>
     </div>
 
+    @if (sharedAdministrationEnabled && genericCrosswalk) {
+    <label class="d-block"
+      >{{ '@publication-vocabulary-binding-provider' | i18next }}
+      <select
+        class="form-select form-select-sm"
+        [(ngModel)]="providerFilter"
+        [ngModelOptions]="{standalone: true}"
+        (ngModelChange)="sourceFilter = ''"
+      >
+        <option value="">{{ '@publication-vocabulary-all' | i18next }}</option>
+        @for (provider of crosswalkProviders; track provider) {
+        <option [value]="provider">{{ provider }}</option>
+        }
+      </select>
+    </label>
+    <label class="d-block"
+      >{{ '@publication-vocabulary-binding-source' | i18next }}
+      <select class="form-select form-select-sm" [(ngModel)]="sourceFilter" [ngModelOptions]="{standalone: true}">
+        <option value="">{{ '@publication-vocabulary-all' | i18next }}</option>
+        @for (source of crosswalkSources; track source.sourceId) {
+        <option [value]="source.sourceId">{{ source.figshareSourceName }} · {{ source.scope }}</option>
+        }
+      </select>
+    </label>
+    }
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-crosswalk'">Approved Figshare Crosswalk</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-crosswalk'"
+        >{{ (sharedAdministrationEnabled ? '@publication-vocabulary-approved-crosswalk' : 'Approved Figshare Crosswalk')
+        | i18next }}</label
+      >
       <select
         class="form-select form-select-sm"
         [attr.id]="fieldKey + '-crosswalk'"
@@ -164,7 +198,10 @@
       >
         <option value="" [selected]="!value.crosswalkId">-- select --</option>
         @for (crosswalk of crosswalkOptions; track crosswalk.id) {
-        <option [value]="crosswalk.id" [selected]="crosswalk.id === value.crosswalkId">{{ crosswalk.name }}</option>
+        <option [value]="crosswalk.id" [selected]="crosswalk.id === value.crosswalkId">
+          {{ crosswalk.name }}{{ sharedAdministrationEnabled ? ' · ' + (crosswalk.provider || 'figshare') + ' · ' +
+          crosswalk.figshareSourceName + ' · ' + crosswalk.scope : '' }}
+        </option>
         }
       </select>
       @if (crosswalksLoading) {
@@ -173,13 +210,16 @@
       <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalksLoadError }}</div>
       } @if (selectedCrosswalk) {
       <div class="form-text small">
-        {{ selectedCrosswalk.figshareSourceName }} · approved revision {{ selectedCrosswalk.approvedRevision }} ·
-        {{ selectedCrosswalk.approvedMappingCount }} mappings
+        {{ selectedCrosswalk.figshareSourceName }} · approved revision {{ selectedCrosswalk.approvedRevision }} · @if
+        (selectedCrosswalk.approvedMappingCount !== undefined) { {{ selectedCrosswalk.approvedMappingCount }} mappings }
       </div>
       } @if (crosswalkValidationMessage) {
       <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalkValidationMessage }}</div>
       } @if (adminUrl) {
-      <a class="small" [href]="adminUrl" target="_blank" rel="noopener">Open Figshare crosswalks &#8599;</a>
+      <a class="small" [href]="adminUrl" target="_blank" rel="noopener"
+        >{{ (sharedAdministrationEnabled ? '@publication-vocabulary-open-crosswalks' : 'Open Figshare crosswalks') |
+        i18next }} &#8599;</a
+      >
       }
     </div>
 
@@ -191,12 +231,13 @@
         (change)="updateField('outputs', $any($event.target).value)"
       >
         @for (output of crosswalkOutputs; track output) {
-        <option [value]="output" [selected]="output === (value.outputs || 'categoryId')">{{ output }}</option>
+        <option [value]="output" [selected]="output === (value.outputs || defaultCrosswalkOutput)">{{ output }}</option>
         }
       </select>
       <div class="form-text small">
-        The Categories binding must use <code>categoryId</code>. Use <code>label</code> or <code>sourceId</code> for
-        string fields such as keywords or custom fields.
+        @if (genericCrosswalk) { {{ '@publication-vocabulary-output-help' | i18next }} } @else { The Categories binding
+        must use <code>categoryId</code>. Use <code>label</code> or <code>sourceId</code> for string fields such as
+        keywords or custom fields. }
       </div>
     </div>
     }

@@ -276,9 +276,29 @@ export interface IntegrationOutcome {
   helpKey?: string;
 }
 
+/** Public publication evidence supplied by the access-checked status endpoint. */
+export interface PublicationStatusEvidence {
+  current: boolean;
+  deposit: 'confirmed' | 'unverified';
+  publication: 'confirmed' | 'unverified' | 'private' | 'pending' | 'published';
+  ingestion: 'confirmed' | 'not_required' | 'pending' | 'unverified';
+  visibility: 'verified' | 'unverified';
+  accessible?: boolean;
+  embargoed?: boolean;
+}
+
 export interface IntegrationStatusItem {
   integrationName: string;
   status: string;
+  destinationId?: string;
+  displayName?: string;
+  providerId?: string;
+  workStatus?: string;
+  waitingReason?: string;
+  retryAt?: number;
+  links?: Record<string, string>;
+  completion?: PublicationStatusEvidence;
+  observation?: PublicationStatusEvidence;
   integrationAction?: string;
   startedAt: string;
   completedAt?: string;
@@ -795,7 +815,11 @@ export class RecordService extends HttpClientService {
   public async getDashboardSettings(kind: 'workflow' | 'view', owner: string): Promise<DashboardRuntimeSettings> {
     const url = `${this.brandingAndPortalUrl}/dashboard/settings/${kind}/${encodeURIComponent(owner)}`;
     const requestOptions = this.getHttpOptions();
-    const result$ = this.http.get<Record<string, unknown>>(url, { context: requestOptions?.context, observe: 'body', responseType: 'json' });
+    const result$ = this.http.get<Record<string, unknown>>(url, {
+      context: requestOptions?.context,
+      observe: 'body',
+      responseType: 'json',
+    });
     const result = await firstValueFrom(result$);
     return (_get(result, 'data') ?? result) as DashboardRuntimeSettings;
   }
@@ -1110,13 +1134,14 @@ export class RecordActionResult implements RecordSaveResult {
         const attachmentStatus = attachments?.['status'];
         const items = attachments?.['items'];
         result.completion = {
-          attachments: (
-            (attachmentStatus === 'not-required' || attachmentStatus === 'completed' ||
-              attachmentStatus === 'incomplete' || attachmentStatus === 'unknown') &&
+          attachments:
+            (attachmentStatus === 'not-required' ||
+              attachmentStatus === 'completed' ||
+              attachmentStatus === 'incomplete' ||
+              attachmentStatus === 'unknown') &&
             Array.isArray(items)
-          )
-            ? { status: attachmentStatus, items: items as RecordSaveResult['completion']['attachments']['items'] }
-            : { status: 'unknown', items: [] },
+              ? { status: attachmentStatus, items: items as RecordSaveResult['completion']['attachments']['items'] }
+              : { status: 'unknown', items: [] },
         };
       }
       return result;

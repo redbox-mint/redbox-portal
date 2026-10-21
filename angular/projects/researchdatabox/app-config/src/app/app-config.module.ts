@@ -1,9 +1,13 @@
+import { PublicationVocabularyApiService } from '@researchdatabox/portal-ng-common';
+import { PublicationDestinationsTypeComponent } from './fieldTypes/publication-destinations/publication-destinations.type';
+import { PublicationMapTypeComponent } from './fieldTypes/publication-destinations/publication-map.type';
+import { PublicationJsonTypeComponent } from './fieldTypes/publication-destinations/publication-json.type';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
-import { RouterModule } from '@angular/router'; 
+import { RouterModule } from '@angular/router';
 import { FormlyModule } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { AppConfigComponent } from './app-config.component';
@@ -21,7 +25,19 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
 
 @NgModule({
   declarations: [
-    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
+    PublicationMapTypeComponent,
+    PublicationDestinationsTypeComponent,
+    PublicationJsonTypeComponent,
+    AppConfigComponent,
+    ArrayTypeComponent,
+    ObjectTypeComponent,
+    TextAreaComponent,
+    CheckboxTypeComponent,
+    MenuEditorTypeComponent,
+    AdminSidebarEditorTypeComponent,
+    HomePanelsEditorTypeComponent,
+    ValueBindingEditorTypeComponent,
+    FigshareCategoryMappingEditorTypeComponent,
   ],
   imports: [
     BrowserModule,
@@ -29,29 +45,33 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
     FormsModule,
     RouterModule,
     RedboxPortalCoreModule,
-   FormlyModule.forRoot({
-    types: [
-      { name: 'array', component: ArrayTypeComponent },
-      { name: 'object', component: ObjectTypeComponent },
-      { name: 'textarea', component: FormlyFieldTextArea },
-      { name: 'app-config-checkbox', component: CheckboxTypeComponent },
-      { name: 'menu-editor', component: MenuEditorTypeComponent },
-      { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
-      { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
-      { name: 'value-binding-editor', component: ValueBindingEditorTypeComponent },
-      { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
-    ],
-  }),
-    FormlyBootstrapModule
+    FormlyModule.forRoot({
+      types: [
+        { name: 'publication-map', component: PublicationMapTypeComponent },
+        { name: 'publication-destinations', component: PublicationDestinationsTypeComponent },
+        { name: 'publication-json', component: PublicationJsonTypeComponent },
+        { name: 'array', component: ArrayTypeComponent },
+        { name: 'object', component: ObjectTypeComponent },
+        { name: 'textarea', component: FormlyFieldTextArea },
+        { name: 'app-config-checkbox', component: CheckboxTypeComponent },
+        { name: 'menu-editor', component: MenuEditorTypeComponent },
+        { name: 'admin-sidebar-editor', component: AdminSidebarEditorTypeComponent },
+        { name: 'home-panels-editor', component: HomePanelsEditorTypeComponent },
+        { name: 'value-binding-editor', component: ValueBindingEditorTypeComponent },
+        { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent },
+      ],
+    }),
+    FormlyBootstrapModule,
   ],
   providers: [
     FigshareCrosswalkApiService,
+    PublicationVocabularyApiService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),
-      deps: [PlatformLocation]
-    }
+      deps: [PlatformLocation],
+    },
   ],
-  bootstrap: [AppConfigComponent]
+  bootstrap: [AppConfigComponent],
 })
-export class AppConfigModule { }
+export class AppConfigModule {}

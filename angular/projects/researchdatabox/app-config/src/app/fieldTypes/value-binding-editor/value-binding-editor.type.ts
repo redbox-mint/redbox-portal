@@ -3,12 +3,12 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import {
   FigshareCrosswalkApiService,
   FigshareCrosswalkOption,
-  FigshareLocalVocabularyOption
+  FigshareLocalVocabularyOption,
 } from '../../services/figshare-crosswalk-api.service';
 
 type BindingKind = 'path' | 'handlebars' | 'jsonata' | 'crosswalk';
 type SimpleBindingKind = Exclude<BindingKind, 'crosswalk'>;
-type CrosswalkOutput = 'categoryId' | 'label' | 'sourceId';
+type CrosswalkOutput = 'categoryId' | 'label' | 'sourceId' | 'targetId' | 'value';
 
 interface ValueBindingValue {
   kind?: BindingKind;
@@ -21,6 +21,7 @@ interface ValueBindingValue {
   sourceVocabularyId?: string;
   crosswalkId?: string;
   outputs?: CrosswalkOutput;
+  revision?: number;
 }
 
 const HUMAN_LABELS: Record<string, string> = {
@@ -98,44 +99,93 @@ const HUMAN_LABELS: Record<string, string> = {
 @Component({
   selector: 'formly-value-binding-editor-type',
   templateUrl: './value-binding-editor.type.html',
-  styles: [`
-    .binding-card {
-      border-left: 3px solid #dee2e6;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      border-radius: 4px;
-    }
-    .binding-card.configured { border-left-color: #198754; }
-    .binding-card.has-default-only { border-left-color: #0d6efd; }
-    .binding-header {
-      cursor: pointer;
-      user-select: none;
-      transition: background-color 0.15s;
-      border-radius: 4px;
-    }
-    .binding-header:hover { background-color: rgba(0,0,0,0.03); }
-    .binding-source {
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-size: 0.8rem;
-    }
-    .binding-summary {
-      max-width: 400px;
-    }
-    .binding-badge { font-size: 0.7rem; font-weight: 500; }
-  `],
+  styles: [
+    `
+      .binding-card {
+        border-left: 3px solid #dee2e6;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        border-radius: 4px;
+      }
+      .binding-card.configured {
+        border-left-color: #198754;
+      }
+      .binding-card.has-default-only {
+        border-left-color: #0d6efd;
+      }
+      .binding-header {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.15s;
+        border-radius: 4px;
+      }
+      .binding-header:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+      }
+      .binding-source {
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 0.8rem;
+      }
+      .binding-summary {
+        max-width: 400px;
+      }
+      .binding-badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  standalone: false,
 })
 export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
   readonly simpleKinds: SimpleBindingKind[] = ['path', 'handlebars', 'jsonata'];
-  readonly crosswalkOutputs: CrosswalkOutput[] = ['categoryId', 'label', 'sourceId'];
+  get crosswalkOutputs(): CrosswalkOutput[] {
+    const configured: unknown = this.props['crosswalkOutputs'];
+    return Array.isArray(configured) &&
+      configured.length &&
+      configured.every((value): value is CrosswalkOutput =>
+        ['categoryId', 'label', 'sourceId', 'targetId', 'value'].includes(value)
+      )
+      ? configured
+      : ['categoryId', 'label', 'sourceId'];
+  }
+  get defaultCrosswalkOutput(): CrosswalkOutput {
+    return this.crosswalkOutputs[0];
+  }
+  get sharedAdministrationEnabled(): boolean {
+    return this.crosswalkApi?.sharedAdministrationEnabled === true;
+  }
+  get genericCrosswalk(): boolean {
+    return !this.crosswalkOutputs.includes('categoryId');
+  }
+  providerFilter = '';
+  sourceFilter = '';
+  get crosswalkProviders(): string[] {
+    return [...new Set(this.crosswalks.map(row => row.provider ?? 'figshare'))].sort();
+  }
+  get crosswalkSources(): FigshareCrosswalkOption[] {
+    return this.crosswalks.filter(
+      (row, index, rows) =>
+        (!this.providerFilter || row.provider === this.providerFilter) &&
+        rows.findIndex(
+          other => (other.sourceId ?? other.figshareSourceId) === (row.sourceId ?? row.figshareSourceId)
+        ) === index
+    );
+  }
   private bindingValue: ValueBindingValue = { kind: 'path', path: '' };
   collapsed = true;
 
   vocabularies: FigshareLocalVocabularyOption[] = [];
   crosswalks: FigshareCrosswalkOption[] = [];
   private readonly crosswalksLoadingState = signal(false);
-  get crosswalksLoading(): boolean { return this.crosswalksLoadingState(); }
-  set crosswalksLoading(value: boolean) { this.crosswalksLoadingState.set(value); }
+  get crosswalksLoading(): boolean {
+    return this.crosswalksLoadingState();
+  }
+  set crosswalksLoading(value: boolean) {
+    this.crosswalksLoadingState.set(value);
+  }
   crosswalksLoadError = '';
   adminUrl = '';
 
@@ -154,7 +204,9 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
 
   private async loadCrosswalkOptions(): Promise<void> {
     if (!this.crosswalkApi) {
-      this.crosswalksLoadError = 'Figshare crosswalk options are unavailable.';
+      this.crosswalksLoadError = this.sharedAdministrationEnabled
+        ? 'Crosswalk options are unavailable.'
+        : 'Figshare crosswalk options are unavailable.';
       return;
     }
     this.crosswalksLoading = true;
@@ -165,7 +217,9 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
       this.vocabularies = await this.crosswalkApi.listAllLocalVocabularies();
       this.crosswalks = await this.crosswalkApi.listAllApprovedCrosswalks();
     } catch (_err) {
-      this.crosswalksLoadError = 'Unable to load approved Figshare crosswalks.';
+      this.crosswalksLoadError = this.sharedAdministrationEnabled
+        ? 'Unable to load approved crosswalks for this brand.'
+        : 'Unable to load approved Figshare crosswalks.';
     } finally {
       this.crosswalksLoading = false;
     }
@@ -207,21 +261,30 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
   private isSimpleConfigured(binding: ValueBindingValue | undefined): boolean {
     if (!binding) return false;
     const kind = binding.kind && binding.kind !== 'crosswalk' ? binding.kind : 'path';
-    if (kind === 'path') return !!(binding.path?.trim());
-    if (kind === 'handlebars') return !!(binding.template?.trim());
-    return !!(binding.expression?.trim());
+    if (kind === 'path') return !!binding.path?.trim();
+    if (kind === 'handlebars') return !!binding.template?.trim();
+    return !!binding.expression?.trim();
   }
 
   get crosswalkOptions(): FigshareCrosswalkOption[] {
     const vocabularyId = this.value.sourceVocabularyId?.trim();
-    if (!vocabularyId) {
-      return this.crosswalks;
-    }
-    return this.crosswalks.filter((crosswalk) => crosswalk.localVocabularyId === vocabularyId);
+    const provider =
+      typeof this.props['crosswalkProvider'] === 'string'
+        ? this.props['crosswalkProvider']
+        : this.genericCrosswalk
+          ? ''
+          : 'figshare';
+    return this.crosswalks.filter(
+      row =>
+        (!vocabularyId || row.localVocabularyId === vocabularyId) &&
+        (!provider || (row.provider ?? 'figshare') === provider) &&
+        (!this.providerFilter || row.provider === this.providerFilter) &&
+        (!this.sourceFilter || (row.sourceId ?? row.figshareSourceId) === this.sourceFilter)
+    );
   }
 
   get selectedCrosswalk(): FigshareCrosswalkOption | undefined {
-    return this.crosswalks.find((crosswalk) => crosswalk.id === this.value.crosswalkId);
+    return this.crosswalks.find(crosswalk => crosswalk.id === this.value.crosswalkId);
   }
 
   /** Mirrors the server-side gates so misconfiguration surfaces before a publish attempt. */
@@ -233,17 +296,24 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     if (this.crosswalksLoading || this.crosswalksLoadError) return '';
     const selected = this.selectedCrosswalk;
     if (!selected) return 'The selected crosswalk is not available for this brand.';
-    if (selected.localVocabularyId !== this.value.sourceVocabularyId) return 'The crosswalk maps a different local vocabulary.';
+    if (selected.localVocabularyId !== this.value.sourceVocabularyId)
+      return 'The crosswalk maps a different local vocabulary.';
+    if (!this.genericCrosswalk && selected.provider && selected.provider !== 'figshare')
+      return 'This binding requires a Figshare crosswalk.';
     if (selected.approvedRevision == null) return 'Approve a mapping revision before selecting this crosswalk.';
     return '';
   }
 
   get isConfigured(): boolean {
-    if (this.kind === 'path') return !!(this.value.path?.trim());
-    if (this.kind === 'handlebars') return !!(this.value.template?.trim());
-    if (this.kind === 'jsonata') return !!(this.value.expression?.trim());
+    if (this.kind === 'path') return !!this.value.path?.trim();
+    if (this.kind === 'handlebars') return !!this.value.template?.trim();
+    if (this.kind === 'jsonata') return !!this.value.expression?.trim();
     if (this.kind === 'crosswalk') {
-      return !!(this.value.crosswalkId?.trim() && this.value.sourceVocabularyId?.trim() && this.isSimpleConfigured(this.value.source));
+      return !!(
+        this.value.crosswalkId?.trim() &&
+        this.value.sourceVocabularyId?.trim() &&
+        this.isSimpleConfigured(this.value.source)
+      );
     }
     return false;
   }
@@ -262,9 +332,10 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
   }
 
   get summarySource(): string {
-    const source = this.kind === 'crosswalk'
-      ? `${this.simpleSummary(this.value.source)} \u21e2 ${this.value.outputs || 'categoryId'}`
-      : this.simpleSummary(this.value);
+    const source =
+      this.kind === 'crosswalk'
+        ? `${this.simpleSummary(this.value.source)} \u21e2 ${this.value.outputs || this.defaultCrosswalkOutput}`
+        : this.simpleSummary(this.value);
     return source.length > 60 ? source.substring(0, 57) + '\u2026' : source;
   }
 
@@ -296,9 +367,9 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
               kind: previous.kind === 'crosswalk' ? 'path' : (previous.kind ?? 'path'),
               path: previous.path,
               template: previous.template,
-              expression: previous.expression
+              expression: previous.expression,
             };
-        nextValue.outputs = nextValue.outputs || 'categoryId';
+        nextValue.outputs = nextValue.outputs || this.defaultCrosswalkOutput;
       } else {
         delete nextValue.source;
         delete nextValue.sourceVocabularyId;
@@ -309,9 +380,10 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
       delete nextValue.template;
       delete nextValue.expression;
     }
+    if ((key === 'crosswalkId' || key === 'sourceVocabularyId') && value !== previous[key]) delete nextValue.revision;
     // A crosswalk is only valid against its own local vocabulary.
     if (key === 'sourceVocabularyId') {
-      const selected = this.crosswalks.find((crosswalk) => crosswalk.id === nextValue.crosswalkId);
+      const selected = this.crosswalks.find(crosswalk => crosswalk.id === nextValue.crosswalkId);
       if (!value || (selected && selected.localVocabularyId !== value)) {
         nextValue.crosswalkId = '';
       }
@@ -351,7 +423,12 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     // value is the source of truth; fall back to the model object directly.
     const controlValue = this.formControl?.value as ValueBindingValue | undefined;
     if (controlValue && typeof controlValue === 'object' && Object.keys(controlValue).length > 0) {
-      return controlValue;
+      const persisted = this.model as ValueBindingValue | undefined;
+      return controlValue.kind === 'crosswalk' &&
+        controlValue.revision === undefined &&
+        persisted?.revision !== undefined
+        ? { ...controlValue, revision: persisted.revision }
+        : controlValue;
     }
     return (this.model as ValueBindingValue | undefined) ?? {};
   }
@@ -360,7 +437,7 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     const kind = value?.kind || 'path';
     const nextValue: ValueBindingValue = {
       ...value,
-      kind
+      kind,
     };
 
     if (kind === 'path') {
@@ -378,7 +455,7 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
       nextValue.source = source;
       // An empty control value must fall back too, not just a missing one: the server
       // rejects a categories binding whose outputs is not exactly 'categoryId'.
-      nextValue.outputs = nextValue.outputs || 'categoryId';
+      nextValue.outputs = nextValue.outputs || this.defaultCrosswalkOutput;
       nextValue.sourceVocabularyId = nextValue.sourceVocabularyId ?? '';
       nextValue.crosswalkId = nextValue.crosswalkId ?? '';
     }
@@ -430,7 +507,8 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
       source: this.toSimpleModelValue(value.source ?? { kind: 'path' }),
       sourceVocabularyId: value.sourceVocabularyId ?? '',
       crosswalkId: value.crosswalkId ?? '',
-      outputs: value.outputs || 'categoryId'
+      outputs: value.outputs || this.defaultCrosswalkOutput,
+      ...(value.revision !== undefined ? { revision: value.revision } : {}),
     };
     if (hasText(value.defaultValue)) {
       next['defaultValue'] = value.defaultValue;
@@ -448,6 +526,21 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
     // description.description. Reusing the same object reference keeps formly's
     // model binding intact.
     const next = this.toModelValue(value);
+    const parent = this.field.parent?.model as Record<string, unknown> | undefined;
+    const key = Array.isArray(this.field.key) ? this.field.key[0] : this.field.key;
+    // Publication schemas contain optional bindings. Merely opening the editor
+    // must not invent an invalid path binding for every absent optional field.
+    if (
+      !markChanged &&
+      this.props['omitUnconfigured'] &&
+      !this.isConfigured &&
+      !this.hasDefault &&
+      this.kind !== 'crosswalk'
+    ) {
+      if (parent && key !== undefined) delete parent[String(key)];
+      return;
+    }
+    if (!this.model && parent && key !== undefined) parent[String(key)] = {};
 
     const model = this.model as Record<string, unknown> | undefined;
     if (model && typeof model === 'object') {
@@ -484,13 +577,14 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
           template: '',
           expression: '',
           defaultValue: '',
-          ...((next['source'] as Record<string, unknown> | undefined) ?? {})
-        }
+          ...((next['source'] as Record<string, unknown> | undefined) ?? {}),
+        },
       };
       const group = this.formControl as unknown as { contains?: (key: string) => boolean };
-      const patch: Record<string, unknown> = typeof group.contains === 'function'
-        ? Object.fromEntries(Object.entries(desired).filter(([key]) => group.contains?.(key)))
-        : desired;
+      const patch: Record<string, unknown> =
+        typeof group.contains === 'function'
+          ? Object.fromEntries(Object.entries(desired).filter(([key]) => group.contains?.(key)))
+          : desired;
       const control = this.formControl as {
         patchValue?: (val: unknown, options?: { emitEvent?: boolean; onlySelf?: boolean }) => void;
         setValue?: (val: unknown, options?: { emitEvent?: boolean; onlySelf?: boolean }) => void;
