@@ -101,8 +101,8 @@ test('A09 recovers catalogue failure, previews and applies a crosswalk, edits ma
   const catalogueUrl = /\/api\/figshare-vocabularies\/catalogues\?scope=public$/;
   diagnostics.expectFailure({ kind: 'response', method: 'GET', url: catalogueUrl, status: 502, count: 1, reason: 'The configured catalogue provider deliberately returns 503 for the recovery check.' });
   diagnostics.expectFailure({ kind: 'console', url: catalogueUrl, message: /Failed to load resource.*502/, count: 1, reason: 'Chromium reports the intentional catalogue gateway failure.' });
-  diagnostics.expectFailure({ kind: 'console', url: /angular\/admin-figshare-vocabulary\/browser\/main/, message: /discover|catalogue|502/i, count: 1, reason: 'The editor logs the intentional catalogue discovery failure.' });
-  diagnostics.expectFailure({ kind: 'console', url: /angular\/admin-figshare-vocabulary\/browser\/main/, message: /^ReDBox could not connect to Figshare\./, count: 1, reason: 'The wizard logs its user-facing explanation of the intentional provider failure.' });
+  diagnostics.expectFailure({ kind: 'console', url: /\/angular\/admin-figshare-vocabulary\/browser\/(?:main|chunk)(?:-[\w-]+)?\.js$/, message: /discover|catalogue|502/i, count: 1, reason: 'The editor logs the intentional catalogue discovery failure.' });
+  diagnostics.expectFailure({ kind: 'console', url: /\/angular\/admin-figshare-vocabulary\/browser\/(?:main|chunk)(?:-[\w-]+)?\.js$/, message: /^ReDBox could not connect to Figshare\./, count: 1, reason: 'The wizard logs its user-facing explanation of the intentional provider failure.' });
   await wizard.getByRole('button', { name: /Discover taxonomies/i }).click();
   await expect(wizard.getByRole('alert')).toContainText('ReDBox could not connect to Figshare.');
   await stubs.responses({ 'GET /figshare/categories': { body: categories } });
