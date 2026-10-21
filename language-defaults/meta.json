@@ -7249,6 +7249,16 @@
     "description": "Admin navigation label and page title for SIEM configuration",
     "contentFormat": "plain"
   },
+  "menu-onipublishingconfiguration": {
+    "category": "publication",
+    "description": "Admin navigation label for the legacy Oni publishing configuration",
+    "contentFormat": "plain"
+  },
+  "menu-publicationpublishingconfiguration": {
+    "category": "publication",
+    "description": "Admin navigation label for the shared publication destination configuration",
+    "contentFormat": "plain"
+  },
   "@publication-config-destinations": {
     "category": "publication",
     "description": "Publication destinations",

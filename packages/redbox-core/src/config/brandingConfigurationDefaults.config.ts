@@ -318,6 +318,11 @@ const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
           labelKey: 'menu-onipublishingconfiguration',
           href: '/admin/appconfig/edit/oniPublishing',
         },
+        {
+          id: 'publicationpublishing',
+          labelKey: 'menu-publicationpublishingconfiguration',
+          href: '/admin/appconfig/edit/publicationPublishing',
+        },
       ],
     },
     {
