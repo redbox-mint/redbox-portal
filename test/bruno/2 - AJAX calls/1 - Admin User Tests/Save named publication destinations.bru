@@ -1,0 +1,108 @@
+meta {
+  name: Save named publication destinations
+  type: http
+  seq: 61.1
+}
+
+post {
+  url: {{host}}/default/rdmp/appconfig/form/publicationPublishing
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+body:json {
+  {
+    "schemaVersion": 1,
+    "processing": {
+      "enabled": false,
+      "serviceUsername": "",
+      "serviceUserType": "local",
+      "coalesceMs": 5000,
+      "leaseMs": 120000,
+      "heartbeatMs": 20000,
+      "maxAttempts": 5,
+      "retryBaseMs": 60000,
+      "observationMs": 120000,
+      "cleanupMs": 300000
+    },
+    "destinations": {
+      "pub18-main": {
+        "provider": "figshare",
+        "displayName": "pub18-main",
+        "enabled": false,
+        "archived": false,
+        "connection": {
+          "baseUrl": "https://api.figshare.com",
+          "accountId": "123",
+          "token": "pub18-bruno-disposable"
+        },
+        "mapping": {},
+        "attachments": {},
+        "providerOptions": {},
+        "writeBack": {
+          "articleId": "metadata.pub18-main.articleId",
+          "articleUrls": [
+            "metadata.pub18-main.url"
+          ],
+          "status": "metadata.pub18-main.status",
+          "error": "metadata.pub18-main.error",
+          "syncState": "metadata.pub18-main.syncState",
+          "allFilesUploaded": "metadata.pub18-main.allFilesUploaded"
+        }
+      },
+      "pub18-sibling": {
+        "provider": "figshare",
+        "displayName": "pub18-sibling",
+        "enabled": false,
+        "archived": false,
+        "connection": {
+          "baseUrl": "https://api.figshare.com",
+          "accountId": "123",
+          "token": "pub18-bruno-disposable"
+        },
+        "mapping": {},
+        "attachments": {},
+        "providerOptions": {},
+        "writeBack": {
+          "articleId": "metadata.pub18-sibling.articleId",
+          "articleUrls": [
+            "metadata.pub18-sibling.url"
+          ],
+          "status": "metadata.pub18-sibling.status",
+          "error": "metadata.pub18-sibling.error",
+          "syncState": "metadata.pub18-sibling.syncState",
+          "allFilesUploaded": "metadata.pub18-sibling.allFilesUploaded"
+        }
+      }
+    },
+    "sourcePolicies": [],
+    "workflow": {
+      "rules": []
+    }
+  }
+}
+
+tests {
+  test("Save returns a masked configuration with two distinct destinations", function () {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody();
+    expect(Object.keys(data.destinations).sort()).to.deep.equal(["pub18-main", "pub18-sibling"]);
+    expect(data.processing.enabled).to.equal(false);
+    for (const destination of Object.values(data.destinations)) {
+      expect(destination.provider).to.equal("figshare");
+      expect(destination.enabled).to.equal(false);
+      expect(destination.connection.token).to.equal("__REDACTED__");
+    }
+    expect(JSON.stringify(data)).not.to.include("pub18-bruno-disposable");
+  });
+}

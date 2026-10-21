@@ -48,6 +48,21 @@ tests {
         expect(item).to.not.have.property("requestSummary");
         expect(item).to.not.have.property("responseSummary");
         expect(item).to.not.have.property("httpStatusCode");
+        expect(item).to.not.have.property("providerState");
+        expect(item).to.not.have.property("operations");
+        expect(item).to.not.have.property("publicationSource");
+        expect(item).to.not.have.property("credentials");
+        if (item.destinationId) {
+          expect(item.displayName).to.be.a("string").that.is.not.empty;
+          expect(item.providerId).to.equal(item.integrationName);
+          expect(item.sourceRevision).to.be.a("number");
+          expect(item.sourceGeneration).to.be.a("number");
+          expect(item.workStatus).to.be.a("string");
+          if (item.completion) {
+            expect(item.completion.visibility).to.be.oneOf(["verified", "unverified"]);
+            expect(item.completion).to.not.have.property("evidence");
+          }
+        }
         // Items for doi or figshare must have an outcome object with the contract shape
         if (item.integrationName === "doi" || item.integrationName === "figshare") {
           expect(item.outcome).to.be.an("object");

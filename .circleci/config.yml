@@ -564,7 +564,10 @@ jobs:
     resource_class: large
     environment:
       FIGSHARE_TEST_MONGO_URI: mongodb://127.0.0.1:27028
+      MONGO_TEST_URL: mongodb://127.0.0.1:27028
       SIEM_TEST_MONGO_URL: mongodb://127.0.0.1:27028
+      ONI_OCFL_REQUIRE_S3: 'true'
+      ONI_OCFL_TEST_S3_ENDPOINT: http://127.0.0.1:29328
     steps:
       - checkout
       - attach_workspace:
@@ -582,6 +585,20 @@ jobs:
             exit 1
       - run:
           <<: *installCodecov
+      - run:
+          name: Start S3 for required OCFL recovery tests
+          command: |
+            docker run -d --name publication-test-s3 --ulimit nofile=64000:64000 \
+              -p 127.0.0.1:29328:8333 chrislusf/seaweedfs:4.47 \
+              server -s3 -s3.port=8333 -ip=127.0.0.1 -ip.bind=0.0.0.0 \
+              -volume.max=16 -master.volumeSizeLimitMB=64 -volume.minFreeSpace=0
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent "$ONI_OCFL_TEST_S3_ENDPOINT" >/dev/null; then
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 1
       - run:
           name: Install required ReDBox dependencies
           command: |
@@ -754,9 +771,23 @@ jobs:
     docker:
       - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
       - image: mongo:7.0
+      - image: chrislusf/seaweedfs:4.47
+        command:
+          - server
+          - -s3
+          - -s3.port=8333
+          - -ip=127.0.0.1
+          - -ip.bind=0.0.0.0
+          - -volume.max=16
+          - -master.volumeSizeLimitMB=64
+          - -volume.minFreeSpace=0
     resource_class: medium
     environment:
       MONGO_TEST_URL: mongodb://127.0.0.1:27017
+      MONGO_CONCURRENCY_TEST_URL: mongodb://127.0.0.1:27017
+      NODE_OPTIONS: --no-experimental-strip-types
+      ONI_OCFL_REQUIRE_S3: 'true'
+      ONI_OCFL_TEST_S3_ENDPOINT: http://127.0.0.1:8333
     steps:
       - checkout
       - restore_cache:
@@ -785,8 +816,13 @@ jobs:
       - run:
           name: Run storage-mongo package tests with coverage
           command: |
+            test -n "$MONGO_TEST_URL"
+            test -n "$MONGO_CONCURRENCY_TEST_URL"
+            test "$ONI_OCFL_REQUIRE_S3" = true
+            curl --fail --silent "$ONI_OCFL_TEST_S3_ENDPOINT" >/dev/null
+            node -e 'const { MongoClient } = require("mongodb"); (async () => { const c = await MongoClient.connect(process.env.MONGO_TEST_URL, { serverSelectionTimeoutMS: 30000 }); await c.db().command({ ping: 1 }); await c.close(); })().catch(() => process.exit(1));'
             cd ./packages/sails-hook-redbox-storage-mongo
-            npm run test:coverage
+            npm run test:coverage -- --forbid-pending
       - run:
           name: Upload storage-mongo code coverage
           command: |

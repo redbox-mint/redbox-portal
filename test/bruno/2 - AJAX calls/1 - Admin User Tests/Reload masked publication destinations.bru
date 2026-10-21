@@ -1,0 +1,33 @@
+meta {
+  name: Reload masked publication destinations
+  type: http
+  seq: 61.2
+}
+
+get {
+  url: {{host}}/default/rdmp/appconfig/form/publicationPublishing
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Reload preserves distinct named destinations and registered credential masking", function () {
+    expect(res.getStatus()).to.equal(200);
+    const form = res.getBody();
+    expect(Object.keys(form.model.destinations).sort()).to.deep.equal(["pub18-main", "pub18-sibling"]);
+    expect(form.model.destinations["pub18-main"].connection.token).to.equal("__REDACTED__");
+    expect(form.model.destinations["pub18-sibling"].connection.token).to.equal("__REDACTED__");
+    expect(JSON.stringify(form)).not.to.include("pub18-bruno-disposable");
+    expect(form.schema).to.be.an("object");
+  });
+}

@@ -1,0 +1,29 @@
+meta {
+  name: Get publication configuration - Unauthorised
+  type: http
+  seq: 7.1
+}
+
+get {
+  url: {{host}}/default/rdmp/appconfig/form/publicationPublishing
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Researcher cannot read publication configuration or credentials", function () {
+    expect(res.getStatus()).to.equal(403);
+    expect(JSON.stringify(res.getBody())).not.to.include("pub18-bruno-disposable");
+    expect(JSON.stringify(res.getBody())).not.to.include("__REDACTED__");
+  });
+}
