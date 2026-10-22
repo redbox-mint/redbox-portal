@@ -4,7 +4,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import * as nodemailer from 'nodemailer';
+import nodemailer = require('nodemailer');
 import * as fs from 'graceful-fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -45,14 +45,11 @@ describe('EmailService', function() {
 
     setupServiceTestGlobals(mockSails);
 
-    // Mock nodemailer - SKIPPED due to non-configurable property
-    /*
+    // Stub the CommonJS export rather than a non-configurable namespace binding.
     transportStub = {
       sendMail: sinon.stub().resolves({ messageId: '123' })
     };
-    if ((nodemailer.createTransport as any).restore) (nodemailer.createTransport as any).restore();
     sinon.stub(nodemailer, 'createTransport').returns(transportStub);
-    */
 
     // Mock fs - SKIPPED
     /*
@@ -105,6 +102,17 @@ describe('EmailService', function() {
       expect(await firstValueFrom(EmailService.sendMessage('second@example.com', 'Second body', 'Second subject')))
         .to.have.property('success', true);
       expect(defaults).to.deep.equal(original);
+
+      expect(transportStub.sendMail.callCount).to.equal(3);
+      expect(transportStub.sendMail.firstCall.args[0]).to.deep.include({
+        to: 'first@example.com', subject: 'First subject', replyTo: 'default-reply@example.com'
+      });
+      expect(transportStub.sendMail.secondCall.args[0]).to.deep.include({
+        to: 'override@example.com', subject: 'Override subject', replyTo: 'request-reply@example.com'
+      });
+      expect(transportStub.sendMail.thirdCall.args[0]).to.deep.include({
+        to: 'second@example.com', subject: 'Second subject', replyTo: 'default-reply@example.com'
+      });
     });
   });
 
