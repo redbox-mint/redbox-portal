@@ -485,6 +485,7 @@ export namespace Services {
         const agenda = new AgendaConstructor({ ...agendaOptions, backend });
         this.agendaBackends.set(agenda, backend);
         await agenda.ready;
+        if (this.stopping) throw new Error('AgendaQueue:: Queue is shutting down.');
         return agenda;
       } catch (error) {
         discarded = true;

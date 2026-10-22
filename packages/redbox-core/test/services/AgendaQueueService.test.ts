@@ -563,6 +563,47 @@ describe('AgendaQueueService', function () {
       expect((service as any).agendas.mongodb).to.equal(undefined);
     });
 
+    for (const startAtReady of [false, true]) {
+      it(`closes an unregistered backend when shutdown interrupts Agenda readiness (startAtReady=${startAtReady})`, async function () {
+        create.restore();
+        const { MongoBackend } = await import('@agendajs/mongo-backend');
+        const { Agenda } = await import('agenda');
+        sinon.stub(MongoBackend.prototype, 'connect').resolves();
+        const disconnect = sinon.stub(MongoBackend.prototype, 'disconnect').resolves();
+        const saved = sinon.stub(Agenda.prototype, 'now').resolves({} as any);
+        const started = sinon.stub(Agenda.prototype, 'start').resolves();
+        let finishReady!: () => void;
+        let readyEntered!: () => void;
+        const entered = new Promise<void>(resolve => readyEntered = resolve);
+        const emit = Agenda.prototype.emit;
+        sinon.stub(Agenda.prototype, 'emit').callsFake(function (this: any, event: any, ...args: any[]) {
+          if (event === 'ready') {
+            finishReady = () => { emit.call(this, event, ...args); };
+            readyEntered();
+            return false;
+          }
+          return emit.call(this, event, ...args);
+        });
+        await service.init();
+        const pending = (startAtReady ? (service as any).handleReady() : service.now('pdf', {}))
+          .then(() => undefined, (error: Error) => error);
+        await entered;
+        try {
+          expect((service as any).agendas.mongodb).to.equal(undefined);
+          const lower = (sails.on as sinon.SinonStub).getCalls().find(call => call.args[0] === 'lower')!.args[1];
+          await lower();
+        } finally {
+          finishReady();
+        }
+        const error = await pending;
+        await new Promise(resolve => setImmediate(resolve));
+        expect(disconnect.calledOnce).to.equal(true);
+        expect(error?.message).to.equal('AgendaQueue:: Queue is shutting down.');
+        expect((service as any).agendas.mongodb).to.equal(undefined);
+        expect(saved.called || started.called).to.equal(false);
+      });
+    }
+
     it('does not start processors when shutdown occurs during auxiliary index setup', async function () {
       let finishIndexes!: () => void;
       let indexesStarted!: () => void;
