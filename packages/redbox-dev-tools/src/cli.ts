@@ -8,18 +8,12 @@ import {
   registerClientFormConfigCommand,
   registerMigrateDataClassificationCommand,
   registerMigrateFigshareConfigCommand,
-  registerMigrateFormConfigCommand, registerQuestionTreeDiagramCommand
+  registerMigrateFormConfigCommand,
+  registerQuestionTreeDiagramCommand,
 } from './commands/form-config';
 import { generateCompletionScript } from './completion';
-import {
-  parseAttributes,
-  parseBelongsTo,
-  parseHasMany,
-  parseLanguageDefaults,
-  parseNavMappings,
-  parseRoutes,
-} from './cli-parsers';
-import {registerSyncTranslationCommand} from "./commands/sync-translation";
+import { parseLanguageDefaults, parseNavMappings, parseRoutes } from './cli-parsers';
+import { registerSyncTranslationCommand } from './commands/sync-translation';
 
 const program = new Command();
 const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
@@ -67,9 +61,12 @@ function migrateHookDependencyContract(pkg: any): any {
     delete nextPkg.peerDependencies[depName];
   }
 
-  nextPkg.peerDependencies['@researchdatabox/redbox-core'] = nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
-  nextPkg.devDependencies['@researchdatabox/redbox-core'] = nextPkg.devDependencies['@researchdatabox/redbox-core'] ?? nextPkg.peerDependencies['@researchdatabox/redbox-core'];
-  nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] = nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
+  nextPkg.peerDependencies['@researchdatabox/redbox-core'] =
+    nextPkg.peerDependencies['@researchdatabox/redbox-core'] ?? '*';
+  nextPkg.devDependencies['@researchdatabox/redbox-core'] =
+    nextPkg.devDependencies['@researchdatabox/redbox-core'] ?? nextPkg.peerDependencies['@researchdatabox/redbox-core'];
+  nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] =
+    nextPkg.devDependencies['@researchdatabox/redbox-dev-tools'] ?? '*';
 
   return nextPkg;
 }
@@ -194,7 +191,9 @@ program
     for (const finding of findings) {
       console.error(`  - ${finding}`);
     }
-    console.error('Shared runtime dependencies should come from @researchdatabox/redbox-core, and shared toolchain dependencies should come from @researchdatabox/redbox-dev-tools.');
+    console.error(
+      'Shared runtime dependencies should come from @researchdatabox/redbox-core, and shared toolchain dependencies should come from @researchdatabox/redbox-dev-tools.'
+    );
     process.exit(1);
   });
 
@@ -448,7 +447,9 @@ generate
       await generator.generate();
       console.log(`\n✅ Done! Created migration '${generator.migrationName}'.\n`);
       console.log('Next steps:');
-      console.log(`  1. Implement up() in ${path.relative(paths.root, generator.migrationPath)} (remove the placeholder throw)`);
+      console.log(
+        `  1. Implement up() in ${path.relative(paths.root, generator.migrationPath)} (remove the placeholder throw)`
+      );
       console.log('  2. Make sure up() is idempotent - it can run more than once');
       console.log('  3. Test by lifting the app, then verify the Migration table contains the new name\n');
     } catch (error: any) {
@@ -514,42 +515,13 @@ program
 
 generate
   .command('model <name>')
-  .description('Generate a new Waterline model with decorator-based definition')
-  .option('--identity <identity>', 'Waterline identity (table name), defaults to lowercase name')
-  .option(
-    '--attrs <attrs>',
-    'Comma-separated list of attributes in format name:type[:required][:unique]',
-    parseAttributes
-  )
-  .option('--belongs-to <associations>', 'Comma-separated belongsTo associations in format name:model', parseBelongsTo)
-  .option(
-    '--has-many <associations>',
-    'Comma-separated hasMany associations in format name:model:via[:dominant]',
-    parseHasMany
-  )
-  .action(async (name, options) => {
-    try {
-      const globalOptions = program.opts();
-      const paths = resolvePaths(globalOptions);
-
-      const { ModelGenerator } = require('./generators/model');
-      const generator = new ModelGenerator({
-        name,
-        identity: options.identity,
-        attributes: options.attrs,
-        associations: [...(options.belongsTo || []), ...(options.hasMany || [])],
-        dryRun: globalOptions.dryRun,
-        root: paths.root,
-        paths,
-      });
-
-      console.log(`\n🛠️  Generating Waterline model: ${name}...\n`);
-      await generator.generate();
-      console.log('\n✅ Done!\n');
-    } catch (error: any) {
-      console.error(`\n❌ Error: ${error.message}\n`);
-      process.exit(1);
-    }
+  .description('Explain migration from retired model generators')
+  .allowUnknownOption()
+  .action(() => {
+    console.error(
+      'Model generation has been removed. Add declared Prisma fields and service/repository operations; see Persistence-Migration.md.'
+    );
+    process.exitCode = 1;
   });
 
 program.parse();

@@ -10,7 +10,7 @@ This package centralizes:
 - **Type definitions** for models, services, and configuration
 - **Business logic services** - All core services for records, workflows, users, etc.
 - **Controllers** for API and webservice request handling
-- **Waterline model definitions** for database entities
+- **Plain repository contracts and Prisma model contracts** for database entities
 - **Policy functions** for authorization and request handling
 - **Configuration defaults** for all Sails.js config keys
 - **Core bootstrap logic** for application startup
@@ -25,7 +25,7 @@ This package centralizes:
 | `src/config/` | Configuration defaults for all sails.config keys (65+ config modules) |
 | `src/configmodels/` | Configuration models for menus, panels, sidebars, system messages |
 | `src/policies/` | Authorization policies (isAuthenticated, checkAuth, etc.) |
-| `src/waterline-models/` | Waterline ORM model definitions (User, Role, RecordType, etc.) |
+| `src/persistence/` | Plain repositories, Prisma contracts and application-owned persistence lifecycle |
 | `src/model/` | TypeScript interfaces and business models |
 | `src/decorators/` | TypeScript decorators for controllers and services |
 | `src/responses/` | Custom Sails.js response handlers |
@@ -48,8 +48,6 @@ import {
     // Policy functions
     Policies,
 
-    // Waterline model definitions
-    WaterlineModels,
 
     // Service exports for shim generation
     ServiceExports,
@@ -207,20 +205,11 @@ export const appmode: AppModeConfig = {
 
 The [Redbox Loader](Redbox-Loader) uses these defaults to generate config shim files.
 
-## Waterline Models
+## Persistence contracts
 
-Database models are defined in `src/waterline-models/`:
-
-| Model | Description |
-|---|---|
-| `User` | User accounts and authentication data |
-| `Role` | User roles and permissions |
-| `RecordType` | Research data record type definitions |
-| `WorkflowStep` | Workflow state transitions |
-| `Form` | Dynamic form configurations |
-| `BrandingConfig` | Portal branding settings |
-| `Report` | Report definitions |
-| `NamedQuery` | Saved query configurations |
+All persistence groups use Prisma behind plain repository interfaces. There are
+no exported ORM models or global model query APIs. Hooks extend services and
+declare stored fields in Prisma contracts. See [migration guidance](Persistence-Migration.md).
 
 ## Policies
 
@@ -285,7 +274,7 @@ Hooks extending ReDBox can depend on this package:
 ```json
 {
     "dependencies": {
-        "@researchdatabox/redbox-core": "^1.5.0"
+        "@researchdatabox/redbox-core": "0.0.1-beta.9022"
     }
 }
 ```
@@ -294,3 +283,7 @@ See also:
 - [Redbox Loader](Redbox-Loader) - Pre-lift shim generation
 - [Redbox Dev Tools](redbox-dev-tools) - Hook development toolkit
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox)
+
+## Cache persistence repository
+
+The package root exports `CacheEntryRepository`, `CacheEntryRecord`, `CacheEntryWrite`, `JsonValue`, `getCacheEntryRepository`, JSON validators, persistence lifecycle functions and explicit index inspection/creation operations. Core CacheService and BrandingService use this seam; hooks should migrate direct CacheEntry queries and callbacks using [the hook guide](Cache-Persistence-Hook-Migration.md). See [cache architecture and artifact builds](Cache-Persistence.md) for connection ownership, generation, packaging and the next/v6 release boundary.

@@ -1,0 +1,120 @@
+P5 focused core requested backend=prisma (unit repository doubles; real backend covered by test:cache-transition)
+
+
+  CacheService persistence characterization (P0)
+    ✔ returns an Observable, bypasses persistence for truthy memory, and returns null for a miss
+    ✔ looks up persistence for falsy memory false and preserves its public value
+    ✔ looks up persistence for falsy memory 0 and preserves its public value
+    ✔ looks up persistence for falsy memory "" and preserves its public value
+    ✔ looks up persistence for falsy memory null and preserves its public value
+    ✔ normalizes missing data to null without writing to persistence
+    ✔ accepts age equal to global expiry, resets memory to the full default TTL, and retains expired documents
+    ✔ writes memory before persistence completes, returns void, and passes only epoch seconds to the create
+    ✔ updates by name and logs rejected persistence without losing the memory write
+    ✔ logs find/create errors, while read errors reach the Observable subscriber
+    ✔ retains the notification null reset in memory with TTL zero and queries persistence on its next read
+    ✔ captures memory at get call time and starts each persistence read only on subscription
+    ✔ logs invalid persistence data after writing memory and never calls a repository write
+    ✔ retains competing find/create races without retry or upsert
+
+  Branding preview persistence characterization (P0)
+    ✔ reads by token and deletes by string ID before returning the scoped payload
+    ✔ accepts the default 300-second boundary and deletes an older preview before reporting expiry
+    ✔ uses the configured preview TTL independently of the general cache TTL
+    ✔ propagates deletion failure for both valid and expired previews
+    ✔ allows two readers that both find the row before deletion (non-atomic delete-after-read)
+    ✔ propagates lookup failure without attempting deletion
+
+  IntegrationNotificationService
+    dispatch - status gating
+      ✔ dispatches notification for failed status
+      ✔ looks up notification config by brand id, not brand name
+      ✔ falls back to the default brand id when no brandId is provided
+      ✔ does not dispatch notification for started status
+      ✔ does not dispatch notification for success without prior failure
+      ✔ dispatches recovery notification for success when prior failure exists and recoveryAlerts is on
+    dispatch - config disabled/no config
+      ✔ does not call any channel when config is disabled
+      ✔ does not call any channel when no brand config exists
+    EmailChannel
+      ✔ calls buildFromTemplate with correct template and sendMessage with joined recipients
+      ✔ warns and does not send when recipients are empty
+      ✔ uses custom template name when specified in channel config
+    dispatch - throttle
+      ✔ suppresses second failure within throttle window
+      ✔ sends notification again after throttle window expires
+      ✔ ignores stale persisted throttle state after the configured window
+      ✔ does not write throttle state when every channel send fails
+    dispatch - recovery
+      ✔ sends recovery notification after failure followed by success
+      ✔ does nothing for success with no prior failure
+    dispatch - perIntegration override
+      ✔ applies perIntegration override for specific integration
+      ✔ uses global config for integrations without override
+    dispatch - error isolation
+      ✔ does not throw when a channel send rejects
+
+  Branding management controllers and contracts
+    ✔ exposes every lifecycle action on both surfaces
+    ✔ registers matching REST and AJAX routes
+    ✔ keeps management routes behind the Admin boundary
+    ✔ serves public fonts outside the brand-scoped policy chain
+    ✔ derives the actor from the session and ignores body actors
+    ✔ maps conflicts with current counters, and validation, limit, missing, and server errors
+    ✔ handles multipart upload with runtime maxima and cleans up temp files
+    ✔ cleans up temporary files after REST upload-size errors
+    ✔ cleans up temporary files after REST upload-unexpected errors
+    ✔ cleans up temporary files after REST service-conflict errors
+    ✔ cleans up temporary files after AJAX upload-size errors
+    ✔ cleans up temporary files after AJAX upload-unexpected errors
+    ✔ cleans up temporary files after AJAX service-conflict errors
+    ✔ rejects restore across brands and aliases rollback with deprecation metadata
+    ✔ keeps REST and AJAX responses in parity
+    ✔ advertises the default face maximum while accepting runtime overrides
+    ✔ preserves branding and portal through slot/version param validation
+
+  cache persistence selection and lifecycle
+    ✔ defaults only absent configuration to Prisma and rejects unknown/incomplete explicit values
+    ✔ requires explicit initialization, reuses one repository per app, and borrows the loaded Waterline model
+    ✔ shares one application runtime across Sails module-cache invalidation
+    ✔ chains the previous shutdown hook, preserves its error, and safely repeats cleanup
+    ✔ preserves thrown shutdown errors and continues cleanup
+    ✔ never changes a selected backend in response to config/model failure
+    ✔ generated-bootstrap failure closes persistence before returning the original error
+
+  Prisma cache application datastore resolution
+    ✔ preserves encoded credentials, multi-host lists, URI database/TLS/replica-set options and explicit driver options
+    ✔ applies split datastore database, host, port and credential overrides instead of requiring a duplicate URL
+    ✔ uses existing split host/database credentials when no URL is configured
+    ✔ preserves the URI half of partially overridden credentials
+    ✔ preserves SRV URLs offline and rejects unsupported/missing configuration with safe errors
+
+  cache repository JSON boundary
+    ✔ rejects date without serialization
+    ✔ rejects buffer without serialization
+    ✔ rejects bson without serialization
+    ✔ rejects bigint without serialization
+    ✔ rejects function without serialization
+    ✔ rejects symbol without serialization
+    ✔ rejects undefined without serialization
+    ✔ rejects nan without serialization
+    ✔ rejects infinity without serialization
+    ✔ rejects nestedUndefined without serialization
+    ✔ rejects arrayUndefined without serialization
+    ✔ rejects sparse without serialization
+    ✔ rejects arraySubclass without serialization
+    ✔ rejects instance without serialization
+    ✔ accepts all JSON primitives, nested containers, null prototypes and repeated noncyclic references
+    ✔ rejects cycles, accessors, toJSON, symbol keys, hidden members and array extras
+    ✔ rejects explicit undefined data and invalid epoch/name fields
+
+  transitional Waterline cache repository
+    ✔ is lazy, returns null on misses and delegates all operations to the supplied loaded model
+    ✔ projects only plain contract fields and preserves missing data/timestamps
+    ✔ rejects rich stored data/IDs/timestamps rather than returning driver objects
+    ✔ rejects invalid writes before touching the loaded model
+    ✔ propagates original find/create/update/delete failures including duplicate errors
+    ✔ fails clearly before model loading, and resolves the effective loaded model without owning connections
+
+
+  92 passing (502ms)

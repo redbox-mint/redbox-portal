@@ -81,6 +81,10 @@ describe('Branding browser print and native upload controls', function () {
       'utf8'
     );
     const page = await browser.newPage();
+    // Keep native chooser interception armed between the two controls. One-shot
+    // waiters can race protocol disable/enable when dialogs follow each other.
+    page.on('filechooser', () => {});
+    await page.evaluate(() => true);
     try {
       await page.setContent(`<style>${bootstrap}</style>${template}`);
       const controls = page.locator('input[accept=".woff2,font/woff2"]');

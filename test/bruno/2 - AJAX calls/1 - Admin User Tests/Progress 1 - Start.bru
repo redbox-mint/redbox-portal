@@ -1,0 +1,38 @@
+meta {
+  name: Progress 1 - Start
+  type: http
+  seq: 57.1
+}
+
+post {
+  url: {{host}}/default/rdmp/asynch
+  body: json
+  auth: none
+}
+
+body:json {
+  {"name":"P5 progress","relatedRecordId":"{{dmpOid}}","taskType":"p5-test","status":"running","currentIdx":0,"targetIdx":2,"metadata":{"result":false,"failures":[]}}
+}
+
+headers {
+  Content-Type: application/json
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Starts durable progress with plain references and zero counter", function () {
+    expect(res.getStatus()).to.equal(200);
+    const row=res.getBody();
+    expect(row.id).to.be.a('string');
+    expect(row.currentIdx).to.equal(0);
+    expect(row.relatedRecordId).to.equal(bru.getEnvVar('dmpOid'));
+    bru.setVar('j1ProgressId', row.id);
+    bru.setVar('j1ProgressQuery', encodeURIComponent(JSON.stringify({where:{id:row.id}})));
+  });
+}

@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<testsuites>
+  <testsuite name="Draft update unauthorised" file="1 - Draft update unauthorised.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.975" hostname="7fa404ec0d8d" time="5.807">
+    <testcase name="Status code is 403 (non-admin rejected)" status="pass" classname="1 - Draft update unauthorised" time="5.807"/>
+  </testsuite>
+  <testsuite name="Logo upload no file" file="7 - Logo upload no file.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.051">
+    <testcase name="Status 400 no file" status="pass" classname="7 - Logo upload no file" time="0.051"/>
+  </testsuite>
+  <testsuite name="Logo upload success" file="12 - Logo upload success.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.138">
+    <testcase name="Status 200" status="pass" classname="12 - Logo upload success" time="0.069"/>
+    <testcase name="Hash returned" status="pass" classname="12 - Logo upload success" time="0.069"/>
+  </testsuite>
+  <testsuite name="Render Image Success" file="13 - Render Image Success.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.083">
+    <testcase name="Status code is 200" status="pass" classname="13 - Render Image Success" time="0.041"/>
+    <testcase name="Response body is not empty" status="pass" classname="13 - Render Image Success" time="0.041"/>
+  </testsuite>
+  <testsuite name="Render Image with ETag (200)" file="14 - Render Image ETag.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.063">
+    <testcase name="Status code is 200 when ETag doesn't match" status="pass" classname="14 - Render Image ETag" time="0.063"/>
+  </testsuite>
+  <testsuite name="Render CSS Success" file="15 - Render CSS Success.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.095">
+    <testcase name="Response contains CSS content" status="pass" classname="15 - Render CSS Success" time="0.095"/>
+  </testsuite>
+  <testsuite name="Render CSS with ETag (304)" file="16 - Render CSS ETag.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.036">
+    <testcase name="Status code is 200 or 304 (depending on ETag match)" status="pass" classname="16 - Render CSS ETag" time="0.036"/>
+  </testsuite>
+  <testsuite name="Get History List Success" file="18 - Get History List Success.bru" errors="0" failures="0" skipped="0" tests="3" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.049">
+    <testcase name="Status code is 200" status="pass" classname="18 - Get History List Success" time="0.016"/>
+    <testcase name="Response is an array" status="pass" classname="18 - Get History List Success" time="0.016"/>
+    <testcase name="Each history item has required fields" status="pass" classname="18 - Get History List Success" time="0.016"/>
+  </testsuite>
+  <testsuite name="Get History for Non-existent Branding (404)" file="19 - Get History Not Found.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.012">
+    <testcase name="Status code is 404 for non-existent branding" status="pass" classname="19 - Get History Not Found" time="0.012"/>
+  </testsuite>
+  <testsuite name="Webservice Draft Unauthorized" file="20 - Webservice Draft Unauthorized.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.038">
+    <testcase name="Status code is 403 (unauthorized)" status="pass" classname="20 - Webservice Draft Unauthorized" time="0.038"/>
+  </testsuite>
+  <testsuite name="Webservice Preview Unauthorized" file="21 - Webservice Preview Unauthorized.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.032">
+    <testcase name="Status code is 403 (unauthorized)" status="pass" classname="21 - Webservice Preview Unauthorized" time="0.032"/>
+  </testsuite>
+  <testsuite name="Webservice Publish Unauthorized" file="22 - Webservice Publish Unauthorized.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.031">
+    <testcase name="Status code is 403 (unauthorized)" status="pass" classname="22 - Webservice Publish Unauthorized" time="0.031"/>
+  </testsuite>
+  <testsuite name="Render Preview CSS - Invalid Token" file="23 - Render Preview CSS.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.025">
+    <testcase name="Status code is 404 depending on token validity" status="pass" classname="23 - Render Preview CSS" time="0.025"/>
+  </testsuite>
+  <testsuite name="Render Preview CSS Invalid Token" file="24 - Render Preview CSS Invalid Token.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.010">
+    <testcase name="Status code is 404 for invalid preview token" status="pass" classname="24 - Render Preview CSS Invalid Token" time="0.010"/>
+  </testsuite>
+  <testsuite name="Typeface config" file="30 - Typeface config.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.049">
+    <testcase name="Status code is 200" status="pass" classname="30 - Typeface config" time="0.024"/>
+    <testcase name="Canonical Admin state with counters" status="pass" classname="30 - Typeface config" time="0.024"/>
+  </testsuite>
+  <testsuite name="Typeface draft authorised" file="31 - Typeface draft authorised.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.235">
+    <testcase name="Status code is 200" status="pass" classname="31 - Typeface draft authorised" time="0.117"/>
+    <testcase name="Draft saved with new revision" status="pass" classname="31 - Typeface draft authorised" time="0.117"/>
+  </testsuite>
+  <testsuite name="Typeface draft conflict" file="32 - Typeface draft conflict.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.033">
+    <testcase name="Status code is 409" status="pass" classname="32 - Typeface draft conflict" time="0.017"/>
+    <testcase name="Conflict mentions stale draft" status="pass" classname="32 - Typeface draft conflict" time="0.017"/>
+  </testsuite>
+  <testsuite name="Face upload regular" file="33 - Face upload regular.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.391">
+    <testcase name="Upload succeeds with face hash" status="pass" classname="33 - Face upload regular" time="0.391"/>
+  </testsuite>
+  <testsuite name="Face upload variable rejected" file="34 - Face upload variable rejected.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.083">
+    <testcase name="Status code is 400" status="pass" classname="34 - Face upload variable rejected" time="0.041"/>
+    <testcase name="Variable font rejected" status="pass" classname="34 - Face upload variable rejected" time="0.041"/>
+  </testsuite>
+  <testsuite name="Typeface preview create" file="35 - Typeface preview create.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.133">
+    <testcase name="Status code is 200" status="pass" classname="35 - Typeface preview create" time="0.067"/>
+    <testcase name="Preview token issued" status="pass" classname="35 - Typeface preview create" time="0.067"/>
+  </testsuite>
+  <testsuite name="Typeface publish" file="36 - Typeface publish.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.167">
+    <testcase name="Status code is 200" status="pass" classname="36 - Typeface publish" time="0.084"/>
+    <testcase name="Published with new version and aligned draft" status="pass" classname="36 - Typeface publish" time="0.084"/>
+  </testsuite>
+  <testsuite name="Typeface publish idempotent" file="37 - Typeface publish idempotent.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.074">
+    <testcase name="Status code is 200 with idempotent flag" status="pass" classname="37 - Typeface publish idempotent" time="0.074"/>
+  </testsuite>
+  <testsuite name="Public font GET" file="38 - Public font GET.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.025">
+    <testcase name="Status code is 200" status="pass" classname="38 - Public font GET" time="0.013"/>
+    <testcase name="Immutable font headers" status="pass" classname="38 - Public font GET" time="0.013"/>
+  </testsuite>
+  <testsuite name="Public font HEAD" file="39 - Public font HEAD.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.019">
+    <testcase name="Status code is 200 with ETag and no font substitution" status="pass" classname="39 - Public font HEAD" time="0.019"/>
+  </testsuite>
+  <testsuite name="Typeface versions list" file="40 - Typeface versions list.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.053">
+    <testcase name="Status code is 200 with newest-first versions" status="pass" classname="40 - Typeface versions list" time="0.053"/>
+  </testsuite>
+  <testsuite name="Typeface version preview" file="41 - Typeface version preview.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.057">
+    <testcase name="Status code is 200 with preview token" status="pass" classname="41 - Typeface version preview" time="0.057"/>
+  </testsuite>
+  <testsuite name="Typeface restore" file="42 - Typeface restore.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.102">
+    <testcase name="Status code is 200 with a new version" status="pass" classname="42 - Typeface restore" time="0.102"/>
+  </testsuite>
+  <testsuite name="Rollback alias deprecated" file="43 - Rollback alias deprecated.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.067">
+    <testcase name="Status code is 200 with restore semantics" status="pass" classname="43 - Rollback alias deprecated" time="0.033"/>
+    <testcase name="Deprecation header present" status="pass" classname="43 - Rollback alias deprecated" time="0.033"/>
+  </testsuite>
+  <testsuite name="Use default and publish" file="44 - Use default and publish.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.047">
+    <testcase name="Draft set to Default Typography" status="pass" classname="44 - Use default and publish" time="0.047"/>
+  </testsuite>
+  <testsuite name="Publish default typography" file="45 - Publish default typography.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.075">
+    <testcase name="Default Typography publishes without faces" status="pass" classname="45 - Publish default typography" time="0.075"/>
+  </testsuite>
+  <testsuite name="Preview create single use" file="46a - Preview create single use.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.038">
+    <testcase name="Store preview url" status="pass" classname="46a - Preview create single use" time="0.038"/>
+  </testsuite>
+  <testsuite name="Preview first fetch" file="46b - Preview first fetch.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.050">
+    <testcase name="First fetch 200" status="pass" classname="46b - Preview first fetch" time="0.050"/>
+  </testsuite>
+  <testsuite name="Preview second fetch 404" file="46c - Preview second fetch 404.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.040">
+    <testcase name="Second fetch 404 (single use)" status="pass" classname="46c - Preview second fetch 404" time="0.040"/>
+  </testsuite>
+  <testsuite name="Rollback invalid history id" file="49 - Rollback invalid history id.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.043">
+    <testcase name="Status 404 history-not-found" status="pass" classname="49 - Rollback invalid history id" time="0.043"/>
+  </testsuite>
+  <testsuite name="Restore invalid history id" file="50 - Restore invalid history id.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:31:38.976" hostname="7fa404ec0d8d" time="0.050">
+    <testcase name="Status code is 404 for invalid history ID" status="pass" classname="50 - Restore invalid history id" time="0.025"/>
+    <testcase name="Contains history-not-found error" status="pass" classname="50 - Restore invalid history id" time="0.025"/>
+  </testsuite>
+</testsuites>

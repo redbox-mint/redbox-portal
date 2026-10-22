@@ -255,7 +255,7 @@ that authoritative form before persistence, while explicit
 brand/type/workflow divergence is rejected. Update hooks are selected from the
 stored authoritative record type only. `redboxOid` is the public record UUID
 and is the only identity bound to the update route OID; a conflicting
-`redboxOid` is rejected before hooks or persistence. Waterline `id` and Mongo
+`redboxOid` is rejected before hooks or persistence. Repository `id` and Mongo
 `_id` are distinct storage primary keys, remain distinct in authoritative
 snapshots and hook candidates, and are stripped only from adapter-bound create
 and update payloads. They are never overwritten with the route UUID. The route

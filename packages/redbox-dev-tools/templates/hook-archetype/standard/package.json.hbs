@@ -13,6 +13,7 @@
     "hasMigrations": true
   },
   "scripts": {
+    "persistence:indexes": "node node_modules/@researchdatabox/redbox-core/bin/persistence-indexes.cjs",
     "compile": "node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-tsc.js -p tsconfig.json",
     "test": "npm run test:unit && npm run test:integration:mocha",
     "test:unit": "TS_NODE_PROJECT=./test/tsconfig.json npm run compile && node ./node_modules/@researchdatabox/redbox-dev-tools/bin/run-hook-mocha.js --config ./test/unit/.mocharc.cjs \"./test/unit/**/*.test.ts\"",

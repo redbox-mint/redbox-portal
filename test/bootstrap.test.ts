@@ -35,6 +35,7 @@ before(function (this: Mocha.Context, done) {
             },
             hooks: {
               grunt: false,
+              orm: false,
             },
             security: {
               csrf: false,

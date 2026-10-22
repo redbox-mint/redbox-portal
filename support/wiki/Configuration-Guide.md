@@ -163,3 +163,13 @@ Compare these files to identify where a setting is being overwritten.
 ## AppConfig secret storage
 
 [AppConfig secrets in AWS Secrets Manager](AppConfig-Secrets) describes optional AWS storage for branding-aware password and token fields, deployment setup, and migration behavior.
+
+
+## Persistence configuration
+
+All groups use Prisma. Keep `datastores.mongodb`, `datastores.redboxStorage` and
+`redboxSession.mongoUrl`/`mongoOptions`/`dbName`. Remove all backend selectors,
+model configuration and datastore adapter/migrate settings; stale values fail
+with actionable guidance. Sails runs with `hooks.orm=false`. See
+[the institution migration guide](Persistence-Migration.md) for exact keys,
+fixed model ownership, session pooling, index preparation and upgrade errors.

@@ -1,0 +1,62 @@
+{
+  "redbox_cache_p6.agenda_logs": {
+    "count": 0,
+    "documentsSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "indexesSha256": "1bbbaa6a29a3b9ed08f1f4f4ab87bb0202459a3eb5d52de82bf5802f7de7cb26",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_cache_p6.cacheentry": {
+    "count": 12,
+    "documentsSha256": "a5ddadf4ea602e6e5b635f653d2e26adc50714bdf2107ef595508dea028eb1c8",
+    "indexesSha256": "ca01d485a9a3faec2f7369fd390c27618b02e8eaa000f746d6c3759f75f62a9d",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_cache_p6.p6_jobs": {
+    "count": 2,
+    "documentsSha256": "c10a893cc0d8b5b1a55a2d3f838ff7c6ec9033903881a9deda590dfba82dacb1",
+    "indexesSha256": "84fe06c10c184b95d716292dc5a2e87ff1b349230b61e401eaf2c4c40ec72960",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_cache_p6.role": {
+    "count": 1,
+    "documentsSha256": "65c027173c726214ad0788a1ca78bedf7f1eb5744005a88836b44ac2b2f1d76e",
+    "indexesSha256": "a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_cache_p6.user": {
+    "count": 1,
+    "documentsSha256": "24f8afcf438d6897225bc0bd8380804e8b7fa60c5fa528653a319fc2ae15ddb1",
+    "indexesSha256": "a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_storage_p6.p6_gridfs.chunks": {
+    "count": 1,
+    "documentsSha256": "92dc19282128475f2f391e7674ba22114828ab424297b3799597118a0eb61a4d",
+    "indexesSha256": "a6bc6e108e7c7fbba7ffce19de324b352041d6b317bd6bca859623eb18e89272",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_storage_p6.p6_gridfs.files": {
+    "count": 1,
+    "documentsSha256": "cb4962a5d61a4187e36e23aaac6fc7dd5b9d3596b21d5bf93e52ffa9183208ef",
+    "indexesSha256": "10240dccde6a5cc80a347f862c659dd175b46caf414b91c9e5961246596f6b23",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_storage_p6.record": {
+    "count": 1,
+    "documentsSha256": "b9cd99266214f6ea79ca027c43812736ac83b5579f523dd607a2c32fd45b1b65",
+    "indexesSha256": "a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_storage_p6.recordidentity": {
+    "count": 1,
+    "documentsSha256": "b4837c36e0e2fe7d408e6e8b3047272334cca9f97923b552eded7d186eb066dd",
+    "indexesSha256": "a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "redbox_sessions_p6.sessions": {
+    "count": 1,
+    "documentsSha256": "cfeecd12b8dd0d4c467ef32b0983563e65734cab4276ebf85d4a31cdef8f96ea",
+    "indexesSha256": "a4e00e1eac671d676f492c242954539f61105179132ab612268898f401fe9f31",
+    "optionsSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  }
+}

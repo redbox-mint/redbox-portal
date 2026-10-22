@@ -1,0 +1,17 @@
+{
+  "Id": "sha256:b23de47e7be99203d86a789b6e685d809075b70f927627c27d2b7f6e6b5964c4",
+  "Created": "2026-10-19T15:09:27.021643388+10:30",
+  "Size": 662436032,
+  "Architecture": "amd64",
+  "Os": "linux",
+  "labels": {
+    "redbox.source": "0cfbd62b93260b63ad907d7c01ed9f33a2af619e",
+    "redbox.task": "prisma-cache-p5"
+  },
+  "source": "0cfbd62b93260b63ad907d7c01ed9f33a2af619e",
+  "tag": "redbox-cache-p5:rollback-0cfbd62b9",
+  "lockSha256": {
+    "package-lock.json": "408afc1a4ed061f1c96c85d84b65d7614639ad4ea68e4c4a50a8c5592d4c434e",
+    "packages/redbox-core/package-lock.json": "304000370f092e867d7df08439bed656dacb19ebfab50d17aa3cbed56876629a"
+  }
+}

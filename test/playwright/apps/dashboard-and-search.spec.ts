@@ -12,7 +12,15 @@ test('A03 filters owned dashboard records, sorts both ways, paginates and opens 
   const app = adminPage.locator('dashboard');
   const search = app.getByRole('textbox');
   await search.fill(prefix);
+  const filtered = adminPage.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname.endsWith('/listRecords') && url.searchParams.get('filter') === prefix;
+  });
   await search.press('Enter');
+  expect((await filtered).ok()).toBeTruthy();
+  // The initial page already contains these records; its row count cannot
+  // establish that the submitted filter has finished before sorting begins.
+  await expect(app.getByRole('button', { name: 'Search', exact: true })).toBeEnabled();
   const links = app.locator('tbody a').filter({ hasText: prefix });
   await expect(links).toHaveCount(10);
   const titleSort = app.locator('sort').filter({ hasText: /Title/ }).getByRole('button');

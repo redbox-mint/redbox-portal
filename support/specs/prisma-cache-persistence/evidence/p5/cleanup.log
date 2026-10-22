@@ -1,0 +1,6 @@
+No remaining P5 containers, networks or labelled/named volumes. Mongo anonymous volumes were removed by each rm -fv / compose down -v trap.
+Existing development containers are stopped at final audit; no P5 cleanup command targets them. Their stop occurred after operational measurement.
+Untagged: redbox-cache-p5:rollback-0cfbd62b9
+Deleted: sha256:b23de47e7be99203d86a789b6e685d809075b70f927627c27d2b7f6e6b5964c4
+Untagged: redbox-cache-p5:rollback-build-0cfbd62b9
+Deleted: sha256:521b101d0c2ad1c07707b6a52fe8b9e6a5eb75d1c88659bc3a549ab2c75c9da7

@@ -1,0 +1,43 @@
+Mon Oct 19 04:56:19 UTC 2026
+v24.18.0
+Docker version 29.6.1, build 8900f1d
+Architecture:                            x86_64
+CPU(s):                                  4
+On-line CPU(s) list:                     0-3
+Model name:                              Intel(R) N100
+Thread(s) per core:                      1
+Core(s) per socket:                      4
+NUMA node0 CPU(s):                       0-3
+               total        used        free      shared  buff/cache   available
+Mem:           15615        5533        1982           1        8438       10081
+Swap:              0           0           0
+some avg10=21.22 avg60=27.54 avg300=33.77 total=52642820066
+full avg10=15.29 avg60=21.29 avg300=28.65 total=43174747788
+Linux 6.8.0-138-generic (agentvm) 	10/19/26 	_x86_64_	(4 CPU)
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz     d/s     dkB/s   drqm/s  %drqm d_await dareq-sz     f/s f_await  aqu-sz  %util
+loop0            0.00      0.00     0.00   0.00    0.18     1.27    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+sda              2.61     49.58     0.66  20.21    0.83    18.97    5.04    129.58     8.53  62.84    1.25    25.70    2.15    331.27     0.00   0.00    0.03   154.06    0.72    0.66    0.01   0.17
+sdb              3.39     66.15     0.37   9.74   13.53    19.52    4.25    205.68    13.82  76.48   33.26    48.40    1.11   4746.61     0.00   0.00    0.41  4284.51    1.24    0.69    0.19   2.57
+sr0              0.00      0.00     0.00   0.00    0.89     3.83    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz     d/s     dkB/s   drqm/s  %drqm d_await dareq-sz     f/s f_await  aqu-sz  %util
+loop0            0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+sda              0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+sdb              4.00     20.00     0.00   0.00   25.25     5.00   31.00    284.00    31.00  50.00    2.71     9.16    0.00      0.00     0.00   0.00    0.00     0.00   20.00    0.10    0.19   8.90
+sr0              0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+
+
+Device            r/s     rkB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wkB/s   wrqm/s  %wrqm w_await wareq-sz     d/s     dkB/s   drqm/s  %drqm d_await dareq-sz     f/s f_await  aqu-sz  %util
+loop0            0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+sda              0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+sdb              0.00      0.00     0.00   0.00    0.00     0.00   34.00    488.00    49.00  59.04    0.74    14.35    3.00    108.00     0.00   0.00    0.00    36.00   20.00    0.20    0.03   1.90
+sr0              0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00      0.00     0.00   0.00    0.00     0.00    0.00    0.00    0.00   0.00
+
+
+Average:      999    300667      0.00    118.81      0.00       0  mongod
+Average:      999   2360575      0.00    110.89      0.00       0  mongod
+d258cd738242f41de5636f867d94635f55920827ed3d5b85232a3fd5f4d9f3a5  packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs
+02a61b5a99a822898740d8f6ad6f8c5fd41d882907d744d6a7c50b30e6b013c2  packages/redbox-core/test/fixtures/cache-persistence/transition-client.cjs
+46277e7209f77aca7fe208484138bd6182418840d9835f87499d2268a9b48630  .tmp/prisma-cache-p5/compare.cjs

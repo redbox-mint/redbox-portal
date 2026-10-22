@@ -7,19 +7,57 @@ type CompletionSpec = {
 };
 
 function getCompletionSpec(): CompletionSpec {
-  const globalOptions = ['--root', '--core-types-root', '--angular-root', '--dry-run', '-h', '--help', '-V', '--version'];
-  const topLevelCommands = ['init', 'check', 'migrate-hook-dependencies', 'generate', 'g', 'install-skills', 'skills', 'migrate-form-config', 'completion', 'help'];
-  const generateCommands = ['controller', 'service', 'method', 'angular-app', 'angular-service', 'form-component', 'form-field', 'migration', 'model'];
+  const globalOptions = [
+    '--root',
+    '--core-types-root',
+    '--angular-root',
+    '--dry-run',
+    '-h',
+    '--help',
+    '-V',
+    '--version',
+  ];
+  const topLevelCommands = [
+    'init',
+    'check',
+    'migrate-hook-dependencies',
+    'generate',
+    'g',
+    'install-skills',
+    'skills',
+    'migrate-form-config',
+    'completion',
+    'help',
+  ];
+  const generateCommands = [
+    'controller',
+    'service',
+    'method',
+    'angular-app',
+    'angular-service',
+    'form-component',
+    'form-field',
+    'migration',
+  ];
 
   const commandOptions: Record<string, string[]> = {
     'migrate-form-config': ['-i', '--input', '-o', '--output'],
-    'check': [],
-    'completion': [],
-    'init': [],
+    check: [],
+    completion: [],
+    init: [],
     'install-skills': [],
     'migrate-hook-dependencies': [],
-    'skills': [],
-    'generate controller': ['--actions', '--webservice', '--class-name', '--route', '--routes', '--nav', '--lang', '--auth'],
+    skills: [],
+    'generate controller': [
+      '--actions',
+      '--webservice',
+      '--class-name',
+      '--route',
+      '--routes',
+      '--nav',
+      '--lang',
+      '--auth',
+    ],
     'generate service': ['--methods'],
     'generate method': ['--file', '--method', '--route', '--http', '--auth', '--nav', '--lang'],
     'generate angular-app': ['--ejs-view', '--auth'],
@@ -27,7 +65,6 @@ function getCompletionSpec(): CompletionSpec {
     'generate form-component': ['--app', '--with-service'],
     'generate form-field': ['--type'],
     'generate migration': [],
-    'generate model': ['--identity', '--attrs', '--belongs-to', '--has-many']
   };
 
   const fileValueOptions = ['--root', '--core-types-root', '--angular-root', '--input', '--output', '--file'];
@@ -112,7 +149,7 @@ function generateFishCompletion(): string {
   const lines: string[] = [
     '# fish completion for redbox-dev-tools',
     'set -l __rbhk_cmd redbox-dev-tools',
-    'complete -c $__rbhk_cmd -f'
+    'complete -c $__rbhk_cmd -f',
   ];
 
   for (const cmd of spec.topLevelCommands) {
@@ -126,40 +163,84 @@ function generateFishCompletion(): string {
     }
   }
   for (const sub of spec.generateCommands) {
-    lines.push(`complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate g; and __fish_use_subcommand" -a "${sub}"`);
+    lines.push(
+      `complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate g; and __fish_use_subcommand" -a "${sub}"`
+    );
   }
 
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from migrate-form-config" -s i -l input -r');
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from migrate-form-config" -s o -l output -r');
   lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from completion" -a "bash zsh fish powershell pwsh"');
 
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l actions -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l webservice');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l class-name -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l route -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l routes -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l nav -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l lang -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l auth -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from service" -l methods -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l file -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l method -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l route -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l http -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l auth -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l nav -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l lang -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-app" -l ejs-view -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-app" -l auth -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-service" -l app -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-service" -l methods -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-component" -l app -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-component" -l with-service');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-field" -l type -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from model" -l identity -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from model" -l attrs -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from model" -l belongs-to -r');
-  lines.push('complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from model" -l has-many -r');
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l actions -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l webservice'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l class-name -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l route -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l routes -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l nav -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l lang -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from controller" -l auth -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from service" -l methods -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l file -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l method -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l route -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l http -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l auth -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l nav -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from method" -l lang -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-app" -l ejs-view -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-app" -l auth -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-service" -l app -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from angular-service" -l methods -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-component" -l app -r'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-component" -l with-service'
+  );
+  lines.push(
+    'complete -c $__rbhk_cmd -n "__fish_seen_subcommand_from generate; and __fish_seen_subcommand_from form-field" -l type -r'
+  );
 
   return `${lines.join('\n')}\n`;
 }
@@ -171,7 +252,7 @@ Register-ArgumentCompleter -Native -CommandName redbox-dev-tools -ScriptBlock {
   $tokens = $commandAst.CommandElements | ForEach-Object { $_.Extent.Text }
   $global = @('--root','--core-types-root','--angular-root','--dry-run','-h','--help','-V','--version')
   $top = @('init','check','migrate-hook-dependencies','generate','g','install-skills','skills','migrate-form-config','completion','help')
-  $generateSub = @('controller','service','method','angular-app','angular-service','form-component','form-field','migration','model')
+  $generateSub = @('controller','service','method','angular-app','angular-service','form-component','form-field','migration')
 
   if ($tokens.Count -le 2) {
     @($top + $global) | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
@@ -196,7 +277,6 @@ Register-ArgumentCompleter -Native -CommandName redbox-dev-tools -ScriptBlock {
       'angular-service' { @('--app','--methods') }
       'form-component' { @('--app','--with-service') }
       'form-field' { @('--type') }
-      'model' { @('--identity','--attrs','--belongs-to','--has-many') }
       default { @() }
     }
     @($opts + $global) | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {

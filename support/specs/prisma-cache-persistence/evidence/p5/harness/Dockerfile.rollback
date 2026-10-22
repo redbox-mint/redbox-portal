@@ -1,0 +1,14 @@
+FROM node:26.11.1-bookworm AS build
+WORKDIR /opt/redbox-portal
+COPY . .
+RUN npm --version && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+RUN node_modules/.bin/tsc -p packages/agenda-sqs-backend/tsconfig.json && node_modules/.bin/tsc -p packages/raido/tsconfig.json && node_modules/.bin/tsc -p packages/rva-registry/tsconfig.json && node_modules/.bin/tsc -p packages/sails-ng-common/tsconfig.json
+RUN cd packages/redbox-core && npm ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund && npm run build
+RUN node_modules/.bin/tsc -p tsconfig.json
+RUN node_modules/.bin/tsc -p packages/redbox-dev-tools/tsconfig.json && node_modules/.bin/tsc -p packages/sails-hook-redbox-storage-mongo/tsconfig.json && node_modules/.bin/tsc -p packages/redbox-hook-dev/tsconfig.json
+RUN rm -rf packages/redbox-core/node_modules node_modules/redoc node_modules/should
+FROM node:26.11.1-bookworm-slim
+WORKDIR /opt/redbox-portal
+COPY --from=build /opt/redbox-portal /opt/redbox-portal
+LABEL redbox.task=prisma-cache-p5 redbox.source=0cfbd62b93260b63ad907d7c01ed9f33a2af619e
+CMD ["node", "app.js"]

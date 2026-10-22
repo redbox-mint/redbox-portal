@@ -35,7 +35,7 @@ The final focused run includes two status/publication cases added after the full
 
 | Phases | Implementation and evidence |
 | --- | --- |
-| P0–P1 | `FigshareSyncModel`, registered Waterline shim and native `sync-store`; real Mongo CAS, duplicate initialisers, lease contention, stale owners and exclusive article binding |
+| P0–P1 (historical) | Original model/shim and native `sync-store` proofs. Phase 8 removed these surfaces; current Figshare persistence uses the Prisma repository and app-owned lifecycle. |
 | P2 | `RecordWriteOptions`, protected source intent in Mongo record writes and RecordsService save boundaries; concurrent source generations, initialising saves, hook failure, maintenance preservation, partial projections and primary/secondary expected-version conflicts |
 | P3 | OID/brand jobs, Mongo recurrence and source import before acknowledgment; dropped delivery, replay, cooldown and archive predicate regression |
 | P4–P5 | Distinct account/author identity fixtures, minimal create, exact token recovery, hidden create400, delayed visibility and changed CI; owner/token GET/DELETE/body placement and unmodified uploader credentials |

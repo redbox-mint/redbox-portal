@@ -15,7 +15,7 @@ ReDBox business logic is encapsulated in TypeScript services in `@researchdatabo
 - Implement `bootstrap()` for initialization.
 - Use `_exportedMethods` to define exposed methods.
 - Often use RxJS Observables for async operations.
-- Access Waterline models via globals (e.g., `declare var Record: Model;`).
+- Access persistence through repository/service interfaces; never declare model globals. See `support/wiki/Persistence-Migration.md`.
 
 ## Generating Services
 

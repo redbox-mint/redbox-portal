@@ -1,0 +1,36 @@
+
+
+  opt-in Prisma cache runtime on isolated authenticated MongoDB 8
+    ✔ blocks missing index, creates it only explicitly and idempotently, then initializes exactly once (831ms)
+    ✔ maps raw IDs, ISO strings, numeric seconds, JSON values, omissions and misses without rewriting legacy fields (244ms)
+    ✔ normalizes duplicate create/update with retained causes and keeps Prisma selected after runtime failure (126ms)
+    ✔ reports duplicate groups without payloads and refuses cleanup/index creation/startup (58ms)
+    ✔ rejects nonunique, sparse, partial, collation, and reserved-name conflicting indexes (293ms)
+    ✔ treats index creation as authoritative when duplicates arrive after inspection (55ms)
+    ✔ closes its partially acquired driver when the installed contract is missing (54ms)
+    ✔ refuses unsupported reported MongoDB versions without creating an index or switching backend
+    ✔ accepts an existing compatible index under another name without replacing it (46ms)
+    ✔ rejects invalid config, unavailable DB and authentication failure without fallback or secret messages (579ms)
+    ✔ resolves normalized application URL/database/auth/options and leaves record storage unused
+error: Error: original startup failure
+    at Context.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:381:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: MigrationError: Migration p3-migration (up) failed: Original error: original startup failure
+    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/umzug/src/umzug.ts:261:17
+    at async Umzug.runCommand (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/umzug/src/umzug.ts:210:14)
+    at async runPendingMigrations (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/loader/MigrationRunner.ts:143:5)
+    at async /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/loader/bootstrapShimRuntime.ts:89:9
+error: Error: original startup failure
+    at Context.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:381:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: Error: original startup failure
+    at Context.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:381:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: Error: original startup failure
+    at Context.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:381:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    ✔ is available inside service init, and cleans original failures from service init and every generated bootstrap stage (124ms)
+    ✔ closes partial initialization, repeats startup/cleanup, and preserves shutdown hooks and borrowed connections (186ms)
+
+
+  13 passing (3s)

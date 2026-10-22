@@ -5,5 +5,8 @@
   "_generatedWith": {
     "sails": "1.0.0",
     "sails-generate": "1.15.17"
+  },
+  "hooks": {
+    "orm": false
   }
 }

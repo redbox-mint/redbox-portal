@@ -1,0 +1,9 @@
+P5 promotion P2 loaded-model run active cache backend=waterline (explicit configuration)
+
+
+  P2 loaded Waterline cache repository
+Verified loaded hook model: create,update,create,create,create,update,update,create,destroy,destroy; server 8.0.34
+    ✔ honors loaded datastore/collection/callback overrides and leaves the borrowed connection usable (852ms)
+
+
+  1 passing (860ms)

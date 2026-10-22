@@ -12,17 +12,18 @@
 
 const dockerAuthDefaults = {
   // active: ["aaf", "local", "oidc"],
-  active: ["aaf", "local"],
+  active: ['aaf', 'local'],
   aaf: {
-    loginUrl: "https://rapid.test.aaf.edu.au/jwt/authnrequest/research/OTG8tPdB2H_aT0yZ4s63zQ",
+    loginUrl: 'https://rapid.test.aaf.edu.au/jwt/authnrequest/research/OTG8tPdB2H_aT0yZ4s63zQ',
     opts: {
-      secretOrKey: 'Y30wY4xv1*6I7yUX%6v*Tzce8OEbVO&@R4hVb%2@Gehtx^xgOqQ97Slv!ZOkfHHmox&x0zAt*0o&4^8$9oW8WTf&r@&d31EFbQZr',
+      secretOrKey:
+        'Y30wY4xv1*6I7yUX%6v*Tzce8OEbVO&@R4hVb%2@Gehtx^xgOqQ97Slv!ZOkfHHmox&x0zAt*0o&4^8$9oW8WTf&r@&d31EFbQZr',
       jsonWebTokenOptions: {
         issuer: 'https://rapid.test.aaf.edu.au',
         audience: 'http://localhost:1500/default/rdmp/',
-        ignoreNotBefore: true
-      }
-    }
+        ignoreNotBefore: true,
+      },
+    },
   },
   // oidc: {
   //   discoverAttemptsMax: 5, // attempts at discovery before giving up
@@ -71,13 +72,13 @@ const dockerAuthDefaults = {
 };
 
 module.exports = {
-  http:{
-    rootContext: ''
+  http: {
+    rootContext: '',
   },
   csp: {
     // The development stack is served over plain HTTP. This also keeps
     // same-origin assets loadable when the shared preview uses its LAN URL.
-    extras: []
+    extras: [],
   },
   /***************************************************************************
    * Set the default database connection for models in the development       *
@@ -90,57 +91,56 @@ module.exports = {
     _hookTimeout: 480000,
   },
   webpack: {
-    _hookTimeout: 480000
+    _hookTimeout: 480000,
   },
   log: {
-    level: 'verbose'
+    level: 'verbose',
   },
-  appUrl:'http://localhost:1500',
+  appUrl: 'http://localhost:1500',
   redboxSession: {
     cookie: {
-      secure: false
-    }
+      secure: false,
+    },
   },
-  record:{
+  record: {
     baseUrl: {
-      redbox: "http://redbox:9000/redbox",
-      mint: "https://demo.redboxresearchdata.com.au/mint"
-    }
+      redbox: 'http://redbox:9000/redbox',
+      mint: 'https://demo.redboxresearchdata.com.au/mint',
+    },
   },
   redbox: {
-    apiKey: 'c8e844fc-8550-497f-b970-7900ec8741ca'
+    apiKey: 'c8e844fc-8550-497f-b970-7900ec8741ca',
   },
   mint: {
     apiKey: '3a86f185-8305-478a-a3dc-9e8481d49712',
     api: {
       search: {
         method: 'get',
-        url: '/api/v1/search'
-      }
-    }
+        url: '/api/v1/search',
+      },
+    },
   },
   // added for TUS server, only set if there's a reverse proxy infront, otherwise, TUS needs this so it can return the correct host name and port
   //appPort: 1500,
   db: {
     waitRetries: 5,
-    waitSleep: 10000
+    waitSleep: 10000,
   },
   figshareDev: {
     enabled: false,
-    mode: 'live'
+    mode: 'live',
   },
   brandingConfigurationDefaults: {
-    auth: dockerAuthDefaults
+    auth: dockerAuthDefaults,
   },
-  datastores:{
+  datastores: {
     mongodb: {
-      adapter: require('sails-mongo'),
-      url: 'mongodb://mongodb:27017/redbox-portal'
-    }
+      url: 'mongodb://mongodb:27017/redbox-portal',
+    },
   },
   services: {
     email: {
-      disabled: true
-    }
-  }
+      disabled: true,
+    },
+  },
 };

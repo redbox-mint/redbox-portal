@@ -1,0 +1,14 @@
+{
+  "runId": "mves1um7-141cc2",
+  "browserStartedAt": "2026-10-19T04:51:44.575Z",
+  "baseURL": "http://localhost:1500",
+  "runnerNodeVersion": "v24.21.0",
+  "angularVersion": "22.2.0",
+  "playwrightVersion": "1.64.0",
+  "browser": "chromium",
+  "locale": "en-AU",
+  "timezoneId": "Australia/Brisbane",
+  "workers": 1,
+  "retries": 0,
+  "browserVersion": "156.0.8078.4"
+}

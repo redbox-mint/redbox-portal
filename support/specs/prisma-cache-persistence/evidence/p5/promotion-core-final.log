@@ -1,0 +1,23 @@
+P5 full core requested backend=prisma; unit suites select their own fixtures; live selections asserted in transition and portal runs.
+npm notice run redbox-portal@2.1.0 test:core
+npm notice run cd ./packages/redbox-core && npm run test && cd ../../
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test
+npm notice run TS_NODE_PROJECT=test/tsconfig.json mocha
+Mocha running in local dev.
+
+[... unchanged full suite output omitted ...]
+  startup module loading
+    1) loads core without a browser DOM or the full Effect barrel, then sanitizes on first use
+
+  4098 passing (2m)
+  88 pending
+  1 failing
+
+  1) startup module loading
+       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:
+     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT
+
+null !== 0
+
+      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:36:12)
+      at processImmediate (node:internal/timers:504:21)

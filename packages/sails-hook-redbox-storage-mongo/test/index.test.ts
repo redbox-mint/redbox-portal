@@ -3,17 +3,10 @@ const { expect } = require('chai');
 describe('storage-mongo hook exports', function () {
   this.timeout(10000);
 
-  it('registers models, services, and config from the package entrypoint', function () {
+  it('registers services and config from the package entrypoint', function () {
     const hook = require('../src');
 
-    expect(hook.registerRedboxModels()).to.have.keys([
-      'Record',
-      'DeletedRecord',
-      'RecordAudit',
-      'IntegrationAudit',
-      'RecordSchemaArtifact',
-      'RecordSchemaReference',
-    ]);
+    expect(hook.registerRedboxModels).to.equal(undefined);
     expect(hook.registerRedboxServices()).to.have.property('MongoStorageService');
     expect(hook.ServiceExports).to.have.property('MongoStorageService');
     expect(hook.registerRedboxMigrations()).to.have.length(1);

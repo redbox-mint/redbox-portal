@@ -1,12 +1,10 @@
 import type { SailsHook } from 'sails';
 import { storage } from './config/storage';
 import { record } from './config/record';
-import { MongoModels } from './models';
 import { ServiceExports } from './services';
 import { registerRedboxMigrations } from './migrations';
 
 type RedboxStorageMongoHook = ((_sails: unknown) => SailsHook) & {
-  registerRedboxModels: () => typeof MongoModels;
   registerRedboxServices: () => typeof ServiceExports;
   registerRedboxConfig: () => { storage: typeof storage; record: typeof record };
   registerRedboxMigrations: typeof registerRedboxMigrations;
@@ -24,10 +22,6 @@ const hook = ((_sails: unknown) => ({
   configure() {},
   defaults: {},
 })) as RedboxStorageMongoHook;
-
-hook.registerRedboxModels = function registerRedboxModels() {
-  return MongoModels;
-};
 
 hook.registerRedboxServices = function registerRedboxServices() {
   return ServiceExports;

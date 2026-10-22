@@ -1,0 +1,67 @@
+Waterline baseline, unchanged original request then control with revision text field before file.
+33 - Face upload regular (200 OK) - 253 ms
+P5 upload revision diagnostic 1 {"branding":{"id":"6ad59a23a6881c2a6cae2bc7","name":"default"},"active":{"version":0,"hash":"","variables":{},"typeface":{"mode":"default","faces":{}}},"draft":{"revision":2,"variables":{"site-branding-area-background-color":"#123123"},"typeface":{"mode":"custom","faces":{"regular":{"slot":"regular","sha256":"425c0713a8176f92273d378599c7eac57de7fafabd4bd0ed457b70eb8f80d371","originalFilename":"test-font-regular.woff2","sizeBytes":21884,"uploadedAt":"2026-10-19T04:20:16.040Z","inspection":{"embeddedWeight":400,"embeddedStyle":"normal","family":"Roboto","subfamily":"Regular"},"warnings":[]}}},"dirty":{"colours":true,"typeface":true}},"versions":[],"limits":{"faceMaxBytes":2097152,"familyMaxBytes":8388608,"historyMaxVersions":3},"healthWarnings":[]}
+Tests
+   ✓ Upload succeeds with face hash
+34 - Face upload variable rejected (409 Conflict) - 64 ms
+P5 upload revision diagnostic 2 {"message":"branding-conflict","details":"branding-conflict: expected version 0 and draft revision 2"}
+Tests
+   ✕ Status code is 400
+
+File: 34 - Face upload variable rejected.bru
+
+  20 |  }
+  21 |
+  22 |  tests {
+  23 |    console.log("P5 upload revision diagnostic", bru.getVar("rb_revision"), JSON.stringify(res.getBody()));
+  24 |    test("Status code is 400", function(){
+> 25 |      expect(res.getStatus()).to.equal(400);
+  26 |    });
+  27 |    test("Variable font rejected", function(){
+  28 |      var raw = res.getBody();
+  29 |      expect(JSON.stringify(typeof raw === 'string' ? JSON.parse(raw) : raw)).to.contain('typeface-variable-font');
+  30 |    });
+
+AssertionError: expected 409 to equal 400
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:25:30
+    at /opt/bruno-tests/node_modules/@usebruno/js/src/test.js:3:11
+    at test (/opt/bruno-tests/node_modules/@usebruno/js/src/utils/results.js:35:21)
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:24:1
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:31:3
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:13:11
+    at Script.runInContext (node:vm:149:12)
+    at runScript (/opt/bruno-tests/node_modules/@usebruno/js/src/sandbox/node-vm/index.js:135:48)
+    at runScriptInNodeVm (/opt/bruno-tests/node_modules/@usebruno/js/src/sandbox/node-vm/index.js:141:17)
+    at TestRuntime.runTests (/opt/bruno-tests/node_modules/@usebruno/js/src/runtime/test-runtime.js:115:15)
+
+   ✕ Variable font rejected
+
+File: 34 - Face upload variable rejected.bru
+
+  24 |    test("Status code is 400", function(){
+  25 |      expect(res.getStatus()).to.equal(400);
+  26 |    });
+  27 |    test("Variable font rejected", function(){
+  28 |      var raw = res.getBody();
+> 29 |      expect(JSON.stringify(typeof raw === 'string' ? JSON.parse(raw) : raw)).to.contain('typeface-variable-font');
+  30 |    });
+  31 |  }
+  32 |
+
+AssertionError: expected '{"message":"branding-conflict","detai…' to include 'typeface-variable-font'
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:29:78
+    at /opt/bruno-tests/node_modules/@usebruno/js/src/test.js:3:11
+    at test (/opt/bruno-tests/node_modules/@usebruno/js/src/utils/results.js:35:21)
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:27:1
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:31:3
+    at /opt/bruno-rest/34 - Face upload variable rejected.bru:13:11
+    at Script.runInContext (node:vm:149:12)
+    at runScript (/opt/bruno-tests/node_modules/@usebruno/js/src/sandbox/node-vm/index.js:135:48)
+    at runScriptInNodeVm (/opt/bruno-tests/node_modules/@usebruno/js/src/sandbox/node-vm/index.js:141:17)
+    at TestRuntime.runTests (/opt/bruno-tests/node_modules/@usebruno/js/src/runtime/test-runtime.js:115:15)
+
+34b - Diagnostic fields before file (400 Bad Request) - 101 ms
+P5 upload revision diagnostic 2 {"message":"typeface-variable-font","details":"Variable fonts are not supported"}
+Tests
+   ✓ Status code is 400
+   ✓ Variable font rejected

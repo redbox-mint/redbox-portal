@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<testsuites>
+  <testsuite name="Login via Internal authentication" file="Login via Internal authentication.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:43:28.327" hostname="a2be2948d9a7" time="0.249">
+    <testcase name="Status code is 200" status="pass" classname="Login via Internal authentication" time="0.125"/>
+    <testcase name="Check that user returned is admin" status="pass" classname="Login via Internal authentication" time="0.125"/>
+  </testsuite>
+  <testsuite name="App Branding - Config Not Found (404)" file="App Branding 9 - Config Not Found.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.038">
+    <testcase name="Status code is 404" status="pass" classname="App Branding 9 - Config Not Found" time="0.038"/>
+  </testsuite>
+  <testsuite name="App Branding - Publish Conflict (409)" file="App Branding 12 - Publish Conflict.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.045">
+    <testcase name="Status code is 409 for publish conflict" status="pass" classname="App Branding 12 - Publish Conflict" time="0.045"/>
+  </testsuite>
+  <testsuite name="App Branding - Preview with Invalid Branding" file="App Branding 13 - Preview Invalid Branding.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.026">
+    <testcase name="Status code is 404 for non-existent branding" status="pass" classname="App Branding 13 - Preview Invalid Branding" time="0.026"/>
+  </testsuite>
+  <testsuite name="App Branding - Config unauthorized" file="App Branding 1 - Config unauthorized.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.024">
+    <testcase name="Status code is 403" status="pass" classname="App Branding 1 - Config unauthorized" time="0.024"/>
+  </testsuite>
+  <testsuite name="App Branding - Draft update unauthorized" file="App Branding 6 - Draft update unauthorized.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.026">
+    <testcase name="Status code is 403" status="pass" classname="App Branding 6 - Draft update unauthorized" time="0.026"/>
+  </testsuite>
+  <testsuite name="App Branding - Logo upload no file" file="App Branding 7 - Logo upload no file.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.037">
+    <testcase name="Status code is 400" status="pass" classname="App Branding 7 - Logo upload no file" time="0.037"/>
+  </testsuite>
+  <testsuite name="App Branding - Logo upload success" file="App Branding 8 - Logo upload success.bru" errors="0" failures="0" skipped="0" tests="3" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.060">
+    <testcase name="Status code is 200" status="pass" classname="App Branding 8 - Logo upload success" time="0.020"/>
+    <testcase name="JSON content type" status="pass" classname="App Branding 8 - Logo upload success" time="0.020"/>
+    <testcase name="Logo hash returned" status="pass" classname="App Branding 8 - Logo upload success" time="0.020"/>
+  </testsuite>
+  <testsuite name="App Typeface config" file="App Branding 20 - Typeface config.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.049">
+    <testcase name="Status code is 200" status="pass" classname="App Branding 20 - Typeface config" time="0.025"/>
+    <testcase name="Canonical Admin state with counters" status="pass" classname="App Branding 20 - Typeface config" time="0.025"/>
+  </testsuite>
+  <testsuite name="App Typeface draft authorised" file="App Branding 21 - Typeface draft authorised.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.064">
+    <testcase name="Status code is 200" status="pass" classname="App Branding 21 - Typeface draft authorised" time="0.032"/>
+    <testcase name="Draft saved with new revision" status="pass" classname="App Branding 21 - Typeface draft authorised" time="0.032"/>
+  </testsuite>
+  <testsuite name="App Typeface draft invalid variables" file="App Branding 22 - Typeface draft invalid variables.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.046">
+    <testcase name="Status code is 400 for invalid variables" status="pass" classname="App Branding 22 - Typeface draft invalid variables" time="0.046"/>
+  </testsuite>
+  <testsuite name="App Face upload regular" file="App Branding 23 - Face upload regular.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.113">
+    <testcase name="Status code is 200" status="pass" classname="App Branding 23 - Face upload regular" time="0.057"/>
+    <testcase name="Regular face stored with hash" status="pass" classname="App Branding 23 - Face upload regular" time="0.057"/>
+  </testsuite>
+  <testsuite name="App Typeface preview create" file="App Branding 24 - Typeface preview create.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.061">
+    <testcase name="Status code is 200 with preview token" status="pass" classname="App Branding 24 - Typeface preview create" time="0.061"/>
+  </testsuite>
+  <testsuite name="App Typeface publish" file="App Branding 25 - Typeface publish.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.078">
+    <testcase name="Status code is 200 with aligned draft" status="pass" classname="App Branding 25 - Typeface publish" time="0.078"/>
+  </testsuite>
+  <testsuite name="App Typeface versions list" file="App Branding 26 - Typeface versions list.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.046">
+    <testcase name="Status code is 200 with versions" status="pass" classname="App Branding 26 - Typeface versions list" time="0.046"/>
+  </testsuite>
+  <testsuite name="App Typeface version preview" file="App Branding 27 - Typeface version preview.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.047">
+    <testcase name="Status code is 200 with preview token" status="pass" classname="App Branding 27 - Typeface version preview" time="0.047"/>
+  </testsuite>
+  <testsuite name="App Typeface restore" file="App Branding 28 - Typeface restore.bru" errors="0" failures="0" skipped="0" tests="1" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.077">
+    <testcase name="Status code is 200 with a new version" status="pass" classname="App Branding 28 - Typeface restore" time="0.077"/>
+  </testsuite>
+  <testsuite name="App Rollback alias deprecated" file="App Branding 29 - Rollback alias deprecated.bru" errors="0" failures="0" skipped="0" tests="2" timestamp="2026-10-19T04:43:28.328" hostname="a2be2948d9a7" time="0.069">
+    <testcase name="Status code is 200 with restore semantics" status="pass" classname="App Branding 29 - Rollback alias deprecated" time="0.035"/>
+    <testcase name="Deprecation header present" status="pass" classname="App Branding 29 - Rollback alias deprecated" time="0.035"/>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,13 @@
+Checking formatting...
+All matched files use Prettier code style!
+Found 0 warnings and 0 errors.
+Finished in 53ms on 1 file with 1 rules using 4 threads.
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+[redbox-loader] Starting shim generation (NODE_ENV !== production)...
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+[redbox-loader] Shim generation complete in 182.16ms
+PASS core import, service exports, shim generation/loading: zero socket attempts (v24.18.0)

@@ -1,0 +1,13 @@
+P5 full core requested backend=prisma; unit suites select their own fixtures; live selections asserted in transition and portal runs.
+npm notice run redbox-portal@2.1.0 test:core
+npm notice run cd ./packages/redbox-core && npm run test && cd ../../
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test
+npm notice run TS_NODE_PROJECT=test/tsconfig.json mocha
+Mocha running in local dev.
+
+[... unchanged full suite output omitted ...]
+  startup module loading
+    ✔ loads core without a browser DOM or the full Effect barrel, then sanitizes on first use (10631ms)
+
+  4099 passing (2m)
+  87 pending
