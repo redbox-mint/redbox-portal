@@ -12,6 +12,35 @@ import {resolveFieldByPointer} from '../form-state/behaviours/behaviour-field-re
 import {FormServerSyncService} from "../form-server-sync.service";
 
 
+function nestedCreatorsConfig(allowZeroRows = true): FormConfigFrame {
+  return {
+    name: 'nested_repeatable_initialization',
+    componentDefinitions: [{
+      name: 'creators',
+      model: {class: 'RepeatableModel', config: {value: []}},
+      component: {class: 'RepeatableComponent', config: {
+        allowZeroRows: true,
+        elementTemplate: {
+          name: '',
+          model: {class: 'GroupModel', config: {}},
+          component: {class: 'GroupComponent', config: {componentDefinitions: [{
+            name: 'affiliations',
+            model: {class: 'RepeatableModel', config: {value: []}},
+            component: {class: 'RepeatableComponent', config: {
+              allowZeroRows,
+              elementTemplate: {
+                name: '',
+                model: {class: 'SimpleInputModel', config: {}},
+                component: {class: 'SimpleInputComponent'},
+              },
+            }},
+          }]}},
+        },
+      }},
+    }],
+  };
+}
+
 describe('RepeatableComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
@@ -627,32 +656,7 @@ describe('RepeatableComponent', () => {
   });
 
   it('initializes nested repeatables without publishing values from detached outer rows', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'nested_repeatable_initialization',
-      componentDefinitions: [{
-        name: 'creators',
-        model: {class: 'RepeatableModel', config: {value: []}},
-        component: {class: 'RepeatableComponent', config: {
-          allowZeroRows: true,
-          elementTemplate: {
-            name: '',
-            model: {class: 'GroupModel', config: {}},
-            component: {class: 'GroupComponent', config: {componentDefinitions: [{
-              name: 'affiliations',
-              model: {class: 'RepeatableModel', config: {value: []}},
-              component: {class: 'RepeatableComponent', config: {
-                allowZeroRows: true,
-                elementTemplate: {
-                  name: '',
-                  model: {class: 'SimpleInputModel', config: {}},
-                  component: {class: 'SimpleInputComponent'},
-                },
-              }},
-            }]}},
-          },
-        }},
-      }],
-    };
+    const formConfig = nestedCreatorsConfig();
     const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
     const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
     const observed: any[] = [];
@@ -678,6 +682,35 @@ describe('RepeatableComponent', () => {
     } finally {
       sub.unsubscribe();
     }
+  });
+
+  for (const savedValue of [null, 'legacy', {name: 'invalid'}, 42]) {
+    it(`normalizes a non-array nested repeatable ${JSON.stringify(savedValue)} to ready empty rows`, async () => {
+      const {fixture, formComponent} = await createFormAndWaitForReady(nestedCreatorsConfig());
+      const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+      await repeatable.appendNewElement({affiliations: savedValue});
+      await fixture.whenStable();
+      const nested = repeatable.formFieldBaseComponents[0].formFieldBaseComponents[0] as RepeatableComponent;
+      expect(nested.isStatusReady()).toBeTrue();
+      expect(nested.formFieldCompMapEntries.length).toBe(0);
+      expect(repeatable.model?.getValue()).toEqual([{affiliations: []}]);
+      await nested.appendNewElement('University A');
+      await fixture.whenStable();
+      expect(repeatable.model?.getValue()).toEqual([{affiliations: ['University A']}]);
+    });
+  }
+
+  it('creates a default nested row without modifying its incoming empty array', async () => {
+    const {fixture, formComponent} = await createFormAndWaitForReady(nestedCreatorsConfig(false));
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    const row = {affiliations: []};
+    await repeatable.appendNewElement(row);
+    await fixture.whenStable();
+    const nested = repeatable.formFieldBaseComponents[0].formFieldBaseComponents[0] as RepeatableComponent;
+    expect(nested.isStatusReady()).toBeTrue();
+    expect(nested.formFieldCompMapEntries.length).toBe(1);
+    expect(nested.model?.getValue()).toEqual([null]);
+    expect(row.affiliations).toEqual([]);
   });
 
   it('should throw a descriptive error when setCustomValue is used without a custom setter and the value length does not match', async () => {
