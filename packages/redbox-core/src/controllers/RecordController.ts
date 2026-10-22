@@ -2382,6 +2382,18 @@ export namespace Controllers {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
       }
 
+      let pendingReadstream: NodeJS.ReadableStream | undefined;
+      const releasePendingStream = () => {
+        const stream = pendingReadstream;
+        pendingReadstream = undefined;
+        if (!stream) return;
+        if ('destroy' in stream && typeof stream.destroy === 'function') {
+          stream.destroy();
+        } else {
+          stream.resume();
+        }
+      };
+
       try {
         const currentRec = await this.recordsService.getMeta(oid);
         if (_.isEmpty(currentRec) || !brand?.id || currentRec.metaMetadata?.brandId !== brand.id) {
@@ -2398,6 +2410,12 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'A single datastream ID is required.' }] });
         }
 
+        const requestedFileName = req.param('fileName');
+        if (requestedFileName != null && typeof requestedFileName !== 'string') {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'A single filename is required.' }] });
+        }
+        const fileName = requestedFileName || datastreamId;
+
         const requestContext = { username: String(req.user?.username ?? '') || undefined };
         // Use stored datastream membership, including historical versions, rather than
         // current form metadata or generated filename conventions. Authorize first.
@@ -2407,21 +2425,20 @@ export namespace Controllers {
         }
 
         const response = await this.datastreamService.getDatastream(oid, datastreamId, requestContext);
-        const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
+        pendingReadstream = response.readstream;
+        // The client may have disconnected while storage retrieval was pending.
+        if (res.destroyed) {
+          releasePendingStream();
+          return;
+        }
         // Failed lookups must remain ordinary error responses, not PDF attachments.
         res.set('Content-Type', 'application/octet-stream');
         res.attachment(fileName);
         if (response.readstream) {
-          // The client may have disconnected while getDatastream was pending.
-          if (res.destroyed) {
-            if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
-              response.readstream.destroy();
-            } else {
-              response.readstream.resume();
-            }
-            return;
-          }
-          await pipeline(response.readstream, res);
+          const completion = pipeline(response.readstream, res);
+          // Once piping starts, pipeline owns source cancellation and cleanup.
+          pendingReadstream = undefined;
+          await completion;
         } else {
           const body = response.body ?? '';
           const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
@@ -2429,6 +2446,7 @@ export namespace Controllers {
         }
         return of(oid);
       } catch (error) {
+        releasePendingStream();
         if (res.destroyed) {
           const code = error instanceof Error && 'code' in error ? error.code : undefined;
           if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {

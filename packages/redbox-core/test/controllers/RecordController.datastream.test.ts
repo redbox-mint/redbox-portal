@@ -130,6 +130,38 @@ describe('RecordController datastream downloads', () => {
     });
   }
 
+  for (const fileName of [['a.pdf', 'b.pdf'], { name: 'a.pdf' }, 42]) {
+    it(`rejects a nonscalar filename before opening storage: ${JSON.stringify(fileName)}`, async () => {
+      params.fileName = fileName;
+      await expectFailure(400);
+      expect(records.getAttachments.called).to.equal(false);
+      expect(datastreams.getDatastream.called).to.equal(false);
+    });
+  }
+
+  for (const method of ['set', 'attachment']) {
+    it(`destroys an opened storage stream if ${method} throws before piping`, async () => {
+      const source = new Readable({ read() {} });
+      datastreams.getDatastream.resolves({ readstream: source });
+      res[method].onFirstCall().throws(new Error('invalid response header'));
+      await controller.getDataStream(req, res);
+      expect(source.destroyed).to.equal(true);
+      expect(Buffer.concat(chunks).length).to.equal(0);
+      expect(sendResp.calledOnce).to.equal(true);
+      expect(res.status.lastCall.args[0]).to.equal(500);
+      expect(res.json.calledOnce).to.equal(true);
+    });
+  }
+
+  it('drains a legacy storage stream without destroy if header setup fails', async () => {
+    const source = { resume: sinon.stub() };
+    datastreams.getDatastream.resolves({ readstream: source });
+    res.attachment.throws(new Error('invalid response header'));
+    await controller.getDataStream(req, res);
+    expect(source.resume.calledOnce).to.equal(true);
+    expect(res.status.lastCall.args[0]).to.equal(500);
+  });
+
   it('returns a usable 400 JSON response to API v2 clients with an omitted ID', async () => {
     req.headers = { 'x-redbox-api-version': '2.0' };
     delete params.datastreamId;
