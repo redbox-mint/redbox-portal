@@ -9,6 +9,7 @@ import {FieldValueChangedEvent, FormComponentEventBus, FormComponentEventType} f
 import {LoggerService} from '@researchdatabox/portal-ng-common';
 import {applyExpressionTarget} from '../form-state/apply-expression-target';
 import {resolveFieldByPointer} from '../form-state/behaviours/behaviour-field-resolver';
+import {FormServerSyncService} from "../form-server-sync.service";
 
 
 describe('RepeatableComponent', () => {
@@ -524,6 +525,92 @@ describe('RepeatableComponent', () => {
 
     definitionSub.unsubscribe();
     dirtySub.unsubscribe();
+  });
+
+  it('does not publish detached group values while adopting server-normalized repeatable rows', async () => {
+    const first = {family_name: 'Researcher', given_name: 'Alex', text_full_name: 'Alex Researcher'};
+    const appended = {family_name: 'Vale', given_name: 'Nora', text_full_name: null};
+    const citation = 'Researcher, Alex; Vale, Nora';
+    const formConfig: FormConfigFrame = {
+      name: 'grouped_repeatable_server_sync',
+      componentDefinitions: [
+        {
+          name: 'creators',
+          model: {class: 'RepeatableModel', config: {value: [first]}},
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              canSort: true,
+              elementTemplate: {
+                name: '',
+                model: {class: 'GroupModel', config: {}},
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: ['family_name', 'given_name', 'text_full_name'].map(name => ({
+                      name,
+                      model: {class: 'SimpleInputModel', config: {}},
+                      component: {class: 'SimpleInputComponent'},
+                    })),
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          name: 'citation_generated',
+          model: {class: 'SimpleInputModel', config: {value: citation}},
+          component: {class: 'SimpleInputComponent'},
+        },
+      ],
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    await repeatable.appendNewElement(appended);
+    await fixture.whenStable();
+    const form = formComponent.form!;
+    form.markAsPristine();
+    const sent = structuredClone(form.getRawValue());
+    const server = {...sent, creators: [first, {...appended, text_full_name: 'Nora Vale'}]};
+    const valueEvents: any[] = [];
+    const subscription = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+        if (event.fieldId?.startsWith('/creators')) {
+          valueEvents.push(event);
+          // A derived field must never see the partly rebuilt array. This is
+          // the same input read used by scoped citation behaviours.
+          form.get('citation_generated')!.setValue(
+            form.getRawValue().creators.map((creator: any) => `${creator.family_name}, ${creator.given_name}`).join('; '),
+            {emitEvent: false},
+          );
+          form.get('citation_generated')!.markAsDirty();
+        }
+      });
+    try {
+      const result = await TestBed.inject(FormServerSyncService).applyServerMetadata(
+        sent, server, formComponent.formDefMap!, form, 'preserveLocalEdits',
+      );
+      await fixture.whenStable();
+      expect(result.patched).toContain('creators');
+      expect(repeatable.model?.getValue()).toEqual(server.creators);
+      expect(valueEvents).toEqual([]);
+      expect(form.get('citation_generated')!.value).toBe(citation);
+      expect(form.pristine).toBeTrue();
+      const inputs = fixture.nativeElement.querySelectorAll('redbox-groupfield input');
+      expect(Array.from(inputs as NodeListOf<HTMLInputElement>).map(input => input.value))
+        .toEqual(['Researcher', 'Alex', 'Alex Researcher', 'Vale', 'Nora', 'Nora Vale']);
+
+      // Ordinary author operations must still publish complete row values.
+      const third = {family_name: 'Quill', given_name: 'Emil', text_full_name: null};
+      await repeatable.appendNewElement(third);
+      await fixture.whenStable();
+      expect(valueEvents.some(event => event.fieldId === '/creators' && event.value.length === 3)).toBeTrue();
+      expect(valueEvents.filter(event => event.fieldId !== '/creators')).toEqual([]);
+      expect(repeatable.model?.getValue()).toEqual([...server.creators, third]);
+    } finally {
+      subscription.unsubscribe();
+    }
   });
 
   it('should throw a descriptive error when setCustomValue is used without a custom setter and the value length does not match', async () => {

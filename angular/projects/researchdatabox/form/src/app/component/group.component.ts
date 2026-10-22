@@ -176,7 +176,11 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
               await compInstance.appendNewElement(repeatableValue, false);
             }
           } else {
-            compInstance.model.setValue(elemVal as never);
+            // The group is still being constructed and may not yet belong to
+            // its parent repeatable. Publishing a child change here lets
+            // behaviours read an incomplete parent value during server sync.
+            // Initial form-ready / parent append events announce the ready value.
+            compInstance.model.setValue(elemVal as never, {emitEvent: false});
           }
         }
         this.model.addItem(key, compInstance.model);
