@@ -2378,64 +2378,79 @@ export namespace Controllers {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
-      const currentRec = await firstValueFrom(this.getRecord(oid));
+      if (typeof oid !== 'string' || !oid.trim()) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+      }
 
-      const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec as AnyRecord));
-      if (!hasViewAccess) {
-        return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
-      } else {
-        const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
-        res.set('Content-Type', 'application/octet-stream');
-        sails.log.verbose('fileName ' + fileName);
-        res.attachment(fileName);
-        sails.log.verbose(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
-        try {
-          const response = await this.datastreamService.getDatastream(oid, datastreamId, {
-            username: String(req.user?.username ?? '') || undefined,
+      try {
+        const currentRec = await this.recordsService.getMeta(oid);
+        if (_.isEmpty(currentRec) || !brand?.id || currentRec.metaMetadata?.brandId !== brand.id) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
+        }
+        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, currentRec as AnyRecord));
+        if (!hasViewAccess) {
+          return this.sendResp(req, res, {
+            status: 403,
+            displayErrors: [{ code: 'edit-error-no-permissions' }],
           });
-          if (response.readstream) {
-            // The client may have disconnected while getDatastream was pending.
-            if (res.destroyed) {
-              if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
-                response.readstream.destroy();
-              } else {
-                response.readstream.resume();
-              }
-              return;
-            }
-            await pipeline(response.readstream, res);
-          } else {
-            const body = response.body ?? '';
-            const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
-            res.end(buffer, 'binary');
-          }
-          return of(oid);
-        } catch (error) {
+        }
+        if (typeof datastreamId !== 'string' || !datastreamId.trim()) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'A single datastream ID is required.' }] });
+        }
+
+        const requestContext = { username: String(req.user?.username ?? '') || undefined };
+        // Use stored datastream membership, including historical versions, rather than
+        // current form metadata or generated filename conventions. Authorize first.
+        const attachments = await this.recordsService.getAttachments(oid, undefined, requestContext);
+        if (!attachments.some(attachment => attachment.fileId === datastreamId)) {
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'attachment-not-found' }] });
+        }
+
+        const response = await this.datastreamService.getDatastream(oid, datastreamId, requestContext);
+        const fileName = req.param('fileName') ? req.param('fileName') : datastreamId;
+        // Failed lookups must remain ordinary error responses, not PDF attachments.
+        res.set('Content-Type', 'application/octet-stream');
+        res.attachment(fileName);
+        if (response.readstream) {
+          // The client may have disconnected while getDatastream was pending.
           if (res.destroyed) {
-            const code = error instanceof Error && 'code' in error ? error.code : undefined;
-            if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {
-              sails.log.error('Attachment download failed', error);
+            if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
+              response.readstream.destroy();
+            } else {
+              response.readstream.resume();
             }
             return;
           }
-          const errorMessage = this.getErrorMessage(error);
-          if (this.isAjax(req)) {
-            return this.sendResp(req, res, { errors: [this.asError(error)], v1: errorMessage });
-          } else if (errorMessage == TranslationService.t('edit-error-no-permissions')) {
-            return this.sendResp(req, res, {
-              status: 403,
-              errors: [this.asError(error)],
-              displayErrors: [{ code: 'edit-error-no-permissions' }],
-            });
-          } else if (errorMessage == TranslationService.t('attachment-not-found')) {
-            return this.sendResp(req, res, {
-              status: 404,
-              errors: [this.asError(error)],
-              displayErrors: [{ code: 'attachment-not-found' }],
-            });
-          } else {
-            return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
+          await pipeline(response.readstream, res);
+        } else {
+          const body = response.body ?? '';
+          const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
+          res.end(buffer, 'binary');
+        }
+        return of(oid);
+      } catch (error) {
+        if (res.destroyed) {
+          const code = error instanceof Error && 'code' in error ? error.code : undefined;
+          if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {
+            sails.log.error('Attachment download failed', error);
           }
+          return;
+        }
+        const errorMessage = this.getErrorMessage(error);
+        if (errorMessage == TranslationService.t('edit-error-no-permissions')) {
+          return this.sendResp(req, res, {
+            status: 403,
+            errors: [this.asError(error)],
+            displayErrors: [{ code: 'edit-error-no-permissions' }],
+          });
+        } else if (errorMessage == TranslationService.t('attachment-not-found')) {
+          return this.sendResp(req, res, {
+            status: 404,
+            errors: [this.asError(error)],
+            displayErrors: [{ code: 'attachment-not-found' }],
+          });
+        } else {
+          return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
         }
       }
     }
