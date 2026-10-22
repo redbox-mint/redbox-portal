@@ -170,7 +170,7 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
         directives['img-src'] = Array.from(imgSrc);
 
         // Redoc 3 inlines its icon font as a data: URI.
-        const fontSrc = new Set([...(directives['font-src'] ?? [])]);
+        const fontSrc = new Set(directives['font-src']);
         fontSrc.add('data:');
         directives['font-src'] = Array.from(fontSrc);
 
