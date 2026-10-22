@@ -27,11 +27,17 @@ export const executeNamedQueryRoute = apiRoute(
   'webservice/ReportController',
   'executeNamedQuery',
   {
-    query: objectField({ queryName: stringField(), start: stringField(), rows: stringField() }, ['queryName']),
+    query: objectField(
+      { queryName: stringField(), start: stringField(), rows: stringField() },
+      ['queryName'],
+      'Named query parameters, including keys configured in queryParams',
+      true
+    ),
   },
   {
     tags: ['Reports'],
     summary: 'Execute named query report',
+    description: 'Supply additional query parameters using the names configured in the named query queryParams.',
     responses: {
       200: responseField(listApiResponseSchema(namedQueryResponseRecordSchema), 'Named query results'),
       400: badRequestResponse,

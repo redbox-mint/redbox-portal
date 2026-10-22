@@ -143,7 +143,7 @@ export namespace Services {
         };
       }
 
-      const message = _.merge(otherSendOptions, {
+      const message = _.merge({}, otherSendOptions, {
         "to": msgTo,
         "subject": msgSubject,
         "from": msgFrom,

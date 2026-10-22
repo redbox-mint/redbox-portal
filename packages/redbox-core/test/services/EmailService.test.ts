@@ -4,11 +4,11 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import * as nodemailer from 'nodemailer';
+import nodemailer = require('nodemailer');
 import * as fs from 'graceful-fs';
 import * as os from 'os';
 import * as path from 'path';
-import { of } from 'rxjs';
+import { of, firstValueFrom } from 'rxjs';
 
 describe('EmailService', function() {
   let mockSails: any;
@@ -31,7 +31,7 @@ describe('EmailService', function() {
           settings: {
             enabled: true,
             templateDir: '/app/templates/',
-            serverOptions: {}
+            serverOptions: { jsonTransport: true }
           },
           templates: {
             'test-template': {
@@ -45,14 +45,11 @@ describe('EmailService', function() {
 
     setupServiceTestGlobals(mockSails);
 
-    // Mock nodemailer - SKIPPED due to non-configurable property
-    /*
+    // Stub the CommonJS export rather than a non-configurable namespace binding.
     transportStub = {
       sendMail: sinon.stub().resolves({ messageId: '123' })
     };
-    if ((nodemailer.createTransport as any).restore) (nodemailer.createTransport as any).restore();
     sinon.stub(nodemailer, 'createTransport').returns(transportStub);
-    */
 
     // Mock fs - SKIPPED
     /*
@@ -80,8 +77,42 @@ describe('EmailService', function() {
   });
 
   describe('sendMessage', function() {
-    it.skip('should send email successfully', async function() {
-       // Skipped
+    it('should send email successfully without mutating caller options', async function() {
+      const options = { replyTo: 'support@example.com', headers: { 'X-Test': 'value' } };
+      const original = _.cloneDeep(options);
+      const result = await firstValueFrom(EmailService.sendMessage(
+        'to@example.com', 'Body', 'Subject', 'from@example.com', 'text', '', '', options
+      ));
+
+      expect(result).to.have.property('success', true);
+      expect(options).to.deep.equal(original);
+    });
+
+    it('should not mutate defaults or leak message fields into subsequent sends', async function() {
+      const defaults = mockSails.config.emailnotification.defaults.otherSendOptions;
+      defaults.replyTo = 'default-reply@example.com';
+      const original = _.cloneDeep(defaults);
+      expect(await firstValueFrom(EmailService.sendMessage('first@example.com', 'First body', 'First subject')))
+        .to.have.property('success', true);
+      expect(defaults).to.deep.equal(original);
+      expect(await firstValueFrom(EmailService.sendMessage(
+        'override@example.com', 'Override body', 'Override subject', undefined, undefined, undefined, undefined,
+        { replyTo: 'request-reply@example.com' }
+      ))).to.have.property('success', true);
+      expect(await firstValueFrom(EmailService.sendMessage('second@example.com', 'Second body', 'Second subject')))
+        .to.have.property('success', true);
+      expect(defaults).to.deep.equal(original);
+
+      expect(transportStub.sendMail.callCount).to.equal(3);
+      expect(transportStub.sendMail.firstCall.args[0]).to.deep.include({
+        to: 'first@example.com', subject: 'First subject', replyTo: 'default-reply@example.com'
+      });
+      expect(transportStub.sendMail.secondCall.args[0]).to.deep.include({
+        to: 'override@example.com', subject: 'Override subject', replyTo: 'request-reply@example.com'
+      });
+      expect(transportStub.sendMail.thirdCall.args[0]).to.deep.include({
+        to: 'second@example.com', subject: 'Second subject', replyTo: 'default-reply@example.com'
+      });
     });
   });
 
@@ -185,6 +216,18 @@ describe('EmailService', function() {
   });
 
   describe('sendRecordNotification', function() {
+    it('should not mutate record notification send options', async function() {
+      const record = { id: '1' };
+      const options = { template: 'test-template', to: 'to@example.com',
+        otherSendOptions: { replyTo: 'record-support@example.com' } };
+      const original = _.cloneDeep(options);
+      sinon.stub(EmailService, 'metTriggerCondition').returns('true');
+      sinon.stub(EmailService, 'buildFromTemplate').returns(of({ status: 200, body: 'Email Body' }));
+
+      expect(await EmailService.sendRecordNotification('oid-1', record, options, {}, {})).to.equal(record);
+      expect(options).to.deep.equal(original);
+    });
+
     it('should send notification if condition met', async function() {
       const record = { id: '1', metadata: { title: 'Test' } };
       const options = {
