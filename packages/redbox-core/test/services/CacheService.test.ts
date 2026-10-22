@@ -3,13 +3,13 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { of } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createMockModel } from './testHelper';
+import { stubCacheEntryRepository } from '../helpers/cacheRepository';
+import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('CacheService', function() {
   let CacheService: any;
   let mockSails: any;
-  let mockCacheEntry: any;
+  let mockRepository: ReturnType<typeof stubCacheEntryRepository>;
 
   beforeEach(function() {
     mockSails = createMockSails({
@@ -24,15 +24,13 @@ describe('CacheService', function() {
       log: createSinonStubLogger(sinon),
     });
 
-    mockCacheEntry = createMockModel('CacheEntry');
+    mockRepository = stubCacheEntryRepository();
 
     setupServiceTestGlobals(mockSails);
-    (global as any).CacheEntry = mockCacheEntry;
   });
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).CacheEntry;
     sinon.restore();
   });
 
@@ -73,6 +71,7 @@ describe('CacheService', function() {
       const cacheService = new Services.Cache();
 
       const mockDbData = {
+        id: 'test-id',
         name: 'test-key',
         data: { value: 'from-db' },
         ts_added: Math.floor(Date.now() / 1000) // Not expired
@@ -83,14 +82,7 @@ describe('CacheService', function() {
         set: sinon.stub()
       };
 
-      // Mock the database query
-      mockCacheEntry.findOne = sinon.stub().returns({
-        exec: (cb: Function) => cb(null, mockDbData)
-      });
-
-      // Override getObservable to return our mocked observable
-      const originalGetObservable = cacheService.getObservable;
-      cacheService.getObservable = sinon.stub().returns(of(mockDbData));
+      mockRepository.findByName.resolves(mockDbData);
 
       cacheService.get('test-key').subscribe({
         next: (result: any) => {
@@ -104,6 +96,7 @@ describe('CacheService', function() {
     it('should return null when database entry is expired', function() {
       // Test the logic directly without relying on observable chain
       const expiredDbData = {
+        id: 'test-id',
         name: 'test-key',
         data: { value: 'expired' },
         ts_added: Math.floor(Date.now() / 1000) - 7200 // Expired (2 hours ago)
@@ -137,7 +130,7 @@ describe('CacheService', function() {
       cacheService.cache = mockLocalCache;
 
       // Mock database operations to not throw
-      cacheService.getObservable = sinon.stub().returns(of(null));
+      mockRepository.findByName.resolves(null);
 
       cacheService.set('test-key', { value: 'test-data' });
 

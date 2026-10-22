@@ -23,7 +23,7 @@ import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
-import { FormAttributes } from '../waterline-models';
+import { FormAttributes } from '../persistence/rows';
 
 /**
  * Package that contains all Controllers.

@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { createServer } from 'node:http';
@@ -32,12 +33,13 @@ describe('AppConfig per-brand JSON bundles', function () {
     });
     const globals = globalThis as unknown as Record<string, unknown>;
     locks = createBundleLockCollection();
+    repositoryFixtures.secretLocks = locks;
     globals.BrandingService = { getBrand: () => brand };
-    globals.AppConfig = {
+    repositoryFixtures.AppConfig = {
       find: async (criteria: { configKey?: string }) => rows.filter(row => !criteria.configKey || row.configKey === criteria.configKey),
       create: async (data: Row) => { rows.push(data); return data; },
       updateOne: (criteria: object) => ({ set: (data: object) => persist(criteria, data) }),
-      getDatastore: () => ({ manager: { collection: () => locks } })
+
     };
     sinon.stub(ConfigModels, 'getConfigKeys').returns([]);
     modelInfo = sinon.stub(ConfigModels, 'getModelInfo').returns({ modelName: 'BundleModel', class: class {}, schema: {}, secretFields: ['connection.token', 'connection.password', 'sites.*.ingestion.adminToken'] });
@@ -61,7 +63,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     sinon.restore();
     cleanupServiceTestGlobals();
     const globals = globalThis as unknown as Record<string, unknown>;
-    delete globals.AppConfig;
+    delete repositoryFixtures.AppConfig;
     delete globals.BrandingService;
   });
 
@@ -340,7 +342,7 @@ describe('AppConfig per-brand JSON bundles', function () {
     await pending;
     await clock.tickAsync(180_000);
     const otherNode = new Services.AppConfigs();
-    const reads = sinon.spy(AppConfig, 'find');
+    const reads = sinon.spy(repositoryFixtures.AppConfig, 'find');
     send.resetHistory();
     try {
       try {
@@ -358,7 +360,7 @@ describe('AppConfig per-brand JSON bundles', function () {
   });
 
   it('holds the bundle lease until a new configuration row is persisted', async function () {
-    const model = AppConfig as unknown as { create: (data: Row) => Promise<Row> };
+    const model = repositoryFixtures.AppConfig as unknown as { create: (data: Row) => Promise<Row> };
     let resume!: () => void;
     let entered!: () => void;
     const pending = new Promise<void>(resolve => { entered = resolve; });
@@ -437,7 +439,7 @@ describe('AppConfig per-brand JSON bundles', function () {
       expect(send.called).to.equal(false);
       delete lock.owner;
       lock.expiresAt = new Date(0);
-      const reads = sinon.spy(AppConfig, 'find');
+      const reads = sinon.spy(repositoryFixtures.AppConfig, 'find');
       await otherNode.createOrUpdateConfig(brand, 'first', { connection: { token: APP_CONFIG_SECRET_MASK } });
       expect(reads.callCount).to.equal(2); // optimistic read, then authoritative read inside the lease
       expect(_.get(otherNode.getAppConfigurationForBrand('default'), 'first.connection.token')).to.equal('one');

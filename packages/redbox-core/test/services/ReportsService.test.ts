@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
@@ -48,7 +49,7 @@ describe('ReportsService', function () {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).RBReport = mockReport;
+    repositoryFixtures.RBReport = mockReport;
     (global as any).BrandingService = {
       getFullPath: sinon.stub().returns('http://portal'),
     };
@@ -67,7 +68,7 @@ describe('ReportsService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).RBReport;
+    delete repositoryFixtures.RBReport;
     delete (global as any).BrandingService;
     delete (global as any).NamedQueryService;
     sinon.restore();

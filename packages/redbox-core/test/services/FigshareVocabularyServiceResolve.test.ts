@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -61,8 +63,9 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
   }
 
   beforeEach(function () {
+    stubVocabularyPersistence();
     for (const name of MODEL_GLOBALS) {
-      savedGlobals.set(name, (global as any)[name]);
+      savedGlobals.set(name, repositoryFixtures[name]);
     }
 
     crosswalkFindOne = sinon.stub().resolves({
@@ -82,11 +85,11 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
     ]);
     categoryFind = sinon.stub().resolves(CATEGORIES);
 
-    (global as any).FigshareVocabularyCrosswalk = { findOne: crosswalkFindOne };
-    (global as any).FigshareVocabularySource = { findOne: sourceFindOne };
-    (global as any).FigshareVocabularyCrosswalkMapping = { find: mappingFind };
-    (global as any).FigshareVocabularyCategory = { find: categoryFind };
-    (global as any).VocabularyEntry = { find: entryFind };
+    repositoryFixtures.FigshareVocabularyCrosswalk = { findOne: crosswalkFindOne };
+    repositoryFixtures.FigshareVocabularySource = { findOne: sourceFindOne };
+    repositoryFixtures.FigshareVocabularyCrosswalkMapping = { find: mappingFind };
+    repositoryFixtures.FigshareVocabularyCategory = { find: categoryFind };
+    repositoryFixtures.VocabularyEntry = { find: entryFind };
 
     createdSailsGlobal = (global as any).sails == null;
     if (createdSailsGlobal) {
@@ -104,9 +107,9 @@ describe('FigshareVocabularyService crosswalk resolution', function () {
     for (const name of MODEL_GLOBALS) {
       const previous = savedGlobals.get(name);
       if (previous === undefined) {
-        delete (global as any)[name];
+        delete repositoryFixtures[name];
       } else {
-        (global as any)[name] = previous;
+        repositoryFixtures[name] = previous;
       }
     }
     savedGlobals.clear();

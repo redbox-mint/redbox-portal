@@ -5,10 +5,18 @@ import { expect } from 'chai';
 import { Effect } from 'effect';
 import { Services } from '../../src/services/SiemForwardingService';
 import { buildSiemPayload, deliverSiemPayload } from '../../src/services/siem/SiemAdapters';
-import { claimDelivery, saveDelivery } from '../../src/services/siem/SiemDeliveryStore';
+import * as persistence from '../../src/persistence/runtime';
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { createMockSails } from './testHelper';
+let owner: Sails.Application;
+let repository: import('../../src/persistence/siem/SiemRepository').SiemRepository;
+import { installSiemRepositoryStub } from './siemRepositoryStub';
+import * as sinon from 'sinon';
+const claimDelivery = (event: SecurityEventAttributes, ms: number) => repository.claimDelivery(event, ms);
+const saveDelivery = (event: SecurityEventAttributes, values: object) => repository.saveDelivery(event, values);
 import { DEFAULT_SIEM_DELIVERY, DEFAULT_SIEM_REDACTION } from '../../src/configmodels/SiemConfiguration';
 import type { SiemDestinationConfig } from '../../src/configmodels/SiemConfiguration';
-import type { SecurityEventAttributes } from '../../src/waterline-models/SecurityEvent';
+import type { SecurityEventAttributes } from '../../src/persistence/rows';
 
 const sample = (): SecurityEventAttributes => ({
   id: 'test',
@@ -41,6 +49,12 @@ let response: object = {};
 let waitMs = 0;
 
 describe('SIEM receiver and delivery regression tests', function () {
+  beforeEach(function () {
+    installSiemRepositoryStub();
+  });
+  afterEach(function () {
+    sinon.restore();
+  });
   before(async function () {
     server = createServer((req, res) => {
       let body = '';
@@ -231,15 +245,15 @@ describe('SIEM receiver and delivery regression tests', function () {
       if (!process.env.SIEM_TEST_MONGO_URL) this.skip();
       client = await MongoClient.connect(process.env.SIEM_TEST_MONGO_URL!);
       db = client.db(`siem_delivery_test_${randomUUID().replace(/-/g, '')}`);
-      for (const key of ['SecurityEvent', 'SiemDeliveryAttempt', 'BrandingService', 'AppConfigService'])
+      for (const key of ['BrandingService', 'AppConfigService'])
         originals.set(key, Reflect.get(globalThis, key));
-      Reflect.set(globalThis, 'SecurityEvent', { tableName: 'securityevent', getDatastore: () => ({ manager: db }) });
-      Reflect.set(globalThis, 'SiemDeliveryAttempt', {
-        tableName: 'siemdeliveryattempt',
-        getDatastore: () => ({ manager: db }),
-        count: (criteria: object) => db.collection('siemdeliveryattempt').countDocuments(criteria),
-        create: (row: object) => db.collection('siemdeliveryattempt').insertOne(row),
-      });
+      const uri = new URL(process.env.SIEM_TEST_MONGO_URL!); uri.pathname = '/' + db.databaseName;
+      owner = createMockSails({ config: { datastores: { mongodb: { url: uri.toString() } } } });
+      await persistence.initializePersistence(owner);
+      await persistence.ensureSiemPersistenceIndexes(owner);
+      await persistence.initializeSiemPersistence(owner);
+      repository = persistence.getSiemRepository(owner);
+      repositoryFixtures.siem = repository;
       Reflect.set(globalThis, 'BrandingService', {
         getBrandById: () => ({ name: 'test' }),
         getBrand: () => ({ name: 'test' }),
@@ -259,6 +273,8 @@ describe('SIEM receiver and delivery regression tests', function () {
     });
     after(async function () {
       if (!client) return;
+      delete repositoryFixtures.siem;
+      await persistence.cleanupPersistence(owner);
       await db.dropDatabase();
       await client.close();
       for (const [key, value] of originals) {

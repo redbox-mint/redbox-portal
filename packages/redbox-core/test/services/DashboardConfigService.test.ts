@@ -1,3 +1,6 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import * as persistence from '../../src/persistence/runtime';
+let migrationExecuted: sinon.SinonStub;
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as fs from 'fs';
@@ -74,14 +77,14 @@ describe('DashboardConfigService', function () {
   }
 
   function useWorkspaceConflictFixture(workspaceBrandIds: string[] = ['brand1']) {
-    (global as any).DashboardType.find = sinon.stub().callsFake(async ({ branding }: { branding: string }) => {
+    repositoryFixtures.DashboardType.find = sinon.stub().callsFake(async ({ where: { branding } }: { where: { branding: string } }) => {
       const types: Array<{ name: string; formatRules: Record<string, unknown> }> = [{ name: 'standard', formatRules: { filterBy: {} } }];
       if (workspaceBrandIds.includes(branding)) {
         types.push({ name: 'workspace', formatRules: { filterBy: {}, recordTypeFilterBy: 'rdmp', filterWorkflowStepsBy: ['draft'] } });
       }
       return types;
     });
-    (global as any).WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: { recordType: string }) => recordType === 'rt1'
+    repositoryFixtures.WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: { recordType: string }) => recordType === 'rt1'
       ? [{ name: 'draft', config: { displayIndex: 1, dashboard: { table: { rowConfig: [{ title: 'Title', variable: 'metadata.title', template: '{{metadata.title}}' }] } } } }]
       : []);
   }
@@ -100,7 +103,7 @@ describe('DashboardConfigService', function () {
     await store.model.create({ id: '', branding: 'brand1', revision: 1, configData: { schemaVersion: 1, workflows, views: {}, contexts: {} } });
   }
 
-  beforeEach(function () {
+  beforeEach(async function () {
     previousResolutionFile = process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS;
     resolutionDirectory = undefined;
     mockSails = createMockSails();
@@ -108,10 +111,11 @@ describe('DashboardConfigService', function () {
       consolidated: { name: 'consolidated', titleLabelKey: 'consolidated', dashboardType: 'consolidated', sourceRecordType: 'rdmp', steps: [{ name: 'consolidated', sourceRecordType: 'rdmp', fetchMode: 'allForRecordType' }] }
     };
     mockSails.config.dashboardtype = { standard: { formatRules: { filterBy: {} } } };
-    mockSails.models = { migration: { findOne: sinon.stub().resolves({ name: DASHBOARD_CONFIGURATION_MIGRATION_NAME }) } };
+    migrationExecuted = sinon.stub().resolves(true);
+    sinon.stub(require('../../src/persistence/migration/runtime'), 'getMigrationLedgerRepository').returns({ isExecuted: migrationExecuted } as any);
     setupServiceTestGlobals(mockSails);
     store = createStore();
-    (global as any).DashboardConfiguration = store.model;
+    repositoryFixtures.DashboardConfiguration = store.model;
     (global as any).RecordTypesService = {
       getAll: sinon.stub().returns(of([{ name: 'rdmp', id: 'rt1' }, { name: 'dataRecord', id: 'rt2' }]))
     };
@@ -123,11 +127,11 @@ describe('DashboardConfigService', function () {
       getAllForRecordTypeIncludingHidden: sinon.stub().callsFake((rt: any) => of(steps[rt.id]))
     };
     (global as any).BrandingService = { getAvailable: () => ['default'], getBrand: () => brand };
-    (global as any).RecordType = { find: sinon.stub().resolves([{ id: 'rt1', name: 'rdmp' }, { id: 'rt2', name: 'dataRecord' }]) };
-    (global as any).WorkflowStep = { find: sinon.stub().callsFake(async ({ recordType }: any) => steps[recordType]) };
-    (global as any).DashboardType = { find: sinon.stub().resolves([]) };
-    (global as any).AppConfig = { find: sinon.stub().resolves([]), findOne: sinon.stub().resolves(undefined), create: sinon.stub().resolves({}) };
-    (global as any).BrandingConfig = { find: sinon.stub().resolves([{ id: 'brand1', name: 'default' }]) };
+    repositoryFixtures.RecordType = { find: sinon.stub().resolves([{ id: 'rt1', name: 'rdmp' }, { id: 'rt2', name: 'dataRecord' }]) };
+    repositoryFixtures.WorkflowStep = { find: sinon.stub().callsFake(async ({ recordType }: any) => steps[recordType]) };
+    repositoryFixtures.DashboardType = { find: sinon.stub().resolves([]) };
+    repositoryFixtures.AppConfig = { find: sinon.stub().resolves([]), findOne: sinon.stub().resolves(undefined), create: sinon.stub().resolves({}) };
+    repositoryFixtures.BrandingConfig = { find: sinon.stub().resolves([{ id: 'brand1', name: 'default' }]) };
     service = new Services.DashboardConfig();
   });
 
@@ -141,7 +145,7 @@ describe('DashboardConfigService', function () {
       fs.rmSync(resolutionDirectory, { recursive: true, force: true });
     }
     cleanupServiceTestGlobals();
-    for (const name of ['DashboardConfiguration', 'RecordTypesService', 'WorkflowStepsService', 'BrandingService', 'RecordType', 'WorkflowStep', 'DashboardType', 'AppConfig', 'BrandingConfig']) {
+    for (const name of ['RecordTypesService', 'WorkflowStepsService', 'BrandingService']) {
       delete (global as any)[name];
     }
     sinon.restore();
@@ -434,7 +438,7 @@ describe('DashboardConfigService', function () {
 
   describe('initialisation', function () {
     it('creates missing documents after a completed migration and inserts only missing targets', async function () {
-      (global as any).WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: any) => (recordType === 'rt1'
+      repositoryFixtures.WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: any) => (recordType === 'rt1'
         ? [{ name: 'draft', config: { displayIndex: 1, dashboard: { table: { rowConfig: [{ title: 'Seed', variable: 'metadata.title', template: '{{metadata.title}}' }] } } } }]
         : []));
       await service.initialiseAfterBootstrap();
@@ -452,7 +456,7 @@ describe('DashboardConfigService', function () {
     });
 
     it('is not ready when an existing installation has not been migrated', async function () {
-      mockSails.models.migration.findOne = sinon.stub().resolves(undefined);
+      migrationExecuted.resolves(false);
       await service.initialiseAfterBootstrap();
       expect(service.isReady()).to.equal(false);
       expect(store.docs).to.have.length(0);
@@ -461,18 +465,18 @@ describe('DashboardConfigService', function () {
 
   describe('legacy migration', function () {
     it('preflights only the requested brand', async function () {
-      (global as any).BrandingConfig.find = sinon.stub().throws(new Error('preflight must not list other brands'));
+      repositoryFixtures.BrandingConfig.find = sinon.stub().throws(new Error('preflight must not list other brands'));
 
       const reports = await service.preflightLegacyMigration(brand);
 
       expect(reports).to.have.length(1);
       expect(reports[0].brand).to.deep.equal({ id: 'brand1', name: 'default' });
-      expect((global as any).BrandingConfig.find.called).to.equal(false);
-      expect((global as any).RecordType.find.firstCall.args[0]).to.deep.equal({ branding: 'brand1' });
+      expect(repositoryFixtures.BrandingConfig.find.called).to.equal(false);
+      expect(repositoryFixtures.RecordType.find.firstCall.args[0]).to.deep.equal({ where: { branding: 'brand1' } });
     });
 
     it('captures the most recently updated legacy AppConfig override row', async function () {
-      (global as any).AppConfig.find = sinon.stub().resolves([
+      repositoryFixtures.AppConfig.find = sinon.stub().resolves([
         {
           id: 'newer',
           updatedAt: new Date('2025-11-15T00:00:00.000Z'),
@@ -491,9 +495,9 @@ describe('DashboardConfigService', function () {
     });
 
     it('snapshots, converts and publishes once; reruns leave published settings alone', async function () {
-      (global as any).WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: any) => (recordType === 'rt1' ? [{ name: 'draft', config: { displayIndex: 1 } }] : []));
+      repositoryFixtures.WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: any) => (recordType === 'rt1' ? [{ name: 'draft', config: { displayIndex: 1 } }] : []));
       await service.migrateLegacyConfiguration();
-      expect((global as any).AppConfig.create.firstCall.args[0].configKey).to.equal(DASHBOARD_LEGACY_SNAPSHOT_KEY);
+      expect(repositoryFixtures.AppConfig.create.firstCall.args[0].configKey).to.equal(DASHBOARD_LEGACY_SNAPSHOT_KEY);
       expect(store.docs).to.have.length(1);
       expect(store.docs[0].provenance.migration.name).to.equal(DASHBOARD_CONFIGURATION_MIGRATION_NAME);
 
@@ -504,11 +508,11 @@ describe('DashboardConfigService', function () {
     });
 
     it('does not publish a brand with unresolved material differences', async function () {
-      (global as any).DashboardType.find = sinon.stub().resolves([
+      repositoryFixtures.DashboardType.find = sinon.stub().resolves([
         { name: 'standard', formatRules: { filterBy: {} } },
         { name: 'workspace', formatRules: { filterBy: {}, recordTypeFilterBy: 'rdmp' } }
       ]);
-      (global as any).WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: any) => (recordType === 'rt1' ? [{ name: 'draft', config: { dashboard: { table: { rowConfig: [{ title: 'T', variable: 'metadata.title', template: '{{metadata.title}}' }] } } } }] : []));
+      repositoryFixtures.WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: any) => (recordType === 'rt1' ? [{ name: 'draft', config: { dashboard: { table: { rowConfig: [{ title: 'T', variable: 'metadata.title', template: '{{metadata.title}}' }] } } } }] : []));
       try {
         await service.migrateLegacyConfiguration();
         expect.fail('should stop');
@@ -517,7 +521,7 @@ describe('DashboardConfigService', function () {
       }
       expect(store.docs).to.have.length(0);
       // The recovery snapshot was still captured first.
-      expect((global as any).AppConfig.create.calledOnce).to.equal(true);
+      expect(repositoryFixtures.AppConfig.create.calledOnce).to.equal(true);
     });
 
     it('accepts a resolution only when its brand fingerprint matches the preflight capture', async function () {
@@ -550,7 +554,7 @@ describe('DashboardConfigService', function () {
         expect(error.message).to.contain('captureFingerprints.default');
       }
       expect(store.docs).to.have.length(0);
-      expect((global as any).AppConfig.create.calledOnce).to.equal(true);
+      expect(repositoryFixtures.AppConfig.create.calledOnce).to.equal(true);
     });
 
     it('requires a fingerprint when accepted findings are supplied for a brand', async function () {
@@ -635,12 +639,12 @@ describe('DashboardConfigService', function () {
         expect(error.message).to.contain('tableConfig.rowConfig[0].template');
       }
       expect(store.docs).to.have.length(0);
-      expect((global as any).AppConfig.create.calledOnce).to.equal(true);
+      expect(repositoryFixtures.AppConfig.create.calledOnce).to.equal(true);
     });
 
     it('scopes identical finding IDs to their brand instead of leaking an acceptance', async function () {
       const otherBrand = { id: 'brand2', name: 'other' };
-      (global as any).BrandingConfig.find = sinon.stub().resolves([{ id: 'brand1', name: 'default' }, otherBrand]);
+      repositoryFixtures.BrandingConfig.find = sinon.stub().resolves([{ id: 'brand1', name: 'default' }, otherBrand]);
       useWorkspaceConflictFixture(['brand1', 'brand2']);
       const first = await workspaceConflict(brand);
       const second = await workspaceConflict(otherBrand);
@@ -661,7 +665,7 @@ describe('DashboardConfigService', function () {
 
     it('does not require or compare a fingerprint for a brand with no applicable resolution decisions', async function () {
       const otherBrand = { id: 'brand2', name: 'other' };
-      (global as any).BrandingConfig.find = sinon.stub().resolves([{ id: 'brand1', name: 'default' }, otherBrand]);
+      repositoryFixtures.BrandingConfig.find = sinon.stub().resolves([{ id: 'brand1', name: 'default' }, otherBrand]);
       useWorkspaceConflictFixture(['brand2']);
       const { conversion, finding } = await workspaceConflict(otherBrand);
       writeResolutionFile({
@@ -684,7 +688,7 @@ describe('DashboardConfigService', function () {
 
     it('does not treat inherited object properties as resolution decisions for a brand', async function () {
       const reservedNameBrand = { id: 'brand1', name: 'constructor' };
-      (global as any).BrandingConfig.find = sinon.stub().resolves([reservedNameBrand]);
+      repositoryFixtures.BrandingConfig.find = sinon.stub().resolves([reservedNameBrand]);
       writeResolutionFile({});
 
       await service.migrateLegacyConfiguration();
@@ -693,7 +697,7 @@ describe('DashboardConfigService', function () {
     });
 
     it('treats a fresh installation (no brands yet) as nothing to migrate', async function () {
-      (global as any).BrandingConfig.find = sinon.stub().resolves([]);
+      repositoryFixtures.BrandingConfig.find = sinon.stub().resolves([]);
       await service.migrateLegacyConfiguration();
       expect(store.docs).to.have.length(0);
     });

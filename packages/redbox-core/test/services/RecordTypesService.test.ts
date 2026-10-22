@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
@@ -53,7 +54,7 @@ describe('RecordTypesService', function () {
       return deferred;
     };
 
-    (global as any).RecordType = {
+    repositoryFixtures.RecordType = {
       find: sinon.stub().returns(mockDeferred([])),
       create: sinon.stub().returns(mockDeferred({})),
       destroy: sinon.stub().returns(mockDeferred([])),
@@ -65,7 +66,7 @@ describe('RecordTypesService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).RecordType;
+    delete repositoryFixtures.RecordType;
     sinon.restore();
   });
 
@@ -75,7 +76,7 @@ describe('RecordTypesService', function () {
       const existingTypes = [{ name: 'dataset', branding: 'brand1' }];
 
       const findStub = sinon.stub().resolves(existingTypes);
-      (global as any).RecordType.find = findStub;
+      repositoryFixtures.RecordType.find = findStub;
 
       const result = await service.bootstrap(brand as any);
 
@@ -87,13 +88,13 @@ describe('RecordTypesService', function () {
       const brand = { id: 'brand1' };
 
       const findStub = sinon.stub().resolves([]);
-      (global as any).RecordType.find = findStub;
+      repositoryFixtures.RecordType.find = findStub;
 
       const createDeferred = (data: unknown) => {
         const deferred = { exec: sinon.stub().yields(null, data), fetch: () => deferred };
         return deferred;
       };
-      (global as any).RecordType.create.callsFake((data: unknown) => createDeferred(data));
+      repositoryFixtures.RecordType.create.callsFake((data: unknown) => createDeferred(data));
 
       const result = await service.bootstrap(brand as any);
 
@@ -101,17 +102,17 @@ describe('RecordTypesService', function () {
       expect(result[0]).to.have.property('name', 'dataset');
       // The cache must hold the created types, not a list of `undefined`.
       expect(service.getAllCache()).to.deep.equal(result);
-      expect((global as any).RecordType.create.called).to.be.true;
-      expect((global as any).RecordType.create.firstCall.args[0].recordValidation).to.deep.equal({
+      expect(repositoryFixtures.RecordType.create.called).to.be.true;
+      expect(repositoryFixtures.RecordType.create.firstCall.args[0].recordValidation).to.deep.equal({
         mode: 'shadow',
         operations: {
           publish: { mode: 'enforce', enabledValidationGroups: ['publish'] },
         },
       });
-      expect((global as any).RecordType.create.firstCall.args[0].concurrentModification).to.deep.equal({
+      expect(repositoryFixtures.RecordType.create.firstCall.args[0].concurrentModification).to.deep.equal({
         mode: 'observe',
       });
-      expect((global as any).RecordType.create.firstCall.args[0].recordSchema).to.deep.equal({
+      expect(repositoryFixtures.RecordType.create.firstCall.args[0].recordSchema).to.deep.equal({
         unknownProperties: 'declared',
       });
     });
@@ -120,19 +121,19 @@ describe('RecordTypesService', function () {
       mockSails.config.appmode.bootstrapAlways = true;
       const brand = { id: 'brand1' };
 
-      (global as any).RecordType.find.resolves([{ name: 'old' }]);
-      (global as any).RecordType.destroy.resolves([]);
+      repositoryFixtures.RecordType.find.resolves([{ name: 'old' }]);
+      repositoryFixtures.RecordType.destroy.resolves([]);
 
       const createDeferred = (data: unknown) => {
         const deferred = { exec: sinon.stub().yields(null, data), fetch: () => deferred };
         return deferred;
       };
-      (global as any).RecordType.create.callsFake((data: unknown) => createDeferred(data));
+      repositoryFixtures.RecordType.create.callsFake((data: unknown) => createDeferred(data));
 
       const result = await service.bootstrap(brand as any);
 
-      expect((global as any).RecordType.destroy.called).to.be.true;
-      expect((global as any).RecordType.create.called).to.be.true;
+      expect(repositoryFixtures.RecordType.destroy.called).to.be.true;
+      expect(repositoryFixtures.RecordType.create.called).to.be.true;
       expect(result).to.have.length(1);
     });
 
@@ -148,7 +149,7 @@ describe('RecordTypesService', function () {
           recordSchema: { unknownProperties: 'strip' },
         },
       };
-      (global as any).RecordType.find.resolves([]);
+      repositoryFixtures.RecordType.find.resolves([]);
 
       let failure: unknown;
       try {
@@ -165,12 +166,12 @@ describe('RecordTypesService', function () {
           reason: 'unsupported-value',
         },
       ]);
-      expect((global as any).RecordType.create.notCalled).to.equal(true);
+      expect(repositoryFixtures.RecordType.create.notCalled).to.equal(true);
     });
 
     it('rejects an unsupported persisted record-schema override during enabled startup', async function () {
       mockSails.config.recordSchema = { enabled: 'true' };
-      (global as any).RecordType.find.resolves([
+      repositoryFixtures.RecordType.find.resolves([
         { name: 'dataset', branding: 'brand1', recordSchema: { unknownProperties: 'strip' } },
       ]);
 
@@ -200,14 +201,14 @@ describe('RecordTypesService', function () {
       const execStub = sinon.stub().yields(null, expected);
       const created: Record<string, unknown> = { exec: execStub };
       created.fetch = () => created;
-      (global as any).RecordType.create.returns(created);
+      repositoryFixtures.RecordType.create.returns(created);
 
       const result = await new Promise((resolve, reject) => {
         service.create(brand as any, 'newType', config as any).subscribe(resolve, reject);
       });
 
       expect(result).to.deep.equal(expected);
-      expect((global as any).RecordType.create.firstCall.args[0].concurrentModification).to.deep.equal({
+      expect(repositoryFixtures.RecordType.create.firstCall.args[0].concurrentModification).to.deep.equal({
         mode: 'last-write-wins',
       });
     });
@@ -220,7 +221,7 @@ describe('RecordTypesService', function () {
           concurrentModification: { mode: 'invalid' },
         } as any)
       ).to.throw(TypeError);
-      expect((global as any).RecordType.create.called).to.be.false;
+      expect(repositoryFixtures.RecordType.create.called).to.be.false;
     });
   });
 
@@ -230,14 +231,14 @@ describe('RecordTypesService', function () {
       const expected = { name: 'type1' };
 
       const execStub = sinon.stub().yields(null, expected);
-      (global as any).RecordType.findOne.returns({ exec: execStub });
+      repositoryFixtures.RecordType.findOne.returns({ exec: execStub });
 
       const result = await new Promise((resolve, reject) => {
         service.get(brand as any, 'type1').subscribe(resolve, reject);
       });
 
       expect(result).to.deep.equal(expected);
-      expect((global as any).RecordType.findOne.calledWith(sinon.match({ where: { name: 'type1' } }))).to.be.true;
+      expect(repositoryFixtures.RecordType.findOne.calledWith(sinon.match({ where: { name: 'type1' } }))).to.be.true;
       // Reads return the stored model verbatim: defaulting belongs to the
       // policy resolver and the discovery response, not to a read.
       expect((result as any).concurrentModification).to.equal(undefined);
@@ -266,7 +267,7 @@ describe('RecordTypesService', function () {
         name: 'dataset',
         concurrentModification: { mode: 'observe' },
       };
-      (global as any).RecordType.findOne.callsFake(() => ({
+      repositoryFixtures.RecordType.findOne.callsFake(() => ({
         exec: (callback: (error: unknown, result: unknown) => void) => callback(null, storedRecordType),
       }));
 
@@ -284,19 +285,18 @@ describe('RecordTypesService', function () {
       expect(await firstValueFrom(service.resolveConcurrentModificationMode(brand as any, 'dataset'))).to.equal(
         'last-write-wins'
       );
-      expect((global as any).RecordType.findOne.callCount).to.equal(2);
+      expect(repositoryFixtures.RecordType.findOne.callCount).to.equal(2);
       expect(
-        (global as any).RecordType.findOne.alwaysCalledWith(
+        repositoryFixtures.RecordType.findOne.alwaysCalledWith(
           sinon.match({
             where: { branding: 'brand1', name: 'dataset' },
-            select: ['concurrentModification'],
           })
         )
       ).to.equal(true);
     });
 
     it('fails closed when persisted policy is malformed', async function () {
-      (global as any).RecordType.findOne.returns({
+      repositoryFixtures.RecordType.findOne.returns({
         exec: (callback: (error: unknown, result: unknown) => void) =>
           callback(null, {
             name: 'dataset',
@@ -315,7 +315,7 @@ describe('RecordTypesService', function () {
 
     it('fails closed at runtime when a strict policy uses an unsupported adapter', async function () {
       mockSails.services.teststorage = {};
-      (global as any).RecordType.findOne.returns({
+      repositoryFixtures.RecordType.findOne.returns({
         exec: (callback: (error: unknown, result: unknown) => void) =>
           callback(null, {
             name: 'dataset',
@@ -336,7 +336,7 @@ describe('RecordTypesService', function () {
   describe('storage capability startup gate', function () {
     it('rejects an existing strict type when the adapter declaration is absent', async function () {
       mockSails.services.teststorage = {};
-      (global as any).RecordType.find.resolves([
+      repositoryFixtures.RecordType.find.resolves([
         {
           name: 'dataset',
           concurrentModification: { mode: 'strict' },
@@ -354,7 +354,7 @@ describe('RecordTypesService', function () {
 
     it('accepts an existing strict type with the complete adapter declaration', async function () {
       const types = [{ name: 'dataset', concurrentModification: { mode: 'strict' } }];
-      (global as any).RecordType.find.resolves(types);
+      repositoryFixtures.RecordType.find.resolves(types);
       expect(await service.bootstrap({ id: 'brand1' } as any)).to.deep.equal(types);
     });
   });
@@ -365,7 +365,7 @@ describe('RecordTypesService', function () {
       const expected = [{ name: 'type1' }];
 
       const execStub = sinon.stub().yields(null, expected);
-      (global as any).RecordType.find.returns({ exec: execStub });
+      repositoryFixtures.RecordType.find.returns({ exec: execStub });
 
       const result = await new Promise((resolve, reject) => {
         service.getAll(brand as any).subscribe(resolve, reject);

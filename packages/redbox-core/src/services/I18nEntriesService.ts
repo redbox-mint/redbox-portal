@@ -1,3 +1,4 @@
+import { getConfigurationRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -20,8 +21,8 @@
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
-import { I18nBundleAttributes } from '../waterline-models/I18nBundle';
-import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
+import type { TranslationBundle as I18nBundleAttributes } from '../persistence/configuration/ConfigurationRepositories';
+import type { TranslationEntry as I18nTranslationAttributes } from '../persistence/configuration/ConfigurationRepositories';
 import { sanitizeTranslationHtml } from '../utilities/TranslationHtml';
 
 export namespace Services {
@@ -122,7 +123,7 @@ export namespace Services {
 
                 const mergedData = _.cloneDeep(existing.data || {});
                 _.defaultsDeep(mergedData, json);
-                const updatedBundle = await I18nBundle.updateOne({ id: existing.id }).set({ data: mergedData });
+                const updatedBundle = await getConfigurationRepositories().bundles.reviseBundle(String(existing.id), { data: mergedData });
                 const bundleToSync = updatedBundle || { ...existing, data: mergedData };
                 const createdCount = await this.addMissingDefaultEntriesFromBundle(bundleToSync, json);
 
@@ -247,7 +248,7 @@ export namespace Services {
       key: string
     ): Promise<I18nTranslationAttributes | null> {
       const uid = this.buildUid(branding, locale, namespace, key);
-      return await I18nTranslation.findOne({ uid });
+      return await getConfigurationRepositories().translations.findByUid(uid);
     }
 
     public async setEntry(
@@ -282,8 +283,8 @@ export namespace Services {
 
       const saved = (
         existing
-          ? await I18nTranslation.updateOne({ id: existing.id }).set(updates)
-          : await I18nTranslation.create(updates)
+          ? await getConfigurationRepositories().translations.reviseEntry(String(existing.id), updates)
+          : await getConfigurationRepositories().translations.createEntry(updates)
       ) as I18nTranslationAttributes | null;
 
       // Keep I18nBundle.data in sync for this branding/locale/namespace
@@ -292,7 +293,7 @@ export namespace Services {
         if (!bundle) {
           // Create a minimal bundle containing this key
           const data = this.unflatten({ [key]: sanitizedValue });
-          bundle = (await I18nBundle.create({
+          bundle = (await getConfigurationRepositories().bundles.createBundle({
             data,
             branding: brandingId,
             locale,
@@ -300,12 +301,12 @@ export namespace Services {
           })) as unknown as I18nBundleAttributes;
           // Backfill the entry's bundle relation if not set via options
           if (!options?.bundleId && saved?.id) {
-            await I18nTranslation.updateOne({ id: saved.id }).set({ bundle: bundle.id });
+            await getConfigurationRepositories().translations.reviseEntry(String(saved.id), { bundle: bundle.id });
           }
         } else {
           const data = bundle.data || {};
           this.setNested(data, key, sanitizedValue);
-          await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+          await getConfigurationRepositories().bundles.reviseBundle(String(bundle.id), { data });
         }
       } catch (e) {
         this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
@@ -332,14 +333,14 @@ export namespace Services {
     ): Promise<boolean> {
       const brandingId = this.resolveBrandingId(branding);
       const uid = this.buildUid(branding, locale, namespace, key);
-      const deleted = await I18nTranslation.destroyOne({ uid });
+      const deleted = await getConfigurationRepositories().translations.removeByUid(uid);
       // Keep bundle in sync by removing the key path if it exists
       if (deleted) {
         try {
           const bundle = await this.getBundle(branding, locale, namespace);
           if (bundle?.data) {
             this.removeNested(bundle.data, key);
-            await I18nBundle.updateOne({ id: bundle.id }).set({ data: bundle.data });
+            await getConfigurationRepositories().bundles.reviseBundle(String(bundle.id), { data: bundle.data });
           }
         } catch (e) {
           this.logger.warn(
@@ -362,12 +363,7 @@ export namespace Services {
       keyPrefix?: string
     ): Promise<I18nTranslationAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
-      const where: Record<string, unknown> = { branding: brandingId, locale, namespace };
-      if (keyPrefix) {
-        // Mongo-specific regex for prefix match
-        where.key = { startsWith: keyPrefix };
-      }
-      return (await I18nTranslation.find({ where }).sort('key ASC')) as unknown as I18nTranslationAttributes[];
+      return (await getConfigurationRepositories().translations.listForLocale(brandingId, locale, namespace, keyPrefix, true)) as unknown as I18nTranslationAttributes[];
     }
 
     public async getBundle(
@@ -377,12 +373,12 @@ export namespace Services {
     ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const uid = `${brandingId}:${locale}:${namespace || 'translation'}`;
-      return await I18nBundle.findOne({ uid });
+      return await getConfigurationRepositories().bundles.findByUid(uid);
     }
 
     public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
-      return (await I18nBundle.find({ branding: brandingId })) as unknown as I18nBundleAttributes[];
+      return (await getConfigurationRepositories().bundles.listForBrand(brandingId)) as unknown as I18nBundleAttributes[];
     }
 
     private async addMissingDefaultEntriesFromBundle(
@@ -407,11 +403,7 @@ export namespace Services {
         flat[key] = flatAll[key];
       });
 
-      const existingEntries = (await I18nTranslation.find({
-        branding: brandingId,
-        locale,
-        namespace,
-      })) as unknown as I18nTranslationAttributes[];
+      const existingEntries = (await getConfigurationRepositories().translations.listForLocale(brandingId, locale, namespace)) as unknown as I18nTranslationAttributes[];
       const existingKeys = new Set(existingEntries.map(entry => entry.key));
       const records: Partial<I18nTranslationAttributes>[] = [];
 
@@ -445,7 +437,7 @@ export namespace Services {
         return 0;
       }
 
-      await I18nTranslation.createEach(records);
+      await getConfigurationRepositories().translations.addEntries(records);
 
       try {
         TranslationService.reloadResources(brandingId);
@@ -503,7 +495,7 @@ export namespace Services {
       const existing = await this.getBundle(branding, locale, namespace);
       let bundle: I18nBundleAttributes | null;
       if (existing) {
-        bundle = (await I18nBundle.updateOne({ id: existing.id }).set({
+        bundle = (await getConfigurationRepositories().bundles.reviseBundle(String(existing.id), {
           data: sanitizedData,
           branding: brandingId,
           locale,
@@ -511,7 +503,7 @@ export namespace Services {
           displayName: finalDisplayName,
         })) as I18nBundleAttributes | null;
       } else {
-        bundle = (await I18nBundle.create({
+        bundle = (await getConfigurationRepositories().bundles.createBundle({
           data: sanitizedData,
           branding: brandingId,
           locale,
@@ -546,11 +538,7 @@ export namespace Services {
     ): Promise<I18nBundleAttributes> {
       const brandingId = this.resolveBrandingId(branding);
 
-      const bundle = (await I18nBundle.updateOne({
-        branding: brandingId,
-        locale,
-        namespace,
-      }).set({ enabled })) as I18nBundleAttributes | null;
+      const bundle = (await getConfigurationRepositories().bundles.setEnabled(brandingId, locale, namespace, enabled)) as I18nBundleAttributes | null;
 
       if (!bundle) {
         throw new Error(`Bundle not found for branding: ${brandingId}, locale: ${locale}, namespace: ${namespace}`);
@@ -576,7 +564,7 @@ export namespace Services {
       bundleOrId: I18nBundleAttributes | string | number,
       overwrite = false
     ): Promise<void> {
-      const bundle = isBundle(bundleOrId) ? bundleOrId : await I18nBundle.findOne({ id: bundleOrId });
+      const bundle = isBundle(bundleOrId) ? bundleOrId : await getConfigurationRepositories().bundles.findById(String(bundleOrId));
       if (!bundle) throw new Error('Bundle not found');
 
       const { branding, locale, namespace, id: bundleId } = bundle;
@@ -613,11 +601,7 @@ export namespace Services {
         ({ id: brandingId } as BrandingModel);
 
       // Track existing keys to detect removals
-      const existingEntries = (await I18nTranslation.find({
-        branding: brandingId,
-        locale: safeLocale,
-        namespace: safeNamespace,
-      })) as unknown as I18nTranslationAttributes[];
+      const existingEntries = (await getConfigurationRepositories().translations.listForLocale(brandingId, safeLocale, safeNamespace)) as unknown as I18nTranslationAttributes[];
       const entriesByKey = new Map(existingEntries.map(entry => [entry.key, entry]));
       const existingKeysSet = new Set(entriesByKey.keys());
       const newEntries: Array<Partial<I18nTranslationAttributes> & { key: string }> = [];
@@ -670,19 +654,19 @@ export namespace Services {
         // Persist normalisation first so a partially failed entry batch can be
         // retried without leaving unsafe HTML or nullish values in the bundle.
         if (!storedBundle) {
-          storedBundle = await I18nBundle.create({
+          storedBundle = await getConfigurationRepositories().bundles.createBundle({
             branding: brandingId,
             locale: safeLocale,
             namespace: safeNamespace,
             data: mergedData,
           });
         } else if (!_.isEqual(mergedData, storedBundle.data)) {
-          await I18nBundle.updateOne({ id: storedBundle.id }).set({ data: mergedData });
+          await getConfigurationRepositories().bundles.reviseBundle(String(storedBundle.id), { data: mergedData });
         }
         for (const entry of newEntries) {
           entry.bundle = String(storedBundle.id);
         }
-        await I18nTranslation.createEach(newEntries);
+        await getConfigurationRepositories().translations.addEntries(newEntries);
       }
       for (const obsoleteKey of existingKeysSet) {
         try {
@@ -712,7 +696,7 @@ export namespace Services {
       return existing && !overwrite ? storedFormat : (this.normalizeContentFormat(metadataFormat) ?? storedFormat);
     }
 
-    private sanitizeHtmlValue(value: unknown, format?: TranslationContentFormat): unknown {
+    private sanitizeHtmlValue(value: unknown, format?: TranslationContentFormat | null): unknown {
       if (format !== 'html' || typeof value !== 'string') return value;
       return sanitizeTranslationHtml(value, sails.config.i18n?.editor?.allowedClasses);
     }

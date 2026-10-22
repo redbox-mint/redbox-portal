@@ -1,3 +1,4 @@
+import { getReferenceRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -23,7 +24,6 @@ import { ReportConfig, ReportFilterType, ReportSource, ReportResult } from '../m
 import type { ReportDefinition } from '../config/report.config';
 import { NamedQueryConfig } from './NamedQueryService';
 import { ReportModel } from '../model/storage/ReportModel';
-import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -126,9 +126,6 @@ export namespace Services {
       'getCSVHeaderRow'
     ];
 
-    private getReportModel(): ReportWaterlineModel {
-      return RBReport;
-    }
 
     public async bootstrapData(defBrand: BrandingModel) {
       const bootstrapPath = this.getBootstrapDataPath();
@@ -165,7 +162,7 @@ export namespace Services {
             continue;
           }
 
-          const existing = await this.getReportModel().findOne({ key: `${defBrand.id}_${name}` });
+          const existing = await getReferenceRepositories().reports.findByKey(`${defBrand.id}_${name}`);
           if (existing) {
             sails.log.verbose(`Skipping existing report bootstrap data: ${name}`);
             continue;
@@ -199,22 +196,18 @@ export namespace Services {
     }
 
     public findAllReportsForBrand(brand: BrandingModel) {
-      const reportModel = this.getReportModel();
-      return super.getObservable<ReportModel[]>(reportModel.find({
-        branding: brand.id
-      }));
+      const reports = getReferenceRepositories().reports;
+      return super.getObservable<ReportModel[]>(() => reports.listForBrand(brand.id));
     }
 
     public async get(brand: BrandingModel, name: string) {
-      const reportModel = this.getReportModel();
-      return await reportModel.findOne({
-        key: brand.id + "_" + name
-      })
+      const reports = getReferenceRepositories().reports;
+      return await reports.findByKey(brand.id + "_" + name)
     }
 
     public create(brand: BrandingModel, name: string, config: ReportConfig): Observable<ReportModel> {
-      const reportModel = this.getReportModel();
-      return super.getObservable<ReportModel>(reportModel.create({
+      const reports = getReferenceRepositories().reports;
+      return super.getObservable<ReportModel>(() => reports.createDefinition({
         name: name,
         branding: brand.id,
         solrQuery: config.solrQuery,
@@ -258,8 +251,8 @@ export namespace Services {
       if (config.name && config.name !== name) {
         throw new ReportConfigServiceError(400, 'Report name cannot be changed');
       }
-      const reportModel = this.getReportModel();
-      const updated = await reportModel.updateOne({ key: `${brand.id}_${name}` }).set({
+      const reports = getReferenceRepositories().reports;
+      const updated = await reports.reviseDefinition(`${brand.id}_${name}`, {
         title: normalized.title,
         reportSource: normalized.reportSource,
         databaseQuery: normalized.databaseQuery as unknown as Record<string, unknown>,
@@ -281,7 +274,7 @@ export namespace Services {
       if (this.getReportConfigDto(existing as unknown as ReportModel).readOnly) {
         throw new ReportConfigServiceError(403, 'Solr reports cannot be deleted');
       }
-      await this.getReportModel().destroyOne({ key: `${brand.id}_${name}` });
+      await getReferenceRepositories().reports.removeByKey(`${brand.id}_${name}`);
       return { deleted: true };
     }
 
@@ -398,10 +391,8 @@ export namespace Services {
     }
 
     public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10) {
-      const reportModel = this.getReportModel();
-      const reportObs = super.getObservable<ReportModel | null>(reportModel.findOne({
-        key: brand.id + "_" + name
-      }));
+      const reports = getReferenceRepositories().reports;
+      const reportObs = super.getObservable<ReportModel | null>(() => reports.findByKey(brand.id + "_" + name));
 
       let reportObject = await firstValueFrom(reportObs)
 
@@ -522,10 +513,8 @@ export namespace Services {
     }
 
     public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000) {
-      const reportModel = this.getReportModel();
-      let report: ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
-        key: brand.id + "_" + name
-      })));
+      const reports = getReferenceRepositories().reports;
+      let report: ReportModel = await firstValueFrom(super.getObservable<ReportModel>(() => reports.findByKey(brand.id + "_" + name)));
 
       report = this.convertLegacyReport(report);
 

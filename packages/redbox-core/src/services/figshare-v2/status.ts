@@ -6,7 +6,7 @@ import { resolveFigsharePublishingConfig } from './config';
 /** Called only after the existing record-view access check. Never expose operation tokens or accounts. */
 export async function figshareLiveSummary(oid: string, record: Record<string, unknown>): Promise<IntegrationStatusSummary | null> {
   const intent = record.figshareSyncIntent as FigshareSourceIntent | undefined;
-  const state = typeof FigshareSync === 'undefined' ? null : await getSyncStore().get(oid);
+  const state = await getSyncStore().get(oid);
   const queued = intent?.pending && intent.readiness === 'ready' && intent.generation > (state?.importedGeneration ?? 0);
   if (!state && !queued) return null;
   const processingError = resolveFigsharePublishingConfig(record, { requireToken: false })?.processingError;

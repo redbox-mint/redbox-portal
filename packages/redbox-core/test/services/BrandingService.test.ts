@@ -1,8 +1,10 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { stubCacheEntryRepository } from '../helpers/cacheRepository';
 import { of } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
@@ -36,16 +38,12 @@ describe('BrandingService', function () {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).BrandingConfig = mockBrandingConfig;
-    (global as any).BrandingConfigHistory = {
+    repositoryFixtures.BrandingConfig = mockBrandingConfig;
+    repositoryFixtures.BrandingConfigHistory = {
       create: sinon.stub(),
       findOne: sinon.stub()
     };
-    (global as any).CacheEntry = {
-      create: sinon.stub(),
-      findOne: sinon.stub(),
-      destroy: sinon.stub()
-    };
+    stubCacheEntryRepository();
     (global as any).ContrastService = {
       validate: sinon.stub().resolves({ violations: [] })
     };
@@ -53,9 +51,8 @@ describe('BrandingService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).BrandingConfig;
-    delete (global as any).BrandingConfigHistory;
-    delete (global as any).CacheEntry;
+    delete repositoryFixtures.BrandingConfig;
+    delete repositoryFixtures.BrandingConfigHistory;
     delete (global as any).ContrastService;
     sinon.restore();
   });

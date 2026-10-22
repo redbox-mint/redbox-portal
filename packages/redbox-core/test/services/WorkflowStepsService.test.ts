@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -21,26 +22,26 @@ describe('WorkflowStepsService', function() {
       }
     };
     mockSails.config.appmode = { bootstrapAlways: false };
-    
+
     setupServiceTestGlobals(mockSails);
-    
+
     const mockDeferred = (result: unknown) => ({
       exec: sinon.stub().yields(null, result)
     });
 
-    (global as any).WorkflowStep = {
+    repositoryFixtures.WorkflowStep = {
       find: sinon.stub().returns(mockDeferred([])),
       create: sinon.stub().returns(mockDeferred({})),
       destroy: sinon.stub().returns(mockDeferred([])),
       findOne: sinon.stub().returns(mockDeferred({}))
     };
-    
+
     service = new Services.WorkflowSteps();
   });
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).WorkflowStep;
+    delete repositoryFixtures.WorkflowStep;
     sinon.restore();
   });
 
@@ -48,30 +49,30 @@ describe('WorkflowStepsService', function() {
     it('should load existing workflow steps', async function() {
       const recordTypes = [{ name: 'dataset', id: 'rt1' }];
       const existingSteps = [{ name: 'draft' }];
-      
+
       const findStub = sinon.stub().resolves(existingSteps);
-      (global as any).WorkflowStep.find = findStub;
-      
+      repositoryFixtures.WorkflowStep.find = findStub;
+
       const result = await service.bootstrap(recordTypes);
-      
+
       expect(result).to.deep.equal(existingSteps);
     });
 
     it('should create steps from config if missing', async function() {
       const recordTypes = [{ name: 'dataset', id: 'rt1' }];
-      
+
       const findStub = sinon.stub().resolves([]);
-      (global as any).WorkflowStep.find = findStub;
-      
+      repositoryFixtures.WorkflowStep.find = findStub;
+
       const createDeferred = (data: unknown) => ({
         exec: sinon.stub().yields(null, data)
       });
-      (global as any).WorkflowStep.create.callsFake((data: unknown) => createDeferred(data));
-      
+      repositoryFixtures.WorkflowStep.create.callsFake((data: unknown) => createDeferred(data));
+
       const result = await service.bootstrap(recordTypes);
-      
+
       expect(result).to.have.length(1);
-      expect((global as any).WorkflowStep.create.called).to.be.true;
+      expect(repositoryFixtures.WorkflowStep.create.called).to.be.true;
     });
 
     it('should preserve workflow-stage validation operation restrictions', async function() {
@@ -86,14 +87,14 @@ describe('WorkflowStepsService', function() {
         },
       };
       mockSails.config.workflow.dataset.draft.config.recordValidation = recordValidation;
-      (global as any).WorkflowStep.find = sinon.stub().resolves([]);
-      (global as any).WorkflowStep.create.callsFake((data: unknown) => ({
+      repositoryFixtures.WorkflowStep.find = sinon.stub().resolves([]);
+      repositoryFixtures.WorkflowStep.create.callsFake((data: unknown) => ({
         exec: sinon.stub().yields(null, data)
       }));
 
       await service.bootstrap(recordTypes);
 
-      expect((global as any).WorkflowStep.create.firstCall.args[0].config.recordValidation)
+      expect(repositoryFixtures.WorkflowStep.create.firstCall.args[0].config.recordValidation)
         .to.deep.equal(recordValidation);
     });
   });
@@ -103,16 +104,16 @@ describe('WorkflowStepsService', function() {
       const recordType = { id: 'rt1' };
       const config = { form: 'form1' };
       const expected = { name: 'draft' };
-      
+
       const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkflowStep.create.returns({ exec: execStub });
-      
+      repositoryFixtures.WorkflowStep.create.returns({ exec: execStub });
+
       const result = await new Promise((resolve, reject) => {
         service.create(recordType, 'draft', config, true, false).subscribe(resolve, reject);
       });
-      
+
       expect(result).to.deep.equal(expected);
-      expect((global as any).WorkflowStep.create.calledWith(sinon.match({ 
+      expect(repositoryFixtures.WorkflowStep.create.calledWith(sinon.match({
         name: 'draft',
         recordType: 'rt1',
         starting: true
@@ -124,16 +125,16 @@ describe('WorkflowStepsService', function() {
     it('should find one step', async function() {
       const recordType = { id: 'rt1' };
       const expected = { name: 'draft' };
-      
+
       const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkflowStep.findOne.returns({ exec: execStub });
-      
+      repositoryFixtures.WorkflowStep.findOne.returns({ exec: execStub });
+
       const result = await new Promise((resolve, reject) => {
         service.get(recordType, 'draft').subscribe(resolve, reject);
       });
-      
+
       expect(result).to.deep.equal(expected);
-      expect((global as any).WorkflowStep.findOne.calledWith(sinon.match({ 
+      expect(repositoryFixtures.WorkflowStep.findOne.calledWith(sinon.match({
         recordType: 'rt1',
         name: 'draft'
       }))).to.be.true;
@@ -144,16 +145,16 @@ describe('WorkflowStepsService', function() {
     it('should find all steps for record type', async function() {
       const recordType = { id: 'rt1' };
       const expected = [{ name: 'draft' }];
-      
+
       const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkflowStep.find.returns({ exec: execStub });
-      
+      repositoryFixtures.WorkflowStep.find.returns({ exec: execStub });
+
       const result = await new Promise((resolve, reject) => {
         service.getAllForRecordType(recordType).subscribe(resolve, reject);
       });
-      
+
       expect(result).to.deep.equal(expected);
-      expect((global as any).WorkflowStep.find.calledWith(sinon.match({ 
+      expect(repositoryFixtures.WorkflowStep.find.calledWith(sinon.match({
         recordType: 'rt1',
         hidden: { '!=': true }
       }))).to.be.true;
@@ -165,7 +166,7 @@ describe('WorkflowStepsService', function() {
       });
 
       expect(result).to.deep.equal([]);
-      expect((global as any).WorkflowStep.find.called).to.be.false;
+      expect(repositoryFixtures.WorkflowStep.find.called).to.be.false;
     });
   });
 
@@ -173,16 +174,16 @@ describe('WorkflowStepsService', function() {
     it('should find starting step', async function() {
       const recordType = { id: 'rt1' };
       const expected = { name: 'draft', starting: true };
-      
+
       const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkflowStep.findOne.returns({ exec: execStub });
-      
+      repositoryFixtures.WorkflowStep.findOne.returns({ exec: execStub });
+
       const result = await new Promise((resolve, reject) => {
         service.getFirst(recordType).subscribe(resolve, reject);
       });
-      
+
       expect(result).to.deep.equal(expected);
-      expect((global as any).WorkflowStep.findOne.calledWith(sinon.match({ 
+      expect(repositoryFixtures.WorkflowStep.findOne.calledWith(sinon.match({
         recordType: 'rt1',
         starting: true
       }))).to.be.true;

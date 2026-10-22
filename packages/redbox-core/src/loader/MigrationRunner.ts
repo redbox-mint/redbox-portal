@@ -2,29 +2,14 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { Umzug, type MigrationMeta, type RunnableMigration, type UmzugStorage } from 'umzug';
+import { getMigrationLedgerRepository } from '../persistence/runtime';
+import type { MigrationLedgerRepository } from '../persistence/migration/MigrationLedgerRepository';
 
 export interface RedboxMigration {
     name: string;
     source?: string;
     up: (params?: { context: typeof sails }) => Promise<void>;
     down?: (params?: { context: typeof sails }) => Promise<void>;
-}
-
-interface MigrationRow {
-    name: string;
-}
-
-interface MigrationModel {
-    find: () => { sort: (criteria: string) => Promise<MigrationRow[]> };
-    create: (values: {
-        name: string;
-        source?: string;
-        appVersion?: string;
-        ranAt: number;
-        durationMs?: number;
-        executedBy?: string;
-    }) => Promise<unknown>;
-    destroy: (criteria: { name: string }) => Promise<unknown>;
 }
 
 async function readAppVersion(): Promise<string | undefined> {
@@ -37,30 +22,21 @@ async function readAppVersion(): Promise<string | undefined> {
     }
 }
 
-function getMigrationModel(): MigrationModel {
-    const migrationModel = sails.models?.migration as MigrationModel | undefined;
-    if (!migrationModel) {
-        throw new Error('Migration model is not available. Regenerate shims so api/models/Migration.js exists.');
-    }
-    return migrationModel;
-}
-
 function createMigrationStorage(
-    migrationModel: MigrationModel,
+    ledger: MigrationLedgerRepository,
     migrationsByName: Map<string, RedboxMigration>,
     appVersion: string | undefined,
     startTimes: Map<string, number>
 ): UmzugStorage {
     return {
         async executed(): Promise<string[]> {
-            const rows = await migrationModel.find().sort('ranAt ASC');
-            return rows.map(row => row.name);
+            return ledger.executedNames();
         },
 
         async logMigration({ name }: MigrationMeta): Promise<void> {
             const migration = migrationsByName.get(name);
             const startedAt = startTimes.get(name);
-            await migrationModel.create({
+            await ledger.recordExecution({
                 name,
                 source: migration?.source,
                 appVersion,
@@ -71,7 +47,7 @@ function createMigrationStorage(
         },
 
         async unlogMigration({ name }: MigrationMeta): Promise<void> {
-            await migrationModel.destroy({ name });
+            await ledger.removeExecution(name);
         },
     };
 }
@@ -113,10 +89,10 @@ export async function runPendingMigrations(migrations: RedboxMigration[]): Promi
 
     const orderedMigrations = [...migrations].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     const migrationsByName = new Map(orderedMigrations.map(migration => [migration.name, migration]));
-    const migrationModel = getMigrationModel();
+    const ledger = getMigrationLedgerRepository();
     const appVersion = await readAppVersion();
     const startTimes = new Map<string, number>();
-    const storage = createMigrationStorage(migrationModel, migrationsByName, appVersion, startTimes);
+    const storage = createMigrationStorage(ledger, migrationsByName, appVersion, startTimes);
 
     const umzugMigrations = toRunnableMigrations(orderedMigrations).map(migration => ({
         ...migration,

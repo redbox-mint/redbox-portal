@@ -1,3 +1,6 @@
+import { PersistenceError } from '../persistence/errors';
+import { getConfigurationRepositories } from '../persistence/runtime';
+import type { SecretLeaseRepository, SecretLock } from '../persistence/configuration/ConfigurationRepositories';
 import { randomUUID, createHash } from 'node:crypto';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import type { AppConfigSecretsConfig } from '../config/appConfigSecrets.config';
@@ -25,14 +28,9 @@ interface SecretValue { arn: string; name?: string; value: string }
 interface BrandSecrets { format: 'redbox-appconfig-v1'; values: Record<string, string> }
 /** Only controlled application messages may bypass SDK error redaction. */
 class AppConfigSecretsInternalError extends Error {}
-interface BundleLock { owner?: string; expiresAt: Date; cacheToken?: string }
-interface BundleLockCollection {
-  findOne(filter: object): Promise<BundleLock | null>;
-  updateOne(filter: object, update: object, options?: object): Promise<{ matchedCount: number }>;
-}
 export interface AppConfigBundleLease {
   readonly name: string;
-  readonly collection: BundleLockCollection;
+  readonly repository: SecretLeaseRepository;
   readonly owner: string;
   token: string;
   expiresAt: number;
@@ -135,11 +133,8 @@ export class AppConfigSecrets {
     return `${this.getPrefix()}/brands/${scope}`;
   }
 
-  private lockCollection(): BundleLockCollection {
-    const model = AppConfig as unknown as { getDatastore?: () => { manager?: { collection?: (name: string) => BundleLockCollection } } };
-    const collection = model.getDatastore?.().manager?.collection?.('appconfigsecretlocks');
-    if (!collection) throw new Error('Bundled AppConfig secrets require MongoDB write coordination');
-    return collection;
+  private leaseRepository(): SecretLeaseRepository {
+    return getConfigurationRepositories().secretLeases;
   }
 
   private synchronizeBundleCache(name: string, token: string): void {
@@ -155,10 +150,10 @@ export class AppConfigSecrets {
       this.synchronizeBundleCache(name, lease.token);
       return;
     }
-    let lock: BundleLock | null;
-    try { lock = await this.lockCollection().findOne({ _id: name }); }
+    let lock: SecretLock | null;
+    try { lock = await this.leaseRepository().inspect(name); }
     catch { throw new Error('Unable to coordinate AppConfig secret update'); }
-    if (lock?.owner && lock.expiresAt.getTime() > Date.now()) {
+    if (lock?.owner && lock.expiresAt > Date.now()) {
       if (purpose === 'save') throw new Error('Another AppConfig secret update is in progress for this brand. Retry shortly.');
       // Startup/reload can read the current AWS value during another node's write.
       // Its snapshot must remain untrusted for a later save, even if that writer
@@ -173,20 +168,19 @@ export class AppConfigSecrets {
   /** Keep the same cross-node lease from the authoritative row read through cache publication. */
   async withBundleSave<T>(brandId: string, save: (lease: AppConfigBundleLease) => Promise<T>): Promise<T> {
     const name = this.bundleName(brandId);
-    const collection = this.lockCollection();
+    const repository = this.leaseRepository();
     const owner = randomUUID();
     const now = Date.now();
     try {
-      await collection.updateOne({ _id: name, expiresAt: { $lte: new Date(now) } }, {
-        $set: { owner, expiresAt: new Date(now + 120_000) }
-      }, { upsert: true });
+      await repository.acquire(name, owner, now, now + 120_000);
     } catch (error: unknown) {
-      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      if (error instanceof PersistenceError && error.code === 'secret-coordination-unavailable') throw error;
+      if (typeof error === 'object' && error !== null && 'code' in error && (error.code === 11000 || error.code === 'E_UNIQUE')) {
         throw new Error('Another AppConfig secret update is in progress for this brand. Retry shortly.');
       }
       throw new Error('Unable to coordinate AppConfig secret update');
     }
-    const lease: AppConfigBundleLease = { name, collection, owner, token: '', expiresAt: now + 120_000, active: true, aborted: false, lost: false };
+    const lease: AppConfigBundleLease = { name, repository, owner, token: '', expiresAt: now + 120_000, active: true, aborted: false, lost: false };
     let heartbeat: ReturnType<typeof setTimeout> | undefined;
     let renewing: Promise<void> | undefined;
     let closing = false;
@@ -201,8 +195,8 @@ export class AppConfigSecrets {
       heartbeat.unref();
     };
     try {
-      let lock: BundleLock | null;
-      try { lock = await collection.findOne({ _id: name, owner }); }
+      let lock: SecretLock | null;
+      try { lock = await repository.inspect(name, owner); }
       catch { throw new Error('Unable to coordinate AppConfig secret update'); }
       if (!lock) throw new Error('Unable to coordinate AppConfig secret update');
       lease.token = lock.cacheToken ?? '';
@@ -221,8 +215,8 @@ export class AppConfigSecrets {
         // Keep the freshness token after release; it is cache invalidation metadata,
         // not a stored secret version or rollback history.
         try {
-          const released = await collection.updateOne({ _id: name, owner }, { $set: { expiresAt: new Date(0) }, $unset: { owner: '' } });
-          if (released.matchedCount !== 1) sails.log.error('AppConfig secret write lease ownership changed before release.');
+          const released = await repository.release(name, owner);
+          if (!released) sails.log.error('AppConfig secret write lease ownership changed before release.');
         }
         catch { sails.log.error('Unable to release AppConfig secret write lease; it will expire automatically.'); }
       }
@@ -238,11 +232,11 @@ export class AppConfigSecrets {
   async checkBundleSave(lease: AppConfigBundleLease): Promise<void> {
     this.assertBundleLease(lease, lease.name);
     const expiresAt = Date.now() + 120_000;
-    let renewed: { matchedCount: number };
+    let renewed: boolean;
     try {
-      renewed = await lease.collection.updateOne({ _id: lease.name, owner: lease.owner, expiresAt: { $gt: new Date() } }, { $max: { expiresAt: new Date(expiresAt) } });
+      renewed = await lease.repository.renew(lease.name, lease.owner, Date.now(), expiresAt);
     } catch { throw new AppConfigSecretsInternalError('Unable to coordinate AppConfig secret update. Check MongoDB connectivity and retry.'); }
-    if (renewed.matchedCount !== 1) lease.lost = true;
+    if (!renewed) lease.lost = true;
     lease.expiresAt = Math.max(lease.expiresAt, expiresAt);
     this.assertBundleLease(lease, lease.name);
   }
@@ -252,7 +246,7 @@ export class AppConfigSecrets {
     if (!lease) return this.withBundleSave(brandId, owned => this.storeBundle(brandId, changes, owned));
     const name = this.bundleName(brandId);
     this.assertBundleLease(lease, name);
-    const { collection, owner } = lease;
+    const { repository, owner } = lease;
     const controller = new AbortController();
     const signal = controller.signal;
     const deadline = Date.now() + 30_000;
@@ -298,10 +292,10 @@ export class AppConfigSecrets {
         // still commit. Never leave their old caches marked as current in that case.
         const nextToken = randomUUID();
         await this.checkBundleSave(lease);
-        let marked: { matchedCount: number };
-        try { marked = await collection.updateOne({ _id: name, owner, expiresAt: { $gt: new Date() } }, { $set: { cacheToken: nextToken } }); }
+        let marked: boolean;
+        try { marked = await repository.publishToken(name, owner, Date.now(), nextToken); }
         catch { throw new AppConfigSecretsInternalError('Unable to coordinate AppConfig secret update. Check MongoDB connectivity and retry.'); }
-        if (marked.matchedCount !== 1) { lease.lost = true; throw new AppConfigSecretsInternalError('AppConfig secret write lease was lost. Reload and retry.'); }
+        if (!marked) { lease.lost = true; throw new AppConfigSecretsInternalError('AppConfig secret write lease was lost. Reload and retry.'); }
         lease.token = nextToken;
         if (signal.aborted || Date.now() >= deadline) throw new AppConfigSecretsInternalError('AppConfig secret write timed out. Retry shortly.');
         const result = current

@@ -8,11 +8,12 @@ import type { SinonStub } from 'sinon';
 
 import { createGeneratedBootstrap } from '../../src/loader/bootstrapShimRuntime';
 
+import * as persistence from '../../src/persistence/runtime';
+
 const fsPromises = fs.promises;
 
 interface BootstrapRuntimeSails {
   config: unknown;
-  models: Record<string, unknown>;
   log: unknown;
 }
 
@@ -52,7 +53,7 @@ describe('bootstrapShimRuntime', function () {
     hadOriginalSails = Object.prototype.hasOwnProperty.call(runtimeGlobal, 'sails');
 
     if (!runtimeGlobal.sails) {
-      runtimeGlobal.sails = { config: undefined, models: {}, log: undefined };
+      runtimeGlobal.sails = { config: undefined, log: undefined };
     }
 
     originalSailsConfig = runtimeSails().config;
@@ -65,7 +66,6 @@ describe('bootstrapShimRuntime', function () {
       example: 'value',
       nested: { flag: true },
     };
-    runtimeSails().models = {};
     runtimeSails().log = createSinonStubLogger(sinon);
   });
 
@@ -76,7 +76,7 @@ describe('bootstrapShimRuntime', function () {
 
     if (hadOriginalSails) {
       if (!runtimeGlobal.sails) {
-        runtimeGlobal.sails = { config: undefined, models: {}, log: undefined };
+        runtimeGlobal.sails = { config: undefined, log: undefined };
       }
       runtimeSails().config = originalSailsConfig;
       runtimeSails().log = originalSailsLog;
@@ -101,12 +101,10 @@ describe('bootstrapShimRuntime', function () {
 
   it('should run preLift, migrations, core bootstrap, and hook bootstraps in order', async function () {
     const callOrder: string[] = [];
-    const preLiftSetup = sinon.stub().callsFake(() => callOrder.push('preLift'));
-    runtimeSails().models.migration = {
-      find: () => ({ sort: sinon.stub().resolves([]) }),
-      create: sinon.stub().resolves({}),
-      destroy: sinon.stub().resolves({}),
-    };
+    const preLiftSetup = sinon.stub().callsFake(async () => {
+      callOrder.push('preLift');
+      sinon.stub(require('../../src/persistence/migration/runtime'), 'getMigrationLedgerRepository').returns({ executedNames: async () => [], recordExecution: async () => {}, removeExecution: async () => {}, isExecuted: async () => false });
+    });
     const migration = {
       name: '2026.06.08T10.00.00-test',
       up: sinon.stub().callsFake(async () => {

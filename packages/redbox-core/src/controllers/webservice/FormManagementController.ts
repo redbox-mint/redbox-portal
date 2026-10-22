@@ -7,7 +7,7 @@ import {
   getFormRoute,
   listFormsRoute,
 } from '../../index';
-import { FormAttributes } from '../../waterline-models/Form';
+import { FormAttributes } from '../../persistence/rows';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 import { firstValueFrom } from 'rxjs';
 import type { RecordsService } from '../../RecordsService';

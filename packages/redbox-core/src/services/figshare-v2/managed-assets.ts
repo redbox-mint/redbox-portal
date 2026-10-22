@@ -59,7 +59,7 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
           const verified = receipt;
           state = await checkpoint(s => {
             const target = s.receipts.find(r => r.key === verified.key)!;
-            target.state = 'available'; target.completedAt = new Date().toISOString(); target.downloadUrl = remote.download_url; target.desired = true;
+            target.state = 'available'; target.completedAt = new Date().toISOString(); if(remote.download_url!==undefined)target.downloadUrl=remote.download_url;else delete target.downloadUrl; target.desired = true;
             if (fingerprint) target.fingerprint = fingerprint;
           });
           continue;
@@ -115,7 +115,7 @@ export async function mirrorManagedAssets(client: FigshareClient, config: Figsha
       const remote = files.find(f => String(f.id) === fileId);
       if (!remote || !available(remote.status)) throw new FigshareWaiting('uploads');
       if (Number(remote.size) !== size) throw new FigshareRepairRequired('Uploaded file size does not match staged content');
-      state = await checkpoint(s => { Object.assign(s.receipts.find(r => r.key === key)!, { state: 'available', completedAt: new Date().toISOString(), downloadUrl: remote.download_url, ...(fingerprint ? { fingerprint } : {}) }); });
+      state = await checkpoint(s => { Object.assign(s.receipts.find(r => r.key === key)!, { state: 'available', completedAt: new Date().toISOString(), ...(remote.download_url!==undefined?{downloadUrl:remote.download_url}:{}), ...(fingerprint ? { fingerprint } : {}) }); });
     } finally {
       // Only temporary staging objects are removed. Source attachment bytes remain.
       await disk.delete(stagingKey);

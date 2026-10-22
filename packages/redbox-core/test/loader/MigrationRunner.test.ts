@@ -8,6 +8,8 @@ import * as sinon from 'sinon';
 
 import { runPendingMigrations, toRunnableMigrations, type RedboxMigration } from '../../src/loader/MigrationRunner';
 
+import * as persistence from '../../src/persistence/runtime';
+
 const fsPromises = fs.promises;
 
 describe('MigrationRunner', function () {
@@ -30,7 +32,7 @@ describe('MigrationRunner', function () {
         process.chdir(sandboxDir);
 
         (global as any).sails = {
-            models: {},
+            config: {},
             log: createSinonStubLogger(sinon)
         };
     });
@@ -46,29 +48,25 @@ describe('MigrationRunner', function () {
         await fsPromises.rm(sandboxDir, { recursive: true, force: true });
     });
 
-    function setMigrationModel(executedNames: string[] = []) {
-        const rows = executedNames.map((name, index) => ({ name, ranAt: index + 1 }));
+    async function setMigrationModel(executedNames: string[] = []) {
         const created: Array<Record<string, unknown>> = [];
-        const sort = sinon.stub().resolves(rows);
-        const model = {
-            find: sinon.stub().returns({ sort }),
-            create: sinon.stub().callsFake(async (values: Record<string, unknown>) => {
-                created.push(values);
-                return values;
-            }),
-            destroy: sinon.stub().resolves([])
+        const ledger = {
+            executedNames: sinon.stub().resolves(executedNames),
+            isExecuted: sinon.stub().callsFake(async name => executedNames.includes(name)),
+            recordExecution: sinon.stub().callsFake(async values => { created.push(values); }),
+            removeExecution: sinon.stub().resolves(),
         };
-        (global as any).sails.models.migration = model;
-        return { model, created, sort };
+        sinon.stub(require('../../src/persistence/migration/runtime'), 'getMigrationLedgerRepository').returns(ledger);
+        return { created };
     }
 
     it('should no-op for an empty migration list', async function () {
         await runPendingMigrations([]);
-        expect((global as any).sails.models.migration).to.be.undefined;
+        expect((global as any).sails.log.info.called).to.equal(false);
     });
 
     it('should execute pending migrations in lexical name order and log each success', async function () {
-        const { created } = setMigrationModel();
+        const { created } = await setMigrationModel();
         const callOrder: string[] = [];
         const migrations: RedboxMigration[] = [
             {
@@ -98,7 +96,7 @@ describe('MigrationRunner', function () {
     });
 
     it('should send Umzug progress logs to the configured sails logger', async function () {
-        setMigrationModel();
+        await setMigrationModel();
         const consoleInfo = sinon.stub(console, 'info');
         try {
             await runPendingMigrations([{ name: '2026.06.08T09.00.00-first', up: sinon.stub().resolves() }]);
@@ -112,7 +110,7 @@ describe('MigrationRunner', function () {
     });
 
     it('should log the pending migration names before executing', async function () {
-        setMigrationModel(['2026.06.08T09.00.00-first']);
+        await setMigrationModel(['2026.06.08T09.00.00-first']);
 
         await runPendingMigrations([
             { name: '2026.06.08T09.00.00-first', up: sinon.stub().resolves() },
@@ -127,7 +125,7 @@ describe('MigrationRunner', function () {
         const originalValue = process.env.REDBOX_SKIP_MIGRATIONS;
         process.env.REDBOX_SKIP_MIGRATIONS = 'true';
         try {
-            const { created } = setMigrationModel();
+            const { created } = await setMigrationModel();
             const up = sinon.stub().resolves();
 
             await runPendingMigrations([{ name: '2026.06.08T09.00.00-first', up }]);
@@ -146,7 +144,7 @@ describe('MigrationRunner', function () {
     });
 
     it('should skip already executed migrations', async function () {
-        const { created } = setMigrationModel(['2026.06.08T09.00.00-first']);
+        const { created } = await setMigrationModel(['2026.06.08T09.00.00-first']);
         const first = sinon.stub().resolves();
         const second = sinon.stub().resolves();
 
@@ -161,7 +159,7 @@ describe('MigrationRunner', function () {
     });
 
     it('should halt on first migration failure', async function () {
-        const { created } = setMigrationModel();
+        const { created } = await setMigrationModel();
         const failure = new Error('migration failed');
         const first = sinon.stub().rejects(failure);
         const second = sinon.stub().resolves();
@@ -203,7 +201,7 @@ describe('MigrationRunner', function () {
     });
 
     it('should tolerate executed migration names missing from the current migration list', async function () {
-        const { created } = setMigrationModel(['2026.06.08T08.00.00-removed']);
+        const { created } = await setMigrationModel(['2026.06.08T08.00.00-removed']);
         const pending = sinon.stub().resolves();
 
         await runPendingMigrations([

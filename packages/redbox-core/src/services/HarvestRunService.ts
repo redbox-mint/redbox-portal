@@ -40,36 +40,20 @@ import {
   type RecordSaveContext,
   type RecordSaveOperation,
 } from '../RecordSaveResponse';
-import { HarvestRecordEventAttributes } from '../waterline-models/HarvestRecordEvent';
-import { HarvestRunChunkAttributes } from '../waterline-models/HarvestRunChunk';
-import { HarvestRunAttributes } from '../waterline-models/HarvestRun';
-import '../waterline-models/types';
+import { getHarvestRepositories } from '../persistence/runtime';
+import type {
+  HarvestRunRow,
+  HarvestChunkRow as HarvestRunChunkRow,
+  HarvestEventRow as HarvestRecordEventRow,
+  HarvestRunFilter,
+  HarvestEventFilter,
+} from '../persistence/harvest/HarvestRepositories';
 
 declare const RecordsService: RecordsServiceContract;
 
 type AnyRecord = Record<string, unknown>;
 type RecordTypeWithName = RecordTypeModel & { name?: string };
-type HarvestRunRow = HarvestRunAttributes & { id?: string };
-type HarvestRunChunkRow = HarvestRunChunkAttributes & { id?: string };
-type HarvestRecordEventRow = HarvestRecordEventAttributes & { id?: string };
-type HarvestRecordEventCreateInput = Omit<HarvestRecordEventAttributes, 'id'>;
-type HarvestRunNativeObjectId = { toHexString: () => string };
-type HarvestRunObjectIdConstructor = {
-  new (input: string): HarvestRunNativeObjectId;
-  isValid?: (input: string) => boolean;
-};
-type HarvestRunCollection = {
-  findOneAndUpdate: (
-    filter: Record<string, unknown>,
-    update: unknown,
-    options?: Record<string, unknown>
-  ) => Promise<HarvestRunRow | { value?: HarvestRunRow | null } | null>;
-  s?: {
-    pkFactory?: {
-      createPk?: () => unknown;
-    };
-  };
-};
+type HarvestRecordEventCreateInput = Omit<HarvestRecordEventRow, 'id'>;
 type TrackedOperation = HarvestOperation | 'invalid';
 type TrackedUpdateStrategy = 'replace' | 'merge' | 'ignoreIfExists';
 type ProcessingContext = {
@@ -85,6 +69,8 @@ type ProcessTrackedRecordResult = {
 export namespace Services {
   export class HarvestRunService extends services.Core.Service implements HarvestRunServiceContract {
     protected override _exportedMethods: string[] = [
+      'init',
+      'drain',
       'submitCompatibilityRecords',
       'submitLegacyRecords',
       'submitChunk',
@@ -97,6 +83,43 @@ export namespace Services {
     constructor() {
       super();
       this.logHeader = 'HarvestRunService::';
+    }
+
+    private draining = false;
+    private shutdownRegistered = false;
+    private readonly submissions = new Set<Promise<unknown>>();
+
+    public async init(): Promise<void> {
+      if (this.shutdownRegistered) return;
+      this.shutdownRegistered = true;
+      const previous = sails.config.beforeShutdown;
+      sails.config.beforeShutdown = callback => {
+        void this.drain().then(() => {
+          try {
+            if (previous) previous(callback);
+            else callback();
+          } catch (error) {
+            callback(error);
+          }
+        }, callback);
+      };
+    }
+
+    /** Stop admission and finish accepted storage/event/checkpoint/counter work before persistence closes. */
+    public async drain(): Promise<void> {
+      this.draining = true;
+      await Promise.allSettled(this.submissions);
+    }
+
+    private acceptSubmission<T>(work: () => Promise<T>): Promise<T> {
+      if (this.draining) return Promise.reject(new HarvestRunServiceError('Harvest submissions are draining.', 503));
+      const pending = Promise.resolve().then(work);
+      this.submissions.add(pending);
+      void pending.then(
+        () => this.submissions.delete(pending),
+        () => this.submissions.delete(pending)
+      );
+      return pending;
     }
 
     private asError(error: unknown): Error {
@@ -246,152 +269,6 @@ export namespace Services {
 
     private isMetadataEqual(meta1: AnyRecord, meta2: AnyRecord): boolean {
       return _.isEqual(meta1, meta2);
-    }
-
-    private async updateRunWithOptimisticRetry(
-      run: HarvestRunRow,
-      criteriaFields: Array<keyof HarvestRunRow>,
-      buildUpdates: (currentRun: HarvestRunRow) => Partial<HarvestRunRow>
-    ): Promise<HarvestRunRow> {
-      const runId = String(run.id ?? '').trim();
-      if (_.isEmpty(runId)) {
-        throw new Error('Harvest run identifier is required to persist counters.');
-      }
-
-      let currentRun = run;
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const criteria: AnyRecord = { id: runId };
-        for (const field of criteriaFields) {
-          if (!_.isUndefined(currentRun[field])) {
-            criteria[field] = currentRun[field];
-          }
-        }
-
-        const updates = buildUpdates(currentRun);
-        const updated = (await HarvestRun.updateOne(criteria).set(updates)) as HarvestRunRow | null;
-        if (updated) {
-          return updated;
-        }
-
-        const reloaded = (await HarvestRun.findOne({ id: runId })) as HarvestRunRow | null;
-        if (!reloaded) {
-          return { ...currentRun, ...updates };
-        }
-        if (_.isMatch(reloaded, updates)) {
-          return reloaded;
-        }
-        currentRun = reloaded;
-      }
-
-      throw new Error(`Harvest run ${runId} was modified concurrently and could not be updated safely.`);
-    }
-
-    private getHarvestRunCollection(): HarvestRunCollection | null {
-      const datastore =
-        typeof HarvestRun.getDatastore === 'function'
-          ? (HarvestRun.getDatastore() as unknown as {
-              manager?: { collection?: (name: string) => HarvestRunCollection };
-            } | null)
-          : null;
-      if (!datastore?.manager || typeof datastore.manager.collection !== 'function') {
-        return null;
-      }
-      return datastore.manager.collection('harvestrun');
-    }
-
-    private toNativeRunId(
-      runId: string | undefined,
-      collection: HarvestRunCollection | null
-    ): HarvestRunNativeObjectId | null {
-      if (!runId || _.isEmpty(runId)) {
-        return null;
-      }
-
-      const createPk = collection?.s?.pkFactory?.createPk;
-      if (typeof createPk !== 'function') {
-        return null;
-      }
-
-      const sampleId = createPk();
-      if (!sampleId || typeof sampleId !== 'object') {
-        return null;
-      }
-
-      const ObjectIdConstructor = (sampleId as { constructor?: unknown }).constructor as
-        | HarvestRunObjectIdConstructor
-        | undefined;
-      if (!ObjectIdConstructor || typeof ObjectIdConstructor !== 'function') {
-        return null;
-      }
-
-      if (typeof ObjectIdConstructor.isValid === 'function' && !ObjectIdConstructor.isValid(runId)) {
-        return null;
-      }
-
-      try {
-        const nativeRunId = new ObjectIdConstructor(runId);
-        return typeof nativeRunId.toHexString === 'function' ? nativeRunId : null;
-      } catch {
-        return null;
-      }
-    }
-
-    private extractUpdatedRun(
-      result: HarvestRunRow | { value?: HarvestRunRow | null } | null | undefined
-    ): HarvestRunRow | null {
-      if (_.isNil(result)) {
-        return null;
-      }
-      const normalizeRow = (row: HarvestRunRow | null | undefined): HarvestRunRow | null => {
-        if (_.isNil(row)) {
-          return null;
-        }
-        const rawId = (row as HarvestRunRow & { _id?: unknown })._id;
-        if (_.isNil(row.id) && !_.isNil(rawId)) {
-          return {
-            ...row,
-            id: String(rawId),
-          };
-        }
-        return row;
-      };
-      if (_.isPlainObject(result) && 'value' in result) {
-        return normalizeRow((result as { value?: HarvestRunRow | null }).value);
-      }
-      return normalizeRow(result as HarvestRunRow);
-    }
-
-    private buildAtomicRunCounterUpdate(
-      counters: HarvestCounterSummary,
-      completedAt: string,
-      finalChunk: boolean
-    ): Array<Record<string, unknown>> {
-      const failedExpression = {
-        $add: [{ $ifNull: ['$failed', 0] }, counters.failed],
-      };
-      const updateStage: Record<string, unknown> = {
-        lastChunkAt: completedAt,
-        totalProcessed: { $add: [{ $ifNull: ['$totalProcessed', 0] }, counters.totalProcessed] },
-        created: { $add: [{ $ifNull: ['$created', 0] }, counters.created] },
-        updated: { $add: [{ $ifNull: ['$updated', 0] }, counters.updated] },
-        deleted: { $add: [{ $ifNull: ['$deleted', 0] }, counters.deleted] },
-        unchanged: { $add: [{ $ifNull: ['$unchanged', 0] }, counters.unchanged] },
-        failed: failedExpression,
-        chunksProcessed: { $add: [{ $ifNull: ['$chunksProcessed', 0] }, 1] },
-      };
-
-      if (finalChunk) {
-        updateStage.status = {
-          $cond: [{ $gt: [failedExpression, 0] }, HarvestRunStatus.completedWithErrors, HarvestRunStatus.completed],
-        };
-        updateStage.completedAt = completedAt;
-      } else if (counters.failed > 0) {
-        updateStage.status = {
-          $cond: [{ $eq: ['$status', HarvestRunStatus.completed] }, HarvestRunStatus.completedWithErrors, '$status'],
-        };
-      }
-
-      return [{ $set: updateStage }];
     }
 
     private toRunModel(row: HarvestRunRow): HarvestRunModel {
@@ -823,7 +700,8 @@ export namespace Services {
       const serialized = JSON.stringify(snapshot);
       const maxBytes = this.harvestRunConfig().failedSnapshotMaxBytes;
       if (Buffer.byteLength(serialized, 'utf8') <= maxBytes) {
-        return snapshot;
+        // Match the JSON stored by Waterline, including nested optional-field omission.
+        return JSON.parse(serialized);
       }
       return {
         truncated: true,
@@ -877,7 +755,7 @@ export namespace Services {
       }
       const batchSize = this.harvestRunConfig().eventCreateBatchSize;
       for (let index = 0; index < events.length; index += batchSize) {
-        await HarvestRecordEvent.createEach(events.slice(index, index + batchSize));
+        await getHarvestRepositories().events.appendEvents(events.slice(index, index + batchSize));
       }
     }
 
@@ -898,11 +776,7 @@ export namespace Services {
       if (_.isEmpty(runId) || resolvedChunkIds.length === 0) {
         return [];
       }
-      return (await HarvestRecordEvent.find({
-        runId,
-        brandId,
-        chunkId: { in: resolvedChunkIds },
-      }).sort('createdAt ASC')) as HarvestRecordEventRow[];
+      return getHarvestRepositories().events.listCheckpointed(runId!, brandId, resolvedChunkIds);
     }
 
     private async checkpointChunkProgress(
@@ -913,7 +787,7 @@ export namespace Services {
       if (_.isEmpty(chunkId)) {
         return;
       }
-      await HarvestRunChunk.updateOne({ id: chunkId }).set({
+      await getHarvestRepositories().chunks.reviseAttempt(chunkId!, {
         recordCount,
         totalProcessed: counters.totalProcessed,
         created: counters.created,
@@ -1047,14 +921,14 @@ export namespace Services {
         sourceRunId: request.sourceRunId,
       };
 
-      const existing = (await HarvestRun.findOne(where)) as HarvestRunRow | null;
+      const existing = (await getHarvestRepositories().runs.findRun(where)) as HarvestRunRow | null;
       if (existing) {
         return existing;
       }
 
       const now = this.nowIso();
       try {
-        return (await HarvestRun.create({
+        return (await getHarvestRepositories().runs.createRun({
           ...where,
           sourceUri: request.sourceUri,
           status: HarvestRunStatus.running,
@@ -1069,9 +943,9 @@ export namespace Services {
           failed: 0,
           chunksProcessed: 0,
           duplicateChunks: 0,
-        }).fetch()) as HarvestRunRow;
+        })) as HarvestRunRow;
       } catch (error) {
-        const recovered = (await HarvestRun.findOne(where)) as HarvestRunRow | null;
+        const recovered = (await getHarvestRepositories().runs.findRun(where)) as HarvestRunRow | null;
         if (recovered) {
           return recovered;
         }
@@ -1085,75 +959,11 @@ export namespace Services {
       finalChunk: boolean,
       completedAt: string
     ): Promise<HarvestRunRow> {
-      const collection = this.getHarvestRunCollection();
-      const nativeRunId = this.toNativeRunId(run.id, collection);
-      if (collection && nativeRunId) {
-        const updated = this.extractUpdatedRun(
-          await collection.findOneAndUpdate(
-            { _id: nativeRunId },
-            this.buildAtomicRunCounterUpdate(counters, completedAt, finalChunk),
-            { returnDocument: 'after' }
-          )
-        );
-        if (updated) {
-          return updated;
-        }
-      }
-
-      return await this.updateRunWithOptimisticRetry(
-        run,
-        ['totalProcessed', 'created', 'updated', 'deleted', 'unchanged', 'failed', 'chunksProcessed', 'status'],
-        currentRun => {
-          const nextFailed = Number(currentRun.failed ?? 0) + counters.failed;
-          const updates: Partial<HarvestRunRow> = {
-            lastChunkAt: completedAt,
-            totalProcessed: Number(currentRun.totalProcessed ?? 0) + counters.totalProcessed,
-            created: Number(currentRun.created ?? 0) + counters.created,
-            updated: Number(currentRun.updated ?? 0) + counters.updated,
-            deleted: Number(currentRun.deleted ?? 0) + counters.deleted,
-            unchanged: Number(currentRun.unchanged ?? 0) + counters.unchanged,
-            failed: nextFailed,
-            chunksProcessed: Number(currentRun.chunksProcessed ?? 0) + 1,
-          };
-          if (finalChunk) {
-            updates.status = nextFailed > 0 ? HarvestRunStatus.completedWithErrors : HarvestRunStatus.completed;
-            updates.completedAt = completedAt;
-          } else if (counters.failed > 0 && currentRun.status === HarvestRunStatus.completed) {
-            updates.status = HarvestRunStatus.completedWithErrors;
-          }
-          return updates;
-        }
-      );
+      return getHarvestRepositories().runs.completeChunkCounters(run, counters, finalChunk, completedAt);
     }
 
     private async bumpDuplicateChunkCount(run: HarvestRunRow): Promise<HarvestRunRow> {
-      const collection = this.getHarvestRunCollection();
-      const nativeRunId = this.toNativeRunId(run.id, collection);
-      if (collection && nativeRunId) {
-        const updated = this.extractUpdatedRun(
-          await collection.findOneAndUpdate(
-            { _id: nativeRunId },
-            [
-              {
-                $set: {
-                  duplicateChunks: { $add: [{ $ifNull: ['$duplicateChunks', 0] }, 1] },
-                  lastChunkAt: this.nowIso(),
-                },
-              },
-            ],
-            { returnDocument: 'after' }
-          )
-        );
-        if (updated) {
-          return updated;
-        }
-      }
-
-      const updatedAt = this.nowIso();
-      return await this.updateRunWithOptimisticRetry(run, ['duplicateChunks'], currentRun => ({
-        duplicateChunks: Number(currentRun.duplicateChunks ?? 0) + 1,
-        lastChunkAt: updatedAt,
-      }));
+      return getHarvestRepositories().runs.incrementDuplicateChunks(run, this.nowIso());
     }
 
     private async processTrackedRecord(
@@ -1500,6 +1310,19 @@ export namespace Services {
       user: UserModel,
       context?: RecordSaveContext
     ): Promise<APIHarvestResponse[]> {
+      return this.acceptSubmission(() =>
+        this.submitCompatibilityRecordsInternal(brand, recordTypeModel, body, updateMode, user, context)
+      );
+    }
+
+    private async submitCompatibilityRecordsInternal(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      body: Record<string, unknown> | undefined,
+      updateMode: string,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<APIHarvestResponse[]> {
       if (body == null || _.isEmpty(body['records'])) {
         throw new HarvestRunServiceError('Invalid request body', 400);
       }
@@ -1568,6 +1391,19 @@ export namespace Services {
     }
 
     public async submitLegacyRecords(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      body: Record<string, unknown> | undefined,
+      merge: boolean,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<APIHarvestResponse[]> {
+      return this.acceptSubmission(() =>
+        this.submitLegacyRecordsInternal(brand, recordTypeModel, body, merge, user, context)
+      );
+    }
+
+    private async submitLegacyRecordsInternal(
       brand: BrandingModel,
       recordTypeModel: RecordTypeModel,
       body: Record<string, unknown> | undefined,
@@ -1673,13 +1509,20 @@ export namespace Services {
       if (_.isEmpty(runId)) {
         return [];
       }
-      return (await HarvestRunChunk.find({
-        runId,
-        contentHash,
-      }).sort('attempt DESC')) as HarvestRunChunkRow[];
+      return getHarvestRepositories().chunks.findAttempts(runId!, contentHash);
     }
 
     public async submitChunk(
+      brand: BrandingModel,
+      recordTypeModel: RecordTypeModel,
+      requestBody: Record<string, unknown> | undefined,
+      user: UserModel,
+      context?: RecordSaveContext
+    ): Promise<HarvestTrackedChunkResponse> {
+      return this.acceptSubmission(() => this.submitChunkInternal(brand, recordTypeModel, requestBody, user, context));
+    }
+
+    private async submitChunkInternal(
       brand: BrandingModel,
       recordTypeModel: RecordTypeModel,
       requestBody: Record<string, unknown> | undefined,
@@ -1711,7 +1554,7 @@ export namespace Services {
         if (!this.isProcessingChunkStale(processingChunk)) {
           throw new HarvestRunServiceError('Chunk is already processing', 409);
         }
-        await HarvestRunChunk.updateOne({ id: processingChunk.id }).set({
+        await getHarvestRepositories().chunks.reviseAttempt(processingChunk.id!, {
           status: HarvestChunkStatus.failedStale,
           completedAt: this.nowIso(),
           errorMessage: 'Processing chunk was marked stale before retry.',
@@ -1730,7 +1573,7 @@ export namespace Services {
       const submittedAt = this.nowIso();
       const nextAttempt =
         existingChunks.reduce((maxAttempt, chunk) => Math.max(maxAttempt, Number(chunk.attempt ?? 1)), 0) + 1;
-      const createdChunk = (await HarvestRunChunk.create({
+      const createdChunk = (await getHarvestRepositories().chunks.createAttempt({
         runId: String(run.id ?? ''),
         brandId,
         recordType: recordTypeName,
@@ -1751,7 +1594,7 @@ export namespace Services {
         duplicate: false,
         submittedAt,
         responseSummary: this.buildChunkResponseSummary(this.buildEmptyCounters()),
-      }).fetch()) as HarvestRunChunkRow;
+      })) as HarvestRunChunkRow;
 
       const counters = this.buildCountersFromTrackedEvents(checkpointedEvents);
       try {
@@ -1812,7 +1655,8 @@ export namespace Services {
           responseSummary: this.buildChunkResponseSummary(counters),
         };
 
-        const updatedChunk = (await HarvestRunChunk.updateOne({ id: createdChunk.id }).set(
+        const updatedChunk = (await getHarvestRepositories().chunks.reviseAttempt(
+          createdChunk.id!,
           chunkUpdates
         )) as HarvestRunChunkRow | null;
         const updatedRun = await this.updateRunAfterChunk(run, counters, Boolean(request.finalChunk), completedAt);
@@ -1821,7 +1665,7 @@ export namespace Services {
           chunk: this.toChunkModel(updatedChunk ?? { ...createdChunk, ...chunkUpdates }),
         };
       } catch (error) {
-        await HarvestRunChunk.updateOne({ id: createdChunk.id }).set({
+        await getHarvestRepositories().chunks.reviseAttempt(createdChunk.id!, {
           status: HarvestChunkStatus.failed,
           recordCount: request.records.length,
           totalProcessed: counters.totalProcessed,
@@ -1843,7 +1687,7 @@ export namespace Services {
       const page = this.parsePositiveInt(params.page, 1);
       const pageSize = Math.min(100, this.parsePositiveInt(params.pageSize, 20));
       const skip = (page - 1) * pageSize;
-      const where: AnyRecord = { brandId };
+      const where: HarvestRunFilter = { brandId };
       if (!_.isEmpty(params.status)) {
         where.status = String(params.status);
       }
@@ -1853,7 +1697,7 @@ export namespace Services {
       if (!_.isEmpty(params.sourceName)) {
         where.sourceName = String(params.sourceName);
       }
-      const startedAtFilters: AnyRecord = {};
+      const startedAtFilters: NonNullable<HarvestRunFilter['startedAt']> = {};
       if (params.dateFrom instanceof Date && !Number.isNaN(params.dateFrom.getTime())) {
         startedAtFilters['>='] = params.dateFrom.toISOString();
       }
@@ -1864,8 +1708,8 @@ export namespace Services {
         where.startedAt = startedAtFilters;
       }
 
-      const total = await HarvestRun.count(where);
-      const rows = (await HarvestRun.find(where).sort('startedAt DESC').skip(skip).limit(pageSize)) as HarvestRunRow[];
+      const total = await getHarvestRepositories().runs.countRuns(where);
+      const rows = (await getHarvestRepositories().runs.listRuns(where, skip, pageSize)) as HarvestRunRow[];
       return {
         rows: rows.map(row => this.toRunModel(row)),
         total: Number(total ?? 0),
@@ -1874,17 +1718,13 @@ export namespace Services {
 
     public async getRun(brand: BrandingModel, runId: string): Promise<HarvestRunDetailResult | null> {
       const brandId = this.resolveBrandId(brand);
-      const run = (await HarvestRun.findOne({ id: runId, brandId })) as HarvestRunRow | null;
+      const run = (await getHarvestRepositories().runs.findRun({ id: runId, brandId })) as HarvestRunRow | null;
       if (!run) {
         return null;
       }
 
-      const chunks = (await HarvestRunChunk.find({ runId, brandId })
-        .sort('submittedAt ASC')
-        .limit(100)) as HarvestRunChunkRow[];
-      const events = (await HarvestRecordEvent.find({ runId, brandId })
-        .sort('createdAt DESC')
-        .limit(20)) as HarvestRecordEventRow[];
+      const chunks = await getHarvestRepositories().chunks.listForRun(runId, brandId, 100);
+      const events = await getHarvestRepositories().events.listEvents({ runId, brandId }, 0, 20);
       return {
         run: this.toRunModel(run),
         chunks: chunks.map(row => this.toChunkModel(row)),
@@ -1904,7 +1744,7 @@ export namespace Services {
 
     public async runExists(brand: BrandingModel, runId: string): Promise<boolean> {
       const brandId = this.resolveBrandId(brand);
-      const run = (await HarvestRun.findOne({ id: runId, brandId })) as HarvestRunRow | null;
+      const run = (await getHarvestRepositories().runs.findRun({ id: runId, brandId })) as HarvestRunRow | null;
       return !_.isNil(run);
     }
 
@@ -1917,7 +1757,7 @@ export namespace Services {
       const page = this.parsePositiveInt(params.page, 1);
       const pageSize = Math.min(100, this.parsePositiveInt(params.pageSize, 20));
       const skip = (page - 1) * pageSize;
-      const where: AnyRecord = {
+      const where: HarvestEventFilter = {
         runId,
         brandId,
       };
@@ -1934,11 +1774,8 @@ export namespace Services {
         where.oid = String(params.oid);
       }
 
-      const total = await HarvestRecordEvent.count(where);
-      const rows = (await HarvestRecordEvent.find(where)
-        .sort('createdAt DESC')
-        .skip(skip)
-        .limit(pageSize)) as HarvestRecordEventRow[];
+      const total = await getHarvestRepositories().events.countEvents(where);
+      const rows = await getHarvestRepositories().events.listEvents(where, skip, pageSize);
       return {
         rows: rows.map(row => this.toEventModel(row)),
         total: Number(total ?? 0),
