@@ -157,18 +157,33 @@ export namespace Services {
       [key: string]: SolrClient;
     } = {};
 
+    private initialization?: Promise<void>;
+
     constructor() {
       super();
       this.logHeader = "SolrIndexer::";
     }
 
-    public override init() {
-      const that = this;
-      this.registerSailsHook('on', 'ready', async function () {
-        that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
-        that.initClient();
-        await that.buildSchema(that);
+    public override async init() {
+      // preLiftSetup awaits init; bootstrap record saves run before Sails ready.
+      await this.ensureInitialized();
+      this.registerSailsHook('on', 'ready', () => {
+        this.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
       });
+    }
+
+    private ensureInitialized(): Promise<void> {
+      // Inline bootstrap writes and queued workers share the same schema gate.
+      if (!this.initialization) {
+        this.initialization = (async () => {
+          this.initClient();
+          await this.buildSchema();
+        })().catch(err => {
+          this.initialization = undefined;
+          throw err;
+        });
+      }
+      return this.initialization;
     }
 
     protected override async processDynamicImports() {
@@ -210,6 +225,7 @@ export namespace Services {
         } catch (err) {
           sails.log.error(`${ref.logHeader} Failed to reconcile SOLR schema for core: ${coreName}.`);
           sails.log.error(JSON.stringify(err));
+          throw err;
         }
       }
     }
@@ -278,32 +294,24 @@ export namespace Services {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName: string = core.options.core;
-      let solrUp = false;
-      let tryCtr = 0;
       const urlCheck = `${ref.getBaseUrl(core.options)}admin/cores?action=STATUS&core=${coreName}`;
-      while (!solrUp && tryCtr <= sails.config.solr.maxWaitTries) {
+      for (let attempt = 1; attempt <= solrConfig.maxWaitTries; attempt++) {
         try {
-          tryCtr++;
-          sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
+          sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${attempt}... ${urlCheck}`);
           const solrStat = await axios.get(urlCheck).then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
-          sails.log.verbose(`${ref.logHeader} Response is:`);
-          sails.log.verbose(JSON.stringify(solrStat));
-          if (solrStat.status[coreName].instanceDir) {
+          if (solrStat.status[coreName]?.instanceDir) {
             sails.log.info(`${ref.logHeader} SOLR core is available: ${coreName}`);
-            solrUp = true;
-          } else {
-            throw new Error(`SOLR core: ${coreName} is still loading.`);
+            return;
           }
         } catch (err) {
           sails.log.info(`${ref.logHeader} SOLR core: ${coreName} is still down, waiting.`);
           sails.log.info(JSON.stringify(err));
-          if (tryCtr == sails.config.solr.maxWaitTries) {
-            sails.log.error(`${ref.logHeader} SOLR seemed to have failed startup, giving up on waiting.`);
-            break;
-          }
-          await ref.sleep(sails.config.solr.waitTime);
+        }
+        if (attempt < solrConfig.maxWaitTries) {
+          await ref.sleep(solrConfig.waitTime);
         }
       }
+      throw new Error(`SOLR core: ${coreName} unavailable after ${solrConfig.maxWaitTries} attempts.`);
     }
 
     private getBaseUrl(coreOptions: SolrOptions): string {
@@ -465,8 +473,12 @@ export namespace Services {
 
     public async solrAddOrUpdate(job: QueueJob<RecordModel>) {
       try {
+        await this.ensureInitialized();
         const data: RecordModel = job.attrs.data as RecordModel;
         const coreId = String(_.get(data, 'metaMetadata.searchCore', 'default'));
+        if (!this.clients[coreId]) {
+          throw new Error(`Unknown SOLR core: ${coreId}`);
+        }
         // storage_id is used as the main ID in searches
         const solrDocument: SolrDocument = new SolrDocument(data);
         this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'index' });
@@ -479,6 +491,7 @@ export namespace Services {
         await this.clientSleep();
       } catch (err) {
         this.updateChronicle({ solrIndexOutcome: 'failed' }, [err]);
+        throw err;
       }
     }
 
@@ -625,8 +638,12 @@ export namespace Services {
 
     public async solrDelete(job: QueueJob<RecordModel>, _done: unknown) {
       try {
+        await this.ensureInitialized();
         const data = job.attrs.data;
         const coreId = String(_.get(data, 'searchCore', 'default'));
+        if (!this.clients[coreId]) {
+          throw new Error(`Unknown SOLR core: ${coreId}`);
+        }
         const solrDocument: SolrDocument = new SolrDocument(data);
         this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'delete' });
         await this.clients[coreId].delete('id', solrDocument.id);
@@ -635,6 +652,7 @@ export namespace Services {
         await this.clientSleep();
       } catch (err) {
         this.updateChronicle({ solrDeleteOutcome: 'failed' }, [err]);
+        throw err;
       }
     }
   }
