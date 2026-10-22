@@ -150,10 +150,15 @@ export namespace Services {
     private async handleReadyInternal() {
       if (process.env.REDBOX_FIGSHARE_ADMIN === 'true') return;
       await this.ensureQueueInitialized();
+      if (this.stopping) throw new Error('AgendaQueue:: Queue is shutting down.');
       const activeAgendas = Object.values(this.agendas).filter((agenda): agenda is Agenda => !_.isNil(agenda));
       const results = await Promise.allSettled(activeAgendas.map(async agenda => {
         if (this.startedAgendas.has(agenda)) return;
         await agenda.start();
+        if (this.stopping) {
+          await agenda.stop(false);
+          throw new Error('AgendaQueue:: Queue is shutting down.');
+        }
         this.startedAgendas.add(agenda);
       }));
       const failed = results.find(result => result.status === 'rejected');
@@ -457,9 +462,13 @@ export namespace Services {
       let discarded = false;
       let deadline: ReturnType<typeof setTimeout> | undefined;
       const connecting = Promise.resolve().then(async () => {
-        await backend.connect();
-        // A timed-out connection may finish late; it must never be retained or leaked.
-        if (discarded) await backend.disconnect();
+        try {
+          await backend.connect();
+        } finally {
+          // A timed-out connection may open resources before failing later.
+          // Clean up both outcomes once the discarded attempt settles.
+          if (discarded) await backend.disconnect();
+        }
       });
       try {
         await Promise.race([

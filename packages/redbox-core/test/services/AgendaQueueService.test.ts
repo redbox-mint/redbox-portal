@@ -548,6 +548,66 @@ describe('AgendaQueueService', function () {
       expect(disconnect.calledTwice).to.equal(true); // Immediate cleanup plus late connection cleanup.
     });
 
+    it('closes a timed-out backend when its late connection subsequently fails', async function () {
+      create.restore();
+      const { MongoBackend } = await import('@agendajs/mongo-backend');
+      let fail!: (error: Error) => void;
+      sinon.stub(MongoBackend.prototype, 'connect').returns(new Promise((_resolve, reject) => fail = reject));
+      const disconnect = sinon.stub(MongoBackend.prototype, 'disconnect').resolves();
+      sails.config.agendaQueue.options!.connectionTimeoutMs = 25;
+      const error = await service.now('pdf', {}).then(() => undefined, err => err);
+      expect(error.message).to.equal('AgendaQueue:: Backend connection timed out.');
+      fail(new Error('required index failed after the client opened'));
+      await new Promise(resolve => setImmediate(resolve));
+      expect(disconnect.calledTwice).to.equal(true);
+      expect((service as any).agendas.mongodb).to.equal(undefined);
+    });
+
+    it('does not start processors when shutdown occurs during auxiliary index setup', async function () {
+      let finishIndexes!: () => void;
+      let indexesStarted!: () => void;
+      const entered = new Promise<void>(resolve => indexesStarted = resolve);
+      sinon.stub(service as any, 'createMongoIndexes').callsFake(() => {
+        indexesStarted();
+        return new Promise<void>(resolve => finishIndexes = resolve);
+      });
+      const disconnect = sinon.stub().resolves();
+      agenda.stop = sinon.stub().resolves();
+      (service as any).agendaBackends.set(agenda, { ownsConnection: true, disconnect });
+      await service.init();
+      const started = (service as any).handleReady().then(() => undefined, (err: Error) => err);
+      await entered;
+      const lower = (sails.on as sinon.SinonStub).getCalls().find(call => call.args[0] === 'lower')!.args[1];
+      await lower();
+      finishIndexes();
+      expect((await started)?.message).to.equal('AgendaQueue:: Queue is shutting down.');
+      expect(agenda.start.called).to.equal(false);
+      expect(disconnect.calledOnce).to.equal(true);
+    });
+
+    it('stops a processor that finishes starting after shutdown', async function () {
+      let finishStart!: () => void;
+      let startEntered!: () => void;
+      const entered = new Promise<void>(resolve => startEntered = resolve);
+      agenda.start.callsFake(() => {
+        startEntered();
+        return new Promise<void>(resolve => finishStart = resolve);
+      });
+      agenda.stop = sinon.stub().resolves();
+      const disconnect = sinon.stub().resolves();
+      (service as any).agendaBackends.set(agenda, { ownsConnection: true, disconnect });
+      await service.init();
+      const started = (service as any).handleReady().then(() => undefined, (err: Error) => err);
+      await entered;
+      const lower = (sails.on as sinon.SinonStub).getCalls().find(call => call.args[0] === 'lower')!.args[1];
+      await lower();
+      finishStart();
+      expect((await started)?.message).to.equal('AgendaQueue:: Queue is shutting down.');
+      expect(agenda.stop.calledTwice).to.equal(true);
+      expect(agenda.stop.alwaysCalledWithExactly(false)).to.equal(true);
+      expect(disconnect.calledOnce).to.equal(true);
+    });
+
     it('propagates durable enqueue failure without replaying successful requests', async function () {
       const failure = new Error('Mongo write failed');
       agenda.now.onSecondCall().rejects(failure);
