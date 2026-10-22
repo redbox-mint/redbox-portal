@@ -2314,7 +2314,7 @@ export namespace Services {
                 token: uuidHash,
               }
             );
-            return this.getObservable<UserModel[]>(q, 'exec', 'simplecb').pipe(
+            return this.getObservable<UserModel[]>(q, 'exec', 'node').pipe(
               map((updatedUsers: UserModel[]) => updatedUsers[0] ?? user)
             );
           } else {

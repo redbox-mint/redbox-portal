@@ -1025,14 +1025,40 @@ describe('UsersService', function () {
       expect(result).to.exist;
     });
 
-    it('should handle empty uuid by setting empty token', async function () {
+    it('should clear the token when revoking with an empty uuid', async function () {
       const user = { id: 'user-1', username: 'testuser', roles: [] };
       configureModelMethod(mockUser.findOne, user);
-      configureModelMethod(mockUser.update, [{ id: 'user-1', token: '' }]);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', token: null }]);
 
       const result = await UsersService.setUserKey('user-1', '').toPromise();
 
-      expect(result).to.exist;
+      expect(result).to.deep.equal({ id: 'user-1', token: null });
+      expect(mockUser.update.firstCall.args[1]).to.deep.equal({ token: null });
+    });
+
+    it('should clear the token when revoking with a null uuid', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', token: null }]);
+
+      await UsersService.setUserKey('user-1', null).toPromise();
+
+      expect(mockUser.update.firstCall.args[1]).to.deep.equal({ token: null });
+    });
+
+    it('should report a failed token update instead of acknowledging it', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, null, new Error('update rejected'));
+
+      let caught: unknown;
+      try {
+        await UsersService.setUserKey('user-1', '').toPromise();
+      } catch (error) {
+        caught = error;
+      }
+
+      expect((caught as Error)?.message).to.equal('update rejected');
     });
   });
 
