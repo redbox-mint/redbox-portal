@@ -90,8 +90,8 @@ export class UserClass {
   @Attr({ type: 'string', required: true, unique: true })
   public email!: string;
 
-  @Attr({ type: 'string' })
-  public token?: string;
+  @Attr({ type: 'string', allowNull: true })
+  public token?: string | null;
 
   @Attr({ type: 'json' })
   public additionalAttributes?: Record<string, unknown>;
