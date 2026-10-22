@@ -160,7 +160,7 @@ describe('AgendaQueueService', function () {
   });
 
   describe('routing', function () {
-    it('routes now() to the job backend', function () {
+    it('routes now() to the job backend', async function () {
       const service = new Services.AgendaQueue();
       const sqsAgenda = createAgendaStub({ attrs: { backend: 'sqs' } });
 
@@ -187,7 +187,7 @@ describe('AgendaQueueService', function () {
       });
 
       (service as any).queueInitialized = true;
-      service.now('sqs-job', { sample: true });
+      await service.now('sqs-job', { sample: true });
 
       expect(sqsAgenda.now.calledOnceWithExactly('sqs-job', { sample: true })).to.equal(true);
     });
@@ -419,18 +419,133 @@ describe('AgendaQueueService', function () {
       expect(agenda.start.called).to.equal(false);
     });
 
-    it('reuses a created backend when index initialization fails and retries', async function () {
-      const failure = new Error('index creation failed');
-      const indexes = sinon.stub(service as any, 'createMongoIndexes');
-      indexes.onFirstCall().rejects(failure);
-      indexes.resolves(undefined);
-      expect(await service.now('pdf', {}).then(() => null, error => error)).to.equal(failure);
-      expect(agenda.now.called).to.equal(false);
-      await service.now('pdf', { oid: 'retry' });
+    it('keeps durable enqueue available when an auxiliary index cannot be created', async function () {
+      const indexes = sinon.stub(service as any, 'createMongoIndexes').rejects(new Error('index options conflict'));
+      await service.now('pdf', { oid: 'one' });
+      await service.now('pdf', { oid: 'two' });
       expect(create.calledOnce).to.equal(true);
-      expect(indexes.calledTwice).to.equal(true);
-      expect(agenda.now.calledOnce).to.equal(true);
+      expect(indexes.calledOnce).to.equal(true);
+      expect(agenda.now.calledTwice).to.equal(true);
       expect(agenda.start.called).to.equal(false);
+      expect((sails.log.warn as sinon.SinonStub).calledOnce).to.equal(true);
+    });
+
+    it('retries failed processor startup on later submissions after ready', async function () {
+      agenda.start.onFirstCall().rejects(new Error('transient processor start failure'));
+      await service.init();
+      await service.now('pdf', { oid: 'bootstrap' });
+      const ready = (sails.on as sinon.SinonStub).getCalls().find(call => call.args[0] === 'ready')!.args[1];
+      await ready();
+      expect(agenda.start.calledOnce).to.equal(true);
+      await Promise.all([service.now('pdf', { oid: 'later' }), service.now('pdf', { oid: 'concurrent' })]);
+      expect(agenda.start.calledTwice).to.equal(true);
+      expect(agenda.now.callCount).to.equal(3);
+      expect(create.calledOnce).to.equal(true);
+    });
+
+    it('keeps successfully started processors when another backend needs recovery', async function () {
+      const secondary = createAgendaStub();
+      (sails.config.agendaQueue.jobs as any).other = { fnName: 'testservice.process', backend: 'sqs' };
+      create.withArgs('sqs', sinon.match.any, sinon.match.any).resolves(secondary);
+      secondary.start.onFirstCall().rejects(new Error('secondary startup failure'));
+      await (service as any).handleReady().catch(() => undefined);
+      await service.now('pdf', {});
+      expect(agenda.start.calledOnce).to.equal(true);
+      expect(secondary.start.calledTwice).to.equal(true);
+    });
+
+    it('closes owned backend connections even when stopping processors fails', async function () {
+      const disconnect = sinon.stub().resolves();
+      agenda.stop = sinon.stub().rejects(new Error('failed to unlock jobs'));
+      agenda.backend = { ownsConnection: true, disconnect };
+      (service as any).agendaBackends.set(agenda, agenda.backend);
+      await service.init();
+      await service.now('pdf', {});
+      const lower = (sails.on as sinon.SinonStub).getCalls().find(call => call.args[0] === 'lower')!.args[1];
+      await lower();
+      expect(disconnect.calledOnce).to.equal(true);
+      expect(await service.now('pdf', {}).then(() => undefined, err => err.message)).to.equal('AgendaQueue:: Queue is shutting down.');
+      expect(agenda.now.calledOnce).to.equal(true);
+    });
+
+    it('does not persist more work if processor recovery still fails', async function () {
+      const failure = new Error('processor unavailable');
+      agenda.start.rejects(failure);
+      await (service as any).handleReady().catch(() => undefined);
+      expect(await service.now('pdf', {}).then(() => undefined, err => err)).to.equal(failure);
+      expect(agenda.now.called).to.equal(false);
+    });
+
+    it('does not skip later schedules or re-submit successful startup work after a schedule fails', async function () {
+      const schedules = sails.config.agendaQueue.jobs as any;
+      schedules.pdf.schedule = { method: 'now' };
+      schedules.maintenance = { fnName: 'testservice.process', schedule: { method: 'every', intervalOrSchedule: '5 minutes' } };
+      agenda.now.onFirstCall().rejects(new Error('temporary schedule write failure'));
+      await (service as any).handleReady();
+      expect(agenda.every.calledOnce).to.equal(true);
+      expect((sails.log.error as sinon.SinonStub).calledWithMatch("AgendaQueue:: Failed to configure startup schedule 'pdf':")).to.equal(true);
+      await service.now('pdf', { oid: 'ordinary-request' });
+      expect(agenda.every.calledOnce).to.equal(true);
+      expect(agenda.start.calledOnce).to.equal(true);
+    });
+
+    for (const ownsConnection of [true, false]) {
+      it(`preserves Figshare-admin production without processors and cleans up owned=${ownsConnection} connections`, async function () {
+        const previous = process.env.REDBOX_FIGSHARE_ADMIN;
+        process.env.REDBOX_FIGSHARE_ADMIN = 'true';
+        const disconnect = sinon.stub().resolves();
+        agenda.stop = sinon.stub().resolves();
+        agenda.backend = { ownsConnection, disconnect };
+        (service as any).agendaBackends.set(agenda, agenda.backend);
+        try {
+          await service.init();
+          await service.now('pdf', { oid: 'admin-import' });
+          await (service as any).handleReady();
+          expect(agenda.now.calledOnce).to.equal(true);
+          expect(agenda.start.called).to.equal(false);
+          const lower = (sails.on as sinon.SinonStub).getCalls().find(call => call.args[0] === 'lower')!.args[1];
+          await lower();
+          expect(agenda.stop.calledOnceWithExactly(false)).to.equal(true);
+          expect(disconnect.callCount).to.equal(ownsConnection ? 1 : 0);
+        } finally {
+          if (previous === undefined) delete process.env.REDBOX_FIGSHARE_ADMIN;
+          else process.env.REDBOX_FIGSHARE_ADMIN = previous;
+        }
+      });
+    }
+
+    it('rejects and discards a real MongoBackend connection failure, then retries with a fresh Agenda', async function () {
+      create.restore();
+      const { MongoBackend } = await import('@agendajs/mongo-backend');
+      const { Agenda } = await import('agenda');
+      const failure = new Error('real backend connection failure');
+      const connect = sinon.stub(MongoBackend.prototype, 'connect').rejects(failure);
+      const disconnect = sinon.stub(MongoBackend.prototype, 'disconnect').resolves();
+      expect(await service.now('pdf', {}).then(() => undefined, err => err)).to.equal(failure);
+      await new Promise(resolve => setImmediate(resolve));
+      expect((service as any).agendas.mongodb).to.equal(undefined);
+      expect(disconnect.calledOnce).to.equal(true);
+      connect.resolves();
+      const saved = sinon.stub(Agenda.prototype, 'now').resolves({} as any);
+      await service.now('pdf', { oid: 'retry' });
+      await (service as any).agendas.mongodb.ready;
+      expect(connect.calledTwice).to.equal(true); // Exactly one connect per backend, no constructor reconnect.
+      expect(saved.calledOnce).to.equal(true);
+    });
+
+    it('bounds a stalled MongoBackend connection and closes it if it completes late', async function () {
+      create.restore();
+      const { MongoBackend } = await import('@agendajs/mongo-backend');
+      let finish!: () => void;
+      sinon.stub(MongoBackend.prototype, 'connect').returns(new Promise(resolve => finish = resolve));
+      const disconnect = sinon.stub(MongoBackend.prototype, 'disconnect').resolves();
+      sails.config.agendaQueue.options!.connectionTimeoutMs = 25;
+      const error = await service.now('pdf', {}).then(() => undefined, err => err);
+      expect(error.message).to.equal('AgendaQueue:: Backend connection timed out.');
+      expect((service as any).agendas.mongodb).to.equal(undefined);
+      finish();
+      await new Promise(resolve => setImmediate(resolve));
+      expect(disconnect.calledTwice).to.equal(true); // Immediate cleanup plus late connection cleanup.
     });
 
     it('propagates durable enqueue failure without replaying successful requests', async function () {
@@ -604,13 +719,10 @@ describe('AgendaQueueService', function () {
       const sqsAgenda = createAgendaStub({ attrs: { backend: 'sqs' } });
       sinon.stub(service as any, 'createAgendaForBackend').withArgs('sqs', sinon.match.any, sinon.match.any).resolves(sqsAgenda);
 
-      try {
-        await (service as any).handleReady();
-        throw new Error('Expected startup schedule validation to throw');
-      } catch (error) {
-        expect(error).to.be.instanceOf(AgendaQueueUnsupportedFeatureError);
-        expect((error as Error).message).to.equal("AgendaQueue:: every() is not supported for SQS-backed job 'sqs-recurring-job'. Use an external scheduler for SQS-backed recurring jobs.");
-      }
+      await (service as any).handleReady();
+      expect(sqsAgenda.start.calledOnce).to.equal(true);
+      expect((sails.log.error as sinon.SinonStub).calledWithMatch("AgendaQueue:: Failed to configure startup schedule 'sqs-recurring-job':")).to.equal(true);
+      expect(sqsAgenda.every.called).to.equal(false);
     });
   });
 });

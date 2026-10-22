@@ -437,17 +437,23 @@ export namespace Services {
           triggerConfiguration: triggerConfiguration,
           user: user
         };
-        this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'queued' });
         // Bootstrap can persist jobs before Sails ready; the queue owns processor startup.
         // Cache one submission per call so multiple subscriptions cannot enqueue it twice.
+        // Unsubscribing cannot cancel persistence: do not configure timeout retries without deduplication.
         let submission: Promise<unknown> | undefined;
         return defer(() => {
-          submission ??= Promise.resolve().then(() => {
+          submission ??= Promise.resolve().then(async () => {
+            this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'enqueueing' });
             this.queueService ??= sails.services[sails.config.queue.serviceName] as unknown as QueueService;
             if (!this.queueService || typeof this.queueService.now !== 'function') {
               throw new Error(`RDMPService:: Queue service '${sails.config.queue.serviceName}' is unavailable.`);
             }
-            return this.queueService.now(jobName, queueMessage);
+            const queued = await this.queueService.now(jobName, queueMessage);
+            this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'enqueued' });
+            return queued;
+          }).catch(error => {
+            this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'enqueue-failed' }, [error]);
+            throw error;
           });
           return from(submission).pipe(map(() => record));
         });
