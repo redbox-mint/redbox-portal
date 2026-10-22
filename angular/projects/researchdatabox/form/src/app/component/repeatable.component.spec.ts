@@ -576,7 +576,7 @@ describe('RepeatableComponent', () => {
     const valueEvents: any[] = [];
     const subscription = TestBed.inject(FormComponentEventBus)
       .select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
-        if (event.fieldId?.startsWith('/creators')) {
+        if (event.sourceId === '*' && event.fieldId?.startsWith('/creators')) {
           valueEvents.push(event);
           // A derived field must never see the partly rebuilt array. This is
           // the same input read used by scoped citation behaviours.
@@ -601,6 +601,19 @@ describe('RepeatableComponent', () => {
       expect(Array.from(inputs as NodeListOf<HTMLInputElement>).map(input => input.value))
         .toEqual(['Researcher', 'Alex', 'Alex Researcher', 'Vale', 'Nora', 'Nora Vale']);
 
+      // Hydration must also establish the child's change-event baseline.
+      // Clearing back to the template default is a real change after sync.
+      form.get('creators.1.text_full_name')!.setValue(null);
+      await fixture.whenStable();
+      const cleared = valueEvents.filter(event => event.fieldId === '/creators/1/text_full_name');
+      expect(cleared.length).toBe(1);
+      expect(cleared[0]?.previousValue).toBe('Nora Vale');
+      expect(cleared[0]?.value).toBeNull();
+      form.get('creators.1.text_full_name')!.setValue('Nora Vale');
+      await fixture.whenStable();
+      expect(valueEvents.filter(event => event.fieldId === '/creators/1/text_full_name').at(-1)?.previousValue).toBeNull();
+      valueEvents.length = 0;
+
       // Ordinary author operations must still publish complete row values.
       const third = {family_name: 'Quill', given_name: 'Emil', text_full_name: null};
       await repeatable.appendNewElement(third);
@@ -610,6 +623,60 @@ describe('RepeatableComponent', () => {
       expect(repeatable.model?.getValue()).toEqual([...server.creators, third]);
     } finally {
       subscription.unsubscribe();
+    }
+  });
+
+  it('initializes nested repeatables without publishing values from detached outer rows', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'nested_repeatable_initialization',
+      componentDefinitions: [{
+        name: 'creators',
+        model: {class: 'RepeatableModel', config: {value: []}},
+        component: {class: 'RepeatableComponent', config: {
+          allowZeroRows: true,
+          elementTemplate: {
+            name: '',
+            model: {class: 'GroupModel', config: {}},
+            component: {class: 'GroupComponent', config: {componentDefinitions: [{
+              name: 'affiliations',
+              model: {class: 'RepeatableModel', config: {value: []}},
+              component: {class: 'RepeatableComponent', config: {
+                allowZeroRows: true,
+                elementTemplate: {
+                  name: '',
+                  model: {class: 'SimpleInputModel', config: {}},
+                  component: {class: 'SimpleInputComponent'},
+                },
+              }},
+            }]}},
+          },
+        }},
+      }],
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    const observed: any[] = [];
+    const sub = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+        if (event.sourceId === '*' && event.fieldId?.startsWith('/creators')) {
+          observed.push({event, creators: structuredClone(formComponent.form!.getRawValue().creators)});
+        }
+      });
+    try {
+      const row = {affiliations: ['University A', 'University B']};
+      await repeatable.appendNewElement(row);
+      await fixture.whenStable();
+      expect(repeatable.model?.getValue()).toEqual([row]);
+      expect(observed.length).toBeGreaterThan(0);
+      expect(observed.every(item => item.creators.length === 1)).toBeTrue();
+      expect(observed.map(item => item.event.fieldId)).toEqual(['/creators']);
+      formComponent.form!.get('creators.0.affiliations.0')!.setValue(null);
+      await fixture.whenStable();
+      const childEvent = observed.find(item => item.event.fieldId === '/creators/0/affiliations/0')?.event;
+      expect(childEvent?.previousValue).toBe('University A');
+      expect(childEvent?.value).toBeNull();
+    } finally {
+      sub.unsubscribe();
     }
   });
 

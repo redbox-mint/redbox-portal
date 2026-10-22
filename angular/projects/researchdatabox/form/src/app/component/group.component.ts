@@ -26,7 +26,6 @@ import {
   isUndefined as _isUndefined,
 } from "lodash-es";
 import { FormBaseWrapperComponent } from "./base-wrapper.component";
-import { RepeatableComponent } from './repeatable.component';
 import { syncComponentDisplayFromModel } from '../form-state/custom-display-sync.control';
 import { setControlValue } from '../form-state/custom-set-value.control';
 
@@ -163,26 +162,22 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
+      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
+      const elemVal = elemVals?.[key];
+      const childModel = elemFieldEntry?.model;
+      if (includeInFormControlMap && childModel && !_isUndefined(elemVal)) {
+        // Seed before wrapper initialization binds change producers. Besides
+        // avoiding detached-row events, this gives each producer the saved
+        // value as its baseline (so a later clear to null is still a change).
+        childModel.initValue = elemVal;
+        if (childModel.formControl && !('controls' in childModel.formControl)) {
+          childModel.setValue(elemVal as never, {emitEvent: false});
+        }
+      }
       const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
 
-      // Populate the component model if it has one.
       const hasModel = this.model?.formControl && compInstance?.model;
-      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
       if (hasModel && includeInFormControlMap) {
-        const elemVal = elemVals?.[key];
-        if (compInstance?.model && !_isUndefined(elemVal)) {
-          if (compInstance instanceof RepeatableComponent && Array.isArray(elemVal) && compInstance.formFieldCompMapEntries.length === 0) {
-            for (const repeatableValue of elemVal) {
-              await compInstance.appendNewElement(repeatableValue, false);
-            }
-          } else {
-            // The group is still being constructed and may not yet belong to
-            // its parent repeatable. Publishing a child change here lets
-            // behaviours read an incomplete parent value during server sync.
-            // Initial form-ready / parent append events announce the ready value.
-            compInstance.model.setValue(elemVal as never, {emitEvent: false});
-          }
-        }
         this.model.addItem(key, compInstance.model);
         await syncComponentDisplayFromModel(compInstance);
       } else if (

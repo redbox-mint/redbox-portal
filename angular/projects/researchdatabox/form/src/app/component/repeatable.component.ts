@@ -248,7 +248,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     for (const elementValue of elemVals) {
-      await this.appendNewElement(elementValue, false);
+      // Nested repeatables may still belong to a detached group row. Initial
+      // values are announced by form-ready or the completed parent append.
+      await this.appendNewElement(elementValue, false, {emitEvent: false});
     }
 
     this.setupSyncSourceSubscriptions();
