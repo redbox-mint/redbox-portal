@@ -39,6 +39,7 @@ describe('PDFService Unit Tests', () => {
     mockPage = {
       setRequestInterception: sinon.stub().resolves(),
       on: sinon.stub(),
+      emulateMediaType: sinon.stub().resolves(),
       mainFrame: sinon.stub().returns({}),
       url: sinon.stub().callsFake(() => mockPage.goto.lastCall.args[0]),
       goto: sinon.stub().callsFake(async (url: string) => navigationResponse(url)),
@@ -502,6 +503,42 @@ describe('PDFService Unit Tests', () => {
 
     expect(mockPage.waitForNetworkIdle.called).to.be.true;
     expect(globalAny.sails.log.warn.calledWithMatch(/Unknown readinessStrategy/)).to.be.true;
+  });
+
+  it('awaits print media before loading and waiting for the printable form', async () => {
+    let finishEmulation!: () => void;
+    mockPage.emulateMediaType.returns(new Promise<void>((resolve) => {
+      finishEmulation = resolve;
+    }));
+    const generation = Effect.runPromise(pdfService.attemptPDFGeneration(
+      'oid-print', { metaMetadata: { brandId: 1 } },
+      { readinessStrategy: 'networkIdle+selector', waitForSelector: '#ready' },
+      { name: 'default' }, 1
+    ));
+
+    await waitForAssertion(() => {
+      expect(mockPage.emulateMediaType.calledOnceWithExactly('print')).to.be.true;
+    });
+    expect(mockPage.goto.called).to.be.false;
+    expect(mockPage.waitForNetworkIdle.called).to.be.false;
+    finishEmulation();
+    await generation;
+
+    sinon.assert.callOrder(mockPage.emulateMediaType, mockPage.goto,
+      mockPage.waitForNetworkIdle, mockPage.waitForSelector, mockPage.pdf);
+  });
+
+  it('cleans up without rendering if print media cannot be prepared', async () => {
+    mockPage.emulateMediaType.rejects(new Error('Print emulation failed'));
+    const exit = await Effect.runPromiseExit(pdfService.attemptPDFGeneration(
+      'oid-print-failed', { metaMetadata: { brandId: 1 } }, {}, { name: 'default' }, 1
+    ));
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.goto.called).to.be.false;
+    expect(mockPage.pdf.called).to.be.false;
+    expect(mockPage.close.calledOnce).to.be.true;
+    expect(mockBrowser.close.calledOnce).to.be.true;
   });
 
   it('should use selector strategy', async () => {
