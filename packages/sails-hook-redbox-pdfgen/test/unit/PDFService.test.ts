@@ -535,6 +535,10 @@ describe('PDFService Unit Tests', () => {
     ));
 
     expect(exit._tag).to.equal('Failure');
+    const failure = Cause.failureOption(exit.cause);
+    expect(failure._tag).to.equal('Some');
+    expect(failure.value._tag).to.equal('BrowserError');
+    expect(failure.value.cause.message).to.equal('Print emulation failed');
     expect(mockPage.goto.called).to.be.false;
     expect(mockPage.pdf.called).to.be.false;
     expect(mockPage.close.calledOnce).to.be.true;
