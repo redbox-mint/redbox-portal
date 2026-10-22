@@ -137,7 +137,7 @@ export interface UserAttributes extends Sails.WaterlineAttributes {
   password?: string;
   roles?: unknown[];
   surname?: string;
-  token?: string;
+  token?: string | null;
   type: string;
   username: string;
   effectivePrimaryUsername?: string;
