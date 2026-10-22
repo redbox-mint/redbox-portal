@@ -169,6 +169,11 @@ export function contentSecurityPolicy(req: Sails.Req, res: Sails.Res, next: Sail
         imgSrc.add('https://cdn.redoc.ly');
         directives['img-src'] = Array.from(imgSrc);
 
+        // Redoc 3 inlines its icon font as a data: URI.
+        const fontSrc = new Set([...(directives['font-src'] ?? [])]);
+        fontSrc.add('data:');
+        directives['font-src'] = Array.from(fontSrc);
+
         const workerSrc = new Set([...(directives['worker-src'] ?? [])]);
         workerSrc.add('blob:');
         directives['worker-src'] = Array.from(workerSrc);
