@@ -1,0 +1,18 @@
+{
+  "name": "ordering-shapes-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/progress-persistence.test.ts --grep \"refuses trailing progress\"",
+  "sourceCommit": "8304b61e05946458fc9f970654091402a0825c93",
+  "exitCode": 1,
+  "durationMs": 2469,
+  "sha256": "81a095a5668139bd33e93d9f9aa4547066d58346cf8b349f2325d26e09fbf5d9",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

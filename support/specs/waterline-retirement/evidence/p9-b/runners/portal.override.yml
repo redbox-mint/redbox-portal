@@ -1,0 +1,30 @@
+services:
+  redboxportal-mount:
+    image: node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+    working_dir: /opt/redbox-portal
+    mem_limit: 3g
+    environment:
+      NODE_OPTIONS: '--max-old-space-size=2048 --no-experimental-strip-types'
+      TS_NODE_PROJECT: /opt/redbox-portal/tsconfig.json
+      TS_NODE_TRANSPILE_ONLY: 'true'
+      TS_NODE_COMPILER_OPTIONS: '{"module":"commonjs","moduleResolution":"node","esModuleInterop":true}'
+    entrypoint: ['bash', '/opt/redbox-portal/.tmp/wrp9/portal-entry.sh']
+  mongodb:
+    pull_policy: never
+    mem_limit: 1536m
+    command: ['mongod', '--bind_ip_all', '--wiredTigerCacheSizeGB', '0.25']
+  solr:
+    pull_policy: never
+    mem_limit: 1g
+    environment:
+      SOLR_HEAP: 384m
+  keycloak:
+    pull_policy: never
+    mem_limit: 1g
+    environment:
+      JAVA_OPTS_KC_HEAP: '-Xms128m -Xmx512m'
+  email:
+    pull_policy: never
+    volumes: !override []
+    environment:
+      MP_DATABASE: /tmp/mail.db

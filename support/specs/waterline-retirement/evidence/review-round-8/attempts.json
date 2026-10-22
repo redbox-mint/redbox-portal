@@ -1,0 +1,80 @@
+{
+  "notes": [
+    "Expected failing-before cases are listed in fix-validation.json, separate from accepted final results.",
+    "Additional early scalar probe seed used an invalid boolean fixture; fixed to a valid seed before retained comparisons.",
+    "No timeout, healthcheck, assertion, skip or performance budget was relaxed.",
+    "Raw logs remain ignored. Compact result files preserve exact commands, exit codes, durations and raw SHA256."
+  ],
+  "supersededOrExploratory": [
+    {
+      "resultFile": "results/fresh-bruno-first.json",
+      "exitCode": 1,
+      "disposition": "The first fresh general Bruno run bailed at valid 21884-byte font upload (413,52requests passed). The response came from unchanged branding upload/decoder code outside the programme range. Its two-second worker budget and broad exceeded-error classification are consistent with the2174ms response, but the original decoder error was not logged, so this is an inference. Preserve this failed attempt and loaded-runtime hashes. Re-run the entire stock fresh-volume Bruno suite unchanged; no budget, assertion or test fixture is relaxed."
+    },
+    {
+      "resultFile": "results/core-tests-first-matrix.json",
+      "exitCode": 2,
+      "disposition": "The initial full core pass caught the new eager native attempts collection acquisition on empty cleanup, plus a source-import timeout under concurrent parent runtime probes. Restored baseline lazy acquisition in2844ceeac, retained the existing privacy test and unchanged startup timeout, then restarted all required checks serially at final source. The interrupted storage attempt had no completed result and is excluded."
+    },
+    {
+      "resultFile": "results/migration-query-boundary-before.json",
+      "exitCode": 1,
+      "disposition": "The first extended ledger query probe mistakenly seeded an empty required migration name. Corrected seed data; four genuine null/empty query mismatches remain in corrected-probe and pass after9ecc9003a."
+    },
+    {
+      "resultFile": "results/id-values-before.json",
+      "exitCode": 1,
+      "disposition": "The first primary-ID patch probe passed Mongo7 BSON values through the retained Waterline manager driver. This caused artificial cross-driver BSON failures. Repeated actual writes on the official Mongo7 client; accepted official-driver-before proves76 real missing-ID-validation differences."
+    },
+    {
+      "resultFile": "results/recordtype-selection-before.json",
+      "exitCode": 1,
+      "disposition": "Exploratory custom-select comparison encountered schema:false Waterline refusals and its mutation of caller select arrays. Retained wildcard/null/omitted loaded comparisons use independent cloned criteria. Existing explicit DTO projection remains a previously qualified contract, covered by reference-contract; no runtime assertion was relaxed."
+    },
+    {
+      "resultFile": "results/attachment-values-before.json",
+      "exitCode": 1,
+      "disposition": "Discarded harness comparator used JSON.stringify, treating object-key order as inequality. Corrected to structural DTO comparison. Actual baseline 700 checks pass before consolidation and after. This is not a production defect."
+    },
+    {
+      "resultFile": "results/id-mappings-before.json",
+      "exitCode": 143,
+      "disposition": "Discarded multi-Sails probe reused the installed sails-mongo registry. It was stopped and trap-cleaned; the retained probe uses a fresh child process per real loaded declaration. Accepted before-isolated reproduces 17 refusals missing."
+    },
+    {
+      "resultFile": "results/job-queries-validation.json",
+      "exitCode": 2,
+      "disposition": "Partial query patch omitted the still-required scalar import in NamedQueryExecution. Compiler caught it; restored required import before accepted build."
+    },
+    {
+      "resultFile": "results/job-queries-final-validation.json",
+      "exitCode": 1,
+      "disposition": "Partial query patch missed the multiline events .find spread;22cases still failed. Corrected the missed query and reran466+160comparisons without relaxing assertions."
+    },
+    {
+      "resultFile": "results/pages-validation.json",
+      "exitCode": 1,
+      "disposition": "First pagination patch validated skip before zero-page shortcircuit. Loaded Waterline proves skip is irrelevant to limit0; shared normalizer was corrected. Final648cases pass."
+    },
+    {
+      "resultFile": "results/native-values-validation.json",
+      "exitCode": 2,
+      "disposition": "Compiler caught a too-broad structural sort(object) signature for Mongo7. Narrowed to the actual used sort direction record; no driver type escaped the concrete adapter."
+    },
+    {
+      "resultFile": "results/siem-native-values-before.json",
+      "exitCode": 1,
+      "disposition": "Probe originally reused event IDs between cases and could confuse reads. Repeated with isolated unique IDs; accepted before-isolated retains four real native patch differences."
+    },
+    {
+      "resultFile": "results/attachment-shared-complete-validation.json",
+      "exitCode": 1,
+      "disposition": "The shared scalar checker allowed RTTC invalid-Date output null for a string, whereas the old audit encoder checked final type. Existing staged contract caught this attempt. Shared final scalar type guard preserves the finite boundary; final700+211pass."
+    },
+    {
+      "resultFile": "results/pre-matrix-files.json",
+      "exitCode": 1,
+      "disposition": "Optional formatter comparison was too strict for already unformatted legacy preflight/index source. Kept required lint, typechecks and syntax; existing legacy formatting is reported instead of cosmetically rewriting those files. Newly formatted files are still checked."
+    }
+  ]
+}

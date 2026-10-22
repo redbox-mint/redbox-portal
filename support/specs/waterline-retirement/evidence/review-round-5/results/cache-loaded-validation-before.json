@@ -1,0 +1,18 @@
+{
+  "name": "cache-loaded-validation-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts --grep \"loaded name validation\"",
+  "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+  "exitCode": 1,
+  "durationMs": 1284,
+  "sha256": "5a5379d33986d23c84b3ab3915ac9ae03b9e5d4f315049d0a8019f203d772da3",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

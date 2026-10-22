@@ -1,0 +1,187 @@
+Dynamic imports imported
+Capture AttachmentAccessAudit
+Capture AttachmentMetadata
+
+Warning: After transforming columnNames back to attribute names for model `attachmentmetadata`,
+ a record in the result has a value of `null` for property `operation`.
+Since the `operation` attribute declares `type: 'string'`,
+without ALSO declaring `allowNull: true`, this `null` value is unexpected.
+(To resolve, either change this attribute to `allowNull: true` or update
+existing records in the database accordingly.)
+
+> You are seeing this warning because there are records in your database that don't
+> match up with your models.  This is often the result of a model definition being
+> changed without also migrating leftover data.  But it could also be because records
+> were added or modified in your database from somewhere outside of Sails/Waterline
+> (e.g. phpmyadmin, or another app).  In either case, to make this warning go away,
+> you have a few options.  First of all, you could change your model definition so
+> that it matches the existing records in your database.  Or you could update/destroy
+> the old records in your database; either by hand, or using a migration script.
+>
+> (For example, to wipe all data, you might just use `migrate: drop`.)
+>
+> More rarely, this warning could mean there is a bug in the adapter itself.  If you
+> believe that is the case, then please contact the maintainer of this adapter by opening
+> an issue, or visit http://sailsjs.com/support for help.
+
+
+Warning: After transforming columnNames back to attribute names for model `attachmentmetadata`,
+ a record in the result has a value of `null` for property `mutationState`.
+Since the `mutationState` attribute declares `type: 'string'`,
+without ALSO declaring `allowNull: true`, this `null` value is unexpected.
+(To resolve, either change this attribute to `allowNull: true` or update
+existing records in the database accordingly.)
+
+> You are seeing this warning because there are records in your database that don't
+> match up with your models.  This is often the result of a model definition being
+> changed without also migrating leftover data.  But it could also be because records
+> were added or modified in your database from somewhere outside of Sails/Waterline
+> (e.g. phpmyadmin, or another app).  In either case, to make this warning go away,
+> you have a few options.  First of all, you could change your model definition so
+> that it matches the existing records in your database.  Or you could update/destroy
+> the old records in your database; either by hand, or using a migration script.
+>
+> (For example, to wipe all data, you might just use `migrate: drop`.)
+>
+> More rarely, this warning could mean there is a bug in the adapter itself.  If you
+> believe that is the case, then please contact the maintainer of this adapter by opening
+> an issue, or visit http://sailsjs.com/support for help.
+
+Capture AppConfig
+Capture AsynchProgress
+Capture BrandingConfig
+Capture BrandingConfigHistory
+Capture CacheEntry
+Capture Counter
+Capture DashboardConfiguration
+Capture DashboardType
+Capture FigshareVocabularyCategory
+Capture FigshareVocabularyCrosswalk
+Capture FigshareVocabularyCrosswalkMapping
+Capture FigshareVocabularySource
+Capture FigshareVocabularySyncRun
+Capture FigshareSync
+Capture Form
+Capture HarvestRecordEvent
+Capture HarvestRun
+Capture HarvestRunChunk
+Capture I18nBundle
+Capture I18nTranslation
+Capture Migration
+Capture NamedQuery
+Capture PathRule
+Capture RecordType
+Capture RBReport
+Capture Role
+Capture SecurityEvent
+Capture SiemDeliveryAttempt
+Capture ThemeConfig
+Capture User
+Capture UserLink
+Capture UserAudit
+Capture Vocabulary
+Capture VocabularyEntry
+Capture WorkflowStep
+Capture WorkspaceApp
+Capture WorkspaceAsync
+Capture WorkspaceType
+Capture Record
+Capture DeletedRecord
+Capture RecordAudit
+Capture IntegrationAudit
+Capture RecordSchemaArtifact
+Capture RecordSchemaReference
+
+Warning: After transforming columnNames back to attribute names for model `attachmentmetadata`,
+ a record in the result has a value of `null` for property `operation`.
+Since the `operation` attribute declares `type: 'string'`,
+without ALSO declaring `allowNull: true`, this `null` value is unexpected.
+(To resolve, either change this attribute to `allowNull: true` or update
+existing records in the database accordingly.)
+
+> You are seeing this warning because there are records in your database that don't
+> match up with your models.  This is often the result of a model definition being
+> changed without also migrating leftover data.  But it could also be because records
+> were added or modified in your database from somewhere outside of Sails/Waterline
+> (e.g. phpmyadmin, or another app).  In either case, to make this warning go away,
+> you have a few options.  First of all, you could change your model definition so
+> that it matches the existing records in your database.  Or you could update/destroy
+> the old records in your database; either by hand, or using a migration script.
+>
+> (For example, to wipe all data, you might just use `migrate: drop`.)
+>
+> More rarely, this warning could mean there is a bug in the adapter itself.  If you
+> believe that is the case, then please contact the maintainer of this adapter by opening
+> an issue, or visit http://sailsjs.com/support for help.
+
+
+Warning: After transforming columnNames back to attribute names for model `attachmentmetadata`,
+ a record in the result has a value of `null` for property `mutationState`.
+Since the `mutationState` attribute declares `type: 'string'`,
+without ALSO declaring `allowNull: true`, this `null` value is unexpected.
+(To resolve, either change this attribute to `allowNull: true` or update
+existing records in the database accordingly.)
+
+> You are seeing this warning because there are records in your database that don't
+> match up with your models.  This is often the result of a model definition being
+> changed without also migrating leftover data.  But it could also be because records
+> were added or modified in your database from somewhere outside of Sails/Waterline
+> (e.g. phpmyadmin, or another app).  In either case, to make this warning go away,
+> you have a few options.  First of all, you could change your model definition so
+> that it matches the existing records in your database.  Or you could update/destroy
+> the old records in your database; either by hand, or using a migration script.
+>
+> (For example, to wipe all data, you might just use `migrate: drop`.)
+>
+> More rarely, this warning could mean there is a bug in the adapter itself.  If you
+> believe that is the case, then please contact the maintainer of this adapter by opening
+> an issue, or visit http://sailsjs.com/support for help.
+
+
+Warning: After transforming columnNames back to attribute names for model `attachmentmetadata`,
+ a record in the result has a value of `null` for property `operation`.
+Since the `operation` attribute declares `type: 'string'`,
+without ALSO declaring `allowNull: true`, this `null` value is unexpected.
+(To resolve, either change this attribute to `allowNull: true` or update
+existing records in the database accordingly.)
+
+> You are seeing this warning because there are records in your database that don't
+> match up with your models.  This is often the result of a model definition being
+> changed without also migrating leftover data.  But it could also be because records
+> were added or modified in your database from somewhere outside of Sails/Waterline
+> (e.g. phpmyadmin, or another app).  In either case, to make this warning go away,
+> you have a few options.  First of all, you could change your model definition so
+> that it matches the existing records in your database.  Or you could update/destroy
+> the old records in your database; either by hand, or using a migration script.
+>
+> (For example, to wipe all data, you might just use `migrate: drop`.)
+>
+> More rarely, this warning could mean there is a bug in the adapter itself.  If you
+> believe that is the case, then please contact the maintainer of this adapter by opening
+> an issue, or visit http://sailsjs.com/support for help.
+
+
+Warning: After transforming columnNames back to attribute names for model `attachmentmetadata`,
+ a record in the result has a value of `null` for property `mutationState`.
+Since the `mutationState` attribute declares `type: 'string'`,
+without ALSO declaring `allowNull: true`, this `null` value is unexpected.
+(To resolve, either change this attribute to `allowNull: true` or update
+existing records in the database accordingly.)
+
+> You are seeing this warning because there are records in your database that don't
+> match up with your models.  This is often the result of a model definition being
+> changed without also migrating leftover data.  But it could also be because records
+> were added or modified in your database from somewhere outside of Sails/Waterline
+> (e.g. phpmyadmin, or another app).  In either case, to make this warning go away,
+> you have a few options.  First of all, you could change your model definition so
+> that it matches the existing records in your database.  Or you could update/destroy
+> the old records in your database; either by hand, or using a migration script.
+>
+> (For example, to wipe all data, you might just use `migrate: drop`.)
+>
+> More rarely, this warning could mean there is a bug in the adapter itself.  If you
+> believe that is the case, then please contact the maintainer of this adapter by opening
+> an issue, or visit http://sailsjs.com/support for help.
+
+Standalone transaction rejection: {"ok":false,"name":"MongoServerError","code":null,"message":"This MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string."}
+PASS: 46 models, junction, callbacks, JSON, transactions, native storage/indexes/locks and Prisma probes. MongoDB 8.0.34

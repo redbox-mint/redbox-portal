@@ -1,0 +1,38 @@
+[
+  {
+    "axis": "Standards",
+    "taskId": "node:delegated-task:command%3Amcp%3Aef9ff050-0ffb-4d0d-82f4-29d78fb46177%3Adelegate-task%3Awaterline-r5-standards",
+    "status": "completed",
+    "model": "gpt-6.1-sol",
+    "providerInstanceId": "codex_hattie",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "- **P2 — Action failure releases a pending session write.** [requestLifetime.ts:113](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/middleware/requestLifetime.ts:113) clears `callbackPending` on rejection, including when `redboxSession` set it to retain an unfinished save/touch/destroy. If an action calls `res.end()`, then rejects while the session callback is pending, a closed connection allows shutdown to close the store prematurely. A read-only reproduction using Express and a delayed MemoryStore save confirmed `beforeShutdown` completed with `saveComplete === false`. This leaves the round-four shutdown fix incomplete and breaches CONTRIBUTING.md’s requirement to preserve existing functionality. Track session completion separately from action failure, and cover rejection/throw after response handoff in the regression tests."
+  },
+  {
+    "axis": "Spec",
+    "taskId": "node:delegated-task:command%3Amcp%3Aef9ff050-0ffb-4d0d-82f4-29d78fb46177%3Adelegate-task%3Awaterline-r5-spec",
+    "status": "completed",
+    "model": "gpt-6.1-sol",
+    "providerInstanceId": "codex_hattie",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "Two **P2 findings**, reproduced with real HTTP connections and controlled session-store callbacks:\n\n1. **Disconnect during session loading bypasses draining.** [requestLifetime.ts:33](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/middleware/requestLifetime.ts:33) initializes `callbackPending=false`; nothing owns express-session’s initial `store.get()`. Hold that lookup, abort the HTTP client, then invoke `beforeShutdown`: shutdown completes and closes the store before the lookup callback returns. This violates [design.md:530](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/design.md:530), “Stop users before close,” and P10.6’s completed draining requirement. Track middleware initialization until its callback or synchronous failure, independently of transport completion.\n\n2. **Action rejection cancels ownership of a pending session save.** [requestLifetime.ts:114](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/middleware/requestLifetime.ts:114) unconditionally clears `callbackPending` when an action rejects. Reproduce with an async action that modifies its session, calls `res.end()` with `store.set()` held, then awaits a promise. Abort the client, begin shutdown, and reject that promise: shutdown closes the store while the save callback remains pending. The rejection removes the handoff added by round 4. This violates the same [shutdown ordering requirement](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/design.md:530). Give session callbacks separate ownership so handler failure cannot release them.\n\nNo files edited, Docker suites run, delegation, or push."
+  }
+]

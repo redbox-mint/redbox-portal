@@ -1,0 +1,16 @@
+{
+  "command": "npm run test:core",
+  "exitCode": 1,
+  "durationMs": 108461,
+  "rawBytes": 359715,
+  "sha256": "dd7701269f821fa70342796f548a4d270f0d2c1b9d55e34f777846dee0d68425",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {
+    "passing": 4158,
+    "pending": 113,
+    "failing": 1
+  },
+  "checks": [],
+  "passGroups": 0,
+  "failureExcerpt": "  createAgendaForBackend\n    \u2714 preserves explicit zero lock lifetime and processEvery values in agenda options\nDynamic imports imported\n\n\n  4158 passing (2m)\n  113 pending\n  1 failing\n\n  1) startup module loading\n       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:\n     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT\n\nnull !== 0\n\n      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:45:12)\n      at processImmediate (node:internal/timers:504:21)\n\n\n"
+}

@@ -1,0 +1,3557 @@
+{
+  "sourceCommit": "fb37b37d119a484c96818560cf8a853417c1ec99",
+  "reviewedSurfaces": [
+    {
+      "surface": "dynamic",
+      "file": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/home-panels-editor/home-panels-editor.type.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        67
+      ],
+      "disposition": "UI form model/property false positive; no server ORM access"
+    },
+    {
+      "surface": "dynamic",
+      "file": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/menu-editor/menu-editor.type.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        56
+      ],
+      "disposition": "UI form model/property false positive; no server ORM access"
+    },
+    {
+      "surface": "dynamic",
+      "file": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/value-binding-editor/value-binding-editor.type.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        447,
+        456,
+        463
+      ],
+      "disposition": "UI form model/property false positive; no server ORM access"
+    },
+    {
+      "surface": "dynamic",
+      "file": "api/migrations/20260904000000-branding-typeface-backfill.js",
+      "category": "migration",
+      "lines": [
+        228,
+        229,
+        268,
+        272
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "dynamic",
+      "file": "api/migrations/20261014T000000-admin-sidebar-text-color.js",
+      "category": "migration",
+      "lines": [
+        37,
+        40
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/index.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        185
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/loader/MigrationRunner.ts",
+      "category": "migration",
+      "lines": [
+        41
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/loader/index.ts",
+      "category": "loader/shim",
+      "lines": [
+        207,
+        277,
+        759,
+        761,
+        785,
+        787
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/persistence/cache/WaterlineCacheEntryRepository.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        19,
+        50
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/persistence/cache/configuration.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        38
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/services/AppConfigSecrets.ts",
+      "category": "service",
+      "lines": [
+        140
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/services/DashboardConfigService.ts",
+      "category": "service",
+      "lines": [
+        787
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/services/NamedQueryService.ts",
+      "category": "service",
+      "lines": [
+        211,
+        232,
+        492,
+        548,
+        572
+      ],
+      "disposition": "R scoped query executor; aliases/discovery/native storage/related filters; institution stored targets block R adoption"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/services/ReportsService.ts",
+      "category": "service",
+      "lines": [
+        129,
+        168,
+        202,
+        209,
+        216,
+        261,
+        284,
+        401,
+        525
+      ],
+      "disposition": "R report repository; getReportModel hides direct calls"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/services/index.ts",
+      "category": "service",
+      "lines": [
+        125
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/services/siem/SiemDeliveryStore.ts",
+      "category": "service",
+      "lines": [
+        36,
+        102
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/src/waterline-models/index.ts",
+      "category": "definition/types",
+      "lines": [
+        87
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/config/recordSchema.test.ts",
+      "category": "test",
+      "lines": [
+        16,
+        235
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/package-consumer.ts",
+      "category": "test",
+      "lines": [
+        1,
+        6
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs",
+      "category": "test",
+      "lines": [
+        56
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/capture.cjs",
+      "category": "test",
+      "lines": [
+        10,
+        11,
+        115,
+        142,
+        160,
+        479,
+        484,
+        485,
+        497
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/inventory.cjs",
+      "category": "test",
+      "lines": [
+        9,
+        10,
+        72
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/integration/CacheEntryPrisma.test.ts",
+      "category": "test",
+      "lines": [
+        74,
+        76,
+        83
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/loader/MigrationRunner.test.ts",
+      "category": "test",
+      "lines": [
+        61,
+        67
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/services/AttachmentMetadataService.test.ts",
+      "category": "test",
+      "lines": [
+        44,
+        49,
+        60,
+        68,
+        69,
+        71,
+        85,
+        90,
+        98,
+        102,
+        109,
+        115,
+        125,
+        145,
+        152,
+        156,
+        174,
+        201,
+        210,
+        211,
+        214,
+        233,
+        234,
+        240,
+        255,
+        260,
+        263,
+        280,
+        328,
+        338,
+        345,
+        401,
+        404,
+        420,
+        450,
+        452,
+        457,
+        464,
+        486,
+        489,
+        499,
+        518,
+        519,
+        520,
+        521,
+        527,
+        532,
+        537,
+        549,
+        578,
+        579,
+        583,
+        587,
+        588,
+        592,
+        594,
+        599,
+        611,
+        612,
+        624,
+        625,
+        637,
+        639,
+        649,
+        657,
+        661,
+        662,
+        664,
+        678,
+        686,
+        690,
+        691,
+        696,
+        704,
+        705,
+        706,
+        714,
+        715,
+        718,
+        720,
+        727,
+        730,
+        732,
+        738,
+        739,
+        775
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/services/DashboardConfigService.test.ts",
+      "category": "test",
+      "lines": [
+        100,
+        216,
+        217
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-core/test/unit/cache-entry-repository.test.ts",
+      "category": "test",
+      "lines": [
+        185
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-dev-tools/src/generators/migration.ts",
+      "category": "migration",
+      "lines": [
+        70
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-dev-tools/src/utils/config-helper.ts",
+      "category": "dev-tools/template",
+      "lines": [
+        79,
+        80
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/redbox-dev-tools/test/generators/model.test.ts",
+      "category": "test",
+      "lines": [
+        27
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/index.ts",
+      "category": "hook",
+      "lines": [
+        4,
+        9,
+        29
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/migrations/recordRevisionBackfill.ts",
+      "category": "migration",
+      "lines": [
+        151,
+        152
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/models/index.ts",
+      "category": "definition/types",
+      "lines": [
+        15
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts",
+      "category": "hook",
+      "lines": [
+        462
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "dynamic",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/models/RecordSchemaModels.test.ts",
+      "category": "test",
+      "lines": [
+        2,
+        10,
+        42
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "support/spikes/prisma-cache-persistence/packed-consumer.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        1,
+        5
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "support/spikes/prisma-cache-persistence/packed-smoke.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        13,
+        28
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "test/integration/services/MongoSharedClients.test.ts",
+      "category": "test",
+      "lines": [
+        12
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "test/integration/services/RecordSchemaService.test.ts",
+      "category": "test",
+      "lines": [
+        40,
+        41,
+        43,
+        44,
+        159,
+        263,
+        400,
+        401,
+        405
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "dynamic",
+      "file": "test/integration/services/RecordsService.test.ts",
+      "category": "test",
+      "lines": [
+        33,
+        34
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        671,
+        673,
+        683,
+        849,
+        893
+      ],
+      "disposition": "UI form model/property false positive; no server ORM access"
+    },
+    {
+      "surface": "native",
+      "file": "angular/projects/researchdatabox/form/src/app/form-debug/form-debug-panel.component.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        79
+      ],
+      "disposition": "UI form model/property false positive; no server ORM access"
+    },
+    {
+      "surface": "native",
+      "file": "angular/projects/researchdatabox/form/src/app/form-debug/form-debug-state.service.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        108
+      ],
+      "disposition": "UI form model/property false positive; no server ORM access"
+    },
+    {
+      "surface": "native",
+      "file": "angular/projects/researchdatabox/form/src/app/record-audit/record-audit-launcher.component.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        54
+      ],
+      "disposition": "UI form model/property false positive; no server ORM access"
+    },
+    {
+      "surface": "native",
+      "file": "api/migrations/20261014T000000-admin-sidebar-text-color.js",
+      "category": "migration",
+      "lines": [
+        40
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "native",
+      "file": "assets/js/dependencies/sails.io.js",
+      "category": "configuration/export/other",
+      "lines": [
+        14,
+        15,
+        963
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/agenda-sqs-backend/src/SqsBackend.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        33
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/agenda-sqs-backend/test/sqs-backend.test.ts",
+      "category": "test",
+      "lines": [
+        130
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/config/http.config.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        370
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/config/storage.config.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        30,
+        41
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/middleware/redboxSession.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        2,
+        34
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/persistence/cache/configuration.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        1,
+        3,
+        56,
+        59,
+        109,
+        116,
+        181,
+        189,
+        201
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/persistence/cache/preflight.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        42,
+        48,
+        84,
+        108
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/persistence/cache/runtime.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        1,
+        14,
+        122,
+        123
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/persistence/prisma/client.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        4,
+        8
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/sails.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        79,
+        221
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/AgendaQueueService.ts",
+      "category": "service",
+      "lines": [
+        128,
+        254,
+        256,
+        257,
+        379,
+        380,
+        430,
+        431
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/AppConfigSecrets.ts",
+      "category": "service",
+      "lines": [
+        139,
+        140
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/BrandingLogoService.ts",
+      "category": "service",
+      "lines": [
+        4,
+        329,
+        331,
+        348
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/BrandingService.ts",
+      "category": "service",
+      "lines": [
+        727
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/DashboardConfigService.ts",
+      "category": "service",
+      "lines": [
+        272,
+        273,
+        283
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/FigshareVocabularyService.ts",
+      "category": "service",
+      "lines": [
+        290,
+        291,
+        830,
+        1526,
+        1850,
+        2005
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/HarvestRunService.ts",
+      "category": "service",
+      "lines": [
+        68,
+        291,
+        292,
+        296,
+        299,
+        310
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/RvaImportService.ts",
+      "category": "service",
+      "lines": [
+        151
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/StorageManagerService.ts",
+      "category": "service",
+      "lines": [
+        2,
+        3,
+        18,
+        97,
+        284,
+        285,
+        286,
+        287,
+        288,
+        299
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/VocabularyService.ts",
+      "category": "service",
+      "lines": [
+        678,
+        787,
+        822,
+        1139,
+        1140,
+        1141
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/figshare-v2/sync-store.ts",
+      "category": "service",
+      "lines": [
+        19,
+        20,
+        23
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/figshare-v2/worker.ts",
+      "category": "service",
+      "lines": [
+        66
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/services/siem/SiemDeliveryStore.ts",
+      "category": "service",
+      "lines": [
+        6,
+        27,
+        36,
+        45,
+        49,
+        101,
+        102
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/storage/GridFSDriver.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        6,
+        7,
+        8,
+        10,
+        20,
+        40,
+        41,
+        42,
+        49,
+        50,
+        52,
+        56,
+        59,
+        61,
+        63,
+        66,
+        67,
+        68,
+        70,
+        122,
+        125,
+        132,
+        153,
+        166,
+        204,
+        205,
+        209,
+        210,
+        217,
+        219,
+        220,
+        221,
+        222,
+        223,
+        231,
+        235,
+        246,
+        247,
+        249,
+        253,
+        255,
+        256,
+        259,
+        266,
+        269,
+        270,
+        271,
+        273,
+        276,
+        284,
+        289,
+        297,
+        302,
+        316,
+        326,
+        334,
+        346,
+        351,
+        370
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/src/waterline-models/FigshareSync.ts",
+      "category": "definition/types",
+      "lines": [
+        40
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/bootstrap.test.ts",
+      "category": "test",
+      "lines": [
+        162
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/browser/Branding.browser.ts",
+      "category": "test",
+      "lines": [
+        20,
+        68,
+        103
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/controllers/RecordController.test.ts",
+      "category": "test",
+      "lines": [
+        2538,
+        2542,
+        2546
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/controllers/VocabularyController.test.ts",
+      "category": "test",
+      "lines": [
+        52
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/controllers/attachmentDownloads.test.ts",
+      "category": "test",
+      "lines": [
+        159
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/package-consumer.ts",
+      "category": "test",
+      "lines": [
+        3,
+        11
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/package-query.cjs",
+      "category": "test",
+      "lines": [
+        4,
+        13,
+        22,
+        36,
+        37
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/package-smoke.cjs",
+      "category": "test",
+      "lines": [
+        25,
+        27,
+        30,
+        31
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/rollback-probe.cjs",
+      "category": "test",
+      "lines": [
+        2,
+        5,
+        6,
+        49,
+        58,
+        60
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs",
+      "category": "test",
+      "lines": [
+        272,
+        290
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/capture.cjs",
+      "category": "test",
+      "lines": [
+        8,
+        19,
+        118,
+        124,
+        156,
+        245,
+        275,
+        306,
+        475,
+        508,
+        509,
+        522,
+        573,
+        575,
+        584,
+        585,
+        596,
+        608,
+        616,
+        627,
+        634,
+        635,
+        664,
+        673,
+        676
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/inventory.cjs",
+      "category": "test",
+      "lines": [
+        72,
+        74,
+        97
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/integration/CacheEntryPrisma.test.ts",
+      "category": "test",
+      "lines": [
+        5,
+        30,
+        35,
+        57,
+        139,
+        145,
+        146,
+        180,
+        214,
+        216,
+        230,
+        240,
+        243,
+        253,
+        254,
+        255,
+        262,
+        272,
+        274,
+        276,
+        296,
+        304,
+        322,
+        352,
+        359,
+        364,
+        368,
+        369,
+        384,
+        387,
+        398,
+        403,
+        432,
+        435,
+        443,
+        467,
+        471,
+        481,
+        486,
+        488,
+        489,
+        492,
+        499,
+        533,
+        536
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/integration/CacheEntryRepositoryWaterline.test.ts",
+      "category": "test",
+      "lines": [
+        5,
+        26,
+        80,
+        122,
+        133,
+        140
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/integration/CacheEntryTransition.test.ts",
+      "category": "test",
+      "lines": [
+        2,
+        9,
+        20,
+        23,
+        35,
+        37,
+        44,
+        190,
+        226
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/integration/CacheEntryWaterline.test.ts",
+      "category": "test",
+      "lines": [
+        6,
+        30,
+        51,
+        104,
+        111,
+        159,
+        165,
+        192
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/middleware/RequestChronicleBodyParser.test.ts",
+      "category": "test",
+      "lines": [
+        112,
+        180,
+        199
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/middleware/requestChronicle.test.ts",
+      "category": "test",
+      "lines": [
+        68
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/migrations/AdminSidebarTextColor.test.ts",
+      "category": "test",
+      "lines": [
+        27
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/AgendaQueueService.test.ts",
+      "category": "test",
+      "lines": [
+        58,
+        339
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/AppConfigBundles.test.ts",
+      "category": "test",
+      "lines": [
+        40,
+        308
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/AppConfigSecrets.test.ts",
+      "category": "test",
+      "lines": [
+        21
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/BrandingServiceLifecycle.test.ts",
+      "category": "test",
+      "lines": [
+        182
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/CacheServiceCharacterization.test.ts",
+      "category": "test",
+      "lines": [
+        47
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/GridFSDriver.test.ts",
+      "category": "test",
+      "lines": [
+        3,
+        5,
+        17,
+        85,
+        96,
+        106,
+        108,
+        185,
+        190,
+        192,
+        193,
+        194,
+        201,
+        204,
+        209,
+        210,
+        214,
+        215,
+        221
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/HarvestRunService.test.ts",
+      "category": "test",
+      "lines": [
+        138,
+        2101,
+        2106,
+        2183,
+        2191
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/RvaImportService.test.ts",
+      "category": "test",
+      "lines": [
+        33
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/SecurityEventOwnership.test.ts",
+      "category": "test",
+      "lines": [
+        153,
+        157,
+        164
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/SiemDelivery.test.ts",
+      "category": "test",
+      "lines": [
+        3,
+        105,
+        220,
+        232,
+        236,
+        239,
+        240,
+        241,
+        251,
+        252,
+        263,
+        271,
+        276,
+        286,
+        291,
+        302,
+        311,
+        318,
+        323,
+        342,
+        346,
+        352,
+        359,
+        364,
+        374,
+        378,
+        384,
+        387,
+        388,
+        390,
+        396,
+        397,
+        408,
+        411
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/SiemIndexes.test.ts",
+      "category": "test",
+      "lines": [
+        3,
+        31,
+        32,
+        293,
+        303,
+        308,
+        316,
+        321,
+        322,
+        326,
+        339,
+        346,
+        349,
+        356
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/StandardDatastreamService.test.ts",
+      "category": "test",
+      "lines": [
+        223
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/StorageManagerService.test.ts",
+      "category": "test",
+      "lines": [
+        293,
+        316,
+        322,
+        329,
+        676,
+        697
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/VocabularyService.test.ts",
+      "category": "test",
+      "lines": [
+        555
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/figshare-queued.test.ts",
+      "category": "test",
+      "lines": [
+        5,
+        11,
+        88,
+        112,
+        118,
+        162,
+        184,
+        190,
+        240,
+        260,
+        261,
+        263,
+        271,
+        276,
+        319,
+        330,
+        356,
+        462,
+        490,
+        506,
+        512,
+        517,
+        522,
+        547,
+        551,
+        558,
+        582,
+        618,
+        692,
+        711
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/services/oni-v2/flydriveOcflStore.test.ts",
+      "category": "test",
+      "lines": [
+        202
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-core/test/unit/cache-persistence-runtime.test.ts",
+      "category": "test",
+      "lines": [
+        201,
+        213,
+        246,
+        274,
+        300,
+        324,
+        340,
+        361,
+        378,
+        400,
+        421,
+        439,
+        451
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/redbox-dev-tools/templates/hook-archetype/standard/support/mongodb-cache-index.js.hbs",
+      "category": "dev-tools/template",
+      "lines": [
+        4
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "native",
+      "file": "packages/sails-hook-redbox-pdfgen/src/api/services/PDFService.ts",
+      "category": "hook",
+      "lines": [
+        320,
+        336
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/migrations/recordRevisionBackfill.ts",
+      "category": "migration",
+      "lines": [
+        76,
+        121,
+        122,
+        151
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "native",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts",
+      "category": "hook",
+      "lines": [
+        17,
+        352,
+        462,
+        485,
+        944,
+        965,
+        973,
+        975,
+        1005,
+        1008,
+        1015,
+        1020,
+        1063,
+        1115,
+        1123,
+        1441,
+        3750
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/integration/FigshareIntent.test.ts",
+      "category": "test",
+      "lines": [
+        3,
+        13,
+        29,
+        32,
+        47
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/integration/MongoStorageConcurrency.integration.test.ts",
+      "category": "test",
+      "lines": [
+        4,
+        14,
+        26,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        39,
+        40,
+        65
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/integration/RecordPagination.test.ts",
+      "category": "test",
+      "lines": [
+        3,
+        17,
+        41,
+        45,
+        46,
+        63
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts",
+      "category": "test",
+      "lines": [
+        117,
+        127,
+        149,
+        153,
+        178,
+        1914,
+        2779
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "support/integration-testing/playwright-stubs/server.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        99
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "support/integration-testing/seed-playwright-scenario.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        92
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "support/resources/mongodb-cache-index.js",
+      "category": "configuration/export/other",
+      "lines": [
+        4
+      ],
+      "disposition": "see native-owners.json reviewedPaths"
+    },
+    {
+      "surface": "native",
+      "file": "support/spikes/prisma-cache-persistence/packed-consumer.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        22
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "support/spikes/prisma-cache-persistence/packed-query.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        4,
+        10,
+        13,
+        14,
+        34,
+        35
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "support/spikes/prisma-cache-persistence/packed-smoke.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        20
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "support/spikes/prisma-cache-persistence/probe.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        7,
+        17,
+        81,
+        88,
+        120,
+        130,
+        131,
+        298,
+        299
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/integration/services/FigshareQueued.test.ts",
+      "category": "test",
+      "lines": [
+        12
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/integration/services/MongoSharedClients.test.ts",
+      "category": "test",
+      "lines": [
+        12,
+        27,
+        33,
+        34,
+        56,
+        57,
+        61,
+        62,
+        63,
+        78
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/integration/services/MongoStorageConcurrency.test.ts",
+      "category": "test",
+      "lines": [
+        13,
+        14,
+        15
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/integration/services/SiemForwardingService.test.ts",
+      "category": "test",
+      "lines": [
+        176,
+        266,
+        306,
+        331
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright-harness/diagnostics.test.cjs",
+      "category": "test",
+      "lines": [
+        93,
+        95
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright-harness/gates.test.cjs",
+      "category": "test",
+      "lines": [
+        22,
+        25,
+        26,
+        45,
+        53,
+        66,
+        71
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright-harness/stubs.test.cjs",
+      "category": "test",
+      "lines": [
+        10
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/apps/dashboard-and-search.spec.ts",
+      "category": "test",
+      "lines": [
+        79
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/apps/siem.spec.ts",
+      "category": "test",
+      "lines": [
+        39
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/apps/startup.spec.ts",
+      "category": "test",
+      "lines": [
+        68
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/apps/users-and-roles.spec.ts",
+      "category": "test",
+      "lines": [
+        33
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/fixtures/auth.ts",
+      "category": "test",
+      "lines": [
+        70
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/forms/behaviours.spec.ts",
+      "category": "test",
+      "lines": [
+        74,
+        100
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/forms/concurrency.spec.ts",
+      "category": "test",
+      "lines": [
+        45,
+        47
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/forms/initialisation.spec.ts",
+      "category": "test",
+      "lines": [
+        73
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "native",
+      "file": "test/playwright/forms/lifecycle.spec.ts",
+      "category": "test",
+      "lines": [
+        103
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "config/env/docker.js",
+      "category": "configuration/export/other",
+      "lines": [
+        137
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "config/env/integrationtest.js",
+      "category": "configuration/export/other",
+      "lines": [
+        170
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "config/env/test.js",
+      "category": "configuration/export/other",
+      "lines": [
+        63
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "package.json",
+      "category": "configuration/export/other",
+      "lines": [
+        35,
+        37,
+        208
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/package.json",
+      "category": "configuration/export/other",
+      "lines": [
+        118,
+        138
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/bootstrap.ts",
+      "category": "bootstrap",
+      "lines": [
+        48
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/config/autoreload.config.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        26
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/config/datastores.config.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        8
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/config/models.config.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        5
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/config/orm.config.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        5
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/config/persistence.config.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        1
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/decorators/Attr.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        2,
+        11
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/decorators/index.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        7,
+        15,
+        37
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/decorators/registry.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        35
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/decorators/types.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        76
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/decorators/utils.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        1,
+        4,
+        17,
+        23,
+        24
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/hooks/hookDiscovery.ts",
+      "category": "hook",
+      "lines": [
+        37
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/index.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        185
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/loader/MigrationRunner.ts",
+      "category": "migration",
+      "lines": [
+        43
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/loader/index.ts",
+      "category": "loader/shim",
+      "lines": [
+        207,
+        277,
+        440,
+        451,
+        454,
+        456,
+        457,
+        463,
+        755,
+        759,
+        761,
+        773,
+        785,
+        787,
+        1318
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/model/storage/AsynchProgressModel.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        6,
+        7
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/persistence/cache/WaterlineCacheEntryRepository.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        13,
+        14
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/persistence/cache/configuration.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        74,
+        75,
+        87,
+        101,
+        102,
+        124,
+        125
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/persistence/cache/errors.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        99
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/persistence/cache/runtime.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        4,
+        84,
+        120
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/sails.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        107,
+        129,
+        130,
+        134,
+        140,
+        143,
+        146,
+        147,
+        148,
+        149,
+        150,
+        157,
+        158,
+        159,
+        160,
+        167,
+        168,
+        169,
+        171,
+        172,
+        173,
+        174,
+        176,
+        177,
+        178,
+        179,
+        187,
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        212,
+        216,
+        220,
+        224,
+        278,
+        280,
+        281,
+        282,
+        283
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/BrandingService.ts",
+      "category": "service",
+      "lines": [
+        763
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/DashboardConfigService.ts",
+      "category": "service",
+      "lines": [
+        277,
+        282
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/FigshareVocabularyService.ts",
+      "category": "service",
+      "lines": [
+        294,
+        298,
+        448,
+        905,
+        920,
+        960,
+        979,
+        1007,
+        1034,
+        1040,
+        1061,
+        1079,
+        1100,
+        1114,
+        1126,
+        1130,
+        1146,
+        1187,
+        1203,
+        1217,
+        1230,
+        1251,
+        1298,
+        1310,
+        1328,
+        1335,
+        1551,
+        1579,
+        1859,
+        1874,
+        1879,
+        1899,
+        1911,
+        1924,
+        1938,
+        1944,
+        1949,
+        1969,
+        1976,
+        2017,
+        2028,
+        2032
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/FormsService.ts",
+      "category": "service",
+      "lines": [
+        100
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/RecordsService.ts",
+      "category": "service",
+      "lines": [
+        486,
+        802,
+        1282
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/ReportsService.ts",
+      "category": "service",
+      "lines": [
+        26,
+        129
+      ],
+      "disposition": "R report repository; getReportModel hides direct calls"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/RvaImportService.ts",
+      "category": "service",
+      "lines": [
+        58
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/TranslationService.ts",
+      "category": "service",
+      "lines": [
+        29
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/VocabularyService.ts",
+      "category": "service",
+      "lines": [
+        190,
+        197,
+        207,
+        221,
+        692,
+        789,
+        791,
+        801,
+        824,
+        850,
+        889,
+        907,
+        955,
+        959,
+        993,
+        1003,
+        1026,
+        1049,
+        1118
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/index.ts",
+      "category": "service",
+      "lines": [
+        125
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/services/siem/SiemDeliveryStore.ts",
+      "category": "service",
+      "lines": [
+        47
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/AppConfig.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        17,
+        18,
+        21,
+        27,
+        32
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/AsynchProgress.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        44,
+        45,
+        48,
+        63,
+        68
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/AttachmentAccessAudit.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        34,
+        36,
+        46,
+        51
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/AttachmentMetadata.ts",
+      "category": "definition/types",
+      "lines": [
+        9,
+        275,
+        277,
+        318,
+        323
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/BrandingConfig.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        115,
+        116,
+        119,
+        133,
+        138
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/BrandingConfigHistory.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        52,
+        53,
+        56,
+        69,
+        74
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/CacheEntry.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        16,
+        17,
+        20,
+        26,
+        31
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/Counter.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        17,
+        18,
+        21,
+        27,
+        32
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/DashboardConfiguration.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        30,
+        32,
+        39,
+        44
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/DashboardType.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        39,
+        40,
+        43,
+        54,
+        59
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/FigshareSync.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        37
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/FigshareVocabularyCategory.ts",
+      "category": "definition/types",
+      "lines": [
+        10,
+        134,
+        136,
+        151,
+        156
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/FigshareVocabularyCrosswalk.ts",
+      "category": "definition/types",
+      "lines": [
+        10,
+        139,
+        141,
+        154,
+        159
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/FigshareVocabularyCrosswalkMapping.ts",
+      "category": "definition/types",
+      "lines": [
+        9,
+        125,
+        127,
+        139,
+        145
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/FigshareVocabularySource.ts",
+      "category": "definition/types",
+      "lines": [
+        10,
+        131,
+        133,
+        148,
+        153
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/FigshareVocabularySyncRun.ts",
+      "category": "definition/types",
+      "lines": [
+        9,
+        191,
+        193,
+        221,
+        226
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/Form.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        19,
+        20,
+        22,
+        29,
+        34
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/HarvestRecordEvent.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        62,
+        64,
+        82,
+        87
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/HarvestRun.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        72,
+        74,
+        96,
+        101
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/HarvestRunChunk.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        81,
+        83,
+        108,
+        113
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/I18nBundle.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        54,
+        55,
+        58,
+        69,
+        74
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/I18nTranslation.ts",
+      "category": "definition/types",
+      "lines": [
+        8,
+        89,
+        90,
+        93,
+        106,
+        111
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/Migration.ts",
+      "category": "migration",
+      "lines": [
+        2,
+        25,
+        27,
+        36,
+        41
+      ],
+      "disposition": "M ledger / B historical callback-bypass / S bounded backfill; preserve names and never replay applied bodies"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/NamedQuery.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        47,
+        48,
+        51,
+        65,
+        70
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/PathRule.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        27,
+        28,
+        31,
+        40,
+        45
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/RBReport.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        41,
+        42,
+        53,
+        65,
+        71
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/RecordType.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        62,
+        63,
+        66,
+        84,
+        89
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/Role.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        17,
+        18,
+        21,
+        27,
+        32
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/SecurityEvent.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        74,
+        76,
+        100,
+        105
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/SiemDeliveryAttempt.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        50,
+        52,
+        68,
+        73
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/ThemeConfig.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        13,
+        14,
+        17,
+        22,
+        27
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/User.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        116,
+        117,
+        120,
+        148,
+        153
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/UserAudit.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        16,
+        17,
+        20,
+        26,
+        31
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/UserLink.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        31,
+        33,
+        46,
+        51
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/Vocabulary.ts",
+      "category": "definition/types",
+      "lines": [
+        10,
+        173,
+        175,
+        191,
+        196
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/VocabularyEntry.ts",
+      "category": "definition/types",
+      "lines": [
+        10,
+        193,
+        195,
+        208,
+        213
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/WorkflowStep.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        26,
+        27,
+        30,
+        39,
+        44
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/WorkspaceApp.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        29,
+        30,
+        33,
+        39,
+        44
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/WorkspaceAsync.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        37,
+        38,
+        41,
+        54,
+        59
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/WorkspaceType.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        26,
+        27,
+        30,
+        39,
+        44
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/src/waterline-models/index.ts",
+      "category": "definition/types",
+      "lines": [
+        42,
+        87
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/config/recordSchema.test.ts",
+      "category": "test",
+      "lines": [
+        16,
+        234,
+        235
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/package-consumer.ts",
+      "category": "test",
+      "lines": [
+        1,
+        6
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/package-smoke.cjs",
+      "category": "test",
+      "lines": [
+        38
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/repository-import-smoke.cjs",
+      "category": "test",
+      "lines": [
+        48
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/run-waterline-capture.sh",
+      "category": "test",
+      "lines": [
+        20,
+        21
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs",
+      "category": "test",
+      "lines": [
+        1,
+        46,
+        56,
+        76
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/capture.cjs",
+      "category": "test",
+      "lines": [
+        10,
+        20,
+        49,
+        172,
+        188,
+        189,
+        211,
+        212,
+        598
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/inventory.cjs",
+      "category": "test",
+      "lines": [
+        9,
+        72,
+        76
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/helpers/cacheRepository.ts",
+      "category": "test",
+      "lines": [
+        5
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/integration/CacheEntryPrisma.test.ts",
+      "category": "test",
+      "lines": [
+        55,
+        67,
+        74,
+        76,
+        83,
+        94,
+        105,
+        106,
+        111,
+        112,
+        127,
+        156,
+        479,
+        485
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/integration/CacheEntryRepositoryWaterline.test.ts",
+      "category": "test",
+      "lines": [
+        19,
+        36,
+        72
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/integration/CacheEntryTransition.test.ts",
+      "category": "test",
+      "lines": [
+        223
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/integration/CacheEntryWaterline.test.ts",
+      "category": "test",
+      "lines": [
+        22,
+        27,
+        38,
+        43,
+        140,
+        145,
+        146,
+        162
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/loader/loader.test.ts",
+      "category": "test",
+      "lines": [
+        188,
+        197,
+        214,
+        230,
+        245,
+        341,
+        361,
+        366,
+        692,
+        698,
+        710,
+        716
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/model/AttachmentMetadata.test.ts",
+      "category": "test",
+      "lines": [
+        4,
+        11
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/model/BrandingTypeface.test.ts",
+      "category": "test",
+      "lines": [
+        125
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/model/FigshareVocabularyModels.test.ts",
+      "category": "test",
+      "lines": [
+        12,
+        19
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/services/GridFSDriver.test.ts",
+      "category": "test",
+      "lines": [
+        191
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/services/NamedQueryService.test.ts",
+      "category": "test",
+      "lines": [
+        212
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/services/SiemIndexes.test.ts",
+      "category": "test",
+      "lines": [
+        323
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/services/testHelper.ts",
+      "category": "test",
+      "lines": [
+        47
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/tsconfig.cache-persistence.json",
+      "category": "test",
+      "lines": [
+        5,
+        6
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/unit/cache-entry-repository.test.ts",
+      "category": "test",
+      "lines": [
+        5,
+        84,
+        96,
+        111,
+        127,
+        135,
+        148,
+        158
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-core/test/unit/cache-persistence-runtime.test.ts",
+      "category": "test",
+      "lines": [
+        16,
+        66,
+        73,
+        206,
+        208,
+        218,
+        227,
+        254,
+        280,
+        306,
+        328,
+        334,
+        345,
+        348,
+        369,
+        383,
+        388,
+        409,
+        425,
+        429,
+        446,
+        462
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-dev-tools/src/cli.ts",
+      "category": "dev-tools/template",
+      "lines": [
+        517,
+        518,
+        546
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-dev-tools/src/generators/model.ts",
+      "category": "dev-tools/template",
+      "lines": [
+        45,
+        56,
+        63,
+        77,
+        83,
+        93,
+        94,
+        97,
+        111
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-dev-tools/src/utils/config-helper.ts",
+      "category": "dev-tools/template",
+      "lines": [
+        79,
+        80
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/redbox-dev-tools/test/generators/model.test.ts",
+      "category": "test",
+      "lines": [
+        27,
+        47,
+        62,
+        104,
+        105,
+        123,
+        143
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/package.json",
+      "category": "hook",
+      "lines": [
+        13
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/config/storage.ts",
+      "category": "hook",
+      "lines": [
+        18
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/index.ts",
+      "category": "hook",
+      "lines": [
+        9,
+        28
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/models/DeletedRecord.ts",
+      "category": "definition/types",
+      "lines": [
+        13,
+        19,
+        76
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/models/IntegrationAudit.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        61
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/models/Record.ts",
+      "category": "definition/types",
+      "lines": [
+        10,
+        16,
+        30,
+        88
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/models/RecordAudit.ts",
+      "category": "definition/types",
+      "lines": [
+        2,
+        31
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/models/RecordSchemaArtifact.ts",
+      "category": "definition/types",
+      "lines": [
+        3,
+        51
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/models/RecordSchemaReference.ts",
+      "category": "definition/types",
+      "lines": [
+        3,
+        84,
+        88
+      ],
+      "disposition": "P1/P11/P12 extension/registration/type/shim surface; preserve service ordering, refuse stale registration, provenance-safe removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts",
+      "category": "hook",
+      "lines": [
+        125,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        147,
+        449,
+        451,
+        456,
+        819
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/index.test.ts",
+      "category": "test",
+      "lines": [
+        9
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/models/RecordRevisionModels.test.ts",
+      "category": "test",
+      "lines": [
+        27
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts",
+      "category": "test",
+      "lines": [
+        6,
+        680,
+        1213
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "support/spikes/prisma-cache-persistence/packed-consumer.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        1,
+        5
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "support/spikes/prisma-cache-persistence/packed-smoke.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        13,
+        27,
+        28
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "support/spikes/prisma-cache-persistence/probe.cjs",
+      "category": "configuration/export/other",
+      "lines": [
+        28,
+        65,
+        70,
+        144,
+        157,
+        176,
+        188,
+        208
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "test/integration/models/BrandingConfig.test.ts",
+      "category": "test",
+      "lines": [
+        12,
+        59,
+        66,
+        73,
+        81
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "test/integration/services/CachePersistenceTransition.test.ts",
+      "category": "test",
+      "lines": [
+        15
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "test/integration/services/DashboardTypesService.test.ts",
+      "category": "test",
+      "lines": [
+        23
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "test/integration/services/MongoSharedClients.test.ts",
+      "category": "test",
+      "lines": [
+        21
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "extension",
+      "file": "test/integration/services/RvaImportService.test.ts",
+      "category": "test",
+      "lines": [
+        3,
+        7
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/src/sails.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        283,
+        305
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/src/services/BrandingService.ts",
+      "category": "service",
+      "lines": [
+        43,
+        728,
+        734,
+        735,
+        759,
+        760
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/src/services/FigshareVocabularyService.ts",
+      "category": "service",
+      "lines": [
+        12,
+        295,
+        829,
+        1525,
+        1849,
+        2004
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/src/services/RvaImportService.ts",
+      "category": "service",
+      "lines": [
+        12,
+        60,
+        150
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/src/services/VocabularyService.ts",
+      "category": "service",
+      "lines": [
+        4,
+        209,
+        216,
+        677,
+        786,
+        821
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/src/utilities/TransactionUtils.ts",
+      "category": "configuration/export/other",
+      "lines": [
+        13,
+        20
+      ],
+      "disposition": "group consumer/configuration/type or dependency intent; namedConsumers and mentions provide all lexical call sites; no blanket removal"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/capture.cjs",
+      "category": "test",
+      "lines": [
+        13,
+        503,
+        507,
+        521
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/test/fixtures/waterline-retirement/inventory.cjs",
+      "category": "test",
+      "lines": [
+        78
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/test/services/BrandingServiceLifecycle.test.ts",
+      "category": "test",
+      "lines": [
+        178
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    },
+    {
+      "surface": "transaction",
+      "file": "packages/redbox-core/test/services/VocabularyService.test.ts",
+      "category": "test",
+      "lines": [
+        544
+      ],
+      "disposition": "fixture/spike; archive or port when corresponding adapter retires"
+    }
+  ],
+  "scope": "Reviewed file-level disposition of every lexical surface, with all candidate line numbers retained. Named and mention indices cover controller/policy/bootstrap consumers even without native/dynamic matches.",
+  "institutionOwner": "Institution hook maintainer: supply custom model override and stored-query fixtures before adopting affected groups.",
+  "delta": {
+    "removedPilotPairs": [
+      "CacheEntry:packages/redbox-core/src/services/BrandingService.ts",
+      "CacheEntry:packages/redbox-core/src/services/CacheService.ts"
+    ],
+    "addedProductionCandidatePairs": [
+      "BrandingConfig:api/migrations/20260904000000-branding-typeface-backfill.js",
+      "BrandingConfigHistory:api/migrations/20260904000000-branding-typeface-backfill.js",
+      "Record:packages/sails-hook-redbox-storage-mongo/src/migrations/recordRevisionBackfill.ts",
+      "CacheEntry:packages/redbox-core/src/persistence/cache/PrismaCacheEntryRepository.ts",
+      "CacheEntry:support/spikes/prisma-cache-persistence/packed-consumer.ts",
+      "CacheEntry:support/spikes/prisma-cache-persistence/packed-query.cjs",
+      "AppConfig:packages/redbox-dev-tools/src/generators/migration.ts"
+    ],
+    "declarationsChangedSincePilot": [],
+    "changesSinceDesignBaseline": []
+  }
+}

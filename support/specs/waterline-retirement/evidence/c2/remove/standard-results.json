@@ -1,0 +1,71 @@
+{
+  "stage": "remove",
+  "selection": "default; outer cache variables unset",
+  "imageId": "sha256:a548beebd26afabcc29a3ae2d89ece6a7d3e1dc9f69d3c7b5090b155c54d9a2c",
+  "node": "26.11.1",
+  "checks": [
+    {
+      "name": "mocha",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u sails_persistence__cache__backend -u C2_UPLOAD_OBSERVER RBPORTAL_IMAGE=redbox-c2:remove npm run test:mocha",
+      "exitCode": 0,
+      "durationSeconds": 446,
+      "passing": 418,
+      "pending": 10,
+      "failing": 0,
+      "log": "standard-mocha.txt",
+      "logSha256": "3216be5f41a606afe8bb68bfc999d9000d3653bc2f2d1f2cf27ed4de8ce7ece1",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 10,
+        "passing": 418
+      }
+    },
+    {
+      "name": "bruno",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u sails_persistence__cache__backend -u C2_UPLOAD_OBSERVER RBPORTAL_IMAGE=redbox-c2:remove npm run test:bruno:general",
+      "exitCode": 0,
+      "durationSeconds": 284,
+      "requestsPassed": 309,
+      "testsPassed": 553,
+      "assertionsPassed": 3,
+      "log": "standard-bruno.txt",
+      "logSha256": "e0be638b65565cd4814bf9520a6e2034c7da8b1e27a130512db740f27c0bb84c",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 4
+      }
+    },
+    {
+      "name": "development",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u sails_persistence__cache__backend -u C2_UPLOAD_OBSERVER RBPORTAL_IMAGE=redbox-c2:remove bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "exitCode": 0,
+      "durationSeconds": 120,
+      "liftCompleteMs": 95718.0,
+      "indexScopes": 34,
+      "collections": 15,
+      "appliedMigrations": 4,
+      "log": "development.txt",
+      "logSha256": "5c7f37b75f7f8afce41b57e82fb2e17dd8306e418b35661e12d710163ee17fd0",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 4
+      }
+    }
+  ],
+  "runnerCommandsTestsLimitsHealthchecksUnchanged": true,
+  "observerEnabledForAcceptedRun": false,
+  "failedAttemptsRetained": [
+    {
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u sails_persistence__cache__backend -u C2_UPLOAD_OBSERVER RBPORTAL_IMAGE=redbox-c2:remove npm run test:mocha",
+      "exitCode": 1,
+      "failure": "Keycloak healthcheck failed before portal startup; unchanged retry on fresh resources",
+      "log": "standard-mocha-keycloak-before-app.txt",
+      "logSha256": "d58ca249004a652b2762f4667ea4adf2e819fec33e3d85e727f2d1fed778363b",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    }
+  ]
+}

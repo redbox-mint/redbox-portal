@@ -1,0 +1,18 @@
+{
+  "npm": "11.20.0",
+  "source": "Exact npm package already installed in the versioned host npx cache; copied only that package and bundled dependencies. No application package/lock changes.",
+  "fileCount": 1952,
+  "sha256": "ee021b3dede2890c74c83b1115f97c8dec53ebfb5c313d893f668529afef5b60",
+  "base": {
+    "id": "sha256:3d66a33890bafea037db006e8bc33a5bdf0baf952ac9c0b2dc6fe52856f84bf0",
+    "user": "node"
+  },
+  "tag": "redbox-waterline-r4:npm11.20.0",
+  "imageId": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd",
+  "recipe": "npm-verification.Dockerfile",
+  "normalUser": "node",
+  "npmVersionVerifiedAsNormalUser": "11.20.0",
+  "networkDuringBuild": "none",
+  "applicationSourceChanges": false,
+  "stockCommandsChanged": false
+}

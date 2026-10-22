@@ -1,0 +1,2228 @@
+Dynamic imports imported
+{
+  "name": "AsynchProgress",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "name": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "branding": {
+      "required": true,
+      "model": "brandingconfig",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "date_started": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "required": false
+    },
+    "date_completed": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "required": false
+    },
+    "started_by": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "currentIdx": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "targetIdx": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "status": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "message": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "metadata": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "relatedRecordId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "taskType": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "name": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "name"
+    },
+    "date_started": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "columnName": "date_started"
+    },
+    "date_completed": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "columnName": "date_completed"
+    },
+    "started_by": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "started_by"
+    },
+    "currentIdx": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "currentIdx"
+    },
+    "targetIdx": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "targetIdx"
+    },
+    "status": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "status"
+    },
+    "message": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "message"
+    },
+    "metadata": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "metadata"
+    },
+    "relatedRecordId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "relatedRecordId"
+    },
+    "taskType": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "taskType"
+    },
+    "branding": {
+      "model": "brandingconfig",
+      "columnName": "branding",
+      "type": "string",
+      "foreignKey": true,
+      "references": "brandingconfig",
+      "referenceIdentity": "brandingconfig",
+      "on": "_id",
+      "onKey": "id",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6a3d537f9edec65ae0509"
+    },
+    "name": "progress",
+    "branding": {
+      "$oid": "6ad6a3d5a5a430a0927ae55a"
+    },
+    "started_by": "admin",
+    "relatedRecordId": "opaque-oid",
+    "taskType": "test",
+    "metadata": {
+      "result": false
+    },
+    "createdAt": "2026-10-19T23:12:21.112Z",
+    "updatedAt": "2026-10-19T23:12:21.112Z",
+    "date_started": "",
+    "date_completed": "",
+    "currentIdx": 0,
+    "targetIdx": 0,
+    "status": "",
+    "message": ""
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": "E_INVALID_VALUES_TO_SET",
+    "extension": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-19T23:12:21.112Z",
+      "updatedAt": "2026-10-19T23:12:21.163Z",
+      "id": "6ad6a3d537f9edec65ae0509",
+      "name": "progress",
+      "date_started": "",
+      "date_completed": "",
+      "started_by": "admin",
+      "currentIdx": 0,
+      "targetIdx": 0,
+      "status": "",
+      "message": "",
+      "metadata": {
+        "result": false
+      },
+      "relatedRecordId": "opaque-oid",
+      "taskType": "test",
+      "branding": "6ad6a3d5a5a430a0927ae55a"
+    },
+    "nullNumber": "E_INVALID_VALUES_TO_SET",
+    "duplicate": "6ad6a3d537f9edec65ae050a"
+  }
+}
+{
+  "name": "WorkspaceAsync",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "name": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "date_started": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "required": false
+    },
+    "date_completed": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "required": false
+    },
+    "started_by": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "service": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "method": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "args": {
+      "type": "json",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      }
+    },
+    "status": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "message": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "name": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "name"
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "recordType"
+    },
+    "date_started": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "columnName": "date_started"
+    },
+    "date_completed": {
+      "type": "string",
+      "autoMigrations": {
+        "columnType": "datetime",
+        "unique": false,
+        "autoIncrement": false
+      },
+      "columnName": "date_completed"
+    },
+    "started_by": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "started_by"
+    },
+    "service": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "service"
+    },
+    "method": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "method"
+    },
+    "args": {
+      "type": "json",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "args"
+    },
+    "status": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "status"
+    },
+    "message": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "message"
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6a3d537f9edec65ae050b"
+    },
+    "name": "workspace",
+    "recordType": "workspace",
+    "started_by": "admin",
+    "service": "service",
+    "method": "method",
+    "args": [],
+    "createdAt": "2026-10-19T23:12:21.209Z",
+    "updatedAt": "2026-10-19T23:12:21.209Z",
+    "date_started": "",
+    "date_completed": "",
+    "status": "",
+    "message": null
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": "E_INVALID_VALUES_TO_SET",
+    "extension": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-19T23:12:21.209Z",
+      "updatedAt": "2026-10-19T23:12:21.233Z",
+      "id": "6ad6a3d537f9edec65ae050b",
+      "name": "workspace",
+      "recordType": "workspace",
+      "date_started": "",
+      "date_completed": "",
+      "started_by": "admin",
+      "service": "service",
+      "method": "method",
+      "args": [],
+      "status": "",
+      "message": null
+    },
+    "nullNumber": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "currentIdx": null,
+      "createdAt": "2026-10-19T23:12:21.209Z",
+      "updatedAt": "2026-10-19T23:12:21.247Z",
+      "id": "6ad6a3d537f9edec65ae050b",
+      "name": "workspace",
+      "recordType": "workspace",
+      "date_started": "",
+      "date_completed": "",
+      "started_by": "admin",
+      "service": "service",
+      "method": "method",
+      "args": [],
+      "status": "",
+      "message": null
+    },
+    "duplicate": "6ad6a3d537f9edec65ae050c"
+  }
+}
+{
+  "name": "HarvestRun",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "sourceRunId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "sourceName": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "sourceUri": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "status": {
+      "type": "string",
+      "defaultsTo": "running",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "startedAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "completedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "startedBy": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "lastChunkAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "totalProcessed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "created": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "updated": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "deleted": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "unchanged": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "failed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "chunksProcessed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "duplicateChunks": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "metadata": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "sourceRunId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "sourceRunId"
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "brandId"
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "recordType"
+    },
+    "sourceName": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "sourceName"
+    },
+    "sourceUri": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "sourceUri"
+    },
+    "status": {
+      "type": "string",
+      "defaultsTo": "running",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "status"
+    },
+    "startedAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "startedAt"
+    },
+    "completedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "completedAt"
+    },
+    "startedBy": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "startedBy"
+    },
+    "lastChunkAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "lastChunkAt"
+    },
+    "totalProcessed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "totalProcessed"
+    },
+    "created": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "created"
+    },
+    "updated": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "updated"
+    },
+    "deleted": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "deleted"
+    },
+    "unchanged": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "unchanged"
+    },
+    "failed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "failed"
+    },
+    "chunksProcessed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "chunksProcessed"
+    },
+    "duplicateChunks": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "duplicateChunks"
+    },
+    "metadata": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "metadata"
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6a3d537f9edec65ae050d"
+    },
+    "sourceRunId": "source-1",
+    "brandId": "6ad6a3d5a5a430a0927ae55a",
+    "recordType": "data",
+    "sourceName": "test",
+    "startedAt": "2026-10-19T23:12:21.109Z",
+    "createdAt": "2026-10-19T23:12:21.286Z",
+    "updatedAt": "2026-10-19T23:12:21.286Z",
+    "sourceUri": "",
+    "status": "running",
+    "completedAt": "",
+    "startedBy": "",
+    "lastChunkAt": "",
+    "totalProcessed": 0,
+    "created": 0,
+    "updated": 0,
+    "deleted": 0,
+    "unchanged": 0,
+    "failed": 0,
+    "chunksProcessed": 0,
+    "duplicateChunks": 0,
+    "metadata": null
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": "E_INVALID_VALUES_TO_SET",
+    "extension": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-19T23:12:21.286Z",
+      "updatedAt": "2026-10-19T23:12:21.307Z",
+      "id": "6ad6a3d537f9edec65ae050d",
+      "sourceRunId": "source-1",
+      "brandId": "6ad6a3d5a5a430a0927ae55a",
+      "recordType": "data",
+      "sourceName": "test",
+      "sourceUri": "",
+      "status": "running",
+      "startedAt": "2026-10-19T23:12:21.109Z",
+      "completedAt": "",
+      "startedBy": "",
+      "lastChunkAt": "",
+      "totalProcessed": 0,
+      "created": 0,
+      "updated": 0,
+      "deleted": 0,
+      "unchanged": 0,
+      "failed": 0,
+      "chunksProcessed": 0,
+      "duplicateChunks": 0,
+      "metadata": null
+    },
+    "nullNumber": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "currentIdx": null,
+      "createdAt": "2026-10-19T23:12:21.286Z",
+      "updatedAt": "2026-10-19T23:12:21.321Z",
+      "id": "6ad6a3d537f9edec65ae050d",
+      "sourceRunId": "source-1",
+      "brandId": "6ad6a3d5a5a430a0927ae55a",
+      "recordType": "data",
+      "sourceName": "test",
+      "sourceUri": "",
+      "status": "running",
+      "startedAt": "2026-10-19T23:12:21.109Z",
+      "completedAt": "",
+      "startedBy": "",
+      "lastChunkAt": "",
+      "totalProcessed": 0,
+      "created": 0,
+      "updated": 0,
+      "deleted": 0,
+      "unchanged": 0,
+      "failed": 0,
+      "chunksProcessed": 0,
+      "duplicateChunks": 0,
+      "metadata": null
+    },
+    "duplicate": "6ad6a3d537f9edec65ae050e"
+  }
+}
+{
+  "name": "HarvestRunChunk",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "runId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "sourceRunId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "contentHash": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "attempt": {
+      "type": "number",
+      "defaultsTo": 1,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "chunkIndex": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "chunkLabel": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "totalExpected": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "status": {
+      "type": "string",
+      "defaultsTo": "processing",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "recordCount": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "totalProcessed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "created": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "updated": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "deleted": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "unchanged": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "failed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "duplicate": {
+      "type": "boolean",
+      "defaultsTo": false,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "submittedAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "completedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "errorMessage": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "responseSummary": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "runId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "runId"
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "brandId"
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "recordType"
+    },
+    "sourceRunId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "sourceRunId"
+    },
+    "contentHash": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "contentHash"
+    },
+    "attempt": {
+      "type": "number",
+      "defaultsTo": 1,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "attempt"
+    },
+    "chunkIndex": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "chunkIndex"
+    },
+    "chunkLabel": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "chunkLabel"
+    },
+    "totalExpected": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "totalExpected"
+    },
+    "status": {
+      "type": "string",
+      "defaultsTo": "processing",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "status"
+    },
+    "recordCount": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "recordCount"
+    },
+    "totalProcessed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "totalProcessed"
+    },
+    "created": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "created"
+    },
+    "updated": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "updated"
+    },
+    "deleted": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "deleted"
+    },
+    "unchanged": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "unchanged"
+    },
+    "failed": {
+      "type": "number",
+      "defaultsTo": 0,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "columnName": "failed"
+    },
+    "duplicate": {
+      "type": "boolean",
+      "defaultsTo": false,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "columnName": "duplicate"
+    },
+    "submittedAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "submittedAt"
+    },
+    "completedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "completedAt"
+    },
+    "errorMessage": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "errorMessage"
+    },
+    "responseSummary": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "responseSummary"
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6a3d537f9edec65ae050f"
+    },
+    "runId": "opaque-run",
+    "brandId": "6ad6a3d5a5a430a0927ae55a",
+    "recordType": "data",
+    "sourceRunId": "source-1",
+    "contentHash": "hash",
+    "submittedAt": "2026-10-19T23:12:21.110Z",
+    "createdAt": "2026-10-19T23:12:21.358Z",
+    "updatedAt": "2026-10-19T23:12:21.358Z",
+    "attempt": 1,
+    "chunkIndex": 0,
+    "chunkLabel": "",
+    "totalExpected": 0,
+    "status": "processing",
+    "recordCount": 0,
+    "totalProcessed": 0,
+    "created": 0,
+    "updated": 0,
+    "deleted": 0,
+    "unchanged": 0,
+    "failed": 0,
+    "duplicate": false,
+    "completedAt": "",
+    "errorMessage": "",
+    "responseSummary": null
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": "E_INVALID_VALUES_TO_SET",
+    "extension": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-19T23:12:21.358Z",
+      "updatedAt": "2026-10-19T23:12:21.378Z",
+      "id": "6ad6a3d537f9edec65ae050f",
+      "runId": "opaque-run",
+      "brandId": "6ad6a3d5a5a430a0927ae55a",
+      "recordType": "data",
+      "sourceRunId": "source-1",
+      "contentHash": "hash",
+      "attempt": 1,
+      "chunkIndex": 0,
+      "chunkLabel": "",
+      "totalExpected": 0,
+      "status": "processing",
+      "recordCount": 0,
+      "totalProcessed": 0,
+      "created": 0,
+      "updated": 0,
+      "deleted": 0,
+      "unchanged": 0,
+      "failed": 0,
+      "duplicate": false,
+      "submittedAt": "2026-10-19T23:12:21.110Z",
+      "completedAt": "",
+      "errorMessage": "",
+      "responseSummary": null
+    },
+    "nullNumber": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "currentIdx": null,
+      "createdAt": "2026-10-19T23:12:21.358Z",
+      "updatedAt": "2026-10-19T23:12:21.391Z",
+      "id": "6ad6a3d537f9edec65ae050f",
+      "runId": "opaque-run",
+      "brandId": "6ad6a3d5a5a430a0927ae55a",
+      "recordType": "data",
+      "sourceRunId": "source-1",
+      "contentHash": "hash",
+      "attempt": 1,
+      "chunkIndex": 0,
+      "chunkLabel": "",
+      "totalExpected": 0,
+      "status": "processing",
+      "recordCount": 0,
+      "totalProcessed": 0,
+      "created": 0,
+      "updated": 0,
+      "deleted": 0,
+      "unchanged": 0,
+      "failed": 0,
+      "duplicate": false,
+      "submittedAt": "2026-10-19T23:12:21.110Z",
+      "completedAt": "",
+      "errorMessage": "",
+      "responseSummary": null
+    },
+    "duplicate": "6ad6a3d537f9edec65ae0510"
+  }
+}
+{
+  "name": "HarvestRecordEvent",
+  "attributes": {
+    "createdAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "runId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "chunkId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "sourceRunId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "harvestId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "oid": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "operation": {
+      "type": "string",
+      "defaultsTo": "upsert",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "outcome": {
+      "type": "string",
+      "defaultsTo": "failed",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "status": {
+      "type": "boolean",
+      "defaultsTo": false,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "message": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "details": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "errorCode": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "recordSnapshot": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "schema": {
+    "createdAt": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "createdAt"
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "columnName": "updatedAt"
+    },
+    "id": {
+      "type": "string",
+      "columnName": "_id",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      }
+    },
+    "runId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "runId"
+    },
+    "chunkId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "chunkId"
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "brandId"
+    },
+    "recordType": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "recordType"
+    },
+    "sourceRunId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "sourceRunId"
+    },
+    "harvestId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "harvestId"
+    },
+    "oid": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "oid"
+    },
+    "operation": {
+      "type": "string",
+      "defaultsTo": "upsert",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "operation"
+    },
+    "outcome": {
+      "type": "string",
+      "defaultsTo": "failed",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "outcome"
+    },
+    "status": {
+      "type": "boolean",
+      "defaultsTo": false,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "columnName": "status"
+    },
+    "message": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "message"
+    },
+    "details": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "details"
+    },
+    "errorCode": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "columnName": "errorCode"
+    },
+    "recordSnapshot": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "columnName": "recordSnapshot"
+    }
+  },
+  "callbacks": {
+    "beforeCreate": "undefined",
+    "beforeUpdate": "undefined",
+    "afterCreate": "undefined",
+    "afterUpdate": "undefined"
+  },
+  "raw": {
+    "_id": {
+      "$oid": "6ad6a3d537f9edec65ae0511"
+    },
+    "runId": "opaque-run",
+    "chunkId": "opaque-chunk",
+    "brandId": "6ad6a3d5a5a430a0927ae55a",
+    "recordType": "data",
+    "sourceRunId": "source-1",
+    "harvestId": "item",
+    "createdAt": "2026-10-19T23:12:21.110Z",
+    "updatedAt": "2026-10-19T23:12:21.428Z",
+    "oid": "",
+    "operation": "upsert",
+    "outcome": "failed",
+    "status": false,
+    "message": "",
+    "details": "",
+    "errorCode": "",
+    "recordSnapshot": null
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    }
+  ],
+  "checks": {
+    "nullString": "E_INVALID_VALUES_TO_SET",
+    "extension": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "createdAt": "2026-10-19T23:12:21.110Z",
+      "updatedAt": "2026-10-19T23:12:21.453Z",
+      "id": "6ad6a3d537f9edec65ae0511",
+      "runId": "opaque-run",
+      "chunkId": "opaque-chunk",
+      "brandId": "6ad6a3d5a5a430a0927ae55a",
+      "recordType": "data",
+      "sourceRunId": "source-1",
+      "harvestId": "item",
+      "oid": "",
+      "operation": "upsert",
+      "outcome": "failed",
+      "status": false,
+      "message": "",
+      "details": "",
+      "errorCode": "",
+      "recordSnapshot": null
+    },
+    "nullNumber": {
+      "extension": {
+        "falsy": false,
+        "nil": null
+      },
+      "currentIdx": null,
+      "createdAt": "2026-10-19T23:12:21.110Z",
+      "updatedAt": "2026-10-19T23:12:21.468Z",
+      "id": "6ad6a3d537f9edec65ae0511",
+      "runId": "opaque-run",
+      "chunkId": "opaque-chunk",
+      "brandId": "6ad6a3d5a5a430a0927ae55a",
+      "recordType": "data",
+      "sourceRunId": "source-1",
+      "harvestId": "item",
+      "oid": "",
+      "operation": "upsert",
+      "outcome": "failed",
+      "status": false,
+      "message": "",
+      "details": "",
+      "errorCode": "",
+      "recordSnapshot": null
+    },
+    "duplicate": "6ad6a3d537f9edec65ae0512"
+  }
+}
+PASS J1/J2 loaded shapes, defaults, references, callbacks, safe-mode indexes, nulls and extension writes

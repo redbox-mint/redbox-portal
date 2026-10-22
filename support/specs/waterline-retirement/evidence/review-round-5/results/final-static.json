@@ -1,0 +1,11 @@
+{
+  "name": "final-static",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && node_modules/.bin/tsc --noEmit && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json && node_modules/.bin/tsc --noEmit -p .tmp/review-round-5/tsconfig.changed-tests.json && git diff --check",
+  "sourceCommit": "283d57744c3c7cbe56b7364768f5187a49dda9f6",
+  "exitCode": 0,
+  "durationMs": 97984,
+  "sha256": "555327140dd58e2aa8a8b3fc863c71fd3e72594b4558066089a8af7a4b82ed78",
+  "counts": {},
+  "passGroups": 1,
+  "checks": []
+}

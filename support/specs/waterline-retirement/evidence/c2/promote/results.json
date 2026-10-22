@@ -1,0 +1,291 @@
+{
+  "sourceCommit": "8350d1f6644bac90bac94e03de7e594aded4cdc0",
+  "startedAt": "2026-10-20T08:08:36.028929+00:00",
+  "checks": [
+    {
+      "name": "cache-contract",
+      "command": "npm run check:cache-contract",
+      "exitCode": 0,
+      "log": "cache-contract.txt",
+      "durationSeconds": 7.78,
+      "logSha256": "2e4ca8639e66fffe24c930fe83f5301c6f317de7d3b73272045d4e189d51d2bc",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "build",
+      "command": "npm --prefix packages/redbox-core run build",
+      "exitCode": 0,
+      "log": "build.txt",
+      "durationSeconds": 32.9,
+      "logSha256": "8b95f31ad0a5a58687431d11df5064abd7801a8de5e3dd7da126529dfc99d94b",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "core",
+      "command": "npm run test:core",
+      "exitCode": 0,
+      "log": "core.txt",
+      "durationSeconds": 113.66,
+      "logSha256": "6e38681a242978ef72e7d106d3033054dc966bbbfb442f1d1cca9043a5d0be24",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 4158,
+        "pending": 107
+      }
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "exitCode": 0,
+      "log": "lint.txt",
+      "durationSeconds": 0.89,
+      "logSha256": "dd51b03e45085b6afdaba13ad2a1f8e68dd9abd73cd2511415154b166e82eea7",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "types",
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "exitCode": 0,
+      "log": "types.txt",
+      "durationSeconds": 23.17,
+      "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "root-types",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "log": "root-types.txt",
+      "durationSeconds": 1.92,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "cache-types",
+      "command": "node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json",
+      "exitCode": 0,
+      "log": "cache-types.txt",
+      "durationSeconds": 19.33,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "foundation",
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "exitCode": 0,
+      "log": "foundation.txt",
+      "durationSeconds": 8.15,
+      "logSha256": "161475ec16bca79d3e97396604b7af6b6e0e1be6f58790ede227f7d06031ec23",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 12
+      }
+    },
+    {
+      "name": "cache",
+      "command": "P5_SKIP_BUILD=true C2_DRIVER=true npm --prefix packages/redbox-core run test:cache-transition",
+      "exitCode": 0,
+      "log": "cache.txt",
+      "durationSeconds": 112.38,
+      "logSha256": "593d909f04f51055e938e04deb689198b8481774f49feafe0b373dccb15179fa",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 20
+      }
+    },
+    {
+      "name": "cache-prerequisites",
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-prisma",
+      "exitCode": 0,
+      "log": "cache-prerequisites.txt",
+      "durationSeconds": 14.05,
+      "logSha256": "c9907a416db6c9c657b73ba71136d55d929abeb7f089473af50fd5938b4f1f85",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 17
+      }
+    },
+    {
+      "name": "cache-driver-prerequisites",
+      "command": "C2_PREREQUISITE_BACKEND=mongodb P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-prisma",
+      "exitCode": 0,
+      "log": "cache-driver-prerequisites.txt",
+      "durationSeconds": 12.84,
+      "logSha256": "93e11413762e275e21b41651ed258996b6f046b3c789d3c7c741969e03c34af9",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 16
+      }
+    },
+    {
+      "name": "migration",
+      "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+      "exitCode": 0,
+      "log": "migration.txt",
+      "durationSeconds": 77.32,
+      "logSha256": "d97f3479547133cb50fedaffde420eb41f27596a991084db4966644f9e34cefc",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 15
+      }
+    },
+    {
+      "name": "reference",
+      "command": "npm --prefix packages/redbox-core run test:reference-transition",
+      "exitCode": 0,
+      "log": "reference.txt",
+      "durationSeconds": 52.36,
+      "logSha256": "c3d704a5900e4d598bc4eecdb5d46f3669f3f136f8557e87f3cb5c4938a3a9ec",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "configuration",
+      "command": "Q_PRIOR_IMAGE=redbox-p4-q:prior-f8c8cd7d npm --prefix packages/redbox-core run test:configuration-transition",
+      "exitCode": 0,
+      "log": "configuration.txt",
+      "durationSeconds": 37.2,
+      "logSha256": "1d4bb353672a95c960823d90390ac63ed7f2915677dd1a696d02805401cfce08",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "configuration-readiness",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh readiness",
+      "exitCode": 0,
+      "log": "configuration-readiness.txt",
+      "durationSeconds": 20.12,
+      "logSha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "progress",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh progress-contract",
+      "exitCode": 0,
+      "log": "progress.txt",
+      "durationSeconds": 35.74,
+      "logSha256": "f87ddbdf223c321ba671d912217da4c6aca324a836dd65ffc22ca960b1731d6a",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "harvest",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh harvest-contract",
+      "exitCode": 0,
+      "log": "harvest.txt",
+      "durationSeconds": 35.41,
+      "logSha256": "4119942ec388617b8539630a33c0f6ee257933f9bc41726520acbe1979b5a7a7",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "siem",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-contract",
+      "exitCode": 0,
+      "log": "siem.txt",
+      "durationSeconds": 38.38,
+      "logSha256": "39d2cb7c8ecc470051e2bd148137ef103fad49018534b8b7727d8e4fd9503db0",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "siem-readiness",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-readiness",
+      "exitCode": 0,
+      "log": "siem-readiness.txt",
+      "durationSeconds": 4.84,
+      "logSha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "siem-unit",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-unit",
+      "exitCode": 0,
+      "log": "siem-unit.txt",
+      "durationSeconds": 16.54,
+      "logSha256": "574d6e97e184686596163fa8aef3194a8ebc63f6ef687ab34853241394d29a50",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 73
+      }
+    },
+    {
+      "name": "figshare",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-contract",
+      "exitCode": 0,
+      "log": "figshare.txt",
+      "durationSeconds": 38.21,
+      "logSha256": "0bf1c42c463f289429caa699e4ff3f10f12db20e1d0cf714e832497b1b1fa0da",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "figshare-readiness",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-readiness",
+      "exitCode": 0,
+      "log": "figshare-readiness.txt",
+      "durationSeconds": 4.45,
+      "logSha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "figshare-unit",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-unit",
+      "exitCode": 0,
+      "log": "figshare-unit.txt",
+      "durationSeconds": 21.41,
+      "logSha256": "16350572b5d99a4b378b2753df42adf7eb25cd4cbce6007c20e8eb28d0b8a534",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "passing": 56
+      }
+    },
+    {
+      "name": "indexes",
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "exitCode": 0,
+      "log": "indexes.txt",
+      "durationSeconds": 114.24,
+      "logSha256": "4e4db40b48e19958ef58dcf0ef9ad96b0eafbde6cb6e550fdfc11b43199ffccb",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "packed-24",
+      "command": "CACHE_PACKAGE_NODE_VERSION=24.16.0 npm --prefix packages/redbox-core run test:cache-package",
+      "exitCode": 0,
+      "log": "packed-24.txt",
+      "durationSeconds": 260.77,
+      "logSha256": "99505299b7d865eb85b71389687c2bc8a4e50d6b83789affa31713332dc03835",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "packed-26",
+      "command": "CACHE_PACKAGE_NODE_VERSION=26.11.1 npm --prefix packages/redbox-core run test:cache-package",
+      "exitCode": 0,
+      "log": "packed-26.txt",
+      "durationSeconds": 222.51,
+      "logSha256": "91b0157e66e4807b51882fcc3df95992ac4b8879ad5b1a1d3ee2b414396a3c4e",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    }
+  ]
+}

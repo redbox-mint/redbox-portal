@@ -1,0 +1,24 @@
+{
+  "name": "final-review-files",
+  "command": "node --check packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-compatibility.cjs && node_modules/.bin/prettier --check packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts packages/redbox-core/src/persistence/cache/configuration.ts packages/redbox-core/src/persistence/scalars.ts packages/redbox-core/test/middleware/requestLifetime.test.ts packages/redbox-core/test/unit/cache-persistence-runtime.test.ts packages/redbox-core/test/unit/progress-persistence.test.ts packages/redbox-core/test/integration/CacheEntryTransition.test.ts packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs packages/redbox-core/test/fixtures/waterline-retirement/reference-query-compatibility.cjs && git diff --check 441d87304^ HEAD",
+  "sourceCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+  "exitCode": 2,
+  "durationMs": 1696,
+  "sha256": "77f9fc330f0f8f2838eff6ecbb7328b5bdf8466beb941a85b18db9225db22dc1",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [],
+  "disposition": "Historical captured-log blank lines at EOF; intentionally unchanged under no cosmetic nits and immutable prior evidence. Round-4 diff check is rerun over 72e1a2cd3..HEAD.",
+  "historicalFiles": [
+    "evidence/p2-m/transition.txt:67",
+    "evidence/p3-r/promotion.txt:126",
+    "evidence/p3-r/verification.txt:64",
+    "evidence/p4-q/promotion.txt:86",
+    "evidence/p4-q/verification.txt:155",
+    "evidence/p5c-j3/unit.txt:119",
+    "evidence/p5c-j3/verification.txt:89",
+    "evidence/p5d-j4/baseline-unit.txt:65",
+    "evidence/p5d-j4/unit.txt:132"
+  ],
+  "diagnostic": "new blank line at EOF"
+}

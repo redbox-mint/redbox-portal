@@ -1,0 +1,170 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:cache-driver-transition
+npm notice run C2_DRIVER=true bash test/fixtures/cache-persistence/run-transition.sh
+
+
+  P5 shared adapter contract and independent application instances
+P5 MongoDB 8.0.34
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=68412
+    ✔ runs the same raw-document repository contract with explicit waterline (4552ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=68594
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with waterline (4382ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=68649
+    ✔ runs the same raw-document repository contract with explicit prisma (4671ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=68825
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with prisma (3893ms)
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=68861
+    ✔ runs the same raw-document repository contract with explicit mongodb (3582ms)
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=68926
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with mongodb (4001ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=68980
+    ✔ preserves draft and retained-version preview create/fetch/expiry with waterline (3806ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=69102
+    ✔ preserves draft and retained-version preview create/fetch/expiry with prisma (4521ms)
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=69122
+    ✔ preserves draft and retained-version preview create/fetch/expiry with mongodb (3261ms)
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=69138
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=69140
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=69139
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=69186
+    ✔ interoperates bidirectionally with all three simultaneous backends and driver restart (9943ms)
+Dynamic imports imported
+    ✔ refuses a custom hook mapping before selecting the driver (3269ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=69217
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=69233
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=69266
+    ✔ switches sequentially and uses simultaneous mixed processes with competing names, updates, expiry and deletion (11086ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=69322
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=69338
+node:internal/modules/cjs/loader:1520
+  throw err;
+  ^
+
+Error: Cannot find module './AppConfigSecrets'
+Require stack:
+- <REPO>/packages/redbox-core/dist/services/AppConfigService.js
+- <REPO>/packages/redbox-core/dist/services/index.js
+- <REPO>/packages/redbox-core/dist/index.js
+- <REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)
+    at Module._load (node:internal/modules/cjs/loader:1294:5)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (<REPO>/packages/redbox-core/dist/services/AppConfigService.js:43:28)
+    at Module._compile (node:internal/modules/cjs/loader:1871:14)
+    at Object..js (node:internal/modules/cjs/loader:2002:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '<REPO>/packages/redbox-core/dist/services/AppConfigService.js',
+    '<REPO>/packages/redbox-core/dist/services/index.js',
+    '<REPO>/packages/redbox-core/dist/index.js',
+    '<REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs'
+  ]
+}
+
+Node.js v24.18.0
+    1) restarts into separate application processes after observing completed Prisma persistence and rolls config back
+node:internal/modules/cjs/loader:1520
+  throw err;
+  ^
+
+Error: Cannot find module '<REPO>/packages/redbox-core/dist'
+Require stack:
+- <REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)
+    at Module._load (node:internal/modules/cjs/loader:1294:5)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (<REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs:14:14)
+    at Module._compile (node:internal/modules/cjs/loader:1871:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '<REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs'
+  ]
+}
+
+Node.js v24.18.0
+    2) uses Prisma against real MongoDB when the selector is absent
+node:internal/modules/cjs/loader:1520
+  throw err;
+  ^
+
+Error: Cannot find module '<REPO>/packages/redbox-core/dist'
+Require stack:
+- <REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)
+    at Module._load (node:internal/modules/cjs/loader:1294:5)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (<REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs:14:14)
+    at Module._compile (node:internal/modules/cjs/loader:1871:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '<REPO>/packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs'
+  ]
+}
+
+Node.js v24.18.0
+    3) uses explicit Waterline selection with hook datastore/collection/callback overrides; Prisma bypasses standard-model callbacks
+
+
+  12 passing (1m)
+  3 failing
+
+  1) P5 shared adapter contract and independent application instances
+       restarts into separate application processes after observing completed Prisma persistence and rolls config back:
+     Error: P5 worker exited 1
+      at ChildProcess.<anonymous> (test/fixtures/cache-persistence/transition-client.cjs:49:24)
+      at ChildProcess.emit (node:events:509:28)
+      at ChildProcess.emit (node:domain:489:12)
+      at Process.ChildProcess._handle.onexit (node:internal/child_process:295:12)
+
+  2) P5 shared adapter contract and independent application instances
+       uses Prisma against real MongoDB when the selector is absent:
+     Error: P5 worker exited 1
+      at ChildProcess.<anonymous> (test/fixtures/cache-persistence/transition-client.cjs:49:24)
+      at ChildProcess.emit (node:events:509:28)
+      at ChildProcess.emit (node:domain:489:12)
+      at Process.ChildProcess._handle.onexit (node:internal/child_process:295:12)
+
+  3) P5 shared adapter contract and independent application instances
+       uses explicit Waterline selection with hook datastore/collection/callback overrides; Prisma bypasses standard-model callbacks:
+     Error: P5 worker exited 1
+      at ChildProcess.<anonymous> (test/fixtures/cache-persistence/transition-client.cjs:49:24)
+      at ChildProcess.emit (node:events:509:28)
+      at ChildProcess.emit (node:domain:489:12)
+      at Process.ChildProcess._handle.onexit (node:internal/child_process:295:12)

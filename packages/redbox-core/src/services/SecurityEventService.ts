@@ -37,7 +37,28 @@ export namespace Services {
       'emitFromAttachmentAudit',
       'storeSecurityEvent',
       'queryEvents',
+      'init',
+      'drain',
     ];
+
+    private draining=false;
+    private shutdownRegistered=false;
+    private readonly active=new Set<Promise<void>>();
+    public async init():Promise<void> {
+      if(this.shutdownRegistered)return;
+      this.shutdownRegistered=true;
+      const previous=sails.config.beforeShutdown;
+      sails.config.beforeShutdown=callback=>{
+        void this.drain().then(()=>{try{if(previous)previous(callback);else callback();}catch(error){callback(error);}},callback);
+      };
+    }
+    /** Called before persistence cleanup so accepted work can persist its outcome. */
+    public async drain():Promise<void>{this.draining=true;await Promise.allSettled(this.active);}
+    private accept(operation:()=>Promise<void>):Promise<void>{
+      if(this.draining)return Promise.reject(new Error('SIEM workers are draining.'));
+      const pending=Promise.resolve().then(operation);this.active.add(pending);
+      void pending.then(()=>this.active.delete(pending),()=>this.active.delete(pending));return pending;
+    }
 
     constructor() {
       super();
@@ -92,7 +113,11 @@ export namespace Services {
       };
     }
 
-    public async emitSecurityEvent(input: SecurityEventInput): Promise<void> {
+    public emitSecurityEvent(input: SecurityEventInput): Promise<void> {
+      if (this.draining) return Promise.resolve();
+      return this.accept(() => this.emitAccepted(input));
+    }
+    private async emitAccepted(input: SecurityEventInput): Promise<void> {
       try {
         if (typeof input.brandId !== 'string' || !input.brandId.trim()) return;
         const config = this.getConfig(input.brandId);
@@ -232,7 +257,8 @@ export namespace Services {
       });
     }
 
-    public async storeSecurityEvent(job: AgendaJobLike): Promise<void> {
+    public storeSecurityEvent(job: AgendaJobLike): Promise<void> { return this.accept(() => this.storeAccepted(job)); }
+    private async storeAccepted(job: AgendaJobLike): Promise<void> {
       const data = job.attrs?.data;
       if (!isRecord(data) || !isRecord(data.event)) return;
       const event = data.event;

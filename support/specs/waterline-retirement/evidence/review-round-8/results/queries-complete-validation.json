@@ -1,0 +1,14 @@
+{
+  "name": "queries-complete-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh job-queries && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh domain-queries",
+  "sourceCommit": "5bc2356b9c174239cb9af3599e78df988285940c",
+  "exitCode": 0,
+  "durationMs": 53603,
+  "sha256": "2a5dd39a73c25e9f849db654df276dd0fe280e5959799f4078495dc2b6b82fd8",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":466,\"failures\":0,\"firstFailures\":[],\"lastFailures\":[]}",
+    "{\"passing\":160,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

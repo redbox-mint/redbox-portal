@@ -1,0 +1,14 @@
+{
+  "name": "timestamps-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && R8_CONCERN=timestamps bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-parity && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-parity",
+  "sourceCommit": "6d8c726e0adea02f6351b2ab2dc553248f98ddd4",
+  "exitCode": 0,
+  "durationMs": 128327,
+  "sha256": "40cfac86ca581dbb8ee3041796dd27e89e7657d7d12fd46b365eeca6000c41e7",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"concern\":\"timestamps\",\"passing\":1520,\"failures\":0,\"summary\":{\"reference\":640,\"configuration\":320,\"progress\":160,\"harvest\":240,\"siem\":160},\"firstFailures\":[]}",
+    "{\"concern\":\"scalars\",\"passing\":7280,\"failures\":0,\"summary\":{\"reference\":2040,\"configuration\":800,\"progress\":840,\"harvest\":2240,\"siem\":1360},\"firstFailures\":[]}"
+  ]
+}

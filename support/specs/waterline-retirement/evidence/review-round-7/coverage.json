@@ -1,0 +1,69 @@
+{
+  "reviewedRange": "441d87304^..1b471907c",
+  "runtimeCommit": "84f7c6ce6",
+  "scope": [
+    "M",
+    "R",
+    "Q",
+    "J1-J4",
+    "C2",
+    "S staged subset"
+  ],
+  "review": {
+    "priorRounds": "Read rounds 1-6, retained their fixes and repeated the same defect classes in adjacent encoders, query translation, selectors and lifecycle owners.",
+    "r6": "Retained source-stream cleanup before copy/move destination preparation failure and terminal synchronous session-end state, with dispatched session callbacks independently drained.",
+    "gridfs": [
+      "upload construction and idle source",
+      "source error with an insert in flight",
+      "chunk insertion failure",
+      "final file insertion failure",
+      "applied file with failed acknowledgement",
+      "download normal completion",
+      "download error",
+      "cancellation after data",
+      "cancellation during initial chunks response",
+      "copy/move destination preparation and transfer failure",
+      "delete sibling rejection",
+      "partial initialization",
+      "close retry",
+      "concurrent disposal",
+      "independent app resources"
+    ],
+    "httpAndSession": [
+      "early and ordinary finish/close/aborted events",
+      "rejected and accepted requests",
+      "initial lookup callbacks",
+      "save/touch/destroy store callbacks",
+      "synchronous end throw and response retry",
+      "action errors after abort",
+      "callback/Promise/Observable/detached work",
+      "session/store disconnect during disposal"
+    ],
+    "programme": [
+      "loaded mapping readiness and automatic fields",
+      "raw BSON fields/defaults/identity",
+      "pinned scalar and JSON coercion",
+      "named-query field/regex/array dialects",
+      "tenant scope composition",
+      "projections/counts/pages/ordering",
+      "cross writes and prior artifact rollback",
+      "index readiness and collation",
+      "backend mutation and no silent fallback",
+      "staged binary ownership and recovery"
+    ]
+  },
+  "evidence": {
+    "focused": "results/cursor-initializing-final-validation.json",
+    "realStreams": "results/gridfs-streams.json",
+    "initializingQueries": "results/gridfs-initializing.json",
+    "completeMatrix": "verification.json",
+    "peerReview": "review-axes.json"
+  },
+  "limits": [
+    "This is adversarial contract and lifecycle validation, not a measured line-coverage claim or a guarantee against never-settling external work.",
+    "Private institution hooks/data/queries and production operational qualification remain external.",
+    "G-TX remains closed; no gated work or atomic staged promotion was implemented.",
+    "Native uncertain finalization bytes retain their existing recovery disposition.",
+    "No dependency, selector, topology or Compose changes."
+  ]
+}

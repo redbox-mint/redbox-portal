@@ -1,0 +1,15 @@
+{
+  "unchangedManifestsAndLocks": 39,
+  "directDriver": "7.7.0",
+  "typescript": "5.9.3",
+  "maintenanceNpm": "11.20.0",
+  "hashes": {
+    "package.json": "ecbd42222613dc5f23be0d15fa34878a440d9c1e98dfa8d48c013f32a84a04d1",
+    "package-lock.json": "c181398481f2224c1d7d331b549637899fe9cbe8cee8e362bff0e1c5d34ae08a",
+    "packages/redbox-core/package.json": "22190d179ac81962154a158190c3bf8edcb8340558bb5b6b2142d67a74bc15e1",
+    "packages/redbox-core/package-lock.json": "9ce4e54e01c2d9777e385190ab8e0e25835814d2fb1831e2f548452a49ad061a",
+    "packages/sails-hook-redbox-storage-mongo/package.json": "b0e77d593700cae72a270b8e25061d508339fd1eca25d4ad746f5cca9ed08e44",
+    "packages/sails-hook-redbox-storage-mongo/package-lock.json": "06145b9c2052c5af9b8d361ec6a05970643196c29afd5a007747fa8077f7a84c"
+  },
+  "afterStockUnchanged": true
+}

@@ -1,0 +1,221 @@
+{
+  "candidate": "mongoose",
+  "node": "v24.16.0",
+  "at": "2026-10-19T14:19:54.152Z",
+  "fixtureSha256": "4695372f1418990df93caa933987cb7e6b26984bb438bd9b6e4640996a0f2e8b",
+  "checks": [
+    {
+      "name": "existing P0 ObjectId/string times/numeric/no-read-rewrite",
+      "status": "PASS",
+      "ms": 14.210333999999989
+    },
+    {
+      "name": "JSON object/array/empty/false/zero/null writes and reads",
+      "status": "PASS",
+      "ms": 44.47163499999999
+    },
+    {
+      "name": "missing JSON, partial update, unknown field and createdAt preservation",
+      "status": "PASS",
+      "ms": 9.593322999999941,
+      "detail": {
+        "missingRead": "absent"
+      }
+    },
+    {
+      "name": "create then raw read with ObjectId and ISO strings",
+      "status": "PASS",
+      "ms": 15.08804299999997
+    },
+    {
+      "name": "belongs-to/has-many and explicit junction populate",
+      "status": "PASS",
+      "ms": 35.28660500000001,
+      "detail": {
+        "explicitEdges": 2,
+        "danglingTarget": 1,
+        "ormPopulation": true
+      }
+    },
+    {
+      "name": "junction add duplicate/remove/replace without array/timestamp/unique conversion",
+      "status": "PASS",
+      "ms": 42.07920899999999
+    },
+    {
+      "name": "ORM/driver multi-document commit",
+      "status": "PASS",
+      "ms": 14.384095000000002
+    },
+    {
+      "name": "injected failure after two writes rolls both back",
+      "status": "PASS",
+      "ms": 9.624806000000035
+    },
+    {
+      "name": "real write-conflict, whole callback retry, durable result",
+      "status": "PASS",
+      "ms": 20.280152999999927
+    },
+    {
+      "name": "cross-database branding commit with one session/client",
+      "status": "PASS",
+      "ms": 8.7993120000001
+    },
+    {
+      "name": "cross-database branding mid-operation rollback",
+      "status": "PASS",
+      "ms": 7.8519000000000005
+    },
+    {
+      "name": "commit disconnect: classify retry capability without concealing uncertainty",
+      "status": "PASS",
+      "ms": 28.152161999999976
+    },
+    {
+      "name": "private native CAS/stale rejection and competing findOneAndUpdate leases",
+      "status": "PASS",
+      "ms": 24.587484000000018
+    },
+    {
+      "name": "explicit index ensure/inspection, bounded cursor and keyset page",
+      "status": "PASS",
+      "ms": 113.2515350000001
+    },
+    {
+      "name": "GridFS streams coexist on same client, byte integrity",
+      "status": "PASS",
+      "ms": 54.624187000000006
+    }
+  ],
+  "native": {
+    "operations": "official driver on candidate-owned/borrowed client; explicitly native, not ORM API"
+  },
+  "transactions": {
+    "writeConflict112": 1,
+    "conflictCallbackCalls": 2,
+    "crossDatabaseSessionCount": 1,
+    "commitDisconnect": {
+      "status": "RECOVERED",
+      "callbackCalls": 1,
+      "durableVersion": 6
+    },
+    "status": "PASS"
+  },
+  "startup": {
+    "initializeMs": 152.43277300000003,
+    "rssDelta": 11698176,
+    "heapDelta": 2673656,
+    "rss": 87801856
+  },
+  "notes": [
+    "Explicit edge schema, versionKey/timestamps/autoIndex/autoCreate disabled. useDb shares client; Connection.transaction uses driver withTransaction. Mongo-only ODM; no SQL adapter."
+  ],
+  "server": {
+    "version": "8.0.34",
+    "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+  },
+  "topology": {
+    "setName": "wr_p0r",
+    "members": 1,
+    "directConnection": true
+  },
+  "commandSummary": {
+    "startup:hello": 1,
+    "startup:buildInfo": 1,
+    "startup:dropDatabase": 2,
+    "startup:insert": 10,
+    "startup:update": 9,
+    "startup:find": 41,
+    "startup:delete": 3,
+    "startup:aggregate": 2,
+    "startup:listIndexes": 1,
+    "transaction-commit:insert": 1,
+    "transaction-commit:update": 1,
+    "transaction-commit:find": 2,
+    "transaction-commit:commitTransaction": 1,
+    "transaction-commit:aggregate": 1,
+    "transaction-rollback:insert": 1,
+    "transaction-rollback:update": 1,
+    "transaction-rollback:abortTransaction": 1,
+    "transaction-rollback:find": 1,
+    "transaction-rollback:aggregate": 1,
+    "transaction-conflict:find": 3,
+    "transaction-conflict:update": 3,
+    "transaction-conflict:abortTransaction": 1,
+    "transaction-conflict:commitTransaction": 1,
+    "transaction-crossdb-commit:insert": 1,
+    "transaction-crossdb-commit:update": 1,
+    "transaction-crossdb-commit:commitTransaction": 1,
+    "transaction-crossdb-commit:find": 2,
+    "transaction-crossdb-rollback:insert": 1,
+    "transaction-crossdb-rollback:update": 1,
+    "transaction-crossdb-rollback:abortTransaction": 1,
+    "transaction-crossdb-rollback:aggregate": 1,
+    "transaction-crossdb-rollback:find": 1,
+    "transaction-commit-disconnect:configureFailPoint": 2,
+    "transaction-commit-disconnect:update": 1,
+    "transaction-commit-disconnect:commitTransaction": 3,
+    "transaction-commit-disconnect:find": 1,
+    "native:find": 6,
+    "native:update": 3,
+    "native:insert": 3,
+    "native:findAndModify": 2,
+    "native:createIndexes": 3,
+    "native:listIndexes": 3,
+    "native:getMore": 1,
+    "native:delete": 2
+  },
+  "crossDatabaseCommands": [
+    {
+      "phase": "transaction-crossdb-commit",
+      "name": "insert",
+      "db": "wr_p0r_storage",
+      "session": "26eee2909c26e360",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-commit",
+      "name": "update",
+      "db": "wr_p0r_app",
+      "session": "26eee2909c26e360",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-commit",
+      "name": "commitTransaction",
+      "db": "admin",
+      "session": "26eee2909c26e360",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-rollback",
+      "name": "insert",
+      "db": "wr_p0r_storage",
+      "session": "26eee2909c26e360",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-rollback",
+      "name": "update",
+      "db": "wr_p0r_app",
+      "session": "26eee2909c26e360",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-rollback",
+      "name": "abortTransaction",
+      "db": "admin",
+      "session": "26eee2909c26e360",
+      "transaction": true
+    }
+  ],
+  "status": "PASS",
+  "closedMemory": {
+    "rss": 94707712,
+    "heapTotal": 38449152,
+    "heapUsed": 19283944,
+    "external": 21198642,
+    "arrayBuffers": 18285400
+  }
+}

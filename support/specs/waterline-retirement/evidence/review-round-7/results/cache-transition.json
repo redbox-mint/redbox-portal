@@ -1,0 +1,15 @@
+{
+  "name": "cache-transition",
+  "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+  "sourceCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+  "exitCode": 0,
+  "durationMs": 86069,
+  "sha256": "2e2585ec7e8d0765e1785e0a627c02cf5ecf14e52441efaf4f6a93ede3fc4fe7",
+  "counts": {
+    "passing": [
+      17
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

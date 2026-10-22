@@ -1,0 +1,92 @@
+{
+  "node": "v24.16.0",
+  "mongo": "9.0.4",
+  "warmups": 30,
+  "cycles": 250,
+  "workload": "brand lookup, history lookup, sorted history and draft revision",
+  "ratios": {
+    "p95": 0.35604389671273906,
+    "throughput": 2.7729114601144653,
+    "rss": 0.9694447574737994,
+    "calls": 0.5714285714285714
+  },
+  "samples": [
+    {
+      "round": 0,
+      "backend": "waterline",
+      "p95": 18.885709000000134,
+      "throughput": 95.083872059187,
+      "rss": 424640512,
+      "clients": 0,
+      "readinessMs": 2.2492119999997158,
+      "calls": 1960,
+      "baselineConnections": 6,
+      "afterConnections": 6
+    },
+    {
+      "round": 0,
+      "backend": "mongodb",
+      "p95": 6.803439000000253,
+      "throughput": 267.2379098619273,
+      "rss": 401281024,
+      "clients": 1,
+      "readinessMs": 54.79743499999995,
+      "calls": 1120,
+      "baselineConnections": 8,
+      "afterConnections": 6
+    },
+    {
+      "round": 1,
+      "backend": "mongodb",
+      "p95": 9.078891999999996,
+      "throughput": 221.60621525088223,
+      "rss": 428417024,
+      "clients": 1,
+      "readinessMs": 107.21981599999981,
+      "calls": 1120,
+      "baselineConnections": 6,
+      "afterConnections": 6
+    },
+    {
+      "round": 1,
+      "backend": "waterline",
+      "p95": 18.84766899999977,
+      "throughput": 92.80786004586285,
+      "rss": 417325056,
+      "clients": 0,
+      "readinessMs": 6.78215900000032,
+      "calls": 1960,
+      "baselineConnections": 6,
+      "afterConnections": 6
+    },
+    {
+      "round": 2,
+      "backend": "waterline",
+      "p95": 27.27695700000004,
+      "throughput": 73.7985736340983,
+      "rss": 430190592,
+      "clients": 0,
+      "readinessMs": 2.8769760000000133,
+      "calls": 1960,
+      "baselineConnections": 6,
+      "afterConnections": 6
+    },
+    {
+      "round": 2,
+      "backend": "mongodb",
+      "p95": 7.264202000000296,
+      "throughput": 236.7999226721328,
+      "rss": 403587072,
+      "clients": 1,
+      "readinessMs": 71.33201000000008,
+      "calls": 1120,
+      "baselineConnections": 6,
+      "afterConnections": 6
+    }
+  ],
+  "pass": true,
+  "log": {
+    "path": ".tmp/wrp9/operations-qualification.log",
+    "sha256": "d7db1e41a35388342dc463b69dc8edd1f371a5d53af5f416d0819ecbe56a0924"
+  }
+}

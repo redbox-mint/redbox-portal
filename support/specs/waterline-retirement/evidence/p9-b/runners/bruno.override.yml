@@ -1,0 +1,36 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.6@sha256:8d44614c74798322c4e07fbe0ecb15cfbb5879d69b484628555f58ade06f0d8c
+  redboxportal-mount:
+    environment:
+      B_PORTAL_MODE: bruno
+      UPPY_COMPANION_ENABLED: 'true'
+      UPPY_COMPANION_SECRET: integrationtest-companion-secret
+      UPPY_COMPANION_FILE_PATH: /tmp/companion
+      UPPY_COMPANION_HOST: redboxportal:1500
+      UPPY_COMPANION_PROTOCOL: http
+      UPPY_COMPANION_PATH: /companion
+      UPPY_COMPANION_UPLOAD_URLS: http://redboxportal:1500/default/rdmp/companion/record/pending-oid/attach
+      UPPY_GOOGLE_KEY: integrationtest-google-key
+      UPPY_GOOGLE_SECRET: integrationtest-google-secret
+      UPPY_ONEDRIVE_KEY: integrationtest-onedrive-key
+      UPPY_ONEDRIVE_SECRET: integrationtest-onedrive-secret
+      sails_recordSchema__enabled: 'true'
+      sails_recordSchema__unknownProperties: allow
+      sails_recordValidation__mode: shadow
+      sails_recordtype__dataPublication__recordValidation__mode: enforce
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home >/dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 60s
+  bruno:
+    image: node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+    pull_policy: never
+    working_dir: /opt/bruno-tests
+    volumes:
+      - ${PWD}/.tmp/wrp9/bruno-tests:/opt/bruno-tests
+    networks: [main]
+    mem_limit: 1536m
+    entrypoint: ['node_modules/.bin/bru', 'run', '--disable-cookies', '--env', 'int-test', '--sandbox', 'developer', '--format', 'json', '--output', '/opt/bruno-tests/result.json', '--bail']

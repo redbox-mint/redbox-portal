@@ -1,0 +1,188 @@
+
+changed 34 packages in 8s
+11.20.0
+Wrote to /packed/package.json:
+
+{
+  "name": "packed",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
+
+
+
+added 85 packages in 16s
+packed@1.0.0 /packed
+`-- redbox-orm-reevaluation-spike@0.0.0
+  +-- @mikro-orm/core@7.2.5
+  | `-- UNMET OPTIONAL DEPENDENCY dataloader@2.2.3
+  +-- @mikro-orm/mongodb@7.2.5
+  | +-- @mikro-orm/core@7.2.5 deduped
+  | `-- mongodb@7.7.0 deduped
+  +-- @prisma/orm-mongo@8.0.0-rc.18
+  | +-- @prisma/orm-family-mongo@8.0.0-rc.18
+  | | +-- @prisma/orm-framework@8.0.0-rc.18 deduped
+  | | +-- @prisma/orm-toolchain@8.0.0-rc.18 deduped
+  | | +-- arktype@2.2.8
+  | | | +-- @ark/schema@0.56.7
+  | | | | `-- @ark/util@0.56.7 deduped
+  | | | +-- @ark/util@0.56.7
+  | | | `-- arkregex@0.0.13
+  | | |   `-- @ark/util@0.56.7 deduped
+  | | +-- mongodb@7.7.0 deduped
+  | | +-- pathe@2.0.3 deduped
+  | | `-- UNMET OPTIONAL DEPENDENCY typescript@>=5.9
+  | +-- @prisma/orm-framework@8.0.0-rc.18
+  | | +-- @standard-schema/spec@1.1.0 deduped
+  | | +-- arktype@2.2.8 deduped
+  | | +-- pathe@2.0.3 deduped
+  | | +-- tinyglobby@0.2.17 deduped
+  | | +-- UNMET OPTIONAL DEPENDENCY typescript@>=5.9
+  | | `-- uniku@0.5.0
+  | |   `-- @noble/hashes@2.4.0
+  | +-- @prisma/orm-target-mongo@8.0.0-rc.18
+  | | +-- @prisma/orm-family-mongo@8.0.0-rc.18 deduped
+  | | +-- @prisma/orm-framework@8.0.0-rc.18 deduped
+  | | +-- @prisma/orm-toolchain@8.0.0-rc.18 deduped
+  | | +-- arktype@2.2.8 deduped
+  | | +-- bson@7.3.3 deduped
+  | | +-- mongodb@7.7.0 deduped
+  | | `-- UNMET OPTIONAL DEPENDENCY typescript@>=5.9
+  | +-- @prisma/orm-toolchain@8.0.0-rc.18
+  | | +-- @prisma/cli-engine@0.7.0
+  | | | +-- @clack/prompts@1.5.0
+  | | | | +-- @clack/core@1.4.0
+  | | | | | +-- fast-wrap-ansi@0.2.2 deduped
+  | | | | | `-- sisteransi@1.0.5 deduped
+  | | | | +-- fast-string-width@3.0.2
+  | | | | | `-- fast-string-truncated-width@3.0.3
+  | | | | +-- fast-wrap-ansi@0.2.2
+  | | | | | `-- fast-string-width@3.0.2 deduped
+  | | | | `-- sisteransi@1.0.5
+  | | | +-- @prisma/management-api-sdk@1.84.0
+  | | | | `-- openapi-fetch@0.14.0
+  | | | |   `-- openapi-typescript-helpers@0.0.15
+  | | | +-- @stricli/core@1.3.0
+  | | | +-- arktype@2.2.8 deduped
+  | | | +-- c12@3.3.4 deduped
+  | | | +-- colorette@2.0.20 deduped
+  | | | +-- package-manager-detector@1.8.0 deduped
+  | | | `-- string-width@8.3.0 deduped
+  | | +-- @prisma/orm-framework@8.0.0-rc.18 deduped
+  | | +-- @vercel/detect-agent@1.2.7
+  | | +-- arktype@2.2.8 deduped
+  | | +-- c12@3.3.4
+  | | | +-- chokidar@5.0.0
+  | | | | `-- readdirp@5.1.1
+  | | | +-- confbox@0.2.4
+  | | | +-- defu@6.1.7
+  | | | +-- dotenv@17.4.2
+  | | | +-- exsolve@1.1.3
+  | | | +-- giget@3.3.1
+  | | | +-- jiti@2.7.0
+  | | | +-- UNMET OPTIONAL DEPENDENCY magicast@*
+  | | | +-- ohash@2.0.12
+  | | | +-- pathe@2.0.3 deduped
+  | | | +-- perfect-debounce@2.1.0
+  | | | +-- pkg-types@2.3.3
+  | | | | +-- confbox@0.3.1
+  | | | | +-- exsolve@1.1.3 deduped
+  | | | | `-- pathe@2.0.3 deduped
+  | | | `-- rc9@3.1.0
+  | | |   +-- defu@6.1.7 deduped
+  | | |   `-- destr@2.0.5
+  | | +-- ci-info@4.4.0
+  | | +-- clipanion@4.0.0-rc.4
+  | | | `-- typanion@3.14.0
+  | | +-- closest-match@1.3.3
+  | | +-- colorette@2.0.20
+  | | +-- esbuild@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/aix-ppc64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/android-arm@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/android-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/android-x64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/darwin-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/darwin-x64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/freebsd-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/freebsd-x64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-arm@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-ia32@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-loong64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-mips64el@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-ppc64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-riscv64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/linux-s390x@0.28.2
+  | | | +-- @esbuild/linux-x64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/netbsd-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/netbsd-x64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/openbsd-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/openbsd-x64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/openharmony-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/sunos-x64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/win32-arm64@0.28.2
+  | | | +-- UNMET OPTIONAL DEPENDENCY @esbuild/win32-ia32@0.28.2
+  | | | `-- UNMET OPTIONAL DEPENDENCY @esbuild/win32-x64@0.28.2
+  | | +-- jsonc-parser@3.3.1
+  | | +-- package-manager-detector@1.8.0
+  | | +-- pathe@2.0.3 deduped
+  | | +-- prettier@3.9.10
+  | | +-- string-width@8.3.0
+  | | | +-- get-east-asian-width@1.7.0
+  | | | `-- strip-ansi@7.2.0 deduped
+  | | +-- strip-ansi@7.2.0
+  | | | `-- ansi-regex@6.4.0
+  | | +-- tinyglobby@0.2.17 deduped
+  | | +-- UNMET OPTIONAL DEPENDENCY typescript@>=5.9
+  | | +-- UNMET OPTIONAL DEPENDENCY vite@^7.0.0 || ^8.0.0
+  | | +-- vscode-languageserver-textdocument@1.0.12
+  | | +-- vscode-languageserver@10.1.0
+  | | | `-- vscode-languageserver-protocol@3.18.2
+  | | |   +-- vscode-jsonrpc@9.0.1
+  | | |   `-- vscode-languageserver-types@3.18.0
+  | | `-- wrap-ansi@10.0.2
+  | |   +-- ansi-styles@6.2.3
+  | |   `-- string-width@8.3.0 deduped
+  | +-- mongodb-connection-string-url@7.0.2
+  | | +-- @types/whatwg-url@13.0.0
+  | | | `-- @types/webidl-conversions@7.0.3
+  | | `-- whatwg-url@14.2.0
+  | |   +-- tr46@5.1.1
+  | |   | `-- punycode@2.3.1
+  | |   `-- webidl-conversions@7.0.0
+  | +-- mongodb@7.7.0 deduped
+  | +-- pathe@2.0.3
+  | +-- tinyglobby@0.2.17
+  | | +-- fdir@6.5.0
+  | | | `-- picomatch@4.0.7 deduped
+  | | `-- picomatch@4.0.7
+  | `-- UNMET OPTIONAL DEPENDENCY typescript@>=5.9
+  +-- mongodb@7.7.0
+  | +-- UNMET OPTIONAL DEPENDENCY @aws-sdk/credential-providers@^3.806.0
+  | +-- @mongodb-js/saslprep@1.6.1
+  | | `-- sparse-bitfield@3.0.3
+  | |   `-- memory-pager@1.5.0
+  | +-- UNMET OPTIONAL DEPENDENCY @mongodb-js/zstd@^7.0.0
+  | +-- bson@7.3.3
+  | +-- UNMET OPTIONAL DEPENDENCY gcp-metadata@^7.0.1
+  | +-- UNMET OPTIONAL DEPENDENCY kerberos@^7.0.0
+  | +-- UNMET OPTIONAL DEPENDENCY mongodb-client-encryption@^7.2.0
+  | +-- mongodb-connection-string-url@7.0.2 deduped
+  | +-- UNMET OPTIONAL DEPENDENCY snappy@^7.3.2
+  | `-- UNMET OPTIONAL DEPENDENCY socks@^2.8.6
+  `-- mongoose@9.11.2
+    +-- @standard-schema/spec@1.1.0
+    +-- kareem@3.4.1
+    +-- mongodb@7.7.0 deduped
+    +-- mpath@0.9.0
+    +-- mquery@6.0.0
+    +-- ms@2.1.3
+    `-- sift@17.1.3

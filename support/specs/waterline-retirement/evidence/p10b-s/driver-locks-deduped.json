@@ -1,0 +1,7 @@
+{
+  "command": "node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --package-lock-only --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer && node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --dry-run --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer && node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --no-save --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer",
+  "exitCode": 0,
+  "durationMs": 35585,
+  "rawBytes": 1135,
+  "sha256": "e4dce4d7668783b7f52ec2938eef8e8246a50ae266a074f2caa804cdf53b5636"
+}

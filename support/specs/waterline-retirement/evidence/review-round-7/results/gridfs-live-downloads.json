@@ -1,0 +1,11 @@
+{
+  "name": "gridfs-live-downloads",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+  "sourceCommit": "1b471907ca462ebdd460fd014ad4b5e890385a12",
+  "exitCode": 1,
+  "durationMs": 4005,
+  "sha256": "ffa0a2f0f0faab58cd50f0c072c2b2fb5192c26e82d78de98fd954174b43eb03",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

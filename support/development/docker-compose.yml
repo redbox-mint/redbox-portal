@@ -81,9 +81,11 @@ services:
     image: redbox-portal:dev
     volumes: *rbportal-volumes
   mongodb:
-    #image: mvertes/alpine-mongo:latest
-    image: mongo:latest@sha256:bac22ea7710d774103dcad3ec8ac13cba1eb378f488e3ce8a6b3a1adf2ba9dcc
+    # New stacks only: see support/specs/prisma-cache-persistence/p4-validation.md
+    # before reusing data from an older or newer server/FCV.
+    image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
     volumes:
+      - '../resources/mongodb-persistence-indexes.js:/docker-entrypoint-initdb.d/20-persistence-indexes.js:ro'
       - './devdata:/devdata:delegated'
       - './.dev/mongo/data/db:/data/db:delegated'
       - './.dev/log/mongo:/var/log/mongo:delegated'

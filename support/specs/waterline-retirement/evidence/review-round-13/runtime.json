@@ -1,0 +1,83 @@
+{
+  "input": "dc77696de526b89f8b3b709384b6cc1e6e13357b",
+  "qualification": "0341c6241962729905b0400af1e1097efc81f567",
+  "branch": "t3/waterline-retirement",
+  "master": "ef23e07fe2933e62ea10620efa7db41f577213d0",
+  "npm": "11.20.0",
+  "node": "v24.18.0",
+  "manifestFiles": 41,
+  "manifestsUnchanged": true,
+  "manifestMapSha256": "1fbbcef1d555f02d54a6c8a158473423a20c52f7a6f4cb61e8627dac671cbd66",
+  "compiledCheckpoint": "0341c6241962729905b0400af1e1097efc81f567",
+  "trees": {
+    "sources": {
+      "files": 630,
+      "mapSha256": "04265597ba48306c16832561702eaaaa17a413652be34b424128158bd4ac04b4",
+      "unchanged": true
+    },
+    "artifacts": {
+      "files": 1856,
+      "mapSha256": "97e323914795225a787c2b353c8609f7b6a3b2c9c9dd2de78db0ce05f0b94dbc",
+      "unchanged": true
+    }
+  },
+  "stock": {
+    "mocha": {
+      "node": "v26.10.0",
+      "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+      "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+      "sha256": {
+        "packages/redbox-core/dist/persistence/shutdown.js": "190bcd5a088283bba01d41a6e5b6096b9019e0786766854acbf0c73cd489593a",
+        "packages/redbox-core/dist/services/AgendaQueueService.js": "1f538e70d16597aee5353e4363afc9c5a78888ab315860cb388bce48c92de7bb",
+        "packages/redbox-core/dist/services/figshare-v2/worker.js": "9434e6b95272142912126dce8cbfcd34b1d13129dbcc5b1f87d4df92e060d37d",
+        "packages/redbox-core/dist/services/IntegrationAuditService.js": "6ff7582a41e60199c3d479e3c52670a74aaa708f9093ceece3f1423989299c44",
+        "packages/redbox-core/dist/persistence/storage/runtime.js": "bd3e3755cdf26f31135b7dbdc3daa1c85564d704008f7493c779e679fd2fc3f7",
+        "packages/redbox-core/dist/persistence/storage/WaterlineAttachmentRepository.js": "e1cb8465be2ab5e4cdd1873aae2ef8d8dee5a159a51b91e3bc0de71043c25326",
+        "packages/redbox-core/dist/persistence/reference/runtime.js": "5f6e472d79d8afb4a3a31100fe106b8e19329ea0149fd2d80db83f95fae1731f",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/WaterlineNativeStorage.js": "92a9cf0cd9e8bfd210f734f13d011a525fa312a84d4cbe4b031da5532b335aee",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/MongoStagedStorage.js": "87a78edb9b46f3678b7fa32164b64f20ce129068b8ca25a547c060be21205ea5",
+        "packages/redbox-core/dist/persistence/runtime.js": "a698b5edfc507035c491bbfd133b8c0491eafdbc6f4fd457cc590407eb15e384",
+        "packages/redbox-core/dist/middleware/requestLifetime.js": "da93152760bdd229d2e5a18a194454f31a4844f5f7f0408dfee738b2c750cc2f",
+        "packages/redbox-core/dist/middleware/redboxSession.js": "23b30d858ed9c92d321ec5c989d1c34ad4f0921054661b0755d5419e73208659",
+        "packages/redbox-core/dist/config/agendaQueue.config.js": "de983cdb3010a4d5606353f8fff02482f891d18e9faa46cfb1896818a69c57d1",
+        "packages/redbox-core/dist/services/RecordsService.js": "2145ce021166a666a19b4b05fa3450131c4be421215f66627b53f8587dea92c6",
+        "packages/redbox-core/dist/persistence/storage/MongoAttachmentRepository.js": "f84bfc231342c35c8f94ee6f16a85dd3aea0eb4db60ff92e531994fa9a9dbfda",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/RecordRevisionMaintenance.js": "2ad65153b39822ba6e21814a858b2c58e89cb2086b04f378064ded1ccba65688"
+      },
+      "container": "6de9925b919e",
+      "project": "p10-s-mocha-default-27829-577",
+      "image": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd",
+      "npm": "11.20.0",
+      "matchesHostArtifacts": true
+    },
+    "bruno": {
+      "node": "v26.10.0",
+      "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+      "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+      "sha256": {
+        "packages/redbox-core/dist/persistence/shutdown.js": "190bcd5a088283bba01d41a6e5b6096b9019e0786766854acbf0c73cd489593a",
+        "packages/redbox-core/dist/services/AgendaQueueService.js": "1f538e70d16597aee5353e4363afc9c5a78888ab315860cb388bce48c92de7bb",
+        "packages/redbox-core/dist/services/figshare-v2/worker.js": "9434e6b95272142912126dce8cbfcd34b1d13129dbcc5b1f87d4df92e060d37d",
+        "packages/redbox-core/dist/services/IntegrationAuditService.js": "6ff7582a41e60199c3d479e3c52670a74aaa708f9093ceece3f1423989299c44",
+        "packages/redbox-core/dist/persistence/storage/runtime.js": "bd3e3755cdf26f31135b7dbdc3daa1c85564d704008f7493c779e679fd2fc3f7",
+        "packages/redbox-core/dist/persistence/storage/WaterlineAttachmentRepository.js": "e1cb8465be2ab5e4cdd1873aae2ef8d8dee5a159a51b91e3bc0de71043c25326",
+        "packages/redbox-core/dist/persistence/reference/runtime.js": "5f6e472d79d8afb4a3a31100fe106b8e19329ea0149fd2d80db83f95fae1731f",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/WaterlineNativeStorage.js": "92a9cf0cd9e8bfd210f734f13d011a525fa312a84d4cbe4b031da5532b335aee",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/MongoStagedStorage.js": "87a78edb9b46f3678b7fa32164b64f20ce129068b8ca25a547c060be21205ea5",
+        "packages/redbox-core/dist/persistence/runtime.js": "a698b5edfc507035c491bbfd133b8c0491eafdbc6f4fd457cc590407eb15e384",
+        "packages/redbox-core/dist/middleware/requestLifetime.js": "da93152760bdd229d2e5a18a194454f31a4844f5f7f0408dfee738b2c750cc2f",
+        "packages/redbox-core/dist/middleware/redboxSession.js": "23b30d858ed9c92d321ec5c989d1c34ad4f0921054661b0755d5419e73208659",
+        "packages/redbox-core/dist/config/agendaQueue.config.js": "de983cdb3010a4d5606353f8fff02482f891d18e9faa46cfb1896818a69c57d1",
+        "packages/redbox-core/dist/services/RecordsService.js": "2145ce021166a666a19b4b05fa3450131c4be421215f66627b53f8587dea92c6",
+        "packages/redbox-core/dist/persistence/storage/MongoAttachmentRepository.js": "f84bfc231342c35c8f94ee6f16a85dd3aea0eb4db60ff92e531994fa9a9dbfda",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/RecordRevisionMaintenance.js": "2ad65153b39822ba6e21814a858b2c58e89cb2086b04f378064ded1ccba65688"
+      },
+      "container": "b00ad4d51b49",
+      "project": "p10-s-bruno-default-npm1120-23419-17754",
+      "image": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd",
+      "npm": "11.20.0",
+      "cliNpm": "11.20.0",
+      "matchesHostArtifacts": true
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "ownedContainers": 0,
+  "ownedNetworks": 0,
+  "ownedVolumes": 0,
+  "freshComposeProjects": [
+    "p10-s-bruno-default-32583-31853",
+    "p10-s-bruno-waterline-12813-17111",
+    "p10-s-mocha-default-25531-14182",
+    "p10-s-mocha-waterline-27705-4239",
+    "p2-index-dev-21241-30999",
+    "p2-index-dev-29974-31267"
+  ],
+  "temporaryInstallsRemoved": 3,
+  "rawLogHashesVerified": 46,
+  "retainedNewImages": [
+    {
+      "image": "redbox-p10-s:prior-12e566575",
+      "digest": "sha256:c138489fc72f566815113599b699e13ad55486176f333c394238b361bca094d3",
+      "purpose": "Immutable pre-promotion rollback artifact and exact installed dependency lock needed for reproduction"
+    }
+  ],
+  "unrelatedExistingStacksAndImages": "untouched",
+  "rawLogsAndNpmCache": "removed after SHA-256 verification",
+  "pushed": false,
+  "temporaryPhaseDirectoryRemoved": true
+}

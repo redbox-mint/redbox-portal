@@ -1,0 +1,148 @@
+{
+  "bundledNamedQueries": [
+    {
+      "file": "bootstrap-data/namedqueries/listDPRecords.json",
+      "target": "record",
+      "sha256": "bb269e785fc1959e8016ec7e36703fe88172939674ccc553d58a0f61a860924e"
+    },
+    {
+      "file": "bootstrap-data/namedqueries/listDRRecords.json",
+      "target": "record",
+      "sha256": "c3279dc495412e3b3eea172d7de5b0050f6e6910369ce012b75c06e76aa3acde"
+    },
+    {
+      "file": "bootstrap-data/namedqueries/listDraftInactiveRDMPRecords.json",
+      "target": "record",
+      "sha256": "848c7a12402da9fe2f1c68d64ad98338b0756cd8dc577eda3bde763f88cad75a"
+    },
+    {
+      "file": "bootstrap-data/namedqueries/listEmbargoedDPRecords.json",
+      "target": "record",
+      "sha256": "2d5733794b7a92caf7b9e0f554a1ce2969eacb5d2293a4c301f15ae6a7ff0227"
+    },
+    {
+      "file": "bootstrap-data/namedqueries/listParties.json",
+      "target": "record",
+      "sha256": "6b2d688d2b4c8b1dcb3e27cee40a6a8caae75b6caab0337d85d6a145551fb6c2"
+    },
+    {
+      "file": "bootstrap-data/namedqueries/listRDMPRecords.json",
+      "target": "record",
+      "sha256": "f6520908c0d38fddbd8748f226b8879ec398af9efb5392e2d7291609e80dfc26"
+    },
+    {
+      "file": "bootstrap-data/namedqueries/listUsers.json",
+      "target": "user",
+      "sha256": "3d8e4751a59790978a4df557a788857029605459a4242127a6e960ecbddbbe08"
+    },
+    {
+      "file": "bootstrap-data/namedqueries/listWorkspaceRecords.json",
+      "target": "record",
+      "sha256": "68cf448cc0124f1ffd826959f1209a163d8521adf0a2c781bc1bc291a675f715"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listDPRecords.json",
+      "target": "record",
+      "sha256": "bb269e785fc1959e8016ec7e36703fe88172939674ccc553d58a0f61a860924e"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listDRRecords.json",
+      "target": "record",
+      "sha256": "c3279dc495412e3b3eea172d7de5b0050f6e6910369ce012b75c06e76aa3acde"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listDraftInactiveRDMPRecords.json",
+      "target": "record",
+      "sha256": "848c7a12402da9fe2f1c68d64ad98338b0756cd8dc577eda3bde763f88cad75a"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listEmbargoedDPRecords.json",
+      "target": "record",
+      "sha256": "2d5733794b7a92caf7b9e0f554a1ce2969eacb5d2293a4c301f15ae6a7ff0227"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listParties.json",
+      "target": "record",
+      "sha256": "6b2d688d2b4c8b1dcb3e27cee40a6a8caae75b6caab0337d85d6a145551fb6c2"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listRDMPRecords.json",
+      "target": "record",
+      "sha256": "f6520908c0d38fddbd8748f226b8879ec398af9efb5392e2d7291609e80dfc26"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listUsers.json",
+      "target": "user",
+      "sha256": "3d8e4751a59790978a4df557a788857029605459a4242127a6e960ecbddbbe08"
+    },
+    {
+      "file": "support/resources/development/bootstrap-data/namedqueries/listWorkspaceRecords.json",
+      "target": "record",
+      "sha256": "68cf448cc0124f1ffd826959f1209a163d8521adf0a2c781bc1bc291a675f715"
+    }
+  ],
+  "notes": [
+    "The named-query editor exposes raw JSON; API create/update persist mongoQuery, and setParamsInQuery merges modifiers for shared field paths.",
+    "Bundled definitions target record/user; numeric/string date ranges share fields and already intersect.",
+    "contains plus endsWith is accepted by loaded Waterline and producible by persisted definitions/API parameter merging; f291c3260 refusal was a regression.",
+    "Duplicate logical/operator aliases and nested/dotted overwrites remain explicit refusals: the loaded Waterline dialect rejects those raw shapes; old bespoke flattening could discard conditions."
+  ],
+  "reviewedCallSites": [
+    {
+      "path": "packages/redbox-core/src/services/NamedQueryService.ts",
+      "lines": [
+        236,
+        274,
+        476,
+        578
+      ],
+      "finding": "API storage and parameter merge preserve combined modifiers."
+    },
+    {
+      "path": "angular/projects/researchdatabox/named-query-editor/src/app/mongo-query-editor/mongo-query-editor.component.ts",
+      "lines": [
+        54
+      ],
+      "finding": "Raw JSON accepts structured query objects."
+    },
+    {
+      "path": "packages/redbox-core/src/services/ReportsService.ts",
+      "lines": [
+        284,
+        411,
+        533
+      ],
+      "finding": "Database reports delegate their configured query and parameters to NamedQueryService."
+    },
+    {
+      "path": "packages/redbox-core/src/config/namedQuery.config.ts",
+      "finding": "Editor targets are record/user; parameter queryType permits stored string modifiers."
+    },
+    {
+      "path": "packages/redbox-core/src/config/dashboardtype.config.ts",
+      "finding": "Bundled dashboard settings do not define additional named-query predicates."
+    },
+    {
+      "path": "packages/redbox-hook-dev/src",
+      "finding": "No additional checked-in NamedQuery definitions found; private hooks are not present."
+    }
+  ],
+  "bundledReports": [
+    {
+      "path": "bootstrap-data/reports/rdmpRecords.json",
+      "reportSource": "database",
+      "databaseQuery": {
+        "queryName": "listRDMPRecords"
+      },
+      "sha256": "b8b9c658c7daf1ca33333fa4b9000ef0ab3a959f7efe3d6b5208ff084af6729b"
+    },
+    {
+      "path": "support/resources/development/bootstrap-data/reports/rdmpRecords.json",
+      "reportSource": "database",
+      "databaseQuery": {
+        "queryName": "listRDMPRecords"
+      },
+      "sha256": "b8b9c658c7daf1ca33333fa4b9000ef0ab3a959f7efe3d6b5208ff084af6729b"
+    }
+  ]
+}

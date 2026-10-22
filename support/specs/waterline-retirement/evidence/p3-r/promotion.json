@@ -1,0 +1,144 @@
+{
+  "date": "2026-10-20",
+  "qualificationCommit": "641b380a4869b0637a39fc3b658b95be25a010b7",
+  "dtoFixCommit": "e784f9fbe8f6bab65d37be3d12b5a52c86533b35",
+  "defaults": {
+    "cache": "prisma",
+    "migration": "mongodb",
+    "reference": "mongodb",
+    "otherGroups": "waterline"
+  },
+  "topology": "standalone, unchanged",
+  "defaultRunnerProof": {
+    "explicitRSelector": false,
+    "dependencyPrewarming": false,
+    "manualIndexPreparation": false,
+    "freshMongoVolumes": true
+  },
+  "sourceHashes": {
+    "packages/redbox-core/src/persistence/selection.ts": "e0a00fe471e706fcc1dceb87d11d4633054646fea82be340c73d3a7779b951eb",
+    "packages/redbox-core/src/persistence/reference/physical.ts": "d88361cfe6f161863be98c7fc849fe71a2cb3476b84473ed419ba6edafa02221",
+    "support/resources/mongodb-persistence-indexes.js": "47f02b3ea9a741e3436e765c987edcab6b83219969850b614cbd73e3f02c3ce9"
+  },
+  "checks": [
+    {
+      "command": "npm --prefix packages/redbox-core run build",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-promotion-build.log",
+      "logSha256": "19e494645a4bc1318ffe2665cf4b2a72302a6bd705bd93538525270addb8ad86"
+    },
+    {
+      "command": "npm run test:core",
+      "result": "4137 passing, 106 pending; startup 9909ms < unchanged 12000ms",
+      "exitCode": 0,
+      "log": "p3-r-promotion-core.log",
+      "logSha256": "36a714108c03bdc142e1c3703b55556d8f0857e458c86ee8337b3deb04f9e5ba"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-promotion-typecheck.log",
+      "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run lint",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-promotion-lint.log",
+      "logSha256": "c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run check:cache-contract",
+      "result": "PASS; storage/profile hashes unchanged",
+      "exitCode": 0,
+      "log": "p3-r-promotion-cache-contract.log",
+      "logSha256": "92d93d136ca54f2fbe27b5f4b59c52378c8ff8aded1387fa6436dcc9d1ec214f"
+    },
+    {
+      "command": "Focused reference persistence suite",
+      "result": "10 passing",
+      "exitCode": 0,
+      "log": "p3-r-promotion-boundary.log",
+      "logSha256": "942b7f3e82e387e2e7cb6a16af7388f5734311abe4ebdbef3bd1c1c373a25e64"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "result": "12 passing",
+      "exitCode": 0,
+      "log": "p3-r-promotion-foundation.log",
+      "logSha256": "368441bda798e864dd5de2d89d1ff348b8f1f7b8f5f16cb64ae94e809c34dce8"
+    },
+    {
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-prisma",
+      "result": "17 passing",
+      "exitCode": 0,
+      "log": "p3-r-promotion-cache-prisma.log",
+      "logSha256": "e7613a079c5bcebad6051b8d9ae98ccf0a23c9f44f4dc3c703e9afc34faaba9e"
+    },
+    {
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "result": "15 passing",
+      "exitCode": 0,
+      "log": "p3-r-promotion-cache-driver.log",
+      "logSha256": "0863e545433e2b185cdd5c4d506aa0757ea041b61ffe56c7a9c4a65ac5cabe43"
+    },
+    {
+      "command": "P2_ROLLBACK_IMAGE=sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be npm --prefix packages/redbox-core run test:migration-transition",
+      "result": "15 passing",
+      "exitCode": 0,
+      "log": "p3-r-promotion-migration.log",
+      "logSha256": "8c793d9264b88c9ef982e78cfa293051f4870ffe89f257cd155327de059cf115"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "result": "11 passing, including omitted selectors/all six default scopes",
+      "exitCode": 0,
+      "log": "p3-r-promotion-indexes.log",
+      "logSha256": "0419962ef8cc428a97e4e920e6590a9117dc92200aa412049ef24e9a283376bd"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:reference-transition",
+      "result": "PASS all eight, raw/mixed/restart/config and immutable prior artifact, hook/target parity and raw BSON refusal",
+      "exitCode": 0,
+      "log": "p3-r-promotion-contract.log",
+      "logSha256": "0751af664a478f06a25b41716de2929d83e7cc18bba3fc2cfb9e238f53c6be77"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:reference-operations",
+      "result": "PASS all provisional budgets with DTO guard",
+      "exitCode": 0,
+      "log": "p3-r-promotion-operations.log",
+      "logSha256": "eace70f17e8ab2defa4edd1aae7d6bb73c6d29fabf22772d07d3b54b456d90f8"
+    },
+    {
+      "command": "REFERENCE_PACKAGE_NODE_VERSION=24.16.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-package.sh",
+      "result": "PASS clean/pruned offline CJS/NodeNext/types/cache/M/default R, all eight writes",
+      "exitCode": 0,
+      "log": "p3-r-promotion-package-24.log",
+      "logSha256": "cdb3b1d0a6a95b536219dc58dc57db509e2bba24651ecb27f48385c67708443f"
+    },
+    {
+      "command": "REFERENCE_PACKAGE_NODE_VERSION=26.11.1 bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-package.sh",
+      "result": "PASS same; sequential complete original runner",
+      "exitCode": 0,
+      "log": "p3-r-promotion-package-26.log",
+      "logSha256": "f5db900e3a73ba58e8f2332343bdfe916c9c8d3de73adb60e464b050f1db7630"
+    },
+    {
+      "command": "REFERENCE_BACKENDS=default REFERENCE_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-portal.sh",
+      "result": "30 passing, 1 pending; stock npm runner on fresh MongoDB volumes, no R selector/prewarming/manual indexes",
+      "exitCode": 0,
+      "log": "p3-r-promotion-mocha.log",
+      "logSha256": "7ecc42c11edb191c4b5dcb0e8e329885dcf0508ec45186f07ea53d40b26ca6ad"
+    },
+    {
+      "command": "REFERENCE_BACKENDS=default REFERENCE_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-bruno.sh",
+      "result": "305/305 requests, 549/549 tests; stock npm runner on fresh MongoDB volumes, no R selector/prewarming/manual indexes",
+      "exitCode": 0,
+      "log": "p3-r-promotion-bruno.log",
+      "logSha256": "edb866e564a190ea0139a09e65df7bc6e8ba5283d7797f8fc1af5bcfeceb5853"
+    }
+  ]
+}

@@ -26,18 +26,18 @@
     "lucene-escape-query": "1.0.1",
     "luxon": "3.7.2",
     "moment": "2.30.1",
-    "mongodb": "7.2.0",
+    "mongodb": "7.7.0",
     "numeral": "2.0.6",
     "pino": "10.3.1",
     "rc": "1.2.8",
     "rxjs": "7.8.2",
     "sails": "1.5.17",
-    "sails-hook-orm": "4.0.3",
     "sails-hook-sockets": "3.0.2",
-    "sails-mongo": "2.1.2",
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
-    "typescript-require": "0.3.0"
+    "typescript-require": "0.3.0",
+    "sails-hook-orm": "4.0.3",
+    "sails-mongo": "2.1.2"
   },
   "scripts": {
     "debug": "node debug app.js",
@@ -92,10 +92,10 @@
     "compile:sails": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && ./node_modules/.bin/tsc",
     "compile:ng-apps": "./support/development/compileDevAngular.sh",
     "compile:ng": "npm run compile:ng-apps",
-    "compile:core": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
+    "compile:core": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:server": "npm run compile:raido && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails",
     "compile:all": "npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:raido && npm run compile:rva && npm run compile:sails-ng-common && npm run compile:agenda-sqs && npm run compile:core && npm run compile:dev-tools && npm run compile:storage-mongo && npm run compile:dev-hook && npm run compile:pdfgen-hook && npm run compile:sails && npm run compile:ng && npm run webpack",
-    "compile:core:prod": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && node_modules/.bin/tsc && cd ../../",
+    "compile:core:prod": "cd packages/redbox-core && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:sails-ng-common": "cd ./packages/sails-ng-common && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run compile:clean && npm run compile && cd ../../",
     "compile:raido": "cd ./packages/raido && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:rva": "cd ./packages/rva-registry && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
@@ -107,11 +107,13 @@
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
     "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
-    "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",
+    "dev:all": "npm run compile:core && npm run compile:sails && npm run compile:ng && npm run dev:run",
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node packages/redbox-dev-tools/bin/wrapper-webpack.js",
     "dev:prepare": "./support/development/prepareLocalDev.sh",
     "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
-    "nvm:install-all": "bash ./support/development/installAllNvmrc.sh"
+    "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
+    "persistence:indexes": "node node_modules/@researchdatabox/redbox-core/bin/persistence-indexes.cjs",
+    "check:prisma": "npm --prefix packages/redbox-core run check:prisma"
   },
   "main": "app.js",
   "repository": {
@@ -204,9 +206,6 @@
     "morgan": {
       "on-headers": "1.1.0"
     },
-    "sails-mongo": {
-      "qs": "6.15.2"
-    },
     "postcss": "8.5.23",
     "srvx": "0.11.13",
     "socket.io-parser": "4.2.7",
@@ -215,7 +214,17 @@
     "webdav": {
       "minimatch": "10.2.5"
     },
-    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
+    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e",
+    "@prisma/composer-cli": {
+      "@prisma/cli-engine": "0.9.0",
+      "effect": "4.0.5"
+    },
+    "@prisma/orm-toolchain": {
+      "@prisma/cli-engine": "0.9.0"
+    },
+    "sails-mongo": {
+      "qs": "6.15.2"
+    }
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",
@@ -243,7 +252,8 @@
     "serialize-javascript": "7.0.5",
     "supertest": "7.3.1",
     "ts-json-schema-generator": "2.9.0",
-    "typedoc": "0.28.20"
+    "typedoc": "0.28.20",
+    "prisma": "8.0.0-rc.24"
   },
   "nyc": {
     "check-coverage": false,
@@ -268,5 +278,6 @@
       "text",
       "text-summary"
     ]
-  }
+  },
+  "packageManager": "npm@11.20.0"
 }

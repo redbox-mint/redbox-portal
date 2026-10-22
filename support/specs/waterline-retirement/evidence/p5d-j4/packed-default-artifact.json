@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "7ef6087e24f7cbec81d0afcb063c3b65a6aaf1e8",
+  "candidateDiffSha256": "fff3da320eec06964f857bca86f0d050de01f11b19e81e837cba46edb9da4d02",
+  "npm": "11.20.0 (asserted before lock generation/install/prune)",
+  "nodeVersions": [
+    "24.16.0",
+    "26.11.1"
+  ],
+  "selectors": "omitted; independent J4 MongoDB default",
+  "files": {
+    "package.json": "29640bd1b855826ae7d6d2443701f17d1d52996d6244e6edfb70eee84767688c",
+    "package-lock.json": "b6744c64d06609e41a3edd28210b4ae5baefc3de166c308bab5d67720f8940a9",
+    "vendor/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz": "91cb54f64bd473508fa4cfbae6584b6e18a359d137ede4e7fb038d5716eccb7d",
+    "vendor/researchdatabox-raido-openapi-generated-node-0.0.3.tgz": "a50e5bc0fa7cbaff5a237f4372310f978c1d8dbc25a38055ebfebc02255ea892",
+    "vendor/researchdatabox-redbox-core-0.0.1-beta.9022.tgz": "685306f41c25507fda9bf08cdd5dc0820f4841c81408b67cd993cf1b9208f544",
+    "vendor/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+    "vendor/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz": "fe65836771587fe1b9393fec08451a3fc72a284c5c4eebe83aa4af5e12d3dc6d",
+    "vendor/researchdatabox-sails-ng-common-0.2.1.tgz": "432f8f73a47e35eee638554f356d60af32831d4b10293bdef3600b76b57343f1"
+  },
+  "result": "PASS clean production consumer types, offline shims/lazy imports and live selected durable group operations on both Node versions"
+}

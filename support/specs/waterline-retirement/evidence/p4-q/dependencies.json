@@ -1,0 +1,6 @@
+{
+  "package.json": "Exact versions; dependency/devDependency sections unchanged from pre-Q.",
+  "packages/redbox-core/package.json": "Exact versions; dependency/devDependency sections unchanged from pre-Q.",
+  "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+  "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+}

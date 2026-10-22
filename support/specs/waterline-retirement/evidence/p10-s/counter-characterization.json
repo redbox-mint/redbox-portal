@@ -1,0 +1,35 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-storage.sh counter"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 6.305,
+  "sha256": "eb05196479501688acfc4f59f2e69d73d8c8bfd1a348452a2e230aebf13d61f0",
+  "logBytes": 381,
+  "counts": [],
+  "results": [
+    {
+      "passing": 4,
+      "failures": 0,
+      "results": {
+        "004c91054": {
+          "value": "41",
+          "candidateAtWrite": "C-41",
+          "sourceSha256": "594ef318b9ca5103e8574b5714ab871ff2e48eb33587df6f69f14486999eee6f"
+        },
+        "1d6f5de0e": {
+          "value": 5,
+          "candidateAtWrite": "C-5",
+          "sourceSha256": "93641efa657401ca71179e775ec146e83f8c86af0d9bc3eef10f92507218aa65"
+        },
+        "working": {
+          "value": "41",
+          "candidateAtWrite": "C-41"
+        }
+      }
+    }
+  ],
+  "totals": {}
+}

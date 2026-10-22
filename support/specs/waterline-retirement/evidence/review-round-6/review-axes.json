@@ -1,0 +1,76 @@
+{
+  "reports": [
+    {
+      "axis": "standards",
+      "taskId": "node:delegated-task:command%3Amcp%3A81e6594f-9068-47bd-ac97-fbac56beeab3%3Adelegate-task%3Awaterline-r6-standards-v1",
+      "status": "completed",
+      "summary": "Two confirmed P2 findings:\n\n- **Session response failure permanently blocks shutdown** — [redboxSession.ts:90](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/middleware/redboxSession.ts:90). `retainHttpResponse()` sets ownership before invoking express-session’s end wrapper, but a synchronous throw before session dispatch never releases it. Reproduced with both a throwing `store.set()` and cyclic session data: the error propagates, the transport closes, and `beforeShutdown` remains pending indefinitely. Handle synchronous handoff failures separately while retaining genuinely pending session callbacks.\n\n- **Failed GridFS copy leaves an internal stream blocking disposal** — [GridFSDriver.ts:240](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/storage/GridFSDriver.ts:240). `copyFile()` opens a source stream tracked through `finished()` before `writeStream()` deletes the destination. If destination deletion rejects, the source is never consumed or destroyed. Consequently, `drain()` waits forever; `move()` shares this path. A fake-bucket reproduction preserved the deletion error and showed disposal completing only after manually destroying the internal stream. Destroy the source when destination preparation fails.\n\nBoth violate the lifecycle contract in [design.md §7](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/design.md:495).\n\nStandards axis: no qualifying documented-rule breaches or heuristic smell findings. No edits, containers, or builds performed; both findings were reproduced with local in-memory probes.",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ]
+    },
+    {
+      "axis": "spec",
+      "taskId": "node:delegated-task:command%3Amcp%3A81e6594f-9068-47bd-ac97-fbac56beeab3%3Adelegate-task%3Awaterline-r6-spec-v1",
+      "status": "completed",
+      "summary": "Spec axis: **0 qualifying findings** at `1dab20b08`.\n\nReviewed R5 restrictions against bundled named queries, editor output, report/dashboard criteria, related-filter projections and delivered repository semantics. I found no concrete over-refusal affecting shipped callers, new parity defect, or scope creep into the G-TX-gated work.\n\nExisting intentional refusals have migration guidance. This read-only review adds no runtime qualification; no edits, containers, builds or tests were performed.",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ]
+    },
+    {
+      "axis": "fixReview",
+      "taskId": "node:delegated-task:command%3Amcp%3A81e6594f-9068-47bd-ac97-fbac56beeab3%3Adelegate-task%3Awaterline-r6-fix-review-v1",
+      "status": "completed",
+      "summary": "- **[P2] Failed session end can reacquire permanent response ownership** — [requestLifetime.ts:93](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/middleware/requestLifetime.ts:93). `failHttpResponse` clears the flags but leaves `responseEnded` false. express-session sets its internal `ended` flag before serialization/store dispatch. After either throws, a normal error handler calling `res.status(500).end(...)` or `res.serverError(...)` sets `responsePending` again, while express-session immediately returns `false` without reaching the underlying end. A subsequent client disconnect therefore leaves shutdown draining forever. The new regressions bypass this path by calling `res.destroy()` directly. Preserve a terminal failed-end state so retries cannot reacquire response ownership, while retaining the independently tracked store callbacks.",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ]
+    },
+    {
+      "axis": "fixReview2",
+      "taskId": "node:delegated-task:command%3Amcp%3A81e6594f-9068-47bd-ac97-fbac56beeab3%3Adelegate-task%3Awaterline-r6-fix-review-v2",
+      "status": "completed",
+      "summary": "Zero qualifying findings in the current final patch.",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ]
+    }
+  ]
+}

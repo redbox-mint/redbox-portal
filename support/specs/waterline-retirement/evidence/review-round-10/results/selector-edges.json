@@ -1,0 +1,20 @@
+{
+  "name": "selector-edges",
+  "stage": "retained",
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-selector-edges.cjs",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 817,
+  "sha256": "9f8769220912c6f9e7c2e5c547294648c3f4386a0e2704410d864366bbd187fc",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 151,
+      "failures": 0
+    }
+  ]
+}

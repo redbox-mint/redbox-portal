@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-20T21:37:09.069695+00:00",
+  "ownedDockerObjectsRemaining": {
+    "containers": [],
+    "networks": [],
+    "volumes": []
+  },
+  "newStandaloneWaterlineFixtureContainersRemaining": [],
+  "isolatedComposeProjectsCleaned": 5,
+  "unrelatedExistingDockerObjects": "Left untouched; host snapshot retained under ignored .tmp.",
+  "unattributedNewVolumesLeftUntouched": 0,
+  "retainedRollbackImagesVerified": 8,
+  "prunedImages": false,
+  "pushed": false,
+  "runtimeSourceAndArtifactsUnchangedAfterStockTests": true
+}

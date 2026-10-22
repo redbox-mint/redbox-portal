@@ -1,0 +1,14 @@
+{
+  "command": [
+    "npm",
+    "--prefix",
+    "packages/redbox-core",
+    "run",
+    "typecheck:persistence"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 18.83,
+  "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+  "logBytes": 144,
+  "counts": []
+}

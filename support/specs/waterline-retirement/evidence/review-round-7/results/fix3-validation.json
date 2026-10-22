@@ -1,0 +1,13 @@
+{
+  "name": "fix3-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh review-mappings",
+  "sourceCommit": "7f8cc460f2a321f88ef66b19516cc1e51106dc43",
+  "exitCode": 0,
+  "durationMs": 47140,
+  "sha256": "561aa26e42796662ce3e78a27301ec6c41d48cea2013bf7787e1d56f833ca928",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":14,\"failures\":[]}"
+  ]
+}

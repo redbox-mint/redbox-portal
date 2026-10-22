@@ -1,0 +1,11 @@
+{
+  "name": "final-root-lint",
+  "command": "npm run lint",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 1799,
+  "sha256": "6fee68f91852c8687f99011e3f76ca29588ee2518a5fd8294d3a9cc549fbd649",
+  "counts": {},
+  "passGroups": 1,
+  "checks": []
+}

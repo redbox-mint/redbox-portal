@@ -1,0 +1,65 @@
+J4 controlled worker/HTTP suite: waterline
+
+
+  Figshare queued contracts
+    ✔ preserves legacy relative delays and requires explicit settings for ambiguous phrases
+    ✔ uses current configured eligibility and does not retain a removed source policy
+    ✔ keeps default hook policy IDs stable when other hooks are reordered, and honours earlier positional IDs
+    ✔ numbers a repeated hook function and warns once that it needs explicit policy IDs
+    ✔ parses every supported create response identity without relying on the title
+    ✔ uses the institutional account ID, never the different author user_id
+
+  Figshare durable worker against Mongo and controlled HTTP
+    ✔ allows one claim, rejects stale owners, and preserves new requests at completion (156ms)
+    ✔ recovers dropped queue delivery and bounds dispatcher duplication without consuming work (235ms)
+    ✔ stops after losing its lease during an HTTP call and lets the successor reconcile (127ms)
+    ✔ renews leases and queue visibility throughout a slow remote phase (399ms)
+    ✔ inspects and migrates read-only by default, and rejects wrong-context repairs (118ms)
+    ✔ quarantines uncertain legacy creates and never creates during repeated migration (83ms)
+    ✔ excludes unbound rows from exclusive namespace/article binding and prevents owner-based duplicates
+    ✔ replays imported generations idempotently after an acknowledgment crash
+    ✔ imports beyond paused brands and isolates invalid configuration before delivering due work (56ms)
+    ✔ dispatches eligible work queued behind more than a page of paused due records (929ms)
+    ✔ keeps paging past visited due rows after their dispatch cooldown expires mid-run (1130ms)
+    ✔ pauses invalid observationMs configuration without losing pending work, and resumes after correction (126ms)
+    ✔ pauses invalid observationMs configuration without losing imported work, and resumes after correction (116ms)
+    ✔ pauses invalid cleanupMs configuration without losing pending work, and resumes after correction (108ms)
+    ✔ pauses invalid cleanupMs configuration without losing imported work, and resumes after correction (113ms)
+    ✔ requires and verifies an explicit owner for an unbound article with owner-based reads
+    ✔ reuses the verified owner for the same article even after the record CI changes
+    ✔ requires the new article owner on relink and rejects missing remote ownership evidence (50ms)
+    ✔ clears an observed publication checkpoint when relinking a different article (108ms)
+    ✔ checks live mutations once at transport and still guards customer overrides
+    ✔ coalesces duplicate deliveries into one create and one publish (94ms)
+    ✔ recovers an article hidden behind HTTP 400, retains failure, and updates it after correction (126ms)
+    ✔ reuses its article after a rejected publish and retries only after a corrected source save (265ms)
+    ✔ does not publish a generation superseded during metadata update (130ms)
+    ✔ waits quietly for a private article through repeated legacy scans (immediate) (467ms)
+    ✔ waits quietly for a private article through repeated legacy scans (afterUploadsComplete) (461ms)
+    ✔ waits quietly for a private article through repeated legacy scans (manual) (485ms)
+    ✔ clears a recovered observation error before waiting for private article review (503) (126ms)
+    ✔ clears a recovered observation error before waiting for private article review (403) (117ms)
+    ✔ keeps a genuine terminal source failure visible during private article polling (99ms)
+    ✔ does no work for an incomplete create save
+    ✔ keeps cleanup-only intent from authorising metadata or publication
+    ✔ creates as the researcher but updates and publishes with the token account (84ms)
+    ✔ places owner identity in GET/DELETE queries and JSON bodies, leaving uploader traffic untouched
+    ✔ recovers under the original owner after delayed visibility and a changed CI (110ms)
+    ✔ requires matching file evidence and a free lease for an explicit upload repair (118ms)
+    ✔ shows unimported work and terminal sync failure without exposing operation identities (90ms)
+    ✔ observes manual publication once and does not submit or grow audit history on later polls (167ms)
+    ✔ freezes every mutation while the configured curation lock is present (108ms)
+    ✔ separates source actor authorization from execution conditions and maintenance writes
+    ✔ completes publication observation after a failed save abandons its only intent (103ms)
+    ✔ backs off due work for a paused brand instead of redelivering it on every dispatch
+    ✔ discards a create refused before sending and creates once for the newer save (111ms)
+    ✔ lets an operator abandon an unresolved create only when no article carries its token (152ms)
+    ✔ resubmits publication for a newer save once a read shows the earlier request did not publish (150ms)
+    ✔ reports an uncertain publication for repair and resubmits only after reset-publish (176ms)
+    ✔ records an immediately published article as synced without waiting for the next observation (78ms)
+    ✔ migrates page by page, finding duplicates across pages without a per-record binding scan (43ms)
+    ✔ reports an interrupted managed upload for repair, but waits quietly on a foreign pending upload (148ms)
+
+
+  55 passing (10s)
+

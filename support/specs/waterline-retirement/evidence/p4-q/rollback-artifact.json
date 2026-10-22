@@ -1,0 +1,16 @@
+{
+  "source": "f8c8cd7de136d619a2d173e0fb41ac820307da8d",
+  "image": "redbox-p4-q:prior-f8c8cd7d",
+  "imageId": "sha256:4721b7009cfcd84aee975a5e8eca22a17f611b1c18f7f54507dcac391dcb9d20",
+  "baseImageId": "sha256:2511de69363c6322f57a41f71023d46f34d90f1637dde354081a587cb4f800ba",
+  "locks": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  },
+  "coreTarballSha256": "ba46575cb12f8de221376cbe37146bf7f9dc2128856df91c97f1043417899478",
+  "assembly": "Pre-Q build/prepare-migration-package captured before implementation; npm 11.20.0 lock. Identical dependency locks between cb874201 and f8c8cd7de, reuse installed dependency layer, replace core package files and preserve nested installed dependencies. Offline package-smoke passed.",
+  "checkpoint": "Disposable contract fixture snapshots/raw assertions before selector change, retained unchanged DB/indexes across prior artifact launch; no AWS service writes in prior-artifact probe.",
+  "qualification": "PASS: unchanged MongoDB/indexes; built pre-Q image reads all four driver-written shapes and native Date lease and writes a row the current driver reads.",
+  "probeLogSha256": "eb2ba67887e1a1dc92ec1f2a8db49412e6794413bc41ddc53432a382c8900e8d",
+  "probeLog": "contract.txt"
+}

@@ -1,0 +1,11 @@
+{
+  "source": "b83234da9a6e5ce31387c75f3873bd3100e83175",
+  "files": {
+    "package.json": "c459feacc7eb1be236988202fa5acf8bfce53dcb4eff55defeb7d32d7a68b2eb",
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package.json": "74266b6b157a55b719a490f9e789c4aa25cd99b6a3ff1e6b4501078dac35eead",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed",
+    "Dockerfile": "4b676300d3ddb00f29da9b255fd341ea579f0b9e6fac5836c09d10c5d98ac6f3"
+  },
+  "runtimeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "native-order-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/reference-persistence.test.ts --grep \"record wire DTO\"",
+  "sourceCommit": "283d57744c3c7cbe56b7364768f5187a49dda9f6",
+  "exitCode": 1,
+  "durationMs": 2067,
+  "sha256": "60cc407717936191093db3ad009b9a556ebf6810c0fdfc7de517a0ee0b83efb1",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

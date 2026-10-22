@@ -1,0 +1,13 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-storage.sh contract"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 38.834,
+  "sha256": "a6ff6ab10d20410d984dbe25557f4ce4702d126b2924dbfeffd900cc89b17961",
+  "logBytes": 1145,
+  "counts": [],
+  "failureExcerpt": "Dynamic imports imported\nPersistenceError: The staged mongodb storage backend requires standard S mappings, validation and callbacks. Retain waterline and migrate institution overrides through services/repositories. See p10-s-operations.md.\n    at refuse (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/dist/persistence/storage/mapping.js:11:34)\n    at assertStorageMapping (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/dist/persistence/storage/mapping.js:24:9)\n    at inspectMongoStagedStorage (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/dist/persistence/preflight.js:38:44)\n    at Object.ensureMongoStagedStorageIndexes (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/dist/persistence/preflight.js:46:27)\n    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/storage-contract.cjs:21:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {\n  code: 'model-mapping'\n}"
+}

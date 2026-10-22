@@ -1,0 +1,43 @@
+{
+  "attempts": [
+    {
+      "name": "fix3-build",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+      "sourceCommit": "035622d095557a612e4fa4f6e41ef33ba99fa8f4",
+      "exitCode": 2,
+      "durationMs": 23366,
+      "sha256": "38ad3b7e319d24aaaf54430d339a04b83f882c03d0448701c99edb295a1de123",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Uncommitted TypeScript unknown-to-object narrowing error; corrected before aa0a9a1b7."
+    },
+    {
+      "name": "fix4-http-final",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts test/middleware/redboxSession.test.ts",
+      "sourceCommit": "aa0a9a1b735e877582d4cb384f9acc4f02a3ccb0",
+      "exitCode": 1,
+      "durationMs": 6431,
+      "sha256": "e920ba5164b0dc6dd3eeb4f54ab35ec2a54bcd35b31af308ffab62ebf356dbe1",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Focused typed-test invocation exposed existing global.sails typing plus new fixture setup types; new fixture types corrected. Accepted run uses repository-standard ts-node transpile-only; source and strict persistence checks pass."
+    },
+    {
+      "name": "npm-verification-image",
+      "command": "docker build --network none --pull=false -t redbox-waterline-r4:npm11.20.0 .tmp/review-round-4/npm-image && docker run --rm --network none --entrypoint npm redbox-waterline-r4:npm11.20.0 --version",
+      "sourceCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+      "exitCode": 1,
+      "durationMs": 13242,
+      "sha256": "aefe21a50e6f85ec0ac571a7d81905a9b3e7932f46e1ad3eebf1d9755384daf7",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Local npm-copy input retained private cache permissions; verification-image package files made readable for the normal node user. No application source or dependency change."
+    }
+  ],
+  "historicalWhitespace": "whole-range-whitespace.json",
+  "noRelaxedAssertionsTimeoutsBudgetsOrSkips": true,
+  "supersededPassingStockRun": "stock-mocha-bundled-npm.json"
+}

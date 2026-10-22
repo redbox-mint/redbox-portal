@@ -1,0 +1,13 @@
+{
+  "name": "harvest-pages",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh harvest-pages",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 9032,
+  "sha256": "e86fe16886a272adbc60aa5bfef6a679b3b72b2615f3276a71377fc2e92a781f",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":648,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

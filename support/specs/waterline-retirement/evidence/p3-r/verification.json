@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-20",
+  "codeCheckpoint": "5c1f6f62d",
+  "node": "24.18.0",
+  "mongo": "8.0.34",
+  "topology": "standalone; only task-created containers/projects",
+  "gate": "G-R PASS for transaction-free next; default promotion separate",
+  "checks": [
+    {
+      "command": "npm --prefix packages/redbox-core run build",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-build.log",
+      "logSha256": "a877f13bbaf0975ca17cb3241ef1eb5e53a5f10eb51aa599fb5b75f9562ece9f"
+    },
+    {
+      "command": "npm run test:core",
+      "result": "4136 passing, 106 pending; startup 10311ms < 12000ms",
+      "exitCode": 0,
+      "log": "p3-r-core-final.log",
+      "logSha256": "ef7e4bac029141e732f88e9bc2b13fd8b4f3d9acb6008f8b5603c8d43edf3973"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-typecheck-final.log",
+      "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run lint",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-lint-final.log",
+      "logSha256": "c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run check:cache-contract",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-cache-contract-final.log",
+      "logSha256": "3fcc54fac3539e1fda556e53145f19b1c42a61139edbf8d039ebd6ca2ed1b77c"
+    },
+    {
+      "command": "npx prettier --check packages/redbox-core/src/persistence/reference packages/redbox-core/test/fixtures/waterline-retirement/reference-package-consumer.ts",
+      "result": "PASS",
+      "exitCode": 0,
+      "log": "p3-r-format-final.log",
+      "logSha256": "16fcb141867e089c0f52bf4bc0246a0bd45be813b6353b65d616c5c9cca0d36c"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "result": "12 passing",
+      "exitCode": 0,
+      "log": "p3-r-foundation.log",
+      "logSha256": "0d9d0de85da5e7ad8d8941dcc4296a6e4710b318c33752d56b474d619d75cb93"
+    },
+    {
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-prisma",
+      "result": "17 passing",
+      "exitCode": 0,
+      "log": "p3-r-cache-prisma-final.log",
+      "logSha256": "4a46bc5c4bee31026140f69ea3d95078236983448ed8c80ece776bcdff3946c5"
+    },
+    {
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "result": "15 passing",
+      "exitCode": 0,
+      "log": "p3-r-cache-driver-final.log",
+      "logSha256": "526103cf910ed979b3855c9171e6745a84ccef32c9d687517e8431dce5c4b79c"
+    },
+    {
+      "command": "P2_ROLLBACK_IMAGE=sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be npm --prefix packages/redbox-core run test:migration-transition",
+      "result": "15 passing, including actual pre-P2 image",
+      "exitCode": 0,
+      "log": "p3-r-migration-final.log",
+      "logSha256": "92ebe3b3b01f4be2dfd453d5e86386f391f7a5e0e3bc587abd08d4ada3c52884"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "result": "10 passing",
+      "exitCode": 0,
+      "log": "p3-r-indexes.log",
+      "logSha256": "af0ab1da355a58c679cfd393e9d64787699720cfeb86f588f330510d5929c334"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:reference-transition",
+      "result": "PASS: all eight, raw/bidirectional/mixed/restart/config+prior rollback/institution targets",
+      "exitCode": 0,
+      "log": "p3-r-contract-final.log",
+      "logSha256": "03c924f5aae4e8894ac8dedda3aae9859dc0f5718e015346a76029b7949e7b93"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:reference-operations",
+      "result": "PASS: all provisional budgets",
+      "exitCode": 0,
+      "log": "p3-r-operations-final.log",
+      "logSha256": "0229115a9044777c095ee4b97794f390985ba77f5c717f290a5dbf8bd4288857"
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-portal.sh",
+      "result": "30 passing, 1 pending per backend; fresh standalone Mongo volumes",
+      "exitCode": 0,
+      "log": "p3-r-mocha-final.log",
+      "logSha256": "a332d722aa0f79b9195b4d29da6ec5c81efec05e62e22e0410dc82d6ad2c7ceb"
+    },
+    {
+      "command": "REFERENCE_PACKAGE_NODE_VERSION=24.16.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-package.sh",
+      "result": "PASS: installed/pruned offline types/CommonJS/NodeNext/cache/M/R",
+      "exitCode": 0,
+      "log": "p3-r-package-24-final.log",
+      "logSha256": "b36caf0857a23402e481a8e258bce6553522d99214227f6cff3f749361d51f3b"
+    },
+    {
+      "command": "bash /tmp/redbox-p3-r-resume-node26.sh (exact preserved 26.11.1 context)",
+      "result": "PASS: installed/pruned offline types/CommonJS/NodeNext/cache/M/R",
+      "exitCode": 0,
+      "log": "p3-r-package-26-resumed.log",
+      "logSha256": "8877463a75fdf862b0448fff99f6f3ef20e4beca723f27c4b34308641ef28bda"
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference-bruno.sh",
+      "result": "305/305 requests and 549/549 tests per backend; isolated fresh MongoDB volumes",
+      "exitCode": 0,
+      "log": "p3-r-bruno-final.log",
+      "logSha256": "6b44d2ee68c679705d5d48844f7ece455dae7d6e8a5b7028fddcdc907a223a1b"
+    }
+  ]
+}

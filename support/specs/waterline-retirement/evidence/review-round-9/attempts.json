@@ -1,0 +1,27 @@
+{
+  "expectedFailures": [
+    "results/outcomes-before.json",
+    "results/progress-writes-before.json",
+    "results/fetch-mappings-before.json",
+    "results/batch-clocks-before.json"
+  ],
+  "supersededPassedCheckpoints": [
+    "results/pre-cache-final-static.json",
+    "results/pre-batch-core-tests.json"
+  ],
+  "rejectedCandidate": "results/rejected-cache-candidate-transition.json",
+  "cacheCandidateExploration": [
+    "results/cache-read-before.json",
+    "results/fix-cache-read-static.json",
+    "results/cache-read-after.json"
+  ],
+  "notes": [
+    "The cache timestamp candidate was misclassified: C2 explicitly permits driver omission and Waterline refusal. The unchanged 17-case transition suite caught the attempted tightening. Removed that own unpublished commit and replayed the independent batch-clock fix, leaving no production cache delta or revert commit. The new cache matrix asserts the documented difference.",
+    "The broad sequence was stopped before cache and batch corrections. Its completed earlier checks are not final qualification; every final matrix command runs on the final runtime commit.",
+    "An initial scratch runtime probe ran during a dist rebuild and failed MODULE_NOT_FOUND; discarded and rerun after compilation.",
+    "Exploratory progress fixtures needed a required branding field and independent cloned seed input because Waterline mutates create arguments. A multi-load fetch-flags probe hit sails-mongo adapter registration reuse; the retained proof uses one actual loaded app.",
+    "An edit script initially failed to match a formatted multiline return; its partial local edit was completed and fully built/typechecked before commit. No production change was reverted.",
+    "The initial size exploration used 1MiB accepted documents; final retained size checks use 16MiB minus 1024 bytes and 16MiB plus 1024 bytes.",
+    "No deadline, assertion, skip, healthcheck or budget was relaxed. No quota or usage limit was encountered. Raw logs remain ignored and are identified by SHA256."
+  ]
+}

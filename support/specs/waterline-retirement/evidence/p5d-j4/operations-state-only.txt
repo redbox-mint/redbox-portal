@@ -1,0 +1,103 @@
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+{
+  "group": "figshare",
+  "node": "v24.18.0",
+  "mongo": "8.0.34",
+  "payloadBytes": 15000,
+  "rows": 20,
+  "warmups": 100,
+  "operations": 1000,
+  "samples": [
+    {
+      "round": 0,
+      "backend": "waterline",
+      "p95": 5.22911699999986,
+      "throughput": 311.38722651003525,
+      "rss": 398598144,
+      "clients": 0,
+      "readinessMs": 3.6944900000003145,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 5,
+      "afterConnections": 2
+    },
+    {
+      "round": 0,
+      "backend": "mongodb",
+      "p95": 4.248722000000271,
+      "throughput": 398.57800981522746,
+      "rss": 400338944,
+      "clients": 1,
+      "readinessMs": 82.54633700000022,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 8,
+      "afterConnections": 2
+    },
+    {
+      "round": 1,
+      "backend": "mongodb",
+      "p95": 4.088167999999769,
+      "throughput": 399.8739335044294,
+      "rss": 404582400,
+      "clients": 1,
+      "readinessMs": 75.79016000000001,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 8,
+      "afterConnections": 2
+    },
+    {
+      "round": 1,
+      "backend": "waterline",
+      "p95": 5.619467000000441,
+      "throughput": 349.1955297985673,
+      "rss": 401379328,
+      "clients": 0,
+      "readinessMs": 4.420568000000003,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 5,
+      "afterConnections": 2
+    },
+    {
+      "round": 2,
+      "backend": "waterline",
+      "p95": 5.189574999999422,
+      "throughput": 351.30716028123777,
+      "rss": 397983744,
+      "clients": 0,
+      "readinessMs": 4.4694729999996525,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 5,
+      "afterConnections": 2
+    },
+    {
+      "round": 2,
+      "backend": "mongodb",
+      "p95": 6.438514000000396,
+      "throughput": 316.6434477303837,
+      "rss": 401301504,
+      "clients": 1,
+      "readinessMs": 76.20317499999965,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 8,
+      "afterConnections": 2
+    }
+  ],
+  "ratios": {
+    "p95": 0.9212655891490219,
+    "throughput": 1.101992788709677,
+    "rss": 1.0068964102423832,
+    "calls": 1
+  },
+  "pass": true
+}

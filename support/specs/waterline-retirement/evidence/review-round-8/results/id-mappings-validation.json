@@ -1,0 +1,14 @@
+{
+  "name": "id-mappings-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-mappings && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-mappings",
+  "sourceCommit": "ee46fb57c946b4f2489c976aca223bb94b52db65",
+  "exitCode": 0,
+  "durationMs": 107623,
+  "sha256": "b11dc8782fd116674d41cb3b335ea7c3234974918192f486240245b5567d24d9",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":18,\"failures\":0,\"firstFailures\":[]}",
+    "{\"passing\":600,\"failures\":0,\"summary\":{\"migration\":18,\"reference\":168,\"configuration\":74,\"progress\":56,\"harvest\":128,\"siem\":80,\"figshare\":64,\"cache\":12},\"firstFailures\":[]}"
+  ]
+}

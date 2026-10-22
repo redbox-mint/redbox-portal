@@ -1,0 +1,11 @@
+{
+  "name": "fix4-configuration",
+  "command": "Q_PRIOR_IMAGE=redbox-p4-q:prior-f8c8cd7d npm --prefix packages/redbox-core run test:configuration-transition",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 32255,
+  "sha256": "246a78e735953d59f93d3eff4339b6a65a7ac8d57462418e496cdcda261f83f6",
+  "counts": {},
+  "passGroups": 10,
+  "checks": []
+}

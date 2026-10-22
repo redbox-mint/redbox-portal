@@ -1,0 +1,12 @@
+{
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts test/services/AgendaQueueService.test.ts test/middleware/redboxSession.test.ts test/services/BrandingLogoService.test.ts",
+  "exitCode": 2,
+  "durationMs": 3250,
+  "rawBytes": 4465,
+  "sha256": "163878f9b1fd13546747374c0243e60e08065fee66924a59ad48a32732ab2193",
+  "failureExcerpt": "  1) GridFSDriver\n       uses a MongoDB driver Db from the configured datastore URL instead of the Sails datastore manager:\n\n      AssertionError: expected false to equal true\n      + expected - actual\n\n      -false\n      +true\n      \n      at Context.<anonymous> (test/services/GridFSDriver.test.ts:209:52)\n\n  2) AgendaQueueService\n       every\n         allows recurring schedules for Mongo-backed jobs:\n     TypeError: Cannot read properties of undefined (reading 'then')\n      at AgendaQueue.track (src/services/AgendaQueueService.ts:106:20)\n      at AgendaQueue.every (src/services/AgendaQueueService.ts:572:17)\n      at Context.<anonymous> (test/services/AgendaQueueService.test.ts:132:15)\n      at processImmediate (node:internal/timers:504:21)\n\n\n",
+  "counts": {
+    "passing": 53,
+    "failing": 2
+  }
+}

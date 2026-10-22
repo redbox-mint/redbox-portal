@@ -1,0 +1,139 @@
+{
+  "recordedAt": "2026-10-20T23:39:59.510713+00:00",
+  "reviewedRange": {
+    "base": "79c116fe0a6e07830ac1313d7403b4277b39e498",
+    "head": "92183a2fd6d737a5d6b2585c815eea4e09c2dcc2"
+  },
+  "runtimeCommit": "e78b77780344b5bfa45608ffd6b89d54566fcae9",
+  "runtimeSha256": "8368bede89ac7ff2b38d436424e4458dfe7d1cb675c2346b079d5ccb92766654",
+  "acceptedResultFiles": [
+    "results/core-tests.json",
+    "results/storage-tests.json",
+    "results/foundation.json",
+    "results/migration.json",
+    "results/cache-mongodb.json",
+    "results/cache-transition.json",
+    "results/reference.json",
+    "results/query-adversarial.json",
+    "results/query-baseline.json",
+    "results/query-associations.json",
+    "results/query-equality.json",
+    "results/query-producer-final.json",
+    "results/tenant-scope-final.json",
+    "results/configuration.json",
+    "results/configuration-readiness.json",
+    "results/configuration-siem.json",
+    "results/indexes.json",
+    "results/progress.json",
+    "results/harvest.json",
+    "results/siem.json",
+    "results/figshare.json",
+    "results/siem-readiness.json",
+    "results/figshare-readiness.json",
+    "results/siem-unit.json",
+    "results/figshare-unit.json",
+    "results/figshare-unit-mongodb.json",
+    "results/storage-contract.json",
+    "results/storage-qualification.json",
+    "results/storage-live.json",
+    "results/storage-ownership.json",
+    "results/storage-owner-failures.json",
+    "results/storage-backfill.json",
+    "results/storage-readiness.json",
+    "results/storage-ownership-waterline.json",
+    "results/final-static.json",
+    "results/fresh-mocha.json",
+    "results/fresh-bruno.json",
+    "results/dev-default.json",
+    "results/dev-waterline.json",
+    "results/final-review-files.json",
+    "results/verification-image.json",
+    "results/final-focused.json"
+  ],
+  "persistenceAndStorageCases": 33,
+  "counts": {
+    "core": {
+      "passing": 4204,
+      "pending": 116
+    },
+    "storage": {
+      "passing": 288,
+      "pending": 38
+    },
+    "storageLive": {
+      "passing": 326
+    },
+    "mocha": {
+      "passing": 419,
+      "pending": 10
+    },
+    "bruno": {
+      "requests": 309,
+      "tests": 553,
+      "assertions": 3
+    }
+  },
+  "adversarial": {
+    "passing": 5529,
+    "comparisons": 5529,
+    "parityComparisons": 3777,
+    "explicitRefusals": 1752,
+    "failures": 0,
+    "firstFailures": [],
+    "writers": [
+      "waterline",
+      "mongodb"
+    ],
+    "readers": [
+      "waterline",
+      "mongodb"
+    ],
+    "baseline": "loaded Waterline find/count plus legacy plain projection"
+  },
+  "retainedBaseline": {
+    "passing": 3106,
+    "failures": 0,
+    "firstFailures": [],
+    "baseline": "loaded Waterline find/count",
+    "writers": [
+      "waterline",
+      "mongodb"
+    ]
+  },
+  "readiness": {
+    "dev-default": {
+      "ready": true,
+      "selectedIndexScopes": 49,
+      "selectedCollections": 20
+    },
+    "dev-waterline": {
+      "ready": true,
+      "selectedIndexScopes": 0,
+      "selectedCollections": 0
+    }
+  },
+  "rollbackArtifacts": {
+    "redbox-p2:prior-11742e9": "sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be",
+    "redbox-p3-r:prior-cb874201": "sha256:2511de69363c6322f57a41f71023d46f34d90f1637dde354081a587cb4f800ba",
+    "redbox-p4-q:prior-f8c8cd7d": "sha256:4721b7009cfcd84aee975a5e8eca22a17f611b1c18f7f54507dcac391dcb9d20",
+    "redbox-p5a-j1:prior-0aa801ee6": "sha256:de7cb0885ac19d3386b534c165633b75354db8291f8ec7bea244749028a0cfd8",
+    "redbox-p5b-j2:prior-c2ceddb45": "sha256:df2088a9aa517b23f9b4ef1e51e1a837a52115be7ff7bda93bd0f85d6252d6ce",
+    "redbox-p5c-j3:prior-7c1906849": "sha256:409c2bebce607feedb5950c89bd39f05b1ea81f55886dbedf0301243f551c69e",
+    "redbox-p5d-j4:prior-32e2c2fca": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+    "redbox-p10-s:prior-12e566575": "sha256:c138489fc72f566815113599b699e13ad55486176f333c394238b361bca094d3"
+  },
+  "limits": {
+    "gTx": "CLOSED",
+    "opsTx01": "undecided",
+    "atomicUnitsMoved": 0,
+    "topology": "MongoDB 8.0.34 standalone",
+    "manifestOrLockChanges": 0,
+    "packedReleaseImageMatrixRerun": false,
+    "additionalOperationBenchmarksRerun": false
+  },
+  "regressions": "fix-validation.json",
+  "attempts": "attempts.json",
+  "runtime": "runtime.json",
+  "dependencies": "dependencies.json",
+  "cleanup": "cleanup.json"
+}

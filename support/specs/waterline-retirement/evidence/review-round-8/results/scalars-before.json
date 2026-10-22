@@ -1,0 +1,13 @@
+{
+  "name": "scalars-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-parity",
+  "sourceCommit": "2ad8458edc2e13b2a5633342e9ef779341670186",
+  "exitCode": 1,
+  "durationMs": 64887,
+  "sha256": "2ab36c1201f536d6264b42f26088fc4eda8c1234f4745b068d7b0d864131020c",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"concern\":\"scalars\",\"passing\":7274,\"failures\":6,\"summary\":{\"reference\":2040,\"configuration\":800,\"progress\":840,\"harvest\":2240,\"siem\":1360},\"firstFailures\":[{\"group\":\"harvest\",\"collection\":\"harvestrecordevent\",\"field\":\"createdAt\",\"patch\":false,\"input\":true,\"mongodb\":\"E_INVALID_NEW_RECORD\"},{\"group\":\"harvest\",\"collection\":\"harvestrecordevent\",\"field\":\"createdAt\",\"patch\":false,\"input\":false,\"mongodb\":\"E_INVALID_NEW_RECORD\"},{\"group\":\"harvest\",\"collection\":\"harvestrecordevent\",\"field\":\"createdAt\",\"patch\":false,\"input\":0,\"mongodb\":\"E_INVALID_NEW_RECORD\"},{\"group\":\"harvest\",\"collection\":\"harvestrecordevent\",\"field\":\"createdAt\",\"patch\":false,\"input\":1,\"mongodb\":\"E_INVALID_NEW_RECORD\"},{\"group\":\"harvest\",\"collection\":\"harvestrecordevent\",\"field\":\"createdAt\",\"patch\":false,\"input\":-2,\"mongodb\":\"E_INVALID_NEW_RECORD\"},{\"group\":\"harvest\",\"collection\":\"harvestrecordevent\",\"field\":\"createdAt\",\"patch\":false,\"input\":2.5,\"mongodb\":\"E_INVALID_NEW_RECORD\"}]}"
+  ]
+}

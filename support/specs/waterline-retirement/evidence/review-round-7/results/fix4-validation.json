@@ -1,0 +1,13 @@
+{
+  "name": "fix4-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh record-arrays",
+  "sourceCommit": "8918acad2b34c8596299392b5019f71158bd7cd9",
+  "exitCode": 0,
+  "durationMs": 49036,
+  "sha256": "1c5ec8cdce418befb7d46721073cfa99c9d57ae1f4b512f08f8a323937c6d852",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":10,\"failures\":0,\"readers\":[\"waterline\",\"mongodb\"],\"baseline\":\"native MongoDB record equality and explicit membership\"}"
+  ]
+}

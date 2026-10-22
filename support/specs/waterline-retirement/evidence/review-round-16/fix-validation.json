@@ -1,0 +1,86 @@
+{
+  "sourceBefore": "ebb1e61659ccd00f2d7460f6451648cb2fb67757",
+  "sourceAfter": "c323055d8e85d10daa352e02b50256048a392ca8",
+  "fixes": [
+    "1d6666614",
+    "c323055d8"
+  ],
+  "red": {
+    "command": "AgendaQueueService.test.ts --grep \"forgets ended SQS\"",
+    "exitCode": 3,
+    "passing": 0,
+    "failing": 3,
+    "runtime": "input runtime, added regression tests only",
+    "rawLogSha256": "b93a1fbb1454c345730cbce78c356d41aa2eeeae33750501bdfcc6d88a6dffd6"
+  },
+  "greenDevelopment": {
+    "command": "AgendaQueueService.test.ts --grep \"SQS\"",
+    "exitCode": 0,
+    "passing": 15,
+    "rawLogSha256": "b06ca3c480df6020d393a09813645df2f67ee8bdace6cf51703ebb5978a853af"
+  },
+  "scenarios": [
+    "initial state save MessageNotInflight",
+    "initial state save ReceiptHandleIsInvalid",
+    "final DeleteMessage ReceiptHandleIsInvalid"
+  ],
+  "deliveriesPerScenario": 16,
+  "payloadBytesPerDelivery": 15000,
+  "nonterminalAccessDeniedRetained": true,
+  "frozenFocused": [
+    {
+      "name": "strict-focused-final",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-16/tsconfig.focused.json",
+      "source": "c323055d8e85d10daa352e02b50256048a392ca8",
+      "exitCode": 0,
+      "durationMs": 17635,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "focused-final-committed",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+      "source": "c323055d8e85d10daa352e02b50256048a392ca8",
+      "exitCode": 0,
+      "durationMs": 8966,
+      "sha256": "71a799288e5d42a9c041189aefd98f402d35d795fb5a606563cbfc4b23972ef6",
+      "counts": {
+        "passing": [
+          115
+        ],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-unlock-green",
+      "command": "node .tmp/review-round-16/sqs-receipt-identity.cjs unlock",
+      "source": "c323055d8e85d10daa352e02b50256048a392ca8",
+      "exitCode": 0,
+      "durationMs": 436,
+      "sha256": "d20fe40a0a64add37a8c0505b9fbb6493e6610452883583aa9ec2ff8762d86fd",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "name": "sqs-identity-complete-green",
+      "command": "node .tmp/review-round-16/sqs-receipt-identity.cjs complete",
+      "source": "c323055d8e85d10daa352e02b50256048a392ca8",
+      "exitCode": 0,
+      "durationMs": 439,
+      "sha256": "e542d9a2ba2ae4921204835d441f13b7ee64cc353e5a0b23043d07e069a0144a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    }
+  ]
+}

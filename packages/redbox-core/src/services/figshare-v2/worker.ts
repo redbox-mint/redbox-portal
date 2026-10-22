@@ -1,3 +1,4 @@
+import { figshareWork } from './worker-lifecycle';
 import _ from 'lodash';
 import { createHash, randomUUID } from 'node:crypto';
 import type { Db } from 'mongodb';
@@ -99,7 +100,8 @@ const PAUSED_DISPATCH_BACKOFF_MS = 5 * 60 * 1000;
 // threshold. It is set well beyond any synchronous post-save hook, so live saves are never promoted early.
 const STALE_INITIALISING_MS = 60 * 60 * 1000;
 
-export async function dispatchFigshare(): Promise<void> {
+export function dispatchFigshare(): Promise<void> { return figshareWork(sails, dispatchAccepted); }
+async function dispatchAccepted(): Promise<void> {
   const storage = RecordsService.getFigshareIntentStorage();
   if (!storage.pendingFigshareIntents) return;
   const store = getSyncStore();
@@ -149,7 +151,8 @@ export async function dispatchFigshare(): Promise<void> {
   }
 }
 
-export async function runFigshareWorker(
+export function runFigshareWorker(service: QueuedFigshareService, job: FigshareJob, store = getSyncStore()): Promise<void> { return figshareWork(sails, () => runAccepted(service, job, store)); }
+async function runAccepted(
   service: QueuedFigshareService,
   job: FigshareJob,
   store = getSyncStore()
@@ -184,17 +187,16 @@ export async function runFigshareWorker(
   // Attribute errors in the initial account/article reads to the work being polled.
   let kind: FigshareIntentKind = due('sync') ? 'sync' : due('cleanup') ? 'cleanup' : 'observe';
   const abort = new AbortController();
-  let heartbeatBusy = false;
+  let heartbeatTask: Promise<void> | undefined;
   const heartbeat = setInterval(() => {
-    if (heartbeatBusy) return;
-    heartbeatBusy = true;
-    void (async () => {
+    if (heartbeatTask) return;
+    heartbeatTask = (async () => {
       await store.renew(oid, owner, settings.leaseMs);
       if (job.touch) await job.touch();
     })()
       .catch(() => abort.abort())
       .finally(() => {
-        heartbeatBusy = false;
+        heartbeatTask = undefined;
       });
   }, settings.heartbeatMs);
   heartbeat.unref();
@@ -811,6 +813,7 @@ export async function runFigshareWorker(
   } finally {
     clearInterval(heartbeat);
     abort.abort();
+    await heartbeatTask;
     await store.release(oid, owner);
   }
 }

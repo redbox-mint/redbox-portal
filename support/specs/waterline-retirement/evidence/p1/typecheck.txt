@@ -1,0 +1,2 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 typecheck:persistence
+npm notice run tsc --noEmit -p test/tsconfig.persistence.json

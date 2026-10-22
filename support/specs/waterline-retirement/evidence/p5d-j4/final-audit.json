@@ -1,0 +1,30 @@
+{
+  "gate": "G-J4",
+  "decision": "PASS bounded transaction-free next",
+  "qualifiedBaseCommit": "7ef6087e24f7cbec81d0afcb063c3b65a6aaf1e8",
+  "candidateRuntimeDiffSha256": "fff3da320eec06964f857bca86f0d050de01f11b19e81e837cba46edb9da4d02",
+  "qualifiedWorkloadCommit": "cfa88bf86de2ecd1d1041cdf5ed3fb3098a4fada",
+  "directModelConsumersOutsideAdapters": [],
+  "locks": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  },
+  "npmForTemporaryLocks": "11.20.0 asserted",
+  "rollbackImage": "redbox-p5d-j4:prior-32e2c2fca",
+  "rollbackImageId": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+  "runningTestContainersAfterCleanup": 0,
+  "sourceIntentRowsAcknowledgedWithMatchingGenerations": 10,
+  "driverClientsPerApplication": 1,
+  "sourceStoragePath": "existing RecordsService/storage owner",
+  "transactionGate": "closed",
+  "OPS-TX-01": "UNDECIDED",
+  "gatedGroups": [
+    "U",
+    "V",
+    "B",
+    "atomic S"
+  ],
+  "P10StillRequired": true,
+  "officialRetirementAndReleaseStillRequired": true,
+  "promotionCommit": "6c0194dcbd8940bc00c758e890d3a0ed1df555ba"
+}

@@ -1,0 +1,12 @@
+{
+  "passing": true,
+  "addedLocalMarkdownLinks": 31,
+  "markdownFiles": 13,
+  "tablesConsistent": true,
+  "allEvidenceJsonValid": true,
+  "P10.4Unticked": true,
+  "P11Unchanged": true,
+  "stagedP107P108EvidenceTicked": true,
+  "dependencyManifestsAndLocksUnchanged": true,
+  "runtimeChangeSincePromotion": []
+}

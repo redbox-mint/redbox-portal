@@ -1,0 +1,21 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "node --version && node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js --version && docker run --rm --network none development-rbportal:latest node --version && node -p \"JSON.stringify({root:require(\\\"./node_modules/mongodb/package.json\\\").version,storage:require(\\\"./packages/sails-hook-redbox-storage-mongo/node_modules/mongodb/package.json\\\").version})\""
+  ],
+  "exitCode": 0,
+  "durationSeconds": 3.37,
+  "sha256": "92c7f78aa25d5ccb83544500c8fa83a9c7f7649ff63d63cf7684d25d8f07e435",
+  "logBytes": 61,
+  "counts": [],
+  "totals": {},
+  "versions": {
+    "hostNode": "24.18.0",
+    "lockToolNpm": "11.20.0",
+    "stockImageNode": "26.10.0",
+    "coreMongoDriver": "7.7.0",
+    "retainedStorageMongoDriver": "7.2.0",
+    "stockImageId": "sha256:3d66a33890bafea037db006e8bc33a5bdf0baf952ac9c0b2dc6fe52856f84bf0"
+  }
+}

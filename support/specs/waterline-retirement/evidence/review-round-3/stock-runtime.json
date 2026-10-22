@@ -1,0 +1,20 @@
+{
+  "node": "v26.10.0",
+  "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+  "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+  "rttc": "10.0.1",
+  "artifactHashes": {
+    "packages/redbox-core/dist/CoreController.js": "bb6faa94376fa4531c282b71cae02fa5f3d9e2a8d1edd8c8aa15ace74127a5bb",
+    "packages/redbox-core/dist/middleware/requestLifetime.js": "75d5269dad91d6802bf5265e725c8bc72d669f3f3137546612a835f27496fb84",
+    "packages/redbox-core/dist/middleware/redboxSession.js": "a734b63269b4625007d49edf90cda86aa2d7394cd1c21267b507c91b9efb5ed5",
+    "packages/redbox-core/dist/storage/GridFSDriver.js": "41551cc01f24bc437eb5be5bfedca8e31d7a159528534fb6927d0c40bfb0c2db",
+    "packages/redbox-core/dist/persistence/scalars.js": "f115e52bb1f08d25da5614f0896ae6ae5b8928fbfc877a5b40b4ae06ca727a8e",
+    "packages/redbox-core/dist/persistence/reference/NamedQueryExecution.js": "fd176f4b92eea612204b958b03f5d2082f17c4f060cd8e0a2cb346db74197abe",
+    "packages/redbox-core/dist/persistence/configuration/physical.js": "684facfc2987c2ea741a6463b7278432443081329bf7bcace72e46e6a613546a",
+    "packages/redbox-core/dist/persistence/progress/physical.js": "e364e4d567f7d80e6f02f5ea75b385e53e0502e0e332f6fca4ee5f635e5ee191",
+    "packages/sails-hook-redbox-storage-mongo/dist/persistence/MongoStagedStorage.js": "b544cdce90c38042f520329a80c5779791030a502cff291ef718ccec301e1838"
+  },
+  "container": "p10-s-bruno-default-2941-19556-redboxportal-mount-1",
+  "imageId": "sha256:3d66a33890bafea037db006e8bc33a5bdf0baf952ac9c0b2dc6fe52856f84bf0",
+  "matchesHostArtifactHashes": true
+}

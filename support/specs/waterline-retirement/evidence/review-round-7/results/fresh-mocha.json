@@ -1,0 +1,23 @@
+{
+  "name": "fresh-mocha",
+  "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND RBPORTAL_IMAGE=redbox-waterline-r4:npm11.20.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha default",
+  "sourceCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+  "exitCode": 0,
+  "durationMs": 316751,
+  "sha256": "87fa5a2974dbb3a70ec5f78db70e7c263bfc919e63f4dce5a4ec8c44a2ffaf83",
+  "counts": {
+    "passing": [
+      419
+    ],
+    "pending": [
+      4,
+      2,
+      0,
+      1,
+      1,
+      10
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

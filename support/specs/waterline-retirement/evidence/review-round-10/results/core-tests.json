@@ -1,0 +1,15 @@
+{
+  "name": "core-tests",
+  "stage": "retained",
+  "command": "npm run test:core",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 134005,
+  "sha256": "50ea1068fa60a9bf7b4b9f439f6a963d11ef061c212ab3bb754adc9b1b267ab7",
+  "counts": {
+    "passing": [4253],
+    "pending": [116],
+    "failing": []
+  },
+  "checks": []
+}

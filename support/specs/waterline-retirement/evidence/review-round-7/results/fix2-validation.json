@@ -1,0 +1,18 @@
+{
+  "name": "fix2-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts test/services/writeGridFSStream.test.ts",
+  "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+  "exitCode": 1,
+  "durationMs": 45360,
+  "sha256": "5cf17a752d7041647b6936937b2a69be0bf3190aba6267ee013914038d2782cb",
+  "counts": {
+    "passing": [
+      19
+    ],
+    "failing": [
+      1
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

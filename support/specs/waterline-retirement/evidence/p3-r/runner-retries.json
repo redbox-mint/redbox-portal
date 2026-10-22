@@ -1,0 +1,14 @@
+[
+  {
+    "log": "p3-r-bruno-loaded-attempt.log",
+    "sha256": "477b6b608459acc8b563ddecd5103e0625cbaf73d64229b033372aa61559f425",
+    "qualifies": false,
+    "disposition": "413 on 21 KiB font upload during concurrent image builds; font later passes on quiet runs."
+  },
+  {
+    "log": "p3-r-bruno-email-dns-attempt.log",
+    "sha256": "28c949a9bd10f52b0d4eeda32a34cf5f7d07b087f1e54a11dea973b2397bce94",
+    "qualifies": false,
+    "disposition": "189 requests passed; SMTP failed on hard-coded integration-testing-email-1 in isolated project; compose network alias added."
+  }
+]

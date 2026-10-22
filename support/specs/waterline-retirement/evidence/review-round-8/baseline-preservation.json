@@ -1,0 +1,15 @@
+{
+  "initialHead": "2ad8458ed",
+  "unchanged": {
+    "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts": "3ffc872ceb912a4744d4cb33bce65196dd5f3d195a58805264218b9e61faa0b3",
+    "packages/redbox-core/src/storage/GridFSDriver.ts": "368b9d3227ef8f57d6362551b10b20620d5e0efbd0ac6551155368f941994950",
+    "packages/redbox-core/src/storage/ownGridFSDownload.ts": "ffd8ae91a917af3bc6980e75cb45f887860fd55b4c3e095384acd64516b894c1",
+    "packages/redbox-core/src/storage/writeGridFSStream.ts": "3a5e97dfab9abd7e76451584963c72a7044e47211b75a4a843747b0967ac47c6",
+    "packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts#namedQueryCriteria": "5504701a9372654ddba21fec3a2d760ca96bd17ba44a25d4fe4a203d4790a822"
+  },
+  "notes": [
+    "The complete WaterlineNativeStorage byte owner and GridFS helpers are unchanged in R8. Initial independent review compared R7 with original service baseline and qualified only the leak fixes.",
+    "The entire shared criteria translator, including native record-array equality from7c52cabe6, is unchanged. The only NamedQueryExecution edit delegates its existing primitive model coercion to the common helper.",
+    "Runtime tests gridfs-streams/gridfs-initializing/record-arrays retain direct behaviour checks for both selections."
+  ]
+}

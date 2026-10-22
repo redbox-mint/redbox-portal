@@ -1,0 +1,14 @@
+{
+  "command": "npm --prefix packages/redbox-core run test:migration-transition",
+  "exitCode": 0,
+  "durationMs": 63939,
+  "rawBytes": 5733,
+  "sha256": "56eee56fe57d20895c5f4a8c4f906745e75943aedc1926a65f13ab70b99006ad",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {
+    "passing": 14,
+    "pending": 1
+  },
+  "checks": [],
+  "passGroups": 0
+}

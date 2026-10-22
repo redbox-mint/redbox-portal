@@ -1,0 +1,11 @@
+{
+  "command": "npm run test:storage-mongo",
+  "exitCode": 0,
+  "durationMs": 35851,
+  "rawBytes": 28495,
+  "sha256": "189eb289b64e207b0673f8766002b08a1af35b7fbe41a4e2c0bc8d5e4aad209b",
+  "counts": {
+    "passing": 288,
+    "pending": 38
+  }
+}

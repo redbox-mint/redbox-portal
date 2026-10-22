@@ -1,0 +1,18 @@
+{
+  "name": "upload-binary-qualification-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/writeGridFSStream.test.ts --grep \"preserves Node\"",
+  "sourceCommit": "88bff6b403c0f56ee6906fbf0905e50bc5976467",
+  "exitCode": 2,
+  "durationMs": 1324,
+  "sha256": "a9192ee178ea50e6bb31566599a2496b0f770ff6b7e31956753c263ff6a99a34",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      2
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

@@ -1,0 +1,12 @@
+{
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm run lint",
+  "exitCode": 0,
+  "durationMs": 55567,
+  "rawBytes": 529,
+  "sha256": "0b4929de230655fd991324008a0aa63381c49596610f585c52e10801bffedc39",
+  "counts": {
+    "lintWarnings": 0,
+    "lintErrors": 0
+  },
+  "reportedPassGroups": 1
+}

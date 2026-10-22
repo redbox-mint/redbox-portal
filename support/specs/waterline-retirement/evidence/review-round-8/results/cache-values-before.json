@@ -1,0 +1,13 @@
+{
+  "name": "cache-values-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cache-values",
+  "sourceCommit": "8d97945a51a39939e36577abc5a10d07e16cbb34",
+  "exitCode": 1,
+  "durationMs": 6269,
+  "sha256": "0cc5ceaee2454a1e56160f80f71cdd6f6a6fceee5ba6db570af49c5fde453095",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":10,\"failures\":12,\"firstFailures\":[{\"method\":\"findByName\",\"input\":true,\"waterline\":{\"ok\":true,\"value\":\"true\"},\"mongodb\":{\"ok\":true}},{\"method\":\"findByName\",\"input\":false,\"waterline\":{\"ok\":true,\"value\":\"false\"},\"mongodb\":{\"ok\":true}},{\"method\":\"findByName\",\"input\":0,\"waterline\":{\"ok\":true,\"value\":\"0\"},\"mongodb\":{\"ok\":true}},{\"method\":\"findByName\",\"input\":1,\"waterline\":{\"ok\":true,\"value\":\"1\"},\"mongodb\":{\"ok\":true}},{\"method\":\"findByName\",\"input\":-2,\"waterline\":{\"ok\":true,\"value\":\"-2\"},\"mongodb\":{\"ok\":true}},{\"method\":\"findByName\",\"input\":2.5,\"waterline\":{\"ok\":true,\"value\":\"2.5\"},\"mongodb\":{\"ok\":true}},{\"method\":\"updateByName\",\"input\":true,\"waterline\":{\"ok\":true,\"value\":\"changed\"},\"mongodb\":{\"ok\":true,\"value\":\"true\"}},{\"method\":\"updateByName\",\"input\":false,\"waterline\":{\"ok\":true,\"value\":\"changed\"},\"mongodb\":{\"ok\":true,\"value\":\"false\"}},{\"method\":\"updateByName\",\"input\":0,\"waterline\":{\"ok\":true,\"value\":\"changed\"},\"mongodb\":{\"ok\":true,\"value\":\"0\"}},{\"method\":\"updateByName\",\"input\":1,\"waterline\":{\"ok\":true,\"value\":\"changed\"},\"mongodb\":{\"ok\":true,\"value\":\"1\"}},{\"method\":\"updateByName\",\"input\":-2,\"waterline\":{\"ok\":true,\"value\":\"changed\"},\"mongodb\":{\"ok\":true,\"value\":\"-2\"}},{\"method\":\"updateByName\",\"input\":2.5,\"waterline\":{\"ok\":true,\"value\":\"changed\"},\"mongodb\":{\"ok\":true,\"value\":\"2.5\"}}]}"
+  ]
+}

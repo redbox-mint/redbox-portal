@@ -1,0 +1,15 @@
+{
+  "reviewedBase": "79c116fe0a6e07830ac1313d7403b4277b39e498",
+  "reviewedHead": "72e1a2cd35026154d706783603881ee1748410d1",
+  "runtimeCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+  "runtimeSourceFiles": 621,
+  "runtimeSha256": "0a239a813e79f930060575c2fb3603adacf146bffaebd17242d079b3c309bb71",
+  "artifactHashes": {
+    "packages/redbox-core/dist/persistence/reference/NamedQueryExecution.js": "e63810b0406811b799a1c461abc307c7dbc58b7956df9a6f5d41ec0febc03534",
+    "packages/redbox-core/dist/persistence/cache/configuration.js": "f1f91e71fda822e9ac3b1af460a530e87bae58015c2a81528e757cdadb4f88c9",
+    "packages/redbox-core/dist/middleware/redboxSession.js": "a07ef3675afcc39e600e7338a923e96e6c812ddb53f8181506e37a2fa5c324fd",
+    "packages/redbox-core/dist/middleware/requestLifetime.js": "75d5269dad91d6802bf5265e725c8bc72d669f3f3137546612a835f27496fb84",
+    "packages/redbox-core/dist/persistence/scalars.js": "7a101c0e46b98bf18f2bfd5f908e40994fe7d8eeade93bfe834a07aeed4cf2a6",
+    "packages/sails-hook-redbox-storage-mongo/dist/persistence/MongoStagedStorage.js": "b544cdce90c38042f520329a80c5779791030a502cff291ef718ccec301e1838"
+  }
+}

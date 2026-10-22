@@ -1,0 +1,82 @@
+{
+  "artifact-smoke-attempt1.txt": {
+    "sha256": "98fbddd62e3fd34bd3d370edd727c98f1b395d1fb39deaedd1b2838ad1ffe954",
+    "bytes": 171,
+    "lines": 2,
+    "summaryExcerpt": "{\"result\":\"PASS\",\"probe\":\"full image: MongoDB default, no Prisma code/dependencies, actionable retired selector, zero sockets\",\"node\":\"v26.11.1\"}"
+  },
+  "build-attempt1.txt": {
+    "sha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e",
+    "bytes": 100,
+    "lines": 2
+  },
+  "cache-types-attempt1.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "core-attempt1.txt": {
+    "sha256": "54533ed622c24f2ee34c4b2c98c9a6e07543c39d360c9a7005ed50863056ed57",
+    "bytes": 359779,
+    "lines": 6142,
+    "counts": {
+      "passing": 4158,
+      "pending": 113,
+      "failing": 1
+    },
+    "attemptExcerpt": "       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:\n     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT\n\nnull !== 0\n\n      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:44:12)\n      at processImmediate (node:internal/timers:504:21)"
+  },
+  "core-attempt2.txt": {
+    "sha256": "299fe3c7a1b77dd4869e21e0e950959bc50d612e9f6b06400609a639b2aa20f2",
+    "bytes": 359340,
+    "lines": 6130,
+    "counts": {
+      "passing": 4159,
+      "pending": 113
+    }
+  },
+  "core-lint-attempt1.txt": {
+    "sha256": "c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183",
+    "bytes": 153,
+    "lines": 2
+  },
+  "evidence-audit-attempt1.txt": {
+    "sha256": "00a665d9a598bb8f79a6179613ca2b66a01b71617db7fe7676b4de34b67af964",
+    "bytes": 63,
+    "lines": 1,
+    "summaryExcerpt": "{\"result\": \"PASS\", \"manifests\": 5, \"ledgerHashesChecked\": 130}"
+  },
+  "inventory-audit-attempt1.txt": {
+    "sha256": "0e58fd62f29b8461a7eaac7211cca4efb14a87eb540bcec5e7a2ea4eeae0e2c0",
+    "bytes": 219,
+    "lines": 2,
+    "summaryExcerpt": "PASS: mapping/reference/native coverage, actual junction/callbacks/transactions/routing and distinct service-index phase audited."
+  },
+  "lint-attempt1.txt": {
+    "sha256": "357debf5ad940c83311560a548a42810bcccb4a12e7811e060a9912d9eeb2ad8",
+    "bytes": 191,
+    "lines": 4
+  },
+  "packed-24-attempt1.txt": {
+    "sha256": "54afa656d5131828518b7c4d5f82c8a1ad9574166a21e7a847595b6e4b2605c7",
+    "bytes": 4429,
+    "lines": 100,
+    "summaryExcerpt": "PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)\nPASS installed default MongoDB cache CRUD/raw BSON, retained fields and two-database routing on MongoDB 8.0.34 (v24.16.0)"
+  },
+  "packed-26-attempt1.txt": {
+    "sha256": "656f14e455f909182b7690e4e90721a8eb8fa71f1d37cbe22475236a817f8920",
+    "bytes": 4172,
+    "lines": 99,
+    "summaryExcerpt": "PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)\nPASS installed default MongoDB cache CRUD/raw BSON, retained fields and two-database routing on MongoDB 8.0.34 (v26.11.1)"
+  },
+  "persistence-types-attempt1.txt": {
+    "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+    "bytes": 144,
+    "lines": 2
+  },
+  "root-types-attempt1.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  }
+}

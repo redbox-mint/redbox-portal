@@ -1,0 +1,78 @@
+{
+  "name": "create-budget",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh create-budget",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 164687,
+  "sha256": "d0360e568e287aa57f2e24ea714ca205fc85399838636f9f40d68dc89752faa7",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "ratios": {
+        "p95": 0.7539771404562036,
+        "throughput": 1.4770177769732689,
+        "rss": 0.9259482163732556,
+        "calls": 1
+      }
+    },
+    {
+      "ratios": {
+        "p95": 0.791878152497491,
+        "throughput": 1.436053863865194,
+        "rss": 0.9234424349083139,
+        "calls": 1
+      }
+    },
+    {
+      "ratios": {
+        "p95": 0.6593273155620427,
+        "throughput": 1.8111597273367919,
+        "rss": 0.9259400234671632,
+        "calls": 1
+      }
+    },
+    {
+      "ratios": {
+        "p95": 0.6581280450694499,
+        "throughput": 1.7333018215248115,
+        "rss": 0.9147290942291818,
+        "calls": 1.0022727272727272
+      }
+    },
+    {
+      "passing": 16,
+      "failures": 0,
+      "summary": {
+        "reference": {
+          "p95": 0.7539771404562036,
+          "throughput": 1.4770177769732689,
+          "rss": 0.9259482163732556,
+          "calls": 1
+        },
+        "configuration": {
+          "p95": 0.791878152497491,
+          "throughput": 1.436053863865194,
+          "rss": 0.9234424349083139,
+          "calls": 1
+        },
+        "progress": {
+          "p95": 0.6593273155620427,
+          "throughput": 1.8111597273367919,
+          "rss": 0.9259400234671632,
+          "calls": 1
+        },
+        "harvest": {
+          "p95": 0.6581280450694499,
+          "throughput": 1.7333018215248115,
+          "rss": 0.9147290942291818,
+          "calls": 1.0022727272727272
+        }
+      }
+    }
+  ]
+}

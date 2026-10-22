@@ -1,0 +1,35 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha default",
+  "exitCode": 0,
+  "durationMs": 275458,
+  "rawBytes": 1163325,
+  "sha256": "5d00cbc82cde69e7b521c9fd623ae59d460bacce07e8ac9dfadb70943b8ad887",
+  "counts": {
+    "passing": 419,
+    "pending": 10
+  },
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    },
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

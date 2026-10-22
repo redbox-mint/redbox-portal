@@ -1,0 +1,38 @@
+{
+  "reference": {
+    "repeats": 3,
+    "warmups": 100,
+    "operations": 1000,
+    "ratios": {
+      "p95": 0.9985682473735011,
+      "throughput": 1.0432536302980528,
+      "rss": 0.5123161474342797,
+      "calls": 1
+    },
+    "maxReadinessMs": 123.1274199999998,
+    "connectionsReturnedToBaseline": true
+  },
+  "storage": {
+    "repeats": 3,
+    "warmups": 100,
+    "operations": 1000,
+    "ratios": {
+      "p95": 0.28414225147072125,
+      "throughput": 2.485061395816752,
+      "rss": 0.9364545518707978,
+      "calls": 0.6331046477920572
+    },
+    "maxReadinessMs": 190.53001200000017,
+    "connectionsReturnedToBaseline": true,
+    "atomicUnitsMoved": 0
+  },
+  "limits": {
+    "p95": 1.2,
+    "throughput": 0.9,
+    "rss": 1.1,
+    "calls": 1.25,
+    "readinessMs": 250
+  },
+  "ratioDirection": "mongodb / waterline",
+  "pass": true
+}

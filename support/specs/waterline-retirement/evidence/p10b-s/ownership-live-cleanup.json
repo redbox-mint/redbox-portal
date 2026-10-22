@@ -1,0 +1,14 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+  "exitCode": 0,
+  "durationMs": 307031,
+  "rawBytes": 853,
+  "sha256": "24f2cdcf207cd7396129d044e0cc34d339072be2b5316b21e21971d43dfe5326",
+  "checkRuns": [
+    {
+      "passing": 16,
+      "failures": 0,
+      "selector": "waterline"
+    }
+  ]
+}

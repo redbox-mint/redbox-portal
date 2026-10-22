@@ -1,0 +1,13 @@
+{
+  "name": "id-mappings",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-mappings",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 56568,
+  "sha256": "f905b8d6227609d10dbd24ec757df71695170693cd516682a1056f2ce6d42edf",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":18,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

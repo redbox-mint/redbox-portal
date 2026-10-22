@@ -1,0 +1,15 @@
+{
+  "name": "fresh-bruno",
+  "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh bruno default",
+  "sourceCommit": "658e932cdb97443d750274c967a2b1f94a35870b",
+  "exitCode": 0,
+  "durationMs": 301240,
+  "sha256": "7031e7cee68d52d259acf955a9c8eba96eb3e6527c372846ff7f7959ca30e654",
+  "counts": {
+    "pending": [
+      4
+    ]
+  },
+  "passGroups": 1,
+  "checks": []
+}

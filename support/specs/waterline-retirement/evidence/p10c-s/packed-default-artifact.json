@@ -1,0 +1,45 @@
+{
+  "source": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "image": null,
+  "imageId": null,
+  "npm": "11.20.0 asserted before lock/install/prune",
+  "nodes": [
+    "24.16.0",
+    "26.11.1"
+  ],
+  "files": {
+    "package.json": {
+      "sha256": "29640bd1b855826ae7d6d2443701f17d1d52996d6244e6edfb70eee84767688c",
+      "bytes": 1395
+    },
+    "package-lock.json": {
+      "sha256": "f363fd4ca3afe4bb162894fdb8adff297d60f76f743a7fd43ff8087965127747",
+      "bytes": 596160
+    },
+    "vendor/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz": {
+      "sha256": "91cb54f64bd473508fa4cfbae6584b6e18a359d137ede4e7fb038d5716eccb7d",
+      "bytes": 11752
+    },
+    "vendor/researchdatabox-raido-openapi-generated-node-0.0.3.tgz": {
+      "sha256": "a50e5bc0fa7cbaff5a237f4372310f978c1d8dbc25a38055ebfebc02255ea892",
+      "bytes": 18479
+    },
+    "vendor/researchdatabox-redbox-core-0.0.1-beta.9022.tgz": {
+      "sha256": "eed94f9f9125990074896b27dd7f91cccc5885dddf7074e2b84aefc13042481b",
+      "bytes": 2543177
+    },
+    "vendor/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz": {
+      "sha256": "31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d",
+      "bytes": 47843
+    },
+    "vendor/researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz": {
+      "sha256": "24e74c32111c729f5454b14835be2226a578a4c5d239eb9c40edf43cc1f71bc0",
+      "bytes": 103247
+    },
+    "vendor/researchdatabox-sails-ng-common-0.2.1.tgz": {
+      "sha256": "432f8f73a47e35eee638554f356d60af32831d4b10293bdef3600b76b57343f1",
+      "bytes": 256776
+    }
+  },
+  "result": "PASS clean installed packed core+storage, offline types/import/shims/no sockets and live bidirectional/mixed/restart/selector rollback/recovery qualification on both Node versions"
+}

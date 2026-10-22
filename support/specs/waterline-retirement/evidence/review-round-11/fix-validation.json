@@ -1,0 +1,55 @@
+[
+  {
+    "name": "fix-1",
+    "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && cd packages/sails-hook-redbox-storage-mongo && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register --require test/setup.ts test/migrations/recordRevisionBackfill.test.ts",
+    "exitCode": 0,
+    "durationMs": 16863,
+    "sha256": "fca7f7846472e899b0cdbcc90ff5bdb9e8edd3a22b587135bab2b6435fd92915",
+    "sourceCommit": "80a5546981d58c63d62e96dd2dd5fc8e4f1df9ec",
+    "worktreeChanges": [
+      " M packages/sails-hook-redbox-storage-mongo/src/persistence/recordRevisionBackfill.ts",
+      " M packages/sails-hook-redbox-storage-mongo/test/migrations/recordRevisionBackfill.test.ts"
+    ],
+    "counts": {
+      "passing": ["4"],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "857c2e8dc",
+    "before": {
+      "logSha256": "eb480c83a52a605eb210e53d058cc64240a6ae7326efec928ec282aa0f52b597",
+      "passing": 3,
+      "failing": 1,
+      "reason": "Error.cause retained native detail"
+    }
+  },
+  {
+    "name": "fix-2",
+    "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && node_modules/.bin/tsc --noEmit && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh index-upgrade",
+    "exitCode": 0,
+    "durationMs": 52233,
+    "sha256": "36255ce10c8ec8525c9581cd884320ff8a903fcd36de40221c073dc03aef228a",
+    "sourceCommit": "857c2e8dc96e377df3d9c0c4acbd61f8b57a346c",
+    "worktreeChanges": [
+      " M packages/redbox-core/src/persistence/indexes.ts",
+      " M packages/redbox-core/test/fixtures/waterline-retirement/README.md",
+      " M packages/redbox-core/test/fixtures/waterline-retirement/reference-index-upgrade.cjs",
+      " M packages/redbox-core/test/fixtures/waterline-retirement/review-regressions.json",
+      " M support/specs/waterline-retirement/p1-validation.md",
+      "?? packages/redbox-core/test/fixtures/waterline-retirement/configuration-mixed-clocks.cjs",
+      "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-error-boundaries.cjs"
+    ],
+    "counts": {
+      "passing": [],
+      "pending": [],
+      "failing": []
+    },
+    "fixCommit": "09acabc00",
+    "before": {
+      "logSha256": "4281f064f653d8788463ff24e86339ae711c158a9a3359a4c6dc2ec613871ec3",
+      "passing": 18,
+      "failing": 2,
+      "reason": "Equivalent range operators/nested predicate order reported conflicting"
+    }
+  }
+]

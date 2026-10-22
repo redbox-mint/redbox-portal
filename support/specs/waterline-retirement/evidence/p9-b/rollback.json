@@ -1,0 +1,70 @@
+{
+  "sourceCommit": "5afe0957c6b98e49ad608dfd27b89e2ca66d3012",
+  "imageId": "sha256:9e7383a7dedeb5e0e844482bd798b46e84005239dd7456754eea49c9252cf674",
+  "architecture": "arm64",
+  "archive": {
+    "path": ".tmp/wrp9/prior-5afe0957c.tar",
+    "sha256": "982bf3e8d24819615260448945ff3d129ef45ce5df4a8f0d71572c63db6fc15c",
+    "bytes": 723593216
+  },
+  "loadCommand": "timeout 300 docker image load --input .tmp/wrp9/prior-5afe0957c.tar",
+  "buildCommand": "timeout 600 docker build -t wrp9/prior:5afe0957c .tmp/wrp9/prior",
+  "priorProbe": "timeout 300 bash .tmp/wrp9/run-prior.sh",
+  "priorPassed": 6,
+  "driverReadbackPassed": 2,
+  "probeLog": {
+    "path": ".tmp/wrp9/prior-qualification.log",
+    "sha256": "af96e2894547b46e880c0b663372d143ab4daecf8c453570508b72a6016a320f"
+  },
+  "configRollback": "Live contracts: close, select explicit waterline, read/write unchanged namespaces, restart driver and read rollback writes. Both one-server and separate-server layouts.",
+  "snapshotBoundary": "Stopped synthetic B writers, both actual logical datastores plus external font/logo/favicon byte map; restored to isolated namespaces on respective servers, compared raw BSON/indexes and validated restored asset reads/font publication.",
+  "checkpoints": {
+    "one": {
+      "dto": {
+        "path": ".tmp/wrp9/checkpoint-one.json",
+        "sha256": "940545db0e59c74243974ab6b8b0817ecb93df42e27302586dc229935c39ecb1"
+      },
+      "bson": {
+        "path": ".tmp/wrp9/checkpoint-one.json.backup.ejson",
+        "sha256": "fec61dd00491c6fda2b64ebdc904f4ad6fb3dd7550e7bb49b849b982e8a12414"
+      },
+      "assets": {
+        "path": ".tmp/wrp9/checkpoint-one.json.assets.json",
+        "sha256": "7ca074b8dd16c88824c0733d674e52d355ccad23d3bbdf2cee1e4c87f949b8ff"
+      }
+    },
+    "split": {
+      "dto": {
+        "path": ".tmp/wrp9/checkpoint-split.json",
+        "sha256": "46c0f0e4f4208dd6922fc6c24a6778f8705f451544dd883643031c12a7dea32b"
+      },
+      "bson": {
+        "path": ".tmp/wrp9/checkpoint-split.json.backup.ejson",
+        "sha256": "83d1c267174acca639e8f0198ce22d78ace432b7bfe59ab67d1dce9578138ee1"
+      },
+      "assets": {
+        "path": ".tmp/wrp9/checkpoint-split.json.assets.json",
+        "sha256": "b5d056903afaf3268f52ce90d0eb5bbcf2d71259bca1071adc565ad2f0039850"
+      }
+    }
+  },
+  "priorFreshCheckpoint": {
+    "path": ".tmp/wrp9/prior-checkpoint.json",
+    "sha256": "94bd4d721f2446127b3a797290a7bff07ddf1795d74551bd4d9cc4f06a069da6"
+  },
+  "limits": [
+    "Local installed ARM64 dependencies and compiled pre-B core/storage/internal packages; not a clean production-pruned institution portal/hooks/assets image.",
+    "Not a full institution deployment backup, PITR, authentication, failover or release image rehearsal.",
+    "Typeface migration pruning is irreversible without backup; a selector change cannot restore overwritten/deleted bytes.",
+    "Mixed/rollback Waterline writers retain B-01 race; atomic driver CAS does not make a mixed fleet universally race-free.",
+    "No server/FCV/topology downgrade or history relocation.",
+    "Prior-image container probe used the one-server/two-database layout. The separate-server layout has loaded Waterline/driver contract and configuration rollback coverage, without a separate prior-image container probe."
+  ],
+  "archiveValidation": {
+    "indexReferencesRecordedImage": true,
+    "tag": "wrp9/prior:5afe0957c",
+    "imageId": "sha256:9e7383a7dedeb5e0e844482bd798b46e84005239dd7456754eea49c9252cf674",
+    "members": 21,
+    "loadRoundTrip": "Not repeated; prior runtime ran successfully before save; archive hash and OCI index verified."
+  }
+}

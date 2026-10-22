@@ -1,0 +1,13 @@
+{
+  "name": "migration-query-boundary-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh migration-values",
+  "sourceCommit": "2844ceeac2258adad379c3cbf8ec4b087937c0fe",
+  "exitCode": 0,
+  "durationMs": 55934,
+  "sha256": "bc6655a4c92aa36cfeb866c4083e27d9b1b3908f38d7508b873b76fa87e23652",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":106,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

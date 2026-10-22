@@ -1,0 +1,20 @@
+{
+  "name": "index-upgrade",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh index-upgrade",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 5040,
+  "sha256": "64ce85e5be104e91f8ff5c8ed47e42d664a2031f5828991279722c2da72bc4bc",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 9,
+      "failures": 0
+    }
+  ]
+}

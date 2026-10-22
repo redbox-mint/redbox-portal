@@ -1,0 +1,27 @@
+{
+  "name": "fetch-mappings-before",
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-fetch-mappings.cjs",
+  "sourceCommit": "b8205bb50386ffb11b5dcb719f7a2d15f9c84c4c",
+  "exitCode": 1,
+  "durationMs": 2610,
+  "sha256": "4eb1a8d4455e8e0d702f4ee4952af1e9280f1c5c973ce24f475df4a3ddd6776f",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 10,
+      "failures": 9,
+      "details": [
+        "actual loaded fetchRecordsOnCreate:false",
+        "asynchprogress.fetchRecordsOnCreate",
+        "asynchprogress.fetchRecordsOnUpdate",
+        "workspaceasync.fetchRecordsOnCreate",
+        "workspaceasync.fetchRecordsOnUpdate",
+        "appconfig.fetchRecordsOnCreate",
+        "dashboardconfiguration.fetchRecordsOnCreate",
+        "i18nbundle.fetchRecordsOnCreate",
+        "i18ntranslation.fetchRecordsOnCreate"
+      ]
+    }
+  ]
+}

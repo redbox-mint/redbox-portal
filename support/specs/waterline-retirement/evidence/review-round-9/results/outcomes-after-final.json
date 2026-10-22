@@ -1,0 +1,24 @@
+{
+  "name": "outcomes-after-final",
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-operation-outcomes.cjs",
+  "sourceCommit": "7b2c4843e7f67e754df60aa8a4c9ca8dabdc16f1",
+  "exitCode": 0,
+  "durationMs": 5554,
+  "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 346,
+      "summary": {
+        "read-missing-null-bson": 171,
+        "unsupported-bson-refusal": 57,
+        "create-fetch": 80,
+        "create-fetch-missing": 6,
+        "no-match-validation": 32
+      },
+      "failures": 0,
+      "firstFailures": []
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "id-mappings-before-isolated",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-mappings",
+  "sourceCommit": "3e6eed3d48d1365b17671ab6cc97c6913e663deb",
+  "exitCode": 1,
+  "durationMs": 47595,
+  "sha256": "90efb921a3509957c17694842b674ad87169e7e1bc2ab2230f0d21e8f88f87e9",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":1,\"failures\":17,\"firstFailures\":[{\"group\":\"migration\",\"identity\":\"migration\",\"message\":\"Missing expected exception.\"},{\"group\":\"reference\",\"identity\":\"themeconfig\",\"message\":\"Missing expected exception.\"},{\"group\":\"configuration\",\"identity\":\"appconfig\",\"message\":\"Missing expected exception.\"},{\"group\":\"progress\",\"identity\":\"asynchprogress\",\"message\":\"Missing expected exception.\"},{\"group\":\"harvest\",\"identity\":\"harvestrun\",\"message\":\"Missing expected exception.\"},{\"group\":\"siem\",\"identity\":\"securityevent\",\"message\":\"Missing expected exception.\"},{\"group\":\"figshare\",\"identity\":\"figsharesync\",\"message\":\"Missing expected exception.\"},{\"group\":\"cache\",\"identity\":\"cacheentry\",\"message\":\"Missing expected exception.\"},{\"group\":\"storage\",\"identity\":\"attachmentmetadata\",\"message\":\"Missing expected exception.\"},{\"group\":\"storage\",\"identity\":\"attachmentaccessaudit\",\"message\":\"Missing expected exception.\"},{\"group\":\"storage\",\"identity\":\"recordaudit\",\"message\":\"Missing expected exception.\"},{\"group\":\"storage\",\"identity\":\"integrationaudit\",\"message\":\"Missing expected exception.\"},{\"group\":\"storage\",\"identity\":\"recordschemaartifact\",\"message\":\"Missing expected exception.\"},{\"group\":\"storage\",\"identity\":\"recordschemareference\",\"message\":\"Missing expected exception.\"},{\"group\":\"reference\",\"identity\":\"brandingconfig\",\"message\":\"Missing expected exception.\"},{\"group\":\"configuration\",\"identity\":\"brandingconfig\",\"message\":\"Missing expected exception.\"},{\"group\":\"progress\",\"identity\":\"brandingconfig\",\"message\":\"Missing expected exception.\"}]}"
+  ]
+}

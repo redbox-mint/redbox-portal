@@ -1,0 +1,62 @@
+[
+  {
+    "taskId": "node:delegated-task:command%3Amcp%3Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%3Adelegate-task%3Awaterline-review-r10-standards-v1",
+    "childThreadId": "thread:delegated-task:command%3Amcp%3Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%3Adelegate-task%3Awaterline-review-r10-standards-v1",
+    "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%253Adelegate-task%253Awaterline-review-r10-standards-v1:ordinal:1",
+    "childNodeId": "node:delegated-task:command%3Amcp%3Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%3Adelegate-task%3Awaterline-review-r10-standards-v1",
+    "status": "completed",
+    "workState": "result_available",
+    "hasPendingChildRuns": false,
+    "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%253Adelegate-task%253Awaterline-review-r10-standards-v1:ordinal:1",
+    "latestTerminalStatus": "completed",
+    "latestTerminalSummary": null,
+    "latestTerminalResultContextTransferId": null,
+    "providerInstanceId": "codex_hattie",
+    "model": "gpt-6.1-sol",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "- **P2 — Cache driver errors reach branding preview API callers unchanged.** [MongoCacheEntryRepository.ts:77](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/cache/MongoCacheEntryRepository.ts:77) rethrows every nonduplicate native write error; reads/deletes also lack translation. `BrandingService.preview()` propagates this into `mapBrandingError()`, which copies `error.message` into the HTTP 500 response detail.\n\n  **Reproducer:** make `insertOne` reject with a `MongoServerError` containing database/command details, then invoke preview creation. An inline reproduction confirmed that the repository throws the identical native object and the branding mapper returns its message verbatim, including the injected payload marker. This violates design.md:420–422’s explicit prohibition on driver errors/payloads in public results. Translate cache operation failures into controlled messages while retaining existing HTTP statuses and duplicate classification.\n\nChecked M, R, Q, J1–J4, C2 and staged S error boundaries and relevant controller classifications; Round 9 progress envelopes, no-match validation, fetched creates, fetch readiness and batch clocks. No additional qualifying findings. No qualifying standards findings; changed manifests retain exact dependency pins.\n\nValidation: **61 targeted unit tests passed**, plus the inline disclosure reproduction. No edits or Docker execution.",
+    "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%253Adelegate-task%253Awaterline-review-r10-standards-v1:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A35786630-1202-4f4b-9182-c3d220ee9dd0%253Adelegate-task%253Awaterline-retirement-final-review-r10:d71228b5-2f54-47b8-b76b-997cad147e94",
+    "hasPendingQuestion": false,
+    "pendingApproval": null,
+    "waitTimedOut": false
+  },
+  {
+    "taskId": "node:delegated-task:command%3Amcp%3Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%3Adelegate-task%3Awaterline-review-r10-spec-v1",
+    "childThreadId": "thread:delegated-task:command%3Amcp%3Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%3Adelegate-task%3Awaterline-review-r10-spec-v1",
+    "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%253Adelegate-task%253Awaterline-review-r10-spec-v1:ordinal:1",
+    "childNodeId": "node:delegated-task:command%3Amcp%3Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%3Adelegate-task%3Awaterline-review-r10-spec-v1",
+    "status": "completed",
+    "workState": "result_available",
+    "hasPendingChildRuns": false,
+    "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%253Adelegate-task%253Awaterline-review-r10-spec-v1:ordinal:1",
+    "latestTerminalStatus": "completed",
+    "latestTerminalSummary": null,
+    "latestTerminalResultContextTransferId": null,
+    "providerInstanceId": "codex_hattie",
+    "model": "gpt-6.1-sol",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "1. **P2 — Equivalent partial indexes block startup.** [indexes.ts:54](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/indexes.ts:54) compares partial filters using order-sensitive JSON serialization. Reproducer: retain Figshare’s unique `{namespace:1, articleId:1}` index with `partialFilterExpression:{namespace:{$type:'string'},articleId:{$type:'string'}}`. The inspector returns `conflicting`; reversing those predicate fields returns `ready`. Pure Node reproduction confirms this. Startup and `--ensure` consequently reject an equivalent existing index. This violates [compatible-index preservation](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/wiki/Persistence-Index-Preparation.md:60). MongoDB preserves the submitted filter representation in its [index specification](https://github.com/mongodb/mongo/blob/r8.0.0/src/mongo/db/catalog/index_catalog_impl.cpp#L1899-L1914). Compare predicate semantics while retaining compound **index-key** order.\n\n2. **P3 — Compound duplicate audit misses missing/null collisions.** [indexes.ts:77](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/indexes.ts:77) groups raw compound-field values without normalizing missing fields. Reproducer for an existing volume lacking secondary indexes: insert `harvestrunchunk` rows `{runId:'r',contentHash:'h'}` and `{runId:'r',contentHash:'h',attempt:null}`, then inspect/ensure J2. Static analysis predicts zero duplicate groups followed by `E11000` during index creation, after earlier indexes have been created. MongoDB’s [compound grouping implementation](https://github.com/mongodb/mongo/blob/r8.0.34/src/mongo/db/pipeline/group_processor_base.cpp#L117-L129) distinguishes these values, while [unique indexes](https://www.mongodb.com/docs/manual/core/index-unique/) treat missing indexed fields as null. This violates [design §8’s missing/null audit requirement](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/design.md:545) and the all-scope duplicate block. Normalize missing compound components to null before grouping. This Mongo reproducer remains for the main agent’s live validation.\n\nSurfaces checked: selector case/whitespace/unknown/global/per-group behavior; Compose and bootstrap forwarding; maintenance/readiness; R9 Q/J1 fetch guards against shipped models/hooks; Mocha/Bruno wiring; group validation and rounds 1–9 evidence. No additional selector or fetch-qualification finding.\n\nRead-only review; pure Node probes only. No edits, Docker, delegation, or suite execution.",
+    "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Af4f7ad18-ff62-4867-a362-ba4621bd4cf7%253Adelegate-task%253Awaterline-review-r10-spec-v1:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A35786630-1202-4f4b-9182-c3d220ee9dd0%253Adelegate-task%253Awaterline-retirement-final-review-r10:e83d062e-ea5c-4567-ac58-363e0cfe08bf",
+    "hasPendingQuestion": false,
+    "pendingApproval": null,
+    "waitTimedOut": false
+  }
+]

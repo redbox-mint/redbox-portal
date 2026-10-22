@@ -1,0 +1,11 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh qualification",
+  "exitCode": 1,
+  "durationMs": 14652,
+  "rawBytes": 13230,
+  "sha256": "53185ad5e27d0fee095d70dbcc0a33a3d6c08726d7b5821d5a6f7d21e0e734c2",
+  "counts": {},
+  "checks": [],
+  "passGroups": 0,
+  "failureExcerpt": "> \n> More rarely, this warning could mean there is a bug in the adapter itself.  If you\n> believe that is the case, then please contact the maintainer of this adapter by opening\n> an issue, or visit http://sailsjs.com/support for help.\n\nDynamic imports imported\nDynamic imports imported\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n0 !== 1\n\n    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/storage-qualification.cjs:66:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: 0,\n  expected: 1,\n  operator: 'strictEqual',\n  diff: 'simple'\n}"
+}

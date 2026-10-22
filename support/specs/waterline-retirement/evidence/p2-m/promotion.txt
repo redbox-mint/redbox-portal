@@ -1,0 +1,118 @@
+Post-promotion qualification. M omitted selection resolves to mongodb; explicit waterline rollback retained.
+Qualification source checkpoint: e360dccb3. All final qualification commands below returned exit 0; the cancelled preparatory attempt is recorded separately.
+
+--- promotion-core.txt sha256=2f779471937d8ca454d9ca063c517959e40ef38e340554428e4e24c6b0c15a9a ---
+    ✔ loads core without a browser DOM or the full Effect barrel, then sanitizes on first use (9811ms)
+  4127 passing (1m)
+  106 pending
+
+--- promotion-migration.txt sha256=9e3b3ab68e69318abc0e21d0a4394869c56397e722b0d4363f5b76fac7dd0792 ---
+    ✔ uses the qualified driver default and supports explicit Waterline rollback (5024ms)
+PRE-P2 IMAGE ROLLBACK PASS: reads driver ledger, no replay, pending body writes interoperable history.
+{"priorImage":"sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be","ledgerDocumentCheckpoint":"30273340c7c17dfafad41f82e6ef05699aeeff7086f0d4ffbc630f89c888fe4e","unchangedAfterPriorImage":true,"externalAssets":"none in the ledger fixture"}
+  15 passing (3m)
+
+--- promotion-foundation.txt sha256=2003127c968c2e644e12cd64deb4307d02fa67c7653951cfbf99c97e146475ef ---
+  isolated standalone driver foundation
+    ✔ routes two DB handles on one compatible pool without models, managers or unintended collections (44ms)
+    ✔ inspects missing/conflicting/duplicate indexes read-only and ensures only an explicit scope (512ms)
+    ✔ starts driver cache without CacheEntry/Waterline, refuses missing index and restarts without rewrite (215ms)
+
+
+  12 passing (1s)
+
+
+--- promotion-cache-prisma.txt sha256=d9b270e2e651b58f5659b397c239b06589ffde6561d0dad5799493f17f63f4b3 ---
+    at Context.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:534:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    ✔ is available inside service init, and cleans original failures from service init and every generated bootstrap stage (515ms)
+    ✔ closes partial initialization, repeats startup/cleanup, and preserves shutdown hooks and borrowed connections (847ms)
+
+
+  17 passing (29s)
+
+
+--- promotion-cache-driver.txt sha256=2a4a4de5e1c2f2c2f0b7f6fea1a99bcf444d75464b3c938323ff57b533dd097f ---
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=115035
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=115201
+    ✔ uses explicit Waterline selection with hook datastore/collection/callback overrides; Prisma bypasses standard-model callbacks (13361ms)
+
+
+  15 passing (3m)
+
+
+--- promotion-build.txt sha256=a98acb253e719c66e927cf3b93c12fb88e8821ae38243a11fa392384063133cd ---
+{"kind":"step-finished","step":"Emitting contract...","id":"emit","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T17:34:01.779Z"}
+(node:106738) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/prisma/contract.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"kind":"result","envelope":{"ok":true,"commandId":"contract.emit","result":{"ok":true,"storageHash":"cbf09781f810c3d73d37c21822b691fd75a9c25b70ceeb5cb61a9d2b6c5a3d87","profileHash":"251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3","outDir":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-5gEiTP","files":{"json":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-5gEiTP/contract.json","dts":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-5gEiTP/contract.d.ts"},"timings":{"total":205}},"exitCode":0,"diagnostics":[],"nextActions":[]},"commandId":"contract.emit","timestamp":"2026-10-19T17:34:01.785Z"}
+Prisma agent skills are out of date (installed @prisma/orm-mongo 8.0.0-rc.18, synced none). Run: prisma skills sync
+Cache contracts: generate passed
+
+--- promotion-typecheck.txt sha256=bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1 ---
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 typecheck:persistence
+npm notice run tsc --noEmit -p test/tsconfig.persistence.json
+
+--- promotion-lint.txt sha256=c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183 ---
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 lint
+npm notice run cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts
+
+--- promotion-scoped-lint.txt sha256=0c506b5a96f35e86b20d055cb0bc61e5f4fa23625f131d3cc20bf52b44c165f4 ---
+Found 0 warnings and 0 errors.
+Finished in 175ms on 22 files using 4 threads.
+
+--- promotion-format.txt sha256=17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20 ---
+Checking formatting...
+All matched files use Prettier code style!
+
+--- promotion-cache-contract.txt sha256=7b66db8ada6384021282cbaffc41e94e434c03b3051b242f45c5b14a2667d052 ---
+{"kind":"step-finished","step":"Emitting contract...","id":"emit","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T17:37:26.431Z"}
+(node:110693) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/prisma/contract.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"kind":"result","envelope":{"ok":true,"commandId":"contract.emit","result":{"ok":true,"storageHash":"cbf09781f810c3d73d37c21822b691fd75a9c25b70ceeb5cb61a9d2b6c5a3d87","profileHash":"251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3","outDir":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-dNDqB4","files":{"json":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-dNDqB4/contract.json","dts":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-dNDqB4/contract.d.ts"},"timings":{"total":687}},"exitCode":0,"diagnostics":[],"nextActions":[]},"commandId":"contract.emit","timestamp":"2026-10-19T17:37:26.497Z"}
+Prisma agent skills are out of date (installed @prisma/orm-mongo 8.0.0-rc.18, synced none). Run: prisma skills sync
+Cache contracts: check passed
+
+--- promotion-portal.txt sha256=9592c870af6d65f8a98fd321bb801a30bf2ee6a9b110fef7ed35c03ab8feede4 ---
+P2 loaded portal backend=waterline
+    ✔ asserts the selected adapter and dashboard migration history before serving dashboards
+    ✔ does not replay logged bodies and resumes failed and skipped pending bodies (3606ms)
+  6 passing (3m)
+P2 loaded portal backend=mongodb
+    ✔ asserts the selected adapter and dashboard migration history before serving dashboards
+    ✔ does not replay logged bodies and resumes failed and skipped pending bodies
+  6 passing (2m)
+Known Solr-before-ready bootstrap TypeErrors retained; see validation limits.
+
+--- promotion-package-24.txt sha256=0fc18caf9de03909bce943cd13b4f267847e250249d720e1a5322fe908ba0986 ---
+#6 [build  1/10] FROM docker.io/library/node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+#7 [stage-1 1/4] FROM docker.io/library/node:24.16.0-bookworm-slim@sha256:2c87ef9bd3c6a3bd4b472b4bec2ce9d16354b0c574f736c476489d09f560a203
+#6 [build  1/10] FROM docker.io/library/node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+#7 [stage-1 1/4] FROM docker.io/library/node:24.16.0-bookworm-slim@sha256:2c87ef9bd3c6a3bd4b472b4bec2ce9d16354b0c574f736c476489d09f560a203
+sha256:9db17953351d39f3dc0c98d450a65e235b8741a62c8b34f918e0fea64d79b28f
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)
+PASS installed driver foundation/cache, two DB routing and Prisma interop (v24.16.0)
+PASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v24.16.0)
+PASS production-pruned installed M/Waterline/driver/default mixed/raw/no-replay (v24.16.0)
+
+--- promotion-package-26.txt sha256=7a0c2186d90b5a21782155e9bf642f1251dd0db31a7b16281ab127e8a6689e24 ---
+#6 [stage-1 1/4] FROM docker.io/library/node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567
+#7 [build  1/10] FROM docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
+#6 [stage-1 1/4] FROM docker.io/library/node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567
+sha256:9125eaec2c5c9ece384692d278ec97e14874f08a3b8c2d1a9765068de71e12d5
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+PASS installed driver foundation/cache, two DB routing and Prisma interop (v26.11.1)
+PASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v26.11.1)
+PASS production-pruned installed M/Waterline/driver/default mixed/raw/no-replay (v26.11.1)
+
+--- Concurrent Node 26 image assembly cancelled (exit 130), sha256=56f688899faff515ac2fcd9c07a83de1f1a9ac72bccb4c3656fd94ca8f3e3957 ---
+
+#16 [build 10/10] RUN rm -rf vendor package-consumer.ts tsconfig.json
+#16 DONE 0.8s
+ERROR: failed to build: failed to solve: Canceled: context canceled
+Exact staged fixture/lock preserved, then resumed sequentially from docker build and all original runtime probes.

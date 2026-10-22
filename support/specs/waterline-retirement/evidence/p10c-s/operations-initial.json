@@ -1,0 +1,255 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh operations",
+  "exitCode": 1,
+  "durationMs": 54883,
+  "rawBytes": 5588014,
+  "sha256": "ec14173bae9f8fd7c30a34610f9acab495ab9f73a0a22876b57b5da1d21c7a9d",
+  "counts": {},
+  "checks": [
+    {
+      "passing": 0,
+      "failures": 1,
+      "warmups": 100,
+      "operations": 1000,
+      "repeats": 3,
+      "concurrency": 1,
+      "payloadBytes": 15000,
+      "attachmentBytes": 1048587,
+      "samples": [
+        {
+          "round": 0,
+          "backend": "waterline",
+          "p50": 2.9349229999997988,
+          "p95": 13.327046000000337,
+          "p99": 16.475445999999465,
+          "throughput": 212.66913855451645,
+          "rss": 421523456,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 82.16179000000011
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 23.80731100000048
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 27.489509999999427
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 74.75674500000014,
+          "loadedMs": 377.3008990000003,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 2461,
+          "baselineConnections": 2,
+          "activeConnections": 12,
+          "afterConnections": 3
+        },
+        {
+          "round": 0,
+          "backend": "mongodb",
+          "p50": 1.5510800000001836,
+          "p95": 4.092663000000357,
+          "p99": 6.463889000000108,
+          "throughput": 521.2930991854463,
+          "rss": 411361280,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 35.5641770000002
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 19.61869200000001
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 22.54583399999956
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 176.23412599999983,
+          "loadedMs": 318.216003,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 1469,
+          "baselineConnections": 3,
+          "activeConnections": 12,
+          "afterConnections": 3
+        },
+        {
+          "round": 1,
+          "backend": "mongodb",
+          "p50": 2.293521999999939,
+          "p95": 6.402917999999772,
+          "p99": 10.25130800000079,
+          "throughput": 341.339608943055,
+          "rss": 410877952,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 41.78769099999954
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 21.864854999999807
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 24.381492000000435
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 140.08433400000013,
+          "loadedMs": 304.17689199999995,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 1469,
+          "baselineConnections": 3,
+          "activeConnections": 12,
+          "afterConnections": 3
+        },
+        {
+          "round": 1,
+          "backend": "waterline",
+          "p50": 3.673839000000953,
+          "p95": 17.487429000000702,
+          "p99": 23.147907999999006,
+          "throughput": 166.7827554422296,
+          "rss": 414973952,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 74.45656099999906
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 34.83948899999996
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 30.52227700000003
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 103.9512450000002,
+          "loadedMs": 365.28614100000004,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 2459,
+          "baselineConnections": 3,
+          "activeConnections": 12,
+          "afterConnections": 3
+        },
+        {
+          "round": 2,
+          "backend": "waterline",
+          "p50": 2.977455000000191,
+          "p95": 13.431610000000546,
+          "p99": 16.60543200000029,
+          "throughput": 210.58222426168766,
+          "rss": 421154816,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 55.83940299999995
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 23.723776999999245
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 25.854989999999816
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 75.35618000000022,
+          "loadedMs": 311.05604700000004,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 2459,
+          "baselineConnections": 3,
+          "activeConnections": 12,
+          "afterConnections": 3
+        },
+        {
+          "round": 2,
+          "backend": "mongodb",
+          "p50": 1.540407999999843,
+          "p95": 3.8590259999996306,
+          "p99": 5.371546999999737,
+          "throughput": 541.1052104441656,
+          "rss": 409980928,
+          "errors": 0,
+          "bytes": [
+            {
+              "bytes": 1048587,
+              "durationMs": 34.89247499999965
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 21.901316999999835
+            },
+            {
+              "bytes": 1048587,
+              "durationMs": 21.048068000000058
+            }
+          ],
+          "clients": 1,
+          "readinessMs": 164.5126690000002,
+          "loadedMs": 317.0338160000001,
+          "node": "v24.18.0",
+          "stagedMethods": 11,
+          "baselineMethods": 42,
+          "calls": 1469,
+          "baselineConnections": 3,
+          "activeConnections": 12,
+          "afterConnections": 3
+        }
+      ],
+      "ratios": {
+        "p95": 0.324426601811194,
+        "throughput": 2.379079234800847,
+        "rss": 0.9797781425463451,
+        "calls": 0.5972353977503727
+      },
+      "bytes": {
+        "waterline": {
+          "bytes": 9437283,
+          "durationMs": 378.6951079999981,
+          "bytesPerSecond": 24920530.52874411
+        },
+        "mongodb": {
+          "bytes": 9437283,
+          "durationMs": 243.6046009999991,
+          "bytesPerSecond": 38740167.30907326
+        }
+      },
+      "pass": false,
+      "limits": {
+        "p95": 1.2,
+        "throughput": 0.9,
+        "rss": 1.1,
+        "calls": 1.25,
+        "readinessMs": 250
+      },
+      "atomicUnitsMoved": 0
+    }
+  ],
+  "passGroups": 0,
+  "failureExcerpt": "6,\"rss\":421154816,\"errors\":0,\"bytes\":[{\"bytes\":1048587,\"durationMs\":55.83940299999995},{\"bytes\":1048587,\"durationMs\":23.723776999999245},{\"bytes\":1048587,\"durationMs\":25.854989999999816}],\"clients\":1,\"readinessMs\":75.35618000000022,\"loadedMs\":311.05604700000004,\"node\":\"v24.18.0\",\"stagedMethods\":11,\"baselineMethods\":42,\"calls\":2459,\"baselineConnections\":3,\"activeConnections\":12,\"afterConnections\":3},{\"round\":2,\"backend\":\"mongodb\",\"p50\":1.540407999999843,\"p95\":3.8590259999996306,\"p99\":5.371546999999737,\"throughput\":541.1052104441656,\"rss\":409980928,\"errors\":0,\"bytes\":[{\"bytes\":1048587,\"durationMs\":34.89247499999965},{\"bytes\":1048587,\"durationMs\":21.901316999999835},{\"bytes\":1048587,\"durationMs\":21.048068000000058}],\"clients\":1,\"readinessMs\":164.5126690000002,\"loadedMs\":317.0338160000001,\"node\":\"v24.18.0\",\"stagedMethods\":11,\"baselineMethods\":42,\"calls\":1469,\"baselineConnections\":3,\"activeConnections\":12,\"afterConnections\":3}],\"ratios\":{\"p95\":0.324426601811194,\"throughput\":2.379079234800847,\"rss\":0.9797781425463451,\"calls\":0.5972353977503727},\"bytes\":{\"waterline\":{\"bytes\":9437283,\"durationMs\":378.6951079999981,\"bytesPerSecond\":24920530.52874411},\"mongodb\":{\"bytes\":9437283,\"durationMs\":243.6046009999991,\"bytesPerSecond\":38740167.30907326}},\"pass\":false,\"limits\":{\"p95\":1.2,\"throughput\":0.9,\"rss\":1.1,\"calls\":1.25,\"readinessMs\":250},\"atomicUnitsMoved\":0}\nAssertionError [ERR_ASSERTION]: G-S provisional operations budget failed\n    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/storage-operations.cjs:39:5\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}"
+}

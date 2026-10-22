@@ -1,0 +1,19 @@
+# Context is the isolated consumer emitted by prepare-package.cjs.
+ARG NODE_VERSION=26.11.1
+FROM node:${NODE_VERSION}-bookworm AS build
+RUN test "$(npm --version)" = 11.20.0 || npm install --global npm@11.20.0 --ignore-scripts --no-audit --no-fund
+WORKDIR /fixture
+COPY package.json package-lock.json ./
+COPY vendor ./vendor
+RUN npm ci --omit=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+COPY package-smoke.cjs package-query.cjs package-consumer.ts tsconfig.json ./
+RUN --network=none node_modules/.bin/tsc -p tsconfig.json && node package-smoke.cjs
+RUN npm prune --omit=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+RUN rm -rf vendor package-consumer.ts tsconfig.json
+
+FROM node:${NODE_VERSION}-bookworm-slim
+COPY --from=build --chown=node:node /fixture /fixture
+USER node
+WORKDIR /tmp
+RUN --network=none node /fixture/package-smoke.cjs
+CMD ["node", "/fixture/package-smoke.cjs"]

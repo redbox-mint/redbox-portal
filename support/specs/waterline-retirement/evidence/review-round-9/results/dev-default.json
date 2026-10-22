@@ -1,0 +1,405 @@
+{
+  "name": "dev-default",
+  "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND RBPORTAL_IMAGE=redbox-waterline-r4:npm11.20.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 95983,
+  "sha256": "5cecca9c1571904ae246b0319c38564ed72f19b69a4bdc4362ecbd686c40cf0e",
+  "counts": {
+    "ready": true,
+    "selectedScopes": 49,
+    "collections": 20
+  },
+  "passGroups": 2,
+  "checks": [
+    {
+      "mode": "inspect",
+      "ready": true,
+      "groups": [
+        {
+          "group": "cache",
+          "backend": "mongodb",
+          "collection": "cacheentry",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "migration",
+          "backend": "mongodb",
+          "collection": "migration",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "reference",
+          "backend": "mongodb",
+          "collection": "recordtype",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "reference",
+          "backend": "mongodb",
+          "collection": "dashboardtype",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "reference",
+          "backend": "mongodb",
+          "collection": "report",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "reference",
+          "backend": "mongodb",
+          "collection": "namedquery",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "configuration",
+          "backend": "mongodb",
+          "collection": "dashboardconfiguration",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "configuration",
+          "backend": "mongodb",
+          "collection": "i18nbundle",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "configuration",
+          "backend": "mongodb",
+          "collection": "i18ntranslation",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrun",
+          "name": "brandId_1_recordType_1_sourceName_1_sourceRunId_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrun",
+          "name": "brandId_1_startedAt_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrun",
+          "name": "status_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrun",
+          "name": "recordType_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrunchunk",
+          "name": "runId_1_contentHash_1_attempt_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrunchunk",
+          "name": "runId_1_contentHash_1_status_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrunchunk",
+          "name": "runId_1_chunkIndex_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrunchunk",
+          "name": "runId_1_submittedAt_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrecordevent",
+          "name": "runId_1_brandId_1_createdAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrecordevent",
+          "name": "runId_1_brandId_1_outcome_1_createdAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrecordevent",
+          "name": "runId_1_brandId_1_operation_1_createdAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrecordevent",
+          "name": "runId_1_brandId_1_chunkId_1_createdAt_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrecordevent",
+          "name": "harvestId_1_recordType_1_brandId_1",
+          "index": "ready"
+        },
+        {
+          "group": "harvest",
+          "backend": "mongodb",
+          "collection": "harvestrecordevent",
+          "name": "oid_1",
+          "index": "ready"
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "securityevent",
+          "name": "eventId_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "securityevent",
+          "name": "brandId_1_deliveryState_1_nextEligibleAt_1_occurredAt_1",
+          "index": "ready"
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "securityevent",
+          "name": "brandId_1_occurredAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "securityevent",
+          "name": "brandId_1_deliveryState_1_leaseExpiresAt_1",
+          "index": "ready"
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "securityevent",
+          "name": "brandId_1_deliveryState_1_terminalAt_1",
+          "index": "ready"
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "securityevent",
+          "name": "brandId_1_deliveryState_1_updatedAt_1",
+          "index": "ready"
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "siemdeliveryattempt",
+          "name": "eventId_1_destinationId_1",
+          "index": "ready"
+        },
+        {
+          "group": "siem",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "siemdeliveryattempt",
+          "name": "brandId_1_startedAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "figshare",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "figsharesync",
+          "name": "oid_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "figshare",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "figsharesync",
+          "name": "namespace_1_articleId_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "figshare",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "figsharesync",
+          "name": "nextActionAt_1_dispatchUntil_1",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "attachmentmetadata",
+          "name": "storageKey_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "attachmentmetadata",
+          "name": "oid_1_fileId_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "attachmentmetadata",
+          "name": "oid_1",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "attachmentaccessaudit",
+          "name": "oid_1_accessedAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "attachmentaccessaudit",
+          "name": "storageKey_1_accessedAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "mongodb",
+          "collection": "attachmentaccessaudit",
+          "name": "action_1_accessedAt_-1",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemaartifact",
+          "name": "digest_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemareference",
+          "name": "referenceKey_1",
+          "index": "ready",
+          "duplicateKeyGroups": 0
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemareference",
+          "name": "record_schema_reference_digest_kind",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemareference",
+          "name": "record_schema_reference_grant_lookup",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemareference",
+          "name": "record_schema_reference_authorization_lookup",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemareference",
+          "name": "record_schema_reference_authorization_cursor_lookup",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemareference",
+          "name": "record_schema_reference_oid_kind",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordschemareference",
+          "name": "record_schema_reference_pin_expiry",
+          "index": "ready"
+        },
+        {
+          "group": "storage",
+          "backend": "mongodb",
+          "datastore": "redboxStorage",
+          "collection": "recordaudit",
+          "name": "redboxOid_1_createdAt_1",
+          "index": "ready"
+        }
+      ]
+    }
+  ],
+  "logWordCounts": {
+    "pending": [
+      4
+    ]
+  }
+}

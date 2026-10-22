@@ -1,0 +1,12 @@
+{
+  "source": "0aa801ee67821946cae3f0a799a06e47e1ee195f",
+  "image": "redbox-p5a-j1:prior-0aa801ee6",
+  "imageId": "sha256:de7cb0885ac19d3386b534c165633b75354db8291f8ec7bea244749028a0cfd8",
+  "baseImageId": "sha256:4721b7009cfcd84aee975a5e8eca22a17f611b1c18f7f54507dcac391dcb9d20",
+  "locks": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  },
+  "assembly": "Pre-J1 full core build, offline-smoke-tested image overlay of matching installed dependency layer; dependencies/locks unchanged. See Dockerfile.rollback.",
+  "checkpoint": "Owned standalone contract raw snapshots and same unchanged database/namespace during prior-image probe."
+}

@@ -1,0 +1,217 @@
+{
+  "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+  "results": [
+    {
+      "name": "strict-focused",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-17/tsconfig.focused.json",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "durationMs": 18808,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": []
+    },
+    {
+      "name": "focused",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "durationMs": 9761,
+      "sha256": "d47fd0a49158c9f6f85a6fa9a11935cd532738cbc6ebe8f345260b8973632037",
+      "counts": {
+        "passing": [
+          116
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "summary": []
+    },
+    {
+      "name": "agenda-claims",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "durationMs": 2316,
+      "sha256": "e82f54596bd77c03db855c7653fc7c4c70c7567568328253352664060226ff3a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": [
+        {
+          "passing": 8,
+          "failures": 0,
+          "realMongoAndAgenda": true
+        }
+      ]
+    },
+    {
+      "name": "old-unlock-baseline",
+      "command": "CLAIM_SCENARIO=old-unlock NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-17/old-runtime.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "durationMs": 2393,
+      "sha256": "665bd6b662f6816d57f27abd9614abf5d50d14dd15b4eb18451398243515cf35",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": []
+    },
+    {
+      "name": "overlapping-touch-baseline",
+      "command": "CLAIM_SCENARIO=overlapping-touch NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-17/old-runtime.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "durationMs": 3904,
+      "sha256": "099306d2ac3c762e614f31ac958b97d0319ed3444d99e21217cbf14760d0f33d",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": []
+    },
+    {
+      "name": "many-failed-touches-baseline",
+      "command": "CLAIM_SCENARIO=many-failed-touches NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-17/old-runtime.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 1,
+      "expectedExitCode": 1,
+      "durationMs": 4209,
+      "sha256": "55785f825e4191b8633fed54001e4b7b9133cbd683a2cacfae7d1d55c48db2da",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": []
+    },
+    {
+      "name": "receipt-lifetime",
+      "command": "node .tmp/review-round-17/receipt-lifetime.cjs",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "durationMs": 1505,
+      "sha256": "2defcfbbd9e46ba42313a2bc9ef67f49aec07fb21097cb64e7993ff21eee0d5a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": [
+        {
+          "passing": 1,
+          "failures": 0,
+          "deliveries": 257,
+          "completed": 128,
+          "unlocked": 128,
+          "endedFinalSaves": 64,
+          "retainedHistoricalReceipts": 0,
+          "finalOwnedReceiptReleased": true,
+          "payloadBytes": 15000
+        }
+      ]
+    },
+    {
+      "name": "http-followup-scopes",
+      "command": "node .tmp/review-round-17/http-followup-scopes.cjs",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "durationMs": 45,
+      "sha256": "9a51becbb7ab8f6c9f6389c6c02cfe64395fd359e437db4c4b11552d0db12c08",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": [
+        {
+          "passing": 1,
+          "failures": 0,
+          "sameAppRequestsIndependent": true,
+          "otherAppNotRetained": true,
+          "completedRequestRefusesDetachedOwnership": true
+        }
+      ]
+    },
+    {
+      "name": "default-drain",
+      "command": "node .tmp/review-round-17/default-drain.cjs",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "durationMs": 30324,
+      "sha256": "f6ec5a774e7c6b072e698dc7c68f6e4b12cb4617753fe3c80d1dbbe3e495935c",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": [
+        {
+          "passing": 1,
+          "failures": 0,
+          "defaultDrainTimeoutMs": 30000,
+          "elapsedMs": 30005,
+          "retainedUntilWorkerSettled": true,
+          "retryCompleted": true,
+          "callbacks": 2
+        }
+      ]
+    },
+    {
+      "name": "http-default-drain",
+      "command": "node .tmp/review-round-17/http-default-drain.cjs",
+      "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+      "exitCode": 0,
+      "expectedExitCode": 0,
+      "durationMs": 31339,
+      "sha256": "a20c8264f6189ee52a151a9af4828f1c620f182f12a6f90d9ad2da221d808dc4",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "summary": [
+        {
+          "passing": 1,
+          "failures": 0,
+          "defaultDrainTimeoutMs": 30000,
+          "elapsedMs": 30000,
+          "httpStatus": 200,
+          "responseBeforeFollowup": true,
+          "lateEnqueueRefused": true,
+          "failureLogged": true,
+          "retryCompleted": true,
+          "callbacks": 2
+        }
+      ]
+    }
+  ],
+  "probeScriptSha256": {
+    "http-followup-scopes.cjs": "2f37876b79b7220dc530628a55bb932557aabbf66d075c7c45f8e99d3a609bb4",
+    "old-runtime.cjs": "ce25264ee9fb670b97d0e61555390044df5596ae952be2dc01893aa31a00ad7b",
+    "http-default-drain.cjs": "33a177747973d6e416fa7a598f57752cb23242ba5a110d9004e088c9a7d38b9c",
+    "default-drain.cjs": "0e1e0a1afdcc47a82a087947bc530619306cb368e3560eafbf5df9c2a13da984",
+    "receipt-lifetime.cjs": "179095109c29150da482a60664583b95e4e6ff3af0886631d83767ee02eab8d2"
+  },
+  "retainedLiveFixture": {
+    "path": "packages/redbox-core/test/fixtures/waterline-retirement/storage-agenda-claims.cjs",
+    "sha256": "c2be5703d567b0f0de38170b0ab0ae4dbc580c0d404250fbdd285b9591769a92"
+  }
+}

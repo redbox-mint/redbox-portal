@@ -1,0 +1,11 @@
+{
+  "name": "fix4-storage-build",
+  "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 5304,
+  "sha256": "f6fd0c274512c0c509bfa380cc1cb28919e4ecad6ea585ef74765907e6e75640",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

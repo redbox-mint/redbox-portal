@@ -1,0 +1,7 @@
+{
+  "command": "env -u npm_config_allow_scripts node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --package-lock-only --ignore-scripts --strict-peer-deps --prefix packages/sails-hook-redbox-storage-mongo && env -u npm_config_allow_scripts node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --package-lock-only --ignore-scripts --strict-peer-deps && env -u npm_config_allow_scripts node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --ignore-scripts --strict-peer-deps --prefix packages/sails-hook-redbox-storage-mongo",
+  "exitCode": 0,
+  "durationMs": 26846,
+  "rawBytes": 1799,
+  "sha256": "64d8ee24204e2f9f2a3ad05f7d068e72d06291963b2901b1e38ad279d34e75b9"
+}

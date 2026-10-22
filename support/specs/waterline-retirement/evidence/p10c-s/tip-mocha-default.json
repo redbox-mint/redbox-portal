@@ -1,0 +1,50 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha default",
+  "exitCode": 0,
+  "durationMs": 390359,
+  "rawBytes": 1017831,
+  "sha256": "ff1f2c38e079748272c80c9dd4a12d42ccaa12619e9dd87e10e6f66aefce6496",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {
+    "passing": 419,
+    "pending": 10
+  },
+  "checks": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    },
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ],
+  "passGroups": 0,
+  "stock": {
+    "suite": "mocha",
+    "selection": "default",
+    "composeProject": "p10-s-mocha-default-25531-14182",
+    "unfiltered": true,
+    "freshProject": true,
+    "createdVolumes": [],
+    "observedStorageOwner": {
+      "backend": "mongodb",
+      "attachmentManagerBypass": true,
+      "recordAndU": "baseline"
+    }
+  }
+}

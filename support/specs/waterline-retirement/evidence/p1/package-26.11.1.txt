@@ -1,0 +1,153 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:cache-package
+npm notice run bash test/fixtures/cache-persistence/run-package.sh
+/tmp/redbox-cache-package-Skd021
+npm warn gitignore-fallback No .npmignore file found, using .gitignore for file exclusion. Consider creating a .npmignore file to explicitly control published files.
+
+up to date in 2m
+npm notice
+npm notice New major version of npm available! 11.20.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 951B done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/node:26.11.1-bookworm
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:26.11.1-bookworm-slim
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.1s
+
+#5 [internal] load build context
+#5 DONE 0.0s
+
+#6 [build  1/10] FROM docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
+#6 resolve docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
+#6 resolve docker.io/library/node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404 0.0s done
+#6 DONE 0.1s
+
+#7 [stage-1 1/4] FROM docker.io/library/node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567
+#7 resolve docker.io/library/node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 0.0s done
+#7 DONE 0.1s
+
+#5 [internal] load build context
+#5 transferring context: 3.44MB 0.0s done
+#5 DONE 0.1s
+
+#8 [build  2/10] RUN test "$(npm --version)" = 11.20.0 || npm install --global npm@11.20.0 --ignore-scripts --no-audit --no-fund
+#8 CACHED
+
+#9 [build  3/10] WORKDIR /fixture
+#9 CACHED
+
+#10 [build  4/10] COPY package.json package-lock.json ./
+#10 DONE 0.5s
+
+#11 [build  5/10] COPY vendor ./vendor
+#11 DONE 0.1s
+
+#12 [build  6/10] RUN npm ci --omit=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#12 1.981 npm warn skipping integrity check for git dependency ssh://git@github.com/Language-Research-Technology/ro-crate-modes.git
+#12 6.356 npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+#12 6.506 npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+#12 7.160 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#12 8.724 npm warn deprecated fstream@1.0.12: This package is no longer supported.
+#12 8.738 npm warn deprecated json2csv@5.0.7: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+#12 9.208 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#12 9.367 npm warn deprecated prom-client@15.1.3: prom-client has been replaced by @prometheus-io/client
+#12 10.99 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 11.55 npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+#12 11.59 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 11.70 npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+#12 11.75 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 11.81 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 12.17 npm warn deprecated glob@7.1.2: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 12.56 npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 12.56 npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+#12 12.59 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 12.83 npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+#12 12.99 npm warn deprecated cron-parser@4.9.0: v4 is no longer maintained, upgrade to v5
+#12 17.46 npm warn gitignore-fallback No .npmignore file found, using .gitignore for file exclusion. Consider creating a .npmignore file to explicitly control published files.
+#12 37.62 npm warn gitignore-fallback No .npmignore file found, using .gitignore for file exclusion. Consider creating a .npmignore file to explicitly control published files.
+#12 55.80
+#12 55.80 added 1301 packages in 55s
+#12 55.81 npm notice
+#12 55.81 npm notice New major version of npm available! 11.20.0 -> 12.2.0
+#12 55.81 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+#12 55.81 npm notice To update run: npm install -g npm@12.2.0
+#12 55.81 npm notice
+#12 DONE 64.3s
+
+#13 [build  7/10] COPY package-smoke.cjs package-query.cjs package-consumer.ts tsconfig.json ./
+#13 DONE 8.3s
+
+#14 [build  8/10] RUN --network=none node_modules/.bin/tsc -p tsconfig.json && node package-smoke.cjs
+#14 9.462 Dynamic imports imported
+#14 9.529 [redbox-loader] Starting shim generation (NODE_ENV !== production)...
+#14 9.693 [redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+#14 9.693 [redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+#14 9.693 [redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+#14 9.694 [redbox-loader] Shim generation complete in 166.70ms
+#14 9.701 PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+#14 DONE 11.0s
+
+#15 [build  9/10] RUN npm prune --omit=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund
+#15 2.255
+#15 2.255 up to date in 2s
+#15 DONE 2.5s
+
+#16 [build 10/10] RUN rm -rf vendor package-consumer.ts tsconfig.json
+#16 DONE 0.3s
+
+#7 [stage-1 1/4] FROM docker.io/library/node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567
+#7 CACHED
+
+#17 [stage-1 2/4] COPY --from=build --chown=node:node /fixture /fixture
+#17 DONE 22.2s
+
+#18 [stage-1 3/4] WORKDIR /tmp
+#18 DONE 1.0s
+
+#19 [stage-1 4/4] RUN --network=none node /fixture/package-smoke.cjs
+#19 4.966 Dynamic imports imported
+#19 5.011 [redbox-loader] Starting shim generation (NODE_ENV !== production)...
+#19 5.144 [redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+#19 5.144 [redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+#19 5.145 [redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+#19 5.145 [redbox-loader] Shim generation complete in 136.47ms
+#19 5.152 PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+#19 DONE 5.2s
+
+#20 exporting to image
+#20 exporting layers
+#20 exporting layers 37.4s done
+#20 exporting manifest sha256:7846e095e4e0fceadf95fcd4aaba660f10fca22d50c55aa39907d0b1ce6b96ef
+#20 exporting manifest sha256:7846e095e4e0fceadf95fcd4aaba660f10fca22d50c55aa39907d0b1ce6b96ef 0.8s done
+#20 exporting config sha256:7c711e18d87234f71cb98759f498855165034edeace3a2749d08520eda77b91f
+#20 exporting config sha256:7c711e18d87234f71cb98759f498855165034edeace3a2749d08520eda77b91f 0.8s done
+#20 exporting attestation manifest sha256:ccb73dff5647a2ff292825d8e63341e8512ba09e2bf249a1eda667e6392ff3e9
+#20 exporting attestation manifest sha256:ccb73dff5647a2ff292825d8e63341e8512ba09e2bf249a1eda667e6392ff3e9 2.7s done
+#20 exporting manifest list sha256:e42be93a70debe0786a10f0d7abc61f3a8f3149e1749ebae1e54123779829cd9
+#20 exporting manifest list sha256:e42be93a70debe0786a10f0d7abc61f3a8f3149e1749ebae1e54123779829cd9 0.8s done
+#20 naming to docker.io/library/redbox-cache-package:27590-32662
+#20 naming to docker.io/library/redbox-cache-package:27590-32662 0.0s done
+#20 unpacking to docker.io/library/redbox-cache-package:27590-32662
+#20 unpacking to docker.io/library/redbox-cache-package:27590-32662 13.2s done
+#20 DONE 56.6s
+Dynamic imports imported
+[redbox-loader] Starting shim generation (NODE_ENV !== production)...
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+[redbox-loader] Shim generation complete in 216.10ms
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+Dynamic imports imported
+PASS installed driver foundation/cache, two DB routing and Prisma interop (v26.11.1)
+PASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v26.11.1)

@@ -1,0 +1,18 @@
+{
+  "name": "gridfs-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts --grep \"disposes its internal source\"",
+  "sourceCommit": "1dab20b089f8e846128f96e4a2110bbfd9dd9234",
+  "exitCode": 4,
+  "durationMs": 1791,
+  "sha256": "ea2b7b31024d50ebb95ed292708f0fb595e60439b48150562684e5de82f73140",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      4
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

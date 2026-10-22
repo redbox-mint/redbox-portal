@@ -1,0 +1,32 @@
+npm --prefix packages/redbox-core run build
+  PASS
+
+npm --prefix packages/redbox-core run typecheck:persistence
+  PASS
+
+node_modules/.bin/tsc --noEmit
+  PASS
+
+npm run test:core
+  4151 passing; 106 existing pending; offline import 11075 ms (unchanged 12000 ms limit, no eager J1/J2 adapters)
+
+npm run check:cache-contract
+  PASS
+
+npm run lint
+  PASS
+
+npm --prefix packages/redbox-core run test:persistence-indexes
+  13 deployment/upgrade cases; omitted-selector scopes 9
+
+bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs-package.sh
+  PASS clean prod install/prune; offline types/import/shims and live repositories on Node 24.16.0 + 26.11.1; npm 11.20.0
+
+npm run test:mocha:mount
+  81 passing; 1 existing pending
+
+npm run test:bruno:general:mount
+  309/309 requests; 553/553 tests
+
+bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh
+  HTTP startup and 9 prepared index scopes ready; no manual DDL

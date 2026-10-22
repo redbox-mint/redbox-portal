@@ -1,0 +1,96 @@
+{
+  "node": "v24.18.0",
+  "mongo": "8.0.34",
+  "standalone": true,
+  "configurationBytes": 15484,
+  "results": {
+    "waterline": [
+      {
+        "p50": 4.636658000000352,
+        "p95": 6.773682999999437,
+        "p99": 12.606543999999303,
+        "throughput": 223.26381365169695,
+        "rss": 597893120,
+        "ownedDriverClients": 0,
+        "calls": 1100,
+        "baselineConnections": 3,
+        "activeConnections": 6,
+        "afterConnections": 3,
+        "readinessMs": 3.5426229999998213
+      },
+      {
+        "p50": 4.563122999999905,
+        "p95": 6.498595000000023,
+        "p99": 12.331049000000348,
+        "throughput": 226.61760641745533,
+        "rss": 597237760,
+        "ownedDriverClients": 0,
+        "calls": 1100,
+        "baselineConnections": 3,
+        "activeConnections": 6,
+        "afterConnections": 3,
+        "readinessMs": 2.944166999999652
+      },
+      {
+        "p50": 4.516179000000193,
+        "p95": 6.4658610000005865,
+        "p99": 12.376103999999941,
+        "throughput": 226.2079364405283,
+        "rss": 598994944,
+        "ownedDriverClients": 0,
+        "calls": 1100,
+        "baselineConnections": 3,
+        "activeConnections": 6,
+        "afterConnections": 3,
+        "readinessMs": 2.7232709999998406
+      }
+    ],
+    "mongodb": [
+      {
+        "p50": 3.512155000000348,
+        "p95": 5.109253999999964,
+        "p99": 5.726385999999366,
+        "throughput": 325.0601893961503,
+        "rss": 398630912,
+        "ownedDriverClients": 1,
+        "calls": 1100,
+        "baselineConnections": 3,
+        "activeConnections": 9,
+        "afterConnections": 3,
+        "readinessMs": 79.07860500000015
+      },
+      {
+        "p50": 3.5536119999997027,
+        "p95": 5.115913000000546,
+        "p99": 5.929247000000032,
+        "throughput": 321.0279154623257,
+        "rss": 398127104,
+        "ownedDriverClients": 1,
+        "calls": 1100,
+        "baselineConnections": 3,
+        "activeConnections": 9,
+        "afterConnections": 3,
+        "readinessMs": 86.73558700000012
+      },
+      {
+        "p50": 3.5469649999995454,
+        "p95": 5.243044999999256,
+        "p99": 6.245953000000554,
+        "throughput": 314.0678766987556,
+        "rss": 397770752,
+        "ownedDriverClients": 1,
+        "calls": 1100,
+        "baselineConnections": 3,
+        "activeConnections": 9,
+        "afterConnections": 3,
+        "readinessMs": 79.83639300000004
+      }
+    ]
+  },
+  "ratios": {
+    "p95": 0.7836712468181388,
+    "throughput": 1.42016136227029,
+    "rss": 0.6657998853930993,
+    "calls": 1
+  }
+}

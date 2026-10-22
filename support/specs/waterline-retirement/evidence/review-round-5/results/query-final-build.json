@@ -1,0 +1,11 @@
+{
+  "name": "query-final-build",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+  "sourceCommit": "ff13b9be32ee10566820f5844406c2c9fa0710ae",
+  "exitCode": 0,
+  "durationMs": 47154,
+  "sha256": "b49f7385f24aa0827b2c498065d03c8712f3f5fa0f07dbd324fe9ae4ac8532eb",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

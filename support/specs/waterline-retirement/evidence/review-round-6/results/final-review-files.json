@@ -1,0 +1,13 @@
+{
+  "name": "final-review-files",
+  "command": "node_modules/.bin/prettier --check packages/redbox-core/src/storage/GridFSDriver.ts packages/redbox-core/src/middleware/requestLifetime.ts packages/redbox-core/test/services/GridFSDriver.test.ts packages/redbox-core/test/middleware/requestLifetime.test.ts packages/redbox-core/test/fixtures/waterline-retirement/reference-query-pages.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-pages.cjs && node .tmp/review-round-6/pins.cjs && git diff 1dab20b08..HEAD --check",
+  "sourceCommit": "e30b8898f0ca050bbdc061dc705b3f99cc2db9c3",
+  "exitCode": 0,
+  "durationMs": 1329,
+  "sha256": "99dbb3e457b3f76fcef49ce4a2c561c6c9f2e89a32cd58171361d0be605ba9a3",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":true,\"node\":\"v24.18.0\",\"loaded\":{\".\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"},\"packages/redbox-core\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\",\"rttc\":\"10.0.1\"},\"packages/sails-hook-redbox-storage-mongo\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"}}}"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "command": "P10_OWNER_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+  "exitCode": 0,
+  "durationMs": 8799,
+  "rawBytes": 851,
+  "sha256": "6823142b7f2a759c213b185fa072b2a5134292bea515ecf3108b9a5588399de2",
+  "checkRuns": [
+    {
+      "passing": 16,
+      "failures": 0,
+      "selector": "mongodb"
+    }
+  ]
+}

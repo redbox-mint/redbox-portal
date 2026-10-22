@@ -1,0 +1,42 @@
+{
+  "retainedCoverage": {
+    "5": {
+      "retainedStandaloneCommands": 36,
+      "allIncluded": true
+    },
+    "6": {
+      "retainedStandaloneCommands": 37,
+      "allIncluded": true
+    },
+    "7": {
+      "retainedStandaloneCommands": 42,
+      "allIncluded": true
+    },
+    "8": {
+      "retainedStandaloneCommands": 57,
+      "allIncluded": true
+    },
+    "9": {
+      "retainedStandaloneCommands": 63,
+      "allIncluded": true
+    }
+  },
+  "inventoryCommands": 71,
+  "inventorySha256": "a79dd581191eca0bb20b28e10e8f08d2996aa1f9e81667f241c43b1a04c66efa",
+  "fixtureFiles": 146,
+  "fixtureTreeSha256": "93cbb61f7e8318fa301ac1ac22bae5080a91924265537632089b9dea82778664",
+  "newFixtureHashes": {
+    "packages/redbox-core/test/fixtures/waterline-retirement/reference-create-budget.cjs": "fbafbb5f142d8a59fede33079a88d4e1cfb30a2b08e9e923100acf48d5a11b8d",
+    "packages/redbox-core/test/fixtures/waterline-retirement/reference-index-upgrade.cjs": "762cecb5fdd2e4a93df615629888cfa56a8ff13462e0a2ff6c72dca856c7e83c",
+    "packages/redbox-core/test/fixtures/waterline-retirement/reference-create-budget-worker.cjs": "658a3318c0edba181a5173d26a5b5528f13aafa16fd17887f51a6121b3e700e5",
+    "packages/redbox-core/test/fixtures/waterline-retirement/upgrade-prior-seed.cjs": "7a7311dd72a38d19ce52473ee3b5971e89e9f8532241077edf8c968270bba169",
+    "packages/redbox-core/test/fixtures/waterline-retirement/reference-selector-edges.cjs": "837a5395b62ec6ab2504f2ddb739de43c6b2461311c85dd1a527c8081aeb366d",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-review-regressions.py": "fdbff07ad855829ef3f6dc2eed71249bdcad7d479957b8c756d34ccaf18d0756",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-existing-volume-upgrade.py": "c6e1db9c30cd84329a4bc27a74bf9ae2840417b59412aa2e6a3529273ed25bb0"
+  },
+  "updatedCacheTestSha256": "0961ca5419218f8f576673f6057b397fdf18b31c301d250df76ef8d5f625a8be",
+  "documentedCliListCheck": {
+    "exitCode": 0,
+    "commands": 71
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "domain-queries",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh domain-queries",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 6277,
+  "sha256": "29128c4cf39404cf1f4f611257c6a1c586728b4427161442873de9d23dd0b750",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 160,
+      "failures": 0,
+      "firstFailures": []
+    }
+  ]
+}

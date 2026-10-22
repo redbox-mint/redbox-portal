@@ -1,0 +1,195 @@
+{
+  "notes": [
+    "Raw logs remain ignored under .tmp/review-round-5/raw. No tracked source was reverted for before proof, and no timeout, acceptance budget or assertion was relaxed.",
+    "Explicit unsupported-query checks require the named-query-compatibility or progress-query code; they are counted separately from parity. Invalid predicates simplified away by loaded Waterline are not certified as supported grammar."
+  ],
+  "attempts": [
+    {
+      "name": "static-context-before-narrowing",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && node_modules/.bin/tsc --noEmit && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json && node_modules/.bin/tsc --noEmit -p .tmp/review-round-5/tsconfig.changed-tests.json && git diff --check",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 2,
+      "durationMs": 74858,
+      "sha256": "c4b9533ef9282e157bd31638a43312fae07ccf177ceaa491ebd864b578b6cbef",
+      "counts": {},
+      "passGroups": 1,
+      "disposition": "Contextually typing the existing mutation callbacks exposed the fixture model lookup as optional. Added the known-fixture non-null assertion; final strict compilation retains all assertions and passes."
+    },
+    {
+      "name": "static-before-cache-test-types",
+      "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && node_modules/.bin/tsc --noEmit && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json && git diff --check",
+      "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+      "exitCode": 2,
+      "durationMs": 51858,
+      "sha256": "baca3d977a2deaf31b07ca51d98acac3ae3ce7810719ee9bfb4038d28d1213a9",
+      "counts": {},
+      "passGroups": 1,
+      "disposition": "All required build/lint/typechecks passed. The extra strict cache suite check found ten implicit-any parameters in an existing mapping-mutation fixture. A contextual fixture type fixes compilation without changing assertions or runtime."
+    },
+    {
+      "name": "query-probe-setup2",
+      "command": "bash .tmp/review-round-5/probe.sh",
+      "sourceCommit": "92183a2fd6d737a5d6b2585c815eea4e09c2dcc2",
+      "exitCode": 1,
+      "durationMs": 4367,
+      "sha256": "b7dd0529deef18a9c0bae3c034d31d346a88db61992074bc0625944c969495df",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Exploratory fixture submitted an empty required Form name. Corrected the fixture before query comparisons."
+    },
+    {
+      "name": "query-probe",
+      "command": "bash .tmp/review-round-5/probe.sh",
+      "sourceCommit": "92183a2fd6d737a5d6b2585c815eea4e09c2dcc2",
+      "exitCode": 0,
+      "durationMs": 22401,
+      "sha256": "86e2e1f05c22e70776184b3fcd1ec45bde8c45404e61d367dbd97453f55bd205",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Exploratory grammar scan: raw nested dictionaries belong to the established dotted-path DSL, not structured equality. Typed scalar-descendant paths were investigated and fixed; supported structured equality remains separately qualified."
+    },
+    {
+      "name": "session-failure-before",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts",
+      "sourceCommit": "92183a2fd6d737a5d6b2585c815eea4e09c2dcc2",
+      "exitCode": 0,
+      "durationMs": 2993,
+      "sha256": "5afc2941afef497295dfc77b1e1763ae23c37090cefb5da60e5e85d2492b97c7",
+      "counts": {
+        "passing": [
+          20
+        ]
+      },
+      "passGroups": 0,
+      "disposition": "The immediate-rejection control passes: its connected error response retains the session callback again. Delaying rejection until disconnect exposes the real issue in session-failure-before-delayed."
+    },
+    {
+      "name": "session-failure-before-compiled",
+      "command": "cd packages/redbox-core && npm run test:compile && ../../node_modules/.bin/mocha --no-config --require ./test/.test-build/setup.js test/.test-build/middleware/requestLifetime.test.js",
+      "sourceCommit": "92183a2fd6d737a5d6b2585c815eea4e09c2dcc2",
+      "exitCode": 1,
+      "durationMs": 612,
+      "sha256": "76a6cfd9c20f4ee054f80f08a3b312998bedcaf5ae88e102d750d0fa2e0ca15b",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Incorrect attempted test command (core has no test:compile script); reran through the documented ts-node Mocha configuration."
+    },
+    {
+      "name": "session-load-before",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts --grep \"initial session lookup\"",
+      "sourceCommit": "4669115498501a4306811c5dd6d3e5a1a6febd53",
+      "exitCode": -15,
+      "durationMs": 43463,
+      "sha256": "5b07f88c3830999d2b502ebf7ce5aa60e221305b47877be529f2a2b20bcfff36",
+      "counts": {
+        "passing": [
+          0
+        ],
+        "failing": [
+          3
+        ]
+      },
+      "passGroups": 0,
+      "disposition": "Initial test harness observed close only after controller dispatch, so it could not observe a disconnect during store.get. Terminated that stuck test process and moved transport observation before session middleware."
+    },
+    {
+      "name": "query-options-before",
+      "command": "bash .tmp/review-round-5/options.sh",
+      "sourceCommit": "4669115498501a4306811c5dd6d3e5a1a6febd53",
+      "exitCode": 0,
+      "durationMs": 12304,
+      "sha256": "411475032813ff7ae47dc7c8eed30b2144ca4b66d335ba9e78cdbfdcc501abf5",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Exploratory option scan separated malformed sorts/paths, explicit unsupported options, parent-child projection errors and array projection shape differences."
+    },
+    {
+      "name": "query-adversarial-before-projection",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-adversarial",
+      "sourceCommit": "ebadbf2cf5f93fe20586d4c161f520dda7527244",
+      "exitCode": 1,
+      "durationMs": 28093,
+      "sha256": "0b172e470d94444cb8759518e127ffc7ca98ef1404895b9381c8059e939ebab1",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "The new generator reproduced valid projection errors; initially also mixed invalid typed constraints with tautological branches. Final grammar composition uses valid typed branches."
+    },
+    {
+      "name": "fix4-query",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-adversarial",
+      "sourceCommit": "ff13b9be32ee10566820f5844406c2c9fa0710ae",
+      "exitCode": 1,
+      "durationMs": 36875,
+      "sha256": "0e3988c04433bac4ddee6dfe0aaa2800f06f550567309bba115cab3a31946ed7",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Projection correction passes named-query cases; the generator still counted documented invalid progress pagination and empty string ordering as supported."
+    },
+    {
+      "name": "query-adversarial-accepted",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-adversarial",
+      "sourceCommit": "698b2a10691c1aecaf7f75c82060771d58bc95d0",
+      "exitCode": 1,
+      "durationMs": 30088,
+      "sha256": "a716ff1ec245b8aeab9e75a0608f8c85d1f7e52d1a4c7311d7167c384d509a86",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Superseded generator attempt: a text replacement for its explicit unsupported-sort list missed indentation. Corrected before the final accepted run."
+    },
+    {
+      "name": "cache-names-before",
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "sourceCommit": "ff13b9be32ee10566820f5844406c2c9fa0710ae",
+      "exitCode": 5,
+      "durationMs": 62154,
+      "sha256": "37b25caa242258b64034d361ee17462aba90abdf8c652bf6d6f7ad8749db9b8e",
+      "counts": {
+        "passing": [
+          12
+        ],
+        "failing": [
+          5
+        ]
+      },
+      "passGroups": 0,
+      "disposition": "Real empty-name failure plus four worker-loading errors caused by a concurrent core rebuild. Excluded; isolated before proof and final sequential suite supersede it."
+    },
+    {
+      "name": "changed-tests-types",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-5/tsconfig.changed-tests.json",
+      "sourceCommit": "698b2a10691c1aecaf7f75c82060771d58bc95d0",
+      "exitCode": 2,
+      "durationMs": 12077,
+      "sha256": "ed41ecef4c0b3ee8d451d8fe78e782cc234303bdcfecf0ee7ba6ab1b2459cdb2",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Ad hoc test tsconfig omitted ambient declarations; also caught a missing required secret property in the new lookup fixture. Corrected the fixture."
+    },
+    {
+      "name": "changed-tests-types-corrected",
+      "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-5/tsconfig.changed-tests.json",
+      "sourceCommit": "698b2a10691c1aecaf7f75c82060771d58bc95d0",
+      "exitCode": 2,
+      "durationMs": 21261,
+      "sha256": "ad04e7a3f354e1f8a1defe25c4dc88f44260c9554321dd2c6b150df7c9bfea45",
+      "counts": {},
+      "passGroups": 0,
+      "disposition": "Remaining errors were older global.sails uses in tests outside the required persistence typecheck. Scoped compilation to changed tests, included ambient/setup declarations and typed the changed lifetime fixture. Final scoped check passes."
+    },
+    {
+      "name": "fix5-cache",
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "sourceCommit": "6fa69abc5597dbfbf59330eeb272477c4dbff204",
+      "exitCode": 0,
+      "durationMs": 84980,
+      "sha256": "1ddfa12cc09f440168ff98d23dbd198d39f3bc0fafd227c55cd06ee0c183732a",
+      "counts": {
+        "passing": [
+          17
+        ]
+      },
+      "passGroups": 0,
+      "disposition": "17 passing; superseded by final cache transition verification after adding the explicit legacy empty-name read/no-rewrite regression."
+    }
+  ]
+}

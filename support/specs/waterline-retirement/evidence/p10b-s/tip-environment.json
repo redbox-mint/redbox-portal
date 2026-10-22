@@ -1,0 +1,29 @@
+{
+  "sourceHead": "97052abed459a35eeb9f4f5b31902729adc0d741",
+  "runtimeSourceFiles": 619,
+  "runtimeSourceSha256": "cd6bd02176adf7cbf0941cbddab479946de36051116b5a932b60df4513620844",
+  "hostNode": "v24.18.0",
+  "hostNpm": "12.0.2",
+  "lockGenerator": "11.20.0",
+  "driver": {
+    "root": "7.7.0",
+    "core": "7.7.0",
+    "storage": "7.7.0",
+    "waterlinePrivate": "6.3.0"
+  },
+  "compiler": "5.9.3",
+  "portalImage": {
+    "id": "sha256:3d66a33890bafea037db006e8bc33a5bdf0baf952ac9c0b2dc6fe52856f84bf0",
+    "node": "v26.10.0"
+  },
+  "database": {
+    "version": "8.0.34",
+    "fcv": "8.0",
+    "topology": "standalone"
+  },
+  "institutionDatabaseInspected": false,
+  "locks": {
+    "package-lock.json": "c181398481f2224c1d7d331b549637899fe9cbe8cee8e362bff0e1c5d34ae08a",
+    "packages/sails-hook-redbox-storage-mongo/package-lock.json": "06145b9c2052c5af9b8d361ec6a05970643196c29afd5a007747fa8077f7a84c"
+  }
+}

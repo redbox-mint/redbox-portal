@@ -1,0 +1,17 @@
+{
+  "name": "siem-native-values",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-values",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 5094,
+  "sha256": "94766e5a7e40dd633a6b7334f4278fe3ac31d153fc4e4007ffb30e0ab4584822",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 6,
+      "failures": 0,
+      "firstFailures": []
+    }
+  ]
+}

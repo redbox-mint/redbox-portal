@@ -12,7 +12,12 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Verify committed Prisma contracts before compilation
+          command: npm run check:prisma
       - run:
           name: Run lint
           command: npm run lint
@@ -61,7 +66,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Build redbox-core assets
           command: |
@@ -102,6 +109,7 @@ jobs:
       - run:
           name: Refresh package locks
           command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
             git fetch origin "$CIRCLE_BRANCH"
             git checkout -B "$CIRCLE_BRANCH" "origin/$CIRCLE_BRANCH"
 
@@ -175,7 +183,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run: &installCodecov # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-codecov-cli
           name: Install codecov
           command: |
@@ -256,7 +266,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
       - run:
@@ -312,7 +324,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
       - run:
@@ -368,7 +382,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
       - run:
@@ -446,7 +462,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
       - run:
@@ -495,7 +513,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Compile shared Angular packages
           command: >-
@@ -536,7 +556,8 @@ jobs:
           command: |
             nvm install
             nvm use
-            npm install --no-save --ignore-scripts
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
             cd ./packages/sails-ng-common
             npm ci --include=dev
       - run:
@@ -576,7 +597,7 @@ jobs:
       - run:
           name: Start MongoDB for Figshare worker tests
           command: |
-            docker run -d --name figshare-test-mongo -p 127.0.0.1:27028:27017 mongo:7.0
+            docker run -d --name figshare-test-mongo -p 127.0.0.1:27028:27017 mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
             for attempt in $(seq 1 30); do
               if docker exec figshare-test-mongo mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)'; then
                 exit 0
@@ -589,12 +610,15 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs
+            nvm install
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs
       - run:
           name: Install packages
           command: |
             cd ./packages/redbox-core
-            npm install --no-save --include=dev
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
+            npm run check:prisma
       - run:
           name: Type-check Effect integrations and tests
           command: nvm install && npm --prefix packages/redbox-core run typecheck:effect
@@ -710,7 +734,8 @@ jobs:
           name: Install root dependencies
           command: |
             nvm install
-            npm install --no-save --ignore-scripts
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Compile shared packages
           command: |
@@ -757,7 +782,7 @@ jobs:
   test-storage-mongo:
     docker:
       - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
-      - image: mongo:7.0
+      - image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
     resource_class: medium
     environment:
       MONGO_TEST_URL: mongodb://127.0.0.1:27017
@@ -770,7 +795,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
       - run:
@@ -820,8 +847,9 @@ jobs:
       - run:
           name: Install redbox-core dependencies
           command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
             cd ./packages/redbox-core
-            npm ci --include=dev
+            npm ci --include=dev --ignore-scripts --strict-peer-deps
       - run:
           name: Run lint for redbox-core
           command: |
@@ -908,7 +936,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Get npm OIDC token
           command: |
@@ -1063,7 +1093,9 @@ jobs:
             - v1-npm-cache-
       - run:
           name: Install npm dependencies
-          command: npm ci --ignore-scripts --strict-peer-deps
+          command: |
+            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Build redbox-core assets
           command: |

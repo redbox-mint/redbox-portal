@@ -1,3 +1,4 @@
+import { retainHttpRequestFollowup } from '../middleware/requestLifetime';
 import { prepareSourceIntent } from './figshare-v2/source-intent';
 import { assertRecordFieldPaths } from '../RecordWriteOptions';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
@@ -8143,9 +8144,9 @@ export namespace Services {
       // SIEM is optional and must never change an already persisted audit outcome.
       try {
         if (typeof SecurityEventService !== 'undefined') {
-          void SecurityEventService.emitFromRecordAudit({ ...record }).catch(() => {
+          await retainHttpRequestFollowup(sails, SecurityEventService.emitFromRecordAudit({ ...record }).catch(() => {
             sails.log.error('Failed to emit record audit security event');
-          });
+          }));
         }
       } catch { sails.log.error('Failed to emit record audit security event'); }
       return response;

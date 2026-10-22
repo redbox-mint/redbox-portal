@@ -1,0 +1,16 @@
+{
+  "name": "review-mappings",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh review-mappings",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 5053,
+  "sha256": "d7776806dc633bfcda2a48ec3f00cebd53eefc361dfdf88e3f1c9b7907a06fa4",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 14,
+      "failures": []
+    }
+  ]
+}

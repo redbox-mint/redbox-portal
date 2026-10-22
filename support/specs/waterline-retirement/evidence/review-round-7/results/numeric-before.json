@@ -1,0 +1,18 @@
+{
+  "name": "numeric-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/harvest-persistence.test.ts test/unit/siem-persistence.test.ts --grep \"preserves loaded numeric coercion\"",
+  "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+  "exitCode": 2,
+  "durationMs": 1640,
+  "sha256": "0311b78496d7c8b7d00286bc376a273a50481482d50ea565c6690abd7ba63da8",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      2
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

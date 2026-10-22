@@ -1,0 +1,11 @@
+{
+  "name": "fix2-native-finalization",
+  "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+  "sourceCommit": "7f8cc460f2a321f88ef66b19516cc1e51106dc43",
+  "exitCode": 1,
+  "durationMs": 11123,
+  "sha256": "4977bf1aa1ce0640d2d52fdc38b5c8e75993311a56e34aa60bcca61587eb22b5",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

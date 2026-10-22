@@ -1,0 +1,43 @@
+[
+  {
+    "command": [
+      "npm",
+      "run",
+      "test:mocha:mount"
+    ],
+    "backend": "waterline",
+    "freshProject": "p5c-j3-waterline-11102-23347",
+    "exitCode": 0,
+    "passing": 14,
+    "log": "/tmp/redbox-p5c-siem-mocha.log",
+    "sha256": "0e4af6b1acbe8a283dc758a6154f1d55f7a72e9dcf98aa945eff125f5f5ff6c6",
+    "note": "Actual stock command and application exit 0; wrapper final EOF after successful cleanup separately excluded in runner-retries.json."
+  },
+  {
+    "command": [
+      "npm",
+      "run",
+      "test:mocha:mount"
+    ],
+    "backend": "mongodb",
+    "freshProject": "p5c-j3-mongodb-13823-21124",
+    "exitCode": 0,
+    "passing": 14,
+    "log": "/tmp/redbox-p5c-siem-mocha.log",
+    "sha256": "0e4af6b1acbe8a283dc758a6154f1d55f7a72e9dcf98aa945eff125f5f5ff6c6",
+    "note": "Actual stock command and application exit 0; wrapper final EOF after successful cleanup separately excluded in runner-retries.json."
+  },
+  {
+    "command": [
+      "bash",
+      "packages/redbox-core/test/fixtures/waterline-retirement/run-siem-bruno.sh"
+    ],
+    "environment": {
+      "SIEM_SKIP_PREWARM": "false"
+    },
+    "exitCode": 0,
+    "seconds": 793.2140486240387,
+    "log": "/tmp/redbox-p5c-siem-bruno.log",
+    "sha256": "62d3c776b92042c857fc2607d996be2edd402da5fa973957a398f91542edbfb1"
+  }
+]

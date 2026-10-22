@@ -1,0 +1,13 @@
+{
+  "name": "siem-native-values-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-values",
+  "sourceCommit": "c35098ad26da63d9e8450291af791563302724d5",
+  "exitCode": 1,
+  "durationMs": 7361,
+  "sha256": "5153fd8a15ba55b510edb9e61551eba2a4eda0d29604116f124fd15e46c5a10a",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":2,\"failures\":4,\"firstFailures\":[{\"field\":\"updatedAt\",\"input\":\"2000-01-01T00:00:00.000Z\",\"waterline\":{\"ok\":true,\"value\":true},\"mongodb\":{\"ok\":true,\"value\":false}},{\"field\":\"createdAt\",\"input\":\"\",\"waterline\":{\"ok\":true,\"value\":\"\"},\"mongodb\":{\"ok\":false,\"code\":\"E_INVALID_VALUES_TO_SET\",\"value\":\"2026-10-21T02:21:16.612Z\"}},{\"field\":\"portalId\",\"input\":1,\"waterline\":{\"ok\":true,\"value\":1},\"mongodb\":{\"ok\":true,\"value\":\"1\"}},{\"field\":\"portalId\",\"input\":null,\"waterline\":{\"ok\":false,\"value\":1},\"mongodb\":{\"ok\":false,\"code\":\"siem-operation\",\"value\":\"1\"}}]}"
+  ]
+}

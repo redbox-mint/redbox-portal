@@ -1,0 +1,2898 @@
+{
+  "queriedAt": "2026-10-19T11:25:21.679987+00:00",
+  "registry": {
+    "prisma": {
+      "dist-tags": {
+        "command": [
+          "npm",
+          "view",
+          "prisma",
+          "dist-tags",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:23.274733+00:00",
+        "exitCode": 0,
+        "value": {
+          "turso": "5.4.0-dev.61",
+          "early-access": "5.12.0-dev.21",
+          "typed-sql": "5.19.0-integration-feat-typed-sql.14",
+          "patch-dev": "7.9.1-dev.1",
+          "integration": "7.10.0-integration-fix-prisma-publish-token.1",
+          "next": "8.0.0-rc.10",
+          "prev": "7.10.1",
+          "latest": "8.0.0-rc.23",
+          "dev": "8.0.0-rc.23-dev.153"
+        }
+      },
+      "versions": {
+        "command": [
+          "npm",
+          "view",
+          "prisma",
+          "versions",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:24.928884+00:00",
+        "exitCode": 0,
+        "value": {
+          "publishedCount": 9375,
+          "latestNonPrerelease": "7.10.1",
+          "nonPrerelease8": [],
+          "historicalNonPrereleaseMongo": null
+        }
+      },
+      "engines": {
+        "command": [
+          "npm",
+          "view",
+          "prisma",
+          "engines",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:26.582461+00:00",
+        "exitCode": 0,
+        "value": {
+          "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+        }
+      }
+    },
+    "@prisma/orm-mongo": {
+      "dist-tags": {
+        "command": [
+          "npm",
+          "view",
+          "@prisma/orm-mongo",
+          "dist-tags",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:27.731748+00:00",
+        "exitCode": 0,
+        "value": {
+          "latest": "8.0.0-rc.18",
+          "dev": "8.0.0-rc.18-dev.20"
+        }
+      },
+      "versions": {
+        "command": [
+          "npm",
+          "view",
+          "@prisma/orm-mongo",
+          "versions",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:28.184981+00:00",
+        "exitCode": 0,
+        "value": {
+          "publishedCount": 369,
+          "latestNonPrerelease": "0.17.0",
+          "nonPrerelease8": [],
+          "historicalNonPrereleaseMongo": [
+            "0.16.0",
+            "0.17.0"
+          ]
+        }
+      },
+      "engines": {
+        "command": [
+          "npm",
+          "view",
+          "@prisma/orm-mongo",
+          "engines",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:28.616824+00:00",
+        "exitCode": 0,
+        "value": null
+      }
+    },
+    "@mikro-orm/core": {
+      "dist-tags": {
+        "command": [
+          "npm",
+          "view",
+          "@mikro-orm/core",
+          "dist-tags",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:30.044459+00:00",
+        "exitCode": 0,
+        "value": {
+          "rc": "7.0.0-rc.3",
+          "v7": "7.0.0-dev.338",
+          "next-v7": "7.3.0-dev.14",
+          "latest-v6": "6.6.17",
+          "latest": "7.2.5",
+          "next-v6": "6.6.18-dev.1",
+          "next": "7.2.6-dev.17"
+        }
+      },
+      "versions": {
+        "command": [
+          "npm",
+          "view",
+          "@mikro-orm/core",
+          "versions",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:30.761469+00:00",
+        "exitCode": 0,
+        "value": {
+          "publishedCount": 4960,
+          "latestNonPrerelease": "7.2.5",
+          "nonPrerelease8": [],
+          "historicalNonPrereleaseMongo": null
+        }
+      },
+      "engines": {
+        "command": [
+          "npm",
+          "view",
+          "@mikro-orm/core",
+          "engines",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:31.475994+00:00",
+        "exitCode": 0,
+        "value": {
+          "node": ">= 22.17.0"
+        }
+      }
+    },
+    "@mikro-orm/mongodb": {
+      "dist-tags": {
+        "command": [
+          "npm",
+          "view",
+          "@mikro-orm/mongodb",
+          "dist-tags",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:32.848338+00:00",
+        "exitCode": 0,
+        "value": {
+          "next-6-x": "6.0.0-dev.129",
+          "next-5-x": "5.9.8-dev.4",
+          "rc": "7.0.0-rc.3",
+          "v7": "7.0.0-dev.338",
+          "next-v7": "7.3.0-dev.14",
+          "latest-v6": "6.6.17",
+          "latest": "7.2.5",
+          "next-v6": "6.6.18-dev.1",
+          "next": "7.2.6-dev.17"
+        }
+      },
+      "versions": {
+        "command": [
+          "npm",
+          "view",
+          "@mikro-orm/mongodb",
+          "versions",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:33.545616+00:00",
+        "exitCode": 0,
+        "value": {
+          "publishedCount": 4960,
+          "latestNonPrerelease": "7.2.5",
+          "nonPrerelease8": [],
+          "historicalNonPrereleaseMongo": null
+        }
+      },
+      "engines": {
+        "command": [
+          "npm",
+          "view",
+          "@mikro-orm/mongodb",
+          "engines",
+          "--json",
+          "--registry=https://registry.npmjs.org"
+        ],
+        "queriedAt": "2026-10-19T11:25:34.239897+00:00",
+        "exitCode": 0,
+        "value": {
+          "node": ">= 22.17.0"
+        }
+      }
+    }
+  },
+  "sources": [
+    {
+      "url": "https://www.prisma.io/docs/orm/release-status.md",
+      "resolvedUrl": "https://www.prisma.io/docs/orm/release-status.md",
+      "queriedAt": "2026-10-19T11:25:34.619898+00:00",
+      "httpStatus": 200,
+      "sha256": "6c4cd43e170ccd8929543a6eb6806d1f7411b848232f524d5acb2cd12739d2c9",
+      "excerpts": [
+        {
+          "line": 8,
+          "text": ""
+        },
+        {
+          "line": 9,
+          "text": "Prisma ORM 8 is a **release candidate**: you can install it and build with it today. Until the final release, some details of the API may still change, so code you write now may need small edits later. Each release candidate fixes bugs found in the previous one."
+        },
+        {
+          "line": 10,
+          "text": ""
+        },
+        {
+          "line": 11,
+          "text": "It needs Node.js 22.18 or newer on the 22 line, 24.11 or newer on the 24 line, or 26 or newer, and TypeScript 5.9 or newer. The npm that ships with each of those Node.js releases works, including npm 10 on Node.js 22."
+        }
+      ]
+    },
+    {
+      "url": "https://www.prisma.io/docs/orm/supported-databases.md",
+      "resolvedUrl": "https://www.prisma.io/docs/orm/supported-databases.md",
+      "queriedAt": "2026-10-19T11:25:34.745645+00:00",
+      "httpStatus": 200,
+      "sha256": "1acf60a59c65284dd37fca0a9a2a052f2b7328b72e5d061f1d8481d54350fcbd",
+      "excerpts": [
+        {
+          "line": 12,
+          "text": "| ------------------------------------- | ------------------------- | ---------------------- | ---------------------------------- |"
+        },
+        {
+          "line": 13,
+          "text": "| PostgreSQL, including Prisma Postgres | Release candidate         | `@prisma/orm-postgres` | `npm install @prisma/orm-postgres` |"
+        },
+        {
+          "line": 14,
+          "text": "| MongoDB                               | Early access              | `@prisma/orm-mongo`    | `npm install @prisma/orm-mongo`    |"
+        },
+        {
+          "line": 15,
+          "text": "| MySQL                                 | Coming soon, planned next |                        |                                    |"
+        },
+        {
+          "line": 16,
+          "text": "| MariaDB                               | Coming soon               |                        |                                    |"
+        },
+        {
+          "line": 24,
+          "text": ""
+        },
+        {
+          "line": 25,
+          "text": "**Release candidate.** Install it and build with it today. Until the final release, some details of the API may still change, so code you write now may need small edits later. Each release candidate fixes bugs found in the last one. [Release status](https://www.prisma.io/docs/orm/release-status) has the dates and what `npm install` gives you."
+        },
+        {
+          "line": 26,
+          "text": ""
+        },
+        {
+          "line": 27,
+          "text": "**Early access.** The library works and you can build with it, but some of what the PostgreSQL library does is not there yet. The table below and the reference pages say what works on MongoDB, and [what is not available yet](https://www.prisma.io/docs/orm/coming-from-prisma-orm-7#not-available-yet) lists the gaps. Report what you hit on [GitHub](https://github.com/prisma/orm/issues)."
+        },
+        {
+          "line": 28,
+          "text": ""
+        },
+        {
+          "line": 29,
+          "text": "**Experimental.** SQLite is published as an experimental package, [`@prisma/orm-sqlite`](https://www.prisma.io/extensions/sqlite), without a quickstart yet. `db.transaction(...)` works the same way as on PostgreSQL."
+        },
+        {
+          "line": 47,
+          "text": ""
+        },
+        {
+          "line": 48,
+          "text": "`db.transaction()` exists on the PostgreSQL client only, because Prisma ORM does not support MongoDB transactions yet. For multi-document writes on MongoDB, [use the MongoDB driver's session API](https://www.prisma.io/docs/orm/fundamentals/transactions#transactions-on-mongodb) alongside the client."
+        },
+        {
+          "line": 49,
+          "text": ""
+        },
+        {
+          "line": 50,
+          "text": "Middleware hooks are the same on both databases apart from `beforeCompile`, which rewrites the SQL query before it runs and so exists only on PostgreSQL. The built-in `lints` and `budgets` middleware inspect SQL and run on PostgreSQL. The `cache` middleware runs on both. See [which databases a middleware runs on](https://www.prisma.io/docs/orm/middleware/how-middleware-works#which-databases-a-middleware-runs-on)."
+        },
+        {
+          "line": 66,
+          "text": ""
+        },
+        {
+          "line": 67,
+          "text": "A `create-db` database is deleted after 24 hours unless you claim it, which needs a Prisma account. The Prisma CLI deploys apps to Prisma Compute with [Prisma Composer](https://www.prisma.io/docs/composer), which is in Early Access. Prisma Compute does not currently support WebSocket servers and has no multi-region deployments ([limitations](https://www.prisma.io/docs/compute/limitations)). Prisma Postgres has no point-in-time recovery yet ([backups](https://www.prisma.io/docs/postgres/database/backups))."
+        },
+        {
+          "line": 68,
+          "text": ""
+        },
+        {
+          "line": 69,
+          "text": "## Databases that are coming [#databases-that-are-coming]"
+        },
+        {
+          "line": 70,
+          "text": ""
+        },
+        {
+          "line": 71,
+          "text": "MySQL is planned next and is not part of the Prisma ORM release candidate. MariaDB, Microsoft SQL Server, and CockroachDB have no Prisma ORM 8 library yet either. To stay on a supported path for those databases today, use [Prisma ORM 7](https://www.prisma.io/docs/orm/v7/reference/supported-databases), which supports all of them."
+        },
+        {
+          "line": 72,
+          "text": ""
+        },
+        {
+          "line": 73,
+          "text": "Add a \ud83d\udc4d to the GitHub issue for the database you need, or open one if there is none, because the number of reactions is one of the inputs to what gets built next. Organizations that need a database sooner can talk to [Prisma enterprise support](https://www.prisma.io/enterprise)."
+        }
+      ]
+    },
+    {
+      "url": "https://www.prisma.io/docs/orm/fundamentals/transactions.md",
+      "resolvedUrl": "https://www.prisma.io/docs/orm/fundamentals/transactions.md",
+      "queriedAt": "2026-10-19T11:25:34.851164+00:00",
+      "httpStatus": 200,
+      "sha256": "e7ecdaf91042999b52d126ece196a64f855aa96c78c7828d6ee2626da20548fc",
+      "excerpts": [
+        {
+          "line": 10,
+          "text": ""
+        },
+        {
+          "line": 11,
+          "text": "Prisma ORM 8 runs on PostgreSQL, SQLite, and MongoDB, but there is no MySQL support. The examples on this page are PostgreSQL; `db.transaction(...)` works the same way on SQLite, and MongoDB is covered in [Transactions on MongoDB](#transactions-on-mongodb)."
+        },
+        {
+          "line": 12,
+          "text": ""
+        },
+        {
+          "line": 13,
+          "text": "## Run writes in a transaction [#run-writes-in-a-transaction]"
+        },
+        {
+          "line": 70,
+          "text": ""
+        },
+        {
+          "line": 71,
+          "text": "There is no transaction timeout either, so a transaction stays open for as long as your callback runs. If you need a limit, set PostgreSQL's `idle_in_transaction_session_timeout` on the connection (`transaction_timeout` on PostgreSQL 17 and later)."
+        },
+        {
+          "line": 72,
+          "text": ""
+        },
+        {
+          "line": 73,
+          "text": "## Roll back on errors [#roll-back-on-errors]"
+        },
+        {
+          "line": 138,
+          "text": ""
+        },
+        {
+          "line": 139,
+          "text": "## Transactions on MongoDB [#transactions-on-mongodb]"
+        },
+        {
+          "line": 140,
+          "text": ""
+        },
+        {
+          "line": 141,
+          "text": "Prisma ORM does not support MongoDB transactions yet: there is no `db.transaction(...)` on the MongoDB client. To run a multi-document transaction today, use the MongoDB driver directly: share one `MongoClient` between Prisma ORM and your code, and group the writes in a driver session."
+        },
+        {
+          "line": 142,
+          "text": "MongoDB only runs transactions on a replica set, and a standalone server rejects them. To turn a standalone server into a single-member replica set, follow the MongoDB guide on [converting a standalone to a replica set](https://www.mongodb.com/docs/manual/tutorial/convert-standalone-to-replica-set/)."
+        },
+        {
+          "line": 143,
+          "text": "Install `@prisma/orm-mongo`, which a MongoDB project already has, together with version 7 of the `mongodb` driver:"
+        },
+        {
+          "line": 144,
+          "text": ""
+        },
+        {
+          "line": 185,
+          "text": "  mongoClient: client,"
+        },
+        {
+          "line": 186,
+          "text": "  dbName: \"app\","
+        },
+        {
+          "line": 187,
+          "text": "});"
+        },
+        {
+          "line": 188,
+          "text": "```"
+        },
+        {
+          "line": 189,
+          "text": ""
+        },
+        {
+          "line": 190,
+          "text": "Keep the `contractJson` import and the `Contract` type, and run `prisma contract emit` after every change to your contract, on PostgreSQL and on MongoDB alike."
+        },
+        {
+          "line": 191,
+          "text": "`dbName` is now the only thing that picks the database, so set it to the database your driver code reads, and `client.db(\"app\")` and Prisma ORM stay on the same one. An empty `dbName` is an error."
+        },
+        {
+          "line": 192,
+          "text": ""
+        },
+        {
+          "line": 193,
+          "text": "```typescript"
+        },
+        {
+          "line": 194,
+          "text": "import { client, db } from \"./prisma/db\";"
+        },
+        {
+          "line": 195,
+          "text": "const session = client.startSession();"
+        },
+        {
+          "line": 196,
+          "text": "try {"
+        },
+        {
+          "line": 197,
+          "text": "  await session.withTransaction(async () => {"
+        },
+        {
+          "line": 198,
+          "text": "    const database = client.db(\"app\");"
+        },
+        {
+          "line": 199,
+          "text": "    const users = database.collection(\"users\");"
+        },
+        {
+          "line": 200,
+          "text": "    const user = await users.insertOne({ email: \"jane@prisma.io\", name: \"Jane\" }, { session });"
+        },
+        {
+          "line": 201,
+          "text": "    const post = { title: \"Hello\", published: false, authorId: user.insertedId };"
+        },
+        {
+          "line": 202,
+          "text": "    await database.collection(\"posts\").insertOne(post, { session });"
+        },
+        {
+          "line": 203,
+          "text": "  });"
+        },
+        {
+          "line": 204,
+          "text": "} finally {"
+        },
+        {
+          "line": 205,
+          "text": "  await session.endSession();"
+        },
+        {
+          "line": 206,
+          "text": "}"
+        },
+        {
+          "line": 207,
+          "text": "// Prisma ORM reads see the committed result"
+        },
+        {
+          "line": 210,
+          "text": ""
+        },
+        {
+          "line": 211,
+          "text": "On MongoDB there is no schema segment in the path, and the property name is the collection name: the model's `@@map` value, or the model name exactly as written when the model has no `@@map`. The example above assumes a `User` model mapped to the `users` collection, like the one below, so Prisma ORM reads it as `db.orm.users` and the driver code as `database.collection(\"users\")`. Without the `@@map` line it would be `db.orm.User`."
+        },
+        {
+          "line": 212,
+          "text": ""
+        },
+        {
+          "line": 213,
+          "text": "```prisma title=\"src/prisma/contract.prisma (excerpt)\""
+        },
+        {
+          "line": 300,
+          "text": "* \"Refactor these two service functions so the helper takes tx as a parameter instead of opening its own transaction.\""
+        },
+        {
+          "line": 301,
+          "text": "* \"This project is on MongoDB. Show me the driver-session pattern for an atomic two-collection write with a shared MongoClient.\""
+        },
+        {
+          "line": 302,
+          "text": ""
+        },
+        {
+          "line": 303,
+          "text": "## Next [#next]"
+        },
+        {
+          "line": 309,
+          "text": ""
+        },
+        {
+          "line": 310,
+          "text": "- [`Advanced queries`](https://www.prisma.io/docs/orm/fundamentals/advanced-queries): Use the SQL query builder on PostgreSQL and the pipeline builder on MongoDB for queries the ORM API can't express."
+        },
+        {
+          "line": 311,
+          "text": "- [`Reading data`](https://www.prisma.io/docs/orm/fundamentals/reading-data): Fetch one record or many with Prisma ORM, then filter, select, sort, paginate, and iterate the results."
+        },
+        {
+          "line": 312,
+          "text": "- [`Relations and joins`](https://www.prisma.io/docs/orm/fundamentals/relations-and-joins): Read related records in one query with .include(), and understand how one-to-one, one-to-many, and many-to-many relationships work."
+        },
+        {
+          "line": 313,
+          "text": "- [`Writing data`](https://www.prisma.io/docs/orm/fundamentals/writing-data): Create, update, delete, and upsert records with Prisma ORM, one at a time or in bulk."
+        }
+      ]
+    },
+    {
+      "url": "https://www.prisma.io/docs/orm/data-modeling/mongodb.md",
+      "resolvedUrl": "https://www.prisma.io/docs/orm/data-modeling/mongodb.md",
+      "queriedAt": "2026-10-19T11:25:34.975530+00:00",
+      "httpStatus": 200,
+      "sha256": "cfad2ebb828d30185986b107d8d7fc66b5379f736cdb30f49e811ece510474c2",
+      "excerpts": [
+        {
+          "line": 12,
+          "text": ""
+        },
+        {
+          "line": 13,
+          "text": "Your models go in your contract, the `contract.prisma` file that replaced `schema.prisma`. A model maps to a collection, each record is a document, and every document has an `_id` field as its primary key. There is no `datasource` block on MongoDB: your connection string goes in `prisma.config.ts` instead, passed to `defineConfig` from `@prisma/orm-mongo/config`, and [the data contract](https://www.prisma.io/docs/orm/contract-authoring/the-data-contract) page shows that config file."
+        },
+        {
+          "line": 14,
+          "text": ""
+        },
+        {
+          "line": 15,
+          "text": "```prisma"
+        },
+        {
+          "line": 39,
+          "text": ""
+        },
+        {
+          "line": 40,
+          "text": "On MongoDB, each scalar type is named after the BSON type it stores:"
+        },
+        {
+          "line": 41,
+          "text": ""
+        },
+        {
+          "line": 42,
+          "text": "| Type         | Stored as                                          | In your code                         |"
+        },
+        {
+          "line": 155,
+          "text": ""
+        },
+        {
+          "line": 156,
+          "text": "This is a one-to-many by reference: many posts point at one user, and each post is queryable on its own. Note that in `references: [id]` you write the field's contract-side name, `id`, not `_id`. There are no nested writes on MongoDB, so create the user first and then the post with its `authorId`. To load a post together with its author, chain `.include(\"author\")`, which adds the related record to every row you get back:"
+        },
+        {
+          "line": 157,
+          "text": ""
+        },
+        {
+          "line": 158,
+          "text": "```ts"
+        },
+        {
+          "line": 217,
+          "text": ""
+        },
+        {
+          "line": 218,
+          "text": "- [`Relational data modeling`](https://www.prisma.io/docs/orm/data-modeling/relational-databases): Model one-to-one, one-to-many, many-to-many, and polymorphic relations for PostgreSQL."
+        }
+      ]
+    },
+    {
+      "url": "https://www.prisma.io/docs/orm/fundamentals/relations-and-joins.md",
+      "resolvedUrl": "https://www.prisma.io/docs/orm/fundamentals/relations-and-joins.md",
+      "queriedAt": "2026-10-19T11:25:35.099847+00:00",
+      "httpStatus": 200,
+      "sha256": "061b7ffbbe00a3e1d1b6e5733aaac5ba98b6d1a67293ed3fbb0e2c41f81d82b4",
+      "excerpts": [
+        {
+          "line": 4,
+          "text": ""
+        },
+        {
+          "line": 5,
+          "text": "Read related records in one query with .include(), and understand how one-to-one, one-to-many, and many-to-many relationships work."
+        },
+        {
+          "line": 6,
+          "text": ""
+        },
+        {
+          "line": 7,
+          "text": "Location: ORM > Fundamentals > Relations and joins"
+        },
+        {
+          "line": 46,
+          "text": "* On PostgreSQL the path is `db.orm.<schema>.<ModelName>`. `db.orm` is the model API; `db.sql` and `db.raw.sql` are for SQL. The PostgreSQL schema (not the contract file) is `public` unless you wrap the model in a `namespace` block. Write `namespace billing { model Invoice { ... } }` in your contract and the path becomes `db.orm.billing.Invoice`."
+        },
+        {
+          "line": 47,
+          "text": "* On MongoDB there is no schema segment. The path is `db.orm.<collectionName>`. The collection name is the `@@map(...)` on the model, or the model name exactly as written. The models behind the MongoDB query above are [further down this page](#postgresql-and-mongodb-differences)."
+        },
+        {
+          "line": 48,
+          "text": "* You `await` the whole chain, and the last call says what you want back. `.all()` returns every matching record as an array. `.first()` returns one record, or `null` when nothing matches."
+        },
+        {
+          "line": 49,
+          "text": "* `.where(...)` takes two forms. Pass an object, like `.where({ published: true })`, to match fields to exact values. Pass a callback for a comparison, like `.where((p) => p.title.like(\"Hello%\"))`. Chaining `.where(...)` twice requires both to match."
+        },
+        {
+          "line": 167,
+          "text": ""
+        },
+        {
+          "line": 168,
+          "text": "## Many-to-many [#many-to-many]"
+        },
+        {
+          "line": 169,
+          "text": ""
+        },
+        {
+          "line": 170,
+          "text": "Records on both sides connect to many on the other: a post has many tags, and a tag appears on many posts. Neither table can hold the other's foreign key, so a separate table holds one link per pair."
+        },
+        {
+          "line": 171,
+          "text": ""
+        },
+        {
+          "line": 172,
+          "text": "<ConceptAnimation name=\"relation-many-to-many\" />"
+        },
+        {
+          "line": 173,
+          "text": ""
+        },
+        {
+          "line": 174,
+          "text": "Write three models: on each side, declare a list field typed as the other model, then write a third model for the join table, and give it a primary key made of exactly two foreign keys, one to each side:"
+        },
+        {
+          "line": 249,
+          "text": ""
+        },
+        {
+          "line": 250,
+          "text": "See [what is not available yet](https://www.prisma.io/docs/orm/coming-from-prisma-orm-7#not-available-yet) for the rest of the gaps, and [Upsert a record](https://www.prisma.io/docs/orm/fundamentals/writing-data#upsert-a-record) for the top-level `.upsert(...)` call. These nested writes are for relational databases, so on MongoDB, write the parent document and the child document in two calls, and set the reference field yourself:"
+        },
+        {
+          "line": 251,
+          "text": ""
+        },
+        {
+          "line": 252,
+          "text": "```typescript"
+        },
+        {
+          "line": 296,
+          "text": ""
+        },
+        {
+          "line": 297,
+          "text": "See [filter operators](https://www.prisma.io/docs/orm/fundamentals/reading-data#filter-operators-on-postgresql) for the comparisons you can pass to `.where(...)`. On MongoDB, relation filters are not available, so query the child collection directly instead, and include the parent:"
+        },
+        {
+          "line": 298,
+          "text": ""
+        },
+        {
+          "line": 299,
+          "text": "```typescript"
+        },
+        {
+          "line": 343,
+          "text": ""
+        },
+        {
+          "line": 344,
+          "text": "* A many-to-many needs the model for the join table. List fields on both sides with no such model are rejected. Write the model as shown [above](#many-to-many), with its primary key made of the two foreign keys."
+        },
+        {
+          "line": 345,
+          "text": "* On PostgreSQL, `.include(...)` takes an optional callback to filter and narrow the relation. On MongoDB it takes the relation name only. Reshape joined documents with the [pipeline builder](https://www.prisma.io/docs/orm/fundamentals/advanced-queries#mongodb-pipeline-builder) instead."
+        },
+        {
+          "line": 346,
+          "text": "* Relation filters (`.some(...)`, `.none(...)`, `.every(...)`) and nested writes on relations are for relational databases. They are not available on MongoDB."
+        },
+        {
+          "line": 347,
+          "text": ""
+        },
+        {
+          "line": 348,
+          "text": "## Prompt your coding agent [#prompt-your-coding-agent]"
+        },
+        {
+          "line": 353,
+          "text": "* \"Using the prisma-8 skill, fetch each user with their five newest posts in one query.\""
+        },
+        {
+          "line": 354,
+          "text": "* \"Model a many-to-many between Post and Tag with a model for the join table, and write the nested include that reads a post's tag names.\""
+        },
+        {
+          "line": 355,
+          "text": "* \"Find users that have at least one published post, using `.some(...)` in the where clause instead of a loop.\""
+        },
+        {
+          "line": 356,
+          "text": ""
+        },
+        {
+          "line": 364,
+          "text": ""
+        },
+        {
+          "line": 365,
+          "text": "- [`Advanced queries`](https://www.prisma.io/docs/orm/fundamentals/advanced-queries): Use the SQL query builder on PostgreSQL and the pipeline builder on MongoDB for queries the ORM API can't express."
+        },
+        {
+          "line": 366,
+          "text": "- [`Reading data`](https://www.prisma.io/docs/orm/fundamentals/reading-data): Fetch one record or many with Prisma ORM, then filter, select, sort, paginate, and iterate the results."
+        },
+        {
+          "line": 367,
+          "text": "- [`Transactions`](https://www.prisma.io/docs/orm/fundamentals/transactions): Run several writes so they all succeed or all fail together with db.transaction()."
+        }
+      ]
+    },
+    {
+      "url": "https://www.prisma.io/docs/orm/reference/orm-client.md",
+      "resolvedUrl": "https://www.prisma.io/docs/orm/reference/orm-client.md",
+      "queriedAt": "2026-10-19T11:25:35.257571+00:00",
+      "httpStatus": 200,
+      "sha256": "0e8b294a5d632f6be45b49930dab04420c67b60dccbf8e889fd452c2713882ff",
+      "excerpts": [
+        {
+          "line": 183,
+          "text": ""
+        },
+        {
+          "line": 184,
+          "text": "* On MongoDB, `id ObjectId @id @map(\"_id\")` renames the field to `_id` everywhere: you filter on `_id`, and the returned document has an `_id` key. That is why the MongoDB examples never say `id`."
+        },
+        {
+          "line": 185,
+          "text": ""
+        },
+        {
+          "line": 186,
+          "text": "* `Uuid` is a built-in type for a PostgreSQL `uuid` column. You do not import it. `@default(uuid())` fills the id in when you insert a row."
+        },
+        {
+          "line": 208,
+          "text": ""
+        },
+        {
+          "line": 209,
+          "text": "* `PostTag` is required. To join `Post.tags Tag[]` and `Tag.posts Post[]`, write a third model with one foreign key to each side and an `@@id` of exactly those two columns. Prisma ORM finds it for you, and neither `Post` nor `Tag` names it. A pair of list fields with no such model is rejected. See [Relations and joins](https://www.prisma.io/docs/orm/fundamentals/relations-and-joins#many-to-many)."
+        },
+        {
+          "line": 210,
+          "text": ""
+        },
+        {
+          "line": 211,
+          "text": "* On PostgreSQL, a `DateTime` field comes back as a `Temporal.Instant`, the standard JavaScript object for a point in time. A filter on that field takes the same type, so you can pass a value straight back in."
+        },
+        {
+          "line": 214,
+          "text": ""
+        },
+        {
+          "line": 215,
+          "text": "Create a client with `postgres(...)` or `mongo(...)`, then read and write your models through `db.orm`. The same `db` also has a query builder, `db.sql` on PostgreSQL and `db.query` on MongoDB, plus `db.raw` for raw queries. This page covers none of those three: see [Advanced queries](https://www.prisma.io/docs/orm/fundamentals/advanced-queries). Create `db` once per process, and close it with `await db.close()` when the process shuts down. The two databases have different entry points, and they name the models differently."
+        },
+        {
+          "line": 216,
+          "text": ""
+        },
+        {
+          "line": 217,
+          "text": "### PostgreSQL [#postgresql]"
+        },
+        {
+          "line": 246,
+          "text": ""
+        },
+        {
+          "line": 247,
+          "text": "Create a MongoDB client with `mongo(...)`. `db.orm` holds your models by collection name, with no schema in between. The collection name is the one you set with `@@map`, or the model name exactly as written when you did not set one. The example schema maps `User` to `users`, so it is `db.orm.users`, and `Post` is `db.orm.posts`. `dbName` is the MongoDB database name."
+        },
+        {
+          "line": 248,
+          "text": ""
+        },
+        {
+          "line": 249,
+          "text": "```typescript"
+        },
+        {
+          "line": 253,
+          "text": ""
+        },
+        {
+          "line": 254,
+          "text": "const db = mongo<Contract>({ contractJson, url: process.env.MONGODB_URL, dbName: 'app' });"
+        },
+        {
+          "line": 255,
+          "text": ""
+        },
+        {
+          "line": 256,
+          "text": "const users = await db.orm.users.all();"
+        },
+        {
+          "line": 262,
+          "text": ""
+        },
+        {
+          "line": 263,
+          "text": "Some examples import a filter helper you can use on its own. On PostgreSQL those come from `@prisma/orm-postgres/orm-client`, on MongoDB from `@prisma/orm-mongo/query-ast/execution`. See [Filter conditions and operators](#filter-conditions-and-operators)."
+        },
+        {
+          "line": 264,
+          "text": ""
+        },
+        {
+          "line": 265,
+          "text": "The examples below use these ids, which stand for rows inserted before the query runs:"
+        },
+        {
+          "line": 281,
+          "text": "* On PostgreSQL, `where()` takes either a callback that calls an operator on a column (`u.email.eq(...)`) or an object of field-and-value pairs that must match exactly."
+        },
+        {
+          "line": 282,
+          "text": "* On MongoDB, `where()` takes either an object of field-and-value pairs that must match exactly or a `MongoFieldFilter`. The object form can only test for equality. For anything else, such as greater-than, use `MongoFieldFilter` (see [MongoFieldFilter](#mongofieldfilter))."
+        },
+        {
+          "line": 283,
+          "text": "* Calling `where()` more than once on the same query requires a row to match all of the filters."
+        },
+        {
+          "line": 284,
+          "text": "* `.eq()` is one operator of many. [Filter conditions and operators](#filter-conditions-and-operators), further down this page, lists them all for both databases."
+        },
+        {
+          "line": 351,
+          "text": "* On PostgreSQL, `select()` narrows the returned row shape at the type level: fields you didn't select are absent from the result type."
+        },
+        {
+          "line": 352,
+          "text": "* On MongoDB, `select()` changes what the database returns but not the TypeScript type. Only the fields you named come back. The type still lists every field on the model. Read a field you did not name and you get `undefined`, because the returned document does not carry it."
+        },
+        {
+          "line": 353,
+          "text": ""
+        },
+        {
+          "line": 354,
+          "text": "#### Options [#options-1]"
+        },
+        {
+          "line": 392,
+          "text": "* On PostgreSQL, `include(relationName, refineFn?)` loads both to-one and to-many relations. The optional callback receives the related rows as a collection, so you can filter, order, limit, and aggregate them. See [Refinements, aggregates, and combine](#refinements-aggregates-and-combine)."
+        },
+        {
+          "line": 393,
+          "text": "* On MongoDB, wrap the `_id` of a related document loaded by `include()` in `String(...)` before you compare it. It comes back as an `ObjectId` object, while a document's own `_id` comes back as a hex string."
+        },
+        {
+          "line": 394,
+          "text": "* On MongoDB, `include()` loads a relation that is stored as a reference. It takes the relation name and nothing else, and TypeScript rejects a second argument."
+        },
+        {
+          "line": 395,
+          "text": ""
+        },
+        {
+          "line": 396,
+          "text": "#### Options [#options-2]"
+        },
+        {
+          "line": 439,
+          "text": ""
+        },
+        {
+          "line": 440,
+          "text": "* PostgreSQL only. On MongoDB, `include()` takes no callback, and `count`, `sum`, `avg`, `min`, `max`, and `combine` do not exist on a collection."
+        },
+        {
+          "line": 441,
+          "text": "* On PostgreSQL, those six are only callable **inside** an `include()` callback. Called anywhere else, they throw an error whose `code` is `ORM.INCLUDE_INVALID`."
+        },
+        {
+          "line": 442,
+          "text": "* `sum()` and `avg()` take a numeric column: an integer, a floating-point number, or a decimal. They also take an interval or a `Time` column, the time-of-day type. They do not take a date or a timestamp, and TypeScript rejects a date or timestamp field name here."
+        },
+        {
+          "line": 543,
+          "text": "* On PostgreSQL, `.asc()` and `.desc()` take `{ nulls: \"first\" }` or `{ nulls: \"last\" }`. Without it, PostgreSQL puts nulls last for `.asc()` and first for `.desc()`."
+        },
+        {
+          "line": 544,
+          "text": "* On MongoDB, `orderBy()` takes an object instead: `{ field: 1 }` sorts ascending and `{ field: -1 }` sorts descending."
+        },
+        {
+          "line": 545,
+          "text": "* The example schema declares `Priority` text-backed, so on PostgreSQL it sorts by its stored text: `'high'`, then `'low'`, then `'urgent'`. A native enum column sorts in the order its members are declared instead, so the same members in a `native_enum Priority` block sort `Low`, `High`, `Urgent`. Use a native enum when the sort order matters."
+        },
+        {
+          "line": 546,
+          "text": ""
+        },
+        {
+          "line": 789,
+          "text": "* On PostgreSQL, a variant that sets its own `@@map`, as `Bug` and `Feature` do, is stored in its own table. Read [`createAndCount()`](#createandcount) and [`upsert()`](#upsert) before you write to such a variant."
+        },
+        {
+          "line": 790,
+          "text": "* On MongoDB, every variant is a document in the one collection, told apart by the field named in `@@discriminator`."
+        },
+        {
+          "line": 791,
+          "text": ""
+        },
+        {
+          "line": 792,
+          "text": "#### Options [#options-10]"
+        },
+        {
+          "line": 825,
+          "text": ""
+        },
+        {
+          "line": 826,
+          "text": "There is no `count()` method on either database, so on PostgreSQL, count with `aggregate((a) => ({ n: a.count() }))`. On MongoDB, counting takes two steps: `db.query`, the [pipeline builder](https://www.prisma.io/docs/orm/fundamentals/advanced-queries#mongodb-pipeline-builder), builds the pipeline, and `runtime.query(...)` runs it."
+        },
+        {
+          "line": 827,
+          "text": ""
+        },
+        {
+          "line": 828,
+          "text": "```typescript"
+        },
+        {
+          "line": 911,
+          "text": "* On PostgreSQL, `first()` accepts an inline filter: a shorthand object or a callback (`first((p) => p.priority.eq('urgent'))`). An inline filter is added to any earlier `where()` call, and both have to match."
+        },
+        {
+          "line": 912,
+          "text": "* On MongoDB, `first()` takes no filter argument. Filter with `where(...)` first, then call `first()`."
+        },
+        {
+          "line": 913,
+          "text": ""
+        },
+        {
+          "line": 914,
+          "text": "#### Options [#options-12]"
+        },
+        {
+          "line": 959,
+          "text": ""
+        },
+        {
+          "line": 960,
+          "text": "* PostgreSQL only. You cannot subclass a collection on MongoDB."
+        },
+        {
+          "line": 961,
+          "text": "* `db.orm` cannot use your subclass. Call the `orm(...)` function with a `collections` object to get a second accessor with the same methods as `db.orm.public`. Use that accessor for the models you subclassed, and keep `db.orm.public` for every other model. Your existing `db.orm.public.X` calls keep working."
+        },
+        {
+          "line": 962,
+          "text": "* `client` in the example below is what `postgres(...)` returns, the same object [Setting up the client](#setting-up-the-client) calls `db`. The example creates one so that it runs on its own."
+        },
+        {
+          "line": 1056,
+          "text": ""
+        },
+        {
+          "line": 1057,
+          "text": "For Prisma ORM 7 users: `createMany` is `createAndCount()`, which returns the count as a number instead of `{ count }`, and `createManyAndReturn` is `createAll()`. In the same way, `updateMany` is `updateAndCount()` and `updateManyAndReturn` is `updateAll()`. `deleteMany` is `deleteAndCount()`, and `deleteAll()` returns the deleted rows, which no Prisma ORM 7 method did. `count` is [`aggregate()`](#grouped-aggregates) on PostgreSQL, or the two steps shown under [Read methods](#read-terminals) on MongoDB. `skipDuplicates: true` is now `{ onConflict: 'skip' }`, which you pass to [`createAll()`](#createall) or [`createAndCount()`](#createandcount) on PostgreSQL as a second argument."
+        },
+        {
+          "line": 1058,
+          "text": ""
+        },
+        {
+          "line": 1059,
+          "text": "To catch one of the errors named below, wrap the call in `try` and `catch`, then compare `error.code` with the string given here. For a task-oriented walkthrough, see [Writing data](https://www.prisma.io/docs/orm/fundamentals/writing-data). On MongoDB, a write method rejects a chain that already has `orderBy()`, `limit()`, or `offset()` on it, and every write except `updateAll()` and `deleteAll()` also rejects `include()`. Both throw an error whose `code` is `ORM.OPERATION_UNSUPPORTED`. For grouping several writes into one unit, see [Transactions](https://www.prisma.io/docs/orm/fundamentals/transactions)."
+        },
+        {
+          "line": 1060,
+          "text": ""
+        },
+        {
+          "line": 1061,
+          "text": "> [!WARNING]"
+        },
+        {
+          "line": 1063,
+          "text": "> "
+        },
+        {
+          "line": 1064,
+          "text": "> Always call `where()` before an update or a delete. On MongoDB the six update and delete methods and `upsert()` check for a filter and throw an error whose `code` is `ORM.WHERE_MISSING`, with a message naming the method you called, such as `updateAll() requires a .where() filter. Call .where() before .updateAll()`. On PostgreSQL, these methods do not compile without a `where()`, and neither do they on a collection filtered on some code paths only, such as `search ? db.orm.public.Post.where({ title: search }) : db.orm.public.Post`. Nothing checks for the filter at run time. If a call without a filter does reach the database, `update()` and `delete()` change a single row and you cannot predict which one, and `updateAll()` and `deleteAll()` change every row."
+        },
+        {
+          "line": 1065,
+          "text": ""
+        },
+        {
+          "line": 1066,
+          "text": "The examples below use `aliceId`, `bobId`, `carolId`, `postId`, `tagId`, `tutorialId`, and `userId` for the ids of rows that already exist. Substitute your own."
+        },
+        {
+          "line": 1075,
+          "text": "* On PostgreSQL, you may leave out any field your contract gives a default, including the id. Passing an explicit id is accepted. Nullable fields can be left out too. Every other field is required."
+        },
+        {
+          "line": 1076,
+          "text": "* On MongoDB, `_id` is the only field you can leave out. Give every other field a value, and write `null` for a field you want empty."
+        },
+        {
+          "line": 1077,
+          "text": "* On MongoDB, `create()` returns the document as it is stored, with the `_id` the server assigned, and converts its values the same way a read does. It does not query the database again to do this. On PostgreSQL the returned row is read from the database already."
+        },
+        {
+          "line": 1078,
+          "text": "* On MongoDB, `create()` fails with an error whose `code` is `RUNTIME.ENCODE_FAILED`, before anything is written, when a value does not fit its field: a value of the wrong type, a fraction or an out-of-range number for an `Int32` field, a value that is not one of the field's enum values, or `null` for a field that is not optional. The error names the field."
+        },
+        {
+          "line": 1079,
+          "text": "* On PostgreSQL, `create()` can create or link related rows in the same transaction. Nest `create()` on the side that does not hold the foreign key, and `connect()` on the side that does."
+        },
+        {
+          "line": 1080,
+          "text": "* Nested `create()` and `connect()` are not available on MongoDB."
+        },
+        {
+          "line": 1081,
+          "text": ""
+        },
+        {
+          "line": 1082,
+          "text": "#### Options [#options-13]"
+        },
+        {
+          "line": 1087,
+          "text": ""
+        },
+        {
+          "line": 1088,
+          "text": "On PostgreSQL, that object can also carry a `create` or `connect` callback for a related row, as shown below. `create()` and `connect()` each take one object or an array of objects, on any relation. `disconnect()` takes an array, and on a many-to-many relation the array is required."
+        },
+        {
+          "line": 1089,
+          "text": ""
+        },
+        {
+          "line": 1090,
+          "text": "#### Return type [#return-type-13]"
+        },
+        {
+          "line": 1157,
+          "text": "* To skip each row that would break a unique constraint, instead of failing the whole insert, pass `{ onConflict: 'skip' }` as the second argument. The result then holds only the rows the database wrote. This replaces `skipDuplicates: true` from Prisma ORM 7."
+        },
+        {
+          "line": 1158,
+          "text": "* `onConflict` works on PostgreSQL, and on SQLite through the experimental `@prisma/orm-sqlite` package. On MongoDB, `createAll()` takes only the rows, so a second argument is a type error."
+        },
+        {
+          "line": 1159,
+          "text": "* By default, a row is skipped when it breaks any unique constraint. To check only one constraint, list its fields in `conflictOn`. In the example schema, `Tag.label` is unique, so `conflictOn: ['label']` skips a tag whose label already exists. A row that breaks a different unique constraint is then not skipped: the database rejects it, and the whole insert fails, so no row is written."
+        },
+        {
+          "line": 1160,
+          "text": "* `onConflict` does not work on a variant stored in its own table, such as `Bug`, which maps to `bug` while its base model `Task` maps to `task`. Passing it there throws an error whose `code` is `ORM.OPERATION_UNSUPPORTED`. For such a variant, call `createAll()` with only the rows. A row that breaks a unique constraint then makes the call fail instead of being skipped."
+        },
+        {
+          "line": 1167,
+          "text": "| First argument  | Array of row objects                  | Yes      | The rows to insert. There is no `data` wrapper.                     |"
+        },
+        {
+          "line": 1168,
+          "text": "| Second argument | `{ onConflict: 'skip', conflictOn? }` | No       | Skip rows that break a unique constraint. Not available on MongoDB. |"
+        },
+        {
+          "line": 1169,
+          "text": ""
+        },
+        {
+          "line": 1170,
+          "text": "`conflictOn` is an array of field names, such as `['label']`. [`upsert()`](#upsert) also takes a `conflictOn`, but there it is an object of field values, such as `{ label: 'typescript' }`."
+        },
+        {
+          "line": 1214,
+          "text": "* Calling it on such a variant throws an error whose `code` is `ORM.OPERATION_UNSUPPORTED`, with the message `createAndCount() is not supported for MTI variant \"Bug\" on model \"Task\". Use createAll() instead.` MTI in the message means multi-table inheritance, the variant stored in its own table described above."
+        },
+        {
+          "line": 1215,
+          "text": "* On MongoDB, a variant is one document in one collection, so `createAndCount()` works on a variant as usual."
+        },
+        {
+          "line": 1216,
+          "text": "* It returns the number of rows the database inserted. With `{ onConflict: 'skip' }`, the skipped rows are not counted. The option works as on [`createAll()`](#createall)."
+        },
+        {
+          "line": 1217,
+          "text": ""
+        },
+        {
+          "line": 1222,
+          "text": "| First argument  | Array of row objects                  | Yes      | The rows to insert. There is no `data` wrapper.                     |"
+        },
+        {
+          "line": 1223,
+          "text": "| Second argument | `{ onConflict: 'skip', conflictOn? }` | No       | Skip rows that break a unique constraint. Not available on MongoDB. |"
+        },
+        {
+          "line": 1224,
+          "text": ""
+        },
+        {
+          "line": 1225,
+          "text": "`conflictOn` is an array of field names, as on [`createAll()`](#createall)."
+        },
+        {
+          "line": 1269,
+          "text": ""
+        },
+        {
+          "line": 1270,
+          "text": "* On MongoDB, `update()` takes an object of field values, or a callback that returns field operations, such as `(p) => [p.content.set('Rewritten')]`. See [Field update operations](#field-update-operations)."
+        },
+        {
+          "line": 1271,
+          "text": ""
+        },
+        {
+          "line": 1272,
+          "text": "* On MongoDB, the update input covers the base model's fields only. Putting a field declared on a variant in the update, such as `duration` on `Tutorial`, makes TypeScript complain even though the update runs correctly. Put `// @ts-expect-error` on the line directly above the line TypeScript flags. When the complaint goes away, TypeScript reports the comment itself as unused, so delete it then. The same is true of `updateAll()` and `updateAndCount()`."
+        },
+        {
+          "line": 1273,
+          "text": ""
+        },
+        {
+          "line": 1274,
+          "text": "  ```typescript"
+        },
+        {
+          "line": 1280,
+          "text": ""
+        },
+        {
+          "line": 1281,
+          "text": "* On PostgreSQL, `update()` can also relink related rows. `connect()` points the foreign key at a different row, and `disconnect()` removes a many-to-many link without deleting either row. An update with such a relation callback finds its row by the filter alone, so it throws an error whose `code` is `ORM.ARGUMENT_INVALID` on a collection with an `orderBy()`, `limit()`, `offset()`, `cursor()`, `distinct()`, or `distinctOn()`."
+        },
+        {
+          "line": 1282,
+          "text": ""
+        },
+        {
+          "line": 1283,
+          "text": "* On PostgreSQL, `update()` changes the row `first()` would return, so `orderBy()`, `offset()`, `cursor()`, `distinct()`, and `distinctOn()` choose it. After `limit(0)` it changes nothing and returns `null`."
+        },
+        {
+          "line": 1292,
+          "text": "| ----------- | ----------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------- |"
+        },
+        {
+          "line": 1293,
+          "text": "| The changes | Object of field values, or on MongoDB a field-operations callback | Yes      | What to set on the matched row, passed as the only argument. There is no `data` wrapper. |"
+        },
+        {
+          "line": 1294,
+          "text": ""
+        },
+        {
+          "line": 1295,
+          "text": "On PostgreSQL that object can also carry `connect` or `disconnect` for a related row, as shown below."
+        },
+        {
+          "line": 1336,
+          "text": ""
+        },
+        {
+          "line": 1337,
+          "text": "##### Nested `disconnect()` unlinks a many-to-many row (PostgreSQL) [#nested-disconnect-unlinks-a-many-to-many-row-postgresql]"
+        },
+        {
+          "line": 1338,
+          "text": ""
+        },
+        {
+          "line": 1339,
+          "text": "```typescript"
+        },
+        {
+          "line": 1364,
+          "text": "* On PostgreSQL, a `limit()`, `offset()`, `cursor()`, `distinct()`, or `distinctOn()` on the collection makes this method throw an error whose `code` is `ORM.ARGUMENT_INVALID`, because it changes every matching row and cannot apply them. An `orderBy()` is accepted. To change only some of the matching rows, read their ids first, then filter on them, as [Writing data](https://www.prisma.io/docs/orm/fundamentals/writing-data#update-or-delete-a-limited-number-of-rows) shows."
+        },
+        {
+          "line": 1365,
+          "text": "* On MongoDB, `updateAll()` is not a single operation, and two things follow. If a document begins matching your filter while the call is running, it is updated but not included in the returned rows. If someone else changes a matched document while the call is running, you get their version back, not yours."
+        },
+        {
+          "line": 1366,
+          "text": "* Prisma ORM has no `db.transaction()` on MongoDB, so you cannot avoid this from the client. To control it, share one `MongoClient` with the MongoDB driver and group the writes in one of the driver's own sessions, shown under [Transactions on MongoDB](https://www.prisma.io/docs/orm/fundamentals/transactions#transactions-on-mongodb)."
+        },
+        {
+          "line": 1367,
+          "text": ""
+        },
+        {
+          "line": 1368,
+          "text": "#### Options [#options-17]"
+        },
+        {
+          "line": 1371,
+          "text": "| ----------- | ----------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------ |"
+        },
+        {
+          "line": 1372,
+          "text": "| The changes | Object of field values, or on MongoDB a field-operations callback | Yes      | What to set on every matched row, passed as the only argument. There is no `data` wrapper. |"
+        },
+        {
+          "line": 1373,
+          "text": ""
+        },
+        {
+          "line": 1374,
+          "text": "#### Return type [#return-type-17]"
+        },
+        {
+          "line": 1405,
+          "text": "* Available for PostgreSQL and MongoDB. Call `where()` first. Without a filter this changes every row. See the warning at the top of this section."
+        },
+        {
+          "line": 1406,
+          "text": "* On MongoDB the count leaves out documents that already held the new values. On PostgreSQL it counts every matched row."
+        },
+        {
+          "line": 1407,
+          "text": "* On PostgreSQL, a `limit()`, `offset()`, `cursor()`, `distinct()`, or `distinctOn()` on the collection makes this method throw an error whose `code` is `ORM.ARGUMENT_INVALID`, because it changes every matching row and cannot apply them. An `orderBy()` is accepted. To change only some of the matching rows, read their ids first, then filter on them, as [Writing data](https://www.prisma.io/docs/orm/fundamentals/writing-data#update-or-delete-a-limited-number-of-rows) shows."
+        },
+        {
+          "line": 1408,
+          "text": ""
+        },
+        {
+          "line": 1412,
+          "text": "| ----------- | ----------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------ |"
+        },
+        {
+          "line": 1413,
+          "text": "| The changes | Object of field values, or on MongoDB a field-operations callback | Yes      | What to set on every matched row, passed as the only argument. There is no `data` wrapper. |"
+        },
+        {
+          "line": 1414,
+          "text": ""
+        },
+        {
+          "line": 1415,
+          "text": "#### Return type [#return-type-18]"
+        },
+        {
+          "line": 1564,
+          "text": ""
+        },
+        {
+          "line": 1565,
+          "text": "* On MongoDB, call `where()` first. The filter decides which document is updated."
+        },
+        {
+          "line": 1566,
+          "text": "* On PostgreSQL, `upsert()` never reads the filters. A `where()` before it is ignored, without an error. `conflictOn` decides which row counts as already existing."
+        },
+        {
+          "line": 1567,
+          "text": "* `conflictOn` names the unique column that decides insert or update, such as `conflictOn: { label: 'typescript' }`. Only the column name is used. The value is required by the type and is then ignored, so pass any value of the right type."
+        },
+        {
+          "line": 1569,
+          "text": "* When a row is inserted on PostgreSQL, the `create` side is used as you wrote it."
+        },
+        {
+          "line": 1570,
+          "text": "* When a row is inserted on MongoDB, a field that appears in both `create` and `update` takes the `update` value."
+        },
+        {
+          "line": 1571,
+          "text": "* On MongoDB, a field that has an update default, such as `temporal.updatedAt()`, keeps the value you give it in `create` when a document is inserted, and still gets the current time when a document is updated. An upsert whose `create` sets such a field cannot also `pull()` by a match document in its update. That throws an error whose `code` is `ORM.OPERATION_UNSUPPORTED`."
+        },
+        {
+          "line": 1572,
+          "text": "* On MongoDB, the `update` side takes an object of field values or a field-operations callback."
+        },
+        {
+          "line": 1573,
+          "text": "* On PostgreSQL, `upsert()` does not work on a variant stored in its own table, the same restriction as [`createAndCount()`](#createandcount). It throws an error whose `code` is `ORM.OPERATION_UNSUPPORTED`, with the message `upsert() is not supported for MTI variant \"Bug\" on model \"Task\". Use createAll() instead.`"
+        },
+        {
+          "line": 1574,
+          "text": "* There is no upsert for such a variant. Read the row with `first()`, then call `create()` or `update()`."
+        },
+        {
+          "line": 1575,
+          "text": "* On MongoDB, the `_id` on the returned row is a hex string, not the driver's `ObjectId`."
+        },
+        {
+          "line": 1576,
+          "text": ""
+        },
+        {
+          "line": 1577,
+          "text": "#### Options [#options-22]"
+        },
+        {
+          "line": 1581,
+          "text": "| `create`     | Object of field values                                            | Yes      | The row to insert if none matches.                          |"
+        },
+        {
+          "line": 1582,
+          "text": "| `update`     | Object of field values, or on MongoDB a field-operations callback | Yes      | The changes to apply if a row matches.                      |"
+        },
+        {
+          "line": 1583,
+          "text": "| `conflictOn` | Object naming the unique column or columns, PostgreSQL only       | No       | What decides insert or update. Omit to use the primary key. |"
+        },
+        {
+          "line": 1584,
+          "text": ""
+        },
+        {
+          "line": 1624,
+          "text": "});"
+        },
+        {
+          "line": 1625,
+          "text": "// on insert, bio is 'set on upsert': the `update` value wins on MongoDB"
+        },
+        {
+          "line": 1626,
+          "text": "```"
+        },
+        {
+          "line": 1627,
+          "text": ""
+        },
+        {
+          "line": 1663,
+          "text": ""
+        },
+        {
+          "line": 1664,
+          "text": "These methods exist only on PostgreSQL collections. `aggregate()` treats every row the query matches as one group, while `groupBy().aggregate()` aggregates per group and `having()` filters those groups. A MongoDB model's collection has none of them, so to aggregate on MongoDB, use the pipeline builder, which is Prisma ORM's API for MongoDB's aggregation pipeline and is described in [MongoDB: Pipeline builder](https://www.prisma.io/docs/orm/fundamentals/advanced-queries#mongodb-pipeline-builder)."
+        },
+        {
+          "line": 1665,
+          "text": ""
+        },
+        {
+          "line": 1666,
+          "text": "The examples below use a separate `Customer` / `Order` schema, where `Order.amount` is a numeric column:"
+        },
+        {
+          "line": 1700,
+          "text": ""
+        },
+        {
+          "line": 1701,
+          "text": "* PostgreSQL only. Not available on MongoDB."
+        },
+        {
+          "line": 1702,
+          "text": "* `count()` counts rows and returns a number, `0` when no rows match."
+        },
+        {
+          "line": 1703,
+          "text": "* `count(field)` counts the rows where that field is not null."
+        },
+        {
+          "line": 1798,
+          "text": ""
+        },
+        {
+          "line": 1799,
+          "text": "* PostgreSQL only. Not available on MongoDB."
+        },
+        {
+          "line": 1800,
+          "text": "* Pass field names as separate arguments: `groupBy('customerId', 'channel')`."
+        },
+        {
+          "line": 1801,
+          "text": "* `groupBy(...)` returns a `GroupedCollection`. You cannot `await` it. Call `.aggregate(...)` on it, which runs the query and gives you one row per group. Each row holds the grouping fields, typed as they are on your model, plus the keys you returned from the aggregate callback."
+        },
+        {
+          "line": 1851,
+          "text": ""
+        },
+        {
+          "line": 1852,
+          "text": "* PostgreSQL only. Not available on MongoDB. Call it on the result of `groupBy()`."
+        },
+        {
+          "line": 1853,
+          "text": "* The `having()` callback gives you `count()`, `count(field)`, `sum(field)`, `avg(field)`, `min(field)`, and `max(field)`. Call a comparison on the result: `h.sum('amount').gt(1000)`. The comparisons are `eq`, `neq`, `gt`, `lt`, `gte`, and `lte`."
+        },
+        {
+          "line": 1854,
+          "text": "* For more than one condition, call `.having(...)` again. The conditions are combined with AND."
+        },
+        {
+          "line": 2021,
+          "text": "* On PostgreSQL, `all()` takes no arguments and returns a condition that matches every row. This `all()` is not the `.all()` you call at the end of a chain to run the query."
+        },
+        {
+          "line": 2022,
+          "text": "* On MongoDB, call `.and(other)` and `.not()` on a condition you already built, as in `MongoFieldFilter.eq('name', 'Alice').and(...)`. There is no `.or()` method. To OR conditions, build `MongoOrExpr.of([...])`."
+        },
+        {
+          "line": 2023,
+          "text": "* On MongoDB, `.and(other)` takes exactly one condition. For three, chain it: `a.and(b).and(c)`. You can also write all three at once with `MongoAndExpr.of([a, b, c])`. `MongoAndExpr` and `MongoOrExpr` come from the same module as `MongoFieldFilter`."
+        },
+        {
+          "line": 2024,
+          "text": ""
+        },
+        {
+          "line": 2025,
+          "text": "#### Examples [#examples-30]"
+        },
+        {
+          "line": 2119,
+          "text": "* Multiple keys are combined with implicit AND. A key set to `undefined` is skipped."
+        },
+        {
+          "line": 2120,
+          "text": "* On PostgreSQL, a key set to `null` becomes an IS NULL check. On MongoDB it matches documents where the field is null and documents where the field is missing."
+        },
+        {
+          "line": 2121,
+          "text": "* On PostgreSQL, the shorthand object cannot filter a field whose type cannot be compared for equality, such as `Json`. Using that field as a key compiles, but fails at run time with an error whose `code` is `ORM.FILTER_UNSUPPORTED`. Use the callback form, which has whatever methods that type does support. On a `Json` field those are `isNull()` and `isNotNull()`."
+        },
+        {
+          "line": 2122,
+          "text": ""
+        },
+        {
+          "line": 2231,
+          "text": ""
+        },
+        {
+          "line": 2232,
+          "text": "On MongoDB, `update()`, `updateAll()`, `updateAndCount()`, and `upsert()` take a callback in place of a data object. The callback gets one argument, the update builder, written `u` in these examples, and returns an array of the operations you want. `updateAndCount()` takes the callback in the same place as `update()`, while `upsert()` takes it as its `update` key, beside `create`. PostgreSQL has no callback form: pass an object to [`update()`](#update) instead."
+        },
+        {
+          "line": 2233,
+          "text": ""
+        },
+        {
+          "line": 2234,
+          "text": "* For a top-level field, read it off the update builder as a property: `u.bio.set('Hello')`."
+        },
+        {
+          "line": 2339,
+          "text": ""
+        },
+        {
+          "line": 2340,
+          "text": "Import `Scalars` and `Shape` from `@prisma/orm-postgres/family-contract/types`, or `@prisma/orm-mongo/family-contract/types` on MongoDB. Import `ResultType` from `@prisma/orm-postgres/components/runtime`. A contract emitted before `8.0.0-rc.10` has no `Models`; run `npx prisma contract emit` again after upgrading."
+        },
+        {
+          "line": 2341,
+          "text": ""
+        },
+        {
+          "line": 2342,
+          "text": "```typescript"
+        },
+        {
+          "line": 2366,
+          "text": ""
+        },
+        {
+          "line": 2367,
+          "text": "`createAll()`, `updateAll()`, and `deleteAll()` exist on PostgreSQL as well as MongoDB, and [Write methods](#mutation-terminals) documents what each one takes, with examples. If you need the type by name, import it from `@prisma/orm-postgres/components/runtime` on PostgreSQL, or from `@prisma/orm-mongo/components/runtime` on MongoDB."
+        },
+        {
+          "line": 2368,
+          "text": ""
+        },
+        {
+          "line": 2369,
+          "text": "#### Single consumption and mode switching [#single-consumption-and-mode-switching]"
+        },
+        {
+          "line": 2373,
+          "text": "* Re-`await`ing (or calling `.toArray()` on) a result you already awaited is **safe**. It returns the same array."
+        },
+        {
+          "line": 2374,
+          "text": "* Looping a result a second time with `for await` throws an error whose `code` is `RUNTIME.ITERATOR_CONSUMED`. So does switching from one way to the other, such as awaiting a result and then looping it. The message contains `already been consumed`. To recognise the error, import `isRuntimeError` from `@prisma/orm-postgres/components/runtime` on PostgreSQL, or from `@prisma/orm-mongo/components/runtime` on MongoDB, and check `error.code`."
+        },
+        {
+          "line": 2375,
+          "text": ""
+        },
+        {
+          "line": 2376,
+          "text": "PostgreSQL and MongoDB behave the same here, and the example below uses the PostgreSQL accessor. On MongoDB the same methods are on `db.orm.users`, see [Setting up the client](#setting-up-the-client). `all()` returns the result object straight away, and the `await` is what runs the query, so the example holds the result in a variable."
+        },
+        {
+          "line": 2377,
+          "text": ""
+        },
+        {
+          "line": 2378,
+          "text": "```typescript"
+        }
+      ]
+    },
+    {
+      "url": "https://mikro-orm.io/docs/usage-with-mongo",
+      "resolvedUrl": "https://mikro-orm.io/docs/usage-with-mongo",
+      "queriedAt": "2026-10-19T11:25:35.322033+00:00",
+      "httpStatus": 200,
+      "sha256": "4fa5978238686776e54cccbc8e4a2c805d9e7ddb948ff9be1f650bdc602ff411",
+      "excerpts": [
+        {
+          "line": 132,
+          "text": ","
+        },
+        {
+          "line": 133,
+          "text": "dbName"
+        },
+        {
+          "line": 134,
+          "text": ":"
+        },
+        {
+          "line": 135,
+          "text": "'my-db-name'"
+        },
+        {
+          "line": 375,
+          "text": "MongoDB driver supports transactions. To use transactions, there are several things you need to respect:"
+        },
+        {
+          "line": 376,
+          "text": "you need to use replica set (see"
+        },
+        {
+          "line": 377,
+          "text": "run-rs"
+        },
+        {
+          "line": 378,
+          "text": ")"
+        },
+        {
+          "line": 388,
+          "text": "method to do so"
+        },
+        {
+          "line": 389,
+          "text": "# first create replica set"
+        },
+        {
+          "line": 390,
+          "text": "$ run-rs"
+        },
+        {
+          "line": 391,
+          "text": "-v"
+        },
+        {
+          "line": 471,
+          "text": ","
+        },
+        {
+          "line": 472,
+          "text": "dbName"
+        },
+        {
+          "line": 473,
+          "text": ":"
+        },
+        {
+          "line": 474,
+          "text": "'my-db-name'"
+        }
+      ]
+    },
+    {
+      "url": "https://mikro-orm.io/docs/transactions",
+      "resolvedUrl": "https://mikro-orm.io/docs/transactions",
+      "queriedAt": "2026-10-19T11:25:35.398814+00:00",
+      "httpStatus": 200,
+      "sha256": "1343fd16156de64c4b8415b4c9e1317f3184705d50789a2d7cb3a0034719d592",
+      "excerpts": [
+        {
+          "line": 1889,
+          "text": "\u200b"
+        },
+        {
+          "line": 1890,
+          "text": "Database transactions are fine for concurrency control during a single request. However, a database transaction should not span across requests, the so-called \"user think time\". Therefore, a long-running \"business transaction\" that spans multiple requests needs to involve several database transactions. Thus, database transactions alone can no longer control concurrency during such a long-running business transaction. Concurrency control becomes the partial responsibility of the application itself."
+        },
+        {
+          "line": 1891,
+          "text": "MikroORM has integrated support for automatic optimistic locking via a version field. In this approach any entity that should be protected against concurrent modifications during long-running business transactions gets a version field that is either a simple number (mapping type: integer) or a timestamp (mapping type: datetime). When changes to such an entity are persisted at the end of a long-running conversation the version of the entity is compared to the version in the database and if they don't match, a"
+        },
+        {
+          "line": 1892,
+          "text": "OptimisticLockError"
+        },
+        {
+          "line": 1945,
+          "text": "are to present the conflict to the user or to refresh or reload objects in a new transaction and then retrying the transaction."
+        },
+        {
+          "line": 1946,
+          "text": "The time between showing an update form and actually modifying the entity can in the worst scenario be as long as your application's session timeout. If changes happen to the entity in that time frame you want to know directly when retrieving the entity that you will hit an optimistic locking exception:"
+        },
+        {
+          "line": 1947,
+          "text": "You can always verify the version of an entity during a request either when calling"
+        },
+        {
+          "line": 1948,
+          "text": "em.findOne()"
+        },
+        {
+          "line": 2153,
+          "text": "have"
+        },
+        {
+          "line": 2154,
+          "text": "to add the version as an additional hidden field (or into the session for more safety). Otherwise, you cannot verify the version is still the one being originally read from the database when Alice performed her GET request for the blog post. If this happens you might see lost updates you wanted to prevent with Optimistic Locking."
+        },
+        {
+          "line": 2155,
+          "text": "See the example code (frontend):"
+        },
+        {
+          "line": 2156,
+          "text": "const"
+        }
+      ]
+    },
+    {
+      "url": "https://mikro-orm.io/docs/configuration",
+      "resolvedUrl": "https://mikro-orm.io/docs/configuration",
+      "queriedAt": "2026-10-19T11:25:35.797398+00:00",
+      "httpStatus": 200,
+      "sha256": "42faec83473a901fb717ac2dbd0cce649e2b5906201f3797ece717680642aee0",
+      "excerpts": [
+        {
+          "line": 458,
+          "text": "{"
+        },
+        {
+          "line": 459,
+          "text": "dbName"
+        },
+        {
+          "line": 460,
+          "text": ":"
+        },
+        {
+          "line": 461,
+          "text": "'test'"
+        },
+        {
+          "line": 766,
+          "text": "{"
+        },
+        {
+          "line": 767,
+          "text": "dbName"
+        },
+        {
+          "line": 768,
+          "text": "?"
+        },
+        {
+          "line": 769,
+          "text": ":"
+        },
+        {
+          "line": 872,
+          "text": "{"
+        },
+        {
+          "line": 873,
+          "text": "dbName"
+        },
+        {
+          "line": 874,
+          "text": ":"
+        },
+        {
+          "line": 875,
+          "text": "'my_db_name'"
+        },
+        {
+          "line": 947,
+          "text": "attachDatabases"
+        },
+        {
+          "line": 948,
+          "text": "option. Each attached database acts as a separate schema, allowing you to organize entities across multiple database files."
+        },
+        {
+          "line": 949,
+          "text": "Read more about this in"
+        },
+        {
+          "line": 950,
+          "text": "Using Multiple Schemas"
+        },
+        {
+          "line": 959,
+          "text": "{"
+        },
+        {
+          "line": 960,
+          "text": "dbName"
+        },
+        {
+          "line": 961,
+          "text": ":"
+        },
+        {
+          "line": 962,
+          "text": "'my_db_name'"
+        },
+        {
+          "line": 981,
+          "text": "AsyncLocalStorage"
+        },
+        {
+          "line": 982,
+          "text": "to set request-scoped session variables before each query."
+        },
+        {
+          "line": 983,
+          "text": "info"
+        },
+        {
+          "line": 984,
+          "text": "For PostgreSQL row level security you no longer need to hand-roll this \u2014 the ORM manages session variables natively via"
+        },
+        {
+          "line": 985,
+          "text": "em.fork({ session })"
+        },
+        {
+          "line": 986,
+          "text": "and the"
+        },
+        {
+          "line": 987,
+          "text": "sessionContext"
+        },
+        {
+          "line": 988,
+          "text": "option, see the"
+        },
+        {
+          "line": 989,
+          "text": "Row Level Security"
+        },
+        {
+          "line": 993,
+          "text": "pool. The example below uses PostgreSQL syntax \u2014 adapt the statement to your driver (e.g."
+        },
+        {
+          "line": 994,
+          "text": "sp_set_session_context"
+        },
+        {
+          "line": 995,
+          "text": "on MSSQL)."
+        },
+        {
+          "line": 996,
+          "text": "import"
+        },
+        {
+          "line": 2198,
+          "text": "MIKRO_ORM_DB_NAME"
+        },
+        {
+          "line": 2199,
+          "text": "dbName"
+        },
+        {
+          "line": 2200,
+          "text": "MIKRO_ORM_SCHEMA"
+        },
+        {
+          "line": 2201,
+          "text": "schema"
+        }
+      ]
+    },
+    {
+      "url": "https://www.mongodb.com/docs/v8.0/core/transactions-production-consideration/",
+      "resolvedUrl": "https://www.mongodb.com/docs/v8.0/core/transactions-production-consideration/",
+      "queriedAt": "2026-10-19T11:25:38.270436+00:00",
+      "httpStatus": 200,
+      "sha256": "9ea069f564938316a8ef1f3d7831ca9ee73738424ceaff6e6161afb5d674c28a",
+      "excerpts": [
+        {
+          "line": 257,
+          "text": "Copy page"
+        },
+        {
+          "line": 258,
+          "text": "The following page lists some production considerations for running transactions. These apply whether you run transactions on replica sets or sharded clusters. For running transactions on sharded clusters, see also the"
+        },
+        {
+          "line": 259,
+          "text": "Production Considerations (Sharded Clusters)"
+        },
+        {
+          "line": 260,
+          "text": "for additional considerations that are specific to sharded clusters."
+        },
+        {
+          "line": 261,
+          "text": "Availability"
+        },
+        {
+          "line": 262,
+          "text": "MongoDB"
+        },
+        {
+          "line": 263,
+          "text": "standalone"
+        },
+        {
+          "line": 264,
+          "text": "deployments do not support transactions. To use transactions, your deployment must be a multiple node replica set."
+        },
+        {
+          "line": 265,
+          "text": "MongoDB supports multi-document transactions on replica sets."
+        },
+        {
+          "line": 266,
+          "text": "Distributed transactions add support for multi-document transactions on sharded clusters and incorporates the existing support for multi-document transactions on replica sets."
+        },
+        {
+          "line": 267,
+          "text": "Note"
+        },
+        {
+          "line": 268,
+          "text": "Distributed Transactions and Multi-Document Transactions"
+        },
+        {
+          "line": 269,
+          "text": "The two terms are synonymous. Distributed transactions refer to multi-document transactions on sharded clusters and replica sets. Multi-document transactions (whether on sharded clusters or replica sets) are also known as distributed transactions."
+        },
+        {
+          "line": 270,
+          "text": "Feature Compatibility"
+        },
+        {
+          "line": 271,
+          "text": "To use transactions, the"
+        },
+        {
+          "line": 276,
+          "text": "featureCompatibilityVersion"
+        },
+        {
+          "line": 277,
+          "text": "Replica Set"
+        },
+        {
+          "line": 278,
+          "text": "4.0"
+        },
+        {
+          "line": 279,
+          "text": "Sharded Cluster"
+        },
+        {
+          "line": 280,
+          "text": "4.2"
+        },
+        {
+          "line": 281,
+          "text": "To check the FCV for a member, connect to the member and run the following command:"
+        },
+        {
+          "line": 305,
+          "text": "mongod"
+        },
+        {
+          "line": 306,
+          "text": "instances. For sharded clusters, the parameter must be modified for all shard replica set members. Transactions that exceeds this limit are considered expired and will be aborted by a periodic cleanup process."
+        },
+        {
+          "line": 307,
+          "text": "For sharded clusters, you can also specify a"
+        },
+        {
+          "line": 308,
+          "text": "maxTimeMS"
+        },
+        {
+          "line": 309,
+          "text": "limit on"
+        },
+        {
+          "line": 311,
+          "text": ". For more information, see"
+        },
+        {
+          "line": 312,
+          "text": "Sharded Clusters"
+        },
+        {
+          "line": 313,
+          "text": "Transactions Time Limit."
+        },
+        {
+          "line": 314,
+          "text": "Oplog Size Limit"
+        },
+        {
+          "line": 344,
+          "text": "Shard Configuration Restriction"
+        },
+        {
+          "line": 345,
+          "text": "You cannot run transactions on a sharded cluster that has a shard with"
+        },
+        {
+          "line": 346,
+          "text": "writeConcernMajorityJournalDefault"
+        },
+        {
+          "line": 347,
+          "text": "set to"
+        },
+        {
+          "line": 352,
+          "text": ")."
+        },
+        {
+          "line": 353,
+          "text": "Sharded Clusters and Arbiters"
+        },
+        {
+          "line": 354,
+          "text": "You cannot change a"
+        },
+        {
+          "line": 355,
+          "text": "shard key"
+        },
+        {
+          "line": 356,
+          "text": "using a transaction if the replica set has an arbiter. Arbiters cannot participate in the data operations required for multi-shard transactions."
+        },
+        {
+          "line": 357,
+          "text": "Transactions whose write operations span multiple shards will error and abort if any transaction operation reads from or writes to a shard that contains an arbiter."
+        },
+        {
+          "line": 358,
+          "text": "Acquiring Locks"
+        },
+        {
+          "line": 512,
+          "text": "2"
+        },
+        {
+          "line": 513,
+          "text": "Start a session"
+        },
+        {
+          "line": 514,
+          "text": "session"
+        },
+        {
+          "line": 515,
+          "text": "="
+        },
+        {
+          "line": 516,
+          "text": "db."
+        },
+        {
+          "line": 519,
+          "text": ")."
+        },
+        {
+          "line": 520,
+          "text": "startSession"
+        },
+        {
+          "line": 521,
+          "text": "("
+        },
+        {
+          "line": 522,
+          "text": "{"
+        },
+        {
+          "line": 531,
+          "text": "Start a transaction"
+        },
+        {
+          "line": 532,
+          "text": "session."
+        },
+        {
+          "line": 533,
+          "text": "startTransaction"
+        },
+        {
+          "line": 534,
+          "text": "("
+        },
+        {
+          "line": 552,
+          "text": "="
+        },
+        {
+          "line": 553,
+          "text": "session."
+        },
+        {
+          "line": 554,
+          "text": "getDatabase"
+        },
+        {
+          "line": 555,
+          "text": "("
+        },
+        {
+          "line": 603,
+          "text": "Commit the transaction"
+        },
+        {
+          "line": 604,
+          "text": "session."
+        },
+        {
+          "line": 605,
+          "text": "commitTransaction"
+        },
+        {
+          "line": 606,
+          "text": "("
+        },
+        {
+          "line": 627,
+          "text": "wait until all writes of a transaction are visible."
+        },
+        {
+          "line": 628,
+          "text": "Outside reads that are part of causally consistent sessions (those that include"
+        },
+        {
+          "line": 629,
+          "text": "afterClusterTime"
+        },
+        {
+          "line": 630,
+          "text": ") wait until all writes of a transaction are visible."
+        },
+        {
+          "line": 633,
+          "text": "Tip"
+        },
+        {
+          "line": 634,
+          "text": "Production Considerations (Sharded Clusters)"
+        },
+        {
+          "line": 635,
+          "text": "Back"
+        },
+        {
+          "line": 636,
+          "text": "Operations"
+        },
+        {
+          "line": 637,
+          "text": "Next"
+        },
+        {
+          "line": 638,
+          "text": "Sharded Clusters"
+        },
+        {
+          "line": 639,
+          "text": "Rate this page"
+        },
+        {
+          "line": 640,
+          "text": "On this page"
+        },
+        {
+          "line": 647,
+          "text": "Shard Configuration Restriction"
+        },
+        {
+          "line": 648,
+          "text": "Sharded Clusters and Arbiters"
+        },
+        {
+          "line": 649,
+          "text": "Acquiring Locks"
+        },
+        {
+          "line": 650,
+          "text": "Pending DDL Operations and Transactions"
+        },
+        {
+          "line": 663,
+          "text": "Shard Configuration Restriction"
+        },
+        {
+          "line": 664,
+          "text": "Sharded Clusters and Arbiters"
+        },
+        {
+          "line": 665,
+          "text": "Acquiring Locks"
+        },
+        {
+          "line": 666,
+          "text": "Pending DDL Operations and Transactions"
+        },
+        {
+          "line": 699,
+          "text": "Production Considerations"
+        },
+        {
+          "line": 700,
+          "text": "Sharded Clusters"
+        },
+        {
+          "line": 701,
+          "text": "Data Federation"
+        },
+        {
+          "line": 702,
+          "text": "In-Use Encryption"
+        },
+        {
+          "line": 756,
+          "text": "Production Considerations"
+        },
+        {
+          "line": 757,
+          "text": "Sharded Clusters"
+        },
+        {
+          "line": 758,
+          "text": "Data Federation"
+        },
+        {
+          "line": 759,
+          "text": "In-Use Encryption"
+        }
+      ]
+    },
+    {
+      "url": "https://www.mongodb.com/docs/manual/tutorial/convert-standalone-to-replica-set/",
+      "resolvedUrl": "https://www.mongodb.com/docs/manual/tutorial/convert-standalone-to-replica-set/",
+      "queriedAt": "2026-10-19T11:25:40.570487+00:00",
+      "httpStatus": 200,
+      "sha256": "015743475db00d6121f251c62b2312c1a811887455d88b9ab8736d5d9f952c1a",
+      "excerpts": [
+        {
+          "line": 1,
+          "text": "Convert a Standalone Self-Managed mongod to a Replica Set - Database Manual - MongoDB Docs"
+        },
+        {
+          "line": 2,
+          "text": "For AI agents: a documentation index is available at https://www.mongodb.com/docs/llms.txt \u2014 markdown versions of all pages are available by appending .md to any URL path."
+        },
+        {
+          "line": 3,
+          "text": "Products"
+        },
+        {
+          "line": 244,
+          "text": "/"
+        },
+        {
+          "line": 245,
+          "text": "Replica Set Deployment Tutorials"
+        },
+        {
+          "line": 246,
+          "text": "Docs Home"
+        },
+        {
+          "line": 247,
+          "text": "/"
+        },
+        {
+          "line": 249,
+          "text": "/"
+        },
+        {
+          "line": 250,
+          "text": "Replica Set Deployment Tutorials"
+        },
+        {
+          "line": 251,
+          "text": "Docs Home"
+        },
+        {
+          "line": 252,
+          "text": "/"
+        },
+        {
+          "line": 254,
+          "text": "/"
+        },
+        {
+          "line": 255,
+          "text": "Replica Set Deployment Tutorials"
+        },
+        {
+          "line": 256,
+          "text": "Convert a Standalone Self-Managed mongod to a Replica Set"
+        },
+        {
+          "line": 257,
+          "text": "Copy page"
+        },
+        {
+          "line": 258,
+          "text": "Use a"
+        },
+        {
+          "line": 259,
+          "text": "standalone"
+        },
+        {
+          "line": 260,
+          "text": "mongod"
+        },
+        {
+          "line": 261,
+          "text": "instance for testing and development. A standalone instance isn't a good choice for a production deployment because it can be a single point of failure. A"
+        },
+        {
+          "line": 262,
+          "text": "replica"
+        },
+        {
+          "line": 263,
+          "text": "set"
+        },
+        {
+          "line": 264,
+          "text": "provides redundancy and availability. Always use a replica set in production."
+        },
+        {
+          "line": 265,
+          "text": "If you have a standalone server with data that you want to use in production, convert the standalone server to a replica set first."
+        },
+        {
+          "line": 266,
+          "text": "Important"
+        },
+        {
+          "line": 267,
+          "text": "If you convert a development server to a replica set for production use, consult the"
+        },
+        {
+          "line": 268,
+          "text": "security checklist"
+        },
+        {
+          "line": 269,
+          "text": "first. Do this before you expose your cluster to the Internet."
+        },
+        {
+          "line": 270,
+          "text": "You can migrate from a standalone server to a"
+        },
+        {
+          "line": 271,
+          "text": "MongoDB Atlas"
+        },
+        {
+          "line": 272,
+          "text": "cluster. MongoDB Atlas is the fully managed service for MongoDB deployments in the cloud. To learn more, see"
+        },
+        {
+          "line": 282,
+          "text": "27017"
+        },
+        {
+          "line": 283,
+          "text": "A running standalone MongoDB Server with data."
+        },
+        {
+          "line": 284,
+          "text": "mongodb1.example.net"
+        },
+        {
+          "line": 285,
+          "text": "27017"
+        },
+        {
+          "line": 286,
+          "text": "A new MongoDB Server to join the replica set."
+        },
+        {
+          "line": 287,
+          "text": "mongodb2.example.net"
+        },
+        {
+          "line": 288,
+          "text": "27017"
+        },
+        {
+          "line": 289,
+          "text": "A new MongoDB Server to join the replica set."
+        },
+        {
+          "line": 290,
+          "text": "Before You Begin"
+        },
+        {
+          "line": 291,
+          "text": "Cluster Type"
+        },
+        {
+          "line": 292,
+          "text": "Before you convert your standalone instance, consider whether a"
+        },
+        {
+          "line": 293,
+          "text": "replica set"
+        },
+        {
+          "line": 294,
+          "text": "or a"
+        },
+        {
+          "line": 295,
+          "text": "sharded cluster"
+        },
+        {
+          "line": 296,
+          "text": "is more appropriate for your workload."
+        },
+        {
+          "line": 297,
+          "text": "A sharded cluster provides redundancy and availability by distributing data across"
+        },
+        {
+          "line": 298,
+          "text": "shards"
+        },
+        {
+          "line": 299,
+          "text": ", which are usually hosted on multiple servers to allow horizontal scaling."
+        },
+        {
+          "line": 300,
+          "text": "Authorization"
+        },
+        {
+          "line": 301,
+          "text": "To use authorization with a replica set, you must also configure replica set members to use X.509 certificates or keyfiles to perform internal authentication."
+        },
+        {
+          "line": 302,
+          "text": "For more information, see:"
+        },
+        {
+          "line": 303,
+          "text": "Verify Cluster Membership with X.509 on Self-Managed MongoDB"
+        },
+        {
+          "line": 304,
+          "text": "Deploy Self-Managed Replica Set With Keyfile Authentication"
+        },
+        {
+          "line": 305,
+          "text": "Procedure"
+        },
+        {
+          "line": 306,
+          "text": "1"
+        },
+        {
+          "line": 307,
+          "text": "Shut down the standalone instance."
+        },
+        {
+          "line": 308,
+          "text": "Use"
+        },
+        {
+          "line": 309,
+          "text": "mongosh"
+        },
+        {
+          "line": 331,
+          "text": ":"
+        },
+        {
+          "line": 332,
+          "text": "\"Convert to replica set\""
+        },
+        {
+          "line": 333,
+          "text": "}"
+        },
+        {
+          "line": 334,
+          "text": ")"
+        },
+        {
+          "line": 339,
+          "text": "2"
+        },
+        {
+          "line": 340,
+          "text": "Configure Replica Set Members"
+        },
+        {
+          "line": 341,
+          "text": "Update the configuration file on each server to set the"
+        },
+        {
+          "line": 342,
+          "text": "replSetName"
+        },
+        {
+          "line": 348,
+          "text": "Configure Member Authentication"
+        },
+        {
+          "line": 349,
+          "text": "Configure member authentication for each server in the replica set."
+        },
+        {
+          "line": 350,
+          "text": "X.509 Authentication"
+        },
+        {
+          "line": 351,
+          "text": "Keyfile Authentication"
+        },
+        {
+          "line": 352,
+          "text": "No Authentication"
+        },
+        {
+          "line": 353,
+          "text": "Configure the replica set to use X.509 certificates for internal member authentication."
+        },
+        {
+          "line": 354,
+          "text": "Setting"
+        },
+        {
+          "line": 355,
+          "text": "Option"
+        },
+        {
+          "line": 396,
+          "text": "/etc/mongodb/member.pem"
+        },
+        {
+          "line": 397,
+          "text": "Configure the replica set to use keyfiles for internal member authentication. To authenticate, each member must have a copy of the same keyfile."
+        },
+        {
+          "line": 398,
+          "text": "Setting"
+        },
+        {
+          "line": 399,
+          "text": "Option"
+        },
+        {
+          "line": 402,
+          "text": "--keyFile"
+        },
+        {
+          "line": 403,
+          "text": "Sets the path to the replica set keyfile."
+        },
+        {
+          "line": 404,
+          "text": "For example:"
+        },
+        {
+          "line": 405,
+          "text": "replication:"
+        },
+        {
+          "line": 410,
+          "text": "/etc/mongodb/keyfile"
+        },
+        {
+          "line": 411,
+          "text": "Configures a replica set without authorization."
+        },
+        {
+          "line": 412,
+          "text": "Warning"
+        },
+        {
+          "line": 413,
+          "text": "You should only use this configuration for internal replica sets that are"
+        },
+        {
+          "line": 414,
+          "text": "not"
+        },
+        {
+          "line": 415,
+          "text": "accessible through the network."
+        },
+        {
+          "line": 436,
+          "text": "5"
+        },
+        {
+          "line": 437,
+          "text": "Initialize the replica set."
+        },
+        {
+          "line": 438,
+          "text": "To initialize the replica set, use"
+        },
+        {
+          "line": 439,
+          "text": "mongosh"
+        },
+        {
+          "line": 440,
+          "text": "to reconnect to your server instance."
+        },
+        {
+          "line": 448,
+          "text": ")"
+        },
+        {
+          "line": 449,
+          "text": "You only have to initiate the replica set once."
+        },
+        {
+          "line": 450,
+          "text": "To view the replica set configuration, use"
+        },
+        {
+          "line": 451,
+          "text": "rs.conf()"
+        },
+        {
+          "line": 452,
+          "text": "."
+        },
+        {
+          "line": 453,
+          "text": "To check the status of the replica set, use"
+        },
+        {
+          "line": 454,
+          "text": "rs.status()"
+        },
+        {
+          "line": 455,
+          "text": "."
+        },
+        {
+          "line": 456,
+          "text": "6"
+        },
+        {
+          "line": 457,
+          "text": "Add nodes to the replica set."
+        },
+        {
+          "line": 458,
+          "text": "The new replica set has a single, primary node. Review the documentation on clusters before you add additional nodes:"
+        },
+        {
+          "line": 459,
+          "text": "Replica set architectures"
+        },
+        {
+          "line": 460,
+          "text": "Adding members to a replica set"
+        },
+        {
+          "line": 461,
+          "text": "To add nodes, run the"
+        },
+        {
+          "line": 462,
+          "text": "rs.add()"
+        },
+        {
+          "line": 475,
+          "text": "Check replication status."
+        },
+        {
+          "line": 476,
+          "text": "To check that the replica set is correctly configured, run the"
+        },
+        {
+          "line": 477,
+          "text": "rs.status()"
+        },
+        {
+          "line": 478,
+          "text": "method and check that the new members are listed in the"
+        },
+        {
+          "line": 486,
+          "text": "Update Your Application Connection String."
+        },
+        {
+          "line": 487,
+          "text": "After you convert the standalone server to a replica set, update the"
+        },
+        {
+          "line": 488,
+          "text": "connection string"
+        },
+        {
+          "line": 489,
+          "text": "used by your applications to the connection string for your replica set:"
+        },
+        {
+          "line": 490,
+          "text": "mongodb0.example.net:27017"
+        },
+        {
+          "line": 491,
+          "text": "mongodb1.example.net:27017"
+        },
+        {
+          "line": 496,
+          "text": "Configuration options"
+        },
+        {
+          "line": 497,
+          "text": "Deploy a standalone instance"
+        },
+        {
+          "line": 498,
+          "text": "Deploy a new replica set"
+        },
+        {
+          "line": 499,
+          "text": "Back"
+        },
+        {
+          "line": 500,
+          "text": "Add an Arbiter to a Replica Set"
+        },
+        {
+          "line": 501,
+          "text": "Next"
+        },
+        {
+          "line": 502,
+          "text": "Add Members to a Replica Set"
+        },
+        {
+          "line": 503,
+          "text": "Rate this page"
+        },
+        {
+          "line": 504,
+          "text": "Documentation"
+        },
+        {
+          "line": 540,
+          "text": "Deployment Architectures"
+        },
+        {
+          "line": 541,
+          "text": "Replica Set Deployment Tutorials"
+        },
+        {
+          "line": 542,
+          "text": "Deploy a Replica Set"
+        },
+        {
+          "line": 543,
+          "text": "Deploy a Replica Set for Testing and Development"
+        },
+        {
+          "line": 544,
+          "text": "Deploy a Geographically Redundant Replica Set"
+        },
+        {
+          "line": 545,
+          "text": "Add an Arbiter to a Replica Set"
+        },
+        {
+          "line": 546,
+          "text": "Convert a Standalone mongod to a Replica Set"
+        },
+        {
+          "line": 547,
+          "text": "Add Members to a Replica Set"
+        },
+        {
+          "line": 548,
+          "text": "Remove Members from a Replica Set"
+        },
+        {
+          "line": 549,
+          "text": "Replace a Replica Set Member"
+        },
+        {
+          "line": 550,
+          "text": "Member Configuration Tutorials"
+        },
+        {
+          "line": 551,
+          "text": "Replica Set Maintenance Tutorials"
+        },
+        {
+          "line": 552,
+          "text": "View Configuration"
+        },
+        {
+          "line": 553,
+          "text": "Replica Set Protocol Version"
+        },
+        {
+          "line": 554,
+          "text": "Troubleshoot"
+        },
+        {
+          "line": 555,
+          "text": "Performance"
+        },
+        {
+          "line": 618,
+          "text": "Deployment Architectures"
+        },
+        {
+          "line": 619,
+          "text": "Replica Set Deployment Tutorials"
+        },
+        {
+          "line": 620,
+          "text": "Deploy a Replica Set"
+        },
+        {
+          "line": 621,
+          "text": "Deploy a Replica Set for Testing and Development"
+        },
+        {
+          "line": 622,
+          "text": "Deploy a Geographically Redundant Replica Set"
+        },
+        {
+          "line": 623,
+          "text": "Add an Arbiter to a Replica Set"
+        },
+        {
+          "line": 624,
+          "text": "Convert a Standalone mongod to a Replica Set"
+        },
+        {
+          "line": 625,
+          "text": "Add Members to a Replica Set"
+        },
+        {
+          "line": 626,
+          "text": "Remove Members from a Replica Set"
+        },
+        {
+          "line": 627,
+          "text": "Replace a Replica Set Member"
+        },
+        {
+          "line": 628,
+          "text": "Member Configuration Tutorials"
+        },
+        {
+          "line": 629,
+          "text": "Replica Set Maintenance Tutorials"
+        },
+        {
+          "line": 630,
+          "text": "View Configuration"
+        },
+        {
+          "line": 631,
+          "text": "Replica Set Protocol Version"
+        },
+        {
+          "line": 632,
+          "text": "Troubleshoot"
+        },
+        {
+          "line": 633,
+          "text": "Performance"
+        }
+      ]
+    }
+  ]
+}

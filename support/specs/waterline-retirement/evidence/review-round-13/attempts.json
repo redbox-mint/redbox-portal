@@ -1,0 +1,979 @@
+{
+  "qualification": "0341c6241962729905b0400af1e1097efc81f567",
+  "finalCommands": 77,
+  "finalInitialFailures": [],
+  "apparentlyFlakyUnchangedRetries": [],
+  "deterministicDiagnosticCorrection": {
+    "commit": "f96082066",
+    "severity": "P3",
+    "trivial": true,
+    "trigger": "automatic startup-failure drain masked the existing startup-failed diagnostic with draining",
+    "beforeCommand": "storage-owner-failures",
+    "beforeSource": "127595832",
+    "beforeExitCode": 1,
+    "afterPassing": 5,
+    "afterExitCode": 0,
+    "afterSha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+    "flaky": false,
+    "beforeSha256": "48f26eb303ac20f68929b0c91e7e33fb427ad299066a07fe193259e3a5daa218"
+  },
+  "excludedPartialRuns": [
+    {
+      "name": "preliminary",
+      "sourceCommit": "cf8b249c579151de8d36ea348cbe2491d89edd84",
+      "completedCommands": 8,
+      "failed": [],
+      "qualification": "excluded; stopped before completion for subsequently discovered lifecycle or diagnostic defects",
+      "commandEvidence": [
+        {
+          "name": "accepted-drain",
+          "exitCode": 0,
+          "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413"
+        },
+        {
+          "name": "accepted-staged-drain",
+          "exitCode": 0,
+          "sha256": "648c6bc0788793ac1a1be2e35e71a8b410243b0a3f73851a64ffa16bf9709d9b"
+        },
+        {
+          "name": "batch-clocks",
+          "exitCode": 0,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36"
+        },
+        {
+          "name": "cache-read-values",
+          "exitCode": 0,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca"
+        },
+        {
+          "name": "error-boundaries",
+          "exitCode": 0,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e"
+        },
+        {
+          "name": "final-static",
+          "exitCode": 0,
+          "sha256": "f77bb75cee9361fa39ae4990358defd2f5527606af0d942b0f7fc8f592999219"
+        },
+        {
+          "name": "operation-outcomes",
+          "exitCode": 0,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105"
+        },
+        {
+          "name": "progress-writes",
+          "exitCode": 0,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066"
+        }
+      ]
+    },
+    {
+      "name": "preliminary-ack",
+      "sourceCommit": "3f50da154d24e1093965fe9f502fabb6dfca7d54",
+      "completedCommands": 10,
+      "failed": [],
+      "qualification": "excluded; stopped before completion for subsequently discovered lifecycle or diagnostic defects",
+      "commandEvidence": [
+        {
+          "name": "accepted-drain",
+          "exitCode": 0,
+          "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413"
+        },
+        {
+          "name": "accepted-staged-drain",
+          "exitCode": 0,
+          "sha256": "648c6bc0788793ac1a1be2e35e71a8b410243b0a3f73851a64ffa16bf9709d9b"
+        },
+        {
+          "name": "batch-clocks",
+          "exitCode": 0,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36"
+        },
+        {
+          "name": "cache-read-values",
+          "exitCode": 0,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca"
+        },
+        {
+          "name": "error-boundaries",
+          "exitCode": 0,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e"
+        },
+        {
+          "name": "fetch-mappings",
+          "exitCode": 0,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606"
+        },
+        {
+          "name": "final-static",
+          "exitCode": 0,
+          "sha256": "9b10dda790c03d76d78684c2d15ae908147d8b01fa6ce664dd68740f14f44435"
+        },
+        {
+          "name": "operation-boundaries",
+          "exitCode": 0,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301"
+        },
+        {
+          "name": "operation-outcomes",
+          "exitCode": 0,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105"
+        },
+        {
+          "name": "progress-writes",
+          "exitCode": 0,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066"
+        }
+      ]
+    },
+    {
+      "name": "preliminary-http-owner",
+      "sourceCommit": "601a8318cad37c5fea83bc6b2710cb5b52e20b0d",
+      "completedCommands": 10,
+      "failed": [],
+      "qualification": "excluded; stopped before completion for subsequently discovered lifecycle or diagnostic defects",
+      "commandEvidence": [
+        {
+          "name": "accepted-drain",
+          "exitCode": 0,
+          "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413"
+        },
+        {
+          "name": "accepted-staged-drain",
+          "exitCode": 0,
+          "sha256": "648c6bc0788793ac1a1be2e35e71a8b410243b0a3f73851a64ffa16bf9709d9b"
+        },
+        {
+          "name": "batch-clocks",
+          "exitCode": 0,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36"
+        },
+        {
+          "name": "cache-read-values",
+          "exitCode": 0,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca"
+        },
+        {
+          "name": "error-boundaries",
+          "exitCode": 0,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e"
+        },
+        {
+          "name": "fetch-mappings",
+          "exitCode": 0,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606"
+        },
+        {
+          "name": "final-static",
+          "exitCode": 0,
+          "sha256": "650a89876d0bc1a58e7e083d8fbed9f2fe16e70f1711cd2712b774148d3d59a9"
+        },
+        {
+          "name": "operation-boundaries",
+          "exitCode": 0,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301"
+        },
+        {
+          "name": "operation-outcomes",
+          "exitCode": 0,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105"
+        },
+        {
+          "name": "progress-writes",
+          "exitCode": 0,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066"
+        }
+      ]
+    },
+    {
+      "name": "preliminary-message",
+      "sourceCommit": "127595832cb6f244bcc9640b4b64644122b2721a",
+      "completedCommands": 52,
+      "failed": [
+        "storage-owner-failures"
+      ],
+      "qualification": "excluded; stopped before completion for subsequently discovered lifecycle or diagnostic defects",
+      "commandEvidence": [
+        {
+          "name": "accepted-drain",
+          "exitCode": 0,
+          "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413"
+        },
+        {
+          "name": "accepted-staged-drain",
+          "exitCode": 0,
+          "sha256": "d0e3225c2262d8007814c818d818ce5210f9858ba8f16554fb4cbe40254a49c4"
+        },
+        {
+          "name": "batch-clocks",
+          "exitCode": 0,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36"
+        },
+        {
+          "name": "cache-mongodb",
+          "exitCode": 0,
+          "sha256": "82569179447cc02ebf2c6e64b5ddf0b9d36fbddf11e6be97d557809c8dcb5076"
+        },
+        {
+          "name": "cache-read-values",
+          "exitCode": 0,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca"
+        },
+        {
+          "name": "cache-transition",
+          "exitCode": 0,
+          "sha256": "6e7cbd81005d5221e75716cddf1e06a22a131655d4e2aa385bc3ede8ec2089b6"
+        },
+        {
+          "name": "configuration-readiness",
+          "exitCode": 0,
+          "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491"
+        },
+        {
+          "name": "configuration-siem",
+          "exitCode": 0,
+          "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8"
+        },
+        {
+          "name": "configuration",
+          "exitCode": 0,
+          "sha256": "9d049535cd2bb28c88e6c4500b2fed14b5556f7e1f1b91e7c81474e39d40c9b2"
+        },
+        {
+          "name": "core-tests",
+          "exitCode": 0,
+          "sha256": "2532db109fd72cdb1115052759206ce54e1ac76fcc88eafa0272e5269b75fc88"
+        },
+        {
+          "name": "cross-group-scalars",
+          "exitCode": 0,
+          "sha256": "bf7cf5a82f613d7d1b609b9cbd9ebea6012270cab0d7a6dc3162a5f3b8555bc4"
+        },
+        {
+          "name": "error-boundaries",
+          "exitCode": 0,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e"
+        },
+        {
+          "name": "fetch-mappings",
+          "exitCode": 0,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606"
+        },
+        {
+          "name": "figshare-readiness",
+          "exitCode": 0,
+          "sha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d"
+        },
+        {
+          "name": "figshare-unit-mongodb",
+          "exitCode": 0,
+          "sha256": "b00662bfbe1f29982749b9809639fd4ae34c49c6b37485f564652f9604a9ca4b"
+        },
+        {
+          "name": "figshare-unit",
+          "exitCode": 0,
+          "sha256": "fc9339d8bc8d46048f4459f1df870187eb01d71e7acc02ee543a94e55901578c"
+        },
+        {
+          "name": "figshare",
+          "exitCode": 0,
+          "sha256": "9bf66f6270e360bce1021bf3e2a26c890e4bfdfd5e5bb7226eac7ee3f42477ae"
+        },
+        {
+          "name": "final-static",
+          "exitCode": 0,
+          "sha256": "f5f6dd5c5ac8c8d45b8049c031f0dbcdc88cd5e2c056eec1205e7d02b4f27a89"
+        },
+        {
+          "name": "foundation",
+          "exitCode": 0,
+          "sha256": "8d11ea6227460ca91cf3fb2fae136847762dde16e7a811e6d2a40102de2d680e"
+        },
+        {
+          "name": "gridfs-initializing",
+          "exitCode": 0,
+          "sha256": "4f8360e29190b6f71418003858e4bf920a93c4dfe09f5d86771c33dfec6cf634"
+        },
+        {
+          "name": "gridfs-streams",
+          "exitCode": 0,
+          "sha256": "8d0e940e8dac1e0ed00195820459c2f2c6d00bd7792424ac484ec22256a530a6"
+        },
+        {
+          "name": "harvest",
+          "exitCode": 0,
+          "sha256": "489a1edfa6167c7446af9889a08ef6549a0b7245989e2fad456fa707a97f45a1"
+        },
+        {
+          "name": "indexes",
+          "exitCode": 0,
+          "sha256": "2621b97047cfc67ea04e4e80b6138f5ac76ef90117badedb2fe4d92f82812c22"
+        },
+        {
+          "name": "migration",
+          "exitCode": 0,
+          "sha256": "87d7576eefe4aa64a34674f69bda53c649b43e9e2a0c3390ecb99dc143b77835"
+        },
+        {
+          "name": "mixed-clocks",
+          "exitCode": 0,
+          "sha256": "6a1027c10ef8592c001a10701aa80e248449c9d5deaf8cf0f97c3003c3e68d08"
+        },
+        {
+          "name": "operation-boundaries",
+          "exitCode": 0,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301"
+        },
+        {
+          "name": "operation-outcomes",
+          "exitCode": 0,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105"
+        },
+        {
+          "name": "progress-writes",
+          "exitCode": 0,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066"
+        },
+        {
+          "name": "progress",
+          "exitCode": 0,
+          "sha256": "45781974943e3968f513f74a1ecf89bf2e83edcfd3093ca0e9e3cba1812053ee"
+        },
+        {
+          "name": "query-adversarial",
+          "exitCode": 0,
+          "sha256": "4db1ce8627a76eb4db5a8669a841eeafb881d52311aa1b2bea4cfe52662c5b54"
+        },
+        {
+          "name": "query-associations",
+          "exitCode": 0,
+          "sha256": "8864c96519175f3031c3c5fbc0d41be4e4b464b4595a3104190939de8c33ec50"
+        },
+        {
+          "name": "query-baseline",
+          "exitCode": 0,
+          "sha256": "86d6ceb64fc7bd6908a4d140f50ccb34522029d7b59f4f58ab2e36885b4a29c7"
+        },
+        {
+          "name": "query-equality",
+          "exitCode": 0,
+          "sha256": "f0a80a4df327d704d9e04daa6f2a689aa8f927ee2750b9b331e0e1d71bf86d86"
+        },
+        {
+          "name": "query-pages",
+          "exitCode": 0,
+          "sha256": "a684a9a8befcc9f4c36c79645202b99ffec92dca8f481dd22b5ae259ed107582"
+        },
+        {
+          "name": "query-producer-final",
+          "exitCode": 0,
+          "sha256": "50e71d60a40bb347e15e8e6bf860f42397fa298642b4565e8a2cd2606217bd48"
+        },
+        {
+          "name": "record-arrays",
+          "exitCode": 0,
+          "sha256": "8cb306d04b4d2e072b393368862498df295d07d5b1db0631764d87d3575aace6"
+        },
+        {
+          "name": "reference",
+          "exitCode": 0,
+          "sha256": "c0ad0f5ece8709846da96a9a3c33134c7bd32e7aba01edfa7a94035cda34d8f6"
+        },
+        {
+          "name": "review-mappings",
+          "exitCode": 0,
+          "sha256": "d7776806dc633bfcda2a48ec3f00cebd53eefc361dfdf88e3f1c9b7907a06fa4"
+        },
+        {
+          "name": "review-scalars",
+          "exitCode": 0,
+          "sha256": "dcee4690e3bfb27f9cc6dbab856b01489dacbbc9377435f04041a9725dd12ca3"
+        },
+        {
+          "name": "siem-readiness",
+          "exitCode": 0,
+          "sha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827"
+        },
+        {
+          "name": "siem-unit",
+          "exitCode": 0,
+          "sha256": "74751d93af0cdbc8878f0e9dc5bc05ae882e7f9a2e7a84c0b827ecc691dc445f"
+        },
+        {
+          "name": "siem",
+          "exitCode": 0,
+          "sha256": "4332f1d95fc2796c92d9a2b8e8b6c9aa32372adc4caccbc1e1a8a3d1713f4359"
+        },
+        {
+          "name": "storage-backfill",
+          "exitCode": 0,
+          "sha256": "9fb594fcd527a15387e00dedc0a1b997d12eb72fdb05c6488ff3efad5d64617d"
+        },
+        {
+          "name": "storage-contract",
+          "exitCode": 0,
+          "sha256": "3f5f4791404a4cace158dc85fc7b5a98fdc5ab595bdb607b516ca540e202cd37"
+        },
+        {
+          "name": "storage-live",
+          "exitCode": 0,
+          "sha256": "920d7ddb6ace33dd1549297e36d20aaef36a600ab63f08369eaa41c360d7cd1d"
+        },
+        {
+          "name": "storage-owner-failures",
+          "exitCode": 1,
+          "sha256": "48f26eb303ac20f68929b0c91e7e33fb427ad299066a07fe193259e3a5daa218"
+        },
+        {
+          "name": "storage-ownership-waterline",
+          "exitCode": 0,
+          "sha256": "d258b7daf5b84d4bc80c8728c757cd2965722578842f9ef5c1c0171b8be22a4a"
+        },
+        {
+          "name": "storage-ownership",
+          "exitCode": 0,
+          "sha256": "2cfbf3f50c2f166a4cb48ab27dc18bd8cbf37e302a90a0074a836ac957253a5e"
+        },
+        {
+          "name": "storage-qualification",
+          "exitCode": 0,
+          "sha256": "f00c9e5d6773ef108774348bb8a36aa81567d381a1ac928488eeb53b0af77944"
+        },
+        {
+          "name": "storage-readiness",
+          "exitCode": 0,
+          "sha256": "526731691dd8d40fab965463bfcbe9511e527fff1d6dee5bf56f4f387aca24ae"
+        },
+        {
+          "name": "storage-tests",
+          "exitCode": 0,
+          "sha256": "854598a12e85fbfcdb7d874ae75e7ddfcf2b1bb4afaa810b05dac39efe259820"
+        },
+        {
+          "name": "tenant-scope-final",
+          "exitCode": 0,
+          "sha256": "485a6e4c9b63ac59ee814e0af9f51b49f77e20351679b8cbfcb2dedc5f321975"
+        }
+      ]
+    },
+    {
+      "name": "preliminary-recovery",
+      "sourceCommit": "10051fea7f8626237b57a648f90f0956d34e16c5",
+      "completedCommands": 10,
+      "failed": [],
+      "qualification": "excluded; stopped before completion for subsequently discovered lifecycle or diagnostic defects",
+      "commandEvidence": [
+        {
+          "name": "accepted-drain",
+          "exitCode": 0,
+          "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413"
+        },
+        {
+          "name": "accepted-staged-drain",
+          "exitCode": 0,
+          "sha256": "d0e3225c2262d8007814c818d818ce5210f9858ba8f16554fb4cbe40254a49c4"
+        },
+        {
+          "name": "batch-clocks",
+          "exitCode": 0,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36"
+        },
+        {
+          "name": "cache-read-values",
+          "exitCode": 0,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca"
+        },
+        {
+          "name": "error-boundaries",
+          "exitCode": 0,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e"
+        },
+        {
+          "name": "fetch-mappings",
+          "exitCode": 0,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606"
+        },
+        {
+          "name": "final-static",
+          "exitCode": 0,
+          "sha256": "c36e7f34369f41d7a2096f93efd2c74e72cc4f5eb0016e9b51d7607c9e4d143b"
+        },
+        {
+          "name": "operation-boundaries",
+          "exitCode": 0,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301"
+        },
+        {
+          "name": "operation-outcomes",
+          "exitCode": 0,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105"
+        },
+        {
+          "name": "progress-writes",
+          "exitCode": 0,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066"
+        }
+      ]
+    },
+    {
+      "name": "preliminary-startup",
+      "sourceCommit": "60c59ed7cdf95b4daee157c52dc3839c7e449eb0",
+      "completedCommands": 11,
+      "failed": [],
+      "qualification": "excluded; stopped before completion for subsequently discovered lifecycle or diagnostic defects",
+      "commandEvidence": [
+        {
+          "name": "accepted-drain",
+          "exitCode": 0,
+          "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413"
+        },
+        {
+          "name": "accepted-staged-drain",
+          "exitCode": 0,
+          "sha256": "648c6bc0788793ac1a1be2e35e71a8b410243b0a3f73851a64ffa16bf9709d9b"
+        },
+        {
+          "name": "batch-clocks",
+          "exitCode": 0,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36"
+        },
+        {
+          "name": "cache-read-values",
+          "exitCode": 0,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca"
+        },
+        {
+          "name": "core-tests",
+          "exitCode": 0,
+          "sha256": "acbf604cdf03d5ddbe5f391c599caeb9ca2955fa24f86d281c4097329662661d"
+        },
+        {
+          "name": "error-boundaries",
+          "exitCode": 0,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e"
+        },
+        {
+          "name": "fetch-mappings",
+          "exitCode": 0,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606"
+        },
+        {
+          "name": "final-static",
+          "exitCode": 0,
+          "sha256": "508add2ea48328e624950f02acacc471d1aceb6e65161d6ae30bf98e35e0a10a"
+        },
+        {
+          "name": "operation-boundaries",
+          "exitCode": 0,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301"
+        },
+        {
+          "name": "operation-outcomes",
+          "exitCode": 0,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105"
+        },
+        {
+          "name": "progress-writes",
+          "exitCode": 0,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066"
+        }
+      ]
+    }
+  ],
+  "supersededFullQualification": [
+    {
+      "name": "qualification-before-sails",
+      "sourceCommit": "f9608206620286f39e44c57b1e22b67ff38826c4",
+      "completedCommands": 76,
+      "failed": [],
+      "qualification": "All 76 commands passed; superseded by a real Sails entrypoint P2 found in the fresh review. Not a flaky run. Full 77-command qualification repeated after the fix.",
+      "commandEvidence": [
+        {
+          "name": "final-static",
+          "exitCode": 0,
+          "sha256": "770727403e1703d1a146a577f32ef6e4a04f5a39a5877eba0069c990e3fcf57c"
+        },
+        {
+          "name": "accepted-drain",
+          "exitCode": 0,
+          "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413"
+        },
+        {
+          "name": "accepted-staged-drain",
+          "exitCode": 0,
+          "sha256": "d0e3225c2262d8007814c818d818ce5210f9858ba8f16554fb4cbe40254a49c4"
+        },
+        {
+          "name": "error-boundaries",
+          "exitCode": 0,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e"
+        },
+        {
+          "name": "batch-clocks",
+          "exitCode": 0,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36"
+        },
+        {
+          "name": "cache-read-values",
+          "exitCode": 0,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca"
+        },
+        {
+          "name": "operation-outcomes",
+          "exitCode": 0,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105"
+        },
+        {
+          "name": "progress-writes",
+          "exitCode": 0,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066"
+        },
+        {
+          "name": "fetch-mappings",
+          "exitCode": 0,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606"
+        },
+        {
+          "name": "operation-boundaries",
+          "exitCode": 0,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301"
+        },
+        {
+          "name": "core-tests",
+          "exitCode": 0,
+          "sha256": "751c9862132c433094f789d6952d64862d00ba9bb0cf3c1d27094c18637a5b3f"
+        },
+        {
+          "name": "storage-tests",
+          "exitCode": 0,
+          "sha256": "d41c71e2ad9cb00a3cb5d52b015535d8a9568eef30f088cf109903b7c08ce2a9"
+        },
+        {
+          "name": "foundation",
+          "exitCode": 0,
+          "sha256": "ed05e76b8226fbc9b023c57c0f318255ac9877ee1b0b949c8df034520f492a61"
+        },
+        {
+          "name": "migration",
+          "exitCode": 0,
+          "sha256": "3139e5cfd3ba6c0d2ffa5917366ae74f7a2c792916d0bac2c51ddea87ba520ce"
+        },
+        {
+          "name": "cache-mongodb",
+          "exitCode": 0,
+          "sha256": "7ecd3576d46250e4ffc76ca1cd69c049b91a51675c0cf2d7bc692236746c277c"
+        },
+        {
+          "name": "cache-transition",
+          "exitCode": 0,
+          "sha256": "fa3465b8c71e959dd769012c72da6c7f0aafc6a0e7078d2b13a3e638c6d2754e"
+        },
+        {
+          "name": "reference",
+          "exitCode": 0,
+          "sha256": "1d9e490685ca03820f95561c1da67ca74bb3f739642ac775a2029bdc949c5ce3"
+        },
+        {
+          "name": "query-pages",
+          "exitCode": 0,
+          "sha256": "a684a9a8befcc9f4c36c79645202b99ffec92dca8f481dd22b5ae259ed107582"
+        },
+        {
+          "name": "query-adversarial",
+          "exitCode": 0,
+          "sha256": "4db1ce8627a76eb4db5a8669a841eeafb881d52311aa1b2bea4cfe52662c5b54"
+        },
+        {
+          "name": "query-baseline",
+          "exitCode": 0,
+          "sha256": "86d6ceb64fc7bd6908a4d140f50ccb34522029d7b59f4f58ab2e36885b4a29c7"
+        },
+        {
+          "name": "query-associations",
+          "exitCode": 0,
+          "sha256": "8864c96519175f3031c3c5fbc0d41be4e4b464b4595a3104190939de8c33ec50"
+        },
+        {
+          "name": "query-equality",
+          "exitCode": 0,
+          "sha256": "f0a80a4df327d704d9e04daa6f2a689aa8f927ee2750b9b331e0e1d71bf86d86"
+        },
+        {
+          "name": "query-producer-final",
+          "exitCode": 0,
+          "sha256": "50e71d60a40bb347e15e8e6bf860f42397fa298642b4565e8a2cd2606217bd48"
+        },
+        {
+          "name": "tenant-scope-final",
+          "exitCode": 0,
+          "sha256": "485a6e4c9b63ac59ee814e0af9f51b49f77e20351679b8cbfcb2dedc5f321975"
+        },
+        {
+          "name": "configuration",
+          "exitCode": 0,
+          "sha256": "0da34e3cb4c92d7ca800343e97874b97ad96bd113019090e6d420ba28117d0dd"
+        },
+        {
+          "name": "configuration-readiness",
+          "exitCode": 0,
+          "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491"
+        },
+        {
+          "name": "configuration-siem",
+          "exitCode": 0,
+          "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8"
+        },
+        {
+          "name": "mixed-clocks",
+          "exitCode": 0,
+          "sha256": "6a1027c10ef8592c001a10701aa80e248449c9d5deaf8cf0f97c3003c3e68d08"
+        },
+        {
+          "name": "indexes",
+          "exitCode": 0,
+          "sha256": "2621b97047cfc67ea04e4e80b6138f5ac76ef90117badedb2fe4d92f82812c22"
+        },
+        {
+          "name": "progress",
+          "exitCode": 0,
+          "sha256": "4af9ee32e545a1a5ce6303d4b3e2a3f549dd711bb0ceb56ae9fffb0e93968c9c"
+        },
+        {
+          "name": "harvest",
+          "exitCode": 0,
+          "sha256": "88fd7cb825f4a9894277d256bb27f08275b79c7803e4cc3d2baae72967158101"
+        },
+        {
+          "name": "siem",
+          "exitCode": 0,
+          "sha256": "0c40d66cd7ea60612403849cd922276d7193e1288f0cabcb5465f0af1376cb31"
+        },
+        {
+          "name": "figshare",
+          "exitCode": 0,
+          "sha256": "592b05465af69026705a6a5af492691034cf61ac4a9d9e312f3a122acae7b6d3"
+        },
+        {
+          "name": "siem-readiness",
+          "exitCode": 0,
+          "sha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827"
+        },
+        {
+          "name": "figshare-readiness",
+          "exitCode": 0,
+          "sha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d"
+        },
+        {
+          "name": "siem-unit",
+          "exitCode": 0,
+          "sha256": "74d3b0bb9c242d9c310bbe6b371ad06f1819f33ece3580f9757e47a1106757dd"
+        },
+        {
+          "name": "figshare-unit",
+          "exitCode": 0,
+          "sha256": "088e0a74c803d50322d3a1ed37ba62784ab4e22ed385a892fb61efc264b6029b"
+        },
+        {
+          "name": "figshare-unit-mongodb",
+          "exitCode": 0,
+          "sha256": "8af96dfece2dfff3f33e26567a6bdcbd6554931ec6ca628e248ec982a072f1d4"
+        },
+        {
+          "name": "review-mappings",
+          "exitCode": 0,
+          "sha256": "d7776806dc633bfcda2a48ec3f00cebd53eefc361dfdf88e3f1c9b7907a06fa4"
+        },
+        {
+          "name": "record-arrays",
+          "exitCode": 0,
+          "sha256": "8cb306d04b4d2e072b393368862498df295d07d5b1db0631764d87d3575aace6"
+        },
+        {
+          "name": "review-scalars",
+          "exitCode": 0,
+          "sha256": "dcee4690e3bfb27f9cc6dbab856b01489dacbbc9377435f04041a9725dd12ca3"
+        },
+        {
+          "name": "gridfs-streams",
+          "exitCode": 0,
+          "sha256": "8d0e940e8dac1e0ed00195820459c2f2c6d00bd7792424ac484ec22256a530a6"
+        },
+        {
+          "name": "gridfs-initializing",
+          "exitCode": 0,
+          "sha256": "4f8360e29190b6f71418003858e4bf920a93c4dfe09f5d86771c33dfec6cf634"
+        },
+        {
+          "name": "storage-contract",
+          "exitCode": 0,
+          "sha256": "3f5f4791404a4cace158dc85fc7b5a98fdc5ab595bdb607b516ca540e202cd37"
+        },
+        {
+          "name": "storage-qualification",
+          "exitCode": 0,
+          "sha256": "a8da1bfd33a872412a576e07b484bd6d40487d78e8d3f47bb3798912621236ce"
+        },
+        {
+          "name": "storage-live",
+          "exitCode": 0,
+          "sha256": "d57bc6c20b130fe4c3016ad538a8bd5b8ba48055825b963c84685d28f90a4faa"
+        },
+        {
+          "name": "storage-ownership",
+          "exitCode": 0,
+          "sha256": "bca090f862071991ddd000211f497a95106303423c7f4e54fb15c47b70af9486"
+        },
+        {
+          "name": "storage-owner-failures",
+          "exitCode": 0,
+          "sha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18"
+        },
+        {
+          "name": "storage-backfill",
+          "exitCode": 0,
+          "sha256": "e8fdf3f1c14fab9cefc8b6560cfb6b7fdc778bff7bd97a0962089dc54af4fac7"
+        },
+        {
+          "name": "storage-readiness",
+          "exitCode": 0,
+          "sha256": "526731691dd8d40fab965463bfcbe9511e527fff1d6dee5bf56f4f387aca24ae"
+        },
+        {
+          "name": "storage-ownership-waterline",
+          "exitCode": 0,
+          "sha256": "6cc3f0e9aa3920bd6e4306ef06abb9bbbe6c6ed4a8517a2c33eca83f9e030f1d"
+        },
+        {
+          "name": "cross-group-scalars",
+          "exitCode": 0,
+          "sha256": "bf7cf5a82f613d7d1b609b9cbd9ebea6012270cab0d7a6dc3162a5f3b8555bc4"
+        },
+        {
+          "name": "cross-group-timestamps",
+          "exitCode": 0,
+          "sha256": "01bc41f05a700855b563dcdceedbee8fe3f6e7c07d455cec4c9544b6eb3c3160"
+        },
+        {
+          "name": "cross-group-mappings",
+          "exitCode": 0,
+          "sha256": "9e20bfe406373b18159be8d29f3b58546f7ac17ef8b86918356b69a84a602c98"
+        },
+        {
+          "name": "id-values",
+          "exitCode": 0,
+          "sha256": "1d3534b921237ee776ae98aa09e6a8beb2e2ac94406b31b321ce0fc9de2666b6"
+        },
+        {
+          "name": "recordtype-selection",
+          "exitCode": 0,
+          "sha256": "df9d4204112491e87251fe72adabd7940c503ed290b21662c12e5908d0bfe885"
+        },
+        {
+          "name": "id-mappings",
+          "exitCode": 0,
+          "sha256": "f905b8d6227609d10dbd24ec757df71695170693cd516682a1056f2ce6d42edf"
+        },
+        {
+          "name": "migration-values",
+          "exitCode": 0,
+          "sha256": "8bb3fec7e17bd99b127c1ae4c1d9f0f2d5b5127bb8b09cb2e965586f2b6f9943"
+        },
+        {
+          "name": "domain-queries",
+          "exitCode": 0,
+          "sha256": "29128c4cf39404cf1f4f611257c6a1c586728b4427161442873de9d23dd0b750"
+        },
+        {
+          "name": "job-queries",
+          "exitCode": 0,
+          "sha256": "0a433b2820b0c7ebc4645fdc6d4a33caf381e6a6049c0c901c6c8e0565b77c59"
+        },
+        {
+          "name": "harvest-pages",
+          "exitCode": 0,
+          "sha256": "e86fe16886a272adbc60aa5bfef6a679b3b72b2615f3276a71377fc2e92a781f"
+        },
+        {
+          "name": "siem-native-pages",
+          "exitCode": 0,
+          "sha256": "5af111b64668be0b8af9bc6536bac538a716bd7c4cfc0f949b3cca296192134d"
+        },
+        {
+          "name": "siem-native-values",
+          "exitCode": 0,
+          "sha256": "94766e5a7e40dd633a6b7334f4278fe3ac31d153fc4e4007ffb30e0ab4584822"
+        },
+        {
+          "name": "dashboard-native-values",
+          "exitCode": 0,
+          "sha256": "7ff3f3c7f8acb93c058d4acf7fb7b8622ee76ac445d34d23d9402cfbe210da83"
+        },
+        {
+          "name": "cache-values",
+          "exitCode": 0,
+          "sha256": "107b89f6af5919667c1ccb1d01fd6ae58e63ed718e5c4fca7fabddaf45def947"
+        },
+        {
+          "name": "attachment-values",
+          "exitCode": 0,
+          "sha256": "ca782e7f4c952c8a6c5ca263b69fa007c62e887d1fbbfecdcfe61e235b59c7e9"
+        },
+        {
+          "name": "fresh-mocha",
+          "exitCode": 0,
+          "sha256": "c1f3f9edb4afb7ad52e33872e3199a8b555e49c8fb8c07e9fedc45b97e8da499"
+        },
+        {
+          "name": "fresh-bruno",
+          "exitCode": 0,
+          "sha256": "9f9521d2c231d80867af94381f0d6dd0ee9f79e666c76c4f7820fa749ba2daf4"
+        },
+        {
+          "name": "dev-default",
+          "exitCode": 0,
+          "sha256": "5f9330ee1dea369ed3b84577e087dd59042387fd2f445df1a0dfd1db0f49e077"
+        },
+        {
+          "name": "dev-waterline",
+          "exitCode": 0,
+          "sha256": "2b488edab19647d2710c0f88e057ce2092335527320ef20c8fa8dee617ffd522"
+        },
+        {
+          "name": "http-gridfs-regressions",
+          "exitCode": 0,
+          "sha256": "061e94e6192cfcfc3232efe591e5f4c235f668d48444befe9b206b70b6bcd0aa"
+        },
+        {
+          "name": "index-upgrade",
+          "exitCode": 0,
+          "sha256": "d496d240118cf980eea2023bb692cdd06a7834f90d138a33f03788a0fcdfeaa8"
+        },
+        {
+          "name": "selector-edges",
+          "exitCode": 0,
+          "sha256": "9f8769220912c6f9e7c2e5c547294648c3f4386a0e2704410d864366bbd187fc"
+        },
+        {
+          "name": "tls-srv",
+          "exitCode": 0,
+          "sha256": "5e57ab9cec23cf75421eb3722b0ac8949ef0162ea857e8595185d49d35fc23fc"
+        },
+        {
+          "name": "create-budget",
+          "exitCode": 0,
+          "sha256": "be1f6ffcb264fb9338c60421484ba23763fa4ef4ca8c7e665e04c881bf02c06a"
+        },
+        {
+          "name": "existing-volume-upgrade",
+          "exitCode": 0,
+          "sha256": "9251ba125721a23b0ca1b20de5e333a706194c34264e92cfc08ec122513b839a"
+        }
+      ]
+    }
+  ],
+  "excludedExperimentalProbe": {
+    "scope": "additional strict expansion to legacy figshare-queued.test.ts",
+    "reason": "Existing nullable-dereference diagnostics outside required typecheck targets; not a flaky test. Production build, required types and queue/audit/foundation strict probes pass."
+  },
+  "rawLogs": "Ignored .tmp only. No raw transcripts or patches retained in evidence."
+}

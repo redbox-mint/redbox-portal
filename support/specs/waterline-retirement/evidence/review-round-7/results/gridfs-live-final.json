@@ -1,0 +1,13 @@
+{
+  "name": "gridfs-live-final",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+  "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+  "exitCode": 0,
+  "durationMs": 6776,
+  "sha256": "751e5dc55e24dbde9c6fcb2d4495fe1e809d2cb4715e23ca006fd88ad4cbb85a",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":12,\"failures\":0,\"owners\":[\"flydrive\",\"legacy\"],\"outcomes\":[\"cancel\",\"error\",\"complete\"],\"concurrentDisposal\":true,\"uploadFailures\":[\"source with pending chunk\",\"chunk insert\",\"file insert\"]}"
+  ]
+}

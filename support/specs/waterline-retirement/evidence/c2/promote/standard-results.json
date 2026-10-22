@@ -1,0 +1,66 @@
+{
+  "stage": "promote",
+  "selection": "default; outer cache variables unset",
+  "imageId": "sha256:cce6fc8a6144a6e2966af06b08dba6aa0e4688f9b6526d37a5d2d499b7ebcfbd",
+  "node": "26.11.1",
+  "checks": [
+    {
+      "name": "standard-mocha",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u sails_persistence__cache__backend RBPORTAL_IMAGE=redbox-c2:promote npm run test:mocha",
+      "exitCode": 0,
+      "durationSeconds": 473,
+      "passing": 418,
+      "pending": 10,
+      "log": "standard-mocha.txt",
+      "logSha256": "e0e7c9c94aee03617f6d56bb30010c5eb7ec700967bd624dc3e9a40721c70308",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 10,
+        "passing": 418
+      }
+    },
+    {
+      "name": "standard-bruno-general",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u sails_persistence__cache__backend -u C2_UPLOAD_OBSERVER RBPORTAL_IMAGE=redbox-c2:promote npm run test:bruno:general",
+      "exitCode": 0,
+      "durationSeconds": 262,
+      "requestsPassed": 309,
+      "testsPassed": 553,
+      "assertionsPassed": 3,
+      "log": "standard-bruno.txt",
+      "logSha256": "c02ec0ebf020a0ad478d9f3ed05ee1989253c914e03e5063d8a613b8687acb35",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 4
+      }
+    },
+    {
+      "name": "development",
+      "command": "RBPORTAL_IMAGE=redbox-c2:promote bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh (outer cache overrides unset)",
+      "exitCode": 0,
+      "durationSeconds": 130,
+      "liftCompleteMs": 117104.7,
+      "indexScopes": 34,
+      "collections": 15,
+      "appliedMigrations": 4,
+      "log": "development.txt",
+      "logSha256": "bbbec8c210eda0b1895b917a75acb4dfaab1c9048920ce59a9bb2675ba10c397",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 4
+      }
+    }
+  ],
+  "runnerCommandsTestsLimitsHealthchecksUnchanged": true,
+  "observerEnabledForAcceptedRun": false,
+  "failedAttemptsRetained": [
+    "standard-mocha-keycloak-before-app.txt",
+    "standard-bruno-face-size-failure.txt"
+  ],
+  "diagnosticPass": "standard-bruno-upload-observer.txt",
+  "diagnosticOnlyError": "typeface-variable-font; expected negative case, classifiedAsSize false",
+  "firstRegularFontFailure": "21,884-byte unchanged fixture; transient 413 not reproduced in diagnostic or final plain run; cause not established; no production fix or limit change"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "fix3-build",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+  "sourceCommit": "ebadbf2cf5f93fe20586d4c161f520dda7527244",
+  "exitCode": 0,
+  "durationMs": 41669,
+  "sha256": "b49f7385f24aa0827b2c498065d03c8712f3f5fa0f07dbd324fe9ae4ac8532eb",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

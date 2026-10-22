@@ -1,0 +1,18 @@
+{
+  "name": "cursor-unit-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts --grep \"drains the download cursor\"",
+  "sourceCommit": "1b471907ca462ebdd460fd014ad4b5e890385a12",
+  "exitCode": 3,
+  "durationMs": 1865,
+  "sha256": "53cb5abaa41a017185104febacaaa9e4d1024a4f6edff9a7a1468cf6d450b966",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      3
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

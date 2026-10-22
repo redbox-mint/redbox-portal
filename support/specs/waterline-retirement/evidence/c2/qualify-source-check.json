@@ -1,0 +1,15 @@
+{
+  "productionSource": "b83234da9a6e5ce31387c75f3873bd3100e83175",
+  "fixtureCheckpoint": "b5a5751cd56d0686b09584c3a8e464a9afc66cc0",
+  "runtimeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "default": "prisma",
+  "checkedPaths": [
+    "packages/redbox-core/src",
+    "packages/redbox-core/package.json",
+    "packages/redbox-core/package-lock.json",
+    "package.json",
+    "package-lock.json",
+    "Dockerfile",
+    ".circleci/config.yml"
+  ]
+}

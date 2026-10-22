@@ -1,0 +1,12 @@
+{
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && npx tsc --noEmit && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint",
+  "exitCode": 0,
+  "durationMs": 55645,
+  "rawBytes": 1277,
+  "sha256": "12939799e7c59e401b56b6c7d7e0b76d45310cbfc085a4d28579adf59566193b",
+  "counts": {
+    "lintWarnings": 0,
+    "lintErrors": 0
+  },
+  "reportedPassGroups": 1
+}

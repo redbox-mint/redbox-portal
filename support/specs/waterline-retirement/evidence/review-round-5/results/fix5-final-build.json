@@ -1,0 +1,11 @@
+{
+  "name": "fix5-final-build",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit -p .tmp/review-round-5/tsconfig.changed-tests.json",
+  "sourceCommit": "6fa69abc5597dbfbf59330eeb272477c4dbff204",
+  "exitCode": 0,
+  "durationMs": 69971,
+  "sha256": "b49f7385f24aa0827b2c498065d03c8712f3f5fa0f07dbd324fe9ae4ac8532eb",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

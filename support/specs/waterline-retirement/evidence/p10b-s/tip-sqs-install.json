@@ -1,0 +1,7 @@
+{
+  "command": "node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --ignore-scripts --strict-peer-deps --include=dev --prefix packages/agenda-sqs-backend",
+  "exitCode": 0,
+  "durationMs": 5148,
+  "rawBytes": 140,
+  "sha256": "26fb139ddca98d5d4d7026e6a11385a0076084ce7255b52a4bf069467de09c88"
+}

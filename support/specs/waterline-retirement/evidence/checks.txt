@@ -1,0 +1,51 @@
+P0 final verification — 2026-10-19 (Adelaide)
+
+Production baseline: 441d87304cbb820ead569a9fcab405f112de0701
+Evidence implementation checkpoint: da8f98f4d (later P0 audit/spec/docs only)
+No installs, lock changes, production behavior changes, replica-set construction or push.
+
+Completed live capture:
+$ bash packages/redbox-core/test/fixtures/waterline-retirement/run-capture.sh
+Exit 0. PASS: 46 models, junction, callbacks, JSON, transactions, native storage/indexes/locks and Prisma probes. MongoDB 8.0.34
+Runner SHA256 matches archived runnerSha256; exact server/version/topology in EJSON.
+Initial native-index extension failed on missing synthetic namePrefix; corrected fixture and replayed to exit 0. Failed run is not qualification evidence.
+Completed inventory: exit 0, 40 core + 6 storage, 2057 scanned tracked files, 85 production-category model/file candidates.
+Completed upstream capture: exit 0, 4 npm package snapshots + 11 official pages HTTP 200; read-only npm metadata queries, no installs.
+
+$ python3 packages/redbox-core/test/fixtures/waterline-retirement/review-inventory.py
+Exit 0
+Reviewed 535 native paths, 41 declared relationships, 33 application reference families.
+PASS: mapping/reference/native coverage, actual junction/callbacks/transactions/routing and distinct service-index phase audited.
+
+$ node --check packages/redbox-core/test/fixtures/waterline-retirement/capture.cjs
+Exit 0
+
+$ node --check packages/redbox-core/test/fixtures/waterline-retirement/inventory.cjs
+Exit 0
+
+$ bash -n packages/redbox-core/test/fixtures/waterline-retirement/run-capture.sh
+Exit 0
+
+PASS: Python AST syntax for all P0 Python runners (no pycache).
+$ node_modules/.bin/prettier --check packages/redbox-core/test/fixtures/waterline-retirement/capture.cjs packages/redbox-core/test/fixtures/waterline-retirement/inventory.cjs
+Exit 0
+Checking formatting...
+All matched files use Prettier code style!
+
+$ node_modules/.bin/prettier --check --prose-wrap always support/specs/waterline-retirement/p0-validation.md support/specs/waterline-retirement/adr/0002-full-model-prisma-suitability.md support/specs/waterline-retirement/evidence/README.md support/specs/waterline-retirement/evidence/atomicity-effects.md support/specs/waterline-retirement/evidence/environment-release-support.md support/specs/waterline-retirement/evidence/postgresql-readiness-budgets.md packages/redbox-core/test/fixtures/waterline-retirement/README.md
+Exit 0
+Checking formatting...
+All matched files use Prettier code style!
+
+PASS: JSON/EJSON parse and complete HTTP200 official source snapshot.
+PASS: 116 local Markdown targets and all table column counts across 12 programme/fixture Markdown files.
+PASS: entire change set stays in programme specs/evidence and package P0 fixture directory; no production source/config/manifests/locks changed.
+$ git diff --check 441d87304cbb820ead569a9fcab405f112de0701
+Exit 0
+
+$ docker ps -aq --filter label=redbox.task=waterline-retirement-p0
+Exit 0
+
+PASS: no owned running/stopped capture containers remain; EXIT trap removed anonymous volumes. Existing containers were not targeted.
+Full core/portal/UI/Bruno/production load and replica-set tests not run: P0 fixture/spec-only scope; no such qualification claimed.
+G0 full-graph approval HOLD; P0.5/P0.7/P0.8 agreements/decisions pending. No P1 task checked.

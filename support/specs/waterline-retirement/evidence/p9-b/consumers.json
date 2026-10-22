@@ -1,0 +1,29 @@
+{
+  "migrated": [
+    "BrandingService: bootstrap, brand reads, conditional draft/publication, restore, history/retention and previews",
+    "BrandingTypefaceService: draft/active/history reference inventory",
+    "BrandingLogoService: brand lookup and asset metadata",
+    "BrandingController: current/history reads and updates",
+    "DashboardConfigService: B-owned brand-name read",
+    "V: Waterline vocabulary callback and Mongo vocabulary adapter B-owned name bridge",
+    "Pending typeface/sidebar migration bodies"
+  ],
+  "remainingWaterline": [
+    {
+      "owner": "U",
+      "operation": "Role projection for B getBrand/listBrands with roles",
+      "reason": "Identity remains selectable independently; same populated-role semantics and physical Role.branding field."
+    },
+    {
+      "owner": "U",
+      "operation": "RolesService BrandingConfig.addToCollection inverse membership writes",
+      "reason": "These mutate U-owned Role.branding through the connected association; U must replace and qualify them."
+    },
+    {
+      "owner": "P11",
+      "operation": "B model definitions/shims/associations and explicit Waterline rollback adapter",
+      "reason": "Rollback and the connected unmigrated U/S graph remain."
+    }
+  ],
+  "driverAvoidsBrandingModelQueries": "Live B-owned V lookup and omitted-default poison checks; all B persistence queries go through the selected adapter."
+}

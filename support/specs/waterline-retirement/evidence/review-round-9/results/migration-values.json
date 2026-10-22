@@ -1,0 +1,17 @@
+{
+  "name": "migration-values",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh migration-values",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 6324,
+  "sha256": "8bb3fec7e17bd99b127c1ae4c1d9f0f2d5b5127bb8b09cb2e965586f2b6f9943",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 106,
+      "failures": 0,
+      "firstFailures": []
+    }
+  ]
+}

@@ -280,3 +280,13 @@ export * from './api-routes';
 
 export * from './RecordWriteOptions';
 export * from './model/storage/FigshareSyncModel';
+
+export type { PersistenceId, LogicalDatastore, PersistenceBackend, PersistenceGroup, PersistenceResource } from './persistence/types';
+export { initializePersistence, cleanupPersistence, registerPersistenceResource, mongoDatabase, mongoSessionDatabase, prismaDatabase, persistenceOperation } from './persistence/runtime';
+export { PersistenceError } from './persistence/errors';
+export type { PersistenceIndex, PersistenceIndexInspection } from './persistence/indexes';
+export { inspectPersistenceIndex, ensurePersistenceIndex, requirePersistenceIndex } from './persistence/indexes';
+export { writeGridFSStream } from './storage/writeGridFSStream';
+export { ownGridFSDownload } from './storage/ownGridFSDownload';
+
+export { prismaModelRow } from './persistence/prisma/modelRow';

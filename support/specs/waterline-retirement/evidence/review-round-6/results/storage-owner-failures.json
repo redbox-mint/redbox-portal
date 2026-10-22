@@ -1,0 +1,13 @@
+{
+  "name": "storage-owner-failures",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh owner-failures",
+  "sourceCommit": "e30b8898f0ca050bbdc061dc705b3f99cc2db9c3",
+  "exitCode": 0,
+  "durationMs": 5826,
+  "sha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":5,\"failures\":0,\"cases\":[\"cleanup waits for partial start and disconnects an owned address before any worker exists\",\"late successful initialization cannot start workers after drain begins\",\"failed connect rejects startup and retained producers; cleanup owns partial backend\",\"failed backend close retains backend and app pool until successful retry\"],\"connectionCounts\":{\"observerOnly\":2,\"afterPartialFailureAndCloseRetries\":2}}"
+  ]
+}

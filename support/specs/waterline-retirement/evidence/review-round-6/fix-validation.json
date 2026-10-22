@@ -1,0 +1,34 @@
+{
+  "notes": [
+    "Per-fix checks run on the working patch before its commit; sourceCommit records the parent checkpoint.",
+    "The first GridFS fix was amended to complete chunkSize in the shared fake bucket after the extra scoped test compiler exposed missing metadata. Required production build and persistence typechecking had already passed; final scoped compilation also passes.",
+    "The first session follow-up review exposed error-response retries in the uncommitted patch. Eight failing retry cases were added and the terminal failed-end state was corrected before commit. No tracked production source was reverted."
+  ],
+  "fixes": [
+    {
+      "commit": "6c1201d9812dcb76dd56f7d679186178c5cb3f99",
+      "issue": "Destroy internally owned GridFS copy/move source streams when destination preparation fails",
+      "before": "results/gridfs-before.json",
+      "accepted": [
+        "results/fix1-validation.json",
+        "results/fix2-final-validation.json"
+      ]
+    },
+    {
+      "commit": "a2918d364",
+      "issue": "Make synchronous failed session end terminal while separately draining genuinely dispatched store callbacks",
+      "before": [
+        "results/session-before.json",
+        "results/session-retry-before.json"
+      ],
+      "accepted": [
+        "results/fix2-final-validation.json"
+      ]
+    }
+  ],
+  "harness": {
+    "commit": "e30b8898f0ca050bbdc061dc705b3f99cc2db9c3",
+    "fixture": "reference-query-pages.cjs",
+    "finalResult": "results/query-pages.json"
+  }
+}

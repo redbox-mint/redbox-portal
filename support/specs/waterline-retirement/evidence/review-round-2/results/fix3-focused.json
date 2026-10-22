@@ -1,0 +1,15 @@
+{
+  "name": "fix3-focused",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/reference-persistence.test.ts test/services/NamedQueryService.test.ts",
+  "sourceCommit": "de33c8f1cb8d472f9330b185a71fcaffb93d4366",
+  "exitCode": 0,
+  "durationMs": 5648,
+  "sha256": "11eda4747f4cc6700e3c159f50f4fe68d45d1736e314af139b0f4cc294b728bf",
+  "counts": {
+    "passing": [
+      55
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

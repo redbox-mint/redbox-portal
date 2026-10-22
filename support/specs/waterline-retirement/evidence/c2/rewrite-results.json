@@ -1,0 +1,335 @@
+{
+  "base": "b83234da9a6e5ce31387c75f3873bd3100e83175",
+  "acceptedOriginalTip": "d6084a79b",
+  "originalEvidenceBytes": 24029702,
+  "commits": [
+    {
+      "stage": "qualification-1",
+      "original": "b5a5751cd",
+      "commit": "363ffe98ea913f3e98f6e2a3389b6833baa542ac",
+      "purpose": "test(cache): extend C2 qualification with compact evidence",
+      "checks": [
+        {
+          "name": "build",
+          "command": "npm --prefix packages/redbox-core run build",
+          "exitCode": 0,
+          "durationSeconds": 31.95,
+          "logSha256": "ec29e17caf278156c36ac048855d4e38256b612d045eb4ac72ac4e62c1fac972"
+        },
+        {
+          "name": "typecheck",
+          "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+          "exitCode": 0,
+          "durationSeconds": 22.23,
+          "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+        },
+        {
+          "name": "cache-unit",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts test/unit/cache-persistence-runtime.test.ts test/services/CacheServiceCharacterization.test.ts test/services/BrandingPreviewCharacterization.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 6.91,
+          "logSha256": "76d3952934b16f2b7b6025485f81e2c470ae958b58d38e3a291ae60c517a5b3f",
+          "counts": {
+            "passing": 68
+          }
+        }
+      ]
+    },
+    {
+      "stage": "qualification-2",
+      "original": "8350d1f66",
+      "commit": "ac39fa98776f7496cd0920396c21cfd876a79409",
+      "purpose": "test(cache): pass C2 qualification and rollback gate",
+      "checks": [
+        {
+          "name": "build",
+          "command": "npm --prefix packages/redbox-core run build",
+          "exitCode": 0,
+          "durationSeconds": 26.1,
+          "logSha256": "09ca464601d2d44a11817221b93d44b5c2ac83c9704847f6789a8568c30d23fd"
+        },
+        {
+          "name": "typecheck",
+          "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+          "exitCode": 0,
+          "durationSeconds": 19.0,
+          "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+        },
+        {
+          "name": "cache-unit",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts test/unit/cache-persistence-runtime.test.ts test/services/CacheServiceCharacterization.test.ts test/services/BrandingPreviewCharacterization.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 2.38,
+          "logSha256": "b0d09ccec228de52847d16dcb3864bad6b3080e360d5a9a8c32631d15aaac59f",
+          "counts": {
+            "passing": 68
+          }
+        }
+      ]
+    },
+    {
+      "stage": "promotion",
+      "original": "8fe06bec6",
+      "commit": "744517a55ca478b2e7e1f66938ff67e93ec381a0",
+      "purpose": "feat(cache): promote qualified MongoDB default",
+      "checks": [
+        {
+          "name": "build",
+          "command": "npm --prefix packages/redbox-core run build",
+          "exitCode": 0,
+          "durationSeconds": 25.75,
+          "logSha256": "ebc860db60c030500a2ef26e0be89498875656e414ae7bc450133278526c9bf2"
+        },
+        {
+          "name": "typecheck",
+          "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+          "exitCode": 0,
+          "durationSeconds": 20.5,
+          "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+        },
+        {
+          "name": "cache-unit",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts test/unit/cache-persistence-runtime.test.ts test/services/CacheServiceCharacterization.test.ts test/services/BrandingPreviewCharacterization.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 2.37,
+          "logSha256": "72fbde90f297766d32be07968c5c63a6117cb4e24fa6a3864692b87757b1339f",
+          "counts": {
+            "passing": 68
+          }
+        }
+      ]
+    },
+    {
+      "stage": "removal-runtime",
+      "original": "d6084a79b",
+      "commit": "4d8ea422d17d54727c157fb21f2298cb946d11e8",
+      "purpose": "refactor(cache): retire Prisma runtime and reject obsolete selection",
+      "checks": [
+        {
+          "name": "build",
+          "command": "npm --prefix packages/redbox-core run build",
+          "exitCode": 0,
+          "durationSeconds": 23.68,
+          "logSha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e"
+        },
+        {
+          "name": "typecheck",
+          "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+          "exitCode": 0,
+          "durationSeconds": 20.04,
+          "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+        },
+        {
+          "name": "cache-unit",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts test/unit/cache-persistence-runtime.test.ts test/services/CacheServiceCharacterization.test.ts test/services/BrandingPreviewCharacterization.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 3.05,
+          "logSha256": "43e1e0c580bf9df1307217f5c44088b8cdbb2838ee2b40417b28f66bed92411f",
+          "counts": {
+            "passing": 69
+          }
+        }
+      ]
+    },
+    {
+      "stage": "removal-tooling",
+      "original": "d6084a79b",
+      "commit": "bfdefe344a798da683656b70a9481cf496363b2b",
+      "purpose": "build(cache): remove Prisma contracts and migrate test tooling",
+      "checks": [
+        {
+          "name": "build",
+          "command": "npm --prefix packages/redbox-core run build",
+          "exitCode": 0,
+          "durationSeconds": 22.74,
+          "logSha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e"
+        },
+        {
+          "name": "typecheck",
+          "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+          "exitCode": 0,
+          "durationSeconds": 19.36,
+          "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+        },
+        {
+          "name": "cache-unit",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts test/unit/cache-persistence-runtime.test.ts test/services/CacheServiceCharacterization.test.ts test/services/BrandingPreviewCharacterization.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 2.56,
+          "logSha256": "c0bf151eeed6c219a7ef23a693a82c6b130901ca7d65cae8aa3a7f2198458ca9",
+          "counts": {
+            "passing": 69
+          }
+        }
+      ]
+    },
+    {
+      "stage": "removal-dependencies",
+      "original": "d6084a79b",
+      "commit": "1dee84dc08c02cf616e4d71c6569e1504e2e381d",
+      "purpose": "build(deps): remove Prisma using npm 11.20.0 lock graphs",
+      "checks": [
+        {
+          "name": "build",
+          "command": "npm --prefix packages/redbox-core run build",
+          "exitCode": 0,
+          "durationSeconds": 25.09,
+          "logSha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e"
+        },
+        {
+          "name": "typecheck",
+          "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+          "exitCode": 0,
+          "durationSeconds": 20.83,
+          "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+        },
+        {
+          "name": "cache-unit",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts test/unit/cache-persistence-runtime.test.ts test/services/CacheServiceCharacterization.test.ts test/services/BrandingPreviewCharacterization.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 2.64,
+          "logSha256": "ab13f2cfc10e316ea1ea7985f5002e3c722c1da6473acb30500c58fa4ca25521",
+          "counts": {
+            "passing": 69
+          }
+        }
+      ]
+    }
+  ],
+  "lockRegeneration": {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--user",
+      "1000:1000",
+      "-v",
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e:/repo",
+      "-w",
+      "/repo",
+      "-e",
+      "npm_config_cache=/tmp/npm-cache",
+      "node:26.11.1-bookworm",
+      "bash",
+      "-c",
+      "test \"$(npm --version)\" = 11.20.0 && npm install --package-lock-only --ignore-scripts --strict-peer-deps --no-audit --no-fund && cd packages/redbox-core && npm install --package-lock-only --ignore-scripts --strict-peer-deps --no-audit --no-fund"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 6.77,
+    "logSha256": "704dbf7161128d523a45d899dc7de8f15d81103b27b2df342e9ba47d0ad11c97",
+    "locks": {
+      "package-lock.json": {
+        "removed": 333,
+        "added": 0,
+        "retainedVersionResolvedIntegrityChanges": 0,
+        "semanticIdentityWithAcceptedGraph": true,
+        "npmGeneratedSha256": "5d5c691280140766c4fc0a3f45b9ef02dee9a4dabe3f14b850ffc95e5a927922",
+        "committedSha256": "1227d2a84d3848c9b48d9608be2f0436fc5282df61842efe38b881f0962453c8"
+      },
+      "packages/redbox-core/package-lock.json": {
+        "removed": 390,
+        "added": 0,
+        "retainedVersionResolvedIntegrityChanges": 0,
+        "semanticIdentityWithAcceptedGraph": true,
+        "npmGeneratedSha256": "262938b9ad45f78741def2cd5b5ebe746c4e114f15097b50e1b5435277be6f40",
+        "committedSha256": "9ce4e54e01c2d9777e385190ab8e0e25835814d2fb1831e2f548452a49ad061a"
+      }
+    }
+  },
+  "rawOutputPolicy": "Raw output is outside Git; hashes and counts only are retained. Historical sourceCommit/image labels in earlier ledgers identify original campaigns; the commit mapping above identifies replayable rewritten source.",
+  "setupAttempts": [
+    {
+      "command": "npm --prefix packages/redbox-core run build",
+      "exitCode": 1,
+      "reason": "Prisma CLI was absent from the already-pruned installed dependencies.",
+      "name": "build",
+      "durationSeconds": 0.44,
+      "logSha256": "0056834921d28469c21353a6783e2c178a45a55e2a32afcc566505cfebcdd707",
+      "failureExcerpt": "Error: Cannot find module 'prisma/package.json'"
+    },
+    {
+      "command": "npm 11.20.0 install --no-package-lock --strict-peer-deps",
+      "exitCode": 1,
+      "reason": "Resolving without the historical lock selected a newer transitive schema-utils peer requiring a newer webpack. No manifests or locks changed. Historical npm ci --ignore-scripts --strict-peer-deps then succeeded.",
+      "logSha256": "00e7a748d2c93c609f08f335b68bc331efc1d05d4447cadf054dce03d2b2f7fb",
+      "rawBytes": 1748,
+      "failureExcerpt": "Conflicting peer dependency: webpack@5.112.0; schema-utils@4.8.1 requires peerOptional webpack ^5.112.0, while the exact root pin is webpack 5.111.1."
+    }
+  ],
+  "documentationStage": {
+    "commit": "HEAD (documentation/evidence stage)",
+    "stage": "removal-docs-final",
+    "source": "d572e312e64566bd39cb72d7707836c4c9e5ac86",
+    "checks": [
+      {
+        "name": "build",
+        "command": "npm --prefix packages/redbox-core run build",
+        "exitCode": 0,
+        "durationSeconds": 22.78,
+        "logSha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e"
+      },
+      {
+        "name": "typecheck",
+        "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+        "exitCode": 0,
+        "durationSeconds": 18.77,
+        "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+      },
+      {
+        "name": "cache-unit",
+        "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-entry-repository.test.ts test/unit/cache-persistence-runtime.test.ts test/services/CacheServiceCharacterization.test.ts test/services/BrandingPreviewCharacterization.test.ts",
+        "exitCode": 0,
+        "durationSeconds": 2.42,
+        "logSha256": "43312eb4f1bce0d9a69c21890c91ad79a004e5b80b0bdb8565e8121f95683fb6",
+        "counts": {
+          "passing": 69
+        }
+      }
+    ]
+  },
+  "regrouping": "Retired Prisma spike executables/configuration were moved into the tooling commit. Tooling, dependency and documentation stages were rebuilt, typechecked and cache-tested again. The final production tree is unchanged.",
+  "historicalDependencyRestore": {
+    "command": "npm 11.20.0 ci --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund (packages/redbox-core, owned Node 26.11.1 container)",
+    "exitCode": 0,
+    "logSha256": "3bae273a7a72f3de36584c8f34699e9a80627a27ff06192917805978d293c852"
+  },
+  "inventoryAuditCorrection": {
+    "command": "python3 packages/redbox-core/test/fixtures/waterline-retirement/review-inventory.py",
+    "initialExitCode": 1,
+    "failureExcerpt": "AssertionError: Unassigned native file: packages/redbox-core/src/persistence/prisma/client.ts",
+    "correction": "Retain frozen P0 owner classification and validate the frozen capture against its exact archived runner at da8f98f4d. Current Prisma-free captures must match the current runner. P0 generated evidence remains byte-identical."
+  },
+  "treeProof": "rewrite-tree-proof.json",
+  "compactEvidenceBytes": 252936,
+  "historicalDependencyCleanup": {
+    "command": [
+      "docker",
+      "run",
+      "--rm",
+      "--user",
+      "1000:1000",
+      "-v",
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e:/repo",
+      "-w",
+      "/repo/packages/redbox-core",
+      "-e",
+      "npm_config_cache=/tmp/npm-cache",
+      "node:26.11.1-bookworm",
+      "bash",
+      "-c",
+      "test \"$(npm --version)\" = 11.20.0 && npm prune --include=dev --ignore-scripts --strict-peer-deps --no-audit --no-fund"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 16.14,
+    "logSha256": "1e49f1e6e757431c729d61c6928e85dcdb4c35c29498b1f8a02d85b3e7ed4ab8",
+    "lockSemanticsUnchanged": true,
+    "prismaCliAndRuntimeInstalled": false
+  },
+  "verifierSmoke": {
+    "command": "C2_CHECKS=lint python3 packages/redbox-core/test/fixtures/cache-persistence/verify-c2.py rewrite-verifier-smoke",
+    "exitCode": 0,
+    "results": "rewrite-verifier-smoke/results.json",
+    "rawOutputOutsideTrackedEvidence": true,
+    "failedAttemptExcerptsAndBrowserXmlCountsVerified": true
+  }
+}

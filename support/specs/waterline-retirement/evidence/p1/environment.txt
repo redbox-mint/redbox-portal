@@ -1,0 +1,12 @@
+Source: f7050fff0c3056a9837ead2f9dc28546af2615a6
+Captured UTC: 2026-10-19T16:16:49.348Z
+Node: v24.18.0
+Host npm (no lock maintenance): 12.0.2
+TypeScript: 5.9.3
+./package.json {"name":"redbox-portal","version":"2.1.0","mongodb":"7.7.0","packageManager":"npm@11.20.0"}
+./packages/redbox-core/package.json {"name":"@researchdatabox/redbox-core","version":"0.0.1-beta.9022","mongodb":"7.7.0","packageManager":"npm@11.20.0"}
+./packages/sails-hook-redbox-storage-mongo/package.json {"name":"@researchdatabox/sails-hook-redbox-storage-mongo","version":"1.5.3","mongodb":"7.2.0"}
+Installed root/core driver: 7.7.0
+Installed storage driver: 7.2.0
+Docker: 29.6.1
+No repository lockfiles changed: true

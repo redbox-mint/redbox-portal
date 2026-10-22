@@ -1,0 +1,11 @@
+{
+  "name": "fixture-types-lints",
+  "command": "npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint",
+  "sourceCommit": "f291c3260f0456f92730ed8e972bc8df920895fa",
+  "exitCode": 2,
+  "durationMs": 33079,
+  "sha256": "7a85e9e08edd696c0b378690be32c28aa4b222b8915f3516fac93a8a59710362",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

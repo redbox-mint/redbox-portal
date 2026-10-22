@@ -1,0 +1,39 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh bruno mongodb",
+  "exitCode": 0,
+  "durationMs": 244011,
+  "rawBytes": 2344795,
+  "sha256": "774b2879b944b981f7d2da2b0afbd14fe31a6544512b9b6ef5b137c8bf4c082f",
+  "counts": {
+    "requests": 309,
+    "requestsPassed": 309,
+    "testsPassed": 553,
+    "testsTotal": 553,
+    "assertionsPassed": 3,
+    "assertionsTotal": 3
+  },
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    },
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

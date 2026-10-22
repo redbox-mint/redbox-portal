@@ -1,0 +1,11 @@
+{
+  "name": "final-static",
+  "command": "npm run lint && node_modules/.bin/tsc --noEmit && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && git diff --check",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 8602,
+  "sha256": "63bc3bca0cd0c4e18be9ce7fe5bafddc2677a758396473c9d1e113495c35d0ae",
+  "counts": {},
+  "passGroups": 1,
+  "checks": []
+}

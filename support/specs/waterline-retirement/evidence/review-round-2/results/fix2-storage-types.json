@@ -1,0 +1,11 @@
+{
+  "name": "fix2-storage-types",
+  "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile",
+  "sourceCommit": "f944c0411e669a1dc55d7ad4ac2f77cf10c37cee",
+  "exitCode": 0,
+  "durationMs": 5126,
+  "sha256": "e68b7a76c23677271a0cf4cf4564f762e8032f685e76b79daadf7ee7ff0f8931",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

@@ -1,0 +1,89 @@
+foundation: exit 0
+  12 passing (2s)
+
+cache-transition: exit 0
+  8 passing (1m)
+
+cache-driver: exit 0
+  15 passing (2m)
+
+migration: exit 0
+  14 passing (2m)
+  1 pending
+
+reference: exit 0
+PASS all eight entities, raw defaults, both directions, unknown fields, read without rewrite
+PASS create-only keys, duplicate validation, explicit one/many/dangling relationships
+PASS tenant count, projection, ordering, pagination, unsupported-target/operator and required-field refusal
+PASS simultaneous independent mixed instances, restart, config rollback and forward, stale-reference fencing
+PASS fresh-process restart and baseline-compatible refusal of uppercase foreign IDs
+PASS historical missing fields and extension data without read normalization writes
+PASS unsupported raw BSON refuses repository/query reads without rewriting data or returning a smaller page
+PASS duplicate singular-name refusal without writes, nested comparison/membership filters on both backends
+PASS cross-group record tenant and user-role/link access, count after access, secret exclusion and missing related-target refusal
+PASS loaded hook callback/collection overrides on Waterline and driver refusal for unmigrated overrides
+PASS migrated service hook and explicit institution target parity, tenant/count/order/projection/page, unsupported-predicate refusal
+PASS prior cb874201 installed artifact: reads driver reference/form/report data, old callback update and write
+PASS designated pre-change built-image rollback on unchanged MongoDB
+
+configuration: exit 0
+PASS four model physical mappings, both directions, defaults/empty/null, partial/create-only UID, no read rewrite and extension preservation
+PASS competing revisions, unique branding, in-document all-or-none CAS and injected update failure without retry/save fallback
+PASS applied CAS and lease writes with failed acknowledgments remain visible without automatic retry or compensation
+PASS physical lease, competing acquire, owner/expiry fencing, stale release/renew/token and injected failure
+PASS AppConfig latest selection/duplicate save refusal, all Q tenant query readers/projections and service sanitization
+PASS independent simultaneous mixed instances, config rollback/forward, retained-reference fencing and new-process restart
+PASS actual loaded hook callbacks/custom collection retained on Waterline; MongoDB refuses unsupported overrides
+PASS migrated institution service hook on both adapters through the public plain repository seam
+PASS unsupported BSON repository/query refusal without read rewrite or silently omitted rows
+
+configuration-readiness: exit 0
+PASS all four callback-override refusals, sparse/conflicting UID indexes, duplicate blocking before any group DDL, safe ensure/readiness
+
+configuration-siem: exit 0
+PASS SIEM save/masking through AppConfigService and identical physical optional-field semantics on both Q backends
+
+progress: exit 0
+PASS prior J1 image loaded models/read/write
+PASS J1 raw/bidirectional/simultaneous mixed/fresh-process restart/config rollback/prior-image rollback/hooks/named-query tenant scope/cleanup/rejected and unknown-ack failure contracts
+
+harvest: exit 0
+PASS actual pre-J2 image reads run/chunk/event lineage and writes compatible status
+PASS J2 raw/bidirectional/mixed contention/unique dimensions/hash+attempt/restart/config+prior-image rollback/retention/known and ambiguous failures/no BSON leak
+
+indexes: exit 0
+14 passing deployment/upgrade cases, including actual J3 CLI duplicate blocking/ensure
+
+storage: exit 0
+  288 passing (53s)
+  38 pending
+
+packed: exit 0
+PASS clean prod install/prune; plain nullable DTOs, offline lazy imports/shims and live J3 on Node 24.16.0 + 26.11.1; npm 11.20.0
+
+build: exit 0
+Cache contracts: generate passed
+
+persistence-types: exit 0
+
+
+core: exit 0
+    ✔ loads core without a browser DOM or the full Effect barrel, then sanitizes on first use (10471ms)
+  4155 passing (1m)
+  106 pending
+
+unit-live: exit 0
+  73 passing (1s)
+
+contract: exit 0
+PASS pre-J3 image loaded read/write/native fencing
+PASS J3 raw/bidirectional/mixed contention/expiry/restart/config rollback/prior image/hooks/replay/retry/redaction/retention/ambiguous failure/draining
+
+cache-contract: exit 0
+Cache contracts: check passed
+
+lint: exit 0
+Found 0 warnings and 0 errors.
+
+root-types: exit 0
+

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>P0R candidate comparison</title>
+<style>
+body{margin:0;color:var(--foreground,#222);font:14px/1.5 var(--font-sans,system-ui);background:transparent}table{border-collapse:collapse;table-layout:fixed;width:100%}th,td{text-align:left;vertical-align:top;padding:12px 10px 12px 0;border-bottom:1px solid var(--border,#ddd);overflow-wrap:anywhere}th{font-size:12px;color:var(--muted-foreground,#666);font-weight:600}th:first-child{width:20%}th:nth-child(2){width:18%}th:nth-child(3){width:22%}td small{display:block;color:var(--muted-foreground,#666);font-size:12px}p{margin:12px 0 0;color:var(--muted-foreground,#666);font-size:12px}strong{font-weight:650}.pass{color:var(--success-foreground,#19653a)}@media(max-width:480px){body{font-size:12px}th,td{padding:10px 6px 10px 0}th{font-size:11px}td small,p{font-size:11px}}
+</style></head><body>
+<table aria-label="P0R ORM comparison"><thead><tr><th>Candidate</th><th>Release status</th><th>Cross-database transactions</th><th>Material trade-off</th></tr></thead><tbody>
+<tr><td><strong>MongoDB driver</strong><small>7.7.0</small></td><td>Stable</td><td class="pass">Passed<small>Commit, rollback, conflict retry</small></td><td>ReDBox owns mapping, validation and relationship queries.</td></tr>
+<tr><td><strong>MikroORM</strong><small>7.2.5</small></td><td>Stable</td><td class="pass">Passed<small>Explicit retry + named contexts</small></td><td>Useful SQL tooling; managed state and shared-session integration add work. Repeated commit disconnects unqualified.</td></tr>
+<tr><td><strong>Mongoose</strong><small>9.11.2</small></td><td>Stable</td><td class="pass">Passed<small>Shared client via useDb()</small></td><td>Capable Mongo ODM; adds schema/casting behavior and has no PostgreSQL adapter.</td></tr>
+<tr><td><strong>Prisma 8</strong><small>CLI rc.23 / Mongo rc.18</small></td><td>RC / early access</td><td>Unsupported<small>Undated transaction roadmap</small></td><td>Existing mappings and junction work; current runtime cannot meet the transaction requirement.</td></tr>
+</tbody></table>
+<p>24 clean packed runs · 318 passed supported assertions · Docker Node 24.16.0 + 26.11.1 · MongoDB 8.0.34 replica set. Prisma transaction cases are explicitly blocked. Native CAS, leases, indexes, cursors and GridFS coexistence passed for all four.</p>
+<p>G0R awaiting user decision · G0 HOLD · G-TX BLOCKED on OPS-TX-01. The single-node spike does not approve a deployment topology.</p>
+</body></html>

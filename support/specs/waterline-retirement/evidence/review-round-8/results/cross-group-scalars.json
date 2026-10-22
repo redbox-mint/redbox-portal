@@ -1,0 +1,13 @@
+{
+  "name": "cross-group-scalars",
+  "command": "R8_CONCERN=scalars bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-parity",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 58226,
+  "sha256": "bf7cf5a82f613d7d1b609b9cbd9ebea6012270cab0d7a6dc3162a5f3b8555bc4",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"concern\":\"scalars\",\"passing\":7280,\"failures\":0,\"summary\":{\"reference\":2040,\"configuration\":800,\"progress\":840,\"harvest\":2240,\"siem\":1360},\"firstFailures\":[]}"
+  ]
+}

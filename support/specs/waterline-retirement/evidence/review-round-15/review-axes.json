@@ -1,0 +1,40 @@
+{
+  "input": "dcf7d7ad7f82051a2ca7702f0c209bbc38683d65",
+  "finalCheckpoint": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+  "baseline": "ef23e07fe2933e62ea10620efa7db41f577213d0",
+  "parentFinding": "R15-1",
+  "axes": {
+    "standards": {
+      "initial": {
+        "taskId": "node:delegated-task:command%3Amcp%3Ae06b93ba-6a29-4b65-a4a0-31fa596b84a7%3Adelegate-task%3Awaterline-r15-standards-01",
+        "checkpoint": "dcf7d7ad7f82051a2ca7702f0c209bbc38683d65",
+        "status": "completed",
+        "report": "NO ISSUES FOUND"
+      },
+      "final": {
+        "taskId": "node:delegated-task:command%3Amcp%3Ae06b93ba-6a29-4b65-a4a0-31fa596b84a7%3Adelegate-task%3Awaterline-r15-standards-02",
+        "checkpoint": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+        "status": "completed",
+        "report": "NO ISSUES FOUND"
+      },
+      "priorFindingIncludedInFinalBrief": true,
+      "unresolvedObjections": []
+    },
+    "spec": {
+      "initial": {
+        "taskId": "node:delegated-task:command%3Amcp%3Ae06b93ba-6a29-4b65-a4a0-31fa596b84a7%3Adelegate-task%3Awaterline-r15-spec-01",
+        "checkpoint": "dcf7d7ad7f82051a2ca7702f0c209bbc38683d65",
+        "status": "completed",
+        "report": "NO ISSUES FOUND"
+      },
+      "final": {
+        "taskId": "node:delegated-task:command%3Amcp%3Ae06b93ba-6a29-4b65-a4a0-31fa596b84a7%3Adelegate-task%3Awaterline-r15-spec-02",
+        "checkpoint": "5de68b6007f0dab44b1df65dc58d5df655bad6ac",
+        "status": "completed",
+        "report": "NO ISSUES FOUND"
+      },
+      "priorFindingIncludedInFinalBrief": true,
+      "unresolvedObjections": []
+    }
+  }
+}

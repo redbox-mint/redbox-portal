@@ -1,0 +1,15 @@
+{
+  "name": "existing-volume-upgrade",
+  "stage": "stock",
+  "command": "python3 packages/redbox-core/test/fixtures/waterline-retirement/run-existing-volume-upgrade.py",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 100396,
+  "sha256": "311a5c8bf2215294bc8d83cb1e8e958978b9da5af9cc5fd25582e29cf09eb7ab",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": []
+}

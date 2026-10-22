@@ -83,6 +83,8 @@ export interface AgendaJobDefinition extends AgendaJobConfig {
 export type AgendaJobsConfig = Record<string, AgendaJobConfig>;
 
 export interface AgendaQueueOptions {
+    /** Maximum drain wait in milliseconds; defaults to 30000. A timeout retains resource ownership for retry. */
+    drainTimeoutMs?: number;
     /** Default backend for jobs without an override */
     backend?: AgendaQueueBackend;
     /** MongoDB connection string */

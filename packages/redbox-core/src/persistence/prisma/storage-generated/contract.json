@@ -1,0 +1,2133 @@
+{
+  "schemaVersion": "1",
+  "targetFamily": "mongo",
+  "target": "mongo",
+  "profileHash": "251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3",
+  "roots": {
+    "brandingconfighistory": {
+      "model": "BrandingConfigHistory",
+      "namespace": "__unbound__"
+    },
+    "deletedrecord": {
+      "model": "DeletedRecord",
+      "namespace": "__unbound__"
+    },
+    "integrationaudit": {
+      "model": "IntegrationAudit",
+      "namespace": "__unbound__"
+    },
+    "record": {
+      "model": "Record",
+      "namespace": "__unbound__"
+    },
+    "recordaudit": {
+      "model": "RecordAudit",
+      "namespace": "__unbound__"
+    },
+    "recordidentity": {
+      "model": "RecordIdentity",
+      "namespace": "__unbound__"
+    },
+    "recordschemaartifact": {
+      "model": "RecordSchemaArtifact",
+      "namespace": "__unbound__"
+    },
+    "recordschemareference": {
+      "model": "RecordSchemaReference",
+      "namespace": "__unbound__"
+    }
+  },
+  "domain": {
+    "namespaces": {
+      "__unbound__": {
+        "models": {
+          "BrandingConfigHistory": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "actorDisplayName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "actorId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "branding": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "css": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "dateCreated": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "hash": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "restoredFromVersion": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              },
+              "typeface": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "variables": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "version": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "brandingconfighistory",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "actorDisplayName": {
+                  "field": "actorDisplayName"
+                },
+                "actorId": {
+                  "field": "actorId"
+                },
+                "branding": {
+                  "field": "branding"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "css": {
+                  "field": "css"
+                },
+                "dateCreated": {
+                  "field": "dateCreated"
+                },
+                "hash": {
+                  "field": "hash"
+                },
+                "restoredFromVersion": {
+                  "field": "restoredFromVersion"
+                },
+                "typeface": {
+                  "field": "typeface"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                },
+                "variables": {
+                  "field": "variables"
+                },
+                "version": {
+                  "field": "version"
+                }
+              }
+            }
+          },
+          "DeletedRecord": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "brandId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "dateDeleted": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "deletedRecordMetadata": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "incarnationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "lifecycleOperation": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "lifecycleState": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "redboxOid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "revision": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "deletedrecord",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "brandId": {
+                  "field": "brandId"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "dateDeleted": {
+                  "field": "dateDeleted"
+                },
+                "deletedRecordMetadata": {
+                  "field": "deletedRecordMetadata"
+                },
+                "incarnationId": {
+                  "field": "incarnationId"
+                },
+                "lifecycleOperation": {
+                  "field": "lifecycleOperation"
+                },
+                "lifecycleState": {
+                  "field": "lifecycleState"
+                },
+                "redboxOid": {
+                  "field": "redboxOid"
+                },
+                "revision": {
+                  "field": "revision"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                }
+              }
+            }
+          },
+          "IntegrationAudit": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "brandId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "completedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "dateCreated": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "durationMs": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              },
+              "errorDetail": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "httpStatusCode": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              },
+              "integrationAction": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "integrationName": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "message": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "parentSpanId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "redboxOid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "requestSummary": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "responseSummary": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "spanId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "startedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "traceId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "triggeredBy": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "integrationaudit",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "brandId": {
+                  "field": "brandId"
+                },
+                "completedAt": {
+                  "field": "completedAt"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "dateCreated": {
+                  "field": "dateCreated"
+                },
+                "durationMs": {
+                  "field": "durationMs"
+                },
+                "errorDetail": {
+                  "field": "errorDetail"
+                },
+                "httpStatusCode": {
+                  "field": "httpStatusCode"
+                },
+                "integrationAction": {
+                  "field": "integrationAction"
+                },
+                "integrationName": {
+                  "field": "integrationName"
+                },
+                "message": {
+                  "field": "message"
+                },
+                "parentSpanId": {
+                  "field": "parentSpanId"
+                },
+                "redboxOid": {
+                  "field": "redboxOid"
+                },
+                "requestSummary": {
+                  "field": "requestSummary"
+                },
+                "responseSummary": {
+                  "field": "responseSummary"
+                },
+                "spanId": {
+                  "field": "spanId"
+                },
+                "startedAt": {
+                  "field": "startedAt"
+                },
+                "status": {
+                  "field": "status"
+                },
+                "traceId": {
+                  "field": "traceId"
+                },
+                "triggeredBy": {
+                  "field": "triggeredBy"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                }
+              }
+            }
+          },
+          "Record": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorization": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorization_edit": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorization_editPending": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorization_editRoles": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorization_view": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorization_viewPending": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorization_viewRoles": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "dateCreated": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "figshareSyncIntent": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "harvestId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "incarnationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastSaveDate": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "lifecycleOperationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "metaMetadata": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "metadata": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "notification": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "previousWorkflow": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "recordVersion": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              },
+              "redboxOid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "revision": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "workflow": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "record",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "authorization": {
+                  "field": "authorization"
+                },
+                "authorization_edit": {
+                  "field": "authorization_edit"
+                },
+                "authorization_editPending": {
+                  "field": "authorization_editPending"
+                },
+                "authorization_editRoles": {
+                  "field": "authorization_editRoles"
+                },
+                "authorization_view": {
+                  "field": "authorization_view"
+                },
+                "authorization_viewPending": {
+                  "field": "authorization_viewPending"
+                },
+                "authorization_viewRoles": {
+                  "field": "authorization_viewRoles"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "dateCreated": {
+                  "field": "dateCreated"
+                },
+                "figshareSyncIntent": {
+                  "field": "figshareSyncIntent"
+                },
+                "harvestId": {
+                  "field": "harvestId"
+                },
+                "incarnationId": {
+                  "field": "incarnationId"
+                },
+                "lastSaveDate": {
+                  "field": "lastSaveDate"
+                },
+                "lifecycleOperationId": {
+                  "field": "lifecycleOperationId"
+                },
+                "metaMetadata": {
+                  "field": "metaMetadata"
+                },
+                "metadata": {
+                  "field": "metadata"
+                },
+                "notification": {
+                  "field": "notification"
+                },
+                "previousWorkflow": {
+                  "field": "previousWorkflow"
+                },
+                "recordVersion": {
+                  "field": "recordVersion"
+                },
+                "redboxOid": {
+                  "field": "redboxOid"
+                },
+                "revision": {
+                  "field": "revision"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                },
+                "workflow": {
+                  "field": "workflow"
+                }
+              }
+            }
+          },
+          "RecordAudit": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "action": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "concurrency": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "dateCreated": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "executionSummary": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "occurredAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "record": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "redboxOid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "user": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "recordaudit",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "action": {
+                  "field": "action"
+                },
+                "concurrency": {
+                  "field": "concurrency"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "dateCreated": {
+                  "field": "dateCreated"
+                },
+                "executionSummary": {
+                  "field": "executionSummary"
+                },
+                "occurredAt": {
+                  "field": "occurredAt"
+                },
+                "record": {
+                  "field": "record"
+                },
+                "redboxOid": {
+                  "field": "redboxOid"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                },
+                "user": {
+                  "field": "user"
+                }
+              }
+            }
+          },
+          "RecordIdentity": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "incarnationId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "redboxOid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "recordidentity",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "incarnationId": {
+                  "field": "incarnationId"
+                },
+                "redboxOid": {
+                  "field": "redboxOid"
+                }
+              }
+            }
+          },
+          "RecordSchemaArtifact": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "byteLength": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/double@1",
+                  "kind": "scalar"
+                }
+              },
+              "completeness": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "contractFormat": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "digest": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "document": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastAccessedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "recordschemaartifact",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "byteLength": {
+                  "field": "byteLength"
+                },
+                "completeness": {
+                  "field": "completeness"
+                },
+                "contractFormat": {
+                  "field": "contractFormat"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "digest": {
+                  "field": "digest"
+                },
+                "document": {
+                  "field": "document"
+                },
+                "lastAccessedAt": {
+                  "field": "lastAccessedAt"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                }
+              }
+            }
+          },
+          "RecordSchemaReference": {
+            "fields": {
+              "_id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "mongo/objectId@1",
+                  "kind": "scalar"
+                }
+              },
+              "brand": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "digest": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              },
+              "kind": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "oid": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "operation": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "owner": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "portal": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "purpose": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "recordType": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "referenceKey": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "schemaKind": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/date@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "collection": "recordschemareference",
+              "fields": {
+                "_id": {
+                  "field": "_id"
+                },
+                "brand": {
+                  "field": "brand"
+                },
+                "createdAt": {
+                  "field": "createdAt"
+                },
+                "digest": {
+                  "field": "digest"
+                },
+                "expiresAt": {
+                  "field": "expiresAt"
+                },
+                "kind": {
+                  "field": "kind"
+                },
+                "oid": {
+                  "field": "oid"
+                },
+                "operation": {
+                  "field": "operation"
+                },
+                "owner": {
+                  "field": "owner"
+                },
+                "portal": {
+                  "field": "portal"
+                },
+                "purpose": {
+                  "field": "purpose"
+                },
+                "recordType": {
+                  "field": "recordType"
+                },
+                "referenceKey": {
+                  "field": "referenceKey"
+                },
+                "schemaKind": {
+                  "field": "schemaKind"
+                },
+                "updatedAt": {
+                  "field": "updatedAt"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "namespaces": {
+      "__unbound__": {
+        "entries": {
+          "collection": {
+            "brandingconfighistory": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "actorDisplayName": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "actorId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "branding": {
+                      "bsonType": [
+                        "null",
+                        "objectId"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "css": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "dateCreated": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "hash": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "restoredFromVersion": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    },
+                    "typeface": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "variables": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "deletedrecord": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "brandId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "dateDeleted": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "deletedRecordMetadata": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "incarnationId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "lifecycleOperation": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "lifecycleState": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "redboxOid": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "revision": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "integrationaudit": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "brandId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "completedAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "dateCreated": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "durationMs": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    },
+                    "errorDetail": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "httpStatusCode": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    },
+                    "integrationAction": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "integrationName": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "message": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "parentSpanId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "redboxOid": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "requestSummary": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "responseSummary": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "spanId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "startedAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "status": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "traceId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "triggeredBy": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "record": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "authorization": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "authorization_edit": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "authorization_editPending": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "authorization_editRoles": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "authorization_view": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "authorization_viewPending": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "authorization_viewRoles": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "dateCreated": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "figshareSyncIntent": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "harvestId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "incarnationId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "lastSaveDate": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "lifecycleOperationId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "metaMetadata": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "metadata": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "notification": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "previousWorkflow": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "recordVersion": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    },
+                    "redboxOid": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "revision": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "workflow": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "recordaudit": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "action": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "concurrency": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "dateCreated": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "executionSummary": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "occurredAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "record": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "redboxOid": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "user": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "recordidentity": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "incarnationId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "redboxOid": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "recordschemaartifact": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "byteLength": {
+                      "bsonType": [
+                        "null",
+                        "double"
+                      ]
+                    },
+                    "completeness": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "contractFormat": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "digest": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "document": {
+                      "bsonType": [
+                        "object",
+                        "array",
+                        "string",
+                        "double",
+                        "int",
+                        "long",
+                        "bool",
+                        "null"
+                      ]
+                    },
+                    "lastAccessedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            },
+            "recordschemareference": {
+              "kind": "mongo-collection",
+              "validator": {
+                "jsonSchema": {
+                  "additionalProperties": false,
+                  "bsonType": "object",
+                  "properties": {
+                    "_id": {
+                      "bsonType": "objectId"
+                    },
+                    "brand": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "createdAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "digest": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "expiresAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    },
+                    "kind": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "oid": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "operation": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "owner": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "portal": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "purpose": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "recordType": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "referenceKey": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "schemaKind": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "updatedAt": {
+                      "bsonType": [
+                        "null",
+                        "date"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id"
+                  ]
+                },
+                "kind": "mongo-validator",
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+            }
+          }
+        },
+        "id": "__unbound__",
+        "kind": "mongo-database"
+      }
+    },
+    "storageHash": "71a91406db5dafbba548fd5de9947ef7153268fa6fb13db0440ff8790265f395"
+  },
+  "capabilities": {},
+  "extensions": {},
+  "meta": {},
+  "_generated": {
+    "warning": "⚠️  GENERATED FILE - DO NOT EDIT",
+    "message": "This file is automatically generated by \"prisma contract emit\".",
+    "regenerate": "To regenerate, run: prisma contract emit"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "qualificationCommit": "1e2085cd677a2ae9aa11e1407b68be15117ec99b",
+  "GS-staged": "PASS for bounded transaction-free next",
+  "default": "mongodb",
+  "explicitRollback": "waterline",
+  "GTX": "CLOSED",
+  "atomicUnitsMoved": 0,
+  "scope": "Only stagedStorageOperations, attachment metadata/journal/audit excluding OID rebind, and independent revision-wrapper maintenance. Every other storage operation retains its baseline owner.",
+  "prePromotionImage": "packed-prior-artifact.json",
+  "buildAndTypes": "promotion-build.json",
+  "indexScopes": 49,
+  "indexCollections": 20,
+  "dependenciesChanged": false,
+  "locksChanged": false,
+  "topologyChanged": false,
+  "bridgeRetired": false,
+  "postPromotionVerification": "Fresh full core/storage/persistence/packed/Mocha/Bruno/dev matrix will be recorded in verification.json; qualification commit retains pre-promotion evidence."
+}

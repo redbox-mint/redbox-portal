@@ -1,0 +1,10 @@
+{
+  "node": "v26.10.0",
+  "core": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+  "storage": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+  "hashes": {
+    "packages/redbox-core/dist/persistence/reference/NamedQueryExecution.js": "8f92c97755011f9da7251929b3651a4bf42922a0bfeaaf0553efea2531e6e6f1",
+    "packages/redbox-core/dist/persistence/reference/physical.js": "30b3b5b19b4e94a10f05261712a94a9ed29ca269a15ad7d9da78cba42ea5b2ea",
+    "packages/sails-hook-redbox-storage-mongo/dist/persistence/MongoStagedStorage.js": "b263fc1c18ff2fe1cbb302284ab3a21b00c4ee07597763a4dc70cb4f3248742a"
+  }
+}

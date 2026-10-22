@@ -1,0 +1,22 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:configuration-transition
+npm notice run bash test/fixtures/waterline-retirement/run-configuration.sh contract
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+{"readiness":[{"backend":"waterline","pid":312963,"loadedMs":340.19832700000006,"readinessMs":2.5293100000003506,"rss":336826368,"ownedDriverClients":0},{"backend":"mongodb","pid":312978,"loadedMs":341.46252000000004,"readinessMs":78.15883299999996,"rss":337158144,"ownedDriverClients":1}],"indexes":[{"datastore":"mongodb","collection":"dashboardconfiguration","name":"branding_1","index":"ready","duplicateKeyGroups":0},{"datastore":"mongodb","collection":"i18nbundle","name":"i18nbundle_uid_unique","index":"ready","duplicateKeyGroups":0},{"datastore":"mongodb","collection":"i18ntranslation","name":"i18ntranslation_uid_unique","index":"ready","duplicateKeyGroups":0}]}
+PASS four model physical mappings, both directions, defaults/empty/null, partial/create-only UID, no read rewrite and extension preservation
+PASS competing revisions, unique branding, in-document all-or-none CAS and injected update failure without retry/save fallback
+PASS applied CAS and lease writes with failed acknowledgments remain visible without automatic retry or compensation
+PASS physical lease, competing acquire, owner/expiry fencing, stale release/renew/token and injected failure
+PASS AppConfig latest selection/duplicate save refusal, all Q tenant query readers/projections and service sanitization
+Dynamic imports imported
+PASS independent simultaneous mixed instances, config rollback/forward, retained-reference fencing and new-process restart
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+PASS actual loaded hook callbacks/custom collection retained on Waterline; MongoDB refuses unsupported overrides
+PASS migrated institution service hook on both adapters through the public plain repository seam
+PASS unsupported BSON repository/query refusal without read rewrite or silently omitted rows
+Dynamic imports imported
+PASS pre-Q f8c8cd7de installed image reads driver config/dashboard/bundle/entry/lease and writes unchanged database

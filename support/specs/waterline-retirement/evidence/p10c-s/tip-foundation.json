@@ -1,0 +1,13 @@
+{
+  "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+  "exitCode": 0,
+  "durationMs": 8493,
+  "rawBytes": 1454,
+  "sha256": "1cf16a359e51781b8841a28cb5419f8a5c068ce21e8188268534b127ff0ea7da",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {
+    "passing": 12
+  },
+  "checks": [],
+  "passGroups": 0
+}

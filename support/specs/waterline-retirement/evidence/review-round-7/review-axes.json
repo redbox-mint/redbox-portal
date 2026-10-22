@@ -1,0 +1,97 @@
+{
+  "reviewSkill": "/home/andrew/.agents/skills/code-review/SKILL.md",
+  "range": "441d87304^..1b471907c",
+  "patchRange": "1b471907c..84f7c6ce6",
+  "axes": [
+    {
+      "key": "r7-standards-result",
+      "taskId": "node:delegated-task:command%3Amcp%3A191dc214-cdbe-43a7-96fb-3041dcb50b71%3Adelegate-task%3Awaterline-r7-standards-20261021-1",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "1. **P2 — R/Q readiness accepts unimplemented automatic field behavior.** `packages/redbox-core/src/persistence/reference/preflight.ts:93` and `packages/redbox-core/src/persistence/configuration/preflight.ts:108` validate timestamp flags only on `createdAt`/`updatedAt`; other attributes may carry those flags unchecked. Reproduced using captured mappings with `ThemeConfig.css.autoUpdatedAt = true` and `I18nBundle.displayName.autoUpdatedAt = true`: both readiness guards accept them, but Waterline’s installed record normalizer supplies `\"2026-10-21T00:00:00.000Z\"` while the driver encoders supply `\"\"`. Promotion therefore silently bypasses loaded hook behavior. **Fix:** compare both automatic timestamp flags on every attribute against the qualified mapping, as J1/J2 already do; refuse unsupported flags before publishing repositories.\n\n2. **P3 — progress ordering silently truncates malformed string directives.** `packages/redbox-core/src/persistence/progress/MongoProgressRepositories.ts:67`. Repro: `progress.listProgress({sort: \"name ASC garbage\"})` dispatches Mongo ordering `{name: 1}` and succeeds; installed Waterline normalization rejects the same directive with `E_SORT_CLAUSE_UNUSABLE`. Splitting produces three tokens, but destructuring consumes only two. This changes invalid-query handling during backend switching and hides malformed ordering. **Fix:** require one or two tokens before destructuring; extend the retained adversarial harness with directives containing trailing tokens—the R6 paging matrix does not cover this shape."
+    },
+    {
+      "key": "r7-spec-result",
+      "taskId": "node:delegated-task:command%3Amcp%3A191dc214-cdbe-43a7-96fb-3041dcb50b71%3Adelegate-task%3Awaterline-r7-spec-20261021-1",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "1. **P2 — native record array equality becomes membership.** [reference/NamedQueryExecution.ts:259](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts:259). Execute a record query with `{\"metadata.tags\":[]}`: both count/find receive `{\"metadata.tags\":{\"$in\":[]}}`, returning no matches. At the base commit, the predicate retained exact empty-array equality. Nonempty arrays instead broaden matches. This affects both selectors. Separate native-record array equality from Waterline membership translation. Violates [design.md:119–121,187–196](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/design.md:119): preserve behavior and stored Mongo expressions, or refuse actionably.\n\n2. **P2 — J2/J3 numeric codecs retain the previously fixed coercion mismatch.** [harvest/physical.ts:298](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/harvest/physical.ts:298), [siem/physical.ts:208](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/siem/physical.ts:208). With otherwise valid dictionaries, `createRun({…,failed:true})` and `appendAttempt({…,durationMs:true})` succeed through loaded Waterline as numeric `1`; driver encoding rejects them. Conversely, `' 2 '` is rejected by Waterline but stored as `2` by these codecs. Verified using loaded Waterline with an in-memory adapter and the current driver encoders. Switching adapters therefore changes lineage/history write acceptance. Use `coercePersistenceScalar(value,'number')` with the existing finite guard. Violates [design.md:119–121,227–235](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/design.md:119), requiring preserved errors, counters and history.\n\n3. **P3 — progress ordering silently truncates malformed strings.** [progress/MongoProgressRepositories.ts:67](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/progress/MongoProgressRepositories.ts:67). `listProgress({sort:'currentIdx DESC name ASC'})` dispatches `{currentIdx:-1}`, discarding the trailing tokens. Waterline rejects the same clause with `E_SORT_CLAUSE_UNUSABLE`. The check measures the outer array’s length, while destructuring ignores extra inner tokens. Reject string terms containing more than two tokens before dispatch. Violates [design.md:119–121](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/design.md:119)’s preserved ordering/error contract."
+    },
+    {
+      "key": "r7-standards-final-result",
+      "taskId": "node:delegated-task:command%3Amcp%3A191dc214-cdbe-43a7-96fb-3041dcb50b71%3Adelegate-task%3Awaterline-r7-standards-final-20261021-1",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "- **P2 — Cancellation can still orphan an initializing GridFS cursor.** [GridFSDriver.ts:148](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/storage/GridFSDriver.ts:148), also [WaterlineNativeStorage.ts:3489](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts:3489). Destroy the download while its first chunks query is dispatched but awaiting its initial response. In driver 7.7.0, `abort()` closes the cursor before its server ID exists and ends its session, without awaiting that query. Ownership therefore releases early. When a non-exhausted response subsequently supplies the cursor ID, driver cleanup skips `killCursors` because the session has ended, leaving the server cursor orphaned. Retain the pending read through cancellation and complete cursor cleanup after it settles. Existing regressions cancel only after receiving data, which misses this window."
+    },
+    {
+      "key": "r7-spec-final-result",
+      "taskId": "node:delegated-task:command%3Amcp%3A191dc214-cdbe-43a7-96fb-3041dcb50b71%3Adelegate-task%3Awaterline-r7-spec-final-20261021-1",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "NO ISSUES FOUND."
+    },
+    {
+      "key": "r7-cursor-final2-result",
+      "taskId": "node:delegated-task:command%3Amcp%3A191dc214-cdbe-43a7-96fb-3041dcb50b71%3Adelegate-task%3Awaterline-r7-cursor-final2-20261021-1",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "NO ISSUES FOUND."
+    }
+  ]
+}

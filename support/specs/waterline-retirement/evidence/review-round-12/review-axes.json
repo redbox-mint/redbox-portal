@@ -1,0 +1,76 @@
+{
+  "standards": {
+    "taskId": "node:delegated-task:command%3Amcp%3Ad987f510-3a17-40df-b52b-88aaa4f4830b%3Adelegate-task%3Awaterline-r12-standards-8584a2303",
+    "status": "completed",
+    "providerInstanceId": "codex_hattie",
+    "model": "gpt-6.1-sol",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "- **[P3] Accepted attachment writes can be rejected during drain** \u2014 [storage/runtime.ts:115](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/storage/runtime.ts:115). Wrapping methods directly on `owner` also wraps internal calls. Both adapters\u2019 `markDeleted()` calls `this.upsert()`, so an already-admitted operation encounters the admission guard again.\n\n  Static caller proof: call `const pending = attachments.markDeleted(validRow)`, then immediately call `cleanupPersistence(app)`. The outer operation is tracked but scheduled through a microtask. Cleanup synchronously clears readiness; when `markDeleted()` runs, its internal `upsert()` rejects with `lifecycle`, and the accepted deletion metadata write never executes. `prepareMutations()` has the same problem across awaited internal calls.\n\n  This violates the documented ownership rule to **\u201cawait accepted operations/acquisitions\u201d** ([p1-foundation.md:101](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/p1-foundation.md:101)). Keep internal calls on the unwrapped implementation and apply admission/tracking at the external boundary.\n\nNo other qualifying Standards findings confirmed. Review was read-only at `8584a2303`; no tests, Docker, edits, commits, or delegation."
+  },
+  "spec": {
+    "taskId": "node:delegated-task:command%3Amcp%3Ad987f510-3a17-40df-b52b-88aaa4f4830b%3Adelegate-task%3Awaterline-r12-spec-8584a2303",
+    "status": "completed",
+    "providerInstanceId": "codex_hattie",
+    "model": "gpt-6.1-sol",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "**[P2] Shutdown drops completion audits from accepted Figshare workers** \u2014 [AgendaQueueService.ts:157](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:157).\n\nSpec: `design.md:120\u2013121` requires preserving \u201cordering, errors, callback effects and physical writes\u201d; `design.md:531` requires awaiting in-flight workers during shutdown.\n\nConvincing caller sequence, outside `integrationtest`:\n\n1. Hold an accepted Figshare worker during remote I/O, initiate shutdown, then let it finish successfully.\n2. Agenda sets `closing = true` before awaiting workers. The worker\u2019s `completeFigshareAudit()` reaches `IntegrationAuditService.completeAudit()` \u2192 `queueOrPersist()` \u2192 `AgendaQueueService.now()`, which now rejects.\n3. `safeQueueNow()` swallows that rejection ([IntegrationAuditService.ts:323](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/IntegrationAuditService.ts:323)), while the worker durably sets `auditClosed = true` ([worker.ts:647](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/figshare-v2/worker.ts:647)).\n\nThe terminal audit and its notification are lost; restart sees the audit marked closed. Draining must retain enqueue capability for completion writes from already accepted producers.\n\nRead-only review; no tests, Docker, edits or delegation performed."
+  },
+  "final-standards": {
+    "taskId": "node:delegated-task:command%3Amcp%3Ad987f510-3a17-40df-b52b-88aaa4f4830b%3Adelegate-task%3Awaterline-r12-final-standards-bd336c6c9",
+    "status": "completed",
+    "providerInstanceId": "codex_hattie",
+    "model": "gpt-6.1-sol",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "1. **P2 \u2014 admitted RAiD workers still lose durable retries during shutdown.** [AgendaQueueService.ts:649](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:649) calls `accepting()` without the worker exemption added to `now()`. A running `RaidMintRetryJob` encountering a retryable failure schedules its successor through [RaidService.ts:155](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/RaidService.ts:155). Once draining begins, this throws before persisting the retry. The stock job has no Agenda backoff, so restart does not resume that retry chain. Apply worker-scoped admission to `schedule()` while retaining external and detached refusal.\n\n2. **P2 \u2014 the configured audit worker settles before its follow-up enqueues.** [AgendaQueueService.ts:116](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:116) clears admission when the handler returns, but [IntegrationAuditService.ts:1028](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/IntegrationAuditService.ts:1028) returns `void` after launching `persistEntry()`. Hold `createIntegrationAudit()` pending, let the handler return, begin shutdown, then resolve storage: the notification enqueue at line 298 reaches `now()` with `active=false`, gets refused and is swallowed. The audit job has already completed, leaving no replay for the missing notification. Return and await the worker\u2019s persistence and required follow-up work; the new regression exercises a `completeAudit()` producer, not this configured consumer.\n\nRead-only review; no edits, tests, Docker or delegation performed."
+  },
+  "final-spec": {
+    "taskId": "node:delegated-task:command%3Amcp%3Ad987f510-3a17-40df-b52b-88aaa4f4830b%3Adelegate-task%3Awaterline-r12-final-spec-bd336c6c9",
+    "status": "completed",
+    "providerInstanceId": "codex_hattie",
+    "model": "gpt-6.1-sol",
+    "options": [
+      {
+        "id": "reasoningEffort",
+        "value": "xhigh"
+      },
+      {
+        "id": "serviceTier",
+        "value": "priority"
+      }
+    ],
+    "summary": "- **P2 \u2014 Shutdown still drops notifications from accepted audit jobs.** [AgendaQueueService.ts:116](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:116) awaits the handler\u2019s return before clearing `context.active`. The shipped [storeIntegrationAudit handler:1028](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/IntegrationAuditService.ts:1028) returns `void` and starts `persistEntry` without awaiting it. If its storage write finishes during shutdown, [persistEntry:298](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/IntegrationAuditService.ts:298) attempts the notification enqueue with an inactive context. `now()` refuses it, and `safeQueueNow` swallows the rejection. The second pending wait cannot retain an enqueue rejected before tracking.\n\n  Return/await `persistEntry` from the queued handler so its lifetime includes notification admission. The new tests exercise `completeAudit`\u2019s initial enqueue, but never execute the actual audit-storage handler with a held storage write.\n\nNo other qualifying findings in the reviewed fixes. Reviewed pinned HEAD `bd336c6c9`; no edits, tests, Docker, or delegation performed."
+  },
+  "resolutions": {
+    "attachmentDrain": "880f135b6; expanded to R.workflowForms after direct caller review and real-Mongo regression",
+    "completionEnqueues": "bd336c6c9; initial active-worker scope and post-drain pending-enqueue wait",
+    "voidAuditHandler": "9e1493d25; return/await persistence and security follow-up; held actual audit handler regression",
+    "delayedRetries": "a0503fbe0; apply active-worker scope to schedule; external/detached refusal regression"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-storage.sh contract"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 9.536,
+  "sha256": "85a301ea698d4f632f2d394b63f2510fd0cbdf37d0c8da3b7fe9ceec4a6541c6",
+  "logBytes": 46521,
+  "counts": [],
+  "failureExcerpt": "BSONVersionError: Unsupported BSON version, bson types must be from bson 6.x.x\n    at serializeInto (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/node_modules/bson/lib/bson.cjs:4033:27)\n    at serializeObject (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/node_modules/bson/lib/bson.cjs:3607:22)\n    at serializeInto (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/node_modules/bson/lib/bson.cjs:3817:29)\n    at serializeObject (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/node_modules/bson/lib/bson.cjs:3607:22)\n    at serializeInto (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/node_modules/bson/lib/bson.cjs:4028:29)"
+}

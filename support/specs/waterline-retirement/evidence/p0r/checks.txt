@@ -1,0 +1,11 @@
+P0 fixture extraction matches
+PASS exact direct pins and independent npm 11.20.0 / v3 lock
+PASS 24 packed runs / 318 assertions; Prisma TX blocked; Mikro repeated commit disconnect unqualified
+PASS tracked changes confined to programme documentation/evidence and isolated spikes
+PASS local Markdown link targets
+PASS no owned spike containers remain
+PASS offline strict tsc --noEmit after formatting: Docker Node 24.16.0 and 26.11.1
+PASS offline Prisma fresh emission matches committed contract JSON and declarations byte-for-byte
+PASS Prettier 3.9.9 changed source/document checks
+PASS git diff --check; no root/core manifest, lock, application code or stack changes
+HTML comparison preview: 728px width, 524px content height, no console messages

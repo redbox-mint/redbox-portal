@@ -1,0 +1,18 @@
+{
+  "name": "storage-tests",
+  "command": "npm run test:storage-mongo",
+  "sourceCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+  "exitCode": 0,
+  "durationMs": 40142,
+  "sha256": "e22005080ca5b1b10f08f23860e7f72a1efb68dbb9f8b11087bfcf3a5394167c",
+  "counts": {
+    "passing": [
+      288
+    ],
+    "pending": [
+      38
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

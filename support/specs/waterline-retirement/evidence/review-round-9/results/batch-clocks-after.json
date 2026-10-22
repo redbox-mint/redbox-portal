@@ -1,0 +1,17 @@
+{
+  "name": "batch-clocks-after",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh batch-clocks",
+  "sourceCommit": "3beb1deed9bac6558a454eccb1c1b346dc0ed899",
+  "exitCode": 0,
+  "durationMs": 8139,
+  "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 14,
+      "failures": 0,
+      "details": []
+    }
+  ]
+}

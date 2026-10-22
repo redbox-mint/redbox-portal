@@ -1,0 +1,308 @@
+{
+  "notes": [
+    "Per-fix commands ran against working changes on the recorded parent commit, then the exact changes were committed under commit.",
+    "No tracked source change was reverted for before proof; builds were complete before live workers loaded dist.",
+    "Source and compiled hashes for the complete final runtime are recorded in runtime.json."
+  ],
+  "fixes": [
+    {
+      "commit": "2dc6b4e52",
+      "issue": "Empty text modifiers discarded sibling filters or retained empty anchors",
+      "before": {
+        "name": "query-baseline-before",
+        "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-compatibility",
+        "sourceCommit": "72e1a2cd35026154d706783603881ee1748410d1",
+        "exitCode": 1,
+        "durationMs": 23822,
+        "sha256": "da632acfe440097082029f482f15916fe8c896c2e9d00f7a0f1c9a17afe2c7a1",
+        "counts": {},
+        "passGroups": 0,
+        "checks": [
+          {
+            "passing": 2976,
+            "failures": 34,
+            "firstFailures": [
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "form",
+                "field": "name",
+                "case": 84,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "form",
+                "field": "name",
+                "case": 85,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "form",
+                "field": "name",
+                "case": 86,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "form",
+                "field": "configuration.num",
+                "case": 84,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "form",
+                "field": "configuration.num",
+                "case": 86,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "form",
+                "field": "configuration.num",
+                "case": 88,
+                "baselineTotal": 1,
+                "actualTotal": 0
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "form",
+                "field": "configuration.num",
+                "case": 91,
+                "baselineTotal": 1,
+                "actualTotal": 0
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "appconfig",
+                "field": "configData.num",
+                "case": 84,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "appconfig",
+                "field": "configData.num",
+                "case": 86,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "appconfig",
+                "field": "configData.num",
+                "case": 88,
+                "baselineTotal": 1,
+                "actualTotal": 0
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "appconfig",
+                "field": "configData.num",
+                "case": 91,
+                "baselineTotal": 1,
+                "actualTotal": 0
+              },
+              {
+                "writer": "waterline",
+                "backend": "mongodb",
+                "target": "asynchprogress",
+                "field": "metadata.num",
+                "case": 84,
+                "baselineTotal": 0,
+                "actualTotal": 1
+              }
+            ],
+            "baseline": "loaded Waterline find/count",
+            "writers": [
+              "waterline",
+              "mongodb"
+            ]
+          }
+        ]
+      },
+      "accepted": [
+        {
+          "name": "fix1-build",
+          "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+          "sourceCommit": "72e1a2cd35026154d706783603881ee1748410d1",
+          "exitCode": 0,
+          "durationMs": 51172,
+          "sha256": "b49f7385f24aa0827b2c498065d03c8712f3f5fa0f07dbd324fe9ae4ac8532eb",
+          "counts": {},
+          "passGroups": 0,
+          "checks": []
+        },
+        {
+          "name": "fix1-query",
+          "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-compatibility && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register --require chai --require test/setup.ts test/unit/reference-persistence.test.ts test/unit/progress-persistence.test.ts",
+          "sourceCommit": "72e1a2cd35026154d706783603881ee1748410d1",
+          "exitCode": 0,
+          "durationMs": 37924,
+          "sha256": "299004ab9e8c66e9823305df700acb755e9b8bd2b5196f94f77e132ddb79da67",
+          "counts": {
+            "passing": [
+              23
+            ]
+          },
+          "passGroups": 0,
+          "checks": [
+            "{\"passing\":3106,\"failures\":0,\"firstFailures\":[],\"baseline\":\"loaded Waterline find/count\",\"writers\":[\"waterline\",\"mongodb\"]}"
+          ]
+        }
+      ],
+      "loadedComparisonCount": 3106
+    },
+    {
+      "commit": "035622d09",
+      "issue": "Exact scalar checker retirement ownership not recorded",
+      "accepted": [
+        {
+          "name": "fix2-build",
+          "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile",
+          "sourceCommit": "2dc6b4e52eb0addd100bc82758c6d1bb8e7b3183",
+          "exitCode": 0,
+          "durationMs": 53341,
+          "sha256": "aefdcdc48105dcc843b0a65b075be83cf0d624ab4b692685a4e40713f2ea4e41",
+          "counts": {},
+          "passGroups": 0,
+          "checks": []
+        }
+      ],
+      "behaviorChange": false
+    },
+    {
+      "commit": "aa0a9a1b7",
+      "issue": "Cache loaded physical and behavior overrides passed readiness",
+      "before": {
+        "name": "cache-mapping-before",
+        "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+        "sourceCommit": "035622d095557a612e4fa4f6e41ef33ba99fa8f4",
+        "exitCode": 1,
+        "durationMs": 62883,
+        "sha256": "d09329608b92922eb98cc6f759cf2599b67e50a79d04944eb481ad13a8821183",
+        "counts": {
+          "passing": [
+            14
+          ],
+          "failing": [
+            1
+          ]
+        },
+        "passGroups": 0,
+        "checks": []
+      },
+      "accepted": [
+        {
+          "name": "fix3-build-final",
+          "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+          "sourceCommit": "035622d095557a612e4fa4f6e41ef33ba99fa8f4",
+          "exitCode": 0,
+          "durationMs": 43929,
+          "sha256": "b49f7385f24aa0827b2c498065d03c8712f3f5fa0f07dbd324fe9ae4ac8532eb",
+          "counts": {},
+          "passGroups": 0,
+          "checks": []
+        },
+        {
+          "name": "fix3-unit",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/cache-persistence-runtime.test.ts",
+          "sourceCommit": "035622d095557a612e4fa4f6e41ef33ba99fa8f4",
+          "exitCode": 0,
+          "durationMs": 2056,
+          "sha256": "7bdd2426defce52849276eb0ea8a7841cc6f6b949b4fd6c33f97c1758f27f226",
+          "counts": {
+            "passing": [
+              22
+            ]
+          },
+          "passGroups": 0,
+          "checks": []
+        },
+        {
+          "name": "fix3-cache",
+          "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+          "sourceCommit": "035622d095557a612e4fa4f6e41ef33ba99fa8f4",
+          "exitCode": 0,
+          "durationMs": 75558,
+          "sha256": "15c00498e5d86b386dccbfcb8e78b3382e428d0a235e2803a9fe57cc96612a6a",
+          "counts": {
+            "passing": [
+              15
+            ]
+          },
+          "passGroups": 0,
+          "checks": []
+        }
+      ]
+    },
+    {
+      "commit": "080267604",
+      "issue": "Pending session save/touch/destroy callbacks escaped async HTTP lifetime after abort",
+      "before": {
+        "name": "session-save-before",
+        "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts --grep \"pending session save\"",
+        "sourceCommit": "035622d095557a612e4fa4f6e41ef33ba99fa8f4",
+        "exitCode": 1,
+        "durationMs": 2871,
+        "sha256": "39f268ca0ab7796195de1950857b27f53080231bf3a314b6f352233b48fd9b42",
+        "counts": {
+          "passing": [
+            0
+          ],
+          "failing": [
+            1
+          ]
+        },
+        "passGroups": 0,
+        "checks": []
+      },
+      "accepted": [
+        {
+          "name": "fix4-build",
+          "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint",
+          "sourceCommit": "aa0a9a1b735e877582d4cb384f9acc4f02a3ccb0",
+          "exitCode": 0,
+          "durationMs": 43824,
+          "sha256": "b49f7385f24aa0827b2c498065d03c8712f3f5fa0f07dbd324fe9ae4ac8532eb",
+          "counts": {},
+          "passGroups": 0,
+          "checks": []
+        },
+        {
+          "name": "fix4-http-final-accepted",
+          "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts test/middleware/redboxSession.test.ts",
+          "sourceCommit": "aa0a9a1b735e877582d4cb384f9acc4f02a3ccb0",
+          "exitCode": 0,
+          "durationMs": 2968,
+          "sha256": "4572a2fcdf2eb262a986d19256443ad864198874c657a29c1428430fbbf3ee97",
+          "counts": {
+            "passing": [
+              18
+            ]
+          },
+          "passGroups": 0,
+          "checks": []
+        }
+      ]
+    }
+  ]
+}

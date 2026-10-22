@@ -1,0 +1,34 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "test:core"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 163.737,
+  "sha256": "d859c17b7270ba601f919cf57482b5cb813a5c710e36d420cbf293cab9bbfce3",
+  "logBytes": 359957,
+  "counts": [
+    [
+      "4158",
+      "passing",
+      ""
+    ],
+    [
+      "113",
+      "pending",
+      ""
+    ],
+    [
+      "1",
+      "failing",
+      ""
+    ]
+  ],
+  "failureExcerpt": "  1 failing\n\n  1) startup module loading\n       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:\n     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT\n\nnull !== 0\n\n      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:45:12)\n      at processImmediate (node:internal/timers:504:21)\n\n\n",
+  "totals": {
+    "passing": 4158,
+    "pending": 113,
+    "failing": 1
+  }
+}

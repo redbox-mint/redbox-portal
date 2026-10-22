@@ -1,0 +1,2 @@
+npm notice run @researchdatabox/sails-hook-redbox-storage-mongo@1.5.3 build
+npm notice run tsc -p tsconfig.json

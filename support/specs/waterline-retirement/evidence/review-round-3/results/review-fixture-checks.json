@@ -1,0 +1,11 @@
+{
+  "name": "review-fixture-checks",
+  "command": "node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-compatibility.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-associations.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-equality.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-producer.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-tenant-scope.cjs && node_modules/.bin/prettier --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-compatibility.cjs packages/redbox-core/test/fixtures/waterline-retirement/reference-query-associations.cjs packages/redbox-core/test/fixtures/waterline-retirement/reference-query-equality.cjs packages/redbox-core/test/fixtures/waterline-retirement/reference-query-producer.cjs packages/redbox-core/test/fixtures/waterline-retirement/reference-tenant-scope.cjs",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 968,
+  "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}
