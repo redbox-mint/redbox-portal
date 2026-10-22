@@ -34,6 +34,14 @@ type SolrCore = SolrCoreConfig;
 type SolrConfig = SolrSearchConfig;
 
 const axios = require('axios');
+// Bound both socket inactivity and total elapsed time for every startup request.
+// waitTime is already the configured Solr readiness interval; zero must not disable timeouts.
+function solrSetupRequestOptions(): { timeout: number; signal: AbortSignal } {
+  const configured = Number(sails.config.solr.waitTime);
+  const timeout = Number.isFinite(configured) && configured > 0 ? Math.ceil(configured) : 5000;
+  return { timeout, signal: AbortSignal.timeout(timeout) };
+}
+
 type FlatModule = { flatten: (obj: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown> };
 type LuceneEscapeQueryModule = ((value: string) => string) | { escape?: (value: string) => string; default?: (value: string) => string };
 let flat: FlatModule | null = null;
@@ -166,7 +174,10 @@ export namespace Services {
 
     public override async init() {
       // preLiftSetup awaits init; bootstrap record saves run before Sails ready.
-      await this.ensureInitialized();
+      const configuredSearch = sails.config.search?.serviceName?.toLowerCase();
+      if (!configuredSearch || configuredSearch === 'solrsearchservice') {
+        await this.ensureInitialized();
+      }
       this.registerSailsHook('on', 'ready', () => {
         this.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
       });
@@ -219,7 +230,7 @@ export namespace Services {
 
           const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
           sails.log.verbose(`${ref.logHeader} Sending missing schema definitions for core: ${coreName}.`);
-          const response = await axios.post(schemaUrl, schemaDef).then((response: { data: unknown }) => response.data);
+          const response = await axios.post(schemaUrl, schemaDef, solrSetupRequestOptions()).then((response: { data: unknown }) => response.data);
           sails.log.verbose(`${ref.logHeader} Schema reconciliation successful, response: `);
           sails.log.verbose(JSON.stringify(response));
         } catch (err) {
@@ -287,7 +298,7 @@ export namespace Services {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
-      return await axios.get(schemaUrl).then((response: { data: SolrSchemaResponse }) => response.data);
+      return await axios.get(schemaUrl, solrSetupRequestOptions()).then((response: { data: SolrSchemaResponse }) => response.data);
     }
 
     private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
@@ -295,10 +306,12 @@ export namespace Services {
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName: string = core.options.core;
       const urlCheck = `${ref.getBaseUrl(core.options)}admin/cores?action=STATUS&core=${coreName}`;
-      for (let attempt = 1; attempt <= solrConfig.maxWaitTries; attempt++) {
+      const configuredAttempts = Number(solrConfig.maxWaitTries);
+      const maxAttempts = Number.isFinite(configuredAttempts) ? Math.max(1, Math.floor(configuredAttempts)) : 1;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${attempt}... ${urlCheck}`);
-          const solrStat = await axios.get(urlCheck).then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
+          const solrStat = await axios.get(urlCheck, solrSetupRequestOptions()).then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
           if (solrStat.status[coreName]?.instanceDir) {
             sails.log.info(`${ref.logHeader} SOLR core is available: ${coreName}`);
             return;
@@ -307,11 +320,11 @@ export namespace Services {
           sails.log.info(`${ref.logHeader} SOLR core: ${coreName} is still down, waiting.`);
           sails.log.info(JSON.stringify(err));
         }
-        if (attempt < solrConfig.maxWaitTries) {
+        if (attempt < maxAttempts) {
           await ref.sleep(solrConfig.waitTime);
         }
       }
-      throw new Error(`SOLR core: ${coreName} unavailable after ${solrConfig.maxWaitTries} attempts.`);
+      throw new Error(`SOLR core: ${coreName} unavailable after ${maxAttempts} attempts.`);
     }
 
     private getBaseUrl(coreOptions: SolrOptions): string {
@@ -336,7 +349,7 @@ export namespace Services {
       void this.enqueueOrRunNow(
         sails.config.solr.deleteJobName,
         data,
-        async (job) => this.solrDelete(job as QueueJob<RecordModel>, undefined)
+        async (job) => this.solrDelete(job as QueueJob<RecordModel>)
       );
     }
 
@@ -345,8 +358,9 @@ export namespace Services {
       data: T,
       fallback: (job: QueueJob<T>) => Promise<void>
     ): Promise<boolean> {
+      const usesQueue = this.queueService && typeof this.queueService.now === 'function';
       try {
-        if (this.queueService && typeof this.queueService.now === 'function') {
+        if (usesQueue) {
           await this.queueService.now(jobName, data);
           return true;
         }
@@ -355,7 +369,9 @@ export namespace Services {
         await fallback({ attrs: { data } });
         return true;
       } catch (err) {
-        this.updateChronicle({ solrJob: jobName, solrJobOutcome: 'submission-failed' }, [err]);
+        if (usesQueue) {
+          this.updateChronicle({ solrJob: jobName, solrJobOutcome: 'submission-failed' }, [err]);
+        }
         return false;
       }
     }
@@ -636,7 +652,7 @@ export namespace Services {
       return url + allParams.map(param => `&${param.key}=${param.value}`).join('');
     }
 
-    public async solrDelete(job: QueueJob<RecordModel>, _done: unknown) {
+    public async solrDelete(job: QueueJob<RecordModel>) {
       try {
         await this.ensureInitialized();
         const data = job.attrs.data;
