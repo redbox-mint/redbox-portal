@@ -71,21 +71,21 @@ export namespace Services {
 
     private get apiConfiguration(): RvaConfiguration {
       if (!this.configuration) {
-        this.configuration = new RvaConfiguration({ basePath: this.getBaseUrl() });
+        this.configuration = new RvaConfiguration({ basePath: this.getBaseUrl(), baseOptions: { timeout: 15000 } });
       }
       return this.configuration;
     }
 
     private get resourcesApi(): ResourcesApi {
       if (!this.resourcesClient) {
-        this.resourcesClient = new ResourcesApi(this.apiConfiguration, this.getBaseUrl(), this.httpClient);
+        this.resourcesClient = new ResourcesApi(this.apiConfiguration);
       }
       return this.resourcesClient;
     }
 
     private get servicesApi(): ServicesApi {
       if (!this.servicesClient) {
-        this.servicesClient = new ServicesApi(this.apiConfiguration, this.getBaseUrl(), this.httpClient);
+        this.servicesClient = new ServicesApi(this.apiConfiguration);
       }
       return this.servicesClient;
     }
