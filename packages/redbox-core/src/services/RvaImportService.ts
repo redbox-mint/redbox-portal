@@ -11,6 +11,8 @@ import { VocabularyAttributes } from '../waterline-models';
 import { Services as VocabularyServiceModule } from './VocabularyService';
 import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 
+const RVA_REQUEST_TIMEOUT_MS = 15000;
+
 
 
 export namespace Services {
@@ -64,14 +66,14 @@ export namespace Services {
 
     private get httpClient(): AxiosInstance {
       if (!this.client) {
-        this.client = axios.create({ timeout: 15000 });
+        this.client = axios.create({ timeout: RVA_REQUEST_TIMEOUT_MS });
       }
       return this.client;
     }
 
     private get apiConfiguration(): RvaConfiguration {
       if (!this.configuration) {
-        this.configuration = new RvaConfiguration({ basePath: this.getBaseUrl(), baseOptions: { timeout: 15000 } });
+        this.configuration = new RvaConfiguration({ basePath: this.getBaseUrl(), baseOptions: { timeout: RVA_REQUEST_TIMEOUT_MS } });
       }
       return this.configuration;
     }

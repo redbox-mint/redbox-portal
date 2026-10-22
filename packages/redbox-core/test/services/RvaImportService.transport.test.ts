@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import axios from 'axios';
 import * as lodash from 'lodash';
 import { createServer, type Server, type IncomingHttpHeaders } from 'node:http';
-import { Socket } from 'node:net';
 import * as sinon from 'sinon';
 import { Services } from '../../src/services/RvaImportService';
 
@@ -13,7 +12,7 @@ describe('RvaImportService generated transport', () => {
   let lodashDescriptor: PropertyDescriptor | undefined;
   let requests: { method: string | undefined; url: string; headers: IncomingHttpHeaders; body: string }[];
   let respond: (url: string) => { status?: number; data: unknown } | null;
-  let timeouts: sinon.SinonSpy;
+  let generatedRequests: sinon.SinonSpy;
   let vocabularyDescriptor: PropertyDescriptor | undefined;
   let create: sinon.SinonStub;
 
@@ -48,7 +47,8 @@ describe('RvaImportService generated transport', () => {
       value: { config: { vocab: { rva: { baseUrl: `http://127.0.0.1:${address.port}/registry/` } } } },
     });
     service = new Services.RvaImport();
-    timeouts = sinon.spy(Socket.prototype, 'setTimeout');
+    // Observe the generated client's actual request config, independently of the legacy client.
+    generatedRequests = sinon.spy(Reflect.get(Reflect.get(service, 'servicesApi'), 'axios'), 'request');
   });
 
   afterEach(async () => {
@@ -76,7 +76,8 @@ describe('RvaImportService generated transport', () => {
       q: 'local & vocabulary',
       pp: 20,
     });
-    expect(timeouts.calledWith(15000)).to.equal(true);
+    expect(generatedRequests.calledOnce).to.equal(true);
+    expect(generatedRequests.firstCall.args[0].timeout).to.equal(15000);
   });
 
   it('uses generated resource requests and retains the 406 legacy concept-tree fallback and timeout', async () => {
@@ -89,26 +90,32 @@ describe('RvaImportService generated transport', () => {
         return { data: [{ id: 'c1', label: 'Local concept' }] };
       throw new Error(`Unexpected local request: ${url}`);
     };
+    const legacyClient = Reflect.get(service, 'httpClient');
+    const legacyGet = sinon.spy(legacyClient, 'get');
     await service.importRvaVocabulary('1');
     expect(create.calledOnce).to.equal(true);
     expect(requests.map(r => r.method)).to.deep.equal(['GET', 'GET', 'GET']);
     expect(requests[1].headers.accept).to.equal('text/plain');
     expect(requests[2].url).to.equal('/repository/api/rva/version/101/concept-tree');
-    expect(timeouts.getCalls().filter(c => c.args[0] === 15000).length).to.be.at.least(3);
+    expect(generatedRequests.getCalls().map(call => call.args[0].timeout)).to.deep.equal([15000, 15000]);
+    expect(legacyGet.calledOnce).to.equal(true);
+    expect(legacyGet.firstCall.args[0]).to.contain('/repository/api/rva/version/101/concept-tree');
+    expect(legacyClient.defaults.timeout).to.equal(15000);
   });
 
-  it('aborts a stalled generated request after the configured 15000ms timeout', async function () {
-    this.timeout(20000);
+  it('aborts a stalled generated request using its configured timeout', async () => {
+    // Override only this instance's generated configuration to keep the real HTTP test fast.
+    const shortTimeoutMs = 100;
+    Reflect.get(service, 'apiConfiguration').baseOptions.timeout = shortTimeoutMs;
     respond = () => null;
-    const started = Date.now();
     try {
       await service.searchRva('stalled');
       expect.fail('Expected the local request to time out');
     } catch (error) {
       if (!axios.isAxiosError(error)) throw error;
       expect(error.code).to.equal('ECONNABORTED');
-      expect(error.message).to.equal('timeout of 15000ms exceeded');
-      expect(Date.now() - started).to.be.at.least(14000);
+      expect(error.message).to.equal(`timeout of ${shortTimeoutMs}ms exceeded`);
+      expect(error.config?.timeout).to.equal(shortTimeoutMs);
     }
     expect(requests).to.have.length(1);
   });
