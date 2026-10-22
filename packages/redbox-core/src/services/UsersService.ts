@@ -2177,7 +2177,7 @@ export namespace Services {
           }, {
             token: uuidHash
           });
-          return this.getObservable<UserModel[]>(q, 'exec', 'simplecb')
+          return this.getObservable<UserModel[]>(q, 'exec', 'node')
             .pipe(map((updatedUsers: UserModel[]) => updatedUsers[0] ?? user));
         } else {
           return throwError(new Error('No such user with id:' + userid));

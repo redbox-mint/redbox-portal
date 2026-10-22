@@ -90,8 +90,8 @@ export class UserClass {
   @Attr({ type: 'string', required: true, unique: true })
   public email!: string;
 
-  @Attr({ type: 'string' })
-  public token?: string;
+  @Attr({ type: 'string', allowNull: true })
+  public token?: string | null;
 
   @Attr({ type: 'json' })
   public additionalAttributes?: Record<string, unknown>;
@@ -137,7 +137,7 @@ export interface UserAttributes extends Sails.WaterlineAttributes {
   password?: string;
   roles?: unknown[];
   surname?: string;
-  token?: string;
+  token?: string | null;
   type: string;
   username: string;
   effectivePrimaryUsername?: string;
