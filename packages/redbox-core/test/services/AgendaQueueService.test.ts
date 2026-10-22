@@ -186,6 +186,7 @@ describe('AgendaQueueService', function () {
         });
       });
 
+      (service as any).queueInitialized = true;
       service.now('sqs-job', { sample: true });
 
       expect(sqsAgenda.now.calledOnceWithExactly('sqs-job', { sample: true })).to.equal(true);
@@ -354,6 +355,101 @@ describe('AgendaQueueService', function () {
         lastFinishedAt: { $lt: new Date('2026-07-15T00:00:00.000Z') }
       })).to.equal(true);
       clock.restore();
+    });
+  });
+
+  describe('bootstrap enqueue readiness', function () {
+    let service: Services.AgendaQueue;
+    let agenda: any;
+    let create: sinon.SinonStub;
+
+    beforeEach(function () {
+      setupGlobals(createMockSails({ config: { agendaQueue: { options: { backend: 'mongodb' },
+        jobs: { pdf: { fnName: 'testservice.process' } } } },
+        services: { testservice: { process: sinon.stub().resolves(undefined) } } }));
+      service = new Services.AgendaQueue();
+      agenda = createAgendaStub();
+      create = sinon.stub(service as any, 'createAgendaForBackend').resolves(agenda);
+    });
+
+    it('persists every concurrent request before ready and starts the same queue only at ready', async function () {
+      let finish!: (value: unknown) => void;
+      create.returns(new Promise(resolve => finish = resolve));
+      const first = service.now('pdf', { oid: 'one' });
+      const second = service.now('pdf', { oid: 'two' });
+      expect(agenda.now.called).to.equal(false);
+      finish(agenda);
+      await Promise.all([first, second]);
+      expect(create.calledOnce).to.equal(true);
+      expect(agenda.now.callCount).to.equal(2);
+      expect(agenda.start.called).to.equal(false);
+      await Promise.all([(service as any).handleReady(), (service as any).handleReady()]);
+      expect(create.calledOnce).to.equal(true);
+      expect(agenda.start.calledOnce).to.equal(true);
+      expect(agenda.now.callCount).to.equal(2);
+      await service.now('pdf', { oid: 'three' });
+      expect(agenda.now.callCount).to.equal(3);
+      expect(agenda.start.calledOnce).to.equal(true);
+    });
+
+    it('shares in-flight queue preparation with a concurrent ready event', async function () {
+      let finish!: (value: unknown) => void;
+      create.returns(new Promise(resolve => finish = resolve));
+      const submitted = service.now('pdf', { oid: 'one' });
+      const started = (service as any).handleReady();
+      expect(agenda.now.called || agenda.start.called).to.equal(false);
+      finish(agenda);
+      await Promise.all([submitted, started]);
+      expect(create.calledOnce).to.equal(true);
+      expect(agenda.now.calledOnce).to.equal(true);
+      expect(agenda.start.calledOnce).to.equal(true);
+    });
+
+    it('does not expose partially initialized routes and retries failed initialization', async function () {
+      const failure = new Error('backend connection setup failed');
+      create.onFirstCall().rejects(failure);
+      const errors = await Promise.all([service.now('pdf', {}), service.now('pdf', {})]
+        .map(promise => promise.then(() => null, error => error)));
+      expect(errors).to.deep.equal([failure, failure]);
+      expect(create.calledOnce).to.equal(true);
+      expect(agenda.now.called).to.equal(false);
+      await service.now('pdf', { oid: 'retry' });
+      expect(create.calledTwice).to.equal(true);
+      expect(agenda.now.calledOnce).to.equal(true);
+      expect(agenda.start.called).to.equal(false);
+    });
+
+    it('reuses a created backend when index initialization fails and retries', async function () {
+      const failure = new Error('index creation failed');
+      const indexes = sinon.stub(service as any, 'createMongoIndexes');
+      indexes.onFirstCall().rejects(failure);
+      indexes.resolves(undefined);
+      expect(await service.now('pdf', {}).then(() => null, error => error)).to.equal(failure);
+      expect(agenda.now.called).to.equal(false);
+      await service.now('pdf', { oid: 'retry' });
+      expect(create.calledOnce).to.equal(true);
+      expect(indexes.calledTwice).to.equal(true);
+      expect(agenda.now.calledOnce).to.equal(true);
+      expect(agenda.start.called).to.equal(false);
+    });
+
+    it('propagates durable enqueue failure without replaying successful requests', async function () {
+      const failure = new Error('Mongo write failed');
+      agenda.now.onSecondCall().rejects(failure);
+      await service.now('pdf', { oid: 'one' });
+      expect(await service.now('pdf', { oid: 'two' }).then(() => null, error => error)).to.equal(failure);
+      await service.now('pdf', { oid: 'two' });
+      expect(create.calledOnce).to.equal(true);
+      expect(agenda.now.callCount).to.equal(3);
+      expect(agenda.now.firstCall.args).to.deep.equal(['pdf', { oid: 'one' }]);
+    });
+
+    it('handles ready-event initialization rejection without an unhandled promise', async function () {
+      create.rejects(new Error('ready initialization failed'));
+      await service.init();
+      const ready = (sails.on as sinon.SinonStub).getCalls().find(call => call.args[0] === 'ready')!.args[1];
+      await ready();
+      expect((sails.log.error as sinon.SinonStub).called).to.equal(true);
     });
   });
 
