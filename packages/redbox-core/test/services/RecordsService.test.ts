@@ -1,3 +1,6 @@
+import { attachmentFixture } from '../helpers/attachmentFixture';
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installStorageRecordMock } from '../helpers/storageRecordMock';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
@@ -31,7 +34,7 @@ import { RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } from '../../src/RecordS
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { StorageServiceResponse } from '../../src/StorageServiceResponse';
 import { recordSchema } from '../../src/config/recordSchema.config';
-import type { FormAttributes } from '../../src/waterline-models/Form';
+import type { FormAttributes } from '../../src/persistence/rows';
 import type {
   RecordValidationCandidate,
   RecordValidationRequest,
@@ -101,6 +104,7 @@ describe('RecordsService', function () {
   };
 
   beforeEach(function () {
+    installStorageRecordMock();
     mockStorageService = {
       create: sinon.stub().resolves({ success: true, oid: 'new-record-123', isSuccessful: () => true }),
       updateMeta: sinon.stub().resolves({ success: true, oid: 'record-123', isSuccessful: () => true }),
@@ -229,11 +233,11 @@ describe('RecordsService', function () {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).Record = mockRecord;
-    (global as any).RecordType = {
+    repositoryFixtures.Record = mockRecord;
+    repositoryFixtures.RecordType = {
       findOne: sinon.stub().resolves({ name: 'rdmp', packageType: 'rdmp' }),
     };
-    (global as any).WorkflowStep = {
+    repositoryFixtures.WorkflowStep = {
       findOne: sinon.stub().resolves({ name: 'draft', config: {} }),
     };
     (global as any).BrandingService = {
@@ -330,9 +334,9 @@ describe('RecordsService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).Record;
-    delete (global as any).RecordType;
-    delete (global as any).WorkflowStep;
+    delete repositoryFixtures.Record;
+    delete repositoryFixtures.RecordType;
+    delete repositoryFixtures.WorkflowStep;
     delete (global as any).BrandingService;
     delete (global as any).FormsService;
     delete (global as any).RolesService;
@@ -1423,8 +1427,8 @@ describe('RecordsService', function () {
       );
       mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
 
-      mockRecord.findOne.onFirstCall().returns(createQueryObject(null));
-      mockRecord.findOne.onSecondCall().returns(createQueryObject(null));
+      mockRecord.find.onFirstCall().returns(createQueryObject([]));
+      mockRecord.find.onSecondCall().returns(createQueryObject([]));
       const createStub = sinon.stub(RecordsService, 'create').resolves({ isSuccessful: () => true });
       (global as any).RecordTypesService.get = sinon.stub().returns(of({ name: 'party', hooks: {} }));
       try {
@@ -1469,8 +1473,8 @@ describe('RecordsService', function () {
         await fs.writeFile(path.join(recordsPath, 'party.json'), JSON.stringify([{ title: `${mode} seed` }]));
         mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
         mockSails.config.recordValidation = { mode };
-        mockRecord.findOne.reset();
-        mockRecord.findOne.returns(createQueryObject(null));
+        mockRecord.find.reset();
+        mockRecord.find.returns(createQueryObject([]));
         mockStorageService.create.resetHistory();
         mockStorageService.createRecordAudit.resetHistory();
 
@@ -1505,7 +1509,7 @@ describe('RecordsService', function () {
       await fs.writeFile(path.join(recordsPath, 'grant.json'), JSON.stringify([{ title: 'Grant one' }]));
       mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
 
-      mockRecord.findOne.returns(createQueryObject({ redboxOid: 'bootstrap-grant-1' }));
+      mockRecord.find.returns(createQueryObject([{ redboxOid: 'bootstrap-grant-1' }]));
       const createStub = sinon.stub(RecordsService, 'create');
       try {
         await RecordsService.bootstrapData();
@@ -1645,28 +1649,21 @@ describe('RecordsService', function () {
         const deleteFile = sinon.stub().callsFake(async () => {
           expect(await mockStorageService.getMeta('record-123')).to.equal(null);
         });
-        Object.assign(globalThis, {
-          SecurityEventService: new SecurityServices.SecurityEventService(),
-          AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },
-          AgendaQueueService: { now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); } },
-          StorageManagerService: {
-            primaryDisk: () => ({ delete: deleteFile }),
-            getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
-          },
-          AttachmentMetadata: { findOne: async () => null, destroy: async () => [] },
-          AttachmentAccessAudit: {
+        (Object.assign(repositoryFixtures, {AttachmentMetadata: { findOne: async () => null, destroy: async () => [] },AttachmentAccessAudit: {
             create: (data: Record<string, unknown>) => ({
               fetch: async () => {
                 attachmentAudits.push(data);
                 return data;
               },
             }),
-          },
-        });
+          }}), Object.assign(globalThis, {SecurityEventService: new SecurityServices.SecurityEventService(),AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) },AgendaQueueService: { now: async (_name: string, data: { event: Record<string, unknown> }) => { emitted.push(data); } },StorageManagerService: {
+            primaryDisk: () => ({ delete: deleteFile }),
+            getMergedStorageConfig: () => ({ keyPrefix: 'attachments/' }),
+          }}));
         if (operation !== 'soft-delete') {
           if (operation === 'destroy-deleted') mockStorageService.getMeta.resolves(null);
           mockRecord.findOne.returns(createQueryObject(null));
-          mockSails.services.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService();
+          mockSails.services.attachmentmetadataservice = new AttachmentServices.AttachmentMetadataService(attachmentFixture());
           const datastreams = new DatastreamServices.StandardDatastream();
           mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'file-1' }]);
           mockDatastreamService.listDatastreams.onSecondCall().resolves([]);

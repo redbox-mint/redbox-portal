@@ -1,3 +1,5 @@
+import { executeNamedQuery, namedQueryTarget, assertNamedQueryPath } from '../persistence/reference/NamedQueryExecution';
+import { getReferenceRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -27,8 +29,7 @@ import { firstValueFrom } from 'rxjs';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordModel } from '../model/storage/RecordModel';
 import type { RecordsService } from '../RecordsService';
-import { UserAttributes } from '../waterline-models/User';
-import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
+import { NamedQueryAttributes } from '../persistence/rows';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
@@ -37,22 +38,6 @@ type AnyRecord = Record<string, unknown>;
 type BrandScope =
   | { type: 'field'; fieldPath: string }
   | { type: 'userRoles'; fieldPath: '' };
-type NativeRecordCollection = {
-  countDocuments: (criteria: Record<string, unknown>) => Promise<number>;
-  find: (criteria: Record<string, unknown>) => {
-    sort: (sort: Record<string, 1 | -1>) => NativeRecordCursor;
-    skip: (skip: number) => NativeRecordCursor;
-    limit: (limit: number) => NativeRecordCursor;
-    toArray: () => Promise<Record<string, unknown>[]>;
-  };
-};
-type NativeRecordCursor = {
-  sort: (sort: Record<string, 1 | -1>) => NativeRecordCursor;
-  skip: (skip: number) => NativeRecordCursor;
-  limit: (limit: number) => NativeRecordCursor;
-  toArray: () => Promise<Record<string, unknown>[]>;
-};
-
 const isRecordValue = (value: unknown): value is AnyRecord => typeof value === 'object' && value !== null;
 
 const getStringProperty = (value: unknown, propertyName: string): string | undefined => {
@@ -96,6 +81,14 @@ const parseSerializedValue = <T>(input: unknown, fallback: T): T => {
   return input as T;
 };
 
+const parseStoredValue = <T>(input: unknown, fallback: T): T => {
+  if (typeof input === 'string' && input.length > 0) {
+    try { return JSON.parse(input) as T; }
+    catch { throw new Error('Invalid stored named-query JSON. Repair the definition using the named-query API or restore the operator checkpoint before execution.'); }
+  }
+  return input === undefined || input === null || input === '' ? fallback : input as T;
+};
+
 const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<string, unknown> => {
   if (_.isPlainObject(value)) {
     return value as Record<string, unknown>;
@@ -119,7 +112,6 @@ const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
 export namespace Services {
   type RecordLike = AnyRecord & Partial<RecordModel> & { createdAt?: string | Date; updatedAt?: string | Date };
-  type UserLike = AnyRecord & UserAttributes & { createdAt?: string | Date; updatedAt?: string | Date };
 
   /**
    * Named Query related functions...
@@ -174,7 +166,7 @@ export namespace Services {
             continue;
           }
 
-          const existing = await NamedQuery.findOne({ key: `${defBrand.id}_${name}` });
+          const existing = await getReferenceRepositories().namedQueries.findByKey(`${defBrand.id}_${name}`);
           if (existing) {
             sails.log.verbose(`Skipping existing named query bootstrap data: ${name}`);
             continue;
@@ -207,60 +199,8 @@ export namespace Services {
       }
     }
 
-    private getModel(collectionName: string): AnyRecord | undefined {
-      return sails.models?.[collectionName] as AnyRecord | undefined;
-    }
-
     private resolveBrandScope(collectionName: string): BrandScope {
-      if (_.isEmpty(collectionName)) {
-        throw new Error('collectionName is required');
-      }
-
-      if (collectionName === 'record') {
-        return { type: 'field', fieldPath: 'metaMetadata.brandId' };
-      }
-
-      if (collectionName === 'user') {
-        return { type: 'userRoles', fieldPath: '' };
-      }
-
-      const model = this.getModel(collectionName);
-      if (!model) {
-        throw new Error(`Invalid collectionName '${collectionName}': model not found`);
-      }
-
-      const attributes = model.attributes as Record<string, unknown> | undefined;
-      if (attributes && Object.prototype.hasOwnProperty.call(attributes, 'branding')) {
-        return { type: 'field', fieldPath: 'branding' };
-      }
-
-      throw new Error(`Invalid collectionName '${collectionName}': model does not expose a brand scope`);
-    }
-
-    private hasRoleInBrand(user: UserLike, brandId: string): boolean {
-      return _.some(user.roles as unknown[] ?? [], (role: unknown) => {
-        const roleObj = role as AnyRecord;
-        const branding = roleObj?.branding;
-        const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
-        return roleBrandId === brandId;
-      });
-    }
-
-    private async getLinkedSecondaryUserIds(brandId: string): Promise<Set<string>> {
-      if (typeof UserLink === 'undefined') {
-        return new Set<string>();
-      }
-      const activeLinks = await UserLink.find({ brandId, status: 'active' }) as unknown as AnyRecord[];
-      return new Set(
-        _.map(activeLinks, (link: AnyRecord) => String(link.secondaryUserId ?? '')).filter((id: string) => id !== '')
-      );
-    }
-
-    private sanitizeUserForNamedQuery(user: UserLike): UserLike {
-      const sanitized = { ...user };
-      delete sanitized.password;
-      delete sanitized.token;
-      return sanitized;
+      return namedQueryTarget(sails, collectionName).scope;
     }
 
     private getMongoQueryValue(mongoQuery: Record<string, unknown>, path: string): unknown {
@@ -283,108 +223,14 @@ export namespace Services {
       }
     }
 
-    private isQueryOperatorObject(value: Record<string, unknown>): boolean {
-      return Object.keys(value).some((key) => key.startsWith('$') || [
-        'contains',
-        'startsWith',
-        'endsWith',
-        'like',
-        '>',
-        '>=',
-        '<',
-        '<=',
-        '!=',
-        'in',
-        'nin',
-      ].includes(key));
-    }
-
-    private flattenDeepTargetCriteria(criteria: Record<string, unknown>, prefix = ''): Record<string, unknown> {
-      const flattened: Record<string, unknown> = {};
-
-      for (const [key, value] of Object.entries(criteria)) {
-        const path = prefix ? `${prefix}.${key}` : key;
-
-        if (_.isPlainObject(value) && !this.isQueryOperatorObject(value as Record<string, unknown>)) {
-          Object.assign(flattened, this.flattenDeepTargetCriteria(value as Record<string, unknown>, path));
-        } else {
-          flattened[path] = value;
-        }
-      }
-
-      return flattened;
-    }
-
-    private toNativeMongoCriteria(criteria: Record<string, unknown>): Record<string, unknown> {
-      const mongoCriteria: Record<string, unknown> = {};
-      const operatorMap: Record<string, string> = {
-        '>': '$gt',
-        '>=': '$gte',
-        '<': '$lt',
-        '<=': '$lte',
-        '!=': '$ne',
-        in: '$in',
-        nin: '$nin',
-      };
-
-      for (const [key, value] of Object.entries(criteria)) {
-        if (_.isPlainObject(value)) {
-          const mappedValue: Record<string, unknown> = {};
-          for (const [operator, operatorValue] of Object.entries(value as Record<string, unknown>)) {
-            if (operator === 'contains') {
-              mappedValue.$regex = _.escapeRegExp(String(operatorValue ?? ''));
-              mappedValue.$options = 'i';
-            } else {
-              mappedValue[operatorMap[operator] ?? operator] = operatorValue;
-            }
-          }
-          mongoCriteria[key] = mappedValue;
-        } else {
-          mongoCriteria[key] = value;
-        }
-      }
-
-      return mongoCriteria;
-    }
-
-    private toNativeMongoSort(sort: NamedQuerySortConfig | undefined): Record<string, 1 | -1> {
-      const mongoSort: Record<string, 1 | -1> = {};
-
-      for (const sortEntry of sort ?? []) {
-        for (const [field, direction] of Object.entries(sortEntry)) {
-          mongoSort[field] = direction === 'DESC' ? -1 : 1;
-        }
-      }
-
-      return mongoSort;
-    }
-
-    private async getNativeRecordCollection(model: AnyRecord): Promise<NativeRecordCollection> {
-      const native = model.native;
-      if (typeof native !== 'function') {
-        throw new Error("Model record does not expose native collection access");
-      }
-
-      return new Promise<NativeRecordCollection>((resolve, reject) => {
-        const nativeFn = native as (callback: (error: Error | null, collection: NativeRecordCollection) => void) => void;
-        nativeFn((error: Error | null, collection: NativeRecordCollection) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(collection);
-          }
-        });
-      });
-    }
-
     public async create(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
       const key = `${brand.id}_${name}`;
-      const existing = await NamedQuery.findOne({ key });
+      const existing = await getReferenceRepositories().namedQueries.findByKey(key);
       if (existing) {
         throw new Error(`Named query '${name}' already exists`);
       }
       const brandScope = this.resolveBrandScope(config.collectionName);
-      return firstValueFrom(super.getObservable(NamedQuery.create({
+      return firstValueFrom(super.getObservable(() => getReferenceRepositories().namedQueries.createDefinition({
         name: name,
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
@@ -401,30 +247,28 @@ export namespace Services {
     }
 
     public async list(brand: BrandingModel): Promise<NamedQueryDefinition[]> {
-      const records = (await NamedQuery.find({
-        branding: brand.id
-      })) as NamedQueryAttributes[];
+      const records = (await getReferenceRepositories().namedQueries.listForBrand(brand.id)) as NamedQueryAttributes[];
       return records.map((r) => ({
         name: r.name,
         collectionName: r.collectionName,
-        mongoQuery: parseSerializedValue<Record<string, unknown>>(r.mongoQuery, {}),
-        queryParams: parseSerializedValue<Record<string, NamedQueryParam>>(r.queryParams, {}),
-        resultObjectMapping: parseSerializedValue<Record<string, string>>(r.resultObjectMapping, {}),
+        mongoQuery: parseStoredValue<Record<string, unknown>>(r.mongoQuery, {}),
+        queryParams: parseStoredValue<Record<string, NamedQueryParam>>(r.queryParams, {}),
+        resultObjectMapping: parseStoredValue<Record<string, string>>(r.resultObjectMapping, {}),
         brandIdFieldPath: r.brandIdFieldPath || undefined,
-        sort: r.sort ? parseSerializedValue<Array<Record<string, 'ASC' | 'DESC'>>>(r.sort, []) as Array<Record<string, 'ASC' | 'DESC'>> : undefined,
+        sort: r.sort ? parseStoredValue<Array<Record<string, 'ASC' | 'DESC'>>>(r.sort, []) as Array<Record<string, 'ASC' | 'DESC'>> : undefined,
         expandRelations: r.expandRelations || false,
-        relatedRecordFilters: r.relatedRecordFilters ? parseSerializedValue<RelatedRecordFilter[]>(r.relatedRecordFilters, []) : undefined,
+        relatedRecordFilters: r.relatedRecordFilters ? parseStoredValue<RelatedRecordFilter[]>(r.relatedRecordFilters, []) : undefined,
       })) as unknown as NamedQueryDefinition[];
     }
 
     public async update(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
       const key = `${brand.id}_${name}`;
-      const existing = await NamedQuery.findOne({ key });
+      const existing = await getReferenceRepositories().namedQueries.findByKey(key);
       if (!existing) {
         throw new Error(`Named query '${name}' not found`);
       }
       const brandScope = this.resolveBrandScope(config.collectionName);
-      const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set({
+      const updated = await firstValueFrom(super.getObservable(() => getReferenceRepositories().namedQueries.reviseDefinition(key, {
         name: name,
         branding: brand.id,
         mongoQuery: JSON.stringify(config.mongoQuery),
@@ -446,17 +290,15 @@ export namespace Services {
 
     public async delete(brand: BrandingModel, name: string) {
       const key = `${brand.id}_${name}`;
-      const existing = await NamedQuery.findOne({ key });
+      const existing = await getReferenceRepositories().namedQueries.findByKey(key);
       if (!existing) {
         throw new Error(`Named query '${name}' not found`);
       }
-      return firstValueFrom(super.getObservable(NamedQuery.destroyOne({ key })));
+      return firstValueFrom(super.getObservable(() => getReferenceRepositories().namedQueries.removeByKey(key)));
     }
 
     async getNamedQueryConfig(brand: BrandingModel, namedQuery: string): Promise<NamedQueryConfig | null> {
-      const nQDBEntry = await NamedQuery.findOne({
-        key: brand.id + "_" + namedQuery
-      });
+      const nQDBEntry = await getReferenceRepositories().namedQueries.findByKey(brand.id + "_" + namedQuery);
       if (nQDBEntry) {
         return new NamedQueryConfig(nQDBEntry)
       }
@@ -484,27 +326,22 @@ export namespace Services {
       expandRelations: boolean = false,
       relatedRecordFilters: RelatedRecordFilter[] = []
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
-      const criteriaMeta = { enableExperimentalDeepTargets: true };
       this.setParamsInQuery(mongoQuery, queryParams, paramMap);
 
       if (relatedRecordFilters && relatedRecordFilters.length > 0) {
         for (const filter of relatedRecordFilters) {
-          const filterModel = sails.models[filter.collectionName];
-          if (!filterModel) {
-            this.updateChronicle(
-              { namedQueryFilterCollection: filter.collectionName, namedQueryFilterOutcome: 'model-missing' },
-              [],
-              'warn'
-            );
-            continue;
-          }
+          assertNamedQueryPath(filter.localField);
+          assertNamedQueryPath(filter.foreignField);
           const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
           const filterQueryParams = _.pickBy(queryParams, (queryParam) => _.has(filterMongoQuery, queryParam.path));
           this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap);
-          const relatedRecords = await filterModel.find({ where: filterMongoQuery, select: [filter.foreignField] }).meta(criteriaMeta) as unknown as AnyRecord[];
+          const { records: relatedRecords } = await executeNamedQuery(sails, { target: filter.collectionName, tenant: String(brand.id), expression: filterMongoQuery, start: 0, select: [filter.foreignField] }, false);
           const relatedIds = _.uniq(relatedRecords.map((relatedRecord) => _.get(relatedRecord, filter.foreignField)).filter((id) => id != null && id !== ''));
           const existingLocalFieldFilter = this.getMongoQueryValue(mongoQuery, filter.localField);
           const existingRelatedIds = _.isPlainObject(existingLocalFieldFilter) ? _.get(existingLocalFieldFilter, '$in') : undefined;
+          if (existingLocalFieldFilter != null && !(Array.isArray(existingRelatedIds) && Object.keys(existingLocalFieldFilter as Record<string, unknown>).length === 1)) {
+            throw new Error('Unsupported stored named-query related-filter intersection. Move the existing local-field criterion to an explicit and/$and clause before using a related filter. See p3-r-operations.md.');
+          }
           if (Array.isArray(existingRelatedIds)) {
             this.setMongoQueryValue(mongoQuery, filter.localField, {
               $in: _.intersection(existingRelatedIds, relatedIds)
@@ -521,61 +358,10 @@ export namespace Services {
         return this.performUserNamedQuery(resultObjectMapping, mongoQuery, brand, start, rows, sort);
       }
 
-      this.setMongoQueryValue(mongoQuery, brandScope.fieldPath, brand.id);
-      const waterlineQuery = this.flattenDeepTargetCriteria(mongoQuery);
-      this.updateChronicle({ namedQueryCollection: collectionName, namedQueryStart: start, namedQueryRows: rows });
-
-      // Get the total count of matching records
-      let totalItems = 0;
-      const model = this.getModel(collectionName);
-      if (!model) {
-        throw new Error(`Model ${collectionName} not found`);
-      }
-      let results: Array<RecordLike | UserLike> = [];
-      if (collectionName === 'record') {
-        const nativeCollection = await this.getNativeRecordCollection(model);
-        const nativeCriteria = this.toNativeMongoCriteria(waterlineQuery);
-        totalItems = await nativeCollection.countDocuments(nativeCriteria);
-        if (totalItems > 0) {
-          let nativeQuery = nativeCollection.find(nativeCriteria);
-          const nativeSort = this.toNativeMongoSort(sort);
-          if (!_.isEmpty(nativeSort)) {
-            nativeQuery = nativeQuery.sort(nativeSort);
-          }
-          results = await nativeQuery.skip(start).limit(rows).toArray() as Array<RecordLike | UserLike>;
-        }
-      } else {
-        const count = model.count;
-        if (typeof count !== 'function') {
-          throw new Error(`Model ${collectionName} does not expose count`);
-        }
-        const countFn = count as (criteria: Record<string, unknown>) => { meta: (criteriaMeta: Record<string, unknown>) => Promise<number> };
-        totalItems = await countFn(waterlineQuery).meta(criteriaMeta);
-      }
-
-      // Build query criteria
-      const criteria: { where: Record<string, unknown>; skip: number; limit: number; sort?: NamedQuerySortConfig } = {
-        where: waterlineQuery,
-        skip: start,
-        limit: rows,
-      };
-
-      // Add sorting
-      if (sort !== undefined && Array.isArray(sort) && (sort?.length ?? 0) > 0) {
-        // e.g. [{ name:  'ASC'}, { age: 'DESC' }]
-        criteria['sort'] = sort;
-      }
-
-      // Run query
-      this.updateChronicle({ namedQueryTotalItems: totalItems });
-      if (collectionName !== 'record' && totalItems > 0) {
-        const find = model.find;
-        if (typeof find !== 'function') {
-          throw new Error(`Model ${collectionName} does not expose find`);
-        }
-        const findFn = find as (findCriteria: { where: Record<string, unknown>; skip: number; limit: number; sort?: NamedQuerySortConfig }) => { meta: (criteriaMeta: Record<string, unknown>) => Promise<Array<RecordLike | UserLike>> };
-        results = await findFn(criteria).meta(criteriaMeta);
-      }
+      const { total: totalItems, records: results } = await executeNamedQuery(sails, {
+        target: collectionName, tenant: String(brand.id), expression: mongoQuery, start, rows, sort,
+      });
+      this.updateChronicle({ namedQueryCollection: collectionName, namedQueryStart: start, namedQueryRows: rows, namedQueryTotalItems: totalItems });
 
       const responseRecords: NamedQueryResponseRecord[] = []
       const recordsService = sails.services.recordsservice as unknown as RecordsService | undefined;
@@ -646,32 +432,9 @@ export namespace Services {
       rows: number,
       sort: NamedQuerySortConfig | undefined = undefined
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
-      const criteriaMeta = { enableExperimentalDeepTargets: true };
-      const model = this.getModel('user');
-      if (!model) {
-        throw new Error(`Invalid collectionName 'user': model not found`);
-      }
-      const userModel = model as { find: (criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig }) => unknown };
-
-      const criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig } = { where: mongoQuery };
-      if (sort !== undefined && Array.isArray(sort) && (sort?.length ?? 0) > 0) {
-        criteria.sort = sort;
-      }
-
-      let query = userModel.find(criteria) as AnyRecord;
-      if (query && typeof query.populate === 'function') {
-        query = query.populate('roles');
-      }
-      const allUsers = query && typeof query.meta === 'function'
-        ? (await query.meta(criteriaMeta) as unknown as UserLike[])
-        : (await query as unknown as UserLike[]);
-
-      const brandId = String(brand.id);
-      const linkedSecondaryUserIds = await this.getLinkedSecondaryUserIds(brandId);
-      const scopedUsers = allUsers
-        .filter((user) => this.hasRoleInBrand(user, brandId) || linkedSecondaryUserIds.has(String(user.id ?? '')))
-        .map((user) => this.sanitizeUserForNamedQuery(user));
-      const pagedUsers = scopedUsers.slice(start, start + rows);
+      const { total: totalItems, records: pagedUsers } = await executeNamedQuery(sails, {
+        target: 'user', tenant: String(brand.id), expression: mongoQuery, start, rows, sort,
+      });
       const responseRecords: NamedQueryResponseRecord[] = [];
 
       for (const userRecord of pagedUsers) {
@@ -697,8 +460,8 @@ export namespace Services {
           oid: '',
           title: '',
           metadata: defaultMetadata,
-          lastSaveDate: userRecord.updatedAt ?? null,
-          dateCreated: userRecord.createdAt ?? null
+          lastSaveDate: typeof userRecord.updatedAt === 'string' ? userRecord.updatedAt : null,
+          dateCreated: typeof userRecord.createdAt === 'string' ? userRecord.createdAt : null
         }));
       }
 
@@ -706,7 +469,7 @@ export namespace Services {
       response.records = responseRecords;
       response.summary.start = start;
       response.summary.page = Math.floor((start / rows) + 1);
-      response.summary.numFound = scopedUsers.length;
+      response.summary.numFound = totalItems;
       return response;
     }
 
@@ -714,6 +477,7 @@ export namespace Services {
       for (const queryParamKey in queryParams) {
         let value = paramMap[queryParamKey];
         const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
+        assertNamedQueryPath(queryParam.path);
 
         if (_.isUndefined(value) && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
@@ -969,14 +733,17 @@ export class NamedQueryConfig {
     this.createdAt = values?.createdAt ?? '';
     this.updatedAt = values?.updatedAt ?? '';
     this.key = values?.key ?? '';
-    this.queryParams = parseSerializedValue<Record<string, QueryParameterDefinition>>(values?.queryParams, {});
-    this.mongoQuery = parseSerializedValue<Record<string, unknown>>(values?.mongoQuery, {});
+    this.queryParams = parseStoredValue<Record<string, QueryParameterDefinition>>(values?.queryParams, {});
+    this.mongoQuery = parseStoredValue<Record<string, unknown>>(values?.mongoQuery, {});
     this.collectionName = values?.collectionName ?? '';
-    this.resultObjectMapping = parseSerializedValue<Record<string, unknown>>(values?.resultObjectMapping, {});
+    this.resultObjectMapping = parseStoredValue<Record<string, unknown>>(values?.resultObjectMapping, {});
     this.brandIdFieldPath = values?.brandIdFieldPath ?? '';
-    this.sort = parseSerializedValue<NamedQuerySortConfig>(values?.sort, []);
+    this.sort = parseStoredValue<NamedQuerySortConfig>(values?.sort, []);
     this.expandRelations = values?.expandRelations === true || values?.expandRelations === 'true';
-    this.relatedRecordFilters = parseSerializedValue<RelatedRecordFilter[]>(values?.relatedRecordFilters, []);
+    this.relatedRecordFilters = parseStoredValue<RelatedRecordFilter[]>(values?.relatedRecordFilters, []);
+    if (!_.isPlainObject(this.mongoQuery) || !_.isPlainObject(this.queryParams) || !_.isPlainObject(this.resultObjectMapping) || !Array.isArray(this.sort) || !Array.isArray(this.relatedRecordFilters)) {
+      throw new Error('Invalid stored named-query structure. Migrate the stored definition through the named-query API before execution.');
+    }
   }
 }
 

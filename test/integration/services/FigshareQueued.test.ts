@@ -1,8 +1,8 @@
+import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { type RecordWriteOptions } from '@researchdatabox/redbox-core';
-import {getFigshareSyncRepository,prismaDatabase,type FigshareSyncRepository} from '@researchdatabox/redbox-core';
-import { prismaModelFilter } from '../../../packages/redbox-core/src/persistence/prisma/modelFilter';
+import {getFigshareSyncRepository,type FigshareSyncRepository} from '@researchdatabox/redbox-core';
 
 /** Runs with the lifted application and real configured core/record datastores. */
 describe('Figshare durable intent integration', function () {
@@ -15,7 +15,7 @@ describe('Figshare durable intent integration', function () {
   });
   after(async () => {
     const storage = RecordsService.getFigshareIntentStorage();
-    for (const oid of created) { await (await prismaDatabase(sails, 'mongodb')).orm.figsharesync.where(prismaModelFilter({ oid })).delete(); await storage.delete(oid, true); }
+    for (const oid of created) { await fixtureRemove('FigshareSync', { oid }); await storage.delete(oid, true); }
   });
   it('persists an intent before queue submission, imports it once, and protects partial writes', async () => {
     const storage = RecordsService.getFigshareIntentStorage();

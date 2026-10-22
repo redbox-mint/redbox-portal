@@ -1,4 +1,6 @@
+import { fixtureRows, fixtureRemove, fixtureRow, fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
+import sinon from 'sinon';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -30,8 +32,7 @@ describe('Figshare vocabulary bootstrap data integration', function () {
   let originalBootstrapPath: string | undefined;
   let originalFigshareDev: unknown;
   let originalBootstrapFigshareImports: boolean | undefined;
-  let originalBrandConfig: unknown;
-  let appConfigMap: Record<string, unknown>;
+  let appConfigStub: sinon.SinonStub | undefined;
 
   const getService = (): { bootstrapData: () => Promise<void> } => {
     return sails.services.figsharevocabularyservice as { bootstrapData: () => Promise<void> };
@@ -46,28 +47,28 @@ describe('Figshare vocabulary bootstrap data integration', function () {
   };
 
   const cleanup = async (): Promise<void> => {
-    const sources = await FigshareVocabularySource.find({ scope: SCOPE, taxonomyId: TAXONOMY_ID });
+    const sources = await fixtureRows("FigshareVocabularySource", { scope: SCOPE, taxonomyId: TAXONOMY_ID });
     const sourceIds = sources.map((source: { id: string }) => String(source.id));
     const mirrorVocabularyIds = sources
       .map((source: { vocabulary?: string }) => source.vocabulary)
       .filter((id): id is string => Boolean(id))
       .map(String);
     const crosswalks = sourceIds.length > 0
-      ? await FigshareVocabularyCrosswalk.find({ figshareSource: sourceIds })
+      ? await fixtureRows("FigshareVocabularyCrosswalk", { figshareSource: sourceIds })
       : [];
     const crosswalkIds = crosswalks.map((crosswalk: { id: string }) => String(crosswalk.id));
 
     if (crosswalkIds.length > 0) {
-      await FigshareVocabularyCrosswalkMapping.destroy({ crosswalk: crosswalkIds });
-      await FigshareVocabularyCrosswalk.destroy({ id: crosswalkIds });
+      await fixtureRemove("FigshareVocabularyCrosswalkMapping", { crosswalk: crosswalkIds });
+      await fixtureRemove("FigshareVocabularyCrosswalk", { id: crosswalkIds });
     }
     if (sourceIds.length > 0) {
-      await FigshareVocabularyCategory.destroy({ source: sourceIds });
-      await FigshareVocabularySource.destroy({ id: sourceIds });
+      await fixtureRemove("FigshareVocabularyCategory", { source: sourceIds });
+      await fixtureRemove("FigshareVocabularySource", { id: sourceIds });
     }
-    await FigshareVocabularySyncRun.destroy({ scope: SCOPE, taxonomyId: TAXONOMY_ID });
+    await fixtureRemove("FigshareVocabularySyncRun", { scope: SCOPE, taxonomyId: TAXONOMY_ID });
 
-    const vocabularies = await Vocabulary.find({
+    const vocabularies = await fixtureRows("Vocabulary", {
       or: [
         { slug: CLONE_SLUG },
         { id: mirrorVocabularyIds }
@@ -75,8 +76,8 @@ describe('Figshare vocabulary bootstrap data integration', function () {
     });
     const vocabularyIds = vocabularies.map((vocabulary: { id: string }) => String(vocabulary.id));
     if (vocabularyIds.length > 0) {
-      await VocabularyEntry.destroy({ vocabulary: vocabularyIds });
-      await Vocabulary.destroy({ id: vocabularyIds });
+      await fixtureRemove("VocabularyEntry", { vocabulary: vocabularyIds });
+      await fixtureRemove("Vocabulary", { id: vocabularyIds });
     }
   };
 
@@ -113,25 +114,24 @@ describe('Figshare vocabulary bootstrap data integration', function () {
 
     // resolveFigshareVocabularyConfig() reads the per-brand application configuration, so the
     // brand needs a figsharePublishing block before the importer will do anything at all.
-    appConfigMap = (sails.services.appconfigservice as any).brandingAppConfigMap;
-    originalBrandConfig = appConfigMap[brandName];
-    appConfigMap[brandName] = {
-      ...(originalBrandConfig ?? {}) as Record<string, unknown>,
-      figsharePublishing: {
-        enabled: false,
-        connection: { baseUrl: 'https://api.figshare.example/v2', token: '' }
-      }
-    };
+    const service = sails.services.appconfigservice;
+    const getConfig = service.getAppConfigurationForBrand.bind(service);
+    const originalBrandConfig = getConfig(brandName);
+    appConfigStub = sinon.stub(service, 'getAppConfigurationForBrand').callsFake((name: string) =>
+      name === brandName ? {
+        ...originalBrandConfig,
+        figsharePublishing: {
+          enabled: false,
+          connection: { baseUrl: 'https://api.figshare.example/v2', token: '' }
+        }
+      } : getConfig(name)
+    );
   });
 
   after(async function () {
     this.timeout(60000);
 
-    if (originalBrandConfig === undefined) {
-      delete appConfigMap[brandName];
-    } else {
-      appConfigMap[brandName] = originalBrandConfig;
-    }
+    appConfigStub?.restore();
     sails.config.bootstrap.bootstrapDataPath = originalBootstrapPath;
     sails.config.figshareDev = originalFigshareDev;
     sails.config.vocab.bootstrapFigshareImports = originalBootstrapFigshareImports;
@@ -147,34 +147,34 @@ describe('Figshare vocabulary bootstrap data integration', function () {
 
     await getService().bootstrapData();
 
-    const source = await FigshareVocabularySource.findOne({
+    const source = await fixtureRow("FigshareVocabularySource", {
       branding: brandId,
       scope: SCOPE,
       taxonomyId: TAXONOMY_ID
     });
     expect(source, 'FigshareVocabularySource').to.exist;
 
-    const mirror = await Vocabulary.findOne({ id: source.vocabulary });
+    const mirror = await fixtureRow("Vocabulary", { id: source.vocabulary });
     expect(mirror.source).to.equal('external');
     expect(mirror.figshareSourceKey).to.equal(`${brandId}:${SCOPE}:${TAXONOMY_ID}`);
 
-    const categoryCount = await FigshareVocabularyCategory.count({ source: source.id });
+    const categoryCount = await fixtureCount("FigshareVocabularyCategory", { source: source.id });
     expect(categoryCount).to.equal(CATEGORIES.length);
 
-    const clone = await Vocabulary.findOne({ slug: CLONE_SLUG });
+    const clone = await fixtureRow("Vocabulary", { slug: CLONE_SLUG });
     expect(clone, 'clone vocabulary').to.exist;
     expect(clone.source).to.not.equal('external');
-    const cloneEntryCount = await VocabularyEntry.count({ vocabulary: clone.id });
+    const cloneEntryCount = await fixtureCount("VocabularyEntry", { vocabulary: clone.id });
     expect(cloneEntryCount).to.equal(CATEGORIES.length);
 
-    const crosswalk = await FigshareVocabularyCrosswalk.findOne({ figshareSource: source.id });
+    const crosswalk = await fixtureRow("FigshareVocabularyCrosswalk", { figshareSource: source.id });
     expect(crosswalk, 'crosswalk').to.exist;
     expect(crosswalk.name).to.equal(CROSSWALK_NAME);
     expect(String(crosswalk.localVocabulary)).to.equal(String(clone.id));
     expect(crosswalk.status).to.equal('approved');
     expect(Number(crosswalk.approvedRevision)).to.equal(Number(crosswalk.workingRevision));
 
-    const approvedMappings = await FigshareVocabularyCrosswalkMapping.count({
+    const approvedMappings = await fixtureCount("FigshareVocabularyCrosswalkMapping", {
       crosswalk: crosswalk.id,
       revision: crosswalk.approvedRevision,
       status: 'approved'
@@ -185,8 +185,8 @@ describe('Figshare vocabulary bootstrap data integration', function () {
   it('resolves record codes to Figshare category ids through the bootstrapped crosswalk', async function () {
     this.timeout(60000);
 
-    const source = await FigshareVocabularySource.findOne({ scope: SCOPE, taxonomyId: TAXONOMY_ID });
-    const crosswalk = await FigshareVocabularyCrosswalk.findOne({ figshareSource: source.id });
+    const source = await fixtureRow("FigshareVocabularySource", { scope: SCOPE, taxonomyId: TAXONOMY_ID });
+    const crosswalk = await fixtureRow("FigshareVocabularyCrosswalk", { figshareSource: source.id });
 
     const resolved = await sails.services.figsharevocabularyservice.resolveCategories({
       brandId,
@@ -204,9 +204,9 @@ describe('Figshare vocabulary bootstrap data integration', function () {
 
     await getService().bootstrapData();
 
-    const sourceCount = await FigshareVocabularySource.count({ scope: SCOPE, taxonomyId: TAXONOMY_ID });
-    const cloneCount = await Vocabulary.count({ slug: CLONE_SLUG });
-    const crosswalkCount = await FigshareVocabularyCrosswalk.count({ name: CROSSWALK_NAME });
+    const sourceCount = await fixtureCount("FigshareVocabularySource", { scope: SCOPE, taxonomyId: TAXONOMY_ID });
+    const cloneCount = await fixtureCount("Vocabulary", { slug: CLONE_SLUG });
+    const crosswalkCount = await fixtureCount("FigshareVocabularyCrosswalk", { name: CROSSWALK_NAME });
 
     expect(sourceCount).to.equal(1);
     expect(cloneCount).to.equal(1);

@@ -1,3 +1,4 @@
+import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import supertest from "supertest";
 import { firstValueFrom } from "rxjs";
 
@@ -58,8 +59,8 @@ describe("Admin user management AJAX routes", function () {
   });
 
   after(async function () {
-    if (typeof UserLink !== "undefined") {
-      await UserLink.destroy({
+    {
+      await fixtureRemove("UserLink", {
         or: [
           { primaryUserId },
           { secondaryUserId },
@@ -68,19 +69,19 @@ describe("Admin user management AJAX routes", function () {
         ]
       });
     }
-    if (typeof UserAudit !== "undefined") {
-      await UserAudit.destroy({
+    {
+      await fixtureRemove("UserAudit", {
         or: [
           { "user.username": primaryUsername },
           { "user.username": secondaryUsername },
           { additionalContext: { contains: JSON.stringify(primaryUserId) } },
           { additionalContext: { contains: JSON.stringify(secondaryUserId) } }
         ]
-      }).meta({
+      }, {meta: {
         enableExperimentalDeepTargets: true
-      });
+      }});
     }
-    await User.destroy({ id: [primaryUserId, secondaryUserId] });
+    await fixtureRemove("User", { id: [primaryUserId, secondaryUserId] });
   });
 
   it("supports candidate search, linking, disable/enable, and audit retrieval", async function () {

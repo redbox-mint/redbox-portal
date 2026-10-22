@@ -1,3 +1,4 @@
+import { fixtureRows } from '../../helpers/persistenceFixtures';
 import { FormsService as FormsModule, BrandingService as BrandingModule } from '@researchdatabox/redbox-core';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
@@ -32,10 +33,10 @@ describe('The FormsService', function () {
     var brand = BrandingService.getDefault();
     var recordType = 'rdmp';
     var formName = 'default-1.0-draft';
-    RecordType.find().then(forms => {
+    fixtureRows("RecordType", {}).then(forms => {
       sails.log.verbose(`going to look for ${brand.id}_${recordType}`);
       sails.log.verbose(forms);
-    });
+    }).catch(done);
     console.log('brand.id ' + brand.id + ' recordType ' + recordType);
     FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(function (form) {
       expect(form).to.have.property('name', formName);

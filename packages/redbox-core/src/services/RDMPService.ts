@@ -1,3 +1,6 @@
+import { getIdentityRepositories } from '../persistence/runtime';
+import type {CounterRepository} from '../persistence/storage/StorageRepositories';
+import {getStorageRepositories} from '../persistence/storage/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -52,6 +55,7 @@ export namespace Services {
    */
   export class RDMPS extends services.Core.Service {
 
+
     protected queueService!: QueueService;
 
     protected override _exportedMethods: string[] = [
@@ -69,7 +73,7 @@ export namespace Services {
       'init',
     ];
 
-    constructor() {
+    constructor(private readonly counterRepository?:CounterRepository) {
       super();
       this.logHeader = "TriggerService::";
     }
@@ -130,34 +134,10 @@ export namespace Services {
         this.logAtLevel(processRecordCountersLogLevel,`processRecordCounters - counter.strategy: ${counterData.strategy}`);
 
         if (counterData.strategy == "global") {
-          const promiseCounter = await firstValueFrom(this.getObservable<Array<{ id?: string | number; value: number }>>(Counter.findOrCreate({
-            name: counterData.field_name,
-            branding: brandId
-          }, {
-            name: counterData.field_name,
-            branding: brandId,
-            value: 0
-          })));
-
-          if (_.isEmpty(promiseCounter)) {
-            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - promiseCounter isEmpty');
-
-          } else {
-            const newVal = promiseCounter[0].value + 1;
-            this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - newVal:');
-            this.logAtLevel(processRecordCountersLogLevel, newVal);
-
-            //increment counter to get new value for the record's field associated to the counter
-            this.incrementCounter(recordData, counterData, newVal);
-
-            //Update global counter
-            await firstValueFrom(this.getObservable<Record<string, unknown>>(Counter.updateOne({
-              id: promiseCounter[0].id
-            }, {
-              value: newVal
-            })));
-            this.updateChronicle({ rdmpCounterUpdateOutcome: 'success' });
-          }
+          const repository = this.counterRepository ?? getStorageRepositories().counters;
+          const value = await repository.incrementGlobal(counterData.field_name, brandId);
+          this.incrementCounter(recordData, counterData, value);
+          this.updateChronicle({ rdmpCounterUpdateOutcome: 'success' });
 
         } else if (counterData.strategy == "field") {
           this.logAtLevel(processRecordCountersLogLevel, 'processRecordCounters - field - enter');
@@ -420,7 +400,7 @@ export namespace Services {
     }
 
     private findPermissionUser(email: string): Observable<unknown> {
-      return this.getObservable<unknown[]>(User.find({
+      return this.getObservable<unknown[]>(() => getIdentityRepositories().list('user', {
         email: email.toLowerCase()
       })).pipe(flatMap((users: unknown[]) => from(this.resolvePermissionUser(users))));
     }

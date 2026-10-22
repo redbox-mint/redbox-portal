@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { MongoClient } from 'mongodb';
-import { Services } from '../../src/services/MongoStorageService';
+import { prismaStorage } from '../helpers/prismaStorage';
+import type { PrismaStorage } from '../../src/persistence/PrismaStorage';
 import { RecordWriteConflict, type RecordWriteOptions } from '@researchdatabox/redbox-core';
 
 if (process.env.CI === 'true' && !process.env.MONGO_TEST_URL) {
@@ -11,7 +12,7 @@ const describeMongo = process.env.MONGO_TEST_URL ? describe : describe.skip;
 describeMongo('Atomic Figshare source intent and guarded record writes', function () {
   this.timeout(20000);
   let client: MongoClient;
-  let service: Services.MongoStorageService;
+  let service: Awaited<ReturnType<typeof prismaStorage>>;
   const database = `figshare_storage_${randomUUID().replaceAll('-', '')}`;
   const brand = { id: 'brand', name: 'brand', css: '', roles: [] };
   const request = (saveToken: string, kind: 'sync' | 'cleanup' = 'sync'): RecordWriteOptions => ({
@@ -22,17 +23,13 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
       intents: [{ kind, policyId: kind, condition: '' }],
     },
   });
-  let previousRecord: unknown;
   before(async () => {
-    previousRecord = Reflect.get(globalThis, 'Record');
-    Reflect.set(globalThis, 'Record', {});
     client = new MongoClient(process.env.MONGO_TEST_URL!);
     await client.connect();
-    service = new Services.MongoStorageService();
-    service.recordCol = client.db(database).collection('record');
+    service = await prismaStorage(client, database);
   });
   beforeEach(async () => {
-    await service.recordCol.deleteMany({});
+    await client.db(database).collection('record').deleteMany({});
     await service.recordCol.insertOne({
       redboxOid: 'record',
       recordVersion: 0,
@@ -42,7 +39,7 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     });
   });
   after(async () => {
-    Reflect.set(globalThis, 'Record', previousRecord);
+    await service?.testClose?.();
     await client.db(database).dropDatabase();
     await client.close();
   });
@@ -59,7 +56,7 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
     assert.equal((await service.pendingFigshareIntents(100)).length, 1);
   });
   it('paginates pending intents without skipping records when earlier entries remain pending', async () => {
-    await service.recordCol.insertMany(
+    await client.db(database).collection('record').insertMany(
       ['a', 'b', 'c'].map(redboxOid => ({ redboxOid, figshareSyncIntent: { pending: true, readiness: 'ready' } }))
     );
     const first = await service.pendingFigshareIntents(2);
@@ -72,7 +69,7 @@ describeMongo('Atomic Figshare source intent and guarded record writes', functio
       second.map(record => record.redboxOid),
       ['c']
     );
-    assert.equal(await service.recordCol.countDocuments({ 'figshareSyncIntent.pending': true }), 3);
+    assert.equal(await service.recordCol.count({ 'figshareSyncIntent.pending': true }), 3);
   });
   it('cannot erase or forge protected intent or version with ordinary snapshot writes', async () => {
     await service.updateMeta(brand, 'record', { metadata: { title: 'authorised' } }, undefined, request('one'));

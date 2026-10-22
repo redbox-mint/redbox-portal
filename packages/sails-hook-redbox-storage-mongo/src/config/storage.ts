@@ -15,7 +15,7 @@ export const storage = {
       { key: { 'metaMetadata.lastSaveDate': 1 } },
       { key: { 'metaMetadata.lastSaveDate': -1 } },
       // Active create/restore classification relies on duplicate-key facts;
-      // keep the native Mongo index explicit as well as the Waterline model
+      // keep the required Mongo index explicit for readiness inspection
       // constraint. One single-field index serves both scan directions.
       { key: { redboxOid: 1 }, unique: true },
     ],

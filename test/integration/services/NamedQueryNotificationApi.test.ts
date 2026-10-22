@@ -2,6 +2,7 @@ import supertest from 'supertest';
 import { of, firstValueFrom } from 'rxjs';
 import { NamedQueryConfig } from '../../../packages/redbox-core/src/services/NamedQueryService';
 import { ListAPIResponse } from '../../../packages/redbox-core/src/model/ListAPIResponse';
+import { fixturePatch, fixtureRow } from '../../helpers/persistenceFixtures';
 
 describe('Named query and notification API parameters', function () {
   let request: supertest.Agent;
@@ -12,7 +13,7 @@ describe('Named query and notification API parameters', function () {
 
   before(async function () {
     request = supertest.agent(sails.hooks.http.app);
-    const admin = await User.findOne({ username: 'admin' });
+    const admin = await fixtureRow('User', { username: 'admin' });
     if (!admin) throw new Error('Integration admin fixture is missing');
     adminId = admin.id;
     originalToken = admin.token;
@@ -20,7 +21,7 @@ describe('Named query and notification API parameters', function () {
   });
 
   after(async function () {
-    if (adminId) await User.update({ id: adminId }, { token: originalToken });
+    if (adminId) await fixturePatch('User', { id: adminId }, { token: originalToken });
   });
 
   it('passes custom query parameters from the bearer-authenticated HTTP request', async function () {

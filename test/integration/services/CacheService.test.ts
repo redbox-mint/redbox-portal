@@ -14,4 +14,39 @@ describe('The CacheService', function () {
      });
   });
 
+  it('persists best-effort creates and updates for a separate cache instance', async function () {
+    const { getCacheEntryRepository, CacheService: CacheModule } = require('@researchdatabox/redbox-core');
+    const { firstValueFrom } = require('rxjs');
+    const repository = getCacheEntryRepository();
+    const name = 'p2-service-persistence';
+    async function waitForData(expected: unknown) {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const row = await repository.findByName(name);
+        if (row && row.data === expected) return row;
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      throw new Error('Best-effort cache write did not complete during the test');
+    }
+    try {
+      expect(CacheService.set(name, 'first')).to.equal(undefined);
+      await waitForData('first');
+      const reader = new CacheModule.Services.Cache();
+      await reader.bootstrap();
+      expect(await firstValueFrom(reader.get(name))).to.equal('first');
+      expect(CacheService.set(name, false)).to.equal(undefined);
+      await waitForData(false);
+      const falsyReader = new CacheModule.Services.Cache();
+      await falsyReader.bootstrap();
+      expect(await firstValueFrom(falsyReader.get(name))).to.equal(false);
+      CacheService.set(name, null, 0);
+      const row = await waitForData(null);
+      expect(typeof row.id).to.equal('string');
+      expect(typeof row.ts_added).to.equal('number');
+    } finally {
+      const row = await repository.findByName(name);
+      if (row) await repository.deleteById(row.id);
+    }
+  });
+
 });

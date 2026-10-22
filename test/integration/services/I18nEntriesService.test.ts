@@ -1,3 +1,4 @@
+import { fixtureRemove, fixtureCreate } from '../../helpers/persistenceFixtures';
 /*
  Integration tests for I18nEntriesService covering its public API.
  Follows the style of existing tests in test/integration/services.
@@ -34,17 +35,17 @@ describe('I18nEntriesService', function () {
   async function cleanup() {
     try {
       if (branding?.id) {
-        await I18nTranslation.destroy({ branding: branding.id }).fetch();
+        await fixtureRemove("I18nTranslation", { branding: branding.id });
       }
     } catch (e) { /* ignore */ }
     try {
       if (branding?.id) {
-        await I18nBundle.destroy({ branding: branding.id }).fetch();
+        await fixtureRemove("I18nBundle", { branding: branding.id });
       }
     } catch (e) { /* ignore */ }
     try {
       if (branding?.id) {
-        await BrandingConfig.destroy({ id: branding.id }).fetch();
+        await fixtureRemove("BrandingConfig", { id: branding.id });
       }
     } catch (e) { /* ignore */ }
   }
@@ -53,7 +54,7 @@ describe('I18nEntriesService', function () {
     await cleanup();
     // Create a branding config to reference. Use random unique name to avoid clashes.
     const name = `testbrand-i18n-${Date.now()}`;
-    const created = await BrandingConfig.create({ name }).fetch();
+    const created = await fixtureCreate("BrandingConfig", { name });
     branding = { id: created.id, name: created.name };
   });
 
@@ -308,5 +309,5 @@ describe('I18nEntriesService', function () {
     }
   });
 
-  
+
 });

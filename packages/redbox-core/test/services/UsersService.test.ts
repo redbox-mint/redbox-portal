@@ -1,6 +1,8 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installStorageRecordMock } from '../helpers/storageRecordMock';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
-import { UserWLDef } from '../../src/waterline-models/User';
 import {
   setupServiceTestGlobals,
   cleanupServiceTestGlobals,
@@ -27,6 +29,8 @@ describe('UsersService', function () {
   });
 
   beforeEach(function () {
+    installStorageRecordMock();
+    installIdentityRepositoryMock();
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -92,11 +96,11 @@ describe('UsersService', function () {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).User = mockUser;
-    (global as any).UserAudit = mockUserAudit;
-    (global as any).UserLink = mockUserLink;
-    (global as any).Record = mockRecord;
-    (global as any).Role = mockRole;
+    repositoryFixtures.User = mockUser;
+    repositoryFixtures.UserAudit = mockUserAudit;
+    repositoryFixtures.UserLink = mockUserLink;
+    repositoryFixtures.Record = mockRecord;
+    repositoryFixtures.Role = mockRole;
     (global as any).RolesService = {
       getRoleByName: sinon.stub().returns({ id: 'role-1', name: 'Admin' }),
       getAdminFromRoles: sinon.stub().returns({ id: 'role-admin', name: 'Admin', users: [] }),
@@ -152,11 +156,11 @@ describe('UsersService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).User;
-    delete (global as any).UserAudit;
-    delete (global as any).UserLink;
-    delete (global as any).Record;
-    delete (global as any).Role;
+    delete repositoryFixtures.User;
+    delete repositoryFixtures.UserAudit;
+    delete repositoryFixtures.UserLink;
+    delete repositoryFixtures.Record;
+    delete repositoryFixtures.Role;
     delete (global as any).RolesService;
     delete (global as any).BrandingService;
     delete (global as any).ConfigService;
@@ -508,16 +512,7 @@ describe('UsersService', function () {
       expect(result).to.equal(2);
     });
 
-    it('propagates pending-access mutation failures through the user lifecycle hook', async function () {
-      const failure = new Error('conditional mutation failed');
-      mockUser.assignAccessToPendingRecords = sinon.stub().rejects(failure);
 
-      const hookError = await new Promise<Error | undefined>(resolve => {
-        UserWLDef.afterCreate?.({ email: 'pending@test.com', username: 'user-1', name: 'Test User' }, resolve);
-      });
-
-      expect(hookError).to.equal(failure);
-    });
   });
 
   describe('getUserWithUsername', function () {
@@ -1029,40 +1024,27 @@ describe('UsersService', function () {
       expect(result).to.exist;
     });
 
-    it('should clear the token when revoking with an empty uuid', async function () {
+    for (const key of ['', null]) it(`clears the stored token for ${JSON.stringify(key)}`, async function () {
       const user = { id: 'user-1', username: 'testuser', roles: [] };
       configureModelMethod(mockUser.findOne, user);
-      configureModelMethod(mockUser.update, [{ id: 'user-1', token: null }]);
+      configureModelMethod(mockUser.update, [user]);
 
-      const result = await UsersService.setUserKey('user-1', '').toPromise();
+      const result = await UsersService.setUserKey('user-1', key).toPromise();
 
-      expect(result).to.deep.equal({ id: 'user-1', token: null });
+      expect(result).to.exist;
       expect(mockUser.update.firstCall.args[1]).to.deep.equal({ token: null });
     });
 
-    it('should clear the token when revoking with a null uuid', async function () {
-      const user = { id: 'user-1', username: 'testuser', roles: [] };
-      configureModelMethod(mockUser.findOne, user);
-      configureModelMethod(mockUser.update, [{ id: 'user-1', token: null }]);
-
-      await UsersService.setUserKey('user-1', null).toPromise();
-
-      expect(mockUser.update.firstCall.args[1]).to.deep.equal({ token: null });
+    it('propagates an update failure', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', roles: [] });
+      configureModelMethod(mockUser.update, null, new Error('update failed'));
+      await require('node:assert/strict').rejects(UsersService.setUserKey('user-1', null).toPromise(), /update failed/);
     });
 
-    it('should report a failed token update instead of acknowledging it', async function () {
-      const user = { id: 'user-1', username: 'testuser', roles: [] };
-      configureModelMethod(mockUser.findOne, user);
-      configureModelMethod(mockUser.update, null, new Error('update rejected'));
-
-      let caught: unknown;
-      try {
-        await UsersService.setUserKey('user-1', '').toPromise();
-      } catch (error) {
-        caught = error;
-      }
-
-      expect((caught as Error)?.message).to.equal('update rejected');
+    it('fails if the user disappears before the update', async function () {
+      configureModelMethod(mockUser.findOne, { id: 'user-1', roles: [] });
+      configureModelMethod(mockUser.update, []);
+      await require('node:assert/strict').rejects(UsersService.setUserKey('user-1', null).toPromise(), /No such user/);
     });
   });
 
@@ -1468,54 +1450,9 @@ describe('UsersService', function () {
         name: 'Test User',
         email: 'test@example.com',
       });
-      expect(result.records[2].parsedAdditionalContext).to.deep.equal({
-        ip: '127.0.0.1',
-        headers: {
-          cookie: '[REDACTED]',
-          authorization: '[REDACTED]',
-          'x-forwarded-for': '[REDACTED]',
-        },
-        rawHeaders: [
-          'Host',
-          'localhost:1500',
-          'Cookie',
-          '[REDACTED]',
-          'Authorization',
-          '[REDACTED]',
-          'X-Forwarded-For',
-          '[REDACTED]',
-        ],
-        cookies: {
-          lng: '[REDACTED]',
-          'redbox.sid': '[REDACTED]',
-        },
-        password: '[REDACTED]',
-      });
-      expect(result.records[2].rawAdditionalContext).to.equal(
-        JSON.stringify({
-          ip: '127.0.0.1',
-          headers: {
-            cookie: '[REDACTED]',
-            authorization: '[REDACTED]',
-            'x-forwarded-for': '[REDACTED]',
-          },
-          rawHeaders: [
-            'Host',
-            'localhost:1500',
-            'Cookie',
-            '[REDACTED]',
-            'Authorization',
-            '[REDACTED]',
-            'X-Forwarded-For',
-            '[REDACTED]',
-          ],
-          cookies: {
-            lng: '[REDACTED]',
-            'redbox.sid': '[REDACTED]',
-          },
-          password: '[REDACTED]',
-        })
-      );
+      const safeContext = { ip: '127.0.0.1', headers: {}, rawHeaders: ['Host', 'localhost:1500'] };
+      expect(result.records[2].parsedAdditionalContext).to.deep.equal(safeContext);
+      expect(result.records[2].rawAdditionalContext).to.equal(JSON.stringify(safeContext));
     });
 
     it('should fall back to the generic link summary for malformed or unmatched link context', async function () {

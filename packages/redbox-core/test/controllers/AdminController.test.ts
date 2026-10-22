@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/AdminController';
@@ -20,11 +22,12 @@ describe('AdminController', () => {
     });
 
     beforeEach(() => {
+    installIdentityRepositoryMock();
         originalSails = (global as any).sails;
         originalUsersService = (global as any).UsersService;
         originalBrandingService = (global as any).BrandingService;
-        originalUser = (global as any).User;
-        originalUserLink = (global as any).UserLink;
+        originalUser = repositoryFixtures.User;
+        originalUserLink = repositoryFixtures.UserLink;
 
         (global as any).sails = {
             config: {
@@ -59,12 +62,12 @@ describe('AdminController', () => {
             disableUser: sinon.stub().resolves(),
             enableUser: sinon.stub().resolves()
         };
-        (global as any).UserLink = {
+        repositoryFixtures.UserLink = {
             find: sinon.stub().returns(createQueryObject([
                 { primaryUserId: 'primary-1', secondaryUserId: 'alias-1', brandId: 'brand-1', status: 'active' }
             ]))
         };
-        (global as any).User = {
+        repositoryFixtures.User = {
             find: sinon.stub().returns(createQueryObject([
                 { id: 'primary-1', username: 'primary-user' }
             ]))
@@ -78,8 +81,8 @@ describe('AdminController', () => {
         (global as any).sails = originalSails;
         (global as any).UsersService = originalUsersService;
         (global as any).BrandingService = originalBrandingService;
-        (global as any).User = originalUser;
-        (global as any).UserLink = originalUserLink;
+        repositoryFixtures.User = originalUser;
+        repositoryFixtures.UserLink = originalUserLink;
     });
 
     it('should enrich admin users with link metadata', async () => {
@@ -111,7 +114,7 @@ describe('AdminController', () => {
         const res = {} as unknown as Sails.Res;
         const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
-        delete (global as any).User;
+        delete repositoryFixtures.User;
 
         await controller.getUsers(req, res);
 

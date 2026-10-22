@@ -1,3 +1,4 @@
+import { getStorageRepositories } from '../../persistence/storage/runtime';
 // Copyright(c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -1131,12 +1132,13 @@ export namespace Controllers {
                 // warning is still a created record.
                 if (response.wasPersisted()) {
                   if (workflowStage) {
-                    WorkflowStepsService.get(recordTypeModel, workflowStage).subscribe(wfStep => {
-                      that.RecordsService.setWorkflowStepRelatedMetadata(
-                        request,
-                        wfStep as globalThis.Record<string, unknown>
-                      );
-                    });
+                    that.recordBackgroundOperation(req, 'workflowStepRelatedMetadata',
+                      firstValueFrom(WorkflowStepsService.get(recordTypeModel, workflowStage)).then(wfStep => {
+                        that.RecordsService.setWorkflowStepRelatedMetadata(
+                          request,
+                          wfStep as globalThis.Record<string, unknown>
+                        );
+                      }));
                   }
                   return this.sendResp(req, res, {
                     status: 201,
@@ -1300,6 +1302,7 @@ export namespace Controllers {
           ],
         });
       }
+      this.retainRequestCallback(req);
       (req as unknown as { file: (field: string) => { upload: (...args: unknown[]) => void } })
         .file('attachmentFields')
         .upload(
@@ -2225,20 +2228,7 @@ export namespace Controllers {
     }
 
     private async findExistingHarvestRecord(harvestId: string, recordType: string) {
-      const results = await (
-        global as unknown as globalThis.Record<string, unknown> & {
-          Record: {
-            find: (criteria: globalThis.Record<string, unknown>) => {
-              meta: (opts: globalThis.Record<string, unknown>) => Promise<globalThis.Record<string, unknown>[]>;
-            };
-          };
-        }
-      ).Record.find({
-        harvestId: harvestId,
-        'metaMetadata.type': recordType,
-      }).meta({
-        enableExperimentalDeepTargets: true,
-      });
+      const results = await getStorageRepositories().records.find({ harvestId, 'metaMetadata.type': recordType });
       return results;
     }
 

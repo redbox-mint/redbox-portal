@@ -1,10 +1,9 @@
+import { fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import { Services as RvaImportServiceModule } from '../../../packages/redbox-core/src/services/RvaImportService.ts';
-import type { VocabularyEntryWaterlineModel } from '../../../packages/redbox-core/src/waterline-models/VocabularyEntry';
 import axios from 'axios';
 
 declare const RvaImportService: RvaImportServiceModule.RvaImport;
-declare const VocabularyEntry: VocabularyEntryWaterlineModel;
 
 describe('RvaImportService integration', function () {
   it('imports production RVA vocabulary 316', async function () {
@@ -36,7 +35,7 @@ describe('RvaImportService integration', function () {
     expect(imported.sourceVersionId).to.be.a('string');
     expect(String(imported.sourceVersionId)).to.not.equal('');
 
-    const entryCount = await VocabularyEntry.count({ vocabulary: imported.id });
+    const entryCount = await fixtureCount("VocabularyEntry", { vocabulary: imported.id });
     expect(entryCount).to.be.greaterThan(0);
   });
 });

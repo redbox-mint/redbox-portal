@@ -3,7 +3,7 @@ const { MongoModels, RecordSchemaArtifactWLDef, RecordSchemaReferenceWLDef } = r
 const {
   RECORD_SCHEMA_ARTIFACT_INDEXES,
   RECORD_SCHEMA_REFERENCE_INDEXES,
-} = require('../../src/services/MongoStorageService');
+} = require('../../src/persistence/StorageProtocol');
 
 describe('record-schema Mongo models', function () {
   it('defines and registers the immutable artifact model', function () {

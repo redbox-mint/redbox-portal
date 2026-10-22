@@ -1,3 +1,4 @@
+import { fixtureRows, fixtureRemove, fixtureRow, fixtureCreate, fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import * as path from 'node:path';
@@ -12,7 +13,7 @@ describe('Vocabulary bootstrap data integration', function () {
   };
 
   const cleanupBootstrapVocabularies = async (): Promise<void> => {
-    const existing = await Vocabulary.find({
+    const existing = await fixtureRows("Vocabulary", {
       or: [
         { slug: 'anzsrc-toa' },
         { source: 'rva', sourceId: ['316', '317'] }
@@ -20,8 +21,8 @@ describe('Vocabulary bootstrap data integration', function () {
     });
     const ids = existing.map((vocabulary: { id: string }) => vocabulary.id);
     if (ids.length > 0) {
-      await VocabularyEntry.destroy({ vocabulary: ids });
-      await Vocabulary.destroy({ id: ids });
+      await fixtureRemove("VocabularyEntry", { vocabulary: ids });
+      await fixtureRemove("Vocabulary", { id: ids });
     }
   };
 
@@ -41,19 +42,19 @@ describe('Vocabulary bootstrap data integration', function () {
 
     importStub = sinon.stub(sails.services.rvaimportservice, 'importRvaVocabulary').callsFake(
       async (rvaId: string, versionId?: string, branding?: string) => {
-        const existing = await Vocabulary.findOne({ source: 'rva', sourceId: rvaId });
+        const existing = await fixtureRow("Vocabulary", { source: 'rva', sourceId: rvaId });
         if (existing) {
           return existing;
         }
 
-        return await Vocabulary.create({
+        return await fixtureCreate("Vocabulary", {
           name: `RVA ${rvaId}`,
           slug: `rva-${rvaId}`,
           source: 'rva',
           sourceId: rvaId,
           sourceVersionId: versionId || 'test-version',
           branding: branding || sails.services.brandingservice.getDefault()
-        }).fetch();
+        });
       }
     );
   });
@@ -70,13 +71,13 @@ describe('Vocabulary bootstrap data integration', function () {
 
     await getVocabularyService().bootstrapData();
 
-    const local = await Vocabulary.findOne({ slug: 'anzsrc-toa' });
+    const local = await fixtureRow("Vocabulary", { slug: 'anzsrc-toa' });
     expect(local).to.exist;
 
-    const entryCount = await VocabularyEntry.count({ vocabulary: local?.id });
+    const entryCount = await fixtureCount("VocabularyEntry", { vocabulary: local?.id });
     expect(entryCount).to.equal(4);
 
-    const importedCount = await Vocabulary.count({ source: 'rva', sourceId: ['316', '317'] });
+    const importedCount = await fixtureCount("Vocabulary", { source: 'rva', sourceId: ['316', '317'] });
     expect(importedCount).to.equal(2);
     expect(importStub.callCount).to.equal(2);
   });
@@ -86,8 +87,8 @@ describe('Vocabulary bootstrap data integration', function () {
 
     await getVocabularyService().bootstrapData();
 
-    const localCount = await Vocabulary.count({ slug: 'anzsrc-toa' });
-    const importedCount = await Vocabulary.count({ source: 'rva', sourceId: ['316', '317'] });
+    const localCount = await fixtureCount("Vocabulary", { slug: 'anzsrc-toa' });
+    const importedCount = await fixtureCount("Vocabulary", { source: 'rva', sourceId: ['316', '317'] });
 
     expect(localCount).to.equal(1);
     expect(importedCount).to.equal(2);

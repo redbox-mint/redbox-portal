@@ -35,7 +35,9 @@
     "persistence:indexes": "node bin/persistence-indexes.cjs",
     "generate:prisma": "node scripts/prisma-contract.cjs generate",
     "check:prisma": "node scripts/prisma-contract.cjs check",
-    "prepack": "npm run check:prisma && npm run build"
+    "prepack": "npm run check:prisma && npm run build",
+    "test:persistence": "bash test/persistence/run.sh",
+    "test:persistence-indexes": "npm run test:persistence"
   },
   "author": "",
   "license": "ISC",

@@ -342,11 +342,8 @@ describe('Request chronicle in lifted Sails', function () {
     await settle();
 
     assert.deepEqual(chronicleWarnings(), []);
-    assert.equal(
-      captured.filter(item => item.args[1] === 'Request chronicle').length,
-      0,
-      'virtual requests do not produce events'
-    );
+    // Background HTTP probes can finish while this virtual request settles.
+    assert.equal(events(virtualPath).length, 0, 'virtual requests do not produce events');
   });
 
   it('retains a successful service warning as one warn event when success sampling is disabled', async () => {

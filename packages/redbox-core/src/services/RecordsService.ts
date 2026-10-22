@@ -1,7 +1,7 @@
-import type {} from '../waterline-models/types'; // Declares the Waterline Record model global.
-import { retainHttpRequestFollowup } from '../middleware/requestLifetime';
+import { getStorageRepositories } from '../persistence/storage/runtime';
 import { prepareSourceIntent } from './figshare-v2/source-intent';
 import { assertRecordFieldPaths } from '../RecordWriteOptions';
+import { retainHttpRequestFollowup } from '../middleware/requestLifetime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -68,7 +68,7 @@ import { DateTime } from 'luxon';
 
 import { Readable } from 'node:stream';
 import { createHash, randomUUID } from 'node:crypto';
-import type { FormAttributes } from '../waterline-models';
+import type { FormAttributes } from '../persistence/rows';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import { isRecordSchemaEnabled } from '../config/recordSchema.config';
 import { RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME } from '../config/agendaQueue.config';
@@ -485,7 +485,7 @@ export namespace Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    * @extensionPoint Register a subclass as `RecordsService` from a hook to replace or extend record behaviour while preserving the exported-method contract.
-   * @remarks This service depends on Waterline models and storage services after Sails bootstrap; replacements must preserve authorization-before-disclosure, exact public preconditions, storage CAS, permanent OID incarnation ownership, and value-free concurrency observability.
+   * @remarks This service depends on repositories and storage services after Sails bootstrap; replacements must preserve authorization-before-disclosure, exact public preconditions, storage CAS, permanent OID incarnation ownership, and value-free concurrency observability.
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Concurrent-Record-Modifications
    */
@@ -3696,11 +3696,13 @@ export namespace Services {
             bootstrapSeedId,
           };
           try {
-            const existing = await Record.findOne({
-              or: [{ redboxOid }, { 'metadata.bootstrapSeedId': bootstrapSeedId }],
-            }).meta({ enableExperimentalDeepTargets: true });
+            const existing = await getStorageRepositories().records.find(
+              { $or: [{ redboxOid }, { 'metadata.bootstrapSeedId': bootstrapSeedId }] },
+              { limit: 2 }
+            );
+            if (existing.length > 1) throw new Error('Multiple records match the bootstrap identity.');
 
-            if (existing) {
+            if (existing.length) {
               sails.log.verbose(`Skipping existing records bootstrap entry: ${redboxOid}`);
               continue;
             }
@@ -7406,12 +7408,6 @@ export namespace Services {
       // if (_.isEmpty(viewContributorEmails)) {
       //   sails.log.error(`No viewers for record: ${oid}`);
       // }
-      // _.each(editContributorEmails, editorEmail => {
-      //   editContributorObs.push(this.getObservable(User.findOne({email: editorEmail})));
-      // });
-      // _.each(viewContributorEmails, viewerEmail => {
-      //   viewContributorObs.push(this.getObservable(User.findOne({email: viewerEmail})));
-      // });
       //
       // return Observable.zip(...editContributorObs)
       // .flatMap(editContributorUsers => {
