@@ -329,6 +329,11 @@ export const notificationBody = objectField(
     subject: stringField('Email subject'),
     format: stringField('Email format'),
     data: anyField('Template data'),
+    otherSendOptions: objectField(
+      { replyTo: stringField('Reply-to email address(es)') },
+      [],
+      'Additional email options. Only replyTo is accepted; other keys are ignored.'
+    ),
   },
   []
 );

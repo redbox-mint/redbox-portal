@@ -76,6 +76,12 @@ export namespace Controllers {
                 template: body.template,
             };
             this.updateChronicle(req, {emailOptionFormat: options.format, emailOptionTemplate: options.template});
+            // HTTP callers may only supply replyTo, never arbitrary nodemailer options.
+            const replyTo = _.get(body, 'otherSendOptions.replyTo');
+            // Layer replyTo over configured defaults so deployment send options are kept.
+            const otherSendOptions = typeof replyTo === 'string'
+                ? { ..._.get(sails.config.emailnotification, 'defaults.otherSendOptions', {}), replyTo }
+                : undefined;
             const config = {};
             const templateDate = body.data;
 
@@ -132,6 +138,7 @@ export namespace Controllers {
                         formatRendered,
                         ccRendered,
                         bccRendered,
+                        otherSendOptions,
                     );
 
                     return sendResponse.subscribe((sendResult: globalThis.Record<string, unknown>) => {
