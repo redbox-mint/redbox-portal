@@ -2,6 +2,8 @@
   "node": "v26.11.1",
   "npm": "11.20.0",
   "sourceCommit": "4249667dcec90f49cf4302c77f0d568e2c1b4948",
+  "qualificationDriverCommit": "513bd8505",
+  "sourceScope": "Existing compiled application/persistence code at sourceCommit; new qualification drivers finalized in qualificationDriverCommit.",
   "runnerExit": 0,
   "rows": [
     {

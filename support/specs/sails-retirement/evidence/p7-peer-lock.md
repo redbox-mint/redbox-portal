@@ -47,3 +47,9 @@ install commands also spell out that value across package boundaries. Existing
 explicit PDF-hook legacy compatibility installation remains separately declared.
 No global npm/user configuration was edited. Full artifact/build/test outcomes
 are recorded in [P7 qualification](p7-qualification.md).
+
+The subsequent fresh archive and clean Docker build from `4254c2ee2` both ran
+the actual strict core `npm ci`, not just dry-run: **1,708 packages installed,
+exit 0** in each. All nine native package builds also passed. These close the
+specific lock/install regression; final packed/image results and the separate
+production Express composition gate remain in the linked P7 evidence.

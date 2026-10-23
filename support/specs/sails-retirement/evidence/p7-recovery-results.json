@@ -3,6 +3,8 @@
   "sourceRelease": "v5.0.4",
   "sourceCommit": "c1dda53999f3b026347008731f33dba834e06c27",
   "sourceImage": "sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9",
+  "componentSourceCommit": "4249667dcec90f49cf4302c77f0d568e2c1b4948",
+  "qualificationDriverCommit": "cb10596b1",
   "sourceNode": "24.16.0",
   "componentNode": "26.11.1",
   "mongo": "8.0.34",
