@@ -249,7 +249,9 @@ async function runPreLiftSetup(): Promise<void> {
   await initializeSiemPersistence(sails);
   await initializeFigsharePersistence(sails);
   await initializeStoragePersistence(sails, sailsAttachmentAudit(sails));
-  await initializeIdentityPersistence(sails);
+  await initializeIdentityPersistence(sails, {
+    assignPendingAccess: user => UsersService.findAndAssignAccessToRecords(String(user.email), String(user.username)),
+  });
   await initializeBrandingPersistence(sails);
   await initializeVocabularyPersistence(sails);
 

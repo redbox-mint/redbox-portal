@@ -1,3 +1,4 @@
+import { bootstrapPathRules } from '../identity/bootstrap';
 import { getIdentityRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -18,10 +19,10 @@ import { getIdentityRepositories } from '../persistence/runtime';
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, from, of } from 'rxjs';
-import { mergeMap as flatMap, last } from 'rxjs/operators';
+import { Observable, defer, from, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
-import { BrandingModel } from '../model/storage/BrandingModel';
+import type { BrandingModel } from '../model/storage/BrandingModel';
 import { RoleModel } from '../model/storage/RoleModel';
 import {
   PathRules as OwnedPathRules,
@@ -43,44 +44,15 @@ export namespace Services {
     );
 
     public bootstrap = (_defUser: unknown, defRoles: RoleLike[]) => {
-      sails.log.verbose('Bootstrapping path rules....');
-      const defBrand: BrandingModel = BrandingService.getDefault();
-      return this.loadRules().pipe(
-        flatMap(rules => {
-          if (!rules || rules.length == 0) {
-            sails.log.verbose("Rules, don't exist, seeding...");
-            const seedRules = sails.config.auth.rules as Array<{
-              role: string;
-              branding?: string;
-              path: string;
-              can_read?: boolean;
-              can_update?: boolean;
-            }>;
-            _.forEach(seedRules, rule => {
-              const role = RolesService.getRoleWithName(defRoles as RoleModel[], rule.role);
-              rule.role = role?.id ?? '';
-              rule.branding = defBrand.id;
-            });
-            return from(seedRules).pipe(
-              flatMap(rule => {
-                return super.getObservable<PathRuleModel>(() =>
-                  getIdentityRepositories().create('pathrule', { ...rule })
-                );
-              }),
-              last(),
-              flatMap(() => {
-                return this.loadRules();
-              }),
-              flatMap((rules: PathRuleModel[]) => {
-                return of(rules);
-              })
-            );
-          } else {
-            sails.log.verbose('Rules exists.');
-            return of(rules);
-          }
+      return defer(() =>
+        bootstrapPathRules({
+          repository: getIdentityRepositories(),
+          brandId: BrandingService.getDefault().id,
+          rules: sails.config.auth.rules,
+          readRules: () => firstValueFrom(this.loadRules()),
+          roleId: name => RolesService.getRoleWithName(defRoles as RoleModel[], name)?.id,
         })
-      );
+      ).pipe(flatMap(() => this.loadRules()));
     };
 
     /**

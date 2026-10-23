@@ -32,14 +32,13 @@ import { identityCallback } from '../../persistence/identity/IdentityRepositorie
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { of, from, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap, map, last } from 'rxjs/operators';
+import { of, defer, firstValueFrom } from 'rxjs';
+import { mergeMap as flatMap, map } from 'rxjs/operators';
 
 import { RoleModel } from '../../model/storage/RoleModel';
-import { UserModel } from '../../model/storage/UserModel';
 import { Services as Domain } from '../../identity/Users';
 
-import * as crypto from 'crypto';
+import { bootstrapDefaultAdministrator } from '../../identity/bootstrap';
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
@@ -159,66 +158,16 @@ export namespace Services {
       );
     };
 
-    protected initDefAdmin = (defRoles: AnyRecord[], defAdminRole: AnyRecord) => {
-      const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
-      const usernameField = authConfig.local?.usernameField ?? 'username';
-      const passwordField = authConfig.local?.passwordField ?? 'password';
-      const defAdminUsers = (defAdminRole.users ?? []) as AnyRecord[];
-      let defaultUser = _.find(defAdminUsers, (o: AnyRecord) => {
-        return o[usernameField] == authConfig.local?.default?.adminUser;
-      }) as AnyRecord | undefined;
-
-      if (defaultUser == null) {
-        defaultUser = {
-          type: 'local',
-          name: 'Local Admin',
-        } as AnyRecord;
-        defaultUser[usernameField] = authConfig.local?.default?.adminUser;
-        defaultUser[passwordField] = authConfig.local?.default?.adminPw;
-        defaultUser['email'] = authConfig.local?.default?.email;
-        if (authConfig.local?.default?.token) {
-          defaultUser['token'] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
-        }
-
-        return this.getObservable<UserModel>(() => getIdentityRepositories().create('user', defaultUser!)).pipe(
-          flatMap(defUser => {
-            // START Sails 1.0 upgrade
-            const defRoleIds = _.map(defRoles, (o: AnyRecord) => {
-              return o.id;
-            }) as Array<string | number>;
-            const defUserId = (defUser as AnyRecord).id as string | number;
-            let q = () => getIdentityRepositories().addMemberships('user', defUserId, defRoleIds);
-            // END Sails 1.0 upgrade
-            return this.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb').pipe(
-              flatMap(_dUser => {
-                return from(defRoles).pipe(
-                  map(roleObserved => {
-                    const role: AnyRecord = roleObserved as AnyRecord;
-                    // START Sails 1.0 upgrade
-                    // role.users.add(defUser.id)
-                    const roleId = role.id as string | number;
-                    q = () => getIdentityRepositories().addMemberships('role', roleId, [defUserId]);
-                    // END Sails 1.0 upgrade
-                    return this.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb');
-                  })
-                );
-              }),
-              last(),
-              flatMap(_lastRole => {
-                return of({
-                  defUser: defUser,
-                  defRoles: defRoles,
-                });
-              })
-            );
-          })
-        );
-      } else {
-        return of({
-          defUser: defaultUser,
-          defRoles: defRoles,
+    protected initDefAdmin = (defRoles: RoleModel[], defAdminRole: RoleModel | undefined) => {
+      return defer(async () => {
+        if (!defAdminRole) throw new Error('Default administrator role is unavailable.');
+        return bootstrapDefaultAdministrator({
+          repository: getIdentityRepositories(),
+          auth: this.getAuthConfig(BrandingService.getDefault().name),
+          roles: defRoles,
+          administrator: defAdminRole,
         });
-      }
+      }).pipe(map(defUser => ({ defUser, defRoles })));
     };
 
     private getSearchService() {
@@ -239,7 +188,7 @@ export namespace Services {
           this.aafAuthInit();
           this.openIdConnectAuth();
           this.bearerTokenAuthInit();
-          return this.initDefAdmin(defRoles as AnyRecord[], defAdminRole as unknown as AnyRecord);
+          return this.initDefAdmin(defRoles as RoleModel[], defAdminRole);
         })
       );
     };
