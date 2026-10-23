@@ -6,7 +6,7 @@ import { recordWriteFixture } from './recordWriteFixture';
 import { PageArtifacts } from '../../src/pages/Artifacts';
 import { Services as Templates } from '../../src/pages/Templates';
 import { csp } from '../../src/config/csp.config';
-import { mountPageRoot, mountPageRoutes, type PagesHttpInput } from '../../src/http/express/pages';
+import { mountPageRoot, mountPageRoutes, mountPageNotFound, type PagesHttpInput } from '../../src/http/express/pages';
 import {
   mountBrandingDeliveryRoutes,
   mountDynamicPageAssets,
@@ -58,6 +58,7 @@ export async function pageFixture(
     options.artifacts ??
     new PageArtifacts([path.join(root, 'views')], [path.join(root, '.tmp/public'), path.join(root, 'assets')]);
   let branding!: Branding.Branding, typeface!: Typeface.BrandingTypeface, logos!: Logos.BrandingLogo;
+  let pages!: PagesHttpInput;
   const fixture = await recordWriteFixture(
     async (router, f, input) => {
       for (const pathname of ['/:branding/:portal/admin', '/:branding/:portal/admin(/*)'])
@@ -160,7 +161,7 @@ export async function pageFixture(
       });
       registerPersistenceResource(f.owner, 'page-reports', reports);
       const models = new ConfigModelRegistry();
-      const pages: PagesHttpInput = {
+      pages = {
         artifacts,
         rootContext: '/portal',
         origin,
@@ -318,9 +319,16 @@ export async function pageFixture(
         })
       );
       await options.prepare?.(router, f, input);
-      mountStaticPageArtifacts(router, artifacts);
     },
-    { parserExclusions: ['/companion'], port: options.port, trustProxy: true }
+    {
+      parserExclusions: ['/companion'],
+      port: options.port,
+      trustProxy: true,
+      afterRoutes: router => {
+        mountStaticPageArtifacts(router, artifacts);
+        mountPageNotFound(router, pages);
+      },
+    }
   );
   await fixture.pathRules.loadRules();
   return { ...fixture, pageBranding: branding, typeface, logos };

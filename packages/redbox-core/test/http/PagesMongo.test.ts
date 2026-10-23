@@ -9,12 +9,18 @@ import { pageRoutes } from '../../src/http/express/pages';
 describe('owned EJS pages on Mongo Express', function () {
   this.timeout(45000);
   let f: Awaited<ReturnType<typeof pageFixture>>;
+  let failErrorArtifact = false;
   before(async () => {
     f = await pageFixture({
       pageBindings: pages => {
         const load = pages.loadRecord;
         pages.loadRecord = oid =>
           oid === 'provider-failure' ? Promise.reject(new Error('private backend details')) : load(oid);
+        const render = pages.artifacts.render.bind(pages.artifacts);
+        pages.artifacts.render = (file, locals) => {
+          if (failErrorArtifact && path.basename(file) === '500.ejs') throw new Error('error artifact failed');
+          return render(file, locals);
+        };
       },
     });
   });
@@ -130,6 +136,65 @@ describe('owned EJS pages on Mongo Express', function () {
       assert.equal((await fetch(url + '/portal/default/rdmp/styles/theme.css')).status, 200);
     } finally {
       await new Promise<void>(resolve => proxy.close(() => resolve()));
+    }
+  });
+  it('renders themed HTML errors for missing pages, denied records and backend failures', async () => {
+    const missing = await get('/default/rdmp/unknown-page', { Accept: 'text/html' });
+    assert.equal(missing.status, 404);
+    assert.match(missing.headers.get('content-type')!, /html/);
+    assert.match(await missing.text(), /Page Not Found!/);
+    assert.match(missing.headers.get('cache-control')!, /no-store/);
+    const known = await get('/default/rdmp/record/edit/absent', { ...f.headers, Accept: 'text/html' });
+    assert.equal(known.status, 404);
+    assert.match(await known.text(), /Page Not Found!/);
+    const created = await fetch(f.url + '/default/rdmp/api/records/metadata/dataRecord', {
+      method: 'POST',
+      headers: { ...f.headers, 'Content-Type': 'application/json', 'X-ReDBox-Api-Version': '2.0' },
+      body: JSON.stringify({ metadata: { title: 'Private error page record' } }),
+    });
+    assert.equal(created.status, 201);
+    const oid = (await created.json()).data.oid;
+    await f.identities.create('user', {
+      username: 'error-reader',
+      type: 'local',
+      name: 'Error reader',
+      email: 'error-reader@example.invalid',
+      password: 'reader-password',
+      roles: [f.reader.id],
+    });
+    const login = await fetch(f.url + '/__test/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'error-reader', password: 'reader-password' }),
+    });
+    const denied = await get('/default/rdmp/record/view/' + oid, {
+      Cookie: login.headers.get('set-cookie')!.split(';')[0],
+      Accept: 'text/html',
+    });
+    assert.equal(denied.status, 403);
+    const deniedHtml = await denied.text();
+    assert.match(deniedHtml, /error-403-heading/);
+    assert.match(deniedHtml, /href="\/portal\/default\/rdmp\/home"/);
+    assert.doesNotMatch(deniedHtml, /Private error page record/);
+    const failed = await get('/default/rdmp/record/view/provider-failure', { ...f.headers, Accept: 'text/html' });
+    assert.equal(failed.status, 500);
+    const html = await failed.text();
+    assert.match(html, /error-500-heading/);
+    assert.doesNotMatch(html, /private backend details/);
+    assert.match(failed.headers.get('content-security-policy')!, /nonce-/);
+    const json = await get('/default/rdmp/record/view/provider-failure', { ...f.headers, Accept: 'application/json' });
+    assert.equal(json.status, 500);
+    assert.equal(await json.text(), '');
+  });
+  it('terminates an error response safely when the error artifact also fails', async () => {
+    failErrorArtifact = true;
+    try {
+      const failed = await get('/default/rdmp/record/view/provider-failure', { ...f.headers, Accept: 'text/html' });
+      assert.equal(failed.status, 500);
+      assert.match(failed.headers.get('content-type')!, /text\/plain/);
+      assert.equal(await failed.text(), '500 Internal Server Error');
+    } finally {
+      failErrorArtifact = false;
     }
   });
   it('requires the owning session CSRF token for legacy any-method page routes', async () => {

@@ -1,4 +1,5 @@
-import type { Router, RequestHandler } from 'express';
+import type { Router, RequestHandler, Request, Response } from 'express';
+import { STATUS_CODES } from 'node:http';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { PageArtifacts } from '../../pages/Artifacts';
 import { pageLocals } from '../../pages/locals';
@@ -152,7 +153,7 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
         ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? next() : input.csrf.protect(req, res, next),
       httpAction(async (req, res) => {
         const context = requestContext(req),
-          { brand, portal, actor } = context;
+          { brand, actor } = context;
         if (actor && !actor.roles.some(role => role.brandId === brand.id)) {
           res.status(403).end();
           return;
@@ -161,199 +162,250 @@ export function mountPageRoutes(router: Router, input: PagesHttpInput): void {
           res.status(400).end();
           return;
         }
-        req.session.branding = brand.name;
-        req.session.portal = portal;
-        const settings = await input.settings(brand);
-        const languages = await input.languages(brand);
-        const language =
-          ([req.query.lng, Reflect.get(req.session, 'langCode'), languages[0]?.code, 'en'].find(
-            value => typeof value === 'string' && languages.some(l => l.code === value)
-          ) as string) || 'en';
-        Reflect.set(req.session, 'langCode', language);
-        const t = (key: string, values?: Record<string, unknown>) =>
-          input.translate(brand.name!, language, key, values);
-        const hasRole = (name: string) =>
-          actor?.roles.some(role => role.brandId === brand.id && role.name === name) === true;
-        const param = (name: string) => req.params[name] ?? req.body?.[name] ?? req.query[name];
-        const initialLocals = {
-          branding: brand.name,
-          portal,
-          lang: language,
-          req: {
-            query: req.query,
-            url: req.url,
-            originalUrl: req.originalUrl,
-            session: req.session,
-            user: actor,
-            isAuthenticated: () => !!actor,
-          },
-          data: {},
-          ng2_apps: [],
-          availableLanguages: languages,
-          _csrf: input.csrf.generateToken(req),
-          isAdmin: hasRole('Admin'),
-          oid: req.params.oid ?? '',
-          rdmp: req.query.rdmp ?? '',
-          formName: '',
-          recordType: String(req.params.recordType ?? ''),
-        } as Record<string, unknown> & { formName: string; recordType: string };
-        const csp = pageCsp({
-          configuration: input.csp,
-          pathname: req.path,
-          appUrl: input.origin,
-          environment: input.environment,
-          analytics: settings.webAnalytics,
-        });
-        if (csp) {
-          res.set(csp.headerName, csp.headerValue);
-          initialLocals.contentSecurityPolicyNonce = csp.nonce;
-        }
-        const locals = Object.assign(
-          initialLocals,
-          pageLocals(
-            {
-              root: input.rootContext,
-              origin: input.origin,
-              brand,
-              portal,
-              settings,
-              config: input.templateConfig,
-              t,
-              param,
-              typeface: input.typeface(brand.name!),
-              faviconUrl: input.rootContext + '/' + brand.name + '/' + portal + '/images/favicon',
-              bundleHash: input.artifacts.bundleHash.bind(input.artifacts),
-              hasRole,
-            },
-            initialLocals
-          )
-        );
-        const navigation = new Navigation.Navigation({
-          context: {
-            isAuthenticated: !!actor,
-            user: actor,
-            brand: Object.assign(new BrandingModel(), brand),
-            brandPortalPath: locals.page.base,
-            currentPath: req.originalUrl.split('?')[0],
-          },
-          configuration: settings,
-          appmode: input.templateConfig.appmode ?? {},
-          log: input.log,
-          translate: t,
-          hasRole: (_user, _brand, name) => hasRole(name),
-        });
-        [locals.menu, locals.homePanels, locals.adminSidebar] = await Promise.all([
-          navigation.resolveMenu(),
-          navigation.resolveHomePanels(),
-          navigation.resolveAdminSidebar(),
-        ]);
-        const view: string = route.action === 'login' ? (input.loginView ?? route.view) : route.view;
-        let title = route.title ? t(route.title) : '';
-        const modelBrand = Object.assign(new BrandingModel(), brand);
-        if (route.action === 'redirectLegacyConsolidatedDashboard') {
-          res.redirect(locals.page.base + '/dashboard-view/consolidated');
-          return;
-        }
-        if (req.params.oid) {
-          const record = await input.loadRecord(String(req.params.oid));
-          if (!record || record.metaMetadata?.brandId !== brand.id) {
-            res.status(404).end();
+        const { locals, t, render, error } = await preparePage(req, res, input);
+        try {
+          const view: string = route.action === 'login' ? (input.loginView ?? route.view) : route.view;
+          let title = route.title ? t(route.title) : '';
+          const modelBrand = Object.assign(new BrandingModel(), brand);
+          if (route.action === 'redirectLegacyConsolidatedDashboard') {
+            res.redirect(locals.page.base + '/dashboard-view/consolidated');
             return;
           }
-          const roles = actor!.roles.map(r => ({ id: r.id, name: r.name, branding: { id: r.brandId } }));
-          const user = { ...actor, roles };
-          if (!(route.action === 'edit' ? hasEditAccess : hasViewAccess)(modelBrand, user, roles, record)) {
-            res.status(403).end();
-            return;
-          }
-          locals.recordType = record.metaMetadata.type;
-          title = String(record.metadata?.title ?? '').trim() || t(locals.recordType + '-title-label');
-          if (route.action === 'edit') {
-            locals.formName = route.path.includes('/finalise/') ? 'default-1.0-draft' : '';
-            if (
-              !(await singleHttpResult(
-                input.forms.getFormByName(locals.formName || record.metaMetadata.form, true, brand.id)
-              ))
-            ) {
-              res.status(404).end();
+          if (req.params.oid) {
+            const record = await input.loadRecord(String(req.params.oid));
+            if (!record || record.metaMetadata?.brandId !== brand.id) {
+              error(404);
               return;
             }
+            const roles = actor!.roles.map(r => ({ id: r.id, name: r.name, branding: { id: r.brandId } }));
+            const user = { ...actor, roles };
+            if (!(route.action === 'edit' ? hasEditAccess : hasViewAccess)(modelBrand, user, roles, record)) {
+              error(403);
+              return;
+            }
+            locals.recordType = record.metaMetadata.type;
+            title = String(record.metadata?.title ?? '').trim() || t(locals.recordType + '-title-label');
+            if (route.action === 'edit') {
+              locals.formName = route.path.includes('/finalise/') ? 'default-1.0-draft' : '';
+              if (
+                !(await singleHttpResult(
+                  input.forms.getFormByName(locals.formName || record.metaMetadata.form, true, brand.id)
+                ))
+              ) {
+                error(404);
+                return;
+              }
+            }
+          } else if (route.action === 'edit') {
+            if (!(await input.canCreate(context, locals.recordType))) {
+              error(403);
+              return;
+            }
+            if (
+              !(await singleHttpResult(input.forms.getFormByStartingWorkflowStep(modelBrand, locals.recordType, true)))
+            ) {
+              error(404);
+              return;
+            }
+            title = 'Create ' + t(locals.recordType + '-title-label');
           }
-        } else if (route.action === 'edit') {
-          if (!(await input.canCreate(context, locals.recordType))) {
-            res.status(403).end();
-            return;
+          if (route.action === 'renderDashboardView') {
+            const definition = input.dashboards.getDashboardView(String(req.params.dashboardView));
+            if (
+              !definition?.name ||
+              !definition.titleLabelKey ||
+              !definition.dashboardType ||
+              !definition.sourceRecordType ||
+              !definition.steps?.length ||
+              definition.steps.some(
+                step =>
+                  !step.name ||
+                  !step.sourceRecordType ||
+                  !['allForRecordType', 'workflowStage'].includes(step.fetchMode)
+              )
+            ) {
+              error(404);
+              return;
+            }
+            Object.assign(locals, {
+              dashboardView: definition.name,
+              recordType: definition.sourceRecordType,
+              dashboardType: definition.dashboardType,
+              packageType: '',
+              titleLabel: t(definition.titleLabelKey || definition.name),
+              showAdminSideBar: definition.showAdminSideBar === true,
+            });
+            title = String(locals.titleLabel);
+          } else if (route.view === 'dashboard') {
+            const config = await input.dashboards.getRecordTypeDashboardConfig(modelBrand, locals.recordType);
+            Object.assign(locals, {
+              packageType: req.query.packageType ?? (locals.recordType === 'workspace' ? 'workspace' : ''),
+              dashboardType: locals.recordType === 'workspace' ? 'workspace' : (req.query.dashboardType ?? 'standard'),
+              dashboardView: '',
+              showAdminSideBar: config?.showAdminSideBar === true,
+              titleLabel: req.query.titleLabel
+                ? t(String(req.query.titleLabel))
+                : t('edit-dashboard') + ' ' + t(locals.recordType + '-title-label'),
+            });
+            title = String(locals.titleLabel);
           }
-          if (
-            !(await singleHttpResult(input.forms.getFormByStartingWorkflowStep(modelBrand, locals.recordType, true)))
-          ) {
-            res.status(404).end();
-            return;
+          if (route.action === 'editAppConfig') {
+            const model = await input.configModel(String(req.params.appConfigId));
+            if (!model) {
+              error(404);
+              return;
+            }
+            Object.assign(locals, { configKey: req.params.appConfigId, formTitle: model.title });
           }
-          title = 'Create ' + t(locals.recordType + '-title-label');
+          if (route.controller === 'ReportsController')
+            locals.reports = await singleHttpResult(input.reports.findAllReportsForBrand(modelBrand));
+          const site = t('default-title') || 'Site';
+          locals.title = title && title !== site ? title + ' | ' + site : site;
+          const body = render(view);
+          res.type('html').send(route.view === 'admin/api-docs' ? body : render('layout', { body }));
+        } catch {
+          error(500);
         }
-        if (route.action === 'renderDashboardView') {
-          const definition = input.dashboards.getDashboardView(String(req.params.dashboardView));
-          if (
-            !definition?.name ||
-            !definition.titleLabelKey ||
-            !definition.dashboardType ||
-            !definition.sourceRecordType ||
-            !definition.steps?.length ||
-            definition.steps.some(
-              step =>
-                !step.name || !step.sourceRecordType || !['allForRecordType', 'workflowStage'].includes(step.fetchMode)
-            )
-          ) {
-            res.status(404).end();
-            return;
-          }
-          Object.assign(locals, {
-            dashboardView: definition.name,
-            recordType: definition.sourceRecordType,
-            dashboardType: definition.dashboardType,
-            packageType: '',
-            titleLabel: t(definition.titleLabelKey || definition.name),
-            showAdminSideBar: definition.showAdminSideBar === true,
-          });
-          title = String(locals.titleLabel);
-        } else if (route.view === 'dashboard') {
-          const config = await input.dashboards.getRecordTypeDashboardConfig(modelBrand, locals.recordType);
-          Object.assign(locals, {
-            packageType: req.query.packageType ?? (locals.recordType === 'workspace' ? 'workspace' : ''),
-            dashboardType: locals.recordType === 'workspace' ? 'workspace' : (req.query.dashboardType ?? 'standard'),
-            dashboardView: '',
-            showAdminSideBar: config?.showAdminSideBar === true,
-            titleLabel: req.query.titleLabel
-              ? t(String(req.query.titleLabel))
-              : t('edit-dashboard') + ' ' + t(locals.recordType + '-title-label'),
-          });
-          title = String(locals.titleLabel);
-        }
-        if (route.action === 'editAppConfig') {
-          const model = await input.configModel(String(req.params.appConfigId));
-          if (!model) {
-            res.status(404).end();
-            return;
-          }
-          Object.assign(locals, { configKey: req.params.appConfigId, formTitle: model.title });
-        }
-        if (route.controller === 'ReportsController')
-          locals.reports = await singleHttpResult(input.reports.findAllReportsForBrand(modelBrand));
-        const site = t('default-title') || 'Site';
-        locals.title = title && title !== site ? title + ' | ' + site : site;
-        const render = (name: string, extra: Record<string, unknown> = {}): string => {
-          const file =
-            name === 'layout'
-              ? input.artifacts.layout(brand.name!, portal)
-              : input.artifacts.view(name.replace(/^\/+/, ''), brand.name!, portal);
-          if (!file) throw new Error('Required page artifact missing.');
-          return input.artifacts.render(file, { ...locals, ...extra });
-        };
-        locals.superPartial = (name: string) => render(name);
-        locals.partial = (name: string, extra?: Record<string, unknown>) => render(name, extra);
-        const body = render(view);
-        res.type('html').send(route.view === 'admin/api-docs' ? body : render('layout', { body }));
       })
     );
+}
+
+/** Request locals and direct EJS rendering, shared by pages and their error responses. */
+async function preparePage(req: Request, res: Response, input: PagesHttpInput) {
+  const { brand, portal, actor } = requestContext(req);
+  req.session.branding = brand.name;
+  req.session.portal = portal;
+  const settings = await input.settings(brand);
+  const languages = await input.languages(brand);
+  const language =
+    ([req.query.lng, Reflect.get(req.session, 'langCode'), languages[0]?.code, 'en'].find(
+      value => typeof value === 'string' && languages.some(l => l.code === value)
+    ) as string) || 'en';
+  Reflect.set(req.session, 'langCode', language);
+  const t = (key: string, values?: Record<string, unknown>) => input.translate(brand.name!, language, key, values);
+  const hasRole = (name: string) => actor?.roles.some(role => role.brandId === brand.id && role.name === name) === true;
+  const param = (name: string) => req.params[name] ?? req.body?.[name] ?? req.query[name];
+  const initialLocals = {
+    branding: brand.name,
+    portal,
+    lang: language,
+    req: {
+      query: req.query,
+      url: req.url,
+      originalUrl: req.originalUrl,
+      session: req.session,
+      user: actor,
+      isAuthenticated: () => !!actor,
+    },
+    data: {},
+    ng2_apps: [],
+    availableLanguages: languages,
+    _csrf: input.csrf.generateToken(req),
+    isAdmin: hasRole('Admin'),
+    oid: req.params.oid ?? '',
+    rdmp: req.query.rdmp ?? '',
+    formName: '',
+    recordType: String(req.params.recordType ?? ''),
+  } as Record<string, unknown> & { formName: string; recordType: string };
+  const csp = pageCsp({
+    configuration: input.csp,
+    pathname: req.path,
+    appUrl: input.origin,
+    environment: input.environment,
+    analytics: settings.webAnalytics,
+  });
+  if (csp) {
+    res.set(csp.headerName, csp.headerValue);
+    initialLocals.contentSecurityPolicyNonce = csp.nonce;
+  }
+  const locals = Object.assign(
+    initialLocals,
+    pageLocals(
+      {
+        root: input.rootContext,
+        origin: input.origin,
+        brand,
+        portal,
+        settings,
+        config: input.templateConfig,
+        t,
+        param,
+        typeface: input.typeface(brand.name!),
+        faviconUrl: input.rootContext + '/' + brand.name + '/' + portal + '/images/favicon',
+        bundleHash: input.artifacts.bundleHash.bind(input.artifacts),
+        hasRole,
+      },
+      initialLocals
+    )
+  );
+  const navigation = new Navigation.Navigation({
+    context: {
+      isAuthenticated: !!actor,
+      user: actor,
+      brand: Object.assign(new BrandingModel(), brand),
+      brandPortalPath: locals.page.base,
+      currentPath: req.originalUrl.split('?')[0],
+    },
+    configuration: settings,
+    appmode: input.templateConfig.appmode ?? {},
+    log: input.log,
+    translate: t,
+    hasRole: (_user, _brand, name) => hasRole(name),
+  });
+  [locals.menu, locals.homePanels, locals.adminSidebar] = await Promise.all([
+    navigation.resolveMenu(),
+    navigation.resolveHomePanels(),
+    navigation.resolveAdminSidebar(),
+  ]);
+  const render = (name: string, extra: Record<string, unknown> = {}): string => {
+    const file =
+      name === 'layout'
+        ? input.artifacts.layout(brand.name!, portal)
+        : input.artifacts.view(name.replace(/^\/+/, ''), brand.name!, portal);
+    if (!file) throw new Error('Required page artifact missing.');
+    return input.artifacts.render(file, { ...locals, ...extra });
+  };
+  locals.superPartial = (name: string) => render(name);
+  locals.partial = (name: string, extra?: Record<string, unknown>) => render(name, extra);
+  const error = (status: 403 | 404 | 500): void => {
+    if (res.headersSent || res.writableEnded) {
+      res.destroy();
+      return;
+    }
+    res.status(status);
+    if (req.accepts(['html', 'json']) !== 'html') {
+      res.json();
+      return;
+    }
+    try {
+      locals.title = t('default-title') || 'Site';
+      res.type('html').send(render('layout', { body: render(String(status), { data: undefined }) }));
+    } catch {
+      // An unavailable error template/layout must terminate without recursive rendering.
+      input.log.warn('Page error artifact could not be rendered.');
+      res.type('text/plain').send(`${status} ${STATUS_CODES[status]}`);
+    }
+  };
+  return { locals, t, render, error };
+}
+
+/** Mount after dynamic and static delivery so only unmatched branded pages reach it. */
+export function mountPageNotFound(router: Router, input: PagesHttpInput): void {
+  router.use(
+    '/:branding/:portal',
+    ...bindHttpPolicies(['nocache', 'brandingandportal', 'browseractor', 'checkauth'], input.policies),
+    (req, res, next) => (['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? next() : input.csrf.protect(req, res, next)),
+    httpAction(async (req, res) => {
+      const { brand, actor } = requestContext(req);
+      if (actor && !actor.roles.some(role => role.brandId === brand.id)) {
+        res.status(403).end();
+        return;
+      }
+      if (Object.values(req.query).some(value => typeof value !== 'string')) {
+        res.status(400).end();
+        return;
+      }
+      (await preparePage(req, res, input)).error(404);
+    })
+  );
 }

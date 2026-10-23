@@ -75,7 +75,12 @@ export async function recordWriteFixture(
       realtime: Parameters<NonNullable<NonNullable<Parameters<typeof pilotFixture>[0]>['prepareRoutes']>>[4];
     }
   ) => Promise<void>,
-  httpOptions: { parserExclusions?: readonly string[]; port?: number; trustProxy?: boolean } = {}
+  httpOptions: {
+    parserExclusions?: readonly string[];
+    port?: number;
+    trustProxy?: boolean;
+    afterRoutes?(router: Router): void;
+  } = {}
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'sr-record-writes-'));
   let writer!: Records.Records;
@@ -320,6 +325,7 @@ export async function recordWriteFixture(
           policyConfiguration,
           log: nothingLogger,
         });
+        httpOptions.afterRoutes?.(router);
       },
     });
     await queue.activate();
