@@ -89,7 +89,7 @@ export function composeHttpSession(
       clientPromise,
       dbName: resolveSessionDatastore(sessionConfig).database,
     } as unknown as Parameters<typeof MongoStore.create>[0]);
-    ready = store.collectionP;
+    ready = Promise.resolve(store.collectionP);
     // Observe preparation failure even when a legacy caller cannot await setup.
     void ready.catch(() => {});
     owned.store = store;

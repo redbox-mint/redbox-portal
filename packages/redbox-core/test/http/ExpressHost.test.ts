@@ -336,4 +336,44 @@ describe('standalone Express 5 host', function () {
       if (child.exitCode === null) child.kill('SIGKILL');
     }
   });
+
+  it('retries after the host deadline expires before the prior application stop attempt settles', async () => {
+    const owner = { config: {}, log: { warn() {} } };
+    const application = new ApplicationRuntime(owner);
+    const stop = application.stop.bind(application);
+    const oldAttempt = Promise.withResolvers<void>();
+    let calls = 0;
+    application.stop = options => (++calls === 1 ? oldAttempt.promise : stop(options));
+    const host = new ExpressHost(application, { owner, hostname: '127.0.0.1', port: 0, prepare: async () => {} });
+    hosts.push(host);
+    await host.initialize();
+    await host.activate();
+    await assert.rejects(host.stop({ deadlineMs: 10 }), /deadline/);
+    const retry = host.stop();
+    assert.equal(calls, 1, 'A retry first waits for the old application attempt');
+    oldAttempt.reject(new Error('old application deadline'));
+    await retry;
+    assert.equal(calls, 2);
+    assert.equal(host.status().stopped, true);
+  });
+
+  it('does not start an automatic application retry after the retry deadline has expired', async () => {
+    const owner = { config: {}, log: { warn() {} } };
+    const application = new ApplicationRuntime(owner);
+    const stop = application.stop.bind(application);
+    const oldAttempt = Promise.withResolvers<void>();
+    let calls = 0;
+    application.stop = options => (++calls === 1 ? oldAttempt.promise : stop(options));
+    const host = new ExpressHost(application, { owner, hostname: '127.0.0.1', port: 0, prepare: async () => {} });
+    hosts.push(host);
+    await host.initialize();
+    await host.activate();
+    await assert.rejects(host.stop({ deadlineMs: 10 }), /deadline/);
+    await assert.rejects(host.stop({ deadlineMs: 10 }), /deadline/);
+    oldAttempt.reject(new Error('old application deadline'));
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(calls, 1, 'Expired host retries must not schedule later application cleanup');
+    await host.stop();
+    assert.equal(calls, 2);
+  });
 });

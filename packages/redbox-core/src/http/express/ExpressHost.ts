@@ -30,6 +30,7 @@ export class ExpressHost {
   private activated = false;
   private inFlight?: Promise<void>;
   private stopping?: Promise<void>;
+  private applicationStop?: Promise<void>;
   private prepared = false;
   private stopRequested = false;
   private stopDuringStartup?: boolean;
@@ -170,7 +171,18 @@ export class ExpressHost {
     const deadline = Date.now() + deadlineMs;
     // Owned request work participates in application drain. Older nonpersistent
     // test hosts still wait for transport closure before releasing their modules.
-    const earlyStop = this.options.owner || this.stopDuringStartup ? this.application.stop(options) : undefined;
+    const previousStop = this.applicationStop;
+    const earlyStop =
+      this.options.owner || this.stopDuringStartup
+        ? (this.applicationStop = (async () => {
+            // A host deadline can expire just before the application's deadline.
+            // A retry must outlive that old attempt before starting a fresh one.
+            await this.withDeadline(previousStop?.catch(() => {}) ?? Promise.resolve(), deadline);
+            if (Date.now() >= deadline)
+              throw new Error('Host stop deadline exceeded; resources remain owned. Retry stop.');
+            await this.application.stop({ deadlineMs: Math.max(1, deadline - Date.now()) });
+          })())
+        : undefined;
     // Observe immediately even if preparation is still pending.
     void earlyStop?.catch(() => {});
     const drainAcceptedRequests = async () => {
