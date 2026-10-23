@@ -1,0 +1,27 @@
+# {{packageName}}
+
+Initial v6 extension scaffold. Generate with `redbox-dev-tools init {{hookShortName}} --template v6`.
+Run `npm install` and `npm run build` against the matching core prerelease or
+locally packed core artifact. Package versions are exact; replace them only with
+qualified versions. This template compiles CommonJS and exposes the neutral
+`registerRedboxExtension()` contract. It needs no Sails shims or global services.
+
+The application binds each selected factory's concrete input with
+`bindExtensionFactory`: `ExampleInput` for the module and `{ example }` for the
+handler. Supply an application-owned writable audit path and the finalized
+greeting configuration. The factory only wires objects; initialize opens the
+file, activate admits greetings, drain waits for accepted writes and close owns
+the native handle. The sample route deliberately permits public access; declare
+ordered policy names and supply host policy execution for protected routes.
+
+The migration and bootstrap functions receive `ExampleWorkInput` repository
+operations. Registration never runs them. The application's later startup stages
+bind/await them after prerequisites; migrations use lexical names and the existing
+ledger. `ensureNamedQuery` must implement the deployment's existing upsert policy;
+the declaration adds no transaction or exactly-once guarantee. Asset/view paths
+are package-relative and included in the artifact.
+
+Legacy `CoreService`, global `sails`, events, `lower` patches and controller shims
+need source conversion even when the package stays CommonJS. This scaffold is an
+extension example, not a complete portal/host deployment. Full generated-app
+packaging and release tooling follow in SR-047/SR-053.

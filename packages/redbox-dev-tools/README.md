@@ -278,3 +278,13 @@ See the main [ReDBox Portal repository](https://github.com/redbox-mint/redbox-po
 ## License
 
 ISC
+
+## Initial v6 extension template
+
+`redbox-dev-tools init demo-client --template v6` creates a neutral extension
+with concrete module/resource, handler/route, configuration, bootstrap/migration
+and asset/view examples. Run `npm run build` in the generated directory.
+The default `standard` template remains for the temporary Sails comparison host.
+See [v6 conversion examples](../../support/specs/sails-retirement/hook-migration-v6.md)
+for source changes required even when a hook remains CommonJS. This initial
+template is not a complete generated portal deployment.

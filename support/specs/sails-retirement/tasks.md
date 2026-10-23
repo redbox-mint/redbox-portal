@@ -270,7 +270,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   tree shortcut; offline inspection has no live clients/workers. Full package ESM
   conversion and unchanged v5 hook compatibility are not prerequisites.
 
-- [ ] **SR-018 — Port development registrations and publish the initial hook scaffold.**
+- [x] **SR-018 — Port development registrations and publish the initial hook scaffold.**
+
+  **Status:** done; [shared registration, compiling scaffold and migration examples](evidence/p2-extensions.md#sr-018--development-registrations-and-initial-v6-scaffold).
 
   **Depends on:** SR-013, SR-014.
 

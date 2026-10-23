@@ -130,13 +130,13 @@ registerSyncTranslationCommand(program);
 
 program
   .command('init [name]')
-  .description('Initialize a new ReDBox hook project from the standard archetype')
-  .option('--template <template>', 'Archetype template name', 'standard')
+  .description('Initialize a ReDBox hook project (standard comparison or initial v6 extension)')
+  .option('--template <template>', 'Archetype template: standard or v6', 'standard')
   .option('--description <description>', 'Project description')
   .option('--force', 'Overwrite existing archetype files', false)
   .action((name: string | undefined, options: { template: string; description?: string; force?: boolean }) => {
-    if (options.template !== 'standard') {
-      console.error(`❌ Unsupported template: ${options.template}. Supported templates: standard`);
+    if (!['standard', 'v6'].includes(options.template)) {
+      console.error(`❌ Unsupported template: ${options.template}. Supported templates: standard, v6`);
       process.exit(1);
     }
 
@@ -164,6 +164,11 @@ program
     console.log('\n✨ Archetype ready!\n');
     console.log('Next steps:');
     console.log('  1. Install dependencies: npm install');
+    if (options.template === 'v6') {
+      console.log('  2. Compile TypeScript: npm run build');
+      console.log('  3. Bind concrete factory inputs in your application; see README.md\n');
+      return;
+    }
     console.log('  2. Compile TypeScript: npm run compile');
     console.log('  3. Run unit tests: npm run test:unit');
     console.log('  4. Start tailoring the hook in src/, test/, and support/\n');

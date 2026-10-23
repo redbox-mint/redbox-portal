@@ -1,5 +1,6 @@
 import type { Server } from 'node:http';
 import type { RequestHandler } from 'express';
+export type { RequestHandler } from 'express';
 import type { ApplicationModule } from '../application';
 
 /** Factories accept their own concrete input type, never a default container. */

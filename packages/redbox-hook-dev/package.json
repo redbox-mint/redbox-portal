@@ -10,6 +10,10 @@
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
+    "./extension": {
+      "types": "./dist/extension.d.ts",
+      "default": "./dist/extension.js"
+    },
     "./playwright": {
       "types": "./dist/playwright/index.d.ts",
       "default": "./dist/playwright/index.js"
@@ -24,6 +28,9 @@
     "hookName": "redbox-hook-dev",
     "hasConfig": true,
     "hasFormConfigs": true
+  },
+  "redbox": {
+    "extension": "./extension"
   },
   "scripts": {
     "compile": "npm run build",

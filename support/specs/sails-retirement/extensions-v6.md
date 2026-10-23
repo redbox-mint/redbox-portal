@@ -9,13 +9,17 @@ format compatibility requires converted v6 source; existing Sails hooks do not
 become compatible merely by changing manifest metadata.
 
 Import the narrow types from `@researchdatabox/redbox-core/extensions`.
+Use its exported `RequestHandler` type for handler factories so declarations use
+the host's Express 5 types even in a checkout with legacy Express 4 typings.
+`@researchdatabox/redbox-core/extensions/config` exposes the existing pure DOI
+binding helper without importing the legacy core barrel.
 Registration/imports are offline: no repositories, clients, writes, workers,
 listeners or process handlers. Factories synchronously wire concrete dependencies;
 awaited module initialization acquires resources. Inspection does not run work.
 
 The contract declares startup config, module factories, HTTP handler factories,
 routes, middleware at beforeRoutes/afterRoutes stages, server integrations,
-migrations/bootstrap work, jobs, forms/workflows, contributor ownership and
+migrations/bootstrap work, jobs, forms/workflows, config-model definitions, contributor ownership and
 package-relative view/asset roots. Domain factories implement `ApplicationModule`;
 Express handler factories stay separate. Each concrete factory defines its own
 input interface. A host composition binds only that factory's required operations
@@ -34,7 +38,8 @@ merge rules.
 Routes identify a named handler factory and explicitly declare `access: 'public'`
 or a nonempty ordered list of policy names. Named replacements retain or expressly
 revise the route's contract and policies; accidental method/path collisions fail
-before mounting, including collisions differing only in parameter names. The host
+before mounting, including parameter-name, case and trailing-slash aliases under
+the partial host's default Express router. The host
 must bind policy execution; declaration metadata is not authorization. Middleware
 and integrations participate in the host's admission and application cleanup.
 Integrations attach to the host's single server, never call listen or add signal
@@ -45,3 +50,5 @@ P2 does not promote a production host, merge institution configuration, activate
 queue backends, or implement public route/authentication/provider parity. Those
 remain in P3–P6. Bundled packages temporarily retain their explicit legacy entry
 alongside the neutral public extension subpath for the separate comparison host.
+
+See [the initial scaffold and before/after conversion examples](hook-migration-v6.md).

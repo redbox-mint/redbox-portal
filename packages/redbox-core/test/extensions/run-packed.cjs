@@ -15,6 +15,8 @@ const packages = [
   'redbox-core',
   'sails-hook-redbox-storage-mongo',
   'sails-hook-redbox-pdfgen',
+  'redbox-hook-dev',
+  'redbox-dev-tools',
 ];
 const artifacts = [];
 function pack(directory) {
@@ -55,7 +57,14 @@ fs.writeFileSync(
     2
   )
 );
-const env = { ...process.env, NODE_PATH: '', PUPPETEER_SKIP_DOWNLOAD: 'true', npm_config_update_notifier: 'false' };
+const env = {
+  ...process.env,
+  NODE_PATH: '',
+  NODE_ENV: 'production',
+  RBPORTAL_PLAYWRIGHT_SCENARIOS: 'false',
+  PUPPETEER_SKIP_DOWNLOAD: 'true',
+  npm_config_update_notifier: 'false',
+};
 function install(args, log) {
   try {
     fs.writeFileSync(
@@ -67,7 +76,7 @@ function install(args, log) {
     throw error;
   }
 }
-install(['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'install.log');
+install(['install', '--prefer-offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'install.log');
 fs.rmSync(path.join(sandbox, 'node_modules'), { recursive: true, force: true });
 install(['ci', '--offline', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], 'offline-ci.log');
 fs.copyFileSync(path.join(__dirname, 'packed-consumer.cjs'), path.join(sandbox, 'verify.cjs'));

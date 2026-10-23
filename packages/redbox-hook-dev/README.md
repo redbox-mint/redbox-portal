@@ -18,6 +18,14 @@ working demo dataset — supplied the same way client hooks supply theirs, via t
 
 ## How it loads
 
+The initial v6 loader discovers `redbox.extension: "./extension"`. The public
+`redbox-hook-dev/extension` entry declares config, forms and workflows offline,
+without loading the legacy core barrel. It shares declarations with the Sails
+adapter below. Discovery includes this devDependency only when the caller opts in.
+Existing demo trigger strings and legacy route settings remain configuration data
+for later conversion; this does not enable the complete demo portal on the partial
+Express host. See [the v6 migration examples](../../support/specs/sails-retirement/hook-migration-v6.md).
+
 The loader scans `dependencies` + `devDependencies` for the `sails.hasConfig` /
 `sails.hasFormConfigs` flags in `package.json` and merges the return values of
 `registerRedboxConfig()` and `registerRedboxFormConfigs()` into core config via

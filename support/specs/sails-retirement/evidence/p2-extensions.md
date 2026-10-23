@@ -270,3 +270,55 @@ rerun below includes subsequent validation and development changes):
 | `sr-esm-only-1.0.0.tgz` | 2 | `e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89` |
 | `sr-esm-hook-1.0.0.tgz` | 2 | `89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21` |
 | `sr-commonjs-hook-1.0.0.tgz` | 2 | `60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e` |
+
+## SR-018 — Development registrations and initial v6 scaffold
+
+The development hook now exposes `./extension` with neutral config/forms/workflows
+and retains the legacy entry as a comparison adapter. Both delegate to
+`getDevelopmentRegistration`; demo/Playwright definitions are reused, not copied.
+The existing pure DOI binding helper has a narrow `extensions/config` public
+entry, avoiding the core barrel in this import graph. The development-only
+scenario flag and environment gate remain in use. Existing Sails function-name
+strings, redirect and view settings are declared configuration data; their later
+execution/conversion remains inventoried P3/P5 work, not claimed portal parity.
+
+Dev-tools provides `init --template v6` alongside the unchanged default comparison
+archetype. Its generated module owns a real native file handle through explicit
+initialize/activate/drain/close; handler input is just the required operation.
+It declares config, an intentionally public named route, awaited migration and
+bootstrap functions, and packed view/asset directories. The migration/bootstrap
+operations are injected and not executed on import. No v6 framework/container,
+listener, process handlers, Sails shim or alternate implementation is generated.
+The sample's migration name must be chosen before an institution's first release.
+
+[Before/after conversion examples](../hook-migration-v6.md) cover services,
+controllers/routes/policies, config, forms/contributors, bootstrap/migrations,
+views/assets and native resources. They distinguish CommonJS format from Sails
+source compatibility and describe remaining orchestration/host/tooling work.
+All scaffold source is inside this repository; no external repo changes needed.
+
+Commands (qualified Node PATH):
+
+```sh
+npm --prefix packages/redbox-hook-dev run build
+npm --prefix packages/redbox-dev-tools run build
+./node_modules/.bin/tsc --noEmit -p packages/redbox-dev-tools/test/tsconfig.json
+NODE_OPTIONS=--no-experimental-strip-types npm --prefix packages/redbox-dev-tools test
+```
+
+Builds and strict test typecheck **exit 0**. Complete dev-tools suite **50 passing,
+0 failing/pending**, ~25 seconds, including legacy archetype/generators, actual
+CLI v6 init, generated output strict compilation against public declarations,
+exact generated pins, and actual file admission/drain/cleanup. A numeric/hyphenated
+hook name exercises generated identifiers/config keys. No assertions removed.
+
+Initial suite stopped before execution on two existing implicit-any callbacks;
+annotated the needed `{ name?: string }` shape without weakening strictness.
+Next run **49 passing / 1 failing** caught mixed Express 4/5 ambient typings in
+this shared checkout. The contract now exports the host's native Express 5
+`RequestHandler` type and the scaffold uses that public type, avoiding an extra
+Express types dependency. Subsequent complete 50-case run passes. The first
+format check caught the expanded CJS consumer's formatting; formatted and the
+subsequent focused check passes. No installed dependency pin changed in SR-018;
+generated TypeScript 5.9.3 / Node types 24.12.4 reuse repository pins and core's
+exact installed version. Complete generated-app packaging remains SR-047/SR-053.

@@ -35,6 +35,16 @@ describe('cli smoke test', function () {
     }
   });
 
+  it('generates the initial v6 extension through the public init command', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-v6-init-'));
+    const result = runCli(['init', 'demo-client', '--template', 'v6'], tempRoot);
+    expect(result.status).to.equal(0, result.stderr);
+    const pkg = JSON.parse(fs.readFileSync(path.join(tempRoot, 'package.json'), 'utf8'));
+    expect(pkg.redbox.extension).to.equal('.');
+    expect(pkg.sails).to.equal(undefined);
+    expect(result.stdout).to.contain('npm run build');
+  });
+
   it('should print help for the full command tree and exit 0', () => {
     const result = runCli(['--help']);
     expect(result.status).to.equal(0, result.stderr);

@@ -219,6 +219,10 @@
       "types": "./dist/extensions/storage.d.ts",
       "default": "./dist/extensions/storage.js"
     },
+    "./extensions/config": {
+      "types": "./dist/extensions/config.d.ts",
+      "default": "./dist/extensions/config.js"
+    },
     "./application": {
       "types": "./dist/application/index.d.ts",
       "default": "./dist/application/index.js"
