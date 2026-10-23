@@ -122,8 +122,39 @@ See the bundled development hook for complete existing form/workflow data.
 
 Generated `views: ['views']` and `assets: ['assets']` name package-relative
 directories included in `files`. Lookup searches higher-priority hooks first;
-configuration contributions are ordered in the opposite direction. These are
-declarations; final static serving/configuration orchestration follows later.
+configuration contributions are ordered in the opposite direction. The page
+adapter receives these resolved absolute roots, followed by the core
+application artifact. `PageArtifacts` prepares one ordered EJS tree during
+initialization and removes its temporary tree at close; package directories stay
+read-only. Static assets use the same root precedence. Dotfiles, traversal and
+symlinks outside declared roots are refused.
+
+Build the application assets first (`npm run webpack`), then run
+`npm run package:pages` to assemble `.tmp/page-artifacts/{views,assets}`. Install
+that directory in the deployment artifact and supply its absolute path to
+`PageArtifacts.installed(...)`; runtime lookup does not depend on the working
+directory or the source checkout. Extension view/asset directories remain
+package-relative declarations in the extension's `files` list.
+
+EJS templates receive a request-scoped `page` value: `root` (deployment prefix),
+`base` (prefix plus brand and portal), `brand`, `settings`, `config`, `typeface`,
+`faviconUrl`, `t(key, values)`, `param(name)` and
+`bundleHash(app, prefix, before?, after?, evenEmpty?)`. Replace global service or
+`sails.config` lookups with those values. `superPartial('/layout/logo.ejs')`,
+`partial(name, extraLocals)` and ordinary EJS `include(...)` resolve installed
+partials; the body is rendered explicitly into the chosen layout. Keep Angular
+`ngCspNonce` and script/style nonces from `contentSecurityPolicyNonce`.
+
+Use `page.root` for unbranded assets and `page.base` for branded URLs. The shared
+Webpack entry receives `data-redbox-root` from the layout so lazy validator chunks
+stay under the deployment prefix. Extracted CSS font paths are relative, preserving
+the emitted asset names under a proxy prefix. The v6 page adapter does not expose
+`res.view`, Sails globals, view-hook registration or legacy middleware helpers.
+Mount `mountPageNotFound` after all owned routes and `mountStaticPageArtifacts`.
+Page-level denials/missing objects/backend failures render the installed error
+EJS inside the selected layout for HTML requests, with ordinary JSON negotiation
+and a terminal text response if the error artifact itself fails. Policy denials
+retain their policy responses; error rendering grants no additional access.
 
 The development hook still contributes demo function-name strings such as
 `sails.services.rdmpservice.runTemplates`, plus legacy redirect/view settings,
@@ -216,3 +247,14 @@ cleanup cron and remote I/O beyond that deadline have process lifetime; remote
 completion/recovery across exit is not promised. Redis/periodic pings are refused.
 See evidence/p6-uploads.md and evidence/p6-realtime.md for the real URL/tus and
 socket qualification and the design for accepted residual limits.
+### PDF background work admission
+
+The PDF factory input now requires `runAcceptedWork`. Bind it to
+`operation => runAcceptedPersistenceWork(owner, operation)` from the narrow
+`@researchdatabox/redbox-core/extensions/storage` entrypoint, using the same
+application owner as the selected storage module. Initial generation and each
+scheduled retry start inside that scope and retain it through their actual fiber
+completion. The HTTP trigger or queue callback may finish sooner; its settled
+scope must not be inherited as the lifetime of detached PDF work. The comparison
+adapter supplies the same binding. Keep `quiesce`, `drain` and `close` registered
+with the application's existing resource registry.

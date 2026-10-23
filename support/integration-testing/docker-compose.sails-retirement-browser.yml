@@ -1,0 +1,14 @@
+# The existing Playwright image/runner, with an isolated standalone host and
+# externally started, loopback-only qualification providers on the Docker host.
+services:
+  playwright-mount:
+    network_mode: host
+    depends_on: !reset {}
+    volumes:
+      - '../../:/opt/redbox-portal'
+    environment:
+      HTTP_PILOT_TEST_MONGO_URL: mongodb://127.0.0.1:34903/sr_p4_http
+      HTTP_READ_SOLR_PORT: '34904'
+      OIDC_TEST_ISSUER: http://127.0.0.1:18080/realms/redbox
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:1500/portal
+    entrypoint: ['bash', '/opt/redbox-portal/support/integration-testing/run-sails-retirement-browser.sh']
