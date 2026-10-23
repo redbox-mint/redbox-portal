@@ -1,8 +1,9 @@
 # Sails retirement: v6 task list
 
-Status: P0 SR-001–SR-004 complete; SR-005 is partial pending institution cohort
-and production-source designation. Task evidence is linked below. Planning
-documents were prepared on 2026-10-23; their existence is not implementation or
+Status: P0 SR-001–SR-004 and P1 SR-006–SR-007 complete; SR-005 is partial
+pending institution cohort and production-source designation. SR-008–SR-011 are
+not started; the P1 runtime foundation is committed before the next domain slice.
+Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
 
@@ -118,7 +119,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   **Accept/evidence:** existing ownership tests pass; standalone construction
   needs neither a `Sails.Application` cast nor global Sails/process handlers.
 
-- [ ] **SR-007 — Implement application lifecycle and application-owned composition.**
+- [x] **SR-007 — Implement application lifecycle and application-owned composition.**
+
+  **Status:** done; [lifecycle, deadlines/retry, isolated composition and real-Mongo checks](evidence/p1-runtime.md#sr-007--application-lifecycle-and-owned-composition).
 
   **Depends on:** SR-006.
 
@@ -132,6 +135,8 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 - [ ] **SR-008 — Extract the record-type module behind explicit dependencies.**
 
+  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
+
   **Depends on:** SR-007, SR-004.
 
   **Deliver:** reference repository/config/log/capability injection, explicit
@@ -143,6 +148,8 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   module-level cache. No duplicate record-type implementation is introduced.
 
 - [ ] **SR-009 — Prove meaningful standalone record-type behavior on real MongoDB.**
+
+  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
 
   **Depends on:** SR-002, SR-006, SR-007, SR-008.
 
@@ -156,6 +163,8 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 - [ ] **SR-010 — Build the minimal standalone Express 5 host early.**
 
+  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
+
   **Depends on:** SR-002, SR-007.
 
   **Deliver:** one server, host-owned signals, explicit test composition and
@@ -167,6 +176,8 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   does not dispatch absent routes through a legacy controller or second process.
 
 - [ ] **SR-011 — Connect the temporary Sails comparison adapter to the same instance.**
+
+  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
 
   **Depends on:** SR-006, SR-007, SR-008.
 
