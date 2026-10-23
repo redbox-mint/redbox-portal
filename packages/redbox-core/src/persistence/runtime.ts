@@ -283,6 +283,11 @@ function operationAdmitted(state: Runtime): boolean {
   );
 }
 
+/** Native completion owners may report results while their caller's admitted work remains active. */
+export function hasActivePersistenceWork(app: PersistenceOwner): boolean {
+  return stateFor(app).context.getStore()?.active === true;
+}
+
 /** A bounded caller-owned lifetime. Detached descendants lose admission on settlement. */
 export function runAcceptedPersistenceWork<T>(app: PersistenceOwner, operation: () => Promise<T>): Promise<T> {
   const state = stateFor(app);

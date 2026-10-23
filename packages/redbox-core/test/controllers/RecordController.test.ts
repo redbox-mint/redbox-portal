@@ -1,4 +1,4 @@
-import {createSinonStubLogger} from "../logger.test";
+import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
@@ -366,7 +366,7 @@ describe('RecordController getWorkflowSteps', () => {
       it(`returns notFound for ${routeName} when metadata is ${JSON.stringify(missingRecord)}`, async () => {
         expect(route).to.include({ controller: 'RecordController', action: 'view' });
         const req = {
-          param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'deleted-oid' : 'rdmp'),
+          param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'deleted-oid' : 'rdmp')),
           session: { branding: 'default' },
           options: { ...route, locals: { ...route.locals, localFormName: 'form-1' } },
         } as unknown as Sails.Req;
@@ -386,7 +386,11 @@ describe('RecordController getWorkflowSteps', () => {
       });
     }
 
-    for (const lookupError of [new Error('Storage unavailable'), new Error('Storage index not found'), { code: 500, message: 'Storage unavailable' }]) {
+    for (const lookupError of [
+      new Error('Storage unavailable'),
+      new Error('Storage index not found'),
+      { code: 500, message: 'Storage unavailable' },
+    ]) {
       it(`returns serverError for ${routeName} when lookup rejects with ${lookupError.message}`, async () => {
         const req = {
           param: sinon.stub().withArgs('oid').returns('oid-1'),
@@ -500,33 +504,29 @@ describe('RecordController getWorkflowSteps', () => {
     });
   });
 
-  describe("Data Record metadata projection", () => {
+  describe('Data Record metadata projection', () => {
     function prepareProjection() {
       const service = new FormConsistencyServices.FormRecordConsistency();
-      sinon.stub(global, "FormRecordConsistencyService").value(service);
-      (FormsService.getFormByName as sinon.SinonStub).returns(
-        of({ configuration: dataRecordProjectionForm }),
-      );
-      (FormsService.buildClientFormConfig as sinon.SinonStub).resolves(
-        dataRecordProjectionForm,
-      );
+      sinon.stub(global, 'FormRecordConsistencyService').value(service);
+      (FormsService.getFormByName as sinon.SinonStub).returns(of({ configuration: dataRecordProjectionForm }));
+      (FormsService.buildClientFormConfig as sinon.SinonStub).resolves(dataRecordProjectionForm);
       (controller.recordsService.getMeta as sinon.SinonStub).resolves({
-        redboxOid: "representative-data-record",
+        redboxOid: 'representative-data-record',
         metaMetadata: {
-          type: "dataRecord",
+          type: 'dataRecord',
           form: dataRecordProjectionForm.name,
-          brandId: "brand-1",
+          brandId: 'brand-1',
         },
         metadata: {
           ...dataRecordProjectedMetadata,
-          serverOnly: { credentials: "hidden" },
+          serverOnly: { credentials: 'hidden' },
         },
       });
       const req = {
-        param: sinon.stub().withArgs("oid").returns("representative-data-record"),
+        param: sinon.stub().withArgs('oid').returns('representative-data-record'),
         query: {},
-        user: { username: "researcher", roles: [{ name: "Researcher" }] },
-        session: { branding: "default" },
+        user: { username: 'researcher', roles: [{ name: 'Researcher' }] },
+        session: { branding: 'default' },
       } as unknown as Sails.Req;
       const response = {
         status: sinon.stub().returnsThis(),
@@ -536,50 +536,40 @@ describe('RecordController getWorkflowSteps', () => {
       return { service, req, response };
     }
 
-    it("returns 200 with Data Locations and Data Manager using the real projection and response path", async () => {
+    it('returns 200 with Data Locations and Data Manager using the real projection and response path', async () => {
       const { req, response } = prepareProjection();
 
       await controller.getMeta(req, response as unknown as Sails.Res);
 
       expect(response.status.calledOnceWithExactly(200)).to.be.true;
-      expect(response.json.calledOnceWithExactly(dataRecordProjectedMetadata)).to
-        .be.true;
-      expect(
-        (
-          FormsService.buildClientFormConfig as sinon.SinonStub
-        ).firstCall.args.slice(1, 3),
-      ).to.deep.equal(["edit", ["Researcher"]]);
+      expect(response.json.calledOnceWithExactly(dataRecordProjectedMetadata)).to.be.true;
+      expect((FormsService.buildClientFormConfig as sinon.SinonStub).firstCall.args.slice(1, 3)).to.deep.equal([
+        'edit',
+        ['Researcher'],
+      ]);
     });
 
-    it("returns 403 without projecting metadata when record view access is denied", async () => {
+    it('returns 403 without projecting metadata when record view access is denied', async () => {
       const { service, req, response } = prepareProjection();
-      const project = sinon.spy(service, "projectMetadataClientFormConfig");
+      const project = sinon.spy(service, 'projectMetadataClientFormConfig');
       (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
 
       await controller.getMeta(req, response as unknown as Sails.Res);
 
       expect(response.status.calledOnceWithExactly(403)).to.be.true;
       expect(project.notCalled).to.be.true;
-      expect((FormsService.buildClientFormConfig as sinon.SinonStub).notCalled).to
-        .be.true;
+      expect((FormsService.buildClientFormConfig as sinon.SinonStub).notCalled).to.be.true;
     });
 
-    it("returns 500 without raw metadata when projection fails", async () => {
+    it('returns 500 without raw metadata when projection fails', async () => {
       const { service, req, response } = prepareProjection();
-      sinon
-        .stub(service, "projectMetadataClientFormConfig")
-        .rejects(new Error("Invalid form schema"));
+      sinon.stub(service, 'projectMetadataClientFormConfig').rejects(new Error('Invalid form schema'));
 
       await controller.getMeta(req, response as unknown as Sails.Res);
 
       expect(response.status.calledOnceWithExactly(500)).to.be.true;
-      expect(response.json.firstCall.args[0]).to.have.property(
-        "message",
-        "Failed to filter metadata for this record.",
-      );
-      expect(JSON.stringify(response.json.firstCall.args[0])).not.to.contain(
-        "serverOnly",
-      );
+      expect(response.json.firstCall.args[0]).to.have.property('message', 'Failed to filter metadata for this record.');
+      expect(JSON.stringify(response.json.firstCall.args[0])).not.to.contain('serverOnly');
     });
   });
 
@@ -648,7 +638,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('returns a server error without rendering the editor when the record lookup fails', async () => {
     const req = {
-      param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
+      param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'oid-1' : '')),
       query: {},
       session: { branding: 'default' },
     } as unknown as Sails.Req;
@@ -669,7 +659,7 @@ describe('RecordController getWorkflowSteps', () => {
     for (const edit of ['true', 'false']) {
       it(`returns a missing-record 404 for a deleted record's form (API ${apiVersion}, edit=${edit})`, async () => {
         const req = {
-          param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'deleted-oid' : 'auto'),
+          param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'deleted-oid' : 'auto')),
           query: { apiVersion, edit },
           session: { branding: 'default' },
         } as unknown as Sails.Req;
@@ -694,7 +684,7 @@ describe('RecordController getWorkflowSteps', () => {
     for (const edit of ['true', 'false']) {
       it(`returns missing-record when the record disappears after page rendering (API ${apiVersion}, edit=${edit})`, async () => {
         const req = {
-          param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
+          param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'oid-1' : '')),
           query: { apiVersion, edit },
           session: { branding: 'default' },
           options: {},
@@ -736,7 +726,7 @@ describe('RecordController getWorkflowSteps', () => {
       for (const lookup of ['record', 'form']) {
         it(`keeps code-500 ${lookup} lookup failures as server errors (API ${apiVersion}, edit=${edit})`, async () => {
           const req = {
-            param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : 'auto'),
+            param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'oid-1' : 'auto')),
             query: { apiVersion, edit },
             session: { branding: 'default' },
           } as unknown as Sails.Req;
@@ -763,14 +753,17 @@ describe('RecordController getWorkflowSteps', () => {
           if (apiVersion === '1.0') {
             expect(payload).to.include({ message: 'Error getting form definition', details: lookupError.message });
           } else {
-            expect(payload.errors[0]).to.include({ title: 'Error getting form definition', detail: lookupError.message });
+            expect(payload.errors[0]).to.include({
+              title: 'Error getting form definition',
+              detail: lookupError.message,
+            });
           }
         });
       }
 
       it(`preserves permission errors for an existing form (API ${apiVersion}, edit=${edit})`, async () => {
         const req = {
-          param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : 'auto'),
+          param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'oid-1' : 'auto')),
           query: { apiVersion, edit },
           session: { branding: 'default' },
         } as unknown as Sails.Req;
@@ -778,7 +771,9 @@ describe('RecordController getWorkflowSteps', () => {
         const json = sinon.stub().returnsThis();
         const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
         (controller.recordsService.getMeta as sinon.SinonStub).resolves({ redboxOid: 'oid-1' });
-        const access = controller.recordsService[edit === 'true' ? 'hasEditAccess' : 'hasViewAccess'] as sinon.SinonStub;
+        const access = controller.recordsService[
+          edit === 'true' ? 'hasEditAccess' : 'hasViewAccess'
+        ] as sinon.SinonStub;
         access.returns(false);
 
         await controller.getForm(req, res);
@@ -799,7 +794,7 @@ describe('RecordController getWorkflowSteps', () => {
     for (const recordType of ['rdmp', null]) {
       it(`uses saved record type ${JSON.stringify(recordType)} with a ${formSelection} form that has no configured type`, async () => {
         const req = {
-          param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
+          param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'oid-1' : '')),
           query: {},
           session: { branding: 'default' },
           options: { locals: formSelection === 'named' ? { localFormName: 'named-form' } : {} },
@@ -817,12 +812,18 @@ describe('RecordController getWorkflowSteps', () => {
         expect(sendView.calledOnce).to.be.true;
         expect(sendView.firstCall.args[2]).to.equal('record/edit');
         expect(sendView.firstCall.args[3]).to.deep.include({
-          oid: 'oid-1', recordType: recordType ?? '', title: 'Saved title | Site',
+          oid: 'oid-1',
+          recordType: recordType ?? '',
+          title: 'Saved title | Site',
           formName: formSelection === 'named' ? 'named-form' : '',
         });
-        expect((FormsService.getFormByName as sinon.SinonStub).calledOnceWithExactly(
-          formSelection === 'named' ? 'named-form' : 'saved-form', true, 'brand-1',
-        )).to.be.true;
+        expect(
+          (FormsService.getFormByName as sinon.SinonStub).calledOnceWithExactly(
+            formSelection === 'named' ? 'named-form' : 'saved-form',
+            true,
+            'brand-1'
+          )
+        ).to.be.true;
         expect((controller.recordsService.getMeta as sinon.SinonStub).calledOnceWithExactly('oid-1')).to.be.true;
       });
     }
@@ -831,7 +832,7 @@ describe('RecordController getWorkflowSteps', () => {
   for (const formName of [undefined, null]) {
     it(`reports an unavailable form without mislabeling an existing record whose form is ${formName}`, async () => {
       const req = {
-        param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
+        param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'oid-1' : '')),
         query: { apiVersion: '2.0' },
         session: { branding: 'default' },
         options: {},
@@ -842,7 +843,8 @@ describe('RecordController getWorkflowSteps', () => {
       const res = { status, json, notFound, set: sinon.stub() } as unknown as Sails.Res;
       const sendView = sinon.stub(controller, 'sendView');
       (controller.recordsService.getMeta as sinon.SinonStub).resolves({
-        redboxOid: 'oid-1', metaMetadata: { type: 'rdmp', form: formName },
+        redboxOid: 'oid-1',
+        metaMetadata: { type: 'rdmp', form: formName },
       });
       (FormsService.getFormByName as sinon.SinonStub).returns(of(null));
 
@@ -860,7 +862,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('renders a named create form without looking up an existing record', async () => {
     const req = {
-      param: sinon.stub().callsFake((name: string) => name === 'recordType' ? 'rdmp' : ''),
+      param: sinon.stub().callsFake((name: string) => (name === 'recordType' ? 'rdmp' : '')),
       query: {},
       session: { branding: 'default' },
       options: { locals: { localFormName: 'named-form' } },
@@ -871,7 +873,12 @@ describe('RecordController getWorkflowSteps', () => {
     await controller.edit(req, {} as Sails.Res);
 
     expect(sendView.calledOnce).to.be.true;
-    expect(sendView.firstCall.args[3]).to.deep.include({ oid: '', recordType: 'rdmp', formName: 'named-form', title: 'Create RDMP | Site' });
+    expect(sendView.firstCall.args[3]).to.deep.include({
+      oid: '',
+      recordType: 'rdmp',
+      formName: 'named-form',
+      title: 'Create RDMP | Site',
+    });
     expect((controller.recordsService.getMeta as sinon.SinonStub).called).to.be.false;
   });
 
@@ -1494,14 +1501,23 @@ describe('RecordController getWorkflowSteps', () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
     const steps = [{ name: 'draft', config: { workflow: { stage: 'draft' }, form: 'dataset-draft' } }];
     const original = JSON.parse(JSON.stringify(steps));
-    const table = { rowConfig: [{ title: 'Owned title', variable: 'metadata.title' }], formatRules: { filterBy: { filterMode: 'equal' } } };
+    const table = {
+      rowConfig: [{ title: 'Owned title', variable: 'metadata.title' }],
+      formatRules: { filterBy: { filterMode: 'equal' } },
+    };
     (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
     (global as any).WorkflowStepsService.getAllForRecordType.returns(of(steps));
     (global as any).DashboardTypesService.getDashboardTableConfig.resolves(table);
 
     await controller.getWorkflowSteps(req, res);
 
-    expect((global as any).DashboardTypesService.getDashboardTableConfig.calledOnceWith(sinon.match({ id: 'brand-1' }), 'dataset', 'draft')).to.equal(true);
+    expect(
+      (global as any).DashboardTypesService.getDashboardTableConfig.calledOnceWith(
+        sinon.match({ id: 'brand-1' }),
+        'dataset',
+        'draft'
+      )
+    ).to.equal(true);
     expect(sendResp.firstCall.args[2].data[0].config).to.deep.equal({ ...original[0].config, dashboard: { table } });
     expect(steps).to.deep.equal(original);
   });
@@ -2337,10 +2353,12 @@ describe('RecordController TUS URL generation', () => {
 
   it('uses the shared browser 404 response when an attachment is not in the record', async () => {
     (controller as any).tusServer = { handle: sinon.stub() };
-    sinon.stub(controller as any, 'getRecord').returns(of({
-      metaMetadata: { attachmentFields: [] },
-      metadata: {},
-    }));
+    sinon.stub(controller as any, 'getRecord').returns(
+      of({
+        metaMetadata: { attachmentFields: [] },
+        metadata: {},
+      })
+    );
     sinon.stub(controller as any, 'hasViewAccess').returns(of(true));
 
     const req = {
@@ -2350,7 +2368,7 @@ describe('RecordController TUS URL generation', () => {
       url: '/default/rdmp/record/oid-1/attach/file-missing',
       path: '/default/rdmp/record/oid-1/attach/file-missing',
       headers: { host: 'localhost:1500' },
-      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' }[name])),
+      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' })[name]),
     } as unknown as Sails.Req;
     const res = { notFound: sinon.stub() } as unknown as Sails.Res;
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -2363,10 +2381,12 @@ describe('RecordController TUS URL generation', () => {
 
   it('keeps the JSON 404 response for attachment API requests', async () => {
     (controller as any).tusServer = { handle: sinon.stub() };
-    sinon.stub(controller as any, 'getRecord').returns(of({
-      metaMetadata: { attachmentFields: [] },
-      metadata: {},
-    }));
+    sinon.stub(controller as any, 'getRecord').returns(
+      of({
+        metaMetadata: { attachmentFields: [] },
+        metadata: {},
+      })
+    );
     sinon.stub(controller as any, 'hasViewAccess').returns(of(true));
 
     const req = {
@@ -2376,7 +2396,7 @@ describe('RecordController TUS URL generation', () => {
       url: '/default/rdmp/record/oid-1/attach/file-missing',
       path: '/default/rdmp/record/oid-1/attach/file-missing',
       headers: { host: 'localhost:1500', 'x-source': 'jsclient' },
-      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' }[name])),
+      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' })[name]),
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
@@ -2389,12 +2409,14 @@ describe('RecordController TUS URL generation', () => {
 
   it('uses the shared browser 404 response when the attachment stream is missing', async () => {
     (controller as any).tusServer = { handle: sinon.stub() };
-    sinon.stub(controller as any, 'getRecord').returns(of({
-      metaMetadata: { attachmentFields: ['attachments'] },
-      metadata: {
-        attachments: [{ fileId: 'file-missing', name: 'missing.txt', mimeType: 'text/plain', size: '1' }],
-      },
-    }));
+    sinon.stub(controller as any, 'getRecord').returns(
+      of({
+        metaMetadata: { attachmentFields: ['attachments'] },
+        metadata: {
+          attachments: [{ fileId: 'file-missing', name: 'missing.txt', mimeType: 'text/plain', size: '1' }],
+        },
+      })
+    );
     sinon.stub(controller as any, 'hasViewAccess').returns(of(true));
     controller.datastreamService = {
       getDatastream: sinon.stub().rejects(new Error('attachment-not-found')),
@@ -2407,7 +2429,7 @@ describe('RecordController TUS URL generation', () => {
       url: '/default/rdmp/record/oid-1/attach/file-missing',
       path: '/default/rdmp/record/oid-1/attach/file-missing',
       headers: { host: 'localhost:1500' },
-      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' }[name])),
+      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' })[name]),
     } as unknown as Sails.Req;
     const res = {
       set: sinon.stub(),
@@ -2483,17 +2505,22 @@ describe('AsynchController authorization', () => {
     const recordsService = (global as any).sails.services.recordsservice;
     recordsService.getMeta.callsFake(async (oid: string) => {
       if (oid === 'record-1') {
-        return { redboxOid: oid };
+        return { redboxOid: oid, metaMetadata: { brandId: 'brand-1' } };
       }
       throw new Error('not found');
     });
-    (global as any).AsynchsService.get.callsFake(({ id }: { id: string }) =>
-      of(id === 'job-1' ? [{ id, relatedRecordId: 'record-1' }] : [])
+    (global as any).AsynchsService.get.callsFake(
+      ({ id, relatedRecordId, taskType }: { id?: string; relatedRecordId?: string; taskType?: string }) =>
+        of(
+          id === '0123456789abcdef01234567' || (relatedRecordId === 'record-1' && taskType === 'export')
+            ? [{ id: '0123456789abcdef01234567', relatedRecordId: 'record-1', taskType: 'export' }]
+            : []
+        )
     );
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
-    await controller.subscribe(makeRequest({ roomId: 'job-1' }), {} as Sails.Res);
+    await controller.subscribe(makeRequest({ roomId: '0123456789abcdef01234567' }), {} as Sails.Res);
     await controller.subscribe(makeRequest({ roomId: 'record-1-export' }), {} as Sails.Res);
 
     expect(recordsService.hasViewAccess.callCount).to.equal(3);
@@ -2509,7 +2536,7 @@ describe('AsynchController authorization', () => {
     await controller.subscribe(makeRequest({ roomId: 'unknown-room' }), {} as Sails.Res);
     expect(sendResp.firstCall.args[2].data.status).to.be.false;
 
-    recordsService.getMeta.resolves({ redboxOid: 'record-1' });
+    recordsService.getMeta.resolves({ redboxOid: 'record-1', metaMetadata: { brandId: 'brand-1' } });
     recordsService.hasViewAccess.returns(false);
     await controller.subscribe(makeRequest({ roomId: 'record-1' }), {} as Sails.Res);
     expect(sendResp.getCalls().some(call => call.args[2]?.status === 403)).to.be.true;

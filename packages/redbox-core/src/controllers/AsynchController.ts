@@ -1,4 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
+import type { RecordsService as RecordOperations } from '../RecordsService';
+import { resolveProgressRecord } from '../progress/authorization';
 import { BrandingModel } from '../model/storage/BrandingModel';
 
 export namespace Controllers {
@@ -8,18 +10,17 @@ export namespace Controllers {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class Asynch extends controllers.Core.Controller {
-
     /**
      * Exported methods, accessible from internet.
      */
     protected override _exportedMethods: string[] = [
-        'index',
-        'start',
-        'progress',
-        'stop',
-        'update',
-        'subscribe',
-        'unsubscribe'
+      'index',
+      'start',
+      'progress',
+      'stop',
+      'update',
+      'subscribe',
+      'unsubscribe',
     ];
 
     /**
@@ -80,20 +81,20 @@ export namespace Controllers {
       const metadata = req.param('metadata') ? req.param('metadata') : null;
       const status = req.param('status');
       const progressObj: globalThis.Record<string, unknown> = {
-         name: name,
-         started_by: username,
-         branding: brand.id,
-         status:status,
-         metadata: metadata,
-         relatedRecordId: recordOid,
-         message: req.param('message'),
-         taskType: req.param('taskType')
+        name: name,
+        started_by: username,
+        branding: brand.id,
+        status: status,
+        metadata: metadata,
+        relatedRecordId: recordOid,
+        message: req.param('message'),
+        taskType: req.param('taskType'),
       };
       if (!_.isUndefined(req.param('targetIdx'))) {
         progressObj.targetIdx = req.param('targetIdx');
       }
       if (!_.isUndefined(req.param('currentIdx'))) {
-        progressObj.currentIdx = req.param('currentIdx')
+        progressObj.currentIdx = req.param('currentIdx');
       }
       return progressObj;
     }
@@ -101,7 +102,10 @@ export namespace Controllers {
     public progress(req: Sails.Req, res: Sails.Res) {
       const fq = this.getQuery(req.param('fq'));
       if (_.isEmpty(fq)) {
-        return this.sendResp(req, res, { data: { status: false, message: 'Empty queries are not allowed.' }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: { status: false, message: 'Empty queries are not allowed.' },
+          headers: this.getNoCacheHeaders(),
+        });
       }
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
       (fq.where as globalThis.Record<string, unknown>).branding = brand.id;
@@ -134,7 +138,7 @@ export namespace Controllers {
         return this.sendAccessDenied(req, res);
       }
 
-      const record = await this.tryFindRelatedRecord(roomId);
+      const record = await this.tryFindRelatedRecord(roomId, brand.id);
       if (record == null) {
         return this.sendAccessDenied(req, res);
       }
@@ -144,7 +148,14 @@ export namespace Controllers {
         return this.sendAccessDenied(req, res);
       }
 
-      const recordsService = sails.services.recordsservice as unknown as { hasViewAccess: (brand: BrandingModel, user: Record<string, unknown>, roles: Record<string, unknown>[], record: Record<string, unknown>) => boolean };
+      const recordsService = sails.services.recordsservice as unknown as {
+        hasViewAccess: (
+          brand: BrandingModel,
+          user: Record<string, unknown>,
+          roles: Record<string, unknown>[],
+          record: Record<string, unknown>
+        ) => boolean;
+      };
       const hasViewAccess = recordsService.hasViewAccess(
         brand,
         req.user,
@@ -158,93 +169,27 @@ export namespace Controllers {
       sails.sockets.join(req, roomId, (err: unknown) => {
         if (err) {
           console.log(`Failed to join room`);
-          return this.sendResp(req, res, { data: err ?? { status: false, message: `Failed to join room: ${roomId}` }, headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            data: err ?? { status: false, message: `Failed to join room: ${roomId}` },
+            headers: this.getNoCacheHeaders(),
+          });
         }
         console.log(`Joined room: ${roomId}`);
-        return this.sendResp(req, res, { data: {
-          status: true,
-          message: `Successfully joined: ${roomId}`
-        }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: {
+            status: true,
+            message: `Successfully joined: ${roomId}`,
+          },
+          headers: this.getNoCacheHeaders(),
+        });
       });
     }
 
-    private async tryFindRelatedRecord(
-      roomId: string,
-      visitedRoomIds: Set<string> = new Set<string>()
-    ): Promise<Record<string, unknown> | null> {
-      if (visitedRoomIds.has(roomId)) {
-        return null;
-      }
-      visitedRoomIds.add(roomId);
-
-      const directRecord = await this.tryFindDirectRelatedRecord(roomId, visitedRoomIds);
-      if (directRecord) {
-        return directRecord;
-      }
-
-      // Composite task rooms are broadcast as `${relatedRecordId}-${taskType}`.
-      // Resolve them through persisted field pairs instead of trusting a prefix,
-      // because both values may contain hyphens.
-      const relatedRecordIds = new Set<string>();
-      let separatorIndex = roomId.lastIndexOf('-');
-      while (separatorIndex > 0) {
-        const relatedRecordId = roomId.substring(0, separatorIndex);
-        const taskType = roomId.substring(separatorIndex + 1);
-        const relatedRecord = await this.tryFindDirectRelatedRecord(relatedRecordId, visitedRoomIds);
-        if (relatedRecord) {
-          return relatedRecord;
-        }
-        try {
-          const progressRecords = await AsynchsService.get({ relatedRecordId, taskType }).toPromise();
-          for (const progressRecord of (progressRecords ?? []) as Array<Record<string, unknown>>) {
-            if (
-              progressRecord.relatedRecordId === relatedRecordId &&
-              progressRecord.taskType === taskType
-            ) {
-              relatedRecordIds.add(relatedRecordId);
-            }
-          }
-        } catch {
-          sails.log.verbose(`AsynchController: failed to resolve composite roomId ${roomId}`);
-        }
-        separatorIndex = roomId.lastIndexOf('-', separatorIndex - 1);
-      }
-
-      // A room name that maps to multiple record/task pairs is ambiguous and
-      // cannot be authorized safely.
-      if (relatedRecordIds.size !== 1) {
-        return null;
-      }
-      return this.tryFindRelatedRecord([...relatedRecordIds][0], visitedRoomIds);
-    }
-
-    private async tryFindDirectRelatedRecord(
-      roomId: string,
-      visitedRoomIds: Set<string>
-    ): Promise<Record<string, unknown> | null> {
-      try {
-        const recordService = sails.services.recordsservice as unknown as { getMeta: (oid: string) => Promise<Record<string, unknown>> };
-        if (typeof recordService?.getMeta === 'function') {
-          const record = await recordService.getMeta(roomId);
-          if (record && !_.isEmpty(record)) {
-            return record;
-          }
-        }
-      } catch {
-        sails.log.verbose(`AsynchController: failed to resolve roomId ${roomId} as record`);
-      }
-      try {
-        const progressRecords = await AsynchsService.get({ id: roomId }).toPromise();
-        if (progressRecords && (progressRecords as Array<Record<string, unknown>>).length > 0) {
-          const relatedRecordId = (progressRecords as Array<Record<string, unknown>>)[0]?.relatedRecordId as string;
-          if (relatedRecordId && relatedRecordId !== roomId) {
-            return this.tryFindRelatedRecord(relatedRecordId, visitedRoomIds);
-          }
-        }
-      } catch {
-        sails.log.verbose(`AsynchController: failed to resolve roomId ${roomId} as progress`);
-      }
-      return null;
+    private async tryFindRelatedRecord(roomId: string, brandId: string) {
+      return resolveProgressRecord(roomId, brandId, {
+        records: sails.services.recordsservice as unknown as Pick<RecordOperations, 'getMeta'>,
+        progress: AsynchsService,
+      });
     }
 
     private sendAccessDenied(req: Sails.Req, res: Sails.Res) {
@@ -259,15 +204,21 @@ export namespace Controllers {
       if (!req.isSocket) {
         return res.badRequest();
       }
-      const roomId = req.param('roomId')
+      const roomId = req.param('roomId');
       sails.sockets.leave(req, roomId, (err: unknown) => {
         if (err) {
-          return this.sendResp(req, res, { data: err ?? { status: false, message: `Failed to leave room: ${roomId}` }, headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            data: err ?? { status: false, message: `Failed to leave room: ${roomId}` },
+            headers: this.getNoCacheHeaders(),
+          });
         }
-        return this.sendResp(req, res, { data: {
-          status: true,
-          message: `Successfully left: ${roomId}`
-        }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, {
+          data: {
+            status: true,
+            message: `Successfully left: ${roomId}`,
+          },
+          headers: this.getNoCacheHeaders(),
+        });
       });
     }
 
@@ -276,7 +227,12 @@ export namespace Controllers {
         sails.sockets.broadcast(progressObj.relatedRecordId as string, eventName, progressObj, req);
         sails.sockets.broadcast(progressObj.id as string, eventName, progressObj, req);
         if (progressObj.taskType) {
-          sails.sockets.broadcast(`${progressObj.relatedRecordId}-${progressObj.taskType}`, eventName, progressObj, req);
+          sails.sockets.broadcast(
+            `${progressObj.relatedRecordId}-${progressObj.taskType}`,
+            eventName,
+            progressObj,
+            req
+          );
         }
       }
     }

@@ -59,9 +59,11 @@
     "@asteasolutions/zod-to-openapi": "9.1.0",
     "@aws-sdk/client-secrets-manager": "3.1151.0",
     "@aws-sdk/s3-request-presigner": "3.1150.0",
+    "@fastify/busboy": "3.2.4",
     "@jsonjoy.com/json-pointer": "18.24.0",
     "@ocfl/ocfl": "0.4.0",
     "@opentelemetry/api": "1.9.1",
+    "@prisma/orm-mongo": "8.0.0-rc.19",
     "@researchdatabox/agenda-sqs-backend": "file:../agenda-sqs-backend",
     "@researchdatabox/raido-openapi-generated-node": "file:../raido",
     "@researchdatabox/rva-registry-openapi-generated-node": "file:../rva-registry",
@@ -84,6 +86,7 @@
     "compression": "1.8.2",
     "connect-mongo": "6.0.0",
     "copy-webpack-plugin": "14.0.0",
+    "csrf-sync": "4.2.1",
     "css-loader": "7.1.5",
     "css-minimizer-webpack-plugin": "8.0.0",
     "csv-parser": "3.2.1",
@@ -101,6 +104,7 @@
     "graceful-fs": "4.2.11",
     "handlebars": "4.7.10",
     "i18next": "26.4.4",
+    "import-meta-resolve": "4.2.0",
     "js-yaml": "5.4.3",
     "jsdom": "30.1.2",
     "jsonata": "2.2.2",
@@ -133,6 +137,7 @@
     "sass-loader": "17.0.1",
     "skipper": "0.9.8",
     "skipper-gridfs": "1.0.2",
+    "socket.io": "4.8.4",
     "typescript": "5.9.3",
     "typescript-json-schema": "0.68.0",
     "umzug": "3.8.3",
@@ -142,10 +147,7 @@
     "webpack": "5.111.1",
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.1",
-    "zod": "4.6.7",
-    "@prisma/orm-mongo": "8.0.0-rc.19",
-    "import-meta-resolve": "4.2.0",
-    "csrf-sync": "4.2.1"
+    "zod": "4.6.7"
   },
   "overrides": {
     "axios": "1.20.0",
@@ -197,10 +199,11 @@
     "nyc": "18.0.0",
     "oxlint": "1.87.0",
     "prettier": "3.9.9",
+    "prisma": "8.0.0-rc.24",
     "serialize-javascript": "7.0.5",
     "sinon": "22.1.0",
-    "ts-node": "10.9.2",
-    "prisma": "8.0.0-rc.24"
+    "socket.io-client": "4.8.4",
+    "ts-node": "10.9.2"
   },
   "nyc": {
     "all": true,

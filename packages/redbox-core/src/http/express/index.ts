@@ -72,7 +72,16 @@ export * from './vocabularyAdministration';
 export * from './formVocabulary';
 export * from './siemWrites';
 export * from './adminOperations';
+export * from './multipart';
+export * from './datastreamWrites';
 export * from './brandingOperations';
 export * from './figshareAdministration';
 export * from './integrationOperations';
 export * from './configuredActions';
+export * from './brandingUploads';
+export * from './datastreamReads';
+export * from './progressOperations';
+export * from './progressSockets';
+
+export * from './resumableUploads';
+

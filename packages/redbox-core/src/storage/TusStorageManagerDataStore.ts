@@ -1,8 +1,10 @@
 import { Readable } from 'node:stream';
 import { DataStore, Upload, ERRORS } from '@tus/server';
-import type { Services } from '../services/StorageManagerService';
+import type { Services } from './StorageManager';
 
-type TusLogger = Pick<typeof sails.log, 'verbose' | 'warn' | 'error'>;
+import type { ILogger } from '@researchdatabox/sails-ng-common';
+
+type TusLogger = Pick<ILogger, 'verbose' | 'warn' | 'error'>;
 
 type TusStoredUpload = {
   id: string;
@@ -19,6 +21,7 @@ type TusStoredUpload = {
 type TusOptions = {
   disk: Services.IDisk;
   prefix?: string;
+  maxChunkBytes?: number;
   logger?: TusLogger;
   expirationPeriodInMilliseconds?: number;
 };
@@ -34,21 +37,17 @@ export class TusStorageManagerDataStore extends DataStore {
   private readonly prefix: string;
   private readonly logger?: TusLogger;
   private readonly expirationPeriodInMilliseconds: number;
+  private readonly maxChunkBytes: number;
   private readonly writeLocks = new Map<string, Promise<void>>();
 
   public constructor(options: TusOptions) {
     super();
     this.disk = options.disk;
+    this.maxChunkBytes = options.maxChunkBytes ?? Number.MAX_SAFE_INTEGER;
     this.prefix = this.normalizePrefix(options.prefix);
     this.logger = options.logger;
     this.expirationPeriodInMilliseconds = options.expirationPeriodInMilliseconds ?? 0;
-    this.extensions = [
-      'creation',
-      'creation-with-upload',
-      'creation-defer-length',
-      'termination',
-      'expiration',
-    ];
+    this.extensions = ['creation', 'creation-with-upload', 'creation-defer-length', 'termination', 'expiration'];
   }
 
   public override async create(file: Upload): Promise<Upload> {
@@ -120,7 +119,10 @@ export class TusStorageManagerDataStore extends DataStore {
           try {
             await this.writeUploadInfo(id, upload);
           } catch (rollbackError) {
-            this.logger?.error(`TusStorageManagerDataStore: failed rolling back upload '${id}' after compose failure`, rollbackError);
+            this.logger?.error(
+              `TusStorageManagerDataStore: failed rolling back upload '${id}' after compose failure`,
+              rollbackError
+            );
           }
           throw error;
         }
@@ -232,6 +234,7 @@ export class TusStorageManagerDataStore extends DataStore {
 
   private async readStoredUpload(id: string): Promise<TusStoredUpload> {
     try {
+      if (!(await this.disk.exists(this.infoKey(id)))) throw ERRORS.FILE_NOT_FOUND;
       const raw = await this.disk.get(this.infoKey(id));
       return JSON.parse(raw) as TusStoredUpload;
     } catch (error) {
@@ -242,7 +245,11 @@ export class TusStorageManagerDataStore extends DataStore {
     }
   }
 
-  private async materializeUpload(id: string, upload: TusStoredUpload, options: { deleteParts: boolean }): Promise<void> {
+  private async materializeUpload(
+    id: string,
+    upload: TusStoredUpload,
+    options: { deleteParts: boolean }
+  ): Promise<void> {
     const partKeys = await this.listPartKeys(id);
     this.logger?.verbose(
       `TusStorageManagerDataStore: materialize id='${id}' partCount=${partKeys.length} partsPrefix='${this.partsPrefix(id)}' finalKey='${this.finalKey(id)}' contentLength=${upload.offset}`
@@ -290,7 +297,7 @@ export class TusStorageManagerDataStore extends DataStore {
   private async withUploadLock<T>(id: string, action: () => Promise<T>): Promise<T> {
     const previous = this.writeLocks.get(id) ?? Promise.resolve();
     let releaseCurrent: (() => void) | undefined;
-    const current = new Promise<void>((resolve) => {
+    const current = new Promise<void>(resolve => {
       releaseCurrent = resolve;
     });
     const currentChain = previous.catch(() => undefined).then(() => current);
@@ -310,8 +317,12 @@ export class TusStorageManagerDataStore extends DataStore {
 
   private async readStream(readable: Readable): Promise<Uint8Array> {
     const chunks: Buffer[] = [];
+    let bytes = 0;
     for await (const chunk of readable) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      bytes += buffer.length;
+      if (bytes > this.maxChunkBytes) throw { status_code: 413, body: 'Upload chunk exceeds limit' };
+      chunks.push(buffer);
     }
     return new Uint8Array(Buffer.concat(chunks));
   }
@@ -334,7 +345,7 @@ export class TusStorageManagerDataStore extends DataStore {
   private async listPartKeys(id: string): Promise<string[]> {
     const listing = await this.disk.listAll(this.partsPrefix(id), { recursive: true });
     return Array.from(listing.objects)
-      .map((object) => this.listedObjectKey(object))
+      .map(object => this.listedObjectKey(object))
       .sort();
   }
 
@@ -352,13 +363,17 @@ export class TusStorageManagerDataStore extends DataStore {
 
   private readExpirationTimestamp(id: string, upload: TusStoredUpload): number {
     if (!upload.creation_date) {
-      this.logger?.warn(`TusStorageManagerDataStore: upload '${id}' missing creation_date; treating it as expired when expiration is enabled`);
+      this.logger?.warn(
+        `TusStorageManagerDataStore: upload '${id}' missing creation_date; treating it as expired when expiration is enabled`
+      );
       return 0;
     }
 
     const createdAt = new Date(upload.creation_date).getTime();
     if (Number.isNaN(createdAt)) {
-      this.logger?.warn(`TusStorageManagerDataStore: upload '${id}' has invalid creation_date '${upload.creation_date}'; treating it as expired when expiration is enabled`);
+      this.logger?.warn(
+        `TusStorageManagerDataStore: upload '${id}' has invalid creation_date '${upload.creation_date}'; treating it as expired when expiration is enabled`
+      );
       return 0;
     }
 
@@ -381,18 +396,20 @@ export class TusStorageManagerDataStore extends DataStore {
     const name = storageError.name?.toLowerCase();
     const message = storageError.message?.toLowerCase() ?? '';
 
-    return storageError.status === 404
-      || storageError.statusCode === 404
-      || code === 'enoent'
-      || code === 'nosuchkey'
-      || code === 'notfound'
-      || code === 'notfounderror'
-      || name === 'notfound'
-      || name === 'notfounderror'
-      || message.includes('not found')
-      || message.includes('no such')
-      || message.includes('does not exist')
-      || message.includes('enoent');
+    return (
+      storageError.status === 404 ||
+      storageError.statusCode === 404 ||
+      code === 'enoent' ||
+      code === 'nosuchkey' ||
+      code === 'notfound' ||
+      code === 'notfounderror' ||
+      name === 'notfound' ||
+      name === 'notfounderror' ||
+      message.includes('not found') ||
+      message.includes('no such') ||
+      message.includes('does not exist') ||
+      message.includes('enoent')
+    );
   }
 
   private isTusNotFound(error: unknown): boolean {

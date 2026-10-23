@@ -1,16 +1,16 @@
-import { sailsBrandingExports } from '../compat/sails/branding';
-import { sailsBrandingTypefaceExports } from '../compat/sails/brandingTypeface';
-import { sailsBrandingThemeCssExports } from '../compat/sails/brandingThemeCss';
-import { sailsFigshareVocabularyExports } from '../compat/sails/figshareVocabulary';
-import { sailsEmailExports } from '../compat/sails/email';
-import { sailsFormVocabularyExports } from '../compat/sails/formVocabulary';
-import { sailsSiemForwardingExports } from '../compat/sails/siemForwarding';
+import { sailsAsynchsExports } from '../compat/sails/asynchs';
 import { sailsBrandingLogoExports } from '../compat/sails/brandingLogo';
-import { sailsRecordsExports } from '../compat/sails/records';
-import { sailsSolrExports } from '../compat/sails/solr';
-import { sailsStorageManagerExports } from '../compat/sails/storageManager';
-import { sailsStandardDatastreamExports } from '../compat/sails/standardDatastream';
+import { sailsSiemForwardingExports } from '../compat/sails/siemForwarding';
+import { sailsFormVocabularyExports } from '../compat/sails/formVocabulary';
+import { sailsEmailExports } from '../compat/sails/email';
+import { sailsFigshareVocabularyExports } from '../compat/sails/figshareVocabulary';
+import { sailsBrandingThemeCssExports } from '../compat/sails/brandingThemeCss';
+import { sailsBrandingTypefaceExports } from '../compat/sails/brandingTypeface';
+import { sailsBrandingExports } from '../compat/sails/branding';
 import { sailsHarvestRunsExports } from '../compat/sails/harvestRuns';
+import { sailsStandardDatastreamExports } from '../compat/sails/standardDatastream';
+import { sailsStorageManagerExports } from '../compat/sails/storageManager';
+import { sailsSolrExports } from '../compat/sails/solr';
 import { sailsRvaImportExports } from '../compat/sails/rvaImport';
 import { sailsRolesExports } from '../compat/sails/roles';
 import { sailsUsersExports } from '../compat/sails/users';
@@ -69,6 +69,7 @@ import * as OrcidServiceModule from './OrcidService';
 import * as PathRulesServiceModule from './PathRulesService';
 import * as RaidServiceModule from './RaidService';
 import * as RDMPServiceModule from './RDMPService';
+import { sailsRecordsExports } from '../compat/sails/records';
 import * as RecordsServiceModule from './RecordsService';
 import * as RecordTypesServiceModule from './RecordTypesService';
 import * as RecordSchemaServiceModule from './RecordSchemaService';
@@ -188,7 +189,7 @@ export const ServiceExports = {
     return sailsAppConfigsExports();
   },
   get AsynchsService() {
-    return getOrCreateService('AsynchsService', () => new AsynchsServiceModule.Services.Asynchs().exports());
+    return sailsAsynchsExports();
   },
   get BrandingLogoService() {
     return sailsBrandingLogoExports();
