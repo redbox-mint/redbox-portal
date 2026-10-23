@@ -620,6 +620,8 @@ jobs:
             cd ./packages/redbox-core
             npm ci --include=dev --ignore-scripts --strict-peer-deps
             npm run check:prisma
+            # Migration tests load api/migrations, which require the built package entry point.
+            npm run build
       - run:
           name: Type-check Effect integrations and tests
           command: nvm install && npm --prefix packages/redbox-core run typecheck:effect
