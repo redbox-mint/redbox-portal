@@ -30,6 +30,7 @@ export class ProgressSockets {
   private closing = false;
   private closed = false;
   private io?: SocketServer;
+  private detachUpgrade?: () => void;
   constructor(
     private readonly input: {
       owner: PersistenceOwner;
@@ -43,6 +44,7 @@ export class ProgressSockets {
   attach(server: Server): void {
     if (this.io || attachments.has(server)) throw new Error('Portal sockets already attached');
     attachments.add(server);
+    const upgrades = new Set(server.listeners('upgrade'));
     const io = (this.io = new SocketServer(server, {
       path: this.input.path,
       serveClient: true,
@@ -52,6 +54,11 @@ export class ProgressSockets {
         callback(null, !this.closing && typeof origin === 'string' && this.input.origins.includes(origin));
       },
     }));
+    // Engine.IO closes transports but leaves its HTTP upgrade listener installed.
+    // Retain only this attachment's listeners so Companion/other owners survive.
+    const attached = server.listeners('upgrade').filter(listener => !upgrades.has(listener));
+    this.detachUpgrade = () =>
+      attached.forEach(listener => server.off('upgrade', listener as (...args: unknown[]) => void));
     io.use((socket, next) => {
       const token = socket.handshake.auth.token;
       const grant = typeof token === 'string' ? this.grants.get(token) : undefined;
@@ -167,6 +174,8 @@ export class ProgressSockets {
     this.closed = true;
     if (this.io) {
       await new Promise<void>(resolve => this.io!.close(() => resolve()));
+      this.detachUpgrade?.();
+      this.detachUpgrade = undefined;
       this.io = undefined;
     }
     this.connections.clear();

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import type { Server } from 'node:http';
 import { io, type Socket } from 'socket.io-client';
 import { setTimeout as delay } from 'node:timers/promises';
 import { recordWriteFixture } from './recordWriteFixture';
@@ -14,6 +15,8 @@ describe('direct owned progress sockets on real HTTP Mongo sessions', function (
   this.timeout(45000);
   let f: Awaited<ReturnType<typeof recordWriteFixture>>, sockets: ProgressSockets, oid: string;
   const clients: Socket[] = [];
+  let server: Server;
+  const otherUpgrade = () => {};
   before(async () => {
     f = await recordWriteFixture(async (router, fixture, input) => {
       await ensureProgressPersistenceIndexes(fixture.owner);
@@ -28,7 +31,9 @@ describe('direct owned progress sockets on real HTTP Mongo sessions', function (
         authenticate: input.realtime.authenticateCredential,
       });
       registerPersistenceResource(fixture.owner, 'progress-sockets', sockets);
-      sockets.attach(input.realtime.server);
+      server = input.realtime.server;
+      server.on('upgrade', otherUpgrade);
+      sockets.attach(server);
       assert.throws(() => sockets.attach(input.realtime.server), /already attached/);
       mountProgressOperationRoutes(router, {
         ...input,
@@ -170,5 +175,8 @@ describe('direct owned progress sockets on real HTTP Mongo sessions', function (
     release();
     await work;
     await sockets.drain();
+    await sockets.close();
+    assert.deepEqual(server.listeners('upgrade'), [otherUpgrade]);
+    server.off('upgrade', otherUpgrade);
   });
 });
