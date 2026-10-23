@@ -1,4 +1,4 @@
-import { sailsRecordTypes } from '../compat/sails/recordTypes';
+import { sailsRecordTypesExports } from '../compat/sails/recordTypes';
 /**
  * Services index - exports all service classes and creates ServiceExports object
  * for consumption by the redbox-core loader shim generation
@@ -131,6 +131,8 @@ export { SiemForwardingServiceModule as SiemForwardingService };
  * Using getters for lazy instantiation to avoid issues during testing and before
  * sails globals are available.
  */
+// Unconverted services retain legacy process ownership until their assigned slices.
+// RecordTypes is application-owned and deliberately bypasses this cache.
 const serviceCache: Record<string, unknown> = {};
 
 const UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE: RecordContractContributorDiscoveryState = Object.freeze({
@@ -306,7 +308,7 @@ export const ServiceExports = {
     return getOrCreateService('RecordsService', () => new RecordsServiceModule.Services.Records().exports());
   },
   get RecordTypesService() {
-    return sailsRecordTypes(sails).exports();
+    return sailsRecordTypesExports();
   },
   get RecordSchemaService() {
     return getOrCreateService('RecordSchemaService', () =>

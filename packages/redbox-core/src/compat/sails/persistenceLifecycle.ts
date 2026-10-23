@@ -1,4 +1,4 @@
-import { cleanupPersistence } from '../../persistence/runtime';
+import { stopSailsApplication } from './application';
 import { PersistenceError } from '../../persistence/errors';
 
 interface Shutdown {
@@ -128,7 +128,7 @@ export function attachSailsPersistenceLifecycle(app: Sails.Application): void {
     const finish = (error?: unknown): void => {
       if (called) return;
       called = true;
-      cleanupPersistence(app).then(
+      stopSailsApplication(app).then(
         () => cb(error),
         failure => cb(error ?? failure)
       );

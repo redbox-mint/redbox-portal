@@ -3,8 +3,9 @@ process.env.TS_NODE_PROJECT = process.env.TS_NODE_PROJECT || 'test/tsconfig.json
 module.exports = {
     extension: ['ts'],
     spec: ['test/**/*.test.ts'],
-    // This fixture requires no global Sails setup and real Mongo; run test:application:mongo.
-    ignore: ['test/application/ApplicationMongo.test.ts', 'test/recordTypes/RecordTypesMongo.test.ts'],
+    // These real-Mongo fixtures use isolated commands with required URLs; see test:*:mongo.
+    // Standalone tests and the compiled legacy host cannot share the global legacy setup.
+    ignore: ['test/application/ApplicationMongo.test.ts', 'test/recordTypes/RecordTypesMongo.test.ts', 'test/compat/SailsRecordTypesMongo.test.ts'],
     // Native TypeScript stripping (including Node 26) conflicts with ts-node's CommonJS
     // loader. Preload Chai as well so legacy fire-and-forget dynamic imports do
     // not race the suite's static Chai imports while Mocha loads test files.

@@ -1,3 +1,4 @@
+import { pilotConfiguration as defaults, capturePilotResult } from './pilotFixture';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { MongoClient, ObjectId } from 'mongodb';
@@ -20,22 +21,6 @@ const supportedStorage = {
 };
 const brand = { id: new ObjectId().toHexString() };
 const otherBrand = { id: new ObjectId().toHexString() };
-const defaults = (): RecordTypesConfiguration => ({
-  appmode: { bootstrapAlways: false },
-  recordSchema: { enabled: true },
-  recordtype: {
-    dataset: {
-      packageType: 'dataset',
-      searchCore: 'records',
-      dashboard: { title: 'Dataset' },
-      recordSchema: { unknownProperties: 'declared' },
-      concurrentModification: { mode: 'observe' },
-      recordValidation: { mode: 'shadow' },
-      hooks: {},
-      searchable: true,
-    },
-  },
-});
 
 describe('standalone RecordTypes on real MongoDB', function () {
   this.timeout(30_000);
@@ -126,6 +111,7 @@ describe('standalone RecordTypes on real MongoDB', function () {
     const fixture = compose(selectedOwner);
     await Promise.all([fixture.app.initialize(), fixture.app.initialize()]);
     const module = fixture.recordTypes;
+    await capturePilotResult(module, brand);
     assert.equal(fixture.app.status().ready, false);
     assert.equal(module.getAllCache()?.length, 1);
     const stored = await getReferenceRepositories(selectedOwner).recordTypes.findByName(brand.id, 'dataset');

@@ -375,3 +375,106 @@ read, missing public route, and pool/Prisma/cache closure. Build, expanded stric
 application test typecheck, lint (848 files) and formatting pass. No new failing
 invocation in this task. The host is an early partial-host proof, not a promoted
 portal entrypoint; no P2 or authenticated P4 work is claimed.
+
+## SR-011 — Same-instance legacy comparison adapter
+
+SR-010 source: `3f2062814`. `compat/sails/application.ts` attaches the converted
+subset's ApplicationRuntime to the legacy owner; `recordTypes.ts` supplies lazy
+shim exports over its one owned RecordTypes instance. Bootstrap joins that
+runtime's awaited module initialization, initializes existing reference ownership
+idempotently, and returns the same cache. Generated core/hook/post-bootstrap
+callbacks remain explicitly legacy; only after they finish does the converted
+application activate. Failure cleanup and guarded legacy shutdown stop that same
+runtime, preserving retained ownership and retry. The remaining process service
+cache is explicitly marked as unconverted. No separate domain implementation,
+client, pool or converted singleton registry was introduced.
+
+The loader reads service getters while generating shims before global Sails
+exists. The exports now defer owner resolution until invocation; the compiled
+legacy test explicitly reads the real ServiceExports getter before Sails exists.
+This closes the pre-lift gap in SR-008's temporary getter.
+
+`test/compat/SailsRecordTypesMongo.test.ts` lifts an actual minimal **Sails 1.5.18**
+HTTP host (its listener resolves **Express 4.22.2**), loads a generated-style service
+shim from the built artifact, runs real reference/RecordTypes bootstrap and
+legacy hooks/post-bootstrap, serves a test-only HTTP route and calls guarded
+`lower()`. Spies/status prove the shim and runtime use the same domain instance,
+one bootstrap, one Prisma client and one pool. Repeated bootstrap calls join;
+current stored policy changes apply through both direct and shim calls. Successful
+lower clears cache and closes ownership exactly once. A failed converted close
+refuses lower, retains that same instance and pool, and succeeds on retry. A later
+legacy hook failure preserves its original error, cleans the converted module,
+never activates, and leaves completed data writes in place (no rollback claim).
+
+This is focused real legacy-host coverage, not a claim that all unconverted portal
+modules or institution hooks are standalone. Only RecordTypes is application-owned
+in this adapter; migration/core/extension/post-bootstrap callbacks, other service
+caches and normal production Sails entrypoints remain assigned to later tasks.
+Standalone domain/runtime/host imports continue to exclude this adapter.
+
+Final commands, all with the qualified Node 26 toolchain prepended to PATH:
+
+```sh
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+npm --prefix packages/redbox-core run typecheck:persistence
+LEGACY_RECORD_TYPES_TEST_MONGO_URL=mongodb://127.0.0.1:34900/sr_p1_legacy P1_RECORD_TYPES_COMPARISON_OUTPUT="$PWD/.tmp/sails-retirement/legacy-pilot.json" npm --prefix packages/redbox-core run test:sails-record-types:mongo
+RECORD_TYPES_TEST_MONGO_URL=mongodb://127.0.0.1:34900/sr_p1_recordtypes P1_RECORD_TYPES_COMPARISON_OUTPUT="$PWD/.tmp/sails-retirement/standalone-pilot.json" npm --prefix packages/redbox-core run test:record-types:mongo
+diff -u .tmp/sails-retirement/standalone-pilot.json .tmp/sails-retirement/legacy-pilot.json
+sha256sum .tmp/sails-retirement/standalone-pilot.json .tmp/sails-retirement/legacy-pilot.json
+npm --prefix packages/redbox-core run test:http-host
+PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:34900/redbox_prisma_p1 npm run test:core
+npm run lint
+node_modules/.bin/prettier --check packages/redbox-core/src/recordTypes packages/redbox-core/src/http/express packages/redbox-core/src/compat/sails packages/redbox-core/src/services/RecordTypesService.ts packages/redbox-core/test/recordTypes packages/redbox-core/test/http packages/redbox-core/test/compat packages/redbox-core/test/tsconfig.application.json
+git diff --check
+```
+
+Standalone and legacy comparison commands ran as **separate processes and separate
+runs**, with isolated disposable database prefixes. Both observe the same seeded
+pilot input and compare count/cache size, package type, schema, validation and
+resolved policy, excluding physical IDs/timestamps. `diff` exits **0**; both JSON
+outputs have SHA-256
+`2fdfb2f8969bf7852eb2da203c7ab9f3bee34bd66836f660819c675f915cdd6c`.
+They are small local artifacts; assertions and input/observation code are committed
+in `test/recordTypes/pilotFixture.ts`. This compares intermediate legacy and new
+hosts; it does not replace the separate P0 released-v5 characterization.
+
+Final results:
+
+- Compiled real legacy host/Mongo: **3 passing, 0 failing, 0 pending**, ~3 seconds.
+- Standalone actual domain/Mongo/host: **10 passing, 0 failing, 0 pending**, ~3 seconds.
+- Dedicated Express host: **9 passing, 0 failing, 0 pending**, ~3 seconds.
+- Existing focused bootstrap/shim/RecordTypes/persistence-runtime command:
+  **40 passing, 0 failing, 0 pending** (same Mocha flags as SR-008, files
+  `test/bootstrap.test.ts test/loader/bootstrapShimRuntime.test.ts
+  test/services/RecordTypesService.test.ts test/unit/prisma-runtime.test.ts`).
+- Full `test:core` with persistence URL: **4,366 passing, 0 failing, 68 pending**,
+  about 2 minutes. The existing **30 real persistence regression cases execute
+  and pass in this run**, alongside the existing ownership/drain/queue/session
+  and all default core suites.
+- Core build, application/persistence strict test typechecks, repo lint
+  (**849 files**, no warnings/errors), focused formatting and diff check: exit **0**.
+
+The 68 full-suite pending cases are **51** Figshare worker cases without their
+`FIGSHARE_TEST_MONGO_URI`, **7** SIEM cases without `SIEM_TEST_MONGO_URL`, **3** old
+foundation cases requiring their authenticated Mongo9 `P1_MONGO_URL` fixture, and
+**7** existing explicit skips (Raid 2, Trigger 2, Workspace 3). None is counted as
+new real-Mongo evidence. No existing assertion or skip condition was weakened.
+The new Mongo commands require their fixture URLs and never skip; the real legacy
+host fixture is excluded from default global-mock setup and has its own command.
+
+Exact live versions rechecked: Node **26.11.1**, npm **11.20.0**, TypeScript **5.9.3**,
+ts-node **10.9.2**, Mocha **11.7.6**, Mongo driver **7.7.0**, Prisma ORM
+**8.0.0-rc.19**, Sails **1.5.18**, standalone Express **5.2.1**, Sails listener
+Express **4.22.2**. Mongo remains **8.0.34 / FCV 8.0**, standalone topology as
+SR-009. No dependency version, override, package type or lockfile change.
+
+Implementation failures/limitations: initial real-Sails fixture runs rejected an
+omitted `globals.async` setting before bootstrap; fixed by explicit `async: false`.
+The first expanded typecheck loaded both built/source ambient Sails declarations;
+the compiled consumer now executes dist with source-only type imports, and checks
+unknown shim results explicitly. Final strict typechecks pass without weakening
+compiler options. A version probe incorrectly looked for npm as a root dependency;
+`npm --version` correctly verified the selected toolchain. Synthetic hook failure
+logs are expected passing negative tests, not suppressed failures. No provider
+quota/usage limit occurred. No P2 task was started and no branch was pushed.

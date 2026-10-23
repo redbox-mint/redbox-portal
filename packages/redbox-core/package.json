@@ -42,7 +42,8 @@
     "test:persistence": "bash test/persistence/run.sh",
     "test:persistence-indexes": "npm run test:persistence",
     "test:record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/recordTypes/RecordTypesMongo.test.ts",
-    "test:http-host": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 10000 test/http/ExpressHost.test.ts"
+    "test:http-host": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 10000 test/http/ExpressHost.test.ts",
+    "test:sails-record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/compat/SailsRecordTypesMongo.test.ts"
   },
   "author": "",
   "license": "ISC",

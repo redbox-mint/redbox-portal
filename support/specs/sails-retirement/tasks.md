@@ -175,9 +175,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   cases pass without Sails. Partial route/module coverage is identified; the host
   does not dispatch absent routes through a legacy controller or second process.
 
-- [ ] **SR-011 — Connect the temporary Sails comparison adapter to the same instance.**
+- [x] **SR-011 — Connect the temporary Sails comparison adapter to the same instance.**
 
-  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
+  **Status:** done; [same-instance compiled Sails host and isolated comparison](evidence/p1-runtime.md#sr-011--same-instance-legacy-comparison-adapter).
 
   **Depends on:** SR-006, SR-007, SR-008.
 

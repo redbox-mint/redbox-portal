@@ -1,4 +1,4 @@
-import { cleanupPersistenceAfterFailure } from '../persistence/runtime';
+import { activateSailsApplication, stopSailsApplicationAfterFailure } from '../compat/sails/application';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { runPendingMigrations } from './MigrationRunner';
@@ -105,13 +105,15 @@ export function createGeneratedBootstrap(
       await runPostBootstrapInitialisation();
 
       await exportPostBootstrapSnapshot();
+      // The converted subset activates only after all legacy comparison stages.
+      await activateSailsApplication(sails);
     })()
       .then(() => {
         cb();
       })
       .catch(async error => {
         await cleanupCachePersistenceAfterFailure(sails);
-        await cleanupPersistenceAfterFailure(sails);
+        await stopSailsApplicationAfterFailure(sails);
         sails.log.verbose('Bootstrap failed!!!');
         sails.log.error(cachePersistenceFailureForLog(error) ?? error);
         cb(error);
