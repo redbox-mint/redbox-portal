@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import MongoStore from 'connect-mongo';
 import session from 'express-session';
-import { RequestHandler } from 'express';
+import { Request, RequestHandler } from 'express';
 
 export function buildRedboxSessionOptions(sessionConfig: session.SessionOptions & { [key: string]: unknown }): session.SessionOptions & { [key: string]: unknown } {
     const defaultSessionConfig: Partial<session.SessionOptions> & { [key: string]: unknown } = {
@@ -26,6 +26,21 @@ export function buildRedboxSessionOptions(sessionConfig: session.SessionOptions 
     return _.merge({}, defaultSessionConfig, sessionConfig);
 }
 
+// Mirrors express-session's own HTTPS detection for secure: 'auto'.
+function isSecureRequest(req: Request, proxy: boolean | undefined): boolean {
+    if ((req.socket as { encrypted?: boolean } | undefined)?.encrypted) {
+        return true;
+    }
+    if (proxy === false) {
+        return false;
+    }
+    if (proxy !== true) {
+        return req.secure === true;
+    }
+    const header = String(req.headers['x-forwarded-proto'] ?? '');
+    return header.split(',')[0].trim().toLowerCase() === 'https';
+}
+
 export function redboxSession(sessionConfig: session.SessionOptions & { [key: string]: unknown }): RequestHandler {
     sessionConfig = buildRedboxSessionOptions(sessionConfig);
 
@@ -38,7 +53,20 @@ export function redboxSession(sessionConfig: session.SessionOptions & { [key: st
     // without TLS: anything other than secure: true becomes 'auto', which marks the cookie secure
     // whenever the request arrives over HTTPS (behind a TLS proxy this relies on trust proxy) and
     // still lets plain-HTTP development stacks keep a session.
-    const configured = typeof sessionConfig.cookie === 'object' ? sessionConfig.cookie : undefined;
-    const cookie = { ...configured, secure: configured?.secure === true ? true : 'auto' as const };
-    return session({ ...sessionConfig, cookie }) as unknown as RequestHandler;
+    const configured = sessionConfig.cookie;
+    if (typeof configured === 'function') {
+        // express-session only resolves 'auto' for object cookie options, so resolve it per request here.
+        const proxy = sessionConfig.proxy;
+        return session({
+            ...sessionConfig,
+            cookie: req => {
+                const options = configured(req);
+                return { ...options, secure: options?.secure === true || isSecureRequest(req, proxy) };
+            }
+        }) as unknown as RequestHandler;
+    }
+    return session({
+        ...sessionConfig,
+        cookie: { ...configured, secure: configured?.secure === true ? true : 'auto' as const }
+    }) as unknown as RequestHandler;
 }
