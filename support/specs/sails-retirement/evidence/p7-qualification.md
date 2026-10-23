@@ -218,6 +218,12 @@ run again passed **4481 / 7 unchanged pending / 0 failing**. Its compiled real-M
 bootstrap aggregate passed **1 / 0 / 0**. This removes another production
 composition prerequisite; it does not close the integrated-portal gate above.
 
+[Owned record-trigger evidence](p7-record-triggers.md) records the next shared
+extraction at `403d97d55b804470e511b4fcc51a0f97578be902`: **83 unchanged existing
+RDMP/logging cases** and **1 real-Mongo/Agenda aggregate** pass with no failures or
+skips. Queue submission is awaited and template configuration is immutable. The
+full production composition and broad Express suites remain open.
+
 ## SR-047 — Clean packed artifacts
 
 Final native source: **`58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`**. A fresh
