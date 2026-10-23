@@ -71,7 +71,8 @@ export async function recordWriteFixture(
       policyConfiguration: { '*': string[] };
       realtime: Parameters<NonNullable<NonNullable<Parameters<typeof pilotFixture>[0]>['prepareRoutes']>>[4];
     }
-  ) => Promise<void>
+  ) => Promise<void>,
+  httpOptions: { parserExclusions?: readonly string[] } = {}
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'sr-record-writes-'));
   let writer!: Records.Records;
@@ -94,6 +95,7 @@ export async function recordWriteFixture(
   };
   try {
     const f = await pilotFixture({
+      ...httpOptions,
       rootContext: '/portal',
       prepareRoutes: async (router, f, policies, types, realtime) => {
         await ensureStoragePersistenceIndexes(f.owner);

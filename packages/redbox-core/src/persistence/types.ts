@@ -21,6 +21,7 @@ export type PersistenceGroup =
 export interface PersistenceResource {
   /** Synchronously close producer admission. Must be idempotent and must not release dependencies. */
   quiesce?(): void;
-  drain?(): Promise<void>;
+  /** Absolute stop deadline, when called by the application. Native transports may terminate at it. */
+  drain?(options?: { deadline?: number }): Promise<void>;
   close(): Promise<void>;
 }

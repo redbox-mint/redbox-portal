@@ -336,7 +336,7 @@ export async function drainAcceptedPersistenceWork(app: PersistenceOwner): Promi
   while (state.active.size) await Promise.allSettled(state.active);
 }
 
-export async function cleanupPersistence(app: PersistenceOwner): Promise<void> {
+export async function cleanupPersistence(app: PersistenceOwner, options: { deadline?: number } = {}): Promise<void> {
   const state = stateFor(app);
   if (state.closing) return state.closing;
   state.needsCleanup = true;
@@ -345,7 +345,7 @@ export async function cleanupPersistence(app: PersistenceOwner): Promise<void> {
   state.closing = (async () => {
     try {
       await Promise.all(
-        Array.from(state.resources.values(), resource => Promise.resolve().then(() => resource.drain?.()))
+        Array.from(state.resources.values(), resource => Promise.resolve().then(() => resource.drain?.(options)))
       );
     } catch {
       // Report a deadline/failure without waiting for another live drain. All

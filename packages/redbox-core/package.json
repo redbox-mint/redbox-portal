@@ -193,6 +193,7 @@
     "@types/passport-jwt": "4.0.1",
     "@types/passport-local": "1.0.38",
     "@types/sinon": "22.0.0",
+    "@types/ws": "8.18.2",
     "chai": "6.2.2",
     "mocha": "11.7.6",
     "mocha-junit-reporter": "2.2.1",
@@ -203,7 +204,8 @@
     "serialize-javascript": "7.0.5",
     "sinon": "22.1.0",
     "socket.io-client": "4.8.4",
-    "ts-node": "10.9.2"
+    "ts-node": "10.9.2",
+    "ws": "8.21.1"
   },
   "nyc": {
     "all": true,

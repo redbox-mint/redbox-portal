@@ -11,6 +11,7 @@ module.exports = {
     'test/http/ResumableUploadsMongo.test.ts',
     'test/http/ProgressSocketsMongo.test.ts',
     'test/http/CompanionLifecycleProbe.test.ts',
+    'test/http/CompanionUploadsMongo.test.ts',
     'test/http/RecordCreateAuthorizationMongo.test.ts',
     'test/http/IdentityAdministrationMongo.test.ts',
     'test/http/RecordReadsMongo.test.ts',

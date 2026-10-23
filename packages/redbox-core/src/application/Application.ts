@@ -249,7 +249,7 @@ export class ApplicationRuntime implements Application {
       // is the stage work, not its failure handler (which may itself await stop).
       await this.withDeadline(this.inFlight?.catch(() => {}) ?? Promise.resolve(), deadline);
       if (quiesceFailure) throw quiesceFailure;
-      await this.withDeadline(cleanupPersistence(this.owner), deadline);
+      await this.withDeadline(cleanupPersistence(this.owner, { deadline }), deadline);
       this.cleanedUp = true;
       this.stopFailed = false;
       this.state = 'stopped';

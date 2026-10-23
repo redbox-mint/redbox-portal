@@ -84,5 +84,6 @@ export * from './progressOperations';
 export * from './progressSockets';
 
 export * from './resumableUploads';
+export * from './companion';
 
 export { apiHttpDeclarations } from './apiManifest';

@@ -18,6 +18,7 @@ import { mongoFixture } from './mongoFixture';
 export async function pilotFixture(
   options: Partial<Pick<RecordTypeHttpInput, 'routes' | 'policyConfiguration' | 'recordSchema'>> & {
     rootContext?: string;
+    parserExclusions?: readonly string[];
     policyBindings?: Readonly<Record<string, RequestHandler>>;
     prepareRoutes?(
       router: Router,
@@ -59,6 +60,7 @@ export async function pilotFixture(
         identity: f.identity,
         session,
         log: nothingLogger,
+        parserExclusions: options.parserExclusions,
       });
       await pathRules.loadRules();
       const policies = createPilotPolicies({
