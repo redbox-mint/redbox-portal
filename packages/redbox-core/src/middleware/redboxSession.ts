@@ -34,6 +34,11 @@ export function redboxSession(sessionConfig: session.SessionOptions & { [key: st
         sessionConfig.store = MongoStore.create(sessionConfig as unknown as Parameters<typeof MongoStore.create>[0]);
     }
 
-    // configure express-session using the sessionConfig object
-    return session(sessionConfig) as unknown as RequestHandler;
+    // configure express-session using the sessionConfig object. The session cookie is never sent
+    // without TLS: anything other than secure: true becomes 'auto', which marks the cookie secure
+    // whenever the request arrives over HTTPS (behind a TLS proxy this relies on trust proxy) and
+    // still lets plain-HTTP development stacks keep a session.
+    const configured = typeof sessionConfig.cookie === 'object' ? sessionConfig.cookie : undefined;
+    const cookie = { ...configured, secure: configured?.secure === true ? true : 'auto' as const };
+    return session({ ...sessionConfig, cookie }) as unknown as RequestHandler;
 }
