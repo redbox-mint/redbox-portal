@@ -1,3 +1,7 @@
+import { sailsRecordValidationExports } from '../compat/sails/recordValidation';
+import { sailsTranslationEntriesExports } from '../compat/sails/translationEntries';
+import { sailsFormsExports } from '../compat/sails/forms';
+import { sailsAppConfigsExports } from '../compat/sails/appConfigs';
 import { sailsRecordTypesExports } from '../compat/sails/recordTypes';
 /**
  * Services index - exports all service classes and creates ServiceExports object
@@ -187,7 +191,7 @@ export const ServiceExports = {
     );
   },
   get AppConfigService() {
-    return getOrCreateService('AppConfigService', () => new AppConfigServiceModule.Services.AppConfigs().exports());
+    return sailsAppConfigsExports();
   },
   get AsynchsService() {
     return getOrCreateService('AsynchsService', () => new AsynchsServiceModule.Services.Asynchs().exports());
@@ -269,7 +273,7 @@ export const ServiceExports = {
     );
   },
   get FormsService() {
-    return getOrCreateService('FormsService', () => new FormsServiceModule.Services.Forms().exports());
+    return sailsFormsExports();
   },
   get HarvestRunService() {
     return getOrCreateService('HarvestRunService', () =>
@@ -277,9 +281,7 @@ export const ServiceExports = {
     );
   },
   get I18nEntriesService() {
-    return getOrCreateService('I18nEntriesService', () =>
-      new I18nEntriesServiceModule.Services.I18nEntries().exports()
-    );
+    return sailsTranslationEntriesExports();
   },
   get NamedQueryService() {
     return getOrCreateService('NamedQueryService', () =>
@@ -316,9 +318,7 @@ export const ServiceExports = {
     );
   },
   get RecordValidationService() {
-    return getOrCreateService('RecordValidationService', () =>
-      new RecordValidationServiceModule.Services.RecordValidation().exports()
-    );
+    return sailsRecordValidationExports();
   },
   get ReportsService() {
     return getOrCreateService('ReportsService', () => new ReportsServiceModule.Services.Reports().exports());

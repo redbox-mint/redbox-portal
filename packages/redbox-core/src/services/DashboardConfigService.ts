@@ -80,12 +80,8 @@ interface DashboardMigrationResolutions {
 
 /** Name of the app-local migration wrapper that runs the legacy conversion. */
 export const DASHBOARD_CONFIGURATION_MIGRATION_NAME = '20260925T000000-dashboard-stage-configuration';
-/** AppConfig key holding the immutable pre-migration recovery snapshot. */
-export const DASHBOARD_LEGACY_SNAPSHOT_KEY = 'dashboardConfigLegacySnapshot';
-/** Retired AppConfig key; readable by the migration only. */
-export const DASHBOARD_LEGACY_OVERRIDE_KEY = 'dashboardTableConfig';
-/** AppConfig keys that generic configuration writes must not touch. */
-export const RESERVED_DASHBOARD_APP_CONFIG_KEYS = [DASHBOARD_LEGACY_OVERRIDE_KEY, DASHBOARD_LEGACY_SNAPSHOT_KEY];
+export { DASHBOARD_LEGACY_SNAPSHOT_KEY, DASHBOARD_LEGACY_OVERRIDE_KEY, RESERVED_DASHBOARD_APP_CONFIG_KEYS } from '../configuration/dashboardKeys';
+import { DASHBOARD_LEGACY_SNAPSHOT_KEY, DASHBOARD_LEGACY_OVERRIDE_KEY, RESERVED_DASHBOARD_APP_CONFIG_KEYS } from '../configuration/dashboardKeys';
 /** Headroom below MongoDB's 16MB document limit. */
 const MAX_DOCUMENT_BYTES = 15 * 1024 * 1024;
 /** Field catalogues are an authoring aid; a short cache avoids recompiling schemas for every validation. */

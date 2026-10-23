@@ -27,7 +27,7 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
 
   constructor(
     logger: ILogger,
-    private readonly recordsService: RecordsService
+    private readonly recordsService: Pick<RecordsService, 'getMeta' | 'hasViewAccess'>
   ) {
     super(logger);
   }
