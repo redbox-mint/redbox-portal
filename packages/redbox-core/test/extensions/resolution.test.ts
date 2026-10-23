@@ -84,6 +84,7 @@ describe('v6 extension declarations', () => {
       provider('cycle', { modules: [makeModule('a', ['b']), makeModule('b', ['a'])] }),
       provider('replacement', { modules: [{ ...makeModule('a'), replaces: true }] }),
       provider('traversal', { views: ['../escape'] }),
+      provider('configModel', { configModels: [{ name: 'pdfgen', definition: null! }] }),
     ];
     for (const value of invalid) assert.throws(() => resolveExtensions([value]), /Extension /);
     assert.throws(
@@ -110,14 +111,11 @@ describe('v6 extension declarations', () => {
       access: 'public' as const,
     };
     const core = provider('core', { handlers: [handler], routes: [route] });
-    assert.throws(
-      () =>
-        resolveExtensions([
-          core,
-          provider('collision', { routes: [{ ...route, name: 'other', path: '/:tenant/items' }] }),
-        ]),
-      /collision/
-    );
+    for (const path of ['/:tenant/items', '/:tenant/ITEMS/'])
+      assert.throws(
+        () => resolveExtensions([core, provider('collision', { routes: [{ ...route, name: 'other', path }] })]),
+        /collision/
+      );
     assert.throws(
       () => resolveExtensions([provider('private', { handlers: [handler], routes: [{ ...route, access: [] }] })]),
       /explicit public/

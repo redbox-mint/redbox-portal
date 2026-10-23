@@ -115,6 +115,8 @@ function validate(provider: ExtensionProvider): void {
         fail(provider.name, 'invalid middleware declaration');
       if (field === 'contributors' && typeof entry.module !== 'string')
         fail(provider.name, 'contributor requires its owning module');
+      if (field === 'configModels' && !object(entry.definition))
+        fail(provider.name, 'config model requires an object definition');
     }
   }
   for (const field of ['views', 'assets']) {
@@ -209,8 +211,12 @@ export function resolveExtensions(
   const bootstrap = select<ExtensionWork>(ordered, 'bootstrap');
   const methods = new Set<string>();
   for (const route of routes) {
-    // Parameter names do not distinguish endpoints. Match collisions before mounting.
-    const key = route.declaration.method + ' ' + route.declaration.path.replace(/:[A-Za-z0-9_]+/g, ':parameter');
+    // Match the host's default case-insensitive, non-strict Express router.
+    const routePath = route.declaration.path
+      .replace(/:[A-Za-z0-9_]+/g, ':parameter')
+      .replace(/\/$/, '')
+      .toLowerCase();
+    const key = route.declaration.method + ' ' + routePath;
     if (methods.has(key)) fail(route.provider, 'accidental method/path route collision');
     methods.add(key);
   }

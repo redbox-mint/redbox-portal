@@ -65,6 +65,15 @@ and Mocha retried it as ESM (`exports is not defined`); renamed to `makeModule`.
 No production module-format change or assertion removal. ESM main fixture warnings
 from SR-012 are resolved by explicit main metadata.
 
+Follow-up validation during SR-017 review: route collision keys now match the
+partial Express host's default case-insensitive/non-strict router, including
+parameter-name aliases, and config models require object definitions. Existing
+resolution cases cover these failures. Qualified Node 26 focused extension suite
+**11 passing, 0 failing/pending**; incremental core TypeScript build **exit 0**.
+One earlier local focused rerun accidentally selected system Node 24.18.0 because
+its PATH was relative to the package working directory; it also passed, but the
+subsequent explicit absolute Node 26 PATH run is the qualification result.
+
 ## SR-014 — Selected factories and owned host integrations
 
 `composition.ts` binds only winning factories to their own concrete inputs,
