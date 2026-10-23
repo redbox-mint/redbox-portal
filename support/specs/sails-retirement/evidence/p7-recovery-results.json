@@ -1,0 +1,111 @@
+{
+  "runnerExit": 0,
+  "sourceRelease": "v5.0.4",
+  "sourceCommit": "c1dda53999f3b026347008731f33dba834e06c27",
+  "sourceImage": "sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9",
+  "sourceNode": "24.16.0",
+  "componentNode": "26.11.1",
+  "mongo": "8.0.34",
+  "fcv": "8.0",
+  "topology": "separate standalone core/storage Docker servers",
+  "checkpoint": {
+    "mode": "snapshot",
+    "collections": 25,
+    "documents": 1895,
+    "gridfs": true
+  },
+  "restored": {
+    "mode": "verify",
+    "collections": 25,
+    "documents": 1895,
+    "gridfs": true
+  },
+  "indexReview": {
+    "mode": "review-source-index",
+    "collection": "record",
+    "index": "redboxOid_1",
+    "oldUnique": false,
+    "duplicateGroups": 0,
+    "preservedDocuments": 2,
+    "action": "Reviewed removal of this exact nonunique v5 index; explicit ensure creates v6 uniqueness."
+  },
+  "components": {
+    "mode": "upgrade-components",
+    "migrations": 1,
+    "secondRun": 0,
+    "preservedRoles": 4,
+    "localPassword": true,
+    "partialFailure": true,
+    "limitation": "Component upgrade only; no production Express portal composition is available."
+  },
+  "sourceProbe": {
+    "mode": "probe",
+    "home": 200,
+    "localLogin": 200,
+    "formsRequests": 20,
+    "formsLatencyMs": {
+      "p50": 32.90647100000001,
+      "p95": 39.07577399999991,
+      "max": 55.06719100000009
+    }
+  },
+  "recoveredProbe": {
+    "mode": "probe",
+    "home": 200,
+    "localLogin": 200,
+    "formsRequests": 20,
+    "formsLatencyMs": {
+      "p50": 35.66920100000016,
+      "p95": 45.571815000000015,
+      "max": 50.728710999999976
+    }
+  },
+  "startupSeconds": {
+    "source": 79,
+    "recovered": 11
+  },
+  "stopSecondsGranularity": 1,
+  "stopsBelowOneSecond": true,
+  "memoryMiB": {
+    "source": 533.3,
+    "recovered": 426.8
+  },
+  "dumpTools": "100.19.1",
+  "limitations": [
+    "No institution or approved production-source designation",
+    "No complete production Express composition/upgrade exercised",
+    "Synthetic bytes and local auth; no external publisher or IdP reconciliation exercised",
+    "Loaded cold/recovered observations, not controlled Express comparisons"
+  ],
+  "sourceStop": {
+    "Status": "exited",
+    "ExitCode": 0,
+    "OOMKilled": false
+  },
+  "recoveredStop": {
+    "Status": "exited",
+    "ExitCode": 0,
+    "OOMKilled": false
+  },
+  "index-before": {
+    "mode": "inspect",
+    "ready": false,
+    "scopes": 102,
+    "ownedPoolsAfterExit": 0,
+    "ownedPrismaClientsAfterExit": 0
+  },
+  "index-ensure": {
+    "mode": "ensure",
+    "ready": true,
+    "scopes": 102,
+    "ownedPoolsAfterExit": 0,
+    "ownedPrismaClientsAfterExit": 0
+  },
+  "index-after": {
+    "mode": "inspect",
+    "ready": true,
+    "scopes": 102,
+    "ownedPoolsAfterExit": 0,
+    "ownedPrismaClientsAfterExit": 0
+  }
+}
