@@ -339,3 +339,59 @@ a nonexistent static `Readable.wrap`; the implementation uses its instance API.
 A premature invocation before compiler completion still loaded the preceding
 adapter and is not counted as passing. The final aggregate follows completed
 emission and passes its import check.
+
+## Figshare mapping, storage and cache collaborators
+
+`integrations/figshare/{config,context,bindings,metadata,assets,embargo}.ts` now
+contain the shared algorithms behind explicit construction inputs. Publishing
+configuration uses the existing neutral configuration resolver; brand lookups,
+crosswalk resolution, storage disks/datastreams and logging are supplied. License
+caches belong to a supplied instance map. Comparison globals and its separate
+cache live in `compat/sails/figshare{Configuration,Helpers}.ts`; the existing helper
+paths retain concrete callable delegates so current stub seams remain usable.
+The facade and durable workers still need their own production wiring; this slice
+does not claim to complete the Figshare provider or portal composition.
+
+Node **26.11.1**, qualified toolchain bin on PATH:
+
+```sh
+# From packages/redbox-core
+FIGSHARE_TEST_MONGO_URI=mongodb://127.0.0.1:29511/sr_p7_figshare \
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
+  --no-config --require chai --require test/setup.ts --timeout 15000 \
+  'test/services/*igshare*.test.ts' 'test/services/figshare-v2/*.test.ts' \
+  test/unit/figshare-persistence.test.ts
+# From repository root
+node packages/redbox-core/node_modules/typescript/bin/tsc -p packages/redbox-core/tsconfig.json
+node --test packages/redbox-core/test/qualification/figshare-helpers.cjs
+```
+
+The unchanged existing suites report **293 passing / 0 failing / 0 pending**,
+exit **0**, using actual Mongo **8.0.34** for queued work. Core build exits **0**.
+The additional compiled aggregate uses actual Flydrive filesystem staging and the
+actual Figshare HTTP client against a local receiver: **1 passing / 0 failing /
+0 skipped**, exit **0**, **740.577416 ms** total. It verifies **2** license reads
+for independent instance caches (repeat reads on one instance are cached), **1**
+article metadata POST, **1** hosted upload with **39** exact bytes and awaited
+response/cleanup, and **1** embargo write with a second idempotent observation.
+Upload endpoints receive no API token; account endpoints receive the configured
+test token. No Sails/CoreService/comparison import enters the standalone graph.
+The receiver and disposable files are removed in finally. This aggregate does not
+exercise crosswalk persistence, durable worker execution, records or shutdown;
+existing provider/queued suites retain their respective coverage.
+
+Final logs under `.tmp/sails-retirement/p7/`: `figshare-helpers-build-third.log`,
+`figshare-existing-mongo-final.log`, `figshare-helpers-real-second.log`. Focused
+format/lint and diff checks pass (**0 warnings / 0 errors**). No dependency or
+existing test/assertion/timeout/skip changed. The initial no-Mongo invocation
+reported **239 passing / 51 pending** and is not counted as Mongo qualification.
+The first real-Mongo invocation was **292 passing / 1 failing**: an unchanged
+error-path test performs brand lookup without a Sails owner, and the new warning
+tried to read its log. The comparison boundary now supplies its existing no-op
+logger in that case. Initial compile failures caught an overly broad crosswalk
+output type, an unexported stream response type and widened development mode;
+the final interfaces retain the actual contracts. The first new HTTP aggregate
+incorrectly expected API credentials on upload URLs; it now verifies the actual
+transport's credential isolation, while retaining the token assertion for account
+URLs. That failed attempt is not counted as qualification.
