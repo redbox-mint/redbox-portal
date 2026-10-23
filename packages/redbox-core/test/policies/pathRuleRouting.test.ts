@@ -1,3 +1,6 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import * as sinon from 'sinon';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import assert from 'node:assert/strict';
 import { firstValueFrom } from 'rxjs';
 import { Services } from '../../src/services/PathRulesService';
@@ -19,8 +22,9 @@ describe('Path-rule routing authorization', () => {
   let savedGlobals: Record<string, unknown>;
 
   beforeEach(async () => {
+    installIdentityRepositoryMock();
     savedGlobals = {
-      PathRule: Reflect.get(globalThis, 'PathRule'),
+      PathRule: Reflect.get(repositoryFixtures, 'PathRule'),
       PathRulesService: Reflect.get(globalThis, 'PathRulesService'),
       BrandingService: Reflect.get(globalThis, 'BrandingService'),
       RolesService: Reflect.get(globalThis, 'RolesService'),
@@ -30,16 +34,14 @@ describe('Path-rule routing authorization', () => {
       exec: (callback: (error: null, result: typeof rules) => void) => callback(null, rules),
     };
     service = new Services.PathRules();
-    Object.assign(globalThis, {
-      PathRule: { find: () => query },
-      PathRulesService: service,
-      BrandingService: { getBrand: () => brand },
-      RolesService: { getDefUnathenticatedRole: () => guest },
-    });
+    (Object.assign(repositoryFixtures, {PathRule: { find: () => query }}), Object.assign(globalThis, {PathRulesService: service,BrandingService: { getBrand: () => brand },RolesService: { getDefUnathenticatedRole: () => guest }}));
     await firstValueFrom(service.loadRules());
   });
 
-  afterEach(() => Object.assign(globalThis, savedGlobals));
+  afterEach(() => {
+    sinon.restore();
+    Object.assign(globalThis, savedGlobals);
+  });
 
   const protectedPaths = [
     '/default/rdmp/admin/users/get',

@@ -69,8 +69,7 @@ describe('reference persistence domain boundaries', () => {
     assert.throws(() => namedQueryTarget(app, 'institution'), /register an explicit tenant-scoped/);
     assert.equal(namedQueryTarget(app, 'form').scope.fieldPath, 'branding');
   });
-  // Deferred to layer 3, where the storage query adapter is activated.
-  it.skip('refuses native record Mongo-ID predicates/projections rather than silently returning fewer rows', async () => {
+  it('refuses native record Mongo-ID predicates/projections rather than silently returning fewer rows', async () => {
     const app = application();
     const request = { target: 'record', tenant: 'tenant', expression: {}, start: 0, rows: 1 };
     for (const input of [
@@ -331,8 +330,7 @@ describe('reference persistence domain boundaries', () => {
       /Undeclared reference field/
     );
   });
-  // Deferred to layer 3 with the cross-group NamedQueryService switch.
-  it.skip('refuses malformed stored expressions rather than executing an empty fallback', () => {
+  it('refuses malformed stored expressions rather than executing an empty fallback', () => {
     assert.throws(() => new NamedQueryConfig({ mongoQuery: '{invalid' }), /stored named-query/);
   });
 });

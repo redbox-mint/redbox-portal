@@ -1,3 +1,4 @@
+import { fixtureRows, fixtureCreate, fixturePatchOne, fixtureRemove } from '../../helpers/persistenceFixtures';
 declare var DashboardConfigService: any;
 declare var DashboardConfiguration: any;
 declare var BrandingService: any;
@@ -29,11 +30,11 @@ describe('DashboardConfigService (datastore)', function () {
   }
 
   it('keeps exactly one brand document behind a unique index', async function () {
-    const docs = await DashboardConfiguration.find({ branding: String(brand.id) });
+    const docs = await fixtureRows("DashboardConfiguration", { branding: String(brand.id) });
     expect(docs).to.have.length(1);
     let duplicateRejected = false;
     try {
-      await DashboardConfiguration.create({ branding: String(brand.id), revision: 1, configData: docs[0].configData });
+      await fixtureCreate("DashboardConfiguration", { branding: String(brand.id), revision: 1, configData: docs[0].configData });
     } catch (error) {
       duplicateRejected = true;
     }
@@ -81,7 +82,7 @@ describe('DashboardConfigService (datastore)', function () {
 
   it('creates one migrated document and preserves the first recovery snapshot on rerun', async function () {
     const suffix = Date.now().toString();
-    const createdBrand = await BrandingConfig.create({ name: `dashboard-migration-${suffix}`, variables: {} }).fetch();
+    const createdBrand = await fixtureCreate("BrandingConfig", { name: `dashboard-migration-${suffix}`, variables: {} });
     const brandId = String(createdBrand.id);
     const previousDashboardViews = sails.config.dashboardview;
     const previousDashboardTypes = sails.config.dashboardtype;
@@ -92,18 +93,18 @@ describe('DashboardConfigService (datastore)', function () {
       // stages, views or profiles to migrate, but it has legacy AppConfig data.
       sails.config.dashboardview = {};
       sails.config.dashboardtype = {};
-      legacyOverride = await AppConfig.create({
+      legacyOverride = await fixtureCreate("AppConfig", {
         branding: brandId,
         configKey: dashboardMigration.DASHBOARD_LEGACY_OVERRIDE_KEY,
         configData: { recordTypes: {}, views: {} },
-      }).fetch();
+      });
 
       await sails.services.dashboardconfigservice.migrateLegacyConfiguration();
 
-      const docs = await DashboardConfiguration.find({ branding: brandId });
+      const docs = await fixtureRows("DashboardConfiguration", { branding: brandId });
       expect(docs).to.have.length(1);
       expect(docs[0].revision).to.equal(1);
-      const snapshots = await AppConfig.find({
+      const snapshots = await fixtureRows("AppConfig", {
         branding: brandId,
         configKey: dashboardMigration.DASHBOARD_LEGACY_SNAPSHOT_KEY,
       });
@@ -112,13 +113,13 @@ describe('DashboardConfigService (datastore)', function () {
       expect(firstSnapshot.appConfigDashboardTableConfigRows).to.have.length(1);
       expect(firstSnapshot.appConfigDashboardTableConfigRows[0].configData).to.deep.equal({ recordTypes: {}, views: {} });
 
-      await AppConfig.updateOne({ id: legacyOverride.id }).set({
+      await fixturePatchOne("AppConfig", { id: legacyOverride.id }, {
         configData: { recordTypes: { changedAfterMigration: {} }, views: {} },
       });
       await sails.services.dashboardconfigservice.migrateLegacyConfiguration();
 
-      const rerunDocs = await DashboardConfiguration.find({ branding: brandId });
-      const rerunSnapshots = await AppConfig.find({
+      const rerunDocs = await fixtureRows("DashboardConfiguration", { branding: brandId });
+      const rerunSnapshots = await fixtureRows("AppConfig", {
         branding: brandId,
         configKey: dashboardMigration.DASHBOARD_LEGACY_SNAPSHOT_KEY,
       });
@@ -129,9 +130,9 @@ describe('DashboardConfigService (datastore)', function () {
     } finally {
       sails.config.dashboardview = previousDashboardViews;
       sails.config.dashboardtype = previousDashboardTypes;
-      await DashboardConfiguration.destroy({ branding: brandId });
-      await AppConfig.destroy({ branding: brandId });
-      await BrandingConfig.destroy({ id: brandId });
+      await fixtureRemove("DashboardConfiguration", { branding: brandId });
+      await fixtureRemove("AppConfig", { branding: brandId });
+      await fixtureRemove("BrandingConfig", { id: brandId });
     }
   });
 });

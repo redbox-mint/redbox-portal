@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import { randomUUID } from 'node:crypto';
 import { MongoClient, ObjectId } from 'mongodb';
-import { Services } from '../../src/services/MongoStorageService';
+import { prismaStorage } from '../helpers/prismaStorage';
+import type { PrismaStorage } from '../../src/persistence/PrismaStorage';
 
 const mongoUrl = process.env.MONGO_TEST_URL;
 const describeMongo = mongoUrl ? describe : describe.skip;
@@ -15,8 +16,7 @@ describeMongo('Record pagination with MongoDB', function () {
   const username = 'pagination-user';
   const databaseName = `redbox_pagination_test_${randomUUID().replace(/-/g, '')}`;
   let client: MongoClient;
-  let service: Services.MongoStorageService;
-  let originalRecord: unknown;
+  let service: Awaited<ReturnType<typeof prismaStorage>>;
   let originalExportPageSize: number;
 
   // Large groups of equal timestamps cross page boundaries. OIDs deliberately
@@ -34,28 +34,25 @@ describeMongo('Record pagination with MongoDB', function () {
   const expectedOids = [...fixtureOids.slice(recordCount / 2), ...fixtureOids.slice(0, recordCount / 2)];
 
   before(async function () {
-    originalRecord = Reflect.get(global, 'Record');
-    Reflect.set(global, 'Record', { tableName: 'record' });
     originalExportPageSize = sails.config.record.export.maxRecords;
     sails.config.record.export.maxRecords = pageSize;
     client = new MongoClient(mongoUrl!, { serverSelectionTimeoutMS: 5000 });
     await client.connect();
     const database = client.db(databaseName);
-    service = new Services.MongoStorageService();
-    service.recordCol = database.collection('record');
-    service.deletedRecordCol = database.collection('deletedrecord');
-    await service.recordCol.insertMany(fixtures);
-    await service.deletedRecordCol.insertMany(fixtures.map((record, index) => ({
+    service = await prismaStorage(client, databaseName);
+    await database.collection('record').insertMany(fixtures);
+    await database.collection('deletedrecord').insertMany(fixtures.map((record, index) => ({
       _id: record._id,
       redboxOid: record.redboxOid,
       dateDeleted: index < recordCount / 2 ? '2026-09-04T00:00:00Z' : '2026-09-03T00:00:00Z',
-      deletedRecordMetadata: record,
+      // Match RecordsService.lifecycleSnapshot: physical IDs are not embedded
+      // in the Json record snapshot.
+      deletedRecordMetadata: Object.fromEntries(Object.entries(record).filter(([key]) => key !== '_id')),
     })));
   });
 
   after(async function () {
-    if (originalRecord === undefined) Reflect.deleteProperty(global, 'Record');
-    else Reflect.set(global, 'Record', originalRecord);
+    await service?.testClose?.();
     sails.config.record.export.maxRecords = originalExportPageSize;
     if (client) {
       // Drop only the uniquely named database created by this test run.

@@ -4,18 +4,17 @@ const { RECORD_CONTRACT_FORMAT_V1, RECORD_SCHEMA_PROBLEM_CODES } = require('@res
 const {
   RECORD_SCHEMA_ARTIFACT_INDEXES,
   RECORD_SCHEMA_REFERENCE_INDEXES,
-  Services,
-} = require('../../src/services/MongoStorageService');
+} = require('../../src/persistence/StorageProtocol');
 const {
   RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX,
   RECORD_SCHEMA_STORAGE_CODES,
-} = require('../../src/services/recordSchemaPersistence');
+} = require('../../src/persistence/recordSchemaCodec');
 
 type ContractJsonValue = import('@researchdatabox/redbox-core').ContractJsonValue;
 type RecordSchemaArtifactInput = import('@researchdatabox/redbox-core').RecordSchemaArtifactInput;
 type RecordSchemaArtifactSummary = import('@researchdatabox/redbox-core').RecordSchemaArtifactSummary;
 type RecordSchemaReferenceInput = import('@researchdatabox/redbox-core').RecordSchemaReferenceInput;
-type MongoStorageService = import('../../src/services/MongoStorageService').Services.MongoStorageService;
+type MongoStorageService = import('../../src/persistence/StorageProtocol').PrismaStorage;
 
 type FakeDocument = { [key: string]: unknown };
 type TestContractJsonObject = { readonly [key: string]: ContractJsonValue };
@@ -126,47 +125,6 @@ function unsetAtPath(document: FakeDocument, path: string): void {
   delete cursor[segments[segments.length - 1]];
 }
 
-class FakeCursor {
-  private offset = 0;
-  private maximum = Number.POSITIVE_INFINITY;
-  private sortFields: FakeDocument = {};
-  private readonly source: FakeDocument[];
-
-  public constructor(source: FakeDocument[]) {
-    this.source = source;
-  }
-
-  public sort(fields: FakeDocument): this {
-    this.sortFields = fields;
-    return this;
-  }
-
-  public skip(offset: number): this {
-    this.offset = offset;
-    return this;
-  }
-
-  public limit(maximum: number): this {
-    this.maximum = maximum;
-    return this;
-  }
-
-  public async toArray(): Promise<FakeDocument[]> {
-    const sorted = [...this.source].sort((left, right) => {
-      for (const [field, direction] of Object.entries(this.sortFields)) {
-        const leftValue = comparable(valueAtPath(left, field));
-        const rightValue = comparable(valueAtPath(right, field));
-        if (leftValue === rightValue) {
-          continue;
-        }
-        return (leftValue < rightValue ? -1 : 1) * Number(direction);
-      }
-      return 0;
-    });
-    return structuredClone(sorted.slice(this.offset, this.offset + this.maximum));
-  }
-}
-
 class FakeCollection {
   public readonly createIndexes: ReturnType<typeof sinon.stub>;
   public afterFindOneAndUpdate?: () => void;
@@ -192,8 +150,22 @@ class FakeCollection {
     return found ? structuredClone(found) : null;
   }
 
-  public find(criteria: FakeDocument): FakeCursor {
-    return new FakeCursor(this.documents.filter(document => matches(document, criteria)));
+  public async list(
+    criteria: FakeDocument,
+    options: { sort?: FakeDocument; limit?: number } = {}
+  ): Promise<FakeDocument[]> {
+    const sorted = [...this.documents.filter(document => matches(document, criteria))].sort((left, right) => {
+      for (const [field, direction] of Object.entries(options.sort ?? {})) {
+        const leftValue = comparable(valueAtPath(left, field));
+        const rightValue = comparable(valueAtPath(right, field));
+        if (leftValue === rightValue) {
+          continue;
+        }
+        return (leftValue < rightValue ? -1 : 1) * Number(direction);
+      }
+      return 0;
+    });
+    return structuredClone(sorted.slice(0, options.limit ?? Infinity));
   }
 
   public async insertOne(document: FakeDocument): Promise<{ insertedId: string }> {
@@ -309,19 +281,11 @@ describe('MongoStorageService record-schema persistence', function () {
     });
     artifacts = new FakeCollection([], 'digest');
     references = new FakeCollection([], 'referenceKey');
-    service = new Services.MongoStorageService();
+    service = new (require('../../src/persistence/PrismaStorage').PrismaStorage)(sails);
+    Reflect.set(service, 'schemaArtifactRepository', () => artifacts);
+    Reflect.set(service, 'schemaReferenceRepository', () => references);
     Reflect.set(service, 'recordSchemaArtifactCol', artifacts);
     Reflect.set(service, 'recordSchemaReferenceCol', references);
-  });
-
-  it('creates required indexes idempotently with stable names and keys', async function () {
-    const initializeIndexes = Reflect.get(service, 'createRecordSchemaIndices').bind(service);
-
-    await initializeIndexes();
-    await initializeIndexes();
-
-    expect(artifacts.createIndexes.calledOnceWith(RECORD_SCHEMA_ARTIFACT_INDEXES)).to.equal(true);
-    expect(references.createIndexes.calledOnceWith(RECORD_SCHEMA_REFERENCE_INDEXES)).to.equal(true);
   });
 
   it('inserts artifacts once and treats equivalent object-key order as an idempotent retry', async function () {

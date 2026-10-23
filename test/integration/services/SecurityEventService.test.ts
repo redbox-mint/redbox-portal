@@ -1,3 +1,4 @@
+import { fixtureRemove, fixtureRow, fixturePatch, fixtureCount } from '../../helpers/persistenceFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import type { SiemConfigDto } from '../../../packages/redbox-core/src/configmodels/SiemConfiguration';
@@ -76,7 +77,7 @@ describe('The SecurityEventService', function () {
   afterEach(async function () {
     sandbox.restore();
     if (createdEventIds.length > 0) {
-      await SecurityEvent.destroy({ eventId: createdEventIds.splice(0, createdEventIds.length) });
+      await fixtureRemove("SecurityEvent", { eventId: createdEventIds.splice(0, createdEventIds.length) });
     }
   });
 
@@ -103,16 +104,16 @@ describe('The SecurityEventService', function () {
     expect(queuedJobs()[1].name).to.equal('SiemForwardingService-ForwardSecurityEvents');
     expect(queuedJobs()[1].data.brandId).to.equal(brandId);
 
-    const stored = await SecurityEvent.findOne({ eventId: event.eventId });
+    const stored = await fixtureRow("SecurityEvent", { eventId: event.eventId });
     expect(stored).to.not.equal(undefined);
     expect(stored.deliveryState).to.equal('pending');
     expect(stored.payload).to.have.property('safe', 'visible');
 
     // A replay after persistence must not duplicate or reset delivery progress.
-    await SecurityEvent.update({ eventId: event.eventId }).set({ deliveryState: 'delivered' });
+    await fixturePatch("SecurityEvent", { eventId: event.eventId }, { deliveryState: 'delivered' });
     await securityEventService.storeSecurityEvent({ attrs: { data: { event } } });
-    expect(await SecurityEvent.count({ eventId: event.eventId })).to.equal(1);
-    expect((await SecurityEvent.findOne({ eventId: event.eventId })).deliveryState).to.equal('delivered');
+    expect(await fixtureCount("SecurityEvent", { eventId: event.eventId })).to.equal(1);
+    expect((await fixtureRow("SecurityEvent", { eventId: event.eventId })).deliveryState).to.equal('delivered');
     expect(queuedJobs()[2].name).to.equal('SiemForwardingService-ForwardSecurityEvents');
 
     const result = await securityEventService.queryEvents({
@@ -172,7 +173,7 @@ describe('The SecurityEventService', function () {
       expect(event.payload).to.deep.equal({ concurrency: { revision: 7, resolution: 'direct' } });
       createdEventIds.push(event.eventId);
       await securityEventService.storeSecurityEvent({ attrs: { data: { event } } });
-      const stored = await SecurityEvent.findOne({ eventId: event.eventId });
+      const stored = await fixtureRow("SecurityEvent", { eventId: event.eventId });
       expect(stored.resource).to.deep.equal(event.resource);
       expect(stored.actor).to.deep.equal(event.actor);
       expect(stored.payload).to.deep.equal(event.payload);

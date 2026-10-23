@@ -10,10 +10,10 @@
   ],
   "sails": {
     "isHook": true,
-    "hasModels": true,
     "hasServices": true,
     "hasConfig": true,
-    "hasMigrations": true
+    "hasMigrations": true,
+    "hasModels": true
   },
   "repository": {
     "type": "git",
@@ -21,9 +21,9 @@
   },
   "scripts": {
     "compile": "npm run build",
-    "build": "tsc -p tsconfig.json",
-    "test": "TS_NODE_PROJECT=test/tsconfig.json mocha --require ts-node/register --require test/setup.ts --extension ts --recursive test",
-    "test:coverage": "TS_NODE_PROJECT=test/tsconfig.json nyc --no-clean --report-dir ./coverage/storage-mongo --reporter=lcov --reporter=text --exclude-after-remap=false mocha --require ts-node/register --require test/setup.ts --extension ts --recursive test",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "test": "TS_NODE_PROJECT=test/tsconfig.json mocha --node-option no-experimental-strip-types --require chai --require ts-node/register --require test/setup.ts --extension ts --recursive test",
+    "test:coverage": "TS_NODE_PROJECT=test/tsconfig.json nyc --no-clean --report-dir ./coverage/storage-mongo --reporter=lcov --reporter=text --exclude-after-remap=false mocha --node-option no-experimental-strip-types --require chai --require ts-node/register --require test/setup.ts --extension ts --recursive test",
     "test:compile": "tsc -p test/tsconfig.json",
     "lint": "cd ../.. && oxlint packages/sails-hook-redbox-storage-mongo/src packages/sails-hook-redbox-storage-mongo/test",
     "lint:fix": "cd ../.. && oxlint packages/sails-hook-redbox-storage-mongo/src packages/sails-hook-redbox-storage-mongo/test --fix",
@@ -51,7 +51,7 @@
     "luxon": "3.7.2",
     "mocha": "11.7.6",
     "mocha-junit-reporter": "2.2.1",
-    "mongodb": "7.2.0",
+    "mongodb": "7.7.0",
     "nyc": "18.0.0",
     "sails": "1.5.17",
     "sinon": "22.0.0",
@@ -63,7 +63,7 @@
     "@researchdatabox/redbox-core": "file:../redbox-core",
     "json2csv": "5.0.7",
     "lodash": "4.18.1",
-    "mongodb": "7.2.0",
+    "mongodb": "7.7.0",
     "reflect-metadata": "0.2.2",
     "uuid": "14.0.0"
   },

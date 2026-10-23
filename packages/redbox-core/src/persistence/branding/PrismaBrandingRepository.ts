@@ -134,10 +134,12 @@ export function prismaBrandingRepository(
       history
     );
   };
-  // Identity remains Waterline-owned until the next stack layer.
+  // Explicit U-owned projection through the identity repository.
   const withRoles = async (brand: BrandRow | null): Promise<BrandRow | null> => {
     if (!brand) return null;
-    brand.roles = await Role.find({ branding: brand.id }) as RoleModel[];
+    brand.roles = (await (require('../runtime') as typeof import('../runtime'))
+      .getIdentityRepositories(app)
+      .list('role', { branding: brand.id })) as RoleModel[];
     return brand;
   };
   return {

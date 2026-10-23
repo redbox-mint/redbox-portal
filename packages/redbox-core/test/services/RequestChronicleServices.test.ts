@@ -1,3 +1,6 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { createQueryObject } from './testHelper';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { inspect } from 'node:util';
@@ -47,6 +50,7 @@ describe('Request chronicles in services', () => {
   let originalSails: unknown;
 
   beforeEach(async () => {
+    installIdentityRepositoryMock();
     originalSails = Reflect.get(globalThis, 'sails');
     logger = createSinonStubLogger(sinon);
     Reflect.set(globalThis, 'sails', {
@@ -551,7 +555,7 @@ describe('Request chronicles in services', () => {
   });
 
   describe('Passport callback capture', () => {
-    const globalNames = ['BrandingService', 'RolesService', 'User', 'ConfigService'];
+    const globalNames = ['BrandingService', 'RolesService', 'ConfigService'];
     let originals: unknown[];
     let users: TestUsers;
     const oidcConfig = { claimMappings: { username: 'sub' } };
@@ -585,9 +589,8 @@ describe('Request chronicles in services', () => {
 
     for (const withPreSaveHook of [false, true]) {
       it(`records a user-not-found string once ${withPreSaveHook ? 'with' : 'without'} a pre-save hook`, async () => {
-        Reflect.set(globalThis, 'User', {
-          findOne: (_criteria: unknown, callback: (error: unknown, user: unknown) => void) =>
-            callback(null, { id: 'user-1', username: 'test' }),
+        Reflect.set(repositoryFixtures, 'User', {
+          findOne: () => createQueryObject({ id: 'user-1', username: 'test' }),
           update: () => ({
             set: () => ({ exec: (callback: (error: unknown, user: unknown) => void) => callback(null, []) }),
           }),
@@ -662,9 +665,8 @@ describe('Request chronicles in services', () => {
 
     for (const withPreSaveHook of [false, true]) {
       it(`records an AAF user-not-found string once through the controller ${withPreSaveHook ? 'with' : 'without'} a pre-save hook`, async () => {
-        Reflect.set(globalThis, 'User', {
-          findOne: (_criteria: unknown, callback: (error: unknown, user: unknown) => void) =>
-            callback(null, { id: 'user-1', username: 'test' }),
+        Reflect.set(repositoryFixtures, 'User', {
+          findOne: () => createQueryObject({ id: 'user-1', username: 'test' }),
           update: () => ({
             set: () => ({ exec: (callback: (error: unknown, user: unknown) => void) => callback(null, []) }),
           }),
@@ -698,8 +700,8 @@ describe('Request chronicles in services', () => {
         { email: 'private@other.edu', outcome: 'denied' },
       ]) {
         it(`records one ${provider} ${rejection.outcome} rejection through the controller`, async () => {
-          Reflect.set(globalThis, 'User', {
-            findOne: (_criteria: unknown, callback: (error: unknown, user: unknown) => void) => callback(null, null),
+          Reflect.set(repositoryFixtures, 'User', {
+            findOne: () => createQueryObject(null),
           });
           Reflect.set(globalThis, 'sails', {
             log: logger,

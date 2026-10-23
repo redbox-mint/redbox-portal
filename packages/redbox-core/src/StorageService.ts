@@ -86,6 +86,8 @@ export interface StorageService {
   getTombstone?(brand: unknown, oid: unknown): Promise<DeletedRecordModel | null>;
   /** Bounded recovery scan; callers still condition every mutation by operation identity. */
   getLifecycleTombstones?(states: readonly string[], limit?: number): Promise<DeletedRecordModel[]>;
+  /** Harvest enrichment on the storage owner's current path. Omitted brand preserves legacy matching. */
+  findHarvestRecords?(harvestIds: readonly string[], recordType: string, brandId?: string): Promise<Record<string,unknown>[]>;
   scanFigshareRecords?(afterOid: string, limit: number): Promise<RecordModel[]>;
   findFigshareArticleRecords?(path: string, articleId: string): Promise<RecordModel[]>;
   setRecordFields?(

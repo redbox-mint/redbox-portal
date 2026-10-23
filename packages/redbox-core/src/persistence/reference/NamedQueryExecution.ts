@@ -302,7 +302,16 @@ export async function executeNamedQuery(
   // Scope is mandatory for the primary target AND every related-filter target.
   if (metadata.scope.type === 'field') expression[metadata.scope.fieldPath] = request.tenant;
   if (custom) return custom.execute(Object.freeze({ ...request, expression }));
-  if (['user', 'role', 'pathrule', 'record', 'counter'].includes(request.target)) refusal();
+  if (['user', 'role', 'pathrule'].includes(request.target)) {
+    const { executeIdentityQuery } =
+      require('../identity/NamedQueryTargets') as typeof import('../identity/NamedQueryTargets');
+    return executeIdentityQuery(app, { ...request, expression }, count);
+  }
+  if (['record', 'counter'].includes(request.target)) {
+    const { executeStorageQuery } =
+      require('../storage/NamedQueryTargets') as typeof import('../storage/NamedQueryTargets');
+    return executeStorageQuery(app, { ...request, expression }, count);
+  }
   const { executePrismaNamedQuery } =
     require('./PrismaNamedQueryTargets') as typeof import('./PrismaNamedQueryTargets');
   return executePrismaNamedQuery(app, { ...request, expression }, count);

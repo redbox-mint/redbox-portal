@@ -1,6 +1,6 @@
 # ReDBox MongoDB Storage Plugin
 
-This package provides the MongoDB-backed storage service, models, and config registrations for ReDBox Portal.
+This package provides the MongoDB-backed Prisma storage service and config registrations for ReDBox Portal.
 
 ## Monorepo workflow
 
@@ -16,13 +16,33 @@ This package provides the MongoDB-backed storage service, models, and config reg
 ## Runtime integration
 
 - The package builds from `src/` to `dist/`
-- The `@researchdatabox/redbox-core` loader consumes `registerRedboxModels()`, `registerRedboxServices()`, and `registerRedboxConfig()` from the built entrypoint
-- Service/model names remain `MongoStorageService`, `Record`, `DeletedRecord`, and `RecordAudit`
+- The `@researchdatabox/redbox-core` loader consumes `registerRedboxServices()` and `registerRedboxConfig()` from the built entrypoint
+- `MongoStorageService` uses the declared core storage Prisma contract; model globals and registration are removed.
 
 ## Configuration
 
-- The storage models use the Sails datastore named `redboxStorage`
+- Storage uses the logical datastore named `redboxStorage`
 - Datastore connection details still live in the host portal’s Sails config
+
+## Prisma persistence
+
+All storage operations use Prisma. Remove `persistence.groups.storage.backend`,
+`RBPORTAL_STORAGE_BACKEND` and equivalent Sails environment settings, including
+explicit `prisma` values: startup rejects obsolete selectors. Keep connection
+settings under `datastores.redboxStorage`; remove ORM adapter/migrate settings.
+See [institution migration](../../support/wiki/Persistence-Migration.md) for
+retired model registrations, mapping overrides and safe shim cleanup.
+
+Prisma owns Record/DeletedRecord, permanent recordidentity, CAS/lifecycle/source
+intents, authorization/U participation, Counter atomic allocation, attachment
+metadata/OID rebind, schemas and audits. GridFS bytes remain on the driver under
+ADR 0004, borrowing app-owned pools. Multi-step write order and partial failures
+remain; no transactions are introduced.
+
+Stop writers and run `npm run persistence:indexes -- --inspect`, review reports,
+explicitly `--ensure`, then inspect before restarting. S requires 35 scopes,
+including Counter global-name uniqueness; duplicates block preparation without
+cleanup. See [storage persistence](../../support/wiki/Staged-Storage-Persistence.md).
 
 ## Record revision migration
 
@@ -58,7 +78,7 @@ Every existing signature keeps its optional concurrency options last for source
 compatibility. A supplied `expectedRevision` must always be honored. A
 certified no-match returns `not-applied` with a bounded
 `nonApplicationReason`; a thrown or unrecognized fact after dispatch returns
-`unknown`. Adapters must never fall back to an OID-only Waterline success path
+`unknown`. Adapters must never fall back to an OID-only success path
 after advertising strict capability.
 
 Hook-provided adapters must verify these guarantees against their real

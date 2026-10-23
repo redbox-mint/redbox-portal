@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -13,6 +15,7 @@ describe('RolesService', function() {
   let mockBrandingConfig: any;
 
   beforeEach(function() {
+    installIdentityRepositoryMock();
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -41,8 +44,8 @@ describe('RolesService', function() {
     };
 
     setupServiceTestGlobals(mockSails);
-    (global as any).Role = mockRole;
-    (global as any).BrandingConfig = mockBrandingConfig;
+    repositoryFixtures.Role = mockRole;
+    repositoryFixtures.BrandingConfig = mockBrandingConfig;
     (global as any).ConfigService = {
       getBrand: sinon.stub().returns({
         aaf: { defaultRole: 'Researcher' },
@@ -64,8 +67,8 @@ describe('RolesService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).Role;
-    delete (global as any).BrandingConfig;
+    delete repositoryFixtures.Role;
+    delete repositoryFixtures.BrandingConfig;
     delete (global as any).ConfigService;
     delete (global as any).BrandingService;
     sinon.restore();

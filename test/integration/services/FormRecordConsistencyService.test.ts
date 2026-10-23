@@ -1,3 +1,4 @@
+import { fixtureCreate, fixtureRemove } from '../../helpers/persistenceFixtures';
 import { Observable, of } from 'rxjs';
 import supertest from 'supertest';
 import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../../../packages/redbox-core/test/fixtures/metadata-projection.fixtures';
@@ -69,7 +70,7 @@ describe('The FormRecordConsistencyService', function () {
     const oid = `data-location-projection-${Date.now()}`;
     const getFormByName = FormsService.getFormByName;
     try {
-      await Record.create({
+      await fixtureCreate("Record", {
         redboxOid: oid,
         metadata: {
           ...dataRecordProjectedMetadata,
@@ -101,7 +102,7 @@ describe('The FormRecordConsistencyService', function () {
       expect(response.body).to.deep.equal(dataRecordProjectedMetadata);
     } finally {
       FormsService.getFormByName = getFormByName;
-      await Record.destroy({ redboxOid: oid });
+      await fixtureRemove("Record", { redboxOid: oid });
     }
   });
 

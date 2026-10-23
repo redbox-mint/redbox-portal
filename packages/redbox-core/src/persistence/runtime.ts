@@ -418,6 +418,13 @@ export function ensureFigsharePersistenceIndexes(app: Sails.Application): Promis
   );
 }
 
+export function inspectStoragePersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./storage/preflight') as typeof import('./storage/preflight')).inspectStoragePersistence(app);
+}
+export function ensureStoragePersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./storage/preflight') as typeof import('./storage/preflight')).ensureStoragePersistenceIndexes(app);
+}
+
 export { initializeVocabularyPersistence } from './vocabulary/runtime';
 export { getVocabularyRepositories } from './vocabulary/runtime';
 export function inspectVocabularyPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
@@ -445,3 +452,13 @@ export function ensureBrandingPersistenceIndexes(app: Sails.Application): Promis
   );
 }
 
+export { initializeIdentityPersistence } from './identity/runtime';
+export { getIdentityRepositories } from './identity/runtime';
+export function inspectIdentityPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./identity/preflight') as typeof import('./identity/preflight')).inspectIdentityPersistence(app);
+}
+export function ensureIdentityPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+  return (require('./identity/preflight') as typeof import('./identity/preflight')).ensureIdentityPersistenceIndexes(
+    app
+  );
+}

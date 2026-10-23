@@ -1,3 +1,4 @@
+import { installStorageRecordMock } from '../../helpers/storageRecordMock';
 import { createSinonStubLogger } from '../../logger.test';
 import assert from 'node:assert/strict';
 let expect: Chai.ExpectStatic;
@@ -258,6 +259,7 @@ describe('Webservice RecordController body source', () => {
   });
 
   beforeEach(() => {
+    installStorageRecordMock();
     originalSails = (global as any).sails;
     originalBrandingService = (global as any).BrandingService;
     originalRecordTypesService = (global as any).RecordTypesService;

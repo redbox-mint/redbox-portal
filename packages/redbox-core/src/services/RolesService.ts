@@ -1,3 +1,4 @@
+import { getIdentityRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -110,7 +111,7 @@ export namespace Services {
     }
 
     public getRolesWithBrand = (brand: BrandingModel): Observable<RoleModel[]> => {
-      return super.getObservable<RoleModel[]>(Role.find({ branding: brand.id }).populate('users'));
+      return super.getObservable<RoleModel[]>(() => getIdentityRepositories().list('role', { branding: brand.id }, {populate: ['users']}));
     }
 
     public getRoleIds = (fromRoles: RoleModel[], roleNames: string[]) => {
@@ -137,9 +138,9 @@ export namespace Services {
       const roleToCreate = _.find(rolesRespPromise.roles, ['name', roleName]);
       if (_.isUndefined(roleToCreate)) {
         sails.log.verbose('createRoleWithBrand - roleConfig ' + JSON.stringify(roleConfig));
-        const newRole = await Role.create(roleConfig);
+        const newRole = await getIdentityRepositories().create('role', roleConfig);
         sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
-        const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
+        const q = () => getIdentityRepositories().assignBrandRoles(brand.id, [newRole.id]);
         const result = await firstValueFrom(super.getObservable<BrandingModel>(q, 'exec', 'simplecb'));
         // Subsequent user mutations resolve role names from the cached brand.
         // Publish the new role there before acknowledging its creation.
@@ -157,13 +158,13 @@ export namespace Services {
         sails.log.verbose("Creating default admin, and other roles...");
         return from(this.getConfigRoles())
                          .pipe(flatMap((roleConfig: AuthRoleConfig) => {
-                           return super.getObservable<RoleModel>(Role.create(roleConfig))
+                           return super.getObservable<RoleModel>(() => getIdentityRepositories().create('role', roleConfig))
                                        .pipe(flatMap((newRole: RoleModel) => {
                                          sails.log.verbose("Adding role to brand:" + newRole.id);
                                          const brand:BrandingModel = sails.services.brandingservice.getDefault() as unknown as BrandingModel;
                                          // START Sails 1.0 upgrade
                                          // brand.roles.add(newRole.id);
-                                         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
+                                         const q = () => getIdentityRepositories().assignBrandRoles(brand.id, [newRole.id]);
                                          // return super.getObservable(brand, 'save', 'simplecb');
                                          return super.getObservable<BrandingModel>(q, 'exec', 'simplecb');
                                          // END Sails 1.0 upgrade

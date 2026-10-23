@@ -1,4 +1,8 @@
-import type {} from '../waterline-models/types'; // Declares the Waterline Record model global.
+import { getStorageRepositories } from '../persistence/storage/runtime';
+import { getIdentityRepositories } from '../persistence/runtime';
+import { safeIdentityValue } from '../persistence/identity/safety';
+import { identityProfilePatch } from '../persistence/identity/profile';
+import { identityCallback } from '../persistence/identity/IdentityRepositories';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -28,7 +32,7 @@ import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails
 import { RoleModel } from '../model/storage/RoleModel';
 import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
-import { UserAttributes } from '../waterline-models/User';
+import { UserAttributes } from '../persistence/rows';
 import { Services as services } from '../CoreService';
 
 import * as crypto from 'crypto';
@@ -273,15 +277,13 @@ export namespace Services {
       const secondaryUsername = String(secondaryUser.username ?? '');
       const secondaryEmail = String(secondaryUser.email ?? '').toLowerCase();
       const primaryUsername = String(primaryUser.username ?? '');
-      const records = await Record.find({
-        or: [
+      const records = await getStorageRepositories().records.find({
+        $or: [
           { 'authorization.edit': secondaryUsername },
           { 'authorization.view': secondaryUsername },
           { 'authorization.editPending': secondaryEmail },
           { 'authorization.viewPending': secondaryEmail },
         ],
-      }).meta({
-        enableExperimentalDeepTargets: true,
       });
 
       let rewrittenCount = 0;
@@ -362,7 +364,7 @@ export namespace Services {
       const primaryIds = _.uniq(
         _.compact(_.map(users, (u: T) => (!_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null)))
       );
-      const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+      const primaryUsers = _.isEmpty(primaryIds) ? [] : await getIdentityRepositories().list('user', { id: primaryIds });
       const primaryUsersById = _.keyBy(primaryUsers as AnyRecord[], (u: AnyRecord) => String(u.id ?? ''));
 
       return _.map(users, (user: T) => {
@@ -385,26 +387,26 @@ export namespace Services {
     }
 
     public async disableUser(userId: string, actor: string, brandId: string): Promise<void> {
-      const user = await User.findOne({ id: userId });
+      const user = await getIdentityRepositories().one('user', { id: userId });
       if (user == null) {
         throw new Error('User not found');
       }
       if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
         throw new Error('Cannot disable a linked alias user. Disable the primary account instead.');
       }
-      await User.update({ id: userId }).set({ loginDisabled: true });
+      await getIdentityRepositories().update('user', { id: userId }, { loginDisabled: true });
       await this.addUserAuditEvent({ username: actor }, 'disable-user', { userId, brandId });
     }
 
     public async enableUser(userId: string, actor: string, brandId: string): Promise<void> {
-      const user = await User.findOne({ id: userId });
+      const user = await getIdentityRepositories().one('user', { id: userId });
       if (user == null) {
         throw new Error('User not found');
       }
       if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
         throw new Error('Cannot enable a linked alias user. Enable the primary account instead.');
       }
-      await User.update({ id: userId }).set({ loginDisabled: false });
+      await getIdentityRepositories().update('user', { id: userId }, { loginDisabled: false });
       await this.addUserAuditEvent({ username: actor }, 'enable-user', { userId, brandId });
     }
 
@@ -432,7 +434,7 @@ export namespace Services {
         return additionalContext;
       }
 
-      const stringified = this.stringifyObject(additionalContext);
+      const stringified = this.stringifyObject(safeIdentityValue(additionalContext, true));
       return _.isString(stringified) ? stringified : null;
     }
 
@@ -634,11 +636,9 @@ export namespace Services {
     private async fetchDirectUserAuditRows(selectedUser: AnyRecord): Promise<UserAuditRow[]> {
       const directAuditActions = ['login', 'logout'];
       try {
-        const rows = await UserAudit.find({
+        const rows = await getIdentityRepositories().list('useraudit', {
           action: directAuditActions,
           or: [{ 'user.id': String(selectedUser.id ?? '') }, { 'user.username': String(selectedUser.username ?? '') }],
-        }).meta({
-          enableExperimentalDeepTargets: true,
         });
         return rows as unknown as UserAuditRow[];
       } catch (error) {
@@ -650,7 +650,7 @@ export namespace Services {
     }
 
     public async getUserAudit(userId: string): Promise<UserAuditResponse> {
-      const selectedUser = await User.findOne({ id: userId });
+      const selectedUser = await getIdentityRepositories().one('user', { id: userId });
       if (selectedUser == null) {
         throw new Error('User not found');
       }
@@ -663,7 +663,7 @@ export namespace Services {
       ];
 
       const directRows = await this.fetchDirectUserAuditRows(selectedUserRecord);
-      const adminRows = (await UserAudit.find({
+      const adminRows = (await getIdentityRepositories().list('useraudit', {
         action: ['disable-user', 'enable-user', 'link-accounts'],
         or: _.map(adminAuditContextFilters, (contextFilter: string) => ({
           additionalContext: { contains: contextFilter },
@@ -718,23 +718,15 @@ export namespace Services {
       //
       sails.config.passport = require('passport');
       const LocalStrategy = require('passport-local').Strategy;
-      let bcrypt: BcryptLike;
-      try {
-        bcrypt = require('bcrypt') as BcryptLike;
-      } catch (_err) {
-        bcrypt = require('bcryptjs') as BcryptLike;
-      }
       const passport = sails.config.passport as PassportLike;
       const that = this;
       passport.serializeUser(function (user: AnyRecord, done: DoneCallback) {
         done(null, user.id);
       });
       passport.deserializeUser(function (id: string, done: DoneCallback) {
-        User.findOne({
+        identityCallback(getIdentityRepositories().one('user', {
           id: id,
-        })
-          .populate('roles')
-          .exec(function (err: unknown, user: unknown) {
+        }, {populate: ['roles']}), function (err: unknown, user: unknown) {
             if (err != null || _.isEmpty(user)) {
               done(err, user as AnyRecord);
               return;
@@ -757,11 +749,9 @@ export namespace Services {
             passwordField: passwordField,
           },
           function (username: string, password: string, done: DoneCallback) {
-            User.findOne({
+            identityCallback(getIdentityRepositories().one('user', {
               username: username,
-            })
-              .populate('roles')
-              .exec(function (err: unknown, foundUser: unknown) {
+            }, {populate: ['roles']}), function (err: unknown, foundUser: unknown) {
                 if (err) {
                   return done(err);
                 }
@@ -772,8 +762,7 @@ export namespace Services {
                 }
 
                 const foundUserObj = foundUser as UserAttributes & AnyRecord;
-                const passwordHash = String(foundUserObj.password ?? '');
-                bcrypt.compare(password, passwordHash, function (err: unknown, res: boolean) {
+                identityCallback(getIdentityRepositories().verifyPassword(String(foundUserObj.id), password), function (err: unknown, res: boolean) {
                   if (!res) {
                     return done(null, false, {
                       message: 'Incorrect username/password',
@@ -791,14 +780,12 @@ export namespace Services {
                         that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
                           const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                           if (success) {
-                            User.update({
+                            identityCallback(getIdentityRepositories().update('user', {
                               username: username,
-                            })
-                              .set({
+                            }, {
                                 lastLogin: new Date(),
                                 additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes'),
-                              })
-                              .exec(function (err: unknown, user: unknown) {
+                              }), function (err: unknown, user: unknown) {
                                 if (err) {
                                   that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
                                     err,
@@ -833,11 +820,9 @@ export namespace Services {
                           }
                         });
                       } else {
-                        User.update({
+                        identityCallback(getIdentityRepositories().update('user', {
                           username: username,
-                        })
-                          .set({ lastLogin: new Date() })
-                          .exec(function (err: unknown, user: unknown) {
+                        }, { lastLogin: new Date() }), function (err: unknown, user: unknown) {
                             if (err) {
                               that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [err]);
                               return;
@@ -1091,16 +1076,15 @@ export namespace Services {
               const aafUsernameField = authConfig.aaf?.usernameField ?? DEFAULT_AAF_USERNAME_FIELD;
               const aafUsername = String(jwt_payload[aafUsernameField] ?? '');
               const userName = Buffer.from(aafUsername).toString('base64');
-              User.findOne(
-                {
+              identityCallback(getIdentityRepositories().one('user', {
                   username: userName,
-                },
-                function (err: unknown, user: unknown) {
+                }), function (err: unknown, user: unknown) {
                   if (err) {
                     return done(err, false);
                   }
                   if (user) {
                     const userObj = user as UserAttributes & AnyRecord;
+                    const originalProfile = structuredClone(userObj);
                     // Gate disabled users
                     that
                       .assertAuthenticationAllowed(userObj)
@@ -1128,11 +1112,9 @@ export namespace Services {
                           that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
                             const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                             if (success) {
-                              User.update({
+                              identityCallback(getIdentityRepositories().update('user', {
                                 username: _.get(userAdditionalInfo, 'username'),
-                              })
-                                .set(userAdditionalInfo)
-                                .exec(function (err: unknown, user: unknown) {
+                              }, identityProfilePatch(userAdditionalInfo, originalProfile)), function (err: unknown, user: unknown) {
                                   if (err) {
                                     that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [
                                       err,
@@ -1170,11 +1152,9 @@ export namespace Services {
                             }
                           });
                         } else {
-                          User.update({
+                          identityCallback(getIdentityRepositories().update('user', {
                             username: userObj.username,
-                          })
-                            .set(userObj)
-                            .exec(function (err: unknown, user: unknown) {
+                          }, identityProfilePatch(userObj, originalProfile)), function (err: unknown, user: unknown) {
                               if (err) {
                                 that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                                 return done(err, false, { message: 'Error updating user' });
@@ -1270,7 +1250,7 @@ export namespace Services {
                           const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                           if (success) {
                             userToCreate = userAdditionalInfo;
-                            User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                            identityCallback(getIdentityRepositories().create('user', userToCreate), function (err: unknown, newUser: unknown) {
                               if (err) {
                                 that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                                 return done(err, false);
@@ -1295,7 +1275,7 @@ export namespace Services {
                           }
                         });
                     } else {
-                      User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                      identityCallback(getIdentityRepositories().create('user', userToCreate), function (err: unknown, newUser: unknown) {
                         if (err) {
                           that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                           return done(err, false);
@@ -1317,8 +1297,7 @@ export namespace Services {
                       });
                     }
                   }
-                }
-              );
+                });
             })
           );
         }
@@ -1527,16 +1506,15 @@ export namespace Services {
         });
       }
 
-      User.findOne(
-        {
+      identityCallback(getIdentityRepositories().one('user', {
           username: userName,
-        },
-        function (err: unknown, user: unknown) {
+        }), function (err: unknown, user: unknown) {
           if (err) {
             return done(err, false);
           }
           if (user) {
             const userObj = user as UserAttributes & AnyRecord;
+            const originalProfile = structuredClone(userObj);
             // Gate disabled users
             that
               .assertAuthenticationAllowed(userObj)
@@ -1567,11 +1545,9 @@ export namespace Services {
                     .then((userAdditionalInfo: AnyRecord) => {
                       const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                       if (success) {
-                        User.update({
+                        identityCallback(getIdentityRepositories().update('user', {
                           username: _.get(userAdditionalInfo, 'username'),
-                        })
-                          .set(userAdditionalInfo)
-                          .exec(function (err: unknown, user: unknown) {
+                        }, identityProfilePatch(userAdditionalInfo, originalProfile)), function (err: unknown, user: unknown) {
                             if (err) {
                               that.updateChronicle(
                                 { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
@@ -1608,11 +1584,9 @@ export namespace Services {
                       }
                     });
                 } else {
-                  User.update({
+                  identityCallback(getIdentityRepositories().update('user', {
                     username: userObj.username,
-                  })
-                    .set(userObj)
-                    .exec(function (err: unknown, user: unknown) {
+                  }, identityProfilePatch(userObj, originalProfile)), function (err: unknown, user: unknown) {
                       if (err) {
                         that.updateChronicle(
                           { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
@@ -1691,7 +1665,7 @@ export namespace Services {
                 .then((userAdditionalInfo: AnyRecord) => {
                   const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                   if (success) {
-                    User.create(userAdditionalInfo).exec(function (err: unknown, newUser: unknown) {
+                    identityCallback(getIdentityRepositories().create('user', userAdditionalInfo), function (err: unknown, newUser: unknown) {
                       if (err) {
                         that.updateChronicle(
                           { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
@@ -1719,7 +1693,7 @@ export namespace Services {
                   }
                 });
             } else {
-              User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+              identityCallback(getIdentityRepositories().create('user', userToCreate), function (err: unknown, newUser: unknown) {
                 if (err) {
                   that.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' }, [
                     err,
@@ -1743,8 +1717,7 @@ export namespace Services {
               });
             }
           }
-        }
-      );
+        });
     }
 
     protected bearerTokenAuthInit = () => {
@@ -1755,11 +1728,7 @@ export namespace Services {
         new BearerStrategy(function (token: string, done: DoneCallback) {
           if (!_.isEmpty(token) && !_.isUndefined(token)) {
             const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
-            User.findOne({
-              token: tokenHash,
-            })
-              .populate('roles')
-              .exec(function (err: unknown, user: unknown) {
+            identityCallback(getIdentityRepositories().findByApiTokenHash(tokenHash, {populate: ['roles']}), function (err: unknown, user: unknown) {
                 if (err) {
                   return done(err);
                 }
@@ -1816,14 +1785,14 @@ export namespace Services {
           defaultUser['token'] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
         }
 
-        return super.getObservable<UserModel>(User.create(defaultUser)).pipe(
+        return super.getObservable<UserModel>(() => getIdentityRepositories().create('user', defaultUser!)).pipe(
           flatMap(defUser => {
             // START Sails 1.0 upgrade
             const defRoleIds = _.map(defRoles, (o: AnyRecord) => {
               return o.id;
             }) as Array<string | number>;
             const defUserId = (defUser as AnyRecord).id as string | number;
-            let q = User.addToCollection(defUserId, 'roles').members(defRoleIds);
+            let q = () => getIdentityRepositories().addMemberships('user', defUserId, defRoleIds);
             // END Sails 1.0 upgrade
             return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb').pipe(
               flatMap(_dUser => {
@@ -1833,7 +1802,7 @@ export namespace Services {
                     // START Sails 1.0 upgrade
                     // role.users.add(defUser.id)
                     const roleId = role.id as string | number;
-                    q = Role.addToCollection(roleId, 'users').members([defUserId]);
+                    q = () => getIdentityRepositories().addMemberships('role', roleId, [defUserId]);
                     // END Sails 1.0 upgrade
                     return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb');
                   })
@@ -1860,7 +1829,8 @@ export namespace Services {
     protected mapAdditionalAttributes(profile: unknown, attributeMappings: Record<string, string>) {
       const additionalAttributes: Record<string, unknown> = {};
       for (const attributeMapping in attributeMappings) {
-        additionalAttributes[attributeMapping] = _.get(profile, attributeMapping);
+        const value: unknown = _.get(profile, attributeMapping);
+        if (value !== undefined) additionalAttributes[attributeMapping] = value;
       }
       return additionalAttributes;
     }
@@ -1887,12 +1857,12 @@ export namespace Services {
         delete userObj.password;
         _.unset(user, 'password');
       }
-      userObj.additionalAttributes = this.stringifyObject(userObj.additionalAttributes);
-      auditEvent['user'] = userObj;
+      userObj.additionalAttributes = this.stringifyObject(safeIdentityValue(userObj.additionalAttributes));
+      auditEvent['user'] = safeIdentityValue(userObj);
       auditEvent['action'] = action;
-      auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
+      auditEvent['additionalContext'] = this.stringifyObject(safeIdentityValue(additionalContext, true));
       this.updateChronicle({ usersAuditAction: action, usersAuditUserId: userObj.id, usersAuditOutcome: 'submitted' });
-      return firstValueFrom(super.getObservable<Record<string, unknown>>(UserAudit.create(auditEvent))).then(result => {
+      return firstValueFrom(super.getObservable<Record<string, unknown>>(() => getIdentityRepositories().create('useraudit', auditEvent))).then(result => {
         // Capture structured attributes before the legacy audit JSON serialization.
         // Class instances (RequestDetails) are valid context, but only selected fields leave the portal.
         try {
@@ -1949,7 +1919,7 @@ export namespace Services {
                   }
                   newUser[usernameField] = username;
                   newUser[passwordField] = password;
-                  return super.getObservable<UserModel>(User.create(newUser));
+                  return super.getObservable<UserModel>(() => getIdentityRepositories().create('user', newUser));
                 }
               })
             );
@@ -1983,17 +1953,17 @@ export namespace Services {
 
     public getUserWithUsername = (username: string): Observable<UserModel | null> => {
       return this.getObservable<UserModel | null>(
-        User.findOne({
+        () => getIdentityRepositories().one('user', {
           username: username,
-        }).populate('roles')
+        }, {populate: ['roles']})
       );
     };
 
     public getUserWithId = (userid: string | number): Observable<UserModel | null> => {
       return this.getObservable<UserModel | null>(
-        User.findOne({
+        () => getIdentityRepositories().one('user', {
           id: userid,
-        }).populate('roles')
+        }, {populate: ['roles']})
       );
     };
 
@@ -2001,7 +1971,7 @@ export namespace Services {
      * @return Collection of all users (local and AAF)
      */
     public getUsers = (): Observable<UserModel[]> => {
-      return super.getObservable<UserModel[]>(User.find({}).populate('roles'));
+      return super.getObservable<UserModel[]>(() => getIdentityRepositories().list('user', {}, {populate: ['roles']}));
     };
 
     /**
@@ -2014,10 +1984,10 @@ export namespace Services {
         return of([]);
       }
 
-      return super.getObservable<UserModel[]>(User.find({}).populate('roles')).pipe(
+      return super.getObservable<UserModel[]>(() => getIdentityRepositories().list('user', {}, {populate: ['roles']})).pipe(
         flatMap(async (users: UserModel[]) => {
           const activeLinks =
-            typeof UserLink !== 'undefined' ? await UserLink.find({ brandId: brandId, status: 'active' }) : [];
+            await getIdentityRepositories().list('userlink', { brandId: brandId, status: 'active' });
           const linkedSecondaryIds = new Set(
             _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? ''))
           );
@@ -2034,6 +2004,8 @@ export namespace Services {
       }
 
       if (_.isString(userOrId) || _.isNumber(userOrId)) {
+        if (!/^[a-f\d]{24}$/i.test(String(userOrId)))
+          return this.getUserWithUsername(String(userOrId)).pipe(flatMap(user => user ? this.getEffectiveUser(user) : of(null)));
         return this.getUserWithId(String(userOrId)).pipe(
           flatMap(user => {
             if (user != null) {
@@ -2077,13 +2049,11 @@ export namespace Services {
 
           const primaryUserObj = primaryUser as UserModel;
           const links =
-            typeof UserLink !== 'undefined'
-              ? await UserLink.find({ primaryUserId: String(primaryUserObj.id ?? ''), status: 'active' })
-              : [];
+            await getIdentityRepositories().list('userlink', { primaryUserId: String(primaryUserObj.id ?? ''), status: 'active' });
           const secondaryIds = _.map(links as AnyRecord[], (link: unknown) =>
             String((link as AnyRecord).secondaryUserId ?? '')
           );
-          const secondaryUsers = _.isEmpty(secondaryIds) ? [] : await User.find({ id: secondaryIds }).populate('roles');
+          const secondaryUsers = _.isEmpty(secondaryIds) ? [] : await getIdentityRepositories().list('user', { id: secondaryIds }, {populate: ['roles']});
           const secondaryUsersById = _.keyBy(secondaryUsers as UserModel[], (user: UserModel) => String(user.id ?? ''));
           const linkedAccounts = _.compact(
             _.map(links as AnyRecord[], (link: unknown) => {
@@ -2130,12 +2100,12 @@ export namespace Services {
             ];
           }
 
-          const users = await User.find(userWhere).populate('roles');
+          const users = await getIdentityRepositories().list('user', userWhere, {populate: ['roles']});
           const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as UserAttributes[]);
           let primaryUserIdsWithLinkedAccounts = new Set<string>();
-          if (typeof UserLink !== 'undefined' && !_.isEmpty(enrichedUsers)) {
+          if (!_.isEmpty(enrichedUsers)) {
             const candidateUserIds = _.map(enrichedUsers, (user: UserAttributes) => String(user.id ?? ''));
-            const activeLinks = await UserLink.find({
+            const activeLinks = await getIdentityRepositories().list('userlink', {
               status: 'active',
               primaryUserId: candidateUserIds,
             });
@@ -2234,23 +2204,18 @@ export namespace Services {
           }
 
           const existingLink =
-            typeof UserLink !== 'undefined'
-              ? await UserLink.findOne({ secondaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
-              : null;
+            await getIdentityRepositories().one('userlink', { secondaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' });
           if (!_.isEmpty(existingLink)) {
             throw new Error('Secondary user is already linked');
           }
 
           const secondaryOwnLinks =
-            typeof UserLink !== 'undefined'
-              ? await UserLink.findOne({ primaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
-              : null;
+            await getIdentityRepositories().one('userlink', { primaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' });
           if (!_.isEmpty(secondaryOwnLinks)) {
             throw new Error('Secondary user already has linked accounts');
           }
 
-          if (typeof UserLink !== 'undefined') {
-            await UserLink.create({
+          await getIdentityRepositories().create('userlink', {
               primaryUserId: String(primaryUser.id ?? ''),
               primaryUsername: String(primaryUser.username ?? ''),
               secondaryUserId: String(secondaryUserObj.id ?? ''),
@@ -2259,7 +2224,6 @@ export namespace Services {
               status: 'active',
               createdBy: actor,
             });
-          }
 
           const primaryBrandRoleIds = new Set(
             _.map(this.getRolesForBrand(primaryUser, brandId), (role: unknown) => String((role as AnyRecord).id ?? ''))
@@ -2269,7 +2233,7 @@ export namespace Services {
           );
           const roleIdsToMerge = _.filter(secondaryBrandRoleIds, roleId => !primaryBrandRoleIds.has(roleId));
           if (!_.isEmpty(roleIdsToMerge)) {
-            const addRoleQuery = User.addToCollection(String(primaryUser.id ?? ''), 'roles').members(roleIdsToMerge);
+            const addRoleQuery = () => getIdentityRepositories().addMemberships('user', String(primaryUser.id ?? ''), roleIdsToMerge);
             await firstValueFrom(this.getObservable(addRoleQuery, 'exec', 'simplecb'));
           }
 
@@ -2284,12 +2248,10 @@ export namespace Services {
             }),
             (role: unknown) => String((role as AnyRecord).id ?? '')
           );
-          const replaceRoleQuery = User.replaceCollection(String(secondaryUserObj.id ?? ''), 'roles').members(
-            retainedSecondaryRoleIds
-          );
+          const replaceRoleQuery = () => getIdentityRepositories().replaceMemberships('user', String(secondaryUserObj.id ?? ''), retainedSecondaryRoleIds);
           await firstValueFrom(this.getObservable(replaceRoleQuery, 'exec', 'simplecb'));
 
-          await User.update({ id: String(secondaryUserObj.id ?? '') }).set({
+          await getIdentityRepositories().update('user', { id: String(secondaryUserObj.id ?? '') }, {
             token: '',
             accountLinkState: 'linked-alias',
             linkedPrimaryUserId: String(primaryUser.id ?? ''),
@@ -2329,16 +2291,15 @@ export namespace Services {
       return this.getUserWithId(userid).pipe(
         flatMap(user => {
           if (user) {
-            const q = User.update(
-              {
+            return from(getIdentityRepositories().update('user', {
                 id: userid,
-              },
-              {
+              }, {
                 token: uuidHash,
-              }
-            );
-            return this.getObservable<UserModel[]>(q, 'exec', 'node').pipe(
-              map((updatedUsers: UserModel[]) => updatedUsers[0] ?? user)
+              })).pipe(
+              map(updatedUsers => {
+                if (!updatedUsers[0]) throw new Error('No such user with id:' + userid);
+                return updatedUsers[0] as UserModel;
+              })
             );
           } else {
             return throwError(new Error('No such user with id:' + userid));
@@ -2376,12 +2337,9 @@ export namespace Services {
               const salt = bcrypt.genSaltSync(10);
               update[passwordField] = bcrypt.hashSync(password, salt);
             }
-            const q = User.update(
-              {
+            const q = () => getIdentityRepositories().update('user', {
                 id: userid,
-              },
-              update
-            );
+              }, update);
             return this.getObservable<UserModel[]>(q, 'exec', 'simplecb');
           } else {
             return throwError(new Error('No such user with id:' + userid));
@@ -2398,9 +2356,15 @@ export namespace Services {
               return throwError(new Error('Please assign at least one role'));
             }
             // START Sails 1.0 upgrade
-            const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
+            const q = () => getIdentityRepositories().replaceMemberships('user', user.id, newRoleIds);
             // END Sails 1.0 upgrade
-            return this.getObservable<UserModel>(q, 'exec', 'simplecb');
+            return this.getObservable<void>(q).pipe(
+              flatMap(() => this.getUserWithId(userid)),
+              map(updated => {
+                if (!updated) throw new Error('No such user with id:' + userid);
+                return updated;
+              })
+            );
           } else {
             return throwError(new Error('No such user with id:' + userid));
           }
@@ -2410,11 +2374,9 @@ export namespace Services {
 
     private updateUserAfterLogin(user: unknown, done: (err: unknown, user: unknown) => void) {
       const userObj = user as AnyRecord;
-      User.update({
+      identityCallback(getIdentityRepositories().update('user', {
         username: userObj.username,
-      })
-        .set(userObj)
-        .exec((err: unknown, user: unknown) => {
+      }, identityProfilePatch(userObj)), (err: unknown, user: unknown) => {
           if (err) {
             this.updateChronicle({ usersOperation: 'updateUserAfterLogin', usersOutcome: 'failed' }, [err]);
             return done(err, false);
@@ -2461,7 +2423,7 @@ export namespace Services {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         queryObj['type'] = source;
       }
-      return this.getObservable<UserModel[]>(User.find(queryObj).populate('roles')).pipe(
+      return this.getObservable<UserModel[]>(() => getIdentityRepositories().list('user', queryObj, {populate: ['roles']})).pipe(
         flatMap(users => {
           if (brandId) {
             _.remove(users, (user: unknown) => {
@@ -2487,8 +2449,8 @@ export namespace Services {
     public async findAndAssignAccessToRecords(pendingValue: string, userid: string): Promise<number> {
       const effectiveUser = await firstValueFrom(this.getEffectiveUser(userid));
       const effectiveUsername = _.get(effectiveUser, 'username', userid) as string;
-      const records = await Record.find({
-        or: [
+      const records = await getStorageRepositories().records.find({
+        $or: [
           {
             'authorization.editPending': pendingValue,
           },
@@ -2496,8 +2458,6 @@ export namespace Services {
             'authorization.viewPending': pendingValue,
           },
         ],
-      }).meta({
-        enableExperimentalDeepTargets: true,
       });
       const recordsArr = records as unknown[];
       if (_.isEmpty(recordsArr)) {

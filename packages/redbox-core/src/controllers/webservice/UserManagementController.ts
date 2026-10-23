@@ -1,3 +1,5 @@
+import { getIdentityRepositories } from '../../persistence/runtime';
+import { identityCallback } from '../../persistence/identity/IdentityRepositories';
 import {
   APIErrorResponse,
   Controllers as controllers,
@@ -24,7 +26,7 @@ import {
   listSystemRolesRoute,
   createSystemRoleRoute,
 } from '../../index';
-import { UserAttributes } from '../../waterline-models/User';
+import { UserAttributes } from '../../persistence/rows';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
 
@@ -57,9 +59,7 @@ export namespace Controllers {
 
     private async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
       const links =
-        typeof UserLink !== 'undefined'
-          ? await UserLink.find(_.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' })
-          : [];
+        await getIdentityRepositories().list('userlink', _.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' });
       const linkCountByPrimary = _.countBy(
         links as globalThis.Record<string, unknown>[],
         (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')
@@ -70,7 +70,7 @@ export namespace Controllers {
         )
       );
       const primaryUsers =
-        _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds });
+        _.isEmpty(primaryIds) ? [] : await getIdentityRepositories().list('user', { id: primaryIds });
       const primaryUsernamesById = _.reduce(
         primaryUsers as globalThis.Record<string, unknown>[],
         (acc, user) => {
@@ -108,7 +108,7 @@ export namespace Controllers {
     ): Promise<UserAttributes[]> {
       const dbQuery = includeDisabled ? queryObject : { ...queryObject, loginDisabled: { '!=': true } };
 
-      const users = await User.find({ where: dbQuery });
+      const users = await getIdentityRepositories().list('user', { where: dbQuery });
       let userRecords = await this.enrichUsersWithLinkMetadata(users as UserAttributes[], brandId);
       userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords);
 
@@ -141,16 +141,14 @@ export namespace Controllers {
       if (hasBrandRole) {
         return user;
       }
-      const isLinked = typeof UserLink !== 'undefined'
-        ? await UserLink.findOne({
+      const isLinked = await getIdentityRepositories().one('userlink', {
             brandId: brandId,
             status: 'active',
             or: [
               { primaryUserId: userId },
               { secondaryUserId: userId }
             ]
-          } as Record<string, unknown>)
-        : null;
+          } as Record<string, unknown>);
       if (isLinked) {
         return user;
       }
@@ -222,7 +220,7 @@ export namespace Controllers {
       const searchQuery = query.query as string;
       const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = searchQuery;
-      User.findOne(queryObject).exec(function (err: unknown, user: UserAttributes | null) {
+      identityCallback(getIdentityRepositories().one('user', queryObject), function (err: unknown, user: UserAttributes | null) {
         if (err != null) {
           sails.log.error(err);
           return that.sendResp(req, res, {
@@ -321,16 +319,14 @@ export namespace Controllers {
                         return roleBrandId === brand.id;
                       });
                       if (!hasBrandRole) {
-                        const isLinked = typeof UserLink !== 'undefined'
-                          ? await UserLink.findOne({
+                        const isLinked = await getIdentityRepositories().one('userlink', {
                               brandId: brand.id,
                               status: 'active',
                               or: [
                                 { primaryUserId: existingUser.id },
                                 { secondaryUserId: existingUser.id }
                               ]
-                            } as Record<string, unknown>)
-                          : null;
+                            } as Record<string, unknown>);
                         if (!isLinked) {
                           return this.sendResp(req, res, {
                             status: 403,
@@ -397,24 +393,21 @@ export namespace Controllers {
         }
       }
 
+      this.retainRequestCallback(req);
       UsersService.updateUserDetails(
         userReq.id || '',
         userReq.name || '',
         userReq.email || '',
         userReq.password || ''
       ).subscribe(
-        (userResponse: unknown[]) => {
-          const response: unknown[] = userResponse;
-          let user: unknown = null;
-          sails.log.verbose(user);
-
-          if (!_.isEmpty(response) && _.isArray(response)) {
-            for (const userItem of response) {
-              if (!_.isEmpty(response) && _.isArray(userItem)) {
-                user = userItem[0];
-                break;
-              }
-            }
+        (userResponse: UserAttributes[]) => {
+          const user = userResponse[0];
+          if (!user) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ detail: 'User not found' }],
+              headers: this.getNoCacheHeaders(),
+            });
           }
 
           if (userReq.roles) {
@@ -426,7 +419,7 @@ export namespace Controllers {
             const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
             const mergedRoleIds = this.mergeBrandRoleIds(targetUser ?? userReq, brand.id, roleIds);
-            UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, mergedRoleIds).subscribe(
+            UsersService.updateUserRoles(user.id, mergedRoleIds).subscribe(
               (user: unknown) => {
             //TODO: Add roles to the response
             const u = user as globalThis.Record<string, unknown>;
@@ -453,7 +446,7 @@ export namespace Controllers {
             );
             return;
           } else {
-            const u = user as globalThis.Record<string, unknown>;
+            const u = user;
             const userResponse: CreateUserAPIResponse = new CreateUserAPIResponse();
             userResponse.id = u.id as string;
             userResponse.username = u.username as string;
@@ -505,6 +498,7 @@ export namespace Controllers {
 
       if (userid) {
         const uuid: string = uuidv4();
+        this.retainRequestCallback(req);
         UsersService.setUserKey(userid, uuid).subscribe(
           (userResponse: UserModel) => {
             const user: UserModel = userResponse;
@@ -554,6 +548,7 @@ export namespace Controllers {
 
       if (userid) {
         const uuid: string = '';
+        this.retainRequestCallback(req);
         UsersService.setUserKey(userid, uuid).subscribe(
           (userResponse: UserModel) => {
             const user: UserModel = userResponse;

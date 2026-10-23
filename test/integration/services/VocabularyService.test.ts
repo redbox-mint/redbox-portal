@@ -1,4 +1,5 @@
-import type {VocabularyAttributes} from "../../../packages/redbox-core/src/waterline-models";
+import { fixtureRows, fixtureRemove, fixtureRemoveOne, fixtureCount, fixtureRow, fixtureCreate } from '../../helpers/persistenceFixtures';
+import type {VocabularyAttributes} from "../../../packages/redbox-core/src/persistence/rows";
 
 describe('VocabularyService integration', function () {
 
@@ -35,7 +36,7 @@ describe('VocabularyService integration', function () {
         ],
       });
       vocabularyId = vocabulary.id;
-      const entries = await VocabularyEntry.find({ vocabulary: vocabulary.id });
+      const entries = await fixtureRows("VocabularyEntry", { vocabulary: vocabulary.id });
       expect(entries).to.have.length(4);
       const byIdentifier = new Map(entries.map(entry => [entry.identifier, entry]));
       const root = byIdentifier.get('root');
@@ -56,8 +57,8 @@ describe('VocabularyService integration', function () {
       expect(tree[0].children).to.have.length(2);
     } finally {
       if (vocabularyId) {
-        await VocabularyEntry.destroy({ vocabulary: vocabularyId });
-        await Vocabulary.destroyOne({ id: vocabularyId });
+        await fixtureRemove("VocabularyEntry", { vocabulary: vocabularyId });
+        await fixtureRemoveOne("Vocabulary", { id: vocabularyId });
       }
     }
   });
@@ -86,7 +87,7 @@ describe('VocabularyService integration', function () {
     ],
   ] as const) {
     it(`rejects ${name} and cleans up a failed import`, async function () {
-      const beforeCount = await VocabularyEntry.count();
+      const beforeCount = await fixtureCount("VocabularyEntry", {});
       const vocabularyName = `Invalid ${name} ${Date.now()}`;
       let rejected: unknown;
       try {
@@ -100,8 +101,8 @@ describe('VocabularyService integration', function () {
         rejected = error;
       }
       expect((rejected as Error)?.message).to.contain(message);
-      expect(await Vocabulary.findOne({ name: vocabularyName })).to.equal(undefined);
-      expect(await VocabularyEntry.count()).to.equal(beforeCount);
+      expect(await fixtureRow("Vocabulary", { name: vocabularyName })).to.equal(null);
+      expect(await fixtureCount("VocabularyEntry", {})).to.equal(beforeCount);
     });
   }
 
@@ -109,33 +110,33 @@ describe('VocabularyService integration', function () {
     let vocabularyId: string | null = null;
 
     try {
-      const vocabulary = await Vocabulary.create({
+      const vocabulary = await fixtureCreate("Vocabulary", {
         name: `Service Tree ${Date.now()}`,
         branding: 'default',
         type: 'tree',
         source: 'local'
-      }).fetch();
+      });
       vocabularyId = vocabulary.id;
 
-      const parent = await VocabularyEntry.create({
+      const parent = await fixtureCreate("VocabularyEntry", {
         vocabulary: vocabulary.id,
         label: 'Parent',
         value: 'parent',
         order: 0
-      }).fetch();
+      });
 
       // value can be empty string
-      await VocabularyEntry.create({
+      await fixtureCreate("VocabularyEntry", {
         vocabulary: vocabulary.id,
         label: 'Child',
         value: '',
         parent: parent.id,
         order: 1
-      }).fetch();
+      });
 
       let invalidEntryLabelErr = null;
       try {
-        await VocabularyEntry.create({
+        await fixtureCreate("VocabularyEntry", {
           vocabulary: vocabulary.id,
           label: '',
           value: 'child2',
@@ -145,19 +146,16 @@ describe('VocabularyService integration', function () {
       } catch (err) {
         invalidEntryLabelErr = err;
       }
-      // Error is from validator not beforeCreate.
-      // expect(invalidEntryLabelErr?.message).to.contain('VocabularyEntry.label is required');
-      expect(invalidEntryLabelErr?.message).to.contain('Invalid new record.');
-      expect(invalidEntryLabelErr?.message).to.contain('Could not use specified `label`.');
-      expect(invalidEntryLabelErr?.message).to.contain('Cannot set "" (empty string) for a required attribute.');
+      expect(invalidEntryLabelErr?.code).to.equal('E_INVALID_NEW_RECORD');
+      expect(invalidEntryLabelErr?.message).to.equal('Invalid persistence field: label.');
 
       const tree = await VocabularyService.getTree(vocabulary.id);
       expect(tree).to.have.length(1);
       expect(tree[0].children).to.have.length(1);
     } finally {
       if (vocabularyId) {
-        await VocabularyEntry.destroy({ vocabulary: vocabularyId });
-        await Vocabulary.destroyOne({ id: vocabularyId });
+        await fixtureRemove("VocabularyEntry", { vocabulary: vocabularyId });
+        await fixtureRemoveOne("Vocabulary", { id: vocabularyId });
       }
     }
   });
@@ -166,30 +164,30 @@ describe('VocabularyService integration', function () {
     let vocabularyId: string | null = null;
 
     try {
-      const vocabulary = await Vocabulary.create({
+      const vocabulary = await fixtureCreate("Vocabulary", {
         name: `Service Expand Path ${Date.now()}`,
         branding: 'default',
         type: 'tree',
         source: 'local'
-      }).fetch();
+      });
       vocabularyId = vocabulary.id;
 
-      const root = await VocabularyEntry.create({
+      const root = await fixtureCreate("VocabularyEntry", {
         vocabulary: vocabulary.id,
         label: 'Root',
         value: '08',
         identifier: '08',
         order: 0
-      }).fetch();
+      });
 
-      const ai = await VocabularyEntry.create({
+      const ai = await fixtureCreate("VocabularyEntry", {
         vocabulary: vocabulary.id,
         label: 'Artificial Intelligence',
         value: '0801',
         identifier: '0801',
         parent: root.id,
         order: 1
-      }).fetch();
+      });
 
       const data = await VocabularyService.expandPaths('default', vocabulary.id, ['0801', '0802', '0801', '9999']);
       expect(data).to.not.equal(null);
@@ -205,8 +203,8 @@ describe('VocabularyService integration', function () {
       expect(data?.paths['9999']).to.deep.equal([]);
     } finally {
       if (vocabularyId) {
-        await VocabularyEntry.destroy({ vocabulary: vocabularyId });
-        await Vocabulary.destroyOne({ id: vocabularyId });
+        await fixtureRemove("VocabularyEntry", { vocabulary: vocabularyId });
+        await fixtureRemoveOne("Vocabulary", { id: vocabularyId });
       }
     }
   });

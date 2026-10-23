@@ -1,3 +1,5 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import assert from 'node:assert/strict';
 import { inspect } from 'node:util';
 import * as sinon from 'sinon';
@@ -23,14 +25,15 @@ describe('RDMP logging privacy', () => {
   const email = 'private-contributor@example.test';
 
   beforeEach(() => {
-    for (const name of ['sails', 'User', 'UsersService', 'TranslationService'])
+    installIdentityRepositoryMock();
+    for (const name of ['sails', 'UsersService', 'TranslationService'])
       globals.set(name, Reflect.get(globalThis, name));
     logger = createSinonStubLogger(sinon);
     Reflect.set(globalThis, 'sails', {
       log: logger,
       config: { record: { processRecordCountersLogLevel: 'verbose', maxUploadSize: 100 } },
     });
-    Reflect.set(globalThis, 'User', {
+    Reflect.set(repositoryFixtures, 'User', {
       find: () => ({ exec: (callback: (error: null, users: unknown[]) => void) => callback(null, []) }),
     });
     Reflect.set(globalThis, 'UsersService', { getEffectiveUser: (user: unknown) => of(user) });

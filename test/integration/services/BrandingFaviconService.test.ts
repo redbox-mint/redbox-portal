@@ -1,3 +1,4 @@
+import { fixtureRow } from '../../helpers/persistenceFixtures';
 /* eslint-disable no-unused-expressions */
 const { expect } = require('chai');
 const { createHash } = require('node:crypto');
@@ -13,7 +14,7 @@ describe('BrandingLogoService favicon', () => {
     expect(res.storageKey).to.match(
       new RegExp(`^default/default/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.png$`)
     );
-    const brand = await BrandingConfig.findOne({ name: 'default' });
+    const brand = await fixtureRow("BrandingConfig", { name: 'default' });
     expect(brand.favicon).to.have.property('sha256', res.hash);
   });
 

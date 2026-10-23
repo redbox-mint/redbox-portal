@@ -23,6 +23,12 @@ export async function prepareSelectedPersistenceIndexes(
   const figshare = require('./figshare/preflight') as typeof import('./figshare/preflight');
   const vocabulary = require('./vocabulary/preflight') as typeof import('./vocabulary/preflight');
   const branding = require('./branding/preflight') as typeof import('./branding/preflight');
+  const identity = require('./identity/preflight') as typeof import('./identity/preflight');
+  const storage = require('./storage/preflight') as typeof import('./storage/preflight');
+  const hook = require('@researchdatabox/sails-hook-redbox-storage-mongo/dist/persistence/preflight') as {
+    inspectPrismaStagedStorage(app: Sails.Application): Promise<PersistenceIndexInspection[]>;
+    ensurePrismaStagedStorageIndexes(app: Sails.Application): Promise<unknown>;
+  };
   const scopes: Array<{
     group: IndexReport['group'];
     inspect(app: Sails.Application): Promise<Omit<IndexReport, 'group'>[]>;
@@ -79,6 +85,22 @@ export async function prepareSelectedPersistenceIndexes(
       group: 'branding',
       inspect: branding.inspectBrandingPersistence,
       ensure: branding.ensureBrandingPersistenceIndexes,
+    },
+    {
+      group: 'identity',
+      inspect: identity.inspectIdentityPersistence,
+      ensure: identity.ensureIdentityPersistenceIndexes,
+    },
+    {
+      group: 'storage',
+      inspect: async app => [
+        ...(await storage.inspectStoragePersistence(app)),
+        ...(await hook.inspectPrismaStagedStorage(app)),
+      ],
+      ensure: async app => {
+        await storage.ensureStoragePersistenceIndexes(app);
+        await hook.ensurePrismaStagedStorageIndexes(app);
+      },
     },
   ];
   const inspect = async (): Promise<IndexReport[]> => {
