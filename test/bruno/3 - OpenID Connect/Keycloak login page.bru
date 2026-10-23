@@ -35,8 +35,10 @@ script:post-response {
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
-      const cheerio = require('cheerio/slim');
-      const action = cheerio.load(res.getBody() || '')('#kc-form-login').attr('action');
+      const body = res.getBody();
+      const match = body && body.match(/<form[^>]*id=["']kc-form-login["'][^>]*action=["']([^"']+)["']/i);
+      // Keycloak HTML-escapes the action URL; decode &amp; before reusing it.
+      const action = match && match[1].replace(/&amp;/g, '&');
       if (!action) {
         throw new Error('Could not determine Keycloak login form action');
       }
