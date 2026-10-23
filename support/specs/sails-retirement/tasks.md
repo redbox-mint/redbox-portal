@@ -161,9 +161,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   the compiled import graph does not load Sails. A successful repository `get()`
   alone is not sufficient. Record how this exceeds the existing foundation fixture.
 
-- [ ] **SR-010 — Build the minimal standalone Express 5 host early.**
+- [x] **SR-010 — Build the minimal standalone Express 5 host early.**
 
-  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
+  **Status:** done; [partial Express host, admission, signals and failure checks](evidence/p1-runtime.md#sr-010--minimal-standalone-express-host).
 
   **Depends on:** SR-002, SR-007.
 

@@ -1,5 +1,5 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": { "noEmit": true, "rootDir": "..", "types": ["node", "mocha"] },
-  "include": ["../src/**/*.ts", "./application/**/*.ts", "./recordTypes/**/*.ts"]
+  "include": ["../src/**/*.ts", "./application/**/*.ts", "./recordTypes/**/*.ts", "./http/**/*.ts"]
 }

@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { MongoClient, ObjectId } from 'mongodb';
 import { firstValueFrom } from 'rxjs';
 import * as sinon from 'sinon';
+import { ExpressHost } from '../../src/http/express';
 import { ApplicationRuntime } from '../../src/application';
 import {
   RecordTypes,
@@ -279,6 +280,37 @@ describe('standalone RecordTypes on real MongoDB', function () {
     await fresh.app.initialize();
     assert.equal(fresh.recordTypes.getAllCache()?.length, 1);
     await assert.rejects(first.app.initialize(), /fresh application/);
+  });
+
+  it('hosts the real module behind explicit inactive/active admission and closes its Mongo resources', async () => {
+    const selectedOwner = await owner();
+    const fixture = compose(selectedOwner);
+    const host = new ExpressHost(fixture.app, {
+      hostname: '127.0.0.1',
+      port: 0,
+      prepare: async router => {
+        // Deliberately test-only composition; public authenticated routes belong to P4.
+        router.get('/test/cache-size', (_req, res) => {
+          res.json({ count: fixture.recordTypes.getAllCache()?.length });
+        });
+      },
+    });
+    try {
+      await host.initialize();
+      const address = host.address();
+      assert(address);
+      const root = `http://127.0.0.1:${address.port}`;
+      assert.equal((await fetch(root + '/test/cache-size')).status, 503);
+      await host.activate();
+      assert.deepEqual(await (await fetch(root + '/test/cache-size')).json(), { count: 1 });
+      assert.equal((await fetch(root + '/default/rdmp/api/recordtypes/getAll')).status, 404);
+    } finally {
+      await host.stop();
+    }
+    assert.equal(host.address(), null);
+    assert.equal(fixture.recordTypes.getAllCache(), undefined);
+    assert.equal(fixture.app.status().persistence.pools, 0);
+    assert.equal(fixture.app.status().persistence.prismaClients, 0);
   });
 
   it('loads the compiled narrow domain/runtime graph without legacy barrels, Sails or signals', () => {

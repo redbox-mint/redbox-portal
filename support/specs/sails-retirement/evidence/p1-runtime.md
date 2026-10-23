@@ -326,3 +326,52 @@ search-filter typing mismatch; preserving both existing input contracts resolved
 No assertion was removed or skip added to hide these failures. This is partial
 runtime/domain proof; authenticated endpoints, institution config and production
 storage contributors remain in later phases. No P2 work started.
+
+## SR-010 — Minimal standalone Express host
+
+SR-009 source: `5fdfc33cf`. New narrow entry `src/http/express/index.ts` exports
+`ExpressHost`. Construction wires one Express application/router and one Node
+HTTP server; it acquires nothing and installs no signals. Explicit hostname/port
+and an awaited partial `prepare(router, server)` composition are required.
+Initialization binds behind the admission gate, initializes the application, awaits
+preparation, and stays inactive. Only explicit successful host activation opens
+normal requests. `/readyz` reports only readiness; absent routes return 404 after
+activation. No core barrel, controller fallback, second server or Sails dispatch.
+
+Stop closes admission synchronously, fences initialization stages, waits accepted
+HTTP responses before active application cleanup, and closes the listener. Deadline
+failure retains observable state and retry joins the original listener close.
+Only explicit `installSignalHandlers` owns SIGINT/SIGTERM; success detaches handlers,
+failure remains retryable. Application/host acquisition and cleanup remain awaited;
+original startup failures and separate stop failure remain observable.
+
+The test composition is explicitly partial: one test-only probe/router and the
+converted RecordTypes module. Authentication, public RecordTypes URLs, sessions,
+views, uploads, sockets, workers, production configuration and extension discovery
+are absent and remain assigned to later tasks. No root package/module-type change
+and no dependency change: core uses its existing exact Express **5.2.1**, verified
+from the compiled host child. Root/Companion's Express overrides were not copied.
+
+On the same Node 26.11.1/Mongo 8.0.34 fixture described in SR-009:
+
+```sh
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+npm --prefix packages/redbox-core run test:http-host
+RECORD_TYPES_TEST_MONGO_URL=mongodb://127.0.0.1:34900/sr_p1_recordtypes npm --prefix packages/redbox-core run test:record-types:mongo
+npm run lint
+node_modules/.bin/prettier --check packages/redbox-core/src/http/express packages/redbox-core/test/http packages/redbox-core/test/recordTypes packages/redbox-core/test/tsconfig.application.json
+git diff --check
+```
+
+All exit **0**. Host: **9 passing, 0 failing, 0 pending**, ~3 seconds, including
+initializing/inactive/preparation gates, concurrent joins, absent public routes,
+preparation/runtime/activation/bind failure, stop during initialization/binding,
+accepted-response drain, repeated timeout/retry, and a real OS **SIGTERM** delivered
+to a compiled standalone child. That child asserts no Sails/compat imports and
+removal of its signal listeners. Domain Mongo suite: **10 passing, 0 failing,
+0 pending**, now including actual HTTP admission over the real module, cache
+read, missing public route, and pool/Prisma/cache closure. Build, expanded strict
+application test typecheck, lint (848 files) and formatting pass. No new failing
+invocation in this task. The host is an early partial-host proof, not a promoted
+portal entrypoint; no P2 or authenticated P4 work is claimed.
