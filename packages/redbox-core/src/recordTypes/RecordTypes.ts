@@ -49,11 +49,9 @@ export class RecordTypeRecordSchemaConfigurationError extends TypeError {
   }
 }
 
-export type RecordTypeConfiguration = Omit<RecordTypeDefinition, 'transferResponsibility' | 'dashboard'> & {
-  transferResponsibility?: unknown;
-  dashboard?: unknown;
-  searchCore?: string;
-};
+export type RecordTypeConfiguration =
+  | (RecordTypeDefinition & { searchCore?: string })
+  | (RecordTypeModel & { dashboard?: unknown });
 
 export interface RecordTypesConfiguration {
   readonly appmode: { readonly bootstrapAlways?: boolean };
@@ -194,7 +192,9 @@ export class RecordTypes {
     for (const [index, recordType] of recordTypes.entries()) {
       const runtimeRecordType: { readonly name?: unknown; readonly recordSchema?: unknown } = recordType;
       const name = typeof runtimeRecordType.name === 'string' ? runtimeRecordType.name : `index-${index}`;
-      this.assertRecordSchemaConfig(name, runtimeRecordType.recordSchema);
+      // Prisma's optional JSON decoder represents an absent stored override as null,
+      // as does the record-validation boundary. Explicit config still validates above.
+      this.assertRecordSchemaConfig(name, runtimeRecordType.recordSchema ?? undefined);
     }
   }
 

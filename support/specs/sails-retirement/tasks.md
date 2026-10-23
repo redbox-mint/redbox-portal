@@ -147,9 +147,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   stored-policy reads retain their behavior; converted instances leave the legacy
   module-level cache. No duplicate record-type implementation is introduced.
 
-- [ ] **SR-009 — Prove meaningful standalone record-type behavior on real MongoDB.**
+- [x] **SR-009 — Prove meaningful standalone record-type behavior on real MongoDB.**
 
-  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
+  **Status:** done; [real persisted domain, failures, isolation and restart](evidence/p1-runtime.md#sr-009--real-mongo-record-type-proof).
 
   **Depends on:** SR-002, SR-006, SR-007, SR-008.
 

@@ -40,7 +40,8 @@
     "check:prisma": "node scripts/prisma-contract.cjs check",
     "prepack": "npm run check:prisma && npm run build",
     "test:persistence": "bash test/persistence/run.sh",
-    "test:persistence-indexes": "npm run test:persistence"
+    "test:persistence-indexes": "npm run test:persistence",
+    "test:record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/recordTypes/RecordTypesMongo.test.ts"
   },
   "author": "",
   "license": "ISC",

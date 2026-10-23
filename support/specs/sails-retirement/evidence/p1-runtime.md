@@ -268,3 +268,61 @@ configuration contract with the historical extra fields, instead of casting conf
 to a stored model. Two initial build invocations overlapped in error; the final
 single clean build above completed successfully. Prisma's existing module-type and
 skills notices remain unchanged. Real persisted domain proof follows in SR-009.
+
+## SR-009 — Real-Mongo record-type proof
+
+SR-008 source: `ed228e53a` (full SHA available through `git rev-parse`).
+New `test/recordTypes/RecordTypesMongo.test.ts` composes the actual converted domain
+with `ApplicationRuntime` and existing reference repositories. It exercises
+bootstrap/create/reload/cache/read/list/projection, tenant isolation, current stored
+policy updates and malformed/missing policy, configured/persisted schema failure,
+strict configured/stored/runtime capability rejection, brand-scoped disposable
+`bootstrapAlways`, original-error preservation with retained cleanup failure and
+retry, separate instances/caches/databases, stale service and repository handles,
+and restart from persisted definitions with a fresh owner. This exceeds the prior
+foundation fixture by executing actual business bootstrap, validation and caching,
+including writes and failure cleanup. Import-only proof runs in a child process
+against compiled narrow entries and checks no core barrel, compat/services,
+CoreBase, Sails, global Sails or installed signal handlers.
+
+A real persistence mismatch surfaced: optional absent JSON schema overrides decode
+as null. A definition created without an override previously failed its next
+schema-enabled bootstrap. Stored absent/null overrides now follow the existing
+RecordValidationService convention (no override); explicit malformed configuration
+and non-null malformed persisted overrides still fail. No repository representation
+or ownership was changed. Input typing also continues accepting the pre-existing
+RecordTypeModel create argument alongside the existing config definition type.
+
+Fresh disposable container `sr-p1-domain-mongo8`, image `mongo:8.0.34`, image digest
+`sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907`,
+localhost port **34900**. Live `mongosh` buildInfo/version and getParameter report
+**8.0.34 / FCV 8.0**, single-node standalone topology. Databases have checked
+disposable prefixes, unique suffixes and teardown drops; no institution data.
+Node **26.11.1**, npm **11.20.0**, Mongo driver **7.7.0**, Prisma ORM
+**8.0.0-rc.19**, Prisma CLI **8.0.0-rc.24**; tooling otherwise as SR-008.
+All commands explicitly prepended the qualified local Node 26 toolchain to PATH.
+
+```sh
+docker run -d --name sr-p1-domain-mongo8 --memory=768m -p 127.0.0.1::27017 mongo:8.0.34 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+docker exec sr-p1-domain-mongo8 mongosh --quiet --eval 'JSON.stringify({version:db.version(),fcv:db.adminCommand({getParameter:1,featureCompatibilityVersion:1}).featureCompatibilityVersion})'
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+RECORD_TYPES_TEST_MONGO_URL=mongodb://127.0.0.1:34900/sr_p1_recordtypes npm --prefix packages/redbox-core run test:record-types:mongo
+PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:34900/redbox_prisma_p1 npm --prefix packages/redbox-core run test:persistence
+npm run lint
+```
+
+Final commands exit **0**. Actual persisted domain: **9 passing, 0 failing,
+0 pending**, about 2 seconds. Existing persistence/ownership regression: **30
+passing, 0 failing, 0 pending**, about 5 seconds. Existing RecordTypes plus explicit
+composition suite: **19 passing, 0 failing, 0 pending**. Build, application test
+strict typecheck (now includes RecordTypes tests), lint and focused formatting pass.
+No dependency changes. Dedicated Mongo command requires its environment and never
+skips; excluded only from the legacy default test setup which installs global Sails.
+
+Initial Mongo run: **7 passing / 2 failing**, exposing optional JSON absence above;
+fixed and final **9/9** rerun. Initial expanded typecheck found the old model/config
+search-filter typing mismatch; preserving both existing input contracts resolved it.
+No assertion was removed or skip added to hide these failures. This is partial
+runtime/domain proof; authenticated endpoints, institution config and production
+storage contributors remain in later phases. No P2 work started.
