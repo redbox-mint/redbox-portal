@@ -2,6 +2,8 @@ import type { PersistenceOwner } from '../persistence/owner';
 import type { PersistenceResource } from '../persistence/types';
 import {
   cleanupPersistence,
+  quiescePersistence,
+  runAcceptedPersistenceWork,
   initializePersistence,
   persistenceStatus,
   registerPersistenceResource,
@@ -26,6 +28,7 @@ export interface ApplicationWork {
 
 /** Fixed startup stages, not a configurable workflow engine. Operations are bound offline. */
 export interface ApplicationInitialization {
+  readonly stopDeadlineMs?: number;
   readonly preparePersistence?: () => Promise<void>;
   readonly migrations?: () => Promise<void>;
   readonly coreBootstrap?: readonly ApplicationWork[];
@@ -55,6 +58,7 @@ export interface ApplicationStatus {
 export interface Application {
   initialize(): Promise<void>;
   activate(): Promise<void>;
+  quiesce?(): void;
   stop(options?: { deadlineMs?: number }): Promise<void>;
   status(): ApplicationStatus;
 }
@@ -104,6 +108,13 @@ export class ApplicationRuntime implements Application {
       throw new ApplicationLifecycleError(
         'A persistence owner belongs to one application. Restart with a fresh owner.'
       );
+    if (
+      initialization.stopDeadlineMs !== undefined &&
+      (!Number.isSafeInteger(initialization.stopDeadlineMs) ||
+        initialization.stopDeadlineMs <= 0 ||
+        initialization.stopDeadlineMs > 2_147_483_647)
+    )
+      throw new ApplicationLifecycleError('Application stopDeadlineMs must be a positive timer interval.');
     const names = new Set<string>();
     this.factories = factories.map(factory => {
       if (!/^[A-Za-z][A-Za-z0-9_-]{0,99}$/.test(factory.name) || names.has(factory.name))
@@ -151,13 +162,15 @@ export class ApplicationRuntime implements Application {
       this.stage = 'persistence';
       await initializePersistence(this.owner);
       this.assertRunning();
-      await this.initialization.preparePersistence?.();
+      if (this.initialization.preparePersistence)
+        await runAcceptedPersistenceWork(this.owner, this.initialization.preparePersistence);
       this.stage = 'modules';
       for (const factory of this.factories) {
         this.assertRunning();
         currentModule = factory.name;
         const module = factory.create();
         registerPersistenceResource(this.owner, 'module:' + factory.name, {
+          quiesce: () => module.quiesce?.(),
           drain: () => module.drain?.() ?? Promise.resolve(),
           close: async () => {
             await module.close();
@@ -165,12 +178,12 @@ export class ApplicationRuntime implements Application {
           },
         });
         this.modules.set(factory.name, module);
-        await module.initialize();
+        await runAcceptedPersistenceWork(this.owner, () => module.initialize());
       }
       currentModule = undefined;
       this.assertRunning();
       this.stage = 'migrations';
-      await this.initialization.migrations?.();
+      if (this.initialization.migrations) await runAcceptedPersistenceWork(this.owner, this.initialization.migrations);
       for (const [name, steps] of [
         ['coreBootstrap', this.initialization.coreBootstrap],
         ['extensionBootstrap', this.initialization.extensionBootstrap],
@@ -179,7 +192,7 @@ export class ApplicationRuntime implements Application {
         for (const step of steps ?? []) {
           this.assertRunning();
           this.stage = name + ':' + step.name;
-          await step.run();
+          await runAcceptedPersistenceWork(this.owner, () => step.run());
         }
       }
       this.assertRunning();
@@ -202,7 +215,7 @@ export class ApplicationRuntime implements Application {
       for (const [name, module] of this.modules) {
         this.assertRunning();
         currentModule = name;
-        await module.activate?.();
+        if (module.activate) await runAcceptedPersistenceWork(this.owner, () => module.activate!());
       }
       this.assertRunning();
       this.state = 'active';
@@ -212,19 +225,30 @@ export class ApplicationRuntime implements Application {
     return this.activating;
   }
 
+  public quiesce(): void {
+    this.stopRequested = true;
+    if (!this.cleanedUp) this.state = 'stopping';
+    quiescePersistence(this.owner);
+  }
+
   public stop(options: { deadlineMs?: number } = {}): Promise<void> {
     if (this.stopping) return this.stopping;
     if (this.cleanedUp) return Promise.resolve();
-    const deadlineMs = options.deadlineMs ?? 30_000;
-    if (!Number.isSafeInteger(deadlineMs) || deadlineMs <= 0)
+    const deadlineMs = options.deadlineMs ?? this.initialization.stopDeadlineMs ?? 30_000;
+    if (!Number.isSafeInteger(deadlineMs) || deadlineMs <= 0 || deadlineMs > 2_147_483_647)
       return Promise.reject(new ApplicationLifecycleError('Application stop deadlineMs must be a positive integer.'));
-    this.stopRequested = true;
-    this.state = 'stopping';
+    let quiesceFailure: unknown;
+    try {
+      this.quiesce();
+    } catch (error) {
+      quiesceFailure = error;
+    }
     const deadline = Date.now() + deadlineMs;
     const attempt = Promise.resolve().then(async () => {
       // Wait for acquisition/activation to settle before initiating cleanup. This
       // is the stage work, not its failure handler (which may itself await stop).
       await this.withDeadline(this.inFlight?.catch(() => {}) ?? Promise.resolve(), deadline);
+      if (quiesceFailure) throw quiesceFailure;
       await this.withDeadline(cleanupPersistence(this.owner), deadline);
       this.cleanedUp = true;
       this.stopFailed = false;

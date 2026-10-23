@@ -1,3 +1,5 @@
+import type { PersistenceOwner } from '../persistence/owner';
+import { runAcceptedPersistenceWork } from '../persistence/runtime';
 import { Job } from 'node-schedule';
 
 export interface ScheduledOperation {
@@ -15,7 +17,8 @@ export class ScheduledWork {
   private stopping = false;
   public constructor(
     operations: readonly ScheduledOperation[],
-    private readonly log: { warn(message: string): void }
+    private readonly log: { warn(message: string): void },
+    private readonly owner?: PersistenceOwner
   ) {
     const names = new Set<string>();
     this.operations = operations.map(operation => {
@@ -32,7 +35,9 @@ export class ScheduledWork {
     for (const operation of this.operations) {
       const timer = new Job(() => {
         if (!this.active) return;
-        const pending = Promise.resolve().then(() => operation.run());
+        const pending = this.owner
+          ? runAcceptedPersistenceWork(this.owner, () => operation.run())
+          : Promise.resolve().then(() => operation.run());
         this.pending.add(pending);
         void pending.then(
           () => this.pending.delete(pending),

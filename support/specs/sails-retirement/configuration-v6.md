@@ -158,3 +158,23 @@ and activation, even when an old caller ignores the return value. Cleanup waits
 all accepted siblings; an override failure blocks readiness and is reported without
 its payload. Existing init-only values are distinguished by
 `AppConfigAlreadyExistsError`; unrelated write errors no longer count as success.
+
+Shutdown uses **30,000 ms** by default for the application, Express host and Agenda
+worker drain. Bind `server.stopDeadlineMs` to the host's `stopDeadlineMs` and the
+application initialization options; Agenda can separately set
+`agendaQueue.options.drainTimeoutMs`. Explicit stop calls can select a shorter
+attempt deadline. All intervals must be positive bounded timer values. A deadline
+failure retains owned work and dependencies for retry; it does not certify a
+successful stop or roll back accepted writes.
+
+Give containers a termination grace longer than the configured drain deadline
+plus connection/native cleanup overhead (for the default, start with **45 seconds**,
+e.g. Compose `stop_grace_period: 45s`, and measure representative uploads/jobs).
+Longer accepted uploads may require larger explicitly configured bounds. Do not
+start maintenance or a new deployment while a failed stop retains writers.
+SIGKILL/forced process exit can leave partial writes or external effects and is an
+operator recovery action. The pinned Agenda processor also has a passive watchdog
+delay up to `lockLifetime/2` after a handler completes; it can keep Node's event
+loop alive beyond resource closure. Allow for the actual configured lock lifetimes
+when choosing process termination grace; no premature pool closure is used to
+shorten that delay.

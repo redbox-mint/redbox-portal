@@ -19,7 +19,7 @@ export async function prepareSailsSchedules(app: Sails.Application): Promise<voi
       },
     };
   });
-  const schedules = new ScheduledWork(operations, app.log);
+  const schedules = new ScheduledWork(operations, app.log, app);
   registerPersistenceResource(app, 'cron', schedules);
   await schedules.initialize();
   app.on('ready', () => {

@@ -25,6 +25,8 @@ import { Transform, transforms } from 'json2csv';
 import {
   PersistenceError,
   registerPersistenceResource,
+  persistenceReady,
+  drainAcceptedPersistenceWork,
   writeGridFSStream,
   ownGridFSDownload,
   StorageManagerService as StorageManagerServiceTypes,
@@ -75,10 +77,7 @@ import type {
   RecordSchemaReferenceQuery,
 } from '@researchdatabox/redbox-core/extensions/storage';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core/extensions/storage';
-import {
-  normalizeRecordRelations,
-  NormalizedRecordRelation,
-} from '@researchdatabox/redbox-core/extensions/storage';
+import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core/extensions/storage';
 import { RECORD_SCHEMA_REFERENCE_KEY_PATTERN } from './schemaConstants';
 import {
   RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX,
@@ -368,8 +367,12 @@ export class PrismaStorage implements StorageService, DatastreamService {
   protected async prepareGridFs(): Promise<void> {
     if (!this.binaryRegistered) {
       registerPersistenceResource(this.binaryApp, 'storage-gridfs', {
+        quiesce: () => {
+          this.binaryClosing = true;
+        },
         drain: async () => {
           this.binaryClosing = true;
+          await drainAcceptedPersistenceWork(this.binaryApp);
           while (this.binaryActive.size) await Promise.allSettled(this.binaryActive);
         },
         close: async () => {
@@ -387,7 +390,8 @@ export class PrismaStorage implements StorageService, DatastreamService {
   }
 
   private binaryOperation<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.binaryClosing) return Promise.reject(new Error('Storage byte owner is draining.'));
+    if (this.binaryClosing && !persistenceReady(this.binaryApp))
+      return Promise.reject(new Error('Storage byte owner is draining.'));
     return this.trackBinary(Promise.resolve().then(operation));
   }
 

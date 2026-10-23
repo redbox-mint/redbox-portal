@@ -91,3 +91,20 @@ accepted callback promises. Required remote imports belong in named bootstrap
 work rather than recurring work. PDF retains its existing explicit activation and
 owned retry/browser lifecycle. The temporary Sails adapters alone translate ready
 callbacks, global lookup, legacy lazy queue initialization and shutdown hooks.
+
+Resources may implement synchronous, idempotent `quiesce()` to close producer
+admission before draining. The application invokes it immediately on stop, then
+awaits accepted startup/work, resource drains and close, Prisma clients and pools.
+Use the existing persistence owner and `runAcceptedPersistenceWork(owner, asyncWork)`
+for a concrete accepted callback lifetime. Repository operations inside that live
+scope can finish during shutdown; unrelated callers and detached descendants after
+scope settlement are denied. Queue handlers enter this scope; persisted cron
+operations supply their owner. Do not retain a scope for unbounded detached work.
+
+Supply the same `owner` to the partial Express host for persistent handlers. Its
+existing HTTP lifetime interface owns `trackHttpRequestWork`, callback/response
+handoffs and accepted request context. A finished/aborted response alone cannot
+release explicitly tracked work. P4/P5 route adapters must retain returned action
+work and session handoffs through this interface; the partial host does not yet
+adapt arbitrary legacy actions. Future upload/socket/native owners must use this
+resource contract and keep real work, including late completion writes, owned.

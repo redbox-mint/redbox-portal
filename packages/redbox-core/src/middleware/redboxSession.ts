@@ -56,6 +56,7 @@ export function redboxSession(sessionConfig: session.SessionOptions & { [key: st
     const owned: { store?: MongoStore } = {};
     if (typeof sails !== 'undefined')
       registerPersistenceResource(sails, 'sessions', {
+        quiesce: () => { closing = true; },
         drain,
         close: async () => {
           await owned.store?.close();

@@ -80,9 +80,12 @@ export namespace Services {
       if (this.stopping) throw new Error('PDF owner is stopping.');
       this.active = true;
     }
-    public async drain(): Promise<void> {
+    public quiesce(): void {
       this.active = false;
       this.stopping = true;
+    }
+    public async drain(): Promise<void> {
+      this.quiesce();
       await this.shutdownPDFRetries();
       for (const [resource, close] of this.retainedCleanups) {
         await close();

@@ -42,6 +42,7 @@ export class LegacyAgendaQueue extends AgendaQueue {
           : undefined;
       },
       hasAcceptedRequest: () => hasActiveHttpRequest(app()),
+      runAcceptedWork: work => work(),
       drainRequests: () => drainHttpRequests(app()),
     });
   }

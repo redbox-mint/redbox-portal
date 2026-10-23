@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { ApplicationRuntime } from '../../src/application';
 import { AgendaQueue, prepareAgendaIndexes } from '../../src/queues';
 import { initializePersistence, persistenceStatus } from '../../src/persistence/runtime';
+import { initializeReferencePersistence, getReferenceRepositories } from '../../src/persistence/reference/runtime';
+import { ensureReferencePersistenceIndexes } from '../../src/persistence/reference/preflight';
+import { GridFSDriver } from '../../src/storage/GridFSDriver';
+import { ExpressHost } from '../../src/http/express';
+import { trackHttpRequestWork } from '../../src/middleware/requestLifetime';
+import { persistenceOperation } from '../../src/persistence/runtime';
 import type { AgendaQueueConfig } from '../../src/config/agendaQueue.config';
 
 const log = { warn() {}, verbose() {}, error() {}, info() {} };
@@ -154,6 +160,152 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     assert.equal(await db.collection('agendaJobs').countDocuments(), 0);
     assert.equal(persistenceStatus(owner).pools, 0);
   });
+  it('quiesces synchronously, preserves a real handler and its completion writes through deadline/retry', async () => {
+    const { promise: held, resolve: release } = Promise.withResolvers<void>();
+    const { promise: entered, resolve: enter } = Promise.withResolvers<void>();
+    const { promise: detachedGate, resolve: detach } = Promise.withResolvers<void>();
+    let detached!: Promise<void>;
+    let queue!: AgendaQueue;
+    const fixtureInput = await fixture(
+      {
+        work: { fnName: 'work', options: { lockLifetime: 2000 } },
+        audit: { fnName: 'audit' },
+      },
+      name =>
+        name === 'audit'
+          ? async () => {}
+          : async () => {
+              detached = (async () => {
+                await detachedGate;
+                await persistenceOperation(owner, async () => {});
+              })();
+              void detached.catch(() => {});
+              enter();
+              await held;
+              await getReferenceRepositories(owner).recordTypes.createDefinition({
+                branding: brand,
+                name: 'completion',
+                packageType: 'dataset',
+              });
+              await bytes.put('audit.txt', 'completed');
+              await queue.now('audit', { result: 'completed' });
+            }
+    );
+    const { owner, db } = fixtureInput;
+    queue = fixtureInput.queue;
+    const brand = new ObjectId().toHexString();
+    const bytes = new GridFSDriver({ bucketName: 'completion-bytes' }, undefined, undefined, owner);
+    await ensureReferencePersistenceIndexes(owner);
+    const app = new ApplicationRuntime(owner, [
+      {
+        name: 'reference',
+        create: () => ({ initialize: () => initializeReferencePersistence(owner), close: async () => {} }),
+      },
+      { name: 'queue', create: () => queue },
+    ]);
+    apps.push(app);
+    await app.initialize();
+    await app.activate();
+    await queue.now('work');
+    await entered;
+    const stopping = app.stop({ deadlineMs: 10 });
+    const failedStop = assert.rejects(stopping, /deadline/);
+    assert.equal(app.status().ready, false);
+    await assert.rejects(queue.now('audit'), /draining/);
+    assert.throws(() => getReferenceRepositories(owner), /not been initialized/);
+    await failedStop;
+    assert.equal(app.status().cleanupPending, true);
+    assert.equal(app.status().stopFailed, true);
+    assert(persistenceStatus(owner).pools > 0);
+    assert(persistenceStatus(owner).prismaClients > 0);
+    release();
+    try {
+      await app.stop({ deadlineMs: 5000 });
+      assert.equal(await db.collection('recordtype').countDocuments({ name: 'completion' }), 1);
+      assert.equal(await db.collection('completion-bytes.files').countDocuments({ filename: 'audit.txt' }), 1);
+      assert.equal(
+        await db.collection('agendaJobs').countDocuments({ name: 'audit' }),
+        1,
+        'accepted completion enqueue is durable'
+      );
+      assert.equal(
+        await db.collection('agendaJobs').countDocuments({ name: 'work', lastFinishedAt: { $type: 'date' } }),
+        1
+      );
+      assert.equal(persistenceStatus(owner).pools, 0);
+      assert.equal(persistenceStatus(owner).prismaClients, 0);
+      detach();
+      await assert.rejects(detached, /draining/);
+    } finally {
+      release();
+      detach();
+    }
+  });
+
+  for (const aborted of [false, true]) {
+    it(`retains actual HTTP completion after ${aborted ? 'transport abort' : 'response finish'} and closes pools only after a retry`, async () => {
+      const { owner, db } = await fixture({}, () => undefined);
+      await ensureReferencePersistenceIndexes(owner);
+      const { promise: held, resolve: release } = Promise.withResolvers<void>();
+      const { promise: entered, resolve: enter } = Promise.withResolvers<void>();
+      const brand = new ObjectId().toHexString();
+      const app = new ApplicationRuntime(owner, [
+        {
+          name: 'reference',
+          create: () => ({ initialize: () => initializeReferencePersistence(owner), close: async () => {} }),
+        },
+      ]);
+      apps.push(app);
+      const host = new ExpressHost(app, {
+        owner,
+        hostname: '127.0.0.1',
+        port: 0,
+        prepare: async router => {
+          router.get('/write', (req, res) => {
+            const work = (async () => {
+              enter();
+              await held;
+              await getReferenceRepositories(owner).recordTypes.createDefinition({
+                branding: brand,
+                name: 'http-completion',
+                packageType: 'dataset',
+              });
+            })();
+            trackHttpRequestWork(req, work);
+            if (aborted) res.destroy();
+            else res.end('accepted');
+          });
+        },
+      });
+      await host.initialize();
+      await host.activate();
+      const url = `http://127.0.0.1:${host.address()!.port}/write`;
+      const response = fetch(url).then(result => result.text());
+      void response.catch(() => {});
+      await entered;
+      if (aborted) await assert.rejects(response);
+      else assert.equal(await response, 'accepted');
+      try {
+        await assert.rejects(host.stop({ deadlineMs: 10 }), /deadline/);
+        assert.equal(host.status().ready, false);
+        assert.equal(app.status().ready, false);
+        assert(persistenceStatus(owner).pools > 0);
+        assert(persistenceStatus(owner).prismaClients > 0);
+        await assert.rejects(
+          persistenceOperation(owner, async () => {}),
+          /draining/
+        );
+        release();
+        await host.stop({ deadlineMs: 5000 });
+        assert.equal(await db.collection('recordtype').countDocuments({ name: 'http-completion' }), 1);
+        assert.equal(persistenceStatus(owner).pools, 0);
+      } finally {
+        release();
+        await host.stop();
+      }
+    });
+  }
+
   after(() => {
     assert.equal(Reflect.get(globalThis, 'sails'), undefined);
     assert.equal(

@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { mongoDatabase, mongoResourceDatabase } from '../persistence/runtime';
+import { mongoDatabase, mongoResourceDatabase, runAcceptedPersistenceWork } from '../persistence/runtime';
 import { PersistenceError } from '../persistence/errors';
 import type { PersistenceOwner } from '../persistence/owner';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -24,6 +24,7 @@ export interface AgendaQueueInput {
   handler(name: string): AgendaJobHandler | undefined;
   hasAcceptedRequest?(): boolean;
   drainRequests?(): Promise<void>;
+  runAcceptedWork?<T>(work: () => Promise<T>): Promise<T>;
 }
 type AgendaMap = Partial<Record<AgendaQueueBackend, Agenda>>;
 type LegacyAgendaJobsQuery = {
@@ -70,6 +71,7 @@ export class AgendaQueue implements QueueService {
   private backendOperations = new Set<Promise<unknown>>();
   private claimReleases = new Set<() => Promise<void>>();
   private workerDrain?: Promise<void>;
+  private completionTimerStarted = false;
   private startedAgendas = new Set<Agenda>();
   private agendaDrains = new Map<Agenda, Promise<void>>();
   private agendaStarts = new Set<Promise<void>>();
@@ -93,7 +95,9 @@ export class AgendaQueue implements QueueService {
       const context = { active: true };
       const pending = this.workerContext.run(context, async () => {
         try {
-          return await handler(job);
+          return await (this.input.runAcceptedWork
+            ? this.input.runAcceptedWork(() => handler(job))
+            : runAcceptedPersistenceWork(this.input.owner, () => handler(job)));
         } finally {
           // Detached descendants cannot keep admission after the handler settles.
           context.active = false;
@@ -111,7 +115,8 @@ export class AgendaQueue implements QueueService {
   }
 
   protected async drainWorkers(): Promise<void> {
-    if (!this.closing) {
+    if (!this.completionTimerStarted) {
+      this.completionTimerStarted = true;
       // A failed stop/unlock must not revoke accepted completion work early,
       // or extend its original admission deadline when cleanup is retried.
       this.completionDeadline = setTimeout(() => {
@@ -375,6 +380,10 @@ export class AgendaQueue implements QueueService {
     if (this.closing) throw new Error('AgendaQueue is stopping.');
     this.active = true;
   }
+  public quiesce(): void {
+    this.closing = true;
+    for (const agenda of this.startedAgendas) void this.drainAgenda(agenda).catch(() => {});
+  }
   public async drain(): Promise<void> {
     await this.drainWorkers();
   }
@@ -396,8 +405,9 @@ export class AgendaQueue implements QueueService {
     this.application = undefined;
   }
   /** Only the comparison adapter permits legacy lazy startup. */
-  protected normalAdmission(): void {
-    if (!this.active) throw new Error('AgendaQueue submissions require active application admission.');
+  protected normalAdmission(completion = false): void {
+    if (!this.active && !(completion && this.completionAdmission && this.workerContext.getStore()?.active))
+      throw new Error('AgendaQueue submissions require active application admission.');
   }
   protected registerOwnership(): void {}
 
@@ -991,14 +1001,14 @@ export class AgendaQueue implements QueueService {
   }
 
   public schedule(jobName: string, schedule: string, data: unknown = undefined) {
-    this.normalAdmission();
+    this.normalAdmission(true);
     this.accepting(true);
     this.ensureScheduleSupported(jobName, schedule, data);
     return this.track(this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data)));
   }
 
   public async now(jobName: string, data: unknown = undefined) {
-    this.normalAdmission();
+    this.normalAdmission(true);
     this.accepting(true);
     if (!this.hasQueueRuntimeState()) {
       await this.handleReady();

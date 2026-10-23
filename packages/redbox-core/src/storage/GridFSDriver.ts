@@ -1,4 +1,11 @@
-import { registerPersistenceResource, mongoDatabase, mongoResourceDatabase } from '../persistence/runtime';
+import type { PersistenceOwner } from '../persistence/owner';
+import {
+  registerPersistenceResource,
+  mongoDatabase,
+  mongoResourceDatabase,
+  persistenceReady,
+  drainAcceptedPersistenceWork,
+} from '../persistence/runtime';
 /// <reference path="../sails.ts" />
 import { createHash } from 'node:crypto';
 import { basename, posix } from 'node:path';
@@ -61,13 +68,13 @@ interface GridFSCache {
   closing: boolean;
   closed: boolean;
 }
-type GridFSApplication = Sails.Application & { [gridfsCacheKey]?: GridFSCache };
+type GridFSApplication = PersistenceOwner & { [gridfsCacheKey]?: GridFSCache };
 
 export class GridFSDriver {
   private static offlineState?: GridFSCache;
   private readonly state: GridFSCache;
 
-  private static stateFor(app?: Sails.Application): GridFSCache {
+  private static stateFor(app?: PersistenceOwner): GridFSCache {
     const create = (registered = false): GridFSCache => ({
       connections: new Map(),
       active: new Set(),
@@ -85,7 +92,13 @@ export class GridFSDriver {
     const state = holder[gridfsCacheKey]!;
     if (!state.registered) {
       registerPersistenceResource(app, 'gridfs', {
-        drain: () => GridFSDriver.drain(app),
+        quiesce: () => {
+          state.closing = true;
+        },
+        drain: async () => {
+          await drainAcceptedPersistenceWork(app);
+          await GridFSDriver.drain(app);
+        },
         close: async () => {
           await GridFSDriver.dispose(app);
           holder[gridfsCacheKey]!.registered = false;
@@ -106,7 +119,7 @@ export class GridFSDriver {
     options: GridFSDriverOptions = {},
     bucketFactory: GridFSBucketFactory = (db, bucketOptions) => new GridFSBucket(db, bucketOptions),
     dbFactory: MongoDbFactory = resolvedOptions => GridFSDriver.connectDb(resolvedOptions, this.state, this.app),
-    private readonly app = typeof sails === 'undefined' ? undefined : sails
+    private readonly app: PersistenceOwner | undefined = typeof sails === 'undefined' ? undefined : sails
   ) {
     this.options = GridFSDriver.resolveOptions(options);
     this.bucketFactory = bucketFactory;
@@ -297,11 +310,12 @@ export class GridFSDriver {
   }
 
   public bucket(bucketName: string): GridFSDriver {
-    if (this.state.closing || this.state.closed) throw new Error('GridFSDriver: storage is draining or closed');
+    if (this.state.closed || (this.state.closing && !(this.app && persistenceReady(this.app))))
+      throw new Error('GridFSDriver: storage is draining or closed');
     return new GridFSDriver({ ...this.options, bucketName }, this.bucketFactory, this.dbFactory, this.app);
   }
 
-  private static async drain(app?: Sails.Application): Promise<void> {
+  private static async drain(app?: PersistenceOwner): Promise<void> {
     const state = app ? (app as GridFSApplication)[gridfsCacheKey] : this.offlineState;
     if (!state) return;
     state.closing = true;
@@ -309,7 +323,7 @@ export class GridFSDriver {
     while (state.active.size) await Promise.allSettled(state.active);
   }
 
-  public static async dispose(app?: Sails.Application): Promise<void> {
+  public static async dispose(app?: PersistenceOwner): Promise<void> {
     const state = app ? (app as GridFSApplication)[gridfsCacheKey] : this.offlineState;
     if (!state) return;
     await this.drain(app);
@@ -319,7 +333,7 @@ export class GridFSDriver {
   }
 
   private operation<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state.closing || this.state.closed)
+    if (this.state.closed || (this.state.closing && !(this.app && persistenceReady(this.app))))
       return Promise.reject(new Error('GridFSDriver: storage is draining or closed'));
     return this.track(Promise.resolve().then(operation));
   }
@@ -365,7 +379,7 @@ export class GridFSDriver {
   private static async connectDb(
     options: Required<GridFSDriverOptions>,
     state: GridFSCache,
-    app?: Sails.Application
+    app?: PersistenceOwner
   ): Promise<Db> {
     if (!app) throw new Error('GridFSDriver requires an application-owned persistence runtime.');
     const key = createHash('sha256')

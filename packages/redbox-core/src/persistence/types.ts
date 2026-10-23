@@ -19,6 +19,8 @@ export type PersistenceGroup =
 
 /** A resource must stop accepting work and await in-flight work before pools close. */
 export interface PersistenceResource {
+  /** Synchronously close producer admission. Must be idempotent and must not release dependencies. */
+  quiesce?(): void;
   drain?(): Promise<void>;
   close(): Promise<void>;
 }

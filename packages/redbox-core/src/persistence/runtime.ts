@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { PersistenceOwner } from './owner';
 import type { Db, MongoClient } from 'mongodb';
 import { PersistenceError, safePersistenceFailure } from './errors';
@@ -69,6 +70,8 @@ interface Pool {
 }
 interface Runtime {
   ready: boolean;
+  quiescing?: boolean;
+  context: AsyncLocalStorage<{ active: boolean }>;
   closed?: boolean;
   needsCleanup?: boolean;
   closing?: Promise<void>;
@@ -87,6 +90,7 @@ function stateFor(app: PersistenceOwner): Runtime {
     Object.defineProperty(holder, runtimeKey, {
       value: {
         ready: false,
+        context: new AsyncLocalStorage<{ active: boolean }>(),
         pools: new Map(),
         failedClients: new Set(),
         databases: new Map(),
@@ -108,13 +112,14 @@ export async function initializePersistence(app: PersistenceOwner): Promise<void
   if (state.ready) return;
   assertPersistenceConfiguration(app.config);
   state.ready = true;
+  state.quiescing = false;
   state.closed = false;
 }
 
 /** App-owned queue/session/blob resources; callbacks expose no driver types. */
 export function registerPersistenceResource(app: PersistenceOwner, name: string, resource: PersistenceResource): void {
   const state = stateFor(app);
-  if (state.closing || state.needsCleanup || state.closed)
+  if (state.closing || state.needsCleanup || state.closed || (state.quiescing && !state.context.getStore()?.active))
     throw new PersistenceError(
       'lifecycle',
       'Cannot register a resource during or after shutdown. Await cleanup and initialize persistence before acquiring resources.'
@@ -122,6 +127,7 @@ export function registerPersistenceResource(app: PersistenceOwner, name: string,
   if (state.resources.has(name))
     throw new PersistenceError('lifecycle', `Persistence resource ${name} is already registered.`);
   state.resources.set(name, resource);
+  if (state.quiescing) resource.quiesce?.();
 }
 
 /**
@@ -157,7 +163,7 @@ async function ownedDatabase(
   resolve: () => import('./mongodb/configuration').ResolvedDatastore
 ): Promise<Db> {
   const state = stateFor(app);
-  if (!state.ready || state.closing)
+  if (!operationAdmitted(state))
     throw new PersistenceError(
       'not-initialized',
       'Await persistence initialization before acquiring a datastore; shutdown refuses new work.'
@@ -221,7 +227,7 @@ export function prismaDatabase(
   datastore: string = name
 ): Promise<CorePrismaClient | StoragePrismaClient> {
   const state = stateFor(app);
-  if (!state.ready || state.closing)
+  if (!operationAdmitted(state))
     return Promise.reject(new PersistenceError('not-initialized', 'Persistence is unavailable or draining.'));
   let entry = state.prisma.get(name);
   if (entry && entry.datastore !== datastore)
@@ -250,14 +256,14 @@ export function prismaDatabase(
 /** Internal readiness guard for repository getters; never acquires resources. */
 export function persistenceReady(app: PersistenceOwner): boolean {
   const state = stateFor(app);
-  return state.ready && !state.closing;
+  return operationAdmitted(state);
 }
 
 /** Safe ownership diagnostics; no clients, credentials or configuration escape. */
 export function persistenceStatus(app: PersistenceOwner) {
   const state = stateFor(app);
   return {
-    ready: state.ready && !state.closing,
+    ready: state.ready && !state.closing && !state.quiescing,
     cleanupPending: state.needsCleanup === true,
     resources: [...state.resources.keys()],
     operations: state.active.size,
@@ -271,24 +277,66 @@ export function persistenceStatus(app: PersistenceOwner) {
  * @internal
  * @remarks Retained adapter references refuse work once shutdown begins.
  */
-export function persistenceOperation<T>(app: PersistenceOwner, operation: () => Promise<T>): Promise<T> {
-  const state = stateFor(app);
-  if (!state.ready || state.closing)
-    return Promise.reject(new PersistenceError('lifecycle', 'Persistence is unavailable or draining.'));
-  const pending = Promise.resolve().then(operation);
-  state.active.add(pending);
-  void pending.then(
-    () => state.active.delete(pending),
-    () => state.active.delete(pending)
+function operationAdmitted(state: Runtime): boolean {
+  return (
+    !state.closed && ((state.ready && !state.quiescing && !state.closing) || state.context.getStore()?.active === true)
   );
-  return pending;
+}
+
+/** A bounded caller-owned lifetime. Detached descendants lose admission on settlement. */
+export function runAcceptedPersistenceWork<T>(app: PersistenceOwner, operation: () => Promise<T>): Promise<T> {
+  const state = stateFor(app);
+  if (!operationAdmitted(state))
+    return Promise.reject(new PersistenceError('lifecycle', 'Persistence is unavailable or draining.'));
+  const scope = { active: true };
+  const { promise, resolve, reject } = Promise.withResolvers<T>();
+  state.active.add(promise);
+  const settled = () => {
+    scope.active = false;
+    state.active.delete(promise);
+  };
+  void promise.then(settled, settled);
+  state.context.run(scope, () => {
+    try {
+      Promise.resolve(operation()).then(resolve, reject);
+    } catch (error) {
+      reject(error);
+    }
+  });
+  return promise;
+}
+
+export function persistenceOperation<T>(app: PersistenceOwner, operation: () => Promise<T>): Promise<T> {
+  return runAcceptedPersistenceWork(app, () => Promise.resolve().then(operation));
+}
+
+/** Fence producers immediately; completion scopes retain access to their existing dependencies. */
+export function quiescePersistence(app: PersistenceOwner): void {
+  const state = stateFor(app);
+  state.quiescing = true;
+  let failed = false;
+  for (const resource of state.resources.values()) {
+    try {
+      resource.quiesce?.();
+    } catch {
+      failed = true;
+    }
+  }
+  if (failed) throw new PersistenceError('cleanup', 'Resource quiesce failed. Ownership is retained; retry stop.');
+}
+
+/** Native completion owners call this before their final drain. No new registry. @internal */
+export async function drainAcceptedPersistenceWork(app: PersistenceOwner): Promise<void> {
+  const state = stateFor(app);
+  while (state.active.size) await Promise.allSettled(state.active);
 }
 
 export async function cleanupPersistence(app: PersistenceOwner): Promise<void> {
   const state = stateFor(app);
   if (state.closing) return state.closing;
-  state.ready = false;
   state.needsCleanup = true;
+  quiescePersistence(app);
+  state.ready = false;
   state.closing = (async () => {
     try {
       await Promise.all(
@@ -306,7 +354,7 @@ export async function cleanupPersistence(app: PersistenceOwner): Promise<void> {
     // even while an accepted connection acquisition is still pending.
     await Promise.allSettled(state.databases.values());
     await Promise.allSettled(Array.from(state.prisma.values(), entry => entry.client));
-    await Promise.allSettled(state.active);
+    await drainAcceptedPersistenceWork(app);
     const failures: unknown[] = [];
     for (const [name, resource] of state.resources) {
       try {

@@ -85,6 +85,7 @@ export function composeExtensionApplication(
         return {
           initialize: () => instance.initialize(),
           activate: () => instance.activate?.() ?? Promise.resolve(),
+          quiesce: () => instance.quiesce?.(),
           drain: () => instance.drain?.() ?? Promise.resolve(),
           close: async () => {
             await instance.close();

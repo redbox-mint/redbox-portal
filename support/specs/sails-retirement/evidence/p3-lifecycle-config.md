@@ -264,3 +264,79 @@ The upstream watchdog's passive delay remains a process-exit consideration for
 long-lived production job lock settings; it performs no I/O once the handler has
 settled. It is not evidence of a retained connection or a running handler.
 No existing assertion, configured timeout, skip or dependency pin was weakened.
+
+## SR-024 — Quiesce, scoped completion and retryable draining
+
+SR-023 commit `a9f53a126`. The existing persistence resource interface now has
+synchronous idempotent `quiesce()`. Application stop and the partial Express host
+fence admission immediately; initialized/activating modules, queue, cron, native
+GridFS/storage, sessions and PDF retain their original registry and close order.
+Acquisitions already in accepted initialization scopes stay owned; new stages
+cannot begin. Quiesce failure remains observable and retryable. No second native
+resource registry or process signal owner was added.
+
+The persistence owner's AsyncLocalStorage scopes allow accepted startup, queue,
+cron and HTTP work to complete repository/late enqueue/native writes while unrelated
+operations are denied. Each accepted operation stays in the existing active set;
+settled scopes revoke detached descendants. Native GridFS owners wait these scopes
+before their final stream drain, covering bytes started by a late completion.
+Different owners cannot borrow each other's admission. Prisma closes after every
+native dependent, then pooled clients close. Cleanup failure/deadline keeps status
+unready with retained ownership, and retry cannot restart a stopped instance.
+
+The partial Express host reuses `middleware/requestLifetime.ts`, now structurally
+typed, and accepts the same explicit persistence owner. It tracks actual declared
+request work past response finish or transport abort; transport closure alone
+never releases that work. P4/P5 still own full returned-action/session middleware
+adaptation. Existing nonpersistent host/test interfaces and comparison sessions
+remain intact. `configuration-v6.md` documents bounded **30,000 ms** defaults,
+explicit application/host/Agenda settings, container grace, longer uploads and the
+pinned Agenda passive-watchdog process-exit consideration.
+
+Qualified commands (Node **26.11.1**, Mongo **8.0.34 / FCV 8.0**):
+
+```sh
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+npm --prefix packages/sails-hook-redbox-storage-mongo run build
+npm --prefix packages/sails-hook-redbox-pdfgen run compile
+# From packages/redbox-core (absolute qualified PATH):
+TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 15000 test/application/Application.test.ts test/application/Initialization.test.ts test/application/Quiesce.test.ts test/http/ExpressHost.test.ts test/services/AgendaQueueService.test.ts test/queues/ScheduledWork.test.ts
+# Root:
+LIFECYCLE_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p3_lifecycle npm --prefix packages/redbox-core run test:lifecycle:mongo
+EXTENSIONS_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p2_extensions node --test packages/redbox-core/test/extensions/storage-mongo.cjs
+node --test packages/redbox-core/test/extensions/pdf-lifecycle.cjs
+MONGO_TEST_URL=mongodb://127.0.0.1:34902/sr_p3_storage MONGO_CONCURRENCY_TEST_URL=mongodb://127.0.0.1:34902/sr_p3_storage npm --prefix packages/sails-hook-redbox-storage-mongo test
+npm --prefix packages/sails-hook-redbox-pdfgen run test:unit
+npm run lint
+```
+
+Results: clean core build (including actual Prisma generation), incremental
+production compile, storage/PDF builds and strict application typecheck **exit 0**.
+Focused core/host/legacy-queue/quiesce **90 passing / 0 failing/pending** (~6 s).
+Real lifecycle **11 passing / 0 failing/pending** (~3 s): a held real Agenda handler
+finishes its persisted record, late GridFS byte write and durable audit enqueue
+through a failed stop/retry; finished and aborted HTTP transports retain held real
+repository writes. All verify live Prisma clients/pools during timeout, refusal of
+outside work, actual persisted completion, and zero clients/pools after retry.
+Detached descendants are refused. No required Mongo case is skipped.
+
+Existing compiled standalone storage **3 passing / 0 failing/skipped** (~6.6 s),
+including held real GridFS upload; PDF lifecycle **5 passing / 0 failing/skipped**
+(~2.2 s), including uninterruptible datastream write, retry interruption and failed
+browser close retry. Complete storage suite with both real Mongo inputs **304
+passing / 0 failures/pending** (~50 s); complete PDF unit suite **75 passing /
+0 failures/pending** (~1 s). Browser lifecycle fixtures substitute Chromium; public
+PDF/auth/upload parity remains P5/P6. Lint **887 files / 0 errors/warnings**,
+focused format and diff checks pass. No dependency change.
+
+Intermediate focused run **85 pass / 3 fail** found an over-broad second generic
+drain (changed the existing once-only drain contract) and a host retry beginning
+cleanup early because quiesce had changed readiness. Removed the generic second
+drain, made native completion owners await accepted work, and retained the first
+stop's startup/active classification across retries. All original assertions pass.
+One rerun overlapped a clean build and failed two compiled subprocess cases while
+dist was absent; rerunning after build passed without deadline/assertion changes.
+This was an avoidable verification scheduling error, not accepted proof. Several
+mixed-directory edit invocations failed before touching files and were repeated
+at the repository root. No failure was hidden by a skip or timeout relaxation.
