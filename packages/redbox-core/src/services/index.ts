@@ -1,3 +1,6 @@
+import { sailsRvaImportExports } from '../compat/sails/rvaImport';
+import { sailsRolesExports } from '../compat/sails/roles';
+import { sailsUsersExports } from '../compat/sails/users';
 import { sailsIntegrationAuditExports } from '../compat/sails/integrationAudits';
 import { sailsNamedQueryServiceExports } from '../compat/sails/namedQueries';
 import { sailsReportsExports } from '../compat/sails/reports';
@@ -290,7 +293,7 @@ export const ServiceExports = {
     return sailsReportsExports();
   },
   get RolesService() {
-    return getOrCreateService('RolesService', () => new RolesServiceModule.Services.Roles().exports());
+    return sailsRolesExports();
   },
   get SassCompilerService() {
     return getOrCreateService('SassCompilerService', () =>
@@ -315,7 +318,7 @@ export const ServiceExports = {
     return getOrCreateService('TriggerService', () => new TriggerServiceModule.Services.Trigger().exports());
   },
   get UsersService() {
-    return getOrCreateService('UsersService', () => new UsersServiceModule.Services.Users().exports());
+    return sailsUsersExports();
   },
   get ViewUtilsService() {
     return getOrCreateService('ViewUtilsService', () => new ViewUtilsServiceModule.Services.ViewUtils().exports());
@@ -324,7 +327,7 @@ export const ServiceExports = {
     return sailsVocabularyExports();
   },
   get RvaImportService() {
-    return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
+    return sailsRvaImportExports();
   },
   get WorkflowStepsService() {
     return sailsWorkflowStepsExports();

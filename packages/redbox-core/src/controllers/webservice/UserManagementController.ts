@@ -1,3 +1,4 @@
+import { requireUserInBrand, mergeBrandRoleIds } from '../../identity/Users';
 import { getIdentityRepositories } from '../../persistence/runtime';
 import { identityCallback } from '../../persistence/identity/IdentityRepositories';
 import {
@@ -127,46 +128,15 @@ export namespace Controllers {
 
     public bootstrap() { }
 
-    private async requireUserInBrand(userId: string, brandId: string): Promise<UserAttributes | null> {
-      const user = await firstValueFrom(UsersService.getUserWithId(userId));
-      if (!user) {
-        return null;
-      }
-      const roles = (user.roles ?? []) as unknown as Array<Record<string, unknown>>;
-      const hasBrandRole = _.some(roles, (role: Record<string, unknown>) => {
-        const branding = role.branding as string | Record<string, unknown> | undefined;
-        const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
-        return roleBrandId === brandId;
+    private requireUserInBrand(userId: string, brandId: string): Promise<UserAttributes | null> {
+      return requireUserInBrand(userId, brandId, {
+        getUserWithId: id => UsersService.getUserWithId(id),
+        repository: getIdentityRepositories(),
       });
-      if (hasBrandRole) {
-        return user;
-      }
-      const isLinked = await getIdentityRepositories().one('userlink', {
-            brandId: brandId,
-            status: 'active',
-            or: [
-              { primaryUserId: userId },
-              { secondaryUserId: userId }
-            ]
-          } as Record<string, unknown>);
-      if (isLinked) {
-        return user;
-      }
-      return null;
     }
 
-    private mergeBrandRoleIds(user: UserModel | UserAttributes, brandId: string, brandRoleIds: Array<string | number>): Array<string | number> {
-      const foreignRoleIds = ((user.roles ?? []) as unknown as Array<Record<string, unknown>>)
-        .filter((role: Record<string, unknown>) => {
-          const branding = role.branding as string | Record<string, unknown> | undefined;
-          const roleBrandId = _.isObject(branding)
-            ? String((branding as Record<string, unknown>).id ?? '')
-            : String(branding ?? '');
-          return roleBrandId !== brandId;
-        })
-        .map((role: Record<string, unknown>) => role.id as string | number)
-        .filter((roleId: string | number | undefined) => roleId != null);
-      return _.uniq([...foreignRoleIds, ...brandRoleIds]);
+    private mergeBrandRoleIds(...args: Parameters<typeof mergeBrandRoleIds>) {
+      return mergeBrandRoleIds(...args);
     }
 
     public async listUsers(req: Sails.Req, res: Sails.Res) {
