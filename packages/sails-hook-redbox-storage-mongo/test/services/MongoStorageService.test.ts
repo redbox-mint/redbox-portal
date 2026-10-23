@@ -2563,6 +2563,28 @@ describe('MongoStorageService', function () {
     });
   }
 
+  for (const method of ['getRecords', 'getDeletedRecords']) {
+    it(`preserves invalid sort validation through the deployed ${method} guard`, async () => {
+      const runtime = require('@researchdatabox/redbox-core');
+      const { guardPrismaStorage } = require('../../src/persistence/PrismaStorage');
+      await runtime.initializePersistence(mockSails);
+      const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
+      const run = sandbox.stub(service, queryMethod);
+      const guarded = guardPrismaStorage(mockSails, service);
+      try {
+        const failure = await guarded[method](
+          'draft', ['rdmp'], 0, 20, 'user', [], { id: 'brand-1' }, undefined, undefined, 'title:sideways'
+        ).then(() => undefined, (error: unknown) => error);
+        expect(failure).to.be.instanceOf(runtime.RBValidationError);
+        expect(failure).to.have.property('message', 'Invalid record sort direction');
+        expect(failure).to.have.nested.property('displayErrors[0].status', '400');
+        expect(run.notCalled).to.equal(true);
+      } finally {
+        await runtime.cleanupPersistence(mockSails);
+      }
+    });
+  }
+
   it('bounds audit read errors at the deployed storage boundary', async () => {
     const { PersistenceError } = require('@researchdatabox/redbox-core');
     const { guardPrismaStorage } = require('../../src/persistence/PrismaStorage');

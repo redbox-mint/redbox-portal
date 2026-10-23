@@ -1,4 +1,5 @@
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { assertJsonValue } from '../../src/persistence/cache/validation';
 import * as persistence from '../../src/persistence/runtime';
 let migrationExecuted: sinon.SinonStub;
 let expect: Chai.ExpectStatic;
@@ -492,6 +493,38 @@ describe('DashboardConfigService', function () {
       const { input } = await service.captureLegacyInput(brand);
 
       expect(input.overrides?.recordTypes?.rdmp?.default?.dashboardType).to.equal('newer-profile');
+    });
+
+    it('persists JSON snapshots and findings when optional legacy fields are absent', async function () {
+      repositoryFixtures.AppConfig.find.resolves([{
+        id: 'legacy-override',
+        configData: { recordTypes: { removed: { steps: { draft: { searchable: false } } } } }
+      }]);
+      repositoryFixtures.WorkflowStep.find = sinon.stub().callsFake(async ({ recordType }: { recordType: string }) =>
+        recordType === 'rt1' ? [{ name: 'draft', config: { displayIndex: 1 } }] : []);
+      const { input, raw } = await service.captureLegacyInput(brand);
+      const conversion = convertLegacyDashboardConfiguration(input);
+      expect(raw.configuredDashboardTypes[0]).to.have.property('tableConfig', undefined);
+      expect(conversion.findings.some(finding => finding.context === undefined && finding.target === undefined)).to.equal(true);
+      // Apply the real repository's strict JSON check before the fixture serializes.
+      repositoryFixtures.AppConfig.create.callsFake(async (values: { configData: unknown }) => {
+        assertJsonValue(values.configData);
+        return {};
+      });
+      const create = store.model.create;
+      sinon.stub(store.model, 'create').callsFake(async values => {
+        assertJsonValue(values.configData);
+        assertJsonValue(values.provenance);
+        return create(values);
+      });
+
+      await service.migrateLegacyConfiguration();
+
+      const snapshot = repositoryFixtures.AppConfig.create.firstCall.args[0].configData;
+      expect(snapshot.inputFingerprint).to.equal(fingerprint(input));
+      expect(snapshot.configuredDashboardTypes[0]).not.to.have.property('tableConfig');
+      expect(snapshot.configuredDashboardTypes[0]).not.to.have.property('searchable');
+      expect(store.docs[0].provenance.migration.findings).to.deep.equal(JSON.parse(JSON.stringify(conversion.findings)));
     });
 
     it('snapshots, converts and publishes once; reruns leave published settings alone', async function () {

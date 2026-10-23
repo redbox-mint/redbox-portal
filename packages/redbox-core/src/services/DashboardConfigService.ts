@@ -1084,7 +1084,8 @@ export namespace Services {
             replacementResolvedFindingIds: resolutionFindings
               .filter(f => f.target && replacementTargets.has(targetKey(f.target)))
               .map(f => f.id),
-            findings: conversion.findings,
+            // Findings contain optional in-memory fields; persist their JSON shape.
+            findings: JSON.parse(JSON.stringify(conversion.findings)),
           },
         });
         sails.log.info(`Dashboard configuration migration: published independent settings for brand ${brand.name} (${conversion.targets.length} targets).`);
@@ -1103,7 +1104,8 @@ export namespace Services {
       await getConfigurationRepositories().appConfigs.createConfiguration({
         branding: brand.id,
         configKey: DASHBOARD_LEGACY_SNAPSHOT_KEY,
-        configData: { snapshotVersion: 1, inputFingerprint: fingerprint(input), ...raw }
+        // Match the historical JSON snapshot shape before strict repository validation.
+        configData: JSON.parse(JSON.stringify({ snapshotVersion: 1, inputFingerprint: fingerprint(input), ...raw }))
       });
     }
   }

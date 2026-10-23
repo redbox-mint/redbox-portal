@@ -1,4 +1,9 @@
-import { registerPersistenceResource, mongoDatabase, mongoResourceDatabase } from '../persistence/runtime';
+import {
+  registerPersistenceResource,
+  mongoDatabase,
+  mongoResourceDatabase,
+  persistenceOperation,
+} from '../persistence/runtime';
 /// <reference path="../sails.ts" />
 import { createHash } from 'node:crypto';
 import { basename, posix } from 'node:path';
@@ -321,7 +326,7 @@ export class GridFSDriver {
   private operation<T>(operation: () => Promise<T>): Promise<T> {
     if (this.state.closing || this.state.closed)
       return Promise.reject(new Error('GridFSDriver: storage is draining or closed'));
-    return this.track(Promise.resolve().then(operation));
+    return this.track(this.app ? persistenceOperation(this.app, operation) : Promise.resolve().then(operation));
   }
 
   private track<T>(pending: Promise<T>): Promise<T> {
