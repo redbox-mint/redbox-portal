@@ -102,6 +102,7 @@ describe('HarvestRunService', function () {
   let originalRecordTypesService: any;
   let mockSails: any;
   let recordsService: {
+    hasEditAccess: sinon.SinonStub;
     create: sinon.SinonStub;
     getMeta: sinon.SinonStub;
     updateMetaInternal: sinon.SinonStub;
@@ -118,6 +119,7 @@ describe('HarvestRunService', function () {
     originalRecordTypesService = (global as any).RecordTypesService;
 
     recordsService = {
+      hasEditAccess: sinon.stub().returns(true),
       create: sinon.stub(),
       getMeta: sinon.stub(),
       updateMetaInternal: sinon.stub(),
@@ -156,6 +158,9 @@ describe('HarvestRunService', function () {
     };
     repositoryFixtures.Record = {
       find: sinon.stub(),
+    };
+    (global as any).RecordTypesService = {
+      get: sinon.stub().returns(of({ name: 'dataset', hooks: {}, searchable: false })),
     };
     (global as any).WorkflowStepsService = {
       get: sinon.stub(),
@@ -507,7 +512,7 @@ describe('HarvestRunService', function () {
     }
   });
 
-  it('strips allowlisted request and runtime facts only from schema-disabled harvest saves', async function () {
+  it('retains public actor context for schema-disabled harvest authorization', async function () {
     repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
     recordsService.create.resolves({
       oid: 'record-1',
@@ -536,11 +541,11 @@ describe('HarvestRunService', function () {
     await submit();
     const disabledContext = recordsService.create.firstCall.args[7];
     expect(disabledContext).to.include({ operation: 'create' });
-    expect(disabledContext.routeFamily).to.equal(undefined);
-    expect(disabledContext.portal).to.equal(undefined);
-    expect(disabledContext.validationOperation).to.equal(undefined);
-    expect(disabledContext.validationRequestParameters).to.equal(undefined);
-    expect(disabledContext.validationRuntimeContext).to.equal(undefined);
+    expect(disabledContext.routeFamily).to.equal('api');
+    expect(disabledContext.portal).to.equal('tenant-portal');
+    expect(disabledContext.validationOperation).to.equal('publish');
+    expect(disabledContext.validationRequestParameters).to.deep.equal({ recordType: 'dataset', merge: true });
+    expect(disabledContext.validationRuntimeContext).to.deep.equal({ transport: 'harvest' });
 
     recordsService.create.resetHistory();
     mockSails.config.recordSchema = { enabled: true };
@@ -614,7 +619,7 @@ describe('HarvestRunService', function () {
   it('preserves disabled compatibility and legacy harvest create ACL semantics through real RecordsService', async function () {
     const { realRecordsService, schemaResolver, storageService } = useRealRecordsService(false);
     const hasEditAccess = sinon.spy(realRecordsService, 'hasEditAccess');
-    const user = { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] };
+    const user = { username: 'harvester', roles: [{ id: 'role-HarvestEditor', name: 'HarvestEditor' }] };
     const brand = { id: 'brand-1', name: 'default' };
     const recordType = { name: 'dataset', hooks: {}, searchable: false };
     repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
@@ -639,7 +644,7 @@ describe('HarvestRunService', function () {
     expect(compatibility[0].status).to.equal(true);
     expect(legacy[0].status).to.equal(true);
     expect(storageService.create.callCount).to.equal(2);
-    expect(hasEditAccess.notCalled).to.equal(true);
+    expect(hasEditAccess.called).to.equal(true);
     expect(schemaResolver.resolveCreate.notCalled).to.equal(true);
     expect(schemaResolver.persistSaveUsageReference.notCalled).to.equal(true);
     for (const call of storageService.create.getCalls()) {
@@ -666,13 +671,13 @@ describe('HarvestRunService', function () {
           { harvestId: 'tracked-upsert', operation: 'upsert', recordRequest: { metadata: { title: 'Upsert' } } },
         ],
       },
-      { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] },
+      { username: 'harvester', roles: [{ id: 'role-HarvestEditor', name: 'HarvestEditor' }] },
       harvestSaveContext()
     );
 
     expect(response.chunk.responseSummary).to.deep.include({ created: 2, failed: 0 });
     expect(storageService.create.callCount).to.equal(2);
-    expect(hasEditAccess.notCalled).to.equal(true);
+    expect(hasEditAccess.called).to.equal(true);
     expect(schemaResolver.resolveCreate.notCalled).to.equal(true);
     expect(schemaResolver.persistSaveUsageReference.notCalled).to.equal(true);
   });
@@ -1283,7 +1288,9 @@ describe('HarvestRunService', function () {
     expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0]).to.have.length(1);
     expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0][0].harvestId).to.equal('harvest-2');
     expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0][0].oid).to.equal('record-2');
-    expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0][0].message).to.equal('saved-with-warnings');
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0][0].message).to.equal(
+      'saved-with-warnings'
+    );
     expect(response.chunk.status).to.equal('processed');
     expect(response.chunk.responseSummary).to.deep.include({ totalProcessed: 2, created: 2, failed: 0 });
   });
@@ -1774,7 +1781,7 @@ describe('HarvestRunService', function () {
             ? 'HarvestRunService.updateTrackedRecord'
             : 'HarvestRunService.legacyUpdateHarvestRecord',
         },
-        authorization: { kind: 'service' },
+        authorization: { kind: 'record-edit' },
         mutationClass: 'full-record',
         metadata: rawDelta,
         metadataMode: 'merge',

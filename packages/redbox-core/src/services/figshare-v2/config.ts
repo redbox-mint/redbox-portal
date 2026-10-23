@@ -1,11 +1,7 @@
+import { resolveFigshareVocabularyConfigData } from '../../vocabulary/FigshareConfiguration';
 import { resolveFigsharePublishingConfigData } from '../../queries/FigshareStatus';
 import _ from 'lodash';
-import {
-  FigsharePublishing,
-  resolveFigshareConnectionToken,
-  type FigshareFixtureConfig,
-  type FigsharePublishingConfigData,
-} from '../../configmodels/FigsharePublishing';
+import { type FigshareFixtureConfig, type FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import type { FigshareDevConfig } from '../../config/figshareDev.config';
 import { FigshareSyncState, getRecordField, setRecordField, RecordModel } from './types';
 import { ServiceExports } from '../index';
@@ -76,14 +72,6 @@ function resolveFigshareDevConfig(): FigshareDevConfig {
   return rawConfig as FigshareDevConfig;
 }
 
-function shouldUseFixtureRuntime(figshareDev: FigshareDevConfig): boolean {
-  const environment = String(sails.config?.environment ?? process.env.NODE_ENV ?? '').toLowerCase();
-  if (environment === 'production') {
-    return false;
-  }
-  return figshareDev.enabled === true && figshareDev.mode === 'fixture';
-}
-
 /** Keep configured legacy relative delays when the new millisecond setting is absent. */
 export { legacyDelayMs } from '../../queries/FigshareStatus';
 export function resolveFigsharePublishingConfig(
@@ -117,37 +105,11 @@ export function resolveFigshareVocabularyConfig(brandName: string): ResolvedFigs
   const brandConfig =
     appConfigService?.getAppConfigurationForBrand?.(brandName) ??
     appConfigService?.getAppConfigurationForBrand?.('default');
-  const brandConfigRecord =
-    brandConfig != null && typeof brandConfig === 'object' ? (brandConfig as Record<string, unknown>) : undefined;
-  const figsharePublishing = brandConfigRecord?.figsharePublishing;
-  const figsharePublishingConfig =
-    figsharePublishing != null && typeof figsharePublishing === 'object'
-      ? (figsharePublishing as Partial<FigsharePublishingConfigData>)
-      : undefined;
-  if (figsharePublishingConfig == null) {
-    return null;
-  }
-
-  const resolvedConfig = _.merge(
-    new FigsharePublishing(),
-    _.cloneDeep(figsharePublishingConfig)
-  ) as unknown as ResolvedFigsharePublishingConfigData;
-  const figshareDev = resolveFigshareDevConfig();
-  const useFixtureRuntime = shouldUseFixtureRuntime(figshareDev);
-  resolvedConfig.runtime = {
-    mode: useFixtureRuntime ? 'fixture' : 'live',
-    fixtures: useFixtureRuntime ? _.cloneDeep(figshareDev.fixtures) : undefined,
-  };
-  resolvedConfig.connection =
-    resolvedConfig.connection != null && typeof resolvedConfig.connection === 'object'
-      ? resolvedConfig.connection
-      : { ...new FigsharePublishing().connection };
-  const connectionToken = resolvedConfig.connection.token;
-  resolvedConfig.connection.token =
-    typeof connectionToken === 'string' && connectionToken.trim() !== ''
-      ? resolveFigshareConnectionToken(connectionToken, { allowEmpty: true })
-      : '';
-  return resolvedConfig;
+  return resolveFigshareVocabularyConfigData(
+    brandConfig,
+    resolveFigshareDevConfig(),
+    String(sails.config.environment ?? process.env.NODE_ENV ?? '')
+  );
 }
 
 export function getSyncState(config: FigsharePublishingConfigData, record: RecordModel): FigshareSyncState {

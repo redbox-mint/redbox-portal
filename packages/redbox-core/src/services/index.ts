@@ -1,3 +1,8 @@
+import { sailsRecordsExports } from '../compat/sails/records';
+import { sailsSolrExports } from '../compat/sails/solr';
+import { sailsStorageManagerExports } from '../compat/sails/storageManager';
+import { sailsStandardDatastreamExports } from '../compat/sails/standardDatastream';
+import { sailsHarvestRunsExports } from '../compat/sails/harvestRuns';
 import { sailsRvaImportExports } from '../compat/sails/rvaImport';
 import { sailsRolesExports } from '../compat/sails/roles';
 import { sailsUsersExports } from '../compat/sails/users';
@@ -249,9 +254,7 @@ export const ServiceExports = {
     return sailsFormsExports();
   },
   get HarvestRunService() {
-    return getOrCreateService('HarvestRunService', () =>
-      new HarvestRunServiceModule.Services.HarvestRunService().exports()
-    );
+    return sailsHarvestRunsExports();
   },
   get I18nEntriesService() {
     return sailsTranslationEntriesExports();
@@ -278,7 +281,7 @@ export const ServiceExports = {
     return getOrCreateService('RDMPService', () => new RDMPServiceModule.Services.RDMPS().exports());
   },
   get RecordsService() {
-    return getOrCreateService('RecordsService', () => new RecordsServiceModule.Services.Records().exports());
+    return sailsRecordsExports();
   },
   get RecordTypesService() {
     return sailsRecordTypesExports();
@@ -301,9 +304,7 @@ export const ServiceExports = {
     );
   },
   get SolrSearchService() {
-    return getOrCreateService('SolrSearchService', () =>
-      new SolrSearchServiceModule.Services.SolrSearchService().exports()
-    );
+    return sailsSolrExports();
   },
   get DomSanitizerService() {
     return sailsDomSanitizerExports();
@@ -346,14 +347,10 @@ export const ServiceExports = {
     return sailsWorkspaceTypesExports();
   },
   get StorageManagerService() {
-    return getOrCreateService('StorageManagerService', () =>
-      new StorageManagerServiceModule.Services.StorageManager().exports()
-    );
+    return sailsStorageManagerExports();
   },
   get StandardDatastreamService() {
-    return getOrCreateService('StandardDatastreamService', () =>
-      new StandardDatastreamServiceModule.Services.StandardDatastream().exports()
-    );
+    return sailsStandardDatastreamExports();
   },
   get SecurityEventService() {
     return getOrCreateService('SecurityEventService', () =>
