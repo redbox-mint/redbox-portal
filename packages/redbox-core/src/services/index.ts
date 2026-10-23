@@ -1,3 +1,9 @@
+import { sailsRecordSchemaExports } from '../compat/sails/recordSchema';
+import { sailsTranslationExports } from '../compat/sails/translation';
+import { sailsDashboardTypesExports } from '../compat/sails/dashboardTypes';
+import { sailsDashboardConfigExports } from '../compat/sails/dashboardConfig';
+import { sailsWorkspaceTypesExports } from '../compat/sails/workspaceTypes';
+import { sailsWorkflowStepsExports } from '../compat/sails/workflowSteps';
 import { sailsRecordValidationExports } from '../compat/sails/recordValidation';
 import { sailsTranslationEntriesExports } from '../compat/sails/translationEntries';
 import { sailsFormsExports } from '../compat/sails/forms';
@@ -63,7 +69,6 @@ import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
 import * as RvaImportServiceModule from './RvaImportService';
 import * as StorageManagerServiceModule from './StorageManagerService';
 import * as StandardDatastreamServiceModule from './StandardDatastreamService';
-import { RecordContractContributorRegistry, type RecordContractContributorDiscoveryState } from '../record-contract';
 import * as SecurityEventServiceModule from './SecurityEventService';
 import * as SiemForwardingServiceModule from './SiemForwardingService';
 
@@ -139,39 +144,6 @@ export { SiemForwardingServiceModule as SiemForwardingService };
 // RecordTypes is application-owned and deliberately bypasses this cache.
 const serviceCache: Record<string, unknown> = {};
 
-const UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE: RecordContractContributorDiscoveryState = Object.freeze({
-  registrations: Object.freeze([]),
-  registrationIssues: Object.freeze([]),
-  componentTypes: Object.freeze([]),
-});
-let resolvedRecordSchemaContributorState: RecordContractContributorDiscoveryState | undefined;
-let resolvedRecordSchemaContributorRegistry: RecordContractContributorRegistry | undefined;
-
-function configuredRecordSchemaContributorState(): RecordContractContributorDiscoveryState {
-  return sails.config.recordContractContributorState ?? UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE;
-}
-
-function configuredRecordSchemaContributorRegistry(): RecordContractContributorRegistry | undefined {
-  const state = configuredRecordSchemaContributorState();
-  if (state !== resolvedRecordSchemaContributorState) {
-    resolvedRecordSchemaContributorState = state;
-    resolvedRecordSchemaContributorRegistry =
-      state.registrationIssues.length === 0 && state.registrations.length > 0
-        ? new RecordContractContributorRegistry(state.registrations)
-        : undefined;
-  }
-  return resolvedRecordSchemaContributorRegistry;
-}
-
-const recordSchemaContributorDependencies: Pick<
-  RecordSchemaServiceModule.RecordSchemaServiceDependencies,
-  'getContributorRegistry' | 'getContributorRegistrationIssues' | 'getContributorComponentTypes'
-> = {
-  getContributorRegistry: configuredRecordSchemaContributorRegistry,
-  getContributorRegistrationIssues: () => configuredRecordSchemaContributorState().registrationIssues,
-  getContributorComponentTypes: () => configuredRecordSchemaContributorState().componentTypes,
-};
-
 function getOrCreateService(name: string, factory: () => unknown): unknown {
   if (!serviceCache[name]) {
     serviceCache[name] = factory();
@@ -224,14 +196,10 @@ export const ServiceExports = {
     return getOrCreateService('ContrastService', () => new ContrastServiceModule.Services.Contrast().exports());
   },
   get DashboardConfigService() {
-    return getOrCreateService('DashboardConfigService', () =>
-      new DashboardConfigServiceModule.Services.DashboardConfig().exports()
-    );
+    return sailsDashboardConfigExports();
   },
   get DashboardTypesService() {
-    return getOrCreateService('DashboardTypesService', () =>
-      new DashboardTypesServiceModule.Services.DashboardTypes().exports()
-    );
+    return sailsDashboardTypesExports();
   },
   get DoiService() {
     return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
@@ -313,9 +281,7 @@ export const ServiceExports = {
     return sailsRecordTypesExports();
   },
   get RecordSchemaService() {
-    return getOrCreateService('RecordSchemaService', () =>
-      new RecordSchemaServiceModule.Services.RecordSchema(recordSchemaContributorDependencies).exports()
-    );
+    return sailsRecordSchemaExports();
   },
   get RecordValidationService() {
     return sailsRecordValidationExports();
@@ -345,9 +311,7 @@ export const ServiceExports = {
     return getOrCreateService('TemplateService', () => new TemplateServiceModule.Services.Template().exports());
   },
   get TranslationService() {
-    return getOrCreateService('TranslationService', () =>
-      new TranslationServiceModule.Services.Translation().exports()
-    );
+    return sailsTranslationExports();
   },
   get TriggerService() {
     return getOrCreateService('TriggerService', () => new TriggerServiceModule.Services.Trigger().exports());
@@ -367,9 +331,7 @@ export const ServiceExports = {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },
   get WorkflowStepsService() {
-    return getOrCreateService('WorkflowStepsService', () =>
-      new WorkflowStepsServiceModule.Services.WorkflowSteps().exports()
-    );
+    return sailsWorkflowStepsExports();
   },
   get WorkspaceAsyncService() {
     return getOrCreateService('WorkspaceAsyncService', () =>
@@ -382,9 +344,7 @@ export const ServiceExports = {
     );
   },
   get WorkspaceTypesService() {
-    return getOrCreateService('WorkspaceTypesService', () =>
-      new WorkspaceTypesServiceModule.Services.WorkspaceTypes().exports()
-    );
+    return sailsWorkspaceTypesExports();
   },
   get StorageManagerService() {
     return getOrCreateService('StorageManagerService', () =>

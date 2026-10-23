@@ -367,6 +367,22 @@
     "./translations": {
       "types": "./dist/translations/index.d.ts",
       "default": "./dist/translations/index.js"
+    },
+    "./dashboards": {
+      "types": "./dist/dashboards/index.d.ts",
+      "default": "./dist/dashboards/index.js"
+    },
+    "./workflows": {
+      "types": "./dist/workflows/index.d.ts",
+      "default": "./dist/workflows/index.js"
+    },
+    "./workspaces": {
+      "types": "./dist/workspaces/index.d.ts",
+      "default": "./dist/workspaces/index.js"
+    },
+    "./record-schema": {
+      "types": "./dist/recordSchema/index.d.ts",
+      "default": "./dist/recordSchema/index.js"
     }
   }
 }
