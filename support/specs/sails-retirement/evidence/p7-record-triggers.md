@@ -58,7 +58,8 @@ TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
 ```
 
 The **83 unchanged existing tests passed / 0 failed / 0 pending**, exit 0,
-about three seconds. No existing test/assertion/timeout changed. An initial focused
+about three seconds: **RDMPService 61**, **RDMP logging privacy 22**.
+No existing test/assertion/timeout changed. An initial focused
 invocation accidentally selected the shell's Node 24 because its toolchain path
 was relative to the core directory; that run also passed 83 but is not the Node-26
 qualification. The corrected command emitted `v26.11.1` before running. Final log:

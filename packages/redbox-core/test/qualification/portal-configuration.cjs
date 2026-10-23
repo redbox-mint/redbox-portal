@@ -137,21 +137,48 @@ test('data URI rules preserve real DOMPurify behavior with immutable startup con
   }
 });
 
-test('bundled development registration supplies neutral page configuration and real form/type data', async () => {
+test('all bundled registrations supply neutral page, storage, PDF and real form/type data', async () => {
   const { registerRedboxExtension } = require('redbox-hook-dev/extension');
   const declaration = registerRedboxExtension();
+  const storage = require('@researchdatabox/sails-hook-redbox-storage-mongo/extension').registerRedboxExtension();
+  const pdf = require('../../../sails-hook-redbox-pdfgen/dist/extension').registerRedboxExtension();
   assert.equal(declaration.config.routes, undefined);
   assert.equal(declaration.config.views, undefined);
   assert.equal(declaration.config.page.landingPath, '/default/rdmp/home');
   assert(declaration.config.page.noCache.includes('/default/rdmp/home'));
   const config = await loadPortalConfiguration({
     env,
-    extensions: { providers: [{ name: 'redbox-hook-dev', root: __dirname, declaration }] },
+    extensions: {
+      providers: [
+        { name: 'redbox-hook-dev', root: __dirname, declaration },
+        { name: 'storage', root: __dirname, declaration: storage },
+        { name: 'pdf', root: __dirname, declaration: pdf },
+      ],
+    },
   });
   assert(config.recordtype.dataRecord);
   assert(config.recordtype.dataPublication);
   assert(Object.keys(declaration.forms).length >= 20);
   assert(Object.keys(config.workflow).length > 0);
+  assert.equal(config.storage.serviceName, storage.config.storage.serviceName);
+  assert.equal(config.pdfgen.readinessStrategy, pdf.config.pdfgen.readinessStrategy);
+  assert.equal(config.agendaQueue.jobs['PDFService-CreatePDF'].fnName, pdf.jobs['PDFService-CreatePDF'].fnName);
+  assert(Object.isFrozen(config.pdfgen.PDFOptions));
+  await assert.rejects(
+    loadPortalConfiguration({
+      env,
+      extensions: {
+        providers: [
+          {
+            name: 'invalid-pdf',
+            root: __dirname,
+            declaration: { apiVersion: 1, config: { pdfgen: { ...pdf.config.pdfgen, maxRetries: -1 } } },
+          },
+        ],
+      },
+    }),
+    /pdfgen.maxRetries/
+  );
 });
 
 test('offline defaults ignore legacy process settings and exclude legacy logger/host imports', () => {

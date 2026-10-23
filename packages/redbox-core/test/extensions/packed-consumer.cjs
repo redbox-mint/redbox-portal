@@ -42,6 +42,18 @@ const {
   assert(development.config.recordtype.rdmp);
   assert(development.forms['default-1.0-draft']);
   assert(development.workflows.rdmp);
+  const { RecordTriggers } = require('@researchdatabox/redbox-core/record-triggers');
+  assert.equal(typeof RecordTriggers, 'function');
+  const { loadPortalConfiguration } = require('@researchdatabox/redbox-core/configuration');
+  const portal = await loadPortalConfiguration({
+    extensions: { providers: resolution.providers.filter(item => !item.name.startsWith('sr-')) },
+    env: { REDBOX_SESSION_SECRET: 'synthetic-packed-consumer-secret-at-least-32' },
+  });
+  assert(portal.recordtype.rdmp);
+  assert(portal.recordtype.dataRecord);
+  assert.equal(portal.pdfgen.readinessStrategy, 'networkIdle');
+  assert.equal(portal.storage.serviceName, 'mongostorageservice');
+  assert(Object.isFrozen(portal.pdfgen.PDFOptions));
   assert.equal(
     Object.keys(development.forms).some(name => name.startsWith('e2e-')),
     false
@@ -160,7 +172,7 @@ const {
   );
   console.log(
     JSON.stringify({
-      checks: 18,
+      checks: 20,
       providers: resolution.providers.map(item => item.name),
       esmOnly: true,
       topLevelAwait: true,

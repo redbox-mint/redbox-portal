@@ -247,6 +247,56 @@ export const portalSchema = deploymentSchema
     orcid: data,
     mint: data,
     peopleSearch: data,
+    pdfgen: z
+      .object({
+        token: z.string(),
+        appUrlOverride: z.string(),
+        sourceUrlBase: z.string().url().optional(),
+        pdfPrefix: z.string().min(1),
+        readinessStrategy: z.enum(['networkIdle', 'selector', 'jsFlag', 'networkIdle+selector']),
+        readinessTimeout: positive,
+        networkIdleTime: nonnegative,
+        waitForSelector: z.string(),
+        waitForFunction: z.string(),
+        enableChromeLogging: z.boolean(),
+        maxRetries: nonnegative,
+        retryDelayMs: nonnegative,
+        retryBackoffMultiplier: z.number().min(1),
+        PDFOptions: z
+          .object({
+            scale: z.number().min(0.1).max(2).optional(),
+            displayHeaderFooter: z.boolean().optional(),
+            headerTemplate: z.string().optional(),
+            footerTemplate: z.string().optional(),
+            printBackground: z.boolean().optional(),
+            landscape: z.boolean().optional(),
+            pageRanges: z.string().optional(),
+            format: z
+              .enum(['Letter', 'Legal', 'Tabloid', 'Ledger', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6'])
+              .optional(),
+            width: z.string().optional(),
+            height: z.string().optional(),
+            preferCSSPageSize: z.boolean().optional(),
+            margin: z
+              .object({
+                top: z.string().optional(),
+                bottom: z.string().optional(),
+                left: z.string().optional(),
+                right: z.string().optional(),
+              })
+              .strict()
+              .optional(),
+            omitBackground: z.boolean().optional(),
+            tagged: z.boolean().optional(),
+            outline: z.boolean().optional(),
+            timeout: nonnegative.optional(),
+            waitForFonts: z.boolean().optional(),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
     redbox: z.object({ apiKey: z.string().optional() }).strict(),
   })
   .strict();

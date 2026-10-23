@@ -224,6 +224,15 @@ RDMP/logging cases** and **1 real-Mongo/Agenda aggregate** pass with no failures
 skips. Queue submission is awaited and template configuration is immutable. The
 full production composition and broad Express suites remain open.
 
+[Portal configuration evidence](p7-portal-configuration.md) records the offline
+43-section/default composition, explicit session-secret validation and real
+bundled-hook conversion at `6dad9b837b53283e4c36c84f3391a808b520b0a7`:
+**7 compiled checks**, **104 unchanged sanitizer/queue/configuration tests**, and
+**2 unchanged DOI configuration tests** pass without failures or skips. The
+full unchanged core run at that source also passed **4481 / 7 unchanged pending /
+0 failing**, exit **0**. The remaining production prerequisite is the complete selected instance/provider,
+bootstrap/migration and HTTP/page assembly plus its owning executable.
+
 ## SR-047 — Clean packed artifacts
 
 Final native source: **`58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`**. A fresh
