@@ -1,5 +1,6 @@
 import type { RedboxExtension } from '@researchdatabox/redbox-core/extensions';
 import { getDevelopmentRegistration } from './registration';
+import { convertBuiltinRecordTypeHooks } from '@researchdatabox/redbox-core/record-types';
 
 export function registerRedboxExtension(): RedboxExtension {
   const { config, forms } = getDevelopmentRegistration();
@@ -11,7 +12,11 @@ export function registerRedboxExtension(): RedboxExtension {
     throw new Error('Development extension requires a local landing path.');
   return {
     apiVersion: 1,
-    config: { ...domains, page: { landingPath, noCache: views.noCache ?? [] } },
+    config: {
+      ...domains,
+      recordtype: convertBuiltinRecordTypeHooks(domains.recordtype),
+      page: { landingPath, noCache: views.noCache ?? [] },
+    },
     forms,
     workflows: config.workflow as Readonly<Record<string, unknown>>,
   };

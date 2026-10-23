@@ -5,11 +5,12 @@ import { workflow } from '../config/workflow';
 import { FormConfigExports } from '../form-config';
 import { createPlaywrightScenarios } from './catalogue';
 import { buildScenarioRegistration } from './builders';
+import type { ScenarioRegistration } from './types';
 
 import { playwrightScenariosEnabled } from './environment';
 export { playwrightScenariosEnabled } from './environment';
 
-export function getPlaywrightRegistration(env: NodeJS.ProcessEnv = process.env): HookRegistrationMap {
+export function getPlaywrightRegistration(env: NodeJS.ProcessEnv = process.env): HookRegistrationMap & ScenarioRegistration {
   if (!playwrightScenariosEnabled(env)) {
     return { recordtype, workflow, forms: FormConfigExports };
   }
