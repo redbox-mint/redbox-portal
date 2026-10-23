@@ -94,3 +94,10 @@ identity HTTP suite). Existing service/controller regression **556 passing,
 found two fixture brand roles missing and one TypeScript callback-arity mismatch;
 these were corrected, followed by actual reruns. Identity extraction diagnostics
 and final closeout are recorded separately; no skipped test is counted here.
+
+Full regression exposed an eager comparison lookup in `createAuthorization()`:
+harvest's ACL-only projection does not need record-type/workflow services. Those
+bindings are now lazy getters, preserving existing harvest fixture/override
+behavior. The unchanged focused harvest suite passes **26/26**; combined audit,
+attachment-journal and harvest regression passes **59/59**, no pending/failures
+(`p5-round-correction-regression2.log`). Final full-core results are in API closure.

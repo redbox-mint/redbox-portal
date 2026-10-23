@@ -2113,8 +2113,8 @@ export namespace Services {
     }
     private createAuthorization(): RecordCreateAuthorization {
       return new RecordCreateAuthorization({
-        recordTypes: RecordTypesService,
-        workflows: WorkflowStepsService,
+        get recordTypes() { return RecordTypesService; },
+        get workflows() { return WorkflowStepsService; },
         hasEditAccess: (brand, user, roles, record) => this.hasEditAccess(brand, user, roles, record),
         hasTransitionRoleAuthorization: (...args) => this.hasTransitionRoleAuthorization(...args),
       });
