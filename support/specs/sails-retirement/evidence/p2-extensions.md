@@ -44,3 +44,23 @@ dev-dependency inclusion. Early fixtures lack ESM main metadata and emit Node's
 DEP0151 warning; these fixtures are corrected in the next slice. Actual `npm pack`
 production-artifact proof follows in SR-017; this slice's cases install temporary
 package directories, and are not counted as packed-artifact evidence.
+
+## SR-013 — Neutral declarations and offline resolution
+
+`contract.ts`, `resolution.ts`, and the narrow `extensions/index.ts` implement
+apiVersion 1. The implemented interface is documented in `../extensions-v6.md`.
+Config/forms/workflows/jobs/contributors/work declarations and installed resource
+roots remain inspectable without constructing modules. Selection is per call,
+without a second process registry. Routes require explicit access and named
+replacement; collisions also normalize path parameter names. Priority matches P0:
+listed hooks win, first listed is highest, unlisted lookup is descending name;
+contributions reverse lookup. Migration declarations are sorted lexically.
+
+Executed the SR-012 command with both `test/extensions/loading.test.ts` and
+`test/extensions/resolution.test.ts`: **8 passing, 0 failing, 0 pending**.
+`npm --prefix packages/redbox-core run typecheck:application`: **exit 0**, including
+new strict extension test checks. No module factory/work runs during resolution.
+A test-local variable named `module` initially conflicted with the CommonJS wrapper
+and Mocha retried it as ESM (`exports is not defined`); renamed to `makeModule`.
+No production module-format change or assertion removal. ESM main fixture warnings
+from SR-012 are resolved by explicit main metadata.

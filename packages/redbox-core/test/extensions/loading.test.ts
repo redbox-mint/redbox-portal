@@ -17,7 +17,7 @@ describe('installed async extensions', () => {
     await mkdir(directory, { recursive: true });
     await writeFile(
       path.join(directory, 'package.json'),
-      JSON.stringify({ name, version: '1.0.0', redbox: { extension: '.' }, ...manifest })
+      JSON.stringify({ name, version: '1.0.0', main: './index.js', redbox: { extension: '.' }, ...manifest })
     );
     await writeFile(path.join(directory, 'index.js'), source);
   }
