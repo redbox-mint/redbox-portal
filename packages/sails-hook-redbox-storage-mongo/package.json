@@ -93,5 +93,20 @@
       "lcov",
       "text"
     ]
+  },
+  "redbox": {
+    "extension": "./extension"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./extension": {
+      "types": "./dist/extension.d.ts",
+      "default": "./dist/extension.js"
+    },
+    "./package.json": "./package.json",
+    "./dist/*": "./dist/*"
   }
 }

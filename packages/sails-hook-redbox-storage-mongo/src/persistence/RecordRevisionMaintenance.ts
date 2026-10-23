@@ -1,4 +1,9 @@
-import { prismaDatabase, prismaRecordRevisionBatches, persistenceOperation } from '@researchdatabox/redbox-core';
+import type { PersistenceOwner } from '@researchdatabox/redbox-core/extensions/storage';
+import {
+  prismaDatabase,
+  prismaRecordRevisionBatches,
+  persistenceOperation,
+} from '@researchdatabox/redbox-core/extensions/storage';
 import { runRecordRevisionBackfill } from './recordRevisionBackfill';
 import type { BackfillOptions, RecordRevisionBackfillStats } from './recordRevisionBackfill';
 
@@ -6,7 +11,9 @@ export interface RecordRevisionMaintenance {
   readonly backend: 'prisma';
   backfill(options?: BackfillOptions): Promise<RecordRevisionBackfillStats>;
 }
-export function recordRevisionMaintenance(app: Sails.Application): RecordRevisionMaintenance {
+export function recordRevisionMaintenance(
+  app: PersistenceOwner & { log: Pick<Console, 'warn' | 'info' | 'error'> }
+): RecordRevisionMaintenance {
   return {
     backend: 'prisma',
     backfill: options => {

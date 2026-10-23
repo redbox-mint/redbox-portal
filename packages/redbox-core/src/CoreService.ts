@@ -1,3 +1,4 @@
+import { metTriggerCondition } from './utilities/metTriggerCondition';
 import { bindNodeCallback, bindCallback, Observable, defer } from 'rxjs';
 
 // changed to a manual lodash load instead of relying on Sails global object
@@ -191,31 +192,8 @@ export namespace Services.Core {
       options: Record<string, unknown>,
       user?: unknown
     ): string {
-      const triggerCondition = _.get(options, 'triggerCondition', '') as string;
-      const forceRun = _.get(options, 'forceRun', false) as boolean;
-      const variables = {
-        record: record,
-        oid: oid,
-        user: user || null,
-        imports: {
-          record: record,
-          oid: oid,
-          user: user || null,
-        },
-      };
-
-      if (!user) {
-        this.logger.trace('No user in metTriggerCondition');
-      }
-      if (!_.isUndefined(triggerCondition) && !_.isEmpty(triggerCondition)) {
-        const compiled = _.template(triggerCondition, variables);
-        return compiled();
-      } else if (forceRun) {
-        return 'true';
-      } else {
-        // if trigger condition is not set, fail fast!
-        return 'false';
-      }
+      if (!user) this.logger.trace('No user in metTriggerCondition');
+      return metTriggerCondition(oid, record, options, user);
     }
 
     protected sleep(ms: number): Promise<void> {

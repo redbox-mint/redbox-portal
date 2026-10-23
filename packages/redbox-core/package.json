@@ -205,5 +205,32 @@
       "text"
     ]
   },
-  "packageManager": "npm@11.20.0"
+  "packageManager": "npm@11.20.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "default": "./dist/extensions/index.js"
+    },
+    "./extensions/storage": {
+      "types": "./dist/extensions/storage.d.ts",
+      "default": "./dist/extensions/storage.js"
+    },
+    "./application": {
+      "types": "./dist/application/index.d.ts",
+      "default": "./dist/application/index.js"
+    },
+    "./record-types": {
+      "types": "./dist/recordTypes/index.d.ts",
+      "default": "./dist/recordTypes/index.js"
+    },
+    "./http/express": {
+      "types": "./dist/http/express/index.d.ts",
+      "default": "./dist/http/express/index.js"
+    },
+    "./*": "./*"
+  }
 }

@@ -84,3 +84,75 @@ types to the SR-013 test handler. Correction to SR-013's intermediate record: it
 first typecheck actually failed on those two implicit parameters (the asynchronous
 command had not completed when that evidence sentence was written). The final
 strict typecheck includes both slices and passes; no compiler option was weakened.
+
+## SR-015 — Storage registration and readiness
+
+Neutral public entry `@researchdatabox/sails-hook-redbox-storage-mongo/extension`
+declares its existing config, `storage` factory and unchanged lexical revision
+backfill migration name. The existing StorageProtocol/Prisma/GridFS implementation
+now takes structural ownership plus explicit log, form, record-type, disk,
+translation and export-limit operations. The legacy constructor/events live only
+in `compat`/the legacy PrismaStorage entry. No storage data or repository interface
+was changed. There was no storage-provided schema contributor to port; the generic
+contract records contributor module prerequisites without inventing one.
+
+Core adds public `extensions`, `extensions/storage`, `application`, `record-types`
+and `http/express` package entries with existing deep-entry compatibility retained.
+The narrow storage surface re-exports existing implementations only. One trigger
+expression helper moved out of CoreService and both old/new callers delegate to
+it, avoiding a second implementation. CoreBase and the legacy barrel are absent
+from the standalone storage import graph. Configuration merging and executing
+migrations via the ledger remain P3.
+
+Real Mongo setup/observations:
+
+```sh
+docker run -d --name sr-p2-mongo8 --memory=768m -p 127.0.0.1::27017 mongo:8.0.34 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+docker port sr-p2-mongo8 27017/tcp
+docker exec sr-p2-mongo8 mongosh --quiet --eval 'JSON.stringify({version:db.version(),fcv:db.adminCommand({getParameter:1,featureCompatibilityVersion:1}).featureCompatibilityVersion})'
+```
+
+Port **34901**, live **MongoDB 8.0.34 / FCV 8.0**, unauthenticated standalone.
+Same P1 image `sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907`.
+The new fixture checks a disposable `sr_p2_extensions` URL, creates separate logical
+core/storage databases and drops only those databases at teardown.
+
+Commands actually run:
+
+```sh
+npm --prefix packages/sails-hook-redbox-storage-mongo ci --ignore-scripts --strict-peer-deps --no-audit --no-fund
+npm --prefix packages/redbox-core run build
+# Subsequent core incremental compile, from packages/redbox-core:
+./node_modules/.bin/tsc
+npm --prefix packages/sails-hook-redbox-storage-mongo run build
+EXTENSIONS_TEST_MONGO_URL=mongodb://127.0.0.1:34901/sr_p2_extensions node --test packages/redbox-core/test/extensions/storage-mongo.cjs
+MONGO_TEST_URL=mongodb://127.0.0.1:34901/sr_p2_storage MONGO_CONCURRENCY_TEST_URL=mongodb://127.0.0.1:34901/sr_p2_concurrency npm run test:storage-mongo
+npm run lint
+git diff --check
+```
+
+New standalone/Mongo: **3 passing, 0 failing, 0 skipped** (~4 seconds); missing
+indexes reject startup/clean resources, storage capability is ready before strict
+RecordTypes bootstrap, real record and GridFS read/write pass, stale handles fail,
+a fresh owner reopens data, and an accepted GridFS upload retains clients/pools
+through a failed deadline, rejects unrelated work, finishes and closes on retry.
+No global/loaded Sails, CoreBase, core barrel or compat module. This tests native
+byte ownership; HTTP uploads/Companion remain P6.
+
+Existing storage suite: **304 passing, 0 failing, 0 pending**, ~1 minute, including
+real concurrency/lifecycle/intent/backfill/pagination cases. No integration skip.
+Repo lint **exit 0**, **860 files, zero warnings/errors**. Diff check **exit 0**.
+
+Intermediate failures are not acceptance results: the initial installed storage
+Mongo driver was **6.21.0**, inconsistent with its existing **7.7.0** exact lock.
+First clean install failed EACCES on old root-owned files; a Node 26 Docker run
+restored node_modules ownership to uid/gid 1000, and locked install succeeded
+(**559 packages**). Initial builds exposed missing narrow exports and a legacy
+base-method seam; corrected explicitly. Two dependent builds ran before core's
+new declarations finished emitting and failed on missing exports; final sequential
+build supersedes them. One mistaken `npm --prefix ... exec -- tsc` ran in the root;
+the recorded core incremental compile uses its actual working directory. Initial
+Mongo fixture errors were a non-hex brand, wrong existing create signature and an
+over-specific stale-error regexp, corrected to the real contracts. Initial storage
+suite **303 passing / 1 failing** needed the existing overridable metTriggerCondition
+method preserved; the final 304-case rerun passes unchanged assertions.

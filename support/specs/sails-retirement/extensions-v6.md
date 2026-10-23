@@ -8,7 +8,7 @@ exports, ESM default registration functions/objects and CommonJS exports. Common
 format compatibility requires converted v6 source; existing Sails hooks do not
 become compatible merely by changing manifest metadata.
 
-Import the narrow types from `@researchdatabox/redbox-core/dist/extensions`.
+Import the narrow types from `@researchdatabox/redbox-core/extensions`.
 Registration/imports are offline: no repositories, clients, writes, workers,
 listeners or process handlers. Factories synchronously wire concrete dependencies;
 awaited module initialization acquires resources. Inspection does not run work.

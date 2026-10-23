@@ -3,8 +3,8 @@ import {
   prismaRecordFieldOperations,
   prismaRecordValues,
   prismaRecordSnapshot,
-} from '@researchdatabox/redbox-core';
-import type { StoragePrismaClient } from '@researchdatabox/redbox-core';
+} from '@researchdatabox/redbox-core/extensions/storage';
+import type { StoragePrismaClient } from '@researchdatabox/redbox-core/extensions/storage';
 import type { Document } from 'mongodb';
 import type { RecordDocuments } from './RecordDocuments';
 
