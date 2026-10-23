@@ -1,3 +1,4 @@
+import { sailsAttachmentAudit } from './compat/sails/attachmentAudits';
 import { prepareSailsSchedules } from './compat/sails/schedules';
 import { attachSailsPersistenceLifecycle } from './compat/sails/persistenceLifecycle';
 import {initializeIdentityPersistence} from './persistence/runtime';
@@ -247,7 +248,7 @@ async function runPreLiftSetup(): Promise<void> {
   await initializeHarvestPersistence(sails);
   await initializeSiemPersistence(sails);
   await initializeFigsharePersistence(sails);
-  await initializeStoragePersistence(sails);
+  await initializeStoragePersistence(sails, sailsAttachmentAudit(sails));
   await initializeIdentityPersistence(sails);
   await initializeBrandingPersistence(sails);
   await initializeVocabularyPersistence(sails);
