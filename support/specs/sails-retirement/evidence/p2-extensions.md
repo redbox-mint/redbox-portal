@@ -64,3 +64,23 @@ A test-local variable named `module` initially conflicted with the CommonJS wrap
 and Mocha retried it as ESM (`exports is not defined`); renamed to `makeModule`.
 No production module-format change or assertion removal. ESM main fixture warnings
 from SR-012 are resolved by explicit main metadata.
+
+## SR-014 — Selected factories and owned host integrations
+
+`composition.ts` binds only winning factories to their own concrete inputs,
+then hands the resulting closures to P1 `ApplicationRuntime`. It does not expose
+a universal container or create a second registry. Each composition owns its
+handler/integration instances. Native integrations are registered as application
+resources before initialization/preparation, receive the host's single server,
+and activate only through the runtime. Explicit middleware stages and policy
+execution precede routes. Missing policy bindings fail before acquisition.
+
+Focused extension command: **11 passing, 0 failing, 0 pending**. Real loopback
+Express tests cover inactive admission, policy/middleware order, one integration,
+preparation failure cleanup and retained/retried close failure. Two applications
+prove separate selected instances; discarded core factories are never invoked.
+Strict `typecheck:application` **exit 0** after adding explicit Request/Response
+types to the SR-013 test handler. Correction to SR-013's intermediate record: its
+first typecheck actually failed on those two implicit parameters (the asynchronous
+command had not completed when that evidence sentence was written). The final
+strict typecheck includes both slices and passes; no compiler option was weakened.

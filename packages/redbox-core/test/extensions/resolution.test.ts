@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import type { Request, Response } from 'express';
 import { resolveExtensions, type ExtensionProvider, type RedboxExtension } from '../../src/extensions';
 
 const makeModule = (name: string, requires?: string[]) => ({
@@ -97,7 +98,7 @@ describe('v6 extension declarations', () => {
   it('requires explicit named route replacements, unique method/path and access declarations', () => {
     const handler = {
       name: 'read',
-      create: () => (_req, res) => {
+      create: () => (_req: Request, res: Response) => {
         res.end();
       },
     };
