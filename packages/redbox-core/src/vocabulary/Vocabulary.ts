@@ -43,8 +43,9 @@ export namespace Services {
 
   export type VocabularyEntryInput = Pick<
     VocabularyEntryAttributes,
-    'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'
+    'label' | 'value' | 'identifier' | 'order' | 'historical'
   > & {
+    id?: string;
     parent?: string | null;
     children?: VocabularyEntryInput[];
   };
