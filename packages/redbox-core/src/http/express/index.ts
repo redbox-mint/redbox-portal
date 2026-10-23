@@ -17,3 +17,4 @@ export {
   type HttpMiddlewareInput,
 } from './middleware';
 export { apiVersion, sendApiData, sendApiErrors } from './responses';
+export { mountRecordTypeRoutes, type RecordTypeHttpInput } from './recordTypes';

@@ -165,3 +165,64 @@ compilation and was removed. Final checks and source IDs are recorded below.
 
 Final production compile and strict application typecheck **exit 0**. Repository
 lint: **895 files, 0 warnings/errors**, exit 0. No dependency or lockfile changes.
+
+## SR-029 — Both standalone record-type endpoints
+
+`mountRecordTypeRoutes` installs only the existing GET list/get contracts, selected
+from explicit resolved inputs (or the core pair). It rejects missing/duplicate or
+unsupported dispatch targets before router mutation; it resolves all ordered policy
+bindings first. Validation follows the effective policy chain. The adapter passes
+only a resolved brand and validated name into the existing `RecordTypes` instance,
+awaits its single completed result, and owns the response. No legacy controller,
+core barrel, global service or Express request reaches the domain implementation.
+
+List preserves `summary: { numFound, page: 1, start: 0 }` and `records`. Get preserves
+the complete persisted definition. V2 wraps successful data with `meta: {}`; query/
+header version negotiation, conflict/unknown fallback, JSON content type and
+no-cache headers retain CoreController semantics. The current and released HTTP
+controllers expose no `fields` contract and ignore unknown query fields. That
+behavior is retained, while direct domain projection remains available and tested.
+Schema discovery is additive only when enabled, using authenticated path scope and
+root context, as in the intermediate schema-enabled source. Missing definitions
+keep the existing generic **500** `{ errors: [{ detail: 'Check server logs.' }],
+meta: {} }` response. The explicit null check also avoids the intermediate
+schema-enabled controller's null dereference/error disclosure. Missing definitions
+are not silently converted to a new 404 contract.
+
+Partial-host route inventory for this composition:
+
+| Group | Standalone coverage |
+| --- | --- |
+| Record-type API | `GET /:branding/:portal/api/recordtypes`, `GET /:branding/:portal/api/recordtypes/get?name=...` |
+| Readiness | existing `/readyz`, outside optional root context |
+| Records/forms/workflows/schema resolver/admin/search/vocab/etc. | Unmounted, 404; P5/P6 |
+| Legacy record-type AJAX and browser/provider/login/upload/socket routes | Unmounted, 404; P5/P6 |
+
+Returned schema discovery URLs describe the existing contract; resolver endpoints
+are still part of the unmounted schema API group. This is a deliberately partial
+test host, not a promoted portal or a request-level legacy split router.
+
+Executed on the same Node 26/Express 5/Mongo 8 host:
+
+```sh
+# In packages/redbox-core:
+./node_modules/.bin/tsc
+# Root:
+npm --prefix packages/redbox-core run typecheck:application
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http npm --prefix packages/redbox-core run test:http-pilot:mongo
+npm --prefix packages/redbox-core test -- --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 10000 test/http/Contracts.test.ts test/controllers/webservice/RecordTypeController.test.ts
+npm run lint
+```
+
+Focused contract/legacy schema-controller regression: **8 passing, zero failures/
+pending**. The real-Mongo pilot includes both exact URLs, persisted get/list,
+empty/missing outcomes, v2, ignored HTTP field selection plus retained direct domain
+projection, additive discovery/root scope and explicit absent-route 404s.
+Initial strict compilation exposed incomplete legacy model declarations (`name`
+not declared on RecordTypeModel; optional brand name). The adapter now validates
+runtime public names through typed narrowing; no casts suppress these errors.
+Final check counts/source IDs are recorded below.
+
+Final real-Mongo pilot **10 passing, zero failures/pending**. Production compile
+and strict application typecheck **exit 0**. Lint **896 files, zero errors/warnings**,
+exit 0. No dependency changes.

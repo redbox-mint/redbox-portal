@@ -422,7 +422,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   results complete once; aborts, late session writes and errors after headers retain
   correct ownership without duplicate responses or fallback dispatch.
 
-- [ ] **SR-029 — Serve both record-type endpoints from the standalone host.**
+- [x] **SR-029 — Serve both record-type endpoints from the standalone host.**
+
+  **Status:** done; [thin adapters, retained contracts and persisted HTTP results](evidence/p4-http-pilot.md#sr-029--both-standalone-record-type-endpoints).
 
   **Depends on:** SR-028, SR-008, SR-021.
 
