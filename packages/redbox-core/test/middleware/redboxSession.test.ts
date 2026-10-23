@@ -38,11 +38,18 @@ describe('Middleware: redboxSession', () => {
     });
   });
 
+  it('rejects per-request cookie functions instead of dropping them', () => {
+    expect(() => redboxSession({ secret: 'test-secret', cookie: () => ({ secure: true }) } as never)).to.throw(
+      TypeError,
+      /cookie must be an object/
+    );
+  });
+
   describe('session cookie transport', () => {
     let server: http.Server;
     let port: number;
 
-    const listen = (cookie: Record<string, unknown> | ((req: unknown) => Record<string, unknown>)) => new Promise<void>(resolve => {
+    const listen = (cookie: Record<string, unknown>) => new Promise<void>(resolve => {
       const middleware = redboxSession({ secret: 'test-secret', proxy: true, cookie } as never);
       server = http.createServer((req, res) => {
         middleware(req as never, res as never, () => {
@@ -80,21 +87,6 @@ describe('Middleware: redboxSession', () => {
       const cookies = await setCookie();
       expect(cookies).to.have.lengthOf(1);
       expect(cookies[0]).to.not.match(/;\s*Secure/i);
-    });
-
-    it('applies the same rule to per-request cookie options', async () => {
-      await listen(() => ({ secure: false, maxAge: 1234 }));
-      const plain = await setCookie();
-      expect(plain).to.have.lengthOf(1);
-      expect(plain[0]).to.not.match(/;\s*Secure/i);
-      expect(plain[0]).to.match(/;\s*Expires=/i);
-      expect((await setCookie('https'))[0]).to.match(/;\s*Secure/i);
-    });
-
-    it('keeps per-request secure cookies off plain HTTP', async () => {
-      await listen(() => ({ secure: true }));
-      expect(await setCookie()).to.have.lengthOf(0);
-      expect((await setCookie('https'))[0]).to.match(/;\s*Secure/i);
     });
 
     it('never issues the default secure cookie over plain HTTP', async () => {
