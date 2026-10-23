@@ -1,0 +1,123 @@
+{
+  "fixedPoint": "ef23e07fe",
+  "uniqueInitialFindings": 1,
+  "findingDisposition": "Both SQS terminal-state retention and Mongo late-claim replacement defects reproduced and fixed; no unresolved objection.",
+  "passes": {
+    "axisStandards": {
+      "taskId": "node:delegated-task:command%3Amcp%3Ad97786fc-ad3e-4881-a0c9-0fbb2bd782b9%3Adelegate-task%3Awaterline-r16-standards-1",
+      "source": "ebb1e6165",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "report": "**P2 \u2014 Confirmed-expired SQS deliveries retain payloads indefinitely.** At reviewed HEAD `ebb1e6165`, [AgendaQueueService.ts:281](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:281), a rejected save bypasses claim deletion.\n\nReproduction: repeatedly receive one envelope ID with fresh receipts, allow initial saves, and reject final `DeleteMessage` with `ReceiptHandleIsInvalid`. After each `Job.run` completes, its full payload remains retained. A later successful delivery removes only its own entry; shutdown still releases all historical receipts. Retained memory grows with delivery history despite confirmed-ended ownership.\n\nOrigin: `73f9afb7c` introduced per-receipt retention; `2ad89fd80` handles ended receipts only during unlock. This is source-traced; no probe or suite was executed. Concurrent uncommitted remediation is outside the reviewed snapshot.\n\n[Detailed review](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/review-round-16/axis-standards.md).",
+      "reportSha256": "6025e751cae2d8a7cc2d3a31fef6277c840161aba708a52f3712e803eacd71d5"
+    },
+    "axisSpec": {
+      "taskId": "node:delegated-task:command%3Amcp%3Ad97786fc-ad3e-4881-a0c9-0fbb2bd782b9%3Adelegate-task%3Awaterline-r16-spec-1",
+      "source": "ebb1e6165",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "report": "**P2 \u2014 Expired SQS receipts accumulate payloads** at `AgendaQueueService.ts:281` in pinned `ebb1e6165`.\n\nReproduce by repeatedly delivering one envelope ID with new receipts whose initial state save returns `MessageNotInflight` or `ReceiptHandleIsInvalid`. The rejection bypasses claim deletion; Agenda abandons execution, leaving each payload retained until shutdown.\n\nOrigin: branch claim tracking, amplified by `73f9afb7c`\u2019s per-receipt keys. This violates the operational memory requirements in `waterline-retirement/design.md:591\u2013594`.\n\nConcurrent parent commit `1d6666614` addresses this finding; verification remains with the parent.\n\n[Detailed review](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/review-round-16/axis-spec.md)",
+      "reportSha256": "12846a04dc40f04a078a8757f5c2456c58652f2ae07a49f138d92b18e9e52ab8"
+    },
+    "axisStandardsFinal": {
+      "taskId": "node:delegated-task:command%3Amcp%3Ad97786fc-ad3e-4881-a0c9-0fbb2bd782b9%3Adelegate-task%3Awaterline-r16-standards-final-1",
+      "source": "1d6666614",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "report": "NO ISSUES FOUND",
+      "reportSha256": "d9ca8a022439ac7a6f8191a1bbf6166091590796576935435af92451ea1a83c0"
+    },
+    "axisSpecFinal": {
+      "taskId": "node:delegated-task:command%3Amcp%3Ad97786fc-ad3e-4881-a0c9-0fbb2bd782b9%3Adelegate-task%3Awaterline-r16-spec-final-1",
+      "source": "1d6666614",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "report": "NO ISSUES FOUND",
+      "reportSha256": "d9ca8a022439ac7a6f8191a1bbf6166091590796576935435af92451ea1a83c0"
+    },
+    "standardsQualification": {
+      "taskId": "node:delegated-task:command%3Amcp%3Ad97786fc-ad3e-4881-a0c9-0fbb2bd782b9%3Adelegate-task%3Awaterline-r16-standards-qualification-1",
+      "source": "c323055d8",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "report": "NO ISSUES FOUND",
+      "reportSha256": "d9ca8a022439ac7a6f8191a1bbf6166091590796576935435af92451ea1a83c0"
+    },
+    "specQualification": {
+      "taskId": "node:delegated-task:command%3Amcp%3Ad97786fc-ad3e-4881-a0c9-0fbb2bd782b9%3Adelegate-task%3Awaterline-r16-spec-qualification-1",
+      "source": "c323055d8",
+      "status": "completed",
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "report": "NO ISSUES FOUND",
+      "reportSha256": "d9ca8a022439ac7a6f8191a1bbf6166091590796576935435af92451ea1a83c0"
+    }
+  },
+  "uniqueQualifyingFindings": 2,
+  "finalQualification": "c323055d8"
+}

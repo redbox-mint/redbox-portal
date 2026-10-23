@@ -1,0 +1,21 @@
+{
+  "command": "env -u RBPORTAL_STORAGE_BACKEND bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+  "exitCode": 0,
+  "durationMs": 73207,
+  "rawBytes": 362972,
+  "sha256": "731baa31ea1bbe50c3be67e667d331c93706ba56e43352d77d48e7be767734a9",
+  "reportedPassGroups": 2,
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v26.10.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

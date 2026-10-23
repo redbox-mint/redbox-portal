@@ -1,0 +1,62 @@
+{
+  "http-followup-red": {
+    "exitCode": 3,
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AuditFollowupDrain.test.ts --grep \"HTTP response\"",
+    "runtime": "4df2d44fd, added regression tests only",
+    "expectedFailure": true,
+    "rawLogSha256": "998b23e330ed08163a2e3649b3a9554a499a3e426c7362c840e41d38364bf389",
+    "counts": {
+      "passing": [
+        0
+      ],
+      "pending": [],
+      "failing": [
+        3
+      ]
+    }
+  },
+  "http-followup-green": {
+    "exitCode": 0,
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AuditFollowupDrain.test.ts",
+    "runtime": "final HTTP follow-up implementation before commit",
+    "expectedFailure": false,
+    "rawLogSha256": "5079c4d5d6f9ab9dce069d2688a858bae1a9747c9d5a02d17165bb662e3212d2",
+    "counts": {
+      "passing": [
+        9
+      ],
+      "pending": [],
+      "failing": []
+    }
+  },
+  "sqs-stale-red": {
+    "exitCode": 2,
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts --grep \"already expired\"",
+    "runtime": "original queue release implementation, added real-SDK regression tests",
+    "expectedFailure": true,
+    "rawLogSha256": "b750e98c285674b2d0371fac3316d2940f969ee5c9d383bc7bbebf077343e7d3",
+    "counts": {
+      "passing": [
+        0
+      ],
+      "pending": [],
+      "failing": [
+        2
+      ]
+    }
+  },
+  "focused-green": {
+    "exitCode": 0,
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+    "runtime": "final implementation before focused commits",
+    "expectedFailure": false,
+    "rawLogSha256": "8bac5ac382747248c12179f8df4adc0f7aa21164ed20c5cbed32d3c22cce40ad",
+    "counts": {
+      "passing": [
+        102
+      ],
+      "pending": [],
+      "failing": []
+    }
+  }
+}

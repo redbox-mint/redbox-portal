@@ -1,0 +1,11 @@
+{
+  "name": "final-review-files",
+  "command": "node --check packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-compatibility.cjs && node_modules/.bin/prettier --check packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts packages/redbox-core/src/persistence/cache/configuration.ts packages/redbox-core/src/persistence/scalars.ts packages/redbox-core/test/middleware/requestLifetime.test.ts packages/redbox-core/test/unit/cache-persistence-runtime.test.ts packages/redbox-core/test/unit/progress-persistence.test.ts packages/redbox-core/test/integration/CacheEntryTransition.test.ts packages/redbox-core/test/fixtures/cache-persistence/transition-worker.cjs packages/redbox-core/test/fixtures/waterline-retirement/reference-query-compatibility.cjs && git diff --check 72e1a2cd3 HEAD",
+  "sourceCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+  "exitCode": 0,
+  "durationMs": 1470,
+  "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

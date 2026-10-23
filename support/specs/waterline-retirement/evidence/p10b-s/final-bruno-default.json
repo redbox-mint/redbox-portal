@@ -1,0 +1,34 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh bruno default",
+  "exitCode": 1,
+  "durationMs": 239356,
+  "rawBytes": 1710207,
+  "sha256": "b4987d21c2172359814ffad875f8cb30453ae84006445a0288aa1c0b6cea0320",
+  "failureExcerpt": "Search Service Lookup returned HTTP 500 (query-vocab-failed).\nDataCite lookup: AxiosError, timeout of 10000ms exceeded.\n178 requests passed; 1 failed; 130 skipped by the existing bail behavior.\nThe unchanged full fresh-volume retry passed; see final-bruno-default-retry.json.",
+  "supersededBy": "final-bruno-default-retry.json",
+  "diagnosticProbe": {
+    "httpStatus": 200,
+    "durationSeconds": 1.40555,
+    "command": "curl --max-time 12 --output /dev/null --write-out HTTP/duration https://api.datacite.org/dois?page%5Bsize%5D=1",
+    "source": "host tool observation after the lookup timeout"
+  },
+  "counts": {
+    "testsPassed": 310,
+    "testsTotal": 312,
+    "assertionsPassed": 1,
+    "assertionsTotal": 1
+  },
+  "runtimeProbes": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    }
+  ]
+}

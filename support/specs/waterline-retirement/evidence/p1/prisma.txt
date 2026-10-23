@@ -1,0 +1,42 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:cache-prisma
+npm notice run bash test/fixtures/cache-persistence/run-prisma.sh
+
+
+  opt-in Prisma cache runtime on isolated authenticated MongoDB 8
+    ✔ uses the model-independent driver resolver for the pilot custom application datastore and escaped split credentials (298ms)
+    ✔ blocks missing index, creates it only explicitly and idempotently, then initializes exactly once (2169ms)
+    ✔ maps raw IDs, ISO strings, numeric seconds, JSON values, omissions and misses without rewriting legacy fields (3367ms)
+    ✔ normalizes duplicate create/update with retained causes and keeps Prisma selected after runtime failure (761ms)
+    ✔ rejects non-string stored timestamps without returning BSON or rewriting the row (1806ms)
+    ✔ keeps native failure causes internally while logging no cached payload from decode or write errors (2567ms)
+    ✔ reports duplicate groups without payloads and refuses cleanup/index creation/startup (1666ms)
+    ✔ rejects nonunique, sparse, partial, collation, and reserved-name conflicting indexes (1634ms)
+    ✔ treats index creation as authoritative when duplicates arrive after inspection (527ms)
+    ✔ closes its partially acquired driver when the installed contract is missing (328ms)
+    ✔ refuses unsupported reported MongoDB versions without creating an index or switching backend
+    ✔ accepts an existing compatible index under another name without replacing it (161ms)
+    ✔ rejects invalid config, unavailable DB and authentication failure without fallback or secret messages (647ms)
+    ✔ resolves the loaded escaped application database/auth/options and leaves record storage unused
+    ✔ uses the same authenticated datastore for URL normalization and comma-bearing URL forms as Waterline (38ms)
+error: Error: original startup failure
+    at Context.<anonymous> (<REPO>/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:533:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: MigrationError: Migration p3-migration (up) failed: Original error: original startup failure
+    at <REPO>/node_modules/umzug/src/umzug.ts:261:17
+    at async Umzug.runCommand (<REPO>/node_modules/umzug/src/umzug.ts:210:14)
+    at async runPendingMigrations (<REPO>/packages/redbox-core/src/loader/MigrationRunner.ts:143:5)
+    at async <REPO>/packages/redbox-core/src/loader/bootstrapShimRuntime.ts:93:9
+error: Error: original startup failure
+    at Context.<anonymous> (<REPO>/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:533:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: Error: original startup failure
+    at Context.<anonymous> (<REPO>/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:533:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: Error: original startup failure
+    at Context.<anonymous> (<REPO>/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:533:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    ✔ is available inside service init, and cleans original failures from service init and every generated bootstrap stage (268ms)
+    ✔ closes partial initialization, repeats startup/cleanup, and preserves shutdown hooks and borrowed connections (282ms)
+
+
+  17 passing (24s)

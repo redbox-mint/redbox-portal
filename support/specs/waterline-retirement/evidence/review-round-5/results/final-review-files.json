@@ -1,0 +1,11 @@
+{
+  "name": "final-review-files",
+  "command": "node_modules/.bin/prettier --check packages/redbox-core/src/middleware/requestLifetime.ts packages/redbox-core/src/persistence/cache/{MongoCacheEntryRepository,WaterlineCacheEntryRepository,validation}.ts packages/redbox-core/src/persistence/{reference,configuration,progress}/MongoNamedQueryTargets.ts packages/redbox-core/src/persistence/reference/{NamedQueryExecution,WaterlineNamedQueryTargets}.ts packages/redbox-core/src/persistence/progress/MongoProgressRepositories.ts packages/redbox-core/test/middleware/requestLifetime.test.ts packages/redbox-core/test/unit/{reference-persistence,progress-persistence,cache-entry-repository,cache-persistence-runtime}.test.ts packages/redbox-core/test/integration/CacheEntryTransition.test.ts packages/redbox-core/test/fixtures/waterline-retirement/reference-query-adversarial.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/reference-query-adversarial.cjs && git diff --check 92183a2fd..HEAD",
+  "sourceCommit": "e78b77780344b5bfa45608ffd6b89d54566fcae9",
+  "exitCode": 0,
+  "durationMs": 1311,
+  "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

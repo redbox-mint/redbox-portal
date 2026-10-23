@@ -1,0 +1,24 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:persistence-foundation
+npm notice run bash test/fixtures/waterline-retirement/run-foundation.sh
+
+
+  driver persistence foundation
+    ✔ keeps new groups on Waterline and refuses unsupported/stale selectors without fallback
+    ✔ resolves legacy protocol/split/escaping/credential precedence without models or managers (44ms)
+    ✔ matches the legacy normalizer credential/escape rules, including encoded colon truncation (124ms)
+    ✔ shares only equivalent effective connection policies, including authSource and options
+    ✔ initializes offline, survives reload, waits for active operations and drains before closing (48ms)
+    ✔ retains failed resources for retry and preserves prior shutdown errors
+
+  app-scoped non-model resource ownership
+    ✔ disposes only the captured application GridFS clients and survives module reload (147ms)
+    ✔ retains an errored GridFS client and a failed close for app cleanup retry
+    ✔ closes the connect-mongo store created by middleware exactly once
+
+  isolated standalone driver foundation
+    ✔ routes two DB handles on one compatible pool without models, managers or unintended collections (39ms)
+    ✔ inspects missing/conflicting/duplicate indexes read-only and ensures only an explicit scope (656ms)
+    ✔ starts driver cache without CacheEntry/Waterline, refuses missing index and restarts without rewrite (240ms)
+
+
+  12 passing (2s)

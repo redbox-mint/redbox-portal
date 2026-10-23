@@ -1,0 +1,11 @@
+{
+  "source": "c2ceddb45d771176258f9a85f26d088b985fca8c",
+  "image": "redbox-p5b-j2:prior-c2ceddb45",
+  "imageId": "sha256:df2088a9aa517b23f9b4ef1e51e1a837a52115be7ff7bda93bd0f85d6252d6ce",
+  "locks": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  },
+  "assembly": "Isolated git archive of pre-J2 c2ceddb45 core and tsconfig. Compiled against unchanged installed dependencies; cache contract copied. Offline-smoke-tested production-pruned dependency image overlay. See Dockerfile.rollback.",
+  "checkpoint": "Owned standalone contract raw snapshots; unchanged database and indexes across actual prior-image read/write probe."
+}

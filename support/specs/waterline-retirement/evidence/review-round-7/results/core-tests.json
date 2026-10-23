@@ -1,0 +1,18 @@
+{
+  "name": "core-tests",
+  "command": "npm run test:core",
+  "sourceCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+  "exitCode": 0,
+  "durationMs": 116595,
+  "sha256": "eccf02a6d6e01c030ea95ac98e8a6ab1ce8fcbf4d8bedb07672a631ada2a6996",
+  "counts": {
+    "passing": [
+      4242
+    ],
+    "pending": [
+      116
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

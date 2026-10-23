@@ -1,0 +1,15 @@
+{
+  "name": "fix3-unit",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/reference-persistence.test.ts test/unit/progress-persistence.test.ts",
+  "sourceCommit": "ebadbf2cf5f93fe20586d4c161f520dda7527244",
+  "exitCode": 0,
+  "durationMs": 2309,
+  "sha256": "8996ac93e6a3f13712cf0d78b4f30a00263834003c0275789220aceedbcfd1f8",
+  "counts": {
+    "passing": [
+      24
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

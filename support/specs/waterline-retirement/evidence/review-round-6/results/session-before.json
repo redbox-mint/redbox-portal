@@ -1,0 +1,18 @@
+{
+  "name": "session-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts --grep \"synchronous session|response writing throws\"",
+  "sourceCommit": "1dab20b089f8e846128f96e4a2110bbfd9dd9234",
+  "exitCode": 8,
+  "durationMs": 3111,
+  "sha256": "a5541af63eae51b8eb4967641b3823bb04759e7dd2cee170d152bf9b6e7398cf",
+  "counts": {
+    "passing": [
+      4
+    ],
+    "failing": [
+      8
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

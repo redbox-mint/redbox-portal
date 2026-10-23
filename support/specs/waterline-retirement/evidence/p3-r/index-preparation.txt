@@ -1,0 +1,14 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:persistence-indexes
+npm notice run bash test/fixtures/waterline-retirement/run-persistence-indexes.sh
+Dynamic imports imported
+PASS 1: actual official fresh-volume init prepares exactly cache + M + R and satisfies driver readiness
+PASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks
+PASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup
+PASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent
+PASS 5: backend selection scopes DDL: both Waterline, M-only driver, cache-only driver and R-only driver
+PASS 6: conflicting index blocks all ensure writes without dropping the conflict
+PASS 7: configuration failure exits safely without exposing native credentials or changing data/indexes
+PASS 8: R duplicate keys block every selected group and startup without DDL, fallback or document cleanup
+PASS 9: the installed command prepares R key indexes idempotently, preserving raw data and satisfying driver startup
+PASS 10: missing and incompatible sparse R indexes stop startup/ensure without repair
+10 persistence-index deployment/upgrade cases passed

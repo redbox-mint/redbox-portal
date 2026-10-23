@@ -1,0 +1,31 @@
+{
+  "standards": {
+    "findings": [],
+    "scope": "Programme history, required standards/specs, per-group qualification and prior-round summaries; exact pins, package boundaries, diagnostics, index maintenance and rollback forwarding. Import guard passed. Static read-only review."
+  },
+  "specification": {
+    "findings": [
+      {
+        "severity": "P2",
+        "path": "packages/redbox-core/src/persistence/cache/configuration.ts",
+        "reviewedLine": 66,
+        "trigger": "A loaded CacheEntry keeps standard collection/id but changes data column to cache_payload or adds beforeCreate.",
+        "consequence": "Normalized attributes omit effective columns and the guard omitted callbacks; the driver writes data and bypasses hook behavior.",
+        "requirement": "design.md:452 Unsupported overrides fail before writers; they must not be silently ignored when selecting the driver.",
+        "fix": "aa0a9a1b7",
+        "proof": "Expanded loaded cache transition test failed before and passed after."
+      }
+    ],
+    "scope": "All delivered groups and consumers, mappings, readiness, rollback, retained owners. Parent owned A/B/C. Gated work excluded. Static read-only review."
+  },
+  "summary": {
+    "standardsFindings": 0,
+    "specificationFindings": 1,
+    "worstSpecificationSeverity": "P2"
+  },
+  "parentConfirmedAdditionalIssues": [
+    "2dc6b4e52",
+    "035622d09",
+    "080267604"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "excludedAttempts": [
+    {
+      "stage": "contract fixture assembly",
+      "reason": "Invalid test adapterType and retryDelayMs=0; corrected to supported OTLP and positive delay before accepted contract."
+    },
+    {
+      "stage": "core unit bootstrap",
+      "reason": "Two offline bootstrap fakes omitted newly required SIEM models. Fixed fakes; focused bootstrap 12 passing; full rerun pending."
+    },
+    {
+      "stage": "stock Mocha preparation",
+      "reason": "Prior root-owned worktree attachment fixtures prevented chmod before app startup. Ownership prepared using an offline container, without changing stock runner or existing database volumes."
+    },
+    {
+      "stage": "Mocha wrapper final parsing",
+      "reason": "Both stock application commands completed 14 tests with container exit 0 and owned cleanup. Editing the running Bash wrapper changed its input offset and caused a final EOF parse error. Current wrapper passes bash -n; subsequent fresh default qualification will run the corrected script unchanged."
+    },
+    {
+      "stage": "expanded CLI regression fixture",
+      "reason": "The new J3 CLI case passed duplicate blocking and explicit ensure, then the following omitted-selector case saw retained J3 fixture collections. Added the missing per-case database reset; renewed 14-case command required."
+    },
+    {
+      "stage": "new ownership regression",
+      "reason": "The first test called the integration emitter, which correctly requires an explicit brand. The attachment emitter owns fallback lookup; corrected that test and renewed all 4,155 core and 73 live SIEM cases."
+    }
+  ],
+  "budgetsUnchanged": true,
+  "topology": "standalone"
+}

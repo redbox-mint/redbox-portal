@@ -1,0 +1,11 @@
+{
+  "command": "npm run test:core",
+  "exitCode": 0,
+  "durationMs": 98206,
+  "rawBytes": 359242,
+  "sha256": "20fc45f10272ff5659b09348a67a4e5411b05a9b39e43471d539cdb01bc0dec9",
+  "counts": {
+    "passing": 4159,
+    "pending": 113
+  }
+}

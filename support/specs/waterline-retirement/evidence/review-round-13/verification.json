@@ -1,0 +1,1706 @@
+{
+  "source": "0341c6241962729905b0400af1e1097efc81f567",
+  "runner": "packages/redbox-core/test/fixtures/waterline-retirement/run-review-regressions.py",
+  "inventory": "packages/redbox-core/test/fixtures/waterline-retirement/review-regressions.json",
+  "commands": 77,
+  "qualified": 77,
+  "failedInitial": [],
+  "unresolved": [],
+  "results": [
+    {
+      "name": "final-static",
+      "stage": "retained",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && node_modules/.bin/tsc --noEmit && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && node_modules/.bin/tsc --noEmit -p packages/redbox-core/test/tsconfig.cache-persistence.json && git diff --check",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 70366,
+      "sha256": "4180574c6babc2c408313c07f21b8455f59789b3a5bd8b2a5b026a33c2da97f4",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "accepted-drain",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 4974,
+      "sha256": "f4c5e9af3def8dc868104afa154b13113e8963499fa0fd713d83d43f2e7f5413",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 36,
+          "failures": []
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "accepted-staged-drain",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh accepted-drain",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5435,
+      "sha256": "d0e3225c2262d8007814c818d818ce5210f9858ba8f16554fb4cbe40254a49c4",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 36,
+          "failures": []
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "error-boundaries",
+      "stage": "retained",
+      "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-error-boundaries.cjs",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 225,
+      "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 138,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "batch-clocks",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh batch-clocks",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6829,
+      "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "cache-read-values",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cache-read-values",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6133,
+      "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 60,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "operation-outcomes",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh operation-outcomes",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6339,
+      "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 346,
+          "failures": 0,
+          "summary": {
+            "read-missing-null-bson": 171,
+            "unsupported-bson-refusal": 57,
+            "create-fetch": 80,
+            "create-fetch-missing": 6,
+            "no-match-validation": 32
+          }
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "progress-writes",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh progress-writes",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6932,
+      "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 172,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "fetch-mappings",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh fetch-mappings",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5480,
+      "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 19,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "operation-boundaries",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh operation-boundaries",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 27282,
+      "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 34,
+          "failures": 0,
+          "summary": {
+            "document-size": 8,
+            "duplicate-error-code": 4,
+            "duplicate-no-write": 4,
+            "literal-unicode-case": 10,
+            "batch-size": 6,
+            "batch-invalid-before-write": 2
+          }
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "core-tests",
+      "stage": "retained",
+      "command": "npm run test:core",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 104642,
+      "sha256": "66e100b89b148236faa185982a1492e9978bd8ad2a33ead3fff5bc2049b25720",
+      "counts": {
+        "passing": [
+          4285
+        ],
+        "pending": [
+          117
+        ],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "storage-tests",
+      "stage": "retained",
+      "command": "npm run test:storage-mongo",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 37793,
+      "sha256": "b08cce2eaa3269c9e7351dfb22fdfe24cb4cd67b3ed8830c7ead5765052b070f",
+      "counts": {
+        "passing": [
+          291
+        ],
+        "pending": [
+          38
+        ],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "foundation",
+      "stage": "retained",
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 8241,
+      "sha256": "e8acbdf9a15e5d77948c1435566cf5a9c68dd47526b20894a871a4fee518f386",
+      "counts": {
+        "passing": [
+          14
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "migration",
+      "stage": "retained",
+      "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 71081,
+      "sha256": "a49434286810b15ea597046dc241ca3b1ddbd2d8e1ed2491cbd7f805e458224a",
+      "counts": {
+        "passing": [
+          15
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "cache-mongodb",
+      "stage": "retained",
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-mongodb",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 12383,
+      "sha256": "75ed14ff97e6389507a7b9f03c2321311faa93a5cb6c9274c3589fa93f2c15bb",
+      "counts": {
+        "passing": [
+          17
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "cache-transition",
+      "stage": "retained",
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 78713,
+      "sha256": "90ce2c3c91cb0dba4f787ff53d0b4e3a6f42ca288cb21a1c861869a56488183f",
+      "counts": {
+        "passing": [
+          17
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "reference",
+      "stage": "retained",
+      "command": "npm --prefix packages/redbox-core run test:reference-transition",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 43810,
+      "sha256": "9b34122c40ddf61000cd1995a705ed0365c38ff75119e6275a3b85dea1ef954a",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "query-pages",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-pages",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 74371,
+      "sha256": "a684a9a8befcc9f4c36c79645202b99ffec92dca8f481dd22b5ae259ed107582",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 12672,
+          "pages": 11340,
+          "uncounted": 1260,
+          "progressOptionRefusals": 72
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "query-adversarial",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-adversarial",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 29798,
+      "sha256": "4db1ce8627a76eb4db5a8669a841eeafb881d52311aa1b2bea4cfe52662c5b54",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 6129,
+          "failures": 0,
+          "comparisons": 6129
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "query-baseline",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-compatibility",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 23863,
+      "sha256": "86d6ceb64fc7bd6908a4d140f50ccb34522029d7b59f4f58ab2e36885b4a29c7",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 3106,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "query-associations",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-associations",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 4883,
+      "sha256": "8864c96519175f3031c3c5fbc0d41be4e4b464b4595a3104190939de8c33ec50",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 28,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "query-equality",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-equality",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5929,
+      "sha256": "f0a80a4df327d704d9e04daa6f2a689aa8f927ee2750b9b331e0e1d71bf86d86",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 2,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "query-producer-final",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-producer",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6094,
+      "sha256": "50e71d60a40bb347e15e8e6bf860f42397fa298642b4565e8a2cd2606217bd48",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 18,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "tenant-scope-final",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh tenant-scope",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5922,
+      "sha256": "485a6e4c9b63ac59ee814e0af9f51b49f77e20351679b8cbfcb2dedc5f321975",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 428,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "configuration",
+      "stage": "retained",
+      "command": "Q_PRIOR_IMAGE=redbox-p4-q:prior-f8c8cd7d npm --prefix packages/redbox-core run test:configuration-transition",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 36439,
+      "sha256": "ac346b9b772d5ebb077a7efd6828932d6c61b853073df984cf4e5b4a7386e20f",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "configuration-readiness",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh readiness",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 17712,
+      "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "configuration-siem",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh siem",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 11609,
+      "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "mixed-clocks",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh mixed-clocks",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 11785,
+      "sha256": "6a1027c10ef8592c001a10701aa80e248449c9d5deaf8cf0f97c3003c3e68d08",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 29,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "indexes",
+      "stage": "retained",
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 97386,
+      "sha256": "2621b97047cfc67ea04e4e80b6138f5ac76ef90117badedb2fe4d92f82812c22",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "progress",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh progress-contract",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 31546,
+      "sha256": "fe371c1a606f1274a6aacd71f07c8be8653aa66c384a44ec7dd7609287fa3ae3",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "harvest",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh harvest-contract",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 32083,
+      "sha256": "104b61aaf7267452ed16ea8fd12b85497a8748dce926dd77223965f54a395496",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "siem",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-contract",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 33646,
+      "sha256": "13fb77b36bdc824641c8bf74c3892d9f23ec5308ffb7871656c678d19a73894e",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "figshare",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-contract",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 34839,
+      "sha256": "170c182b77b218aa28e4acb4f57742c774bf21260b13945ce9738c9310f70519",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "siem-readiness",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-readiness",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 4240,
+      "sha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "figshare-readiness",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-readiness",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5703,
+      "sha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "siem-unit",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-unit",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 14983,
+      "sha256": "58f3949adf17a9fb6d60d60ba778c6ec7b185ce3ee81a85358e96f441978a794",
+      "counts": {
+        "passing": [
+          73
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "figshare-unit",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-unit",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 19749,
+      "sha256": "4f17a7e5827eb3b7dba0c024635c376fd1a598547a129e097cc3b681ffc546b0",
+      "counts": {
+        "passing": [
+          57
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "figshare-unit-mongodb",
+      "stage": "retained",
+      "command": "J_FIGSHARE_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-unit",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 18714,
+      "sha256": "30cc8ed4de1ec5e570af054fcc46cc743c569f6cbd030cc3c4cba9b72e166c97",
+      "counts": {
+        "passing": [
+          57
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "review-mappings",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh review-mappings",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5523,
+      "sha256": "d7776806dc633bfcda2a48ec3f00cebd53eefc361dfdf88e3f1c9b7907a06fa4",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 14,
+          "failures": []
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "record-arrays",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh record-arrays",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5753,
+      "sha256": "8cb306d04b4d2e072b393368862498df295d07d5b1db0631764d87d3575aace6",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 10,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "review-scalars",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh review-scalars",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6712,
+      "sha256": "dcee4690e3bfb27f9cc6dbab856b01489dacbbc9377435f04041a9725dd12ca3",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 315,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "gridfs-streams",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6705,
+      "sha256": "8d0e940e8dac1e0ed00195820459c2f2c6d00bd7792424ac484ec22256a530a6",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "gridfs-initializing",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-initializing",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6640,
+      "sha256": "4f8360e29190b6f71418003858e4bf920a93c4dfe09f5d86771c33dfec6cf634",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 2
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-contract",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 8218,
+      "sha256": "3f5f4791404a4cace158dc85fc7b5a98fdc5ab595bdb607b516ca540e202cd37",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 211,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-qualification",
+      "stage": "retained",
+      "command": "P10_PRIOR_IMAGE=redbox-p10-s:prior-12e566575 bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh qualification",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 32928,
+      "sha256": "cad750a28a8d1a53f23309e71824bd870d20f42df4ac7aed301ee633fa34b0d7",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-live",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh integration",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 83920,
+      "sha256": "94d455fefd73ecaa691e7c3e8dd004b6dcf62df56fa173ac93b403a42ff51bac",
+      "counts": {
+        "passing": [
+          329
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "storage-ownership",
+      "stage": "retained",
+      "command": "P10_OWNER_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 8400,
+      "sha256": "dac139f4f980ae921452ed51e804289f13ec458c7f4e07678d1d5953bae7138b",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 25,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-owner-failures",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh owner-failures",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5621,
+      "sha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 5,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-shutdown",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh shutdown-owner",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 15887,
+      "sha256": "bf518d18c71904a8378b1b02ccb2f82d752068e7755f45f1c11c99b65cfc2cc1",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 4,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-backfill",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6407,
+      "sha256": "724e7ce7b61dde7d7cc9290d252a072e2c9db9e0eced7e3043788350bb8b71b8",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 16,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-readiness",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh readiness",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 8155,
+      "sha256": "526731691dd8d40fab965463bfcbe9511e527fff1d6dee5bf56f4f387aca24ae",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "storage-ownership-waterline",
+      "stage": "retained",
+      "command": "P10_OWNER_BACKEND=waterline bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 7079,
+      "sha256": "227b1dc7970738c60f36805bf66ca97c04f146de074311658b0d22c882adb5d7",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 25,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "cross-group-scalars",
+      "stage": "retained",
+      "command": "R8_CONCERN=scalars bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-parity",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 54429,
+      "sha256": "bf7cf5a82f613d7d1b609b9cbd9ebea6012270cab0d7a6dc3162a5f3b8555bc4",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 7280,
+          "failures": 0,
+          "summary": {
+            "reference": 2040,
+            "configuration": 800,
+            "progress": 840,
+            "harvest": 2240,
+            "siem": 1360
+          }
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "cross-group-timestamps",
+      "stage": "retained",
+      "command": "R8_CONCERN=timestamps bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-parity",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 16968,
+      "sha256": "01bc41f05a700855b563dcdceedbee8fe3f6e7c07d455cec4c9544b6eb3c3160",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 1520,
+          "failures": 0,
+          "summary": {
+            "reference": 640,
+            "configuration": 320,
+            "progress": 160,
+            "harvest": 240,
+            "siem": 160
+          }
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "cross-group-mappings",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-mappings",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5661,
+      "sha256": "9e20bfe406373b18159be8d29f3b58546f7ac17ef8b86918356b69a84a602c98",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 600,
+          "failures": 0,
+          "summary": {
+            "migration": 18,
+            "reference": 168,
+            "configuration": 74,
+            "progress": 56,
+            "harvest": 128,
+            "siem": 80,
+            "figshare": 64,
+            "cache": 12
+          }
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "id-values",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-values",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 7497,
+      "sha256": "1d3534b921237ee776ae98aa09e6a8beb2e2ac94406b31b321ce0fc9de2666b6",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 228,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "recordtype-selection",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh recordtype-selection",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5604,
+      "sha256": "df9d4204112491e87251fe72adabd7940c503ed290b21662c12e5908d0bfe885",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 12,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "id-mappings",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-mappings",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 51945,
+      "sha256": "f905b8d6227609d10dbd24ec757df71695170693cd516682a1056f2ce6d42edf",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 18,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "migration-values",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh migration-values",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 7505,
+      "sha256": "8bb3fec7e17bd99b127c1ae4c1d9f0f2d5b5127bb8b09cb2e965586f2b6f9943",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 106,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "domain-queries",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh domain-queries",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6956,
+      "sha256": "29128c4cf39404cf1f4f611257c6a1c586728b4427161442873de9d23dd0b750",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 160,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "job-queries",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh job-queries",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 7815,
+      "sha256": "0a433b2820b0c7ebc4645fdc6d4a33caf381e6a6049c0c901c6c8e0565b77c59",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 466,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "harvest-pages",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh harvest-pages",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 8086,
+      "sha256": "e86fe16886a272adbc60aa5bfef6a679b3b72b2615f3276a71377fc2e92a781f",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 648,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "siem-native-pages",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-pages",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6383,
+      "sha256": "5af111b64668be0b8af9bc6536bac538a716bd7c4cfc0f949b3cca296192134d",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 10,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "siem-native-values",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-values",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6040,
+      "sha256": "94766e5a7e40dd633a6b7334f4278fe3ac31d153fc4e4007ffb30e0ab4584822",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 6,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "dashboard-native-values",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh dashboard-native-values",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 5959,
+      "sha256": "7ff3f3c7f8acb93c058d4acf7fb7b8622ee76ac445d34d23d9402cfbe210da83",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 5,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "cache-values",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cache-values",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6511,
+      "sha256": "107b89f6af5919667c1ccb1d01fd6ae58e63ed718e5c4fca7fabddaf45def947",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 22,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "attachment-values",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh attachment-values",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 20750,
+      "sha256": "ca782e7f4c952c8a6c5ca263b69fa007c62e887d1fbbfecdcfe61e235b59c7e9",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 700,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "fresh-mocha",
+      "stage": "stock",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND RBPORTAL_IMAGE=redbox-waterline-r4:npm11.20.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha default",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 334354,
+      "sha256": "8543ddc82c589f4dc9dccbfc46a6d33f10f065f81a3d462b7e4928830fb30ca0",
+      "counts": {
+        "passing": [
+          419
+        ],
+        "pending": [
+          4,
+          2,
+          0,
+          1,
+          1,
+          10
+        ],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "fresh-bruno",
+      "stage": "stock",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND RBPORTAL_IMAGE=redbox-waterline-r4:npm11.20.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-bruno-npm-pin.sh",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 278875,
+      "sha256": "a4e542ac70424f1d73a2b1ca2dce092dcda876ab77825c21108dfce57e2b9287",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "dev-default",
+      "stage": "stock",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND RBPORTAL_IMAGE=redbox-waterline-r4:npm11.20.0 bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 73915,
+      "sha256": "a09c77297b561e4387ce103be80af30be50b68090ddfa1ca6d77e6ce3e8a031e",
+      "counts": {
+        "passing": [],
+        "pending": [
+          4
+        ],
+        "failing": []
+      },
+      "checks": [
+        {
+          "ready": true
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "dev-waterline",
+      "stage": "stock",
+      "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND RBPORTAL_IMAGE=redbox-waterline-r4:npm11.20.0 RBPORTAL_CACHE_BACKEND=waterline RBPORTAL_MIGRATION_BACKEND=waterline RBPORTAL_REFERENCE_BACKEND=waterline RBPORTAL_CONFIGURATION_BACKEND=waterline RBPORTAL_PROGRESS_BACKEND=waterline RBPORTAL_HARVEST_BACKEND=waterline RBPORTAL_SIEM_BACKEND=waterline RBPORTAL_FIGSHARE_BACKEND=waterline RBPORTAL_STORAGE_BACKEND=waterline bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 65525,
+      "sha256": "17eff89df9aa98aef43859ca613ed2b6cb02e1a6967161dfa9ad9d02a731fa6e",
+      "counts": {
+        "passing": [],
+        "pending": [
+          4
+        ],
+        "failing": []
+      },
+      "checks": [
+        {
+          "ready": true
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "http-gridfs-regressions",
+      "stage": "retained",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts test/middleware/redboxSession.test.ts test/services/GridFSDriver.test.ts test/services/writeGridFSStream.test.ts",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 3365,
+      "sha256": "f5835dd17475d187608b2fe29e8581dfb1f75561fa8ee9bdcad9a8ce49c7e18c",
+      "counts": {
+        "passing": [
+          70
+        ],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "index-upgrade",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh index-upgrade",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 6220,
+      "sha256": "d496d240118cf980eea2023bb692cdd06a7834f90d138a33f03788a0fcdfeaa8",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 20,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "selector-edges",
+      "stage": "retained",
+      "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-selector-edges.cjs",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 745,
+      "sha256": "9f8769220912c6f9e7c2e5c547294648c3f4386a0e2704410d864366bbd187fc",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "passing": 151,
+          "failures": 0
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "tls-srv",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/cache-persistence/run-c2-tls-srv.sh",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 11622,
+      "sha256": "5e57ab9cec23cf75421eb3722b0ac8949ef0162ea857e8595185d49d35fc23fc",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    },
+    {
+      "name": "create-budget",
+      "stage": "retained",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh create-budget",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 171012,
+      "sha256": "38619fa10803efedfc3d10831e21b7f03f348556686f5d7d7e7cdd552ecbb2b3",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [
+        {
+          "ratios": {
+            "p95": 0.7029714265304493,
+            "throughput": 1.5166199626689283,
+            "rss": 0.9268619621646512,
+            "calls": 1
+          }
+        },
+        {
+          "ratios": {
+            "p95": 0.7863054037229078,
+            "throughput": 1.4500346367846169,
+            "rss": 0.9279497892106127,
+            "calls": 1
+          }
+        },
+        {
+          "ratios": {
+            "p95": 0.5992030462055221,
+            "throughput": 1.9011953511762074,
+            "rss": 0.9271322446164938,
+            "calls": 1
+          }
+        },
+        {
+          "ratios": {
+            "p95": 0.7521340486012049,
+            "throughput": 1.6100979856647182,
+            "rss": 0.9133453530773774,
+            "calls": 1.0022727272727272
+          }
+        },
+        {
+          "passing": 16,
+          "failures": 0,
+          "summary": {
+            "reference": {
+              "p95": 0.7029714265304493,
+              "throughput": 1.5166199626689283,
+              "rss": 0.9268619621646512,
+              "calls": 1
+            },
+            "configuration": {
+              "p95": 0.7863054037229078,
+              "throughput": 1.4500346367846169,
+              "rss": 0.9279497892106127,
+              "calls": 1
+            },
+            "progress": {
+              "p95": 0.5992030462055221,
+              "throughput": 1.9011953511762074,
+              "rss": 0.9271322446164938,
+              "calls": 1
+            },
+            "harvest": {
+              "p95": 0.7521340486012049,
+              "throughput": 1.6100979856647182,
+              "rss": 0.9133453530773774,
+              "calls": 1.0022727272727272
+            }
+          }
+        }
+      ],
+      "qualified": true
+    },
+    {
+      "name": "existing-volume-upgrade",
+      "stage": "stock",
+      "command": "python3 packages/redbox-core/test/fixtures/waterline-retirement/run-existing-volume-upgrade.py",
+      "sourceCommit": "0341c6241962729905b0400af1e1097efc81f567",
+      "worktreeChanges": [],
+      "exitCode": 0,
+      "durationMs": 108200,
+      "sha256": "f8e3799eeb6110da85c2243845d768475b09e96b7dbb861de3e6e6f8db5cb5ac",
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      },
+      "checks": [],
+      "qualified": true
+    }
+  ]
+}

@@ -7,7 +7,8 @@
   "files": [
     "dist",
     "logfmt-transport.cjs",
-    "redbox-loader-templates"
+    "redbox-loader-templates",
+    "bin"
   ],
   "scripts": {
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
@@ -18,7 +19,7 @@
     "test:record-schema-rollout:disabled": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 5000 test/services/RecordsService.test.ts --grep \"leaves the non-schema create chain unchanged while record schemas are disabled|preserves baseline update outputs and legacy structural validation while record schemas are disabled|preserves baseline transition outputs and workflow semantics while record schemas are disabled|preserves baseline browser merge and array replacement while record schemas are disabled\"",
     "test:record-schema-rollout:runtime": "npm --prefix ../.. run test:record-schema-rollout:runtime",
     "test:record-schema-rollout:evidence": "TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-schema-rollout.ts",
-    "build": "rm -rf dist && tsc",
+    "build": "rm -rf dist && npm run generate:prisma && tsc && node scripts/prisma-contract.cjs copy",
     "lint": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts",
     "lint:fix": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -29,13 +30,19 @@
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
     "doc:api": "npm run generate-openapi --",
-    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"
+    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080",
+    "typecheck:persistence": "tsc --noEmit -p test/tsconfig.persistence.json",
+    "persistence:indexes": "node bin/persistence-indexes.cjs",
+    "generate:prisma": "node scripts/prisma-contract.cjs generate",
+    "check:prisma": "node scripts/prisma-contract.cjs check",
+    "prepack": "npm run check:prisma && npm run build"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@agendajs/mongo-backend": "4.0.3",
     "@apidevtools/swagger-parser": "13.1.0",
+    "@asteasolutions/zod-to-openapi": "9.1.0",
     "@aws-sdk/client-secrets-manager": "3.1151.0",
     "@aws-sdk/s3-request-presigner": "3.1150.0",
     "@jsonjoy.com/json-pointer": "18.24.0",
@@ -91,6 +98,7 @@
     "mini-css-extract-plugin": "2.10.2",
     "moment": "2.31.0",
     "mongodb": "7.7.0",
+    "mongodb-connection-string-url": "7.0.2",
     "node-cache": "5.1.2",
     "node-schedule": "2.1.1",
     "nodemailer": "10.1.1",
@@ -107,7 +115,6 @@
     "ro-crate": "3.7.2",
     "rxjs": "7.8.2",
     "sails": "1.5.18",
-    "sails-mongo": "2.1.2",
     "sass": "1.105.1",
     "sass-loader": "17.0.1",
     "skipper": "0.9.8",
@@ -122,15 +129,13 @@
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.1",
     "zod": "4.6.7",
-    "@asteasolutions/zod-to-openapi": "9.1.0"
+    "@prisma/orm-mongo": "8.0.0-rc.19",
+    "sails-mongo": "2.1.2"
   },
   "overrides": {
     "axios": "1.20.0",
     "fast-xml-parser": "5.10.1",
     "immutable": "5.1.8",
-    "sails-mongo": {
-      "qs": "6.15.2"
-    },
     "srvx": "0.11.13",
     "serialize-javascript": "7.0.5",
     "svgo": "4.0.2",
@@ -144,7 +149,17 @@
     "anymatch": {
       "picomatch": "2.3.2"
     },
-    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
+    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e",
+    "@prisma/composer-cli": {
+      "@prisma/cli-engine": "0.9.0",
+      "effect": "4.0.5"
+    },
+    "@prisma/orm-toolchain": {
+      "@prisma/cli-engine": "0.9.0"
+    },
+    "sails-mongo": {
+      "qs": "6.15.2"
+    }
   },
   "devDependencies": {
     "@tsconfig/node24": "24.0.4",
@@ -172,7 +187,8 @@
     "prettier": "3.9.9",
     "serialize-javascript": "7.0.5",
     "sinon": "22.1.0",
-    "ts-node": "10.9.2"
+    "ts-node": "10.9.2",
+    "prisma": "8.0.0-rc.24"
   },
   "nyc": {
     "all": true,
@@ -183,5 +199,6 @@
       "lcov",
       "text"
     ]
-  }
+  },
+  "packageManager": "npm@11.20.0"
 }

@@ -1,0 +1,13 @@
+{
+  "name": "dashboard-native-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh dashboard-native-values",
+  "sourceCommit": "5bc2356b9c174239cb9af3599e78df988285940c",
+  "exitCode": 1,
+  "durationMs": 6156,
+  "sha256": "4e82fe653146c2609a65160eece79c2ee371741555273410e71b1595596da0fa",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":0,\"failures\":5,\"firstFailures\":[{\"patch\":{\"revision\":2,\"configData\":{\"nested\":[null,\"value\"]}},\"waterline\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":2,\"configData\":{\"nested\":[null,\"value\"]},\"updatedAt\":\"2000-01-01T00:00:00.000Z\",\"provenance\":{}}},\"mongodb\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":2,\"configData\":{\"nested\":[null,\"value\"]},\"updatedAt\":\"2026-10-21T02:27:15.276Z\",\"provenance\":{}}}},{\"patch\":{\"revision\":\"2\"},\"waterline\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":\"2\",\"configData\":{},\"updatedAt\":\"2000-01-01T00:00:00.000Z\",\"provenance\":{}}},\"mongodb\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":2,\"configData\":{},\"updatedAt\":\"2026-10-21T02:27:15.317Z\",\"provenance\":{}}}},{\"patch\":{\"revision\":2,\"provenance\":null},\"waterline\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":2,\"configData\":{},\"updatedAt\":\"2000-01-01T00:00:00.000Z\",\"provenance\":null}},\"mongodb\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":2,\"configData\":{},\"updatedAt\":\"2026-10-21T02:27:15.347Z\",\"provenance\":null}}},{\"patch\":{\"revision\":2,\"createdAt\":\"\"},\"waterline\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":2,\"configData\":{},\"updatedAt\":\"2000-01-01T00:00:00.000Z\",\"provenance\":{},\"createdAt\":\"\"}},\"mongodb\":{\"ok\":false,\"code\":\"E_INVALID_VALUES_TO_SET\",\"row\":{\"branding\":\"fixture\",\"revision\":1,\"configData\":{},\"updatedAt\":\"2000-01-01T00:00:00.000Z\",\"provenance\":{},\"createdAt\":\"2026-10-21T02:27:15.367Z\"}}},{\"patch\":{\"revision\":2,\"updatedAt\":null},\"waterline\":{\"ok\":true,\"value\":true,\"row\":{\"branding\":\"fixture\",\"revision\":2,\"configData\":{},\"updatedAt\":null,\"provenance\":{}}},\"mongodb\":{\"ok\":false,\"code\":\"E_INVALID_VALUES_TO_SET\",\"row\":{\"branding\":\"fixture\",\"revision\":1,\"configData\":{},\"updatedAt\":\"2000-01-01T00:00:00.000Z\",\"provenance\":{}}}}]}"
+  ]
+}

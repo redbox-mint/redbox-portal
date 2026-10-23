@@ -1,0 +1,17 @@
+{
+  "initialUnpublishedTip": "b941cbe492b5876507f70703efadf156de66cfdb",
+  "previousPinCommit": "c53d52d2b16b1f5406a437e4068d29db5b394a70",
+  "previousTip": "ea3e79a01c0523971f059a7151effff12325237c",
+  "correctedPinCommit": "a06fad4b125a73418d74b3eb59d642aa0c628db3",
+  "replayedTip": "97052abed459a35eeb9f4f5b31902729adc0d741",
+  "runtimeSourceDifferenceCount": 0,
+  "reason": "Keep peer-preserving, stale-linked-entry-free npm 11.20.0 locks and runtime guards in one dedicated pin commit; no pin bump/revert sequence.",
+  "staleLocalEntriesRemoved": {
+    "packages/sails-hook-redbox-storage-mongo/node_modules/mongodb": {
+      "version": "7.2.0"
+    },
+    "packages/sails-hook-redbox-storage-mongo/node_modules/typescript": {
+      "version": "6.0.2"
+    }
+  }
+}

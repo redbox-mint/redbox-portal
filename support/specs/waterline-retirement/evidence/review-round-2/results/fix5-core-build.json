@@ -1,0 +1,11 @@
+{
+  "name": "fix5-core-build",
+  "command": "npm --prefix packages/redbox-core run build",
+  "sourceCommit": "b6e12e6b01a572b680ef7eda378fbd9a4cb5c287",
+  "exitCode": 0,
+  "durationMs": 30546,
+  "sha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

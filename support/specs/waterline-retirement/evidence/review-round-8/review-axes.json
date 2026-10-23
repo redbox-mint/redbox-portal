@@ -1,0 +1,188 @@
+{
+  "initial": {
+    "standards": {
+      "taskId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-standards",
+      "childThreadId": "thread:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-standards",
+      "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-standards:ordinal:1",
+      "childNodeId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-standards",
+      "status": "completed",
+      "workState": "result_available",
+      "hasPendingChildRuns": false,
+      "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-standards:ordinal:1",
+      "latestTerminalStatus": "completed",
+      "latestTerminalSummary": null,
+      "latestTerminalResultContextTransferId": null,
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "No qualifying P1/P2 or clearly wrong P3 findings validated.\n\nReviewed `1b471907c..2ad8458ed`, programme standards/specification documents, relevant validation, and rounds 1–7 evidence. Compared `WaterlineNativeStorage.ts` with its original service baseline, including retained record/lifecycle/identity behavior. Checked R7’s cursor ownership, upload draining/binary semantics, timestamp guards, array equality, numeric coercion, and ordering validation against installed source.\n\nVerification: **39 focused tests passed** on Node 24.18.0. Package resolution confirms MongoDB 7.7.0 and core rttc 10.0.1.\n\nLimits: no live-container, full-suite, performance, or packed-release matrix rerun; private institution behavior remains unqualified. No files edited, commits created, agents spawned, or containers changed. G-TX and the stated gated scope remain unchanged.",
+      "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-standards:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Aa18182b8-936c-4f8c-b39a-e1d84b28d4a3%253Adelegate-task%253Awaterline-retirement-final-review-r8:cd5fc330-93f0-4e1d-b2af-478990a80c93",
+      "hasPendingQuestion": false,
+      "pendingApproval": null,
+      "waitTimedOut": false
+    },
+    "spec": {
+      "taskId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-spec",
+      "childThreadId": "thread:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-spec",
+      "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-spec:ordinal:1",
+      "childNodeId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-spec",
+      "status": "completed",
+      "workState": "result_available",
+      "hasPendingChildRuns": false,
+      "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-spec:ordinal:1",
+      "latestTerminalStatus": "completed",
+      "latestTerminalSummary": null,
+      "latestTerminalResultContextTransferId": null,
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "Reviewed initial HEAD `2ad8458ed`. Four validated findings; locations refer to that commit. Later parent edits were excluded using in-memory `git show` source loading.\n\n1. **P2 — readiness accepts incompatible string-ID mappings.** [harvest/preflight.ts:172](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/harvest/preflight.ts:172). Declare `HarvestRun.dontUseObjectIds = true`, retaining its standard string ID attribute. The actual Sails-normalized/Waterline-loaded model passes `assertHarvestMappings`. Creating ID `507f1f77bcf86cd799439011` produces `meta.modelsNotUsingObjectIds: ['harvestrun']`; installed sails-mongo’s reifier preserves physical `_id` as a **string**. Driver encoding produces an **ObjectId**. Driver ID lookups therefore miss existing rows, and mixed writers can use different physical identities for the same public ID. Refuse this setting before publishing repositories. Adjacent R/Q/J1/J3/cache/S mapping guards also omit this model-level setting; foreign-reference mappings need consideration too.\n\n2. **P2 — supplied timestamps bypass Waterline coercion and validation.** [harvest/physical.ts:325](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/harvest/physical.ts:325), [siem/physical.ts:235](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/siem/physical.ts:235). With otherwise valid create dictionaries, `createdAt: ''` is rejected by loaded Waterline but persisted unchanged by the driver; `createdAt: null` is rejected by Waterline but replaced with now. Conversely, numeric/boolean supplied timestamps become strings in Waterline and are rejected by these codecs. A pinned-source comparison across five J2/J3 models, two timestamp fields and eight inputs produced **58 differences / 80 cases**. This changes write acceptance and admits timestamp values the baseline refuses. R/Q/J1 contain the same timestamp assignment pattern. The R7 numeric harness excludes automatic timestamps.\n\n3. **P2 — M readiness still admits unsupported automatic fields.** [migration/preflight.ts:59](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/migration/preflight.ts:59). Declare `Migration.source` with `autoCreatedAt: true`. The valid loaded mapping has `_stringtimestamp` column metadata and passes readiness. `recordExecution({name:'probe', ranAt:1})` writes an ISO timestamp into `source` through Waterline; the driver writes `''`. Thus promotion silently bypasses institution behavior. Apply the per-attribute timestamp checks used elsewhere. This reproduction loaded the override from its declaration, rather than mutating an impossible loaded definition.\n\n4. **P3 — J2 zero-sized pages become unbounded reads.** [MongoHarvestRepositories.ts:52](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/harvest/MongoHarvestRepositories.ts:52), also lines 100 and 147. Invoke `runs.listRuns(filter,0,0)`, `chunks.listForRun(runId,brandId,0)`, or `events.listEvents(filter,0,0)`. Loaded Waterline returns `[]` without dispatching a find. Each driver path forwards `.limit(0)`, meaning unlimited in MongoDB. All three controls reproduced the difference. Existing HTTP services clamp positive sizes, so the exposed repository contract is the affected scope. Return an empty page for zero and validate pagination.\n\nCoverage notes for the parent’s table:\n\n- **M/cache:** inspected separate repositories, validators, readiness and lifecycle composition. Excluded an exploratory dual-timestamp definition because ORM loading rejects it.\n- **R/Q/J1:** inspected physical codecs, repository/query entry points and readiness. Generated query evidence principally exercises these groups. Q secret leases share one implementation across selections; I18n callbacks remain operation-specific.\n- **J2/J3:** separate physical codecs and query implementations require separate coverage. R7 covers numeric creates; timestamp inputs, model-level ID settings and J2 zero limits remain gaps. J2 counter pipelines are shared; J3 shares eligibility predicates but duplicates claim/completion orchestration.\n- **J4:** both selections reuse `NativeFigshareRepository`; CAS/replacement/lease logic is shared. Runtime composition checks readiness before publication.\n- **Staged S:** schema operations inherit the baseline implementation with collection overrides. Attachment orchestration and audit mapping have separate implementations requiring dedicated coverage.\n\nProbes used loaded Waterline, installed adapter normalization and captured driver dispatches. No files, containers or databases were changed; no full suites or further agents were run.",
+      "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-spec:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Aa18182b8-936c-4f8c-b39a-e1d84b28d4a3%253Adelegate-task%253Awaterline-retirement-final-review-r8:ea1faebc-5bfe-453d-b6ed-7b6e20e3be7e",
+      "hasPendingQuestion": false,
+      "pendingApproval": null,
+      "waitTimedOut": false
+    }
+  },
+  "afterFirstFixes": {
+    "standards": {
+      "taskId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-final-standards",
+      "childThreadId": "thread:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-final-standards",
+      "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-final-standards:ordinal:1",
+      "childNodeId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-final-standards",
+      "status": "completed",
+      "workState": "result_available",
+      "hasPendingChildRuns": false,
+      "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-final-standards:ordinal:1",
+      "latestTerminalStatus": "completed",
+      "latestTerminalSummary": null,
+      "latestTerminalResultContextTransferId": null,
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "No qualifying findings at **676c953c6** on the assigned standards, boundaries, and overreach axis.\n\nVerified:\n\n- `WaterlineNativeStorage.ts`, GridFS byte owners/helpers, and retained storage routing are unchanged from `2ad8458ed`.\n- `namedQueryCriteria` is unchanged from R7 fix `7c52cabe6`.\n- All 18 extracted attachment-normalizer bodies match their baseline implementations.\n- **37 isolated source controls passed**, covering scalar/null/default handling, timestamps, IDs, paging, and native-patch validation.\n- No new driver-type leak into domain contracts, generic repository facade, or gated-work expansion was found. Native dashboard CAS and SIEM delivery retain their separate patch/clock semantics.\n\nLimitations: read-only source/evidence review plus pure probes. I did not rebuild, start containers, or rerun the parent’s concurrent live/full matrix. Private institution schemas and release/performance qualification remain outside this review.",
+      "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-final-standards:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Aa18182b8-936c-4f8c-b39a-e1d84b28d4a3%253Adelegate-task%253Awaterline-retirement-final-review-r8:64c56be8-2ffe-4280-8bcb-7b58f3aa469e",
+      "hasPendingQuestion": false,
+      "pendingApproval": null,
+      "waitTimedOut": false
+    },
+    "spec": {
+      "taskId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-final-spec",
+      "childThreadId": "thread:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-final-spec",
+      "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-final-spec:ordinal:1",
+      "childNodeId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-final-spec",
+      "status": "completed",
+      "workState": "result_available",
+      "hasPendingChildRuns": false,
+      "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-final-spec:ordinal:1",
+      "latestTerminalStatus": "completed",
+      "latestTerminalSummary": null,
+      "latestTerminalResultContextTransferId": null,
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "One qualifying remaining finding:\n\n- **P3 — wildcard record-type selection drops all fields except ID.** [WaterlineReferenceRepositories.ts:49](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/reference/WaterlineReferenceRepositories.ts:49), also line 58 and [MongoReferenceRepositories.ts:126](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/reference/MongoReferenceRepositories.ts:126). Calling `RecordTypesService.get/getAll` with `fields: ['*']` previously returned the complete row through Waterline’s valid wildcard selection. Both replacements now return only `{id}`, losing configuration fields. An isolated probe using real source declarations, pinned Sails normalization and loaded Waterline reproduced complete-row versus ID-only results without database/filesystem writes. Preserve exact `['*']` as an unrestricted selection. This predates the R8 fixes but remains within the programme review range.\n\nNo other qualifying findings validated through `676c953c6`. The byte owners and native record-array translation remain unchanged.\n\nLimitations: no live MongoDB, full suites, builds, performance or packed-release checks rerun. Concurrent later changes are excluded from this review.",
+      "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-final-spec:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Aa18182b8-936c-4f8c-b39a-e1d84b28d4a3%253Adelegate-task%253Awaterline-retirement-final-review-r8:0a2e1371-cd8e-4be0-b4f6-9824f46d15d8",
+      "hasPendingQuestion": false,
+      "pendingApproval": null,
+      "waitTimedOut": false
+    }
+  },
+  "final": {
+    "standards": {
+      "taskId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-amendments-standards",
+      "childThreadId": "thread:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-amendments-standards",
+      "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-amendments-standards:ordinal:1",
+      "childNodeId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-amendments-standards",
+      "status": "completed",
+      "workState": "result_available",
+      "hasPendingChildRuns": false,
+      "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-amendments-standards:ordinal:1",
+      "latestTerminalStatus": "completed",
+      "latestTerminalSummary": null,
+      "latestTerminalResultContextTransferId": null,
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "No qualifying standards findings at pinned HEAD `4103c6c48`: no P1/P2 or clearly wrong P3.\n\nReviewed the R8 amendments, especially lazy SIEM collection resolution, ledger query normalization, primary-ID patch validation and wildcard selection. No consequential standards breach or code-smell finding remains.\n\nLimits: read-only source review; no edits, builds, runtime probes, containers, tests or children. The parent’s matrix remains separate evidence. Private hooks, performance and packed-release qualification were not assessed.",
+      "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-amendments-standards:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Aa18182b8-936c-4f8c-b39a-e1d84b28d4a3%253Adelegate-task%253Awaterline-retirement-final-review-r8:434667fa-f82f-47d1-a9b4-10112168583d",
+      "hasPendingQuestion": false,
+      "pendingApproval": null,
+      "waitTimedOut": false
+    },
+    "spec": {
+      "taskId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-amendments-spec",
+      "childThreadId": "thread:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-amendments-spec",
+      "childRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-amendments-spec:ordinal:1",
+      "childNodeId": "node:delegated-task:command%3Amcp%3A3b751d47-9398-46a1-966e-6b106c5a7f89%3Adelegate-task%3Awaterline-r8-amendments-spec",
+      "status": "completed",
+      "workState": "result_available",
+      "hasPendingChildRuns": false,
+      "latestTerminalRunId": "run:thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-amendments-spec:ordinal:1",
+      "latestTerminalStatus": "completed",
+      "latestTerminalSummary": null,
+      "latestTerminalResultContextTransferId": null,
+      "providerInstanceId": "codex_hattie",
+      "model": "gpt-6.1-sol",
+      "options": [
+        {
+          "id": "reasoningEffort",
+          "value": "xhigh"
+        },
+        {
+          "id": "serviceTier",
+          "value": "priority"
+        }
+      ],
+      "summary": "Spec axis: **no qualifying P1/P2 or clearly wrong P3 findings** at pinned HEAD `4103c6c48`.\n\nThe last four amendments align with the qualified contracts. The surrounding adapter/helper review found no additional source-level parity gap or gated-scope expansion. R7 byte-owner fixes and native-record array equality remain preserved. Explicit field-list projection was assessed as the accepted DTO extension.\n\nLimits: source and retained-evidence review only. No edits, builds, containers, probes, tests or children. This does not qualify the parent’s running 55-case matrix, private hooks, performance or packed releases.",
+      "resultContextTransferId": "context-transfer:type:subagent_result:source-thread:thread%3Adelegated-task%3Acommand%253Amcp%253A3b751d47-9398-46a1-966e-6b106c5a7f89%253Adelegate-task%253Awaterline-r8-amendments-spec:target-thread:thread%3Adelegated-task%3Acommand%253Amcp%253Aa18182b8-936c-4f8c-b39a-e1d84b28d4a3%253Adelegate-task%253Awaterline-retirement-final-review-r8:15ec6886-b2a9-4d0a-86d0-94f6621513cc",
+      "hasPendingQuestion": false,
+      "pendingApproval": null,
+      "waitTimedOut": false
+    }
+  }
+}

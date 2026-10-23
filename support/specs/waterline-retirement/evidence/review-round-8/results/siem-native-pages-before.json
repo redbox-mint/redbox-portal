@@ -1,0 +1,13 @@
+{
+  "name": "siem-native-pages-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-pages",
+  "sourceCommit": "ee46fb57c946b4f2489c976aca223bb94b52db65",
+  "exitCode": 1,
+  "durationMs": 6799,
+  "sha256": "a9e10ea5fc66011cabf77e2053338141abf4f8747a6b96dd5cf28de29aed7d07",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":4,\"failures\":6,\"firstFailures\":[{\"method\":\"readyEvents\",\"limit\":0,\"waterline\":{\"ok\":true,\"value\":[\"0\",\"1\",\"2\",\"3\"]},\"mongodb\":{\"ok\":true,\"value\":[]}},{\"method\":\"readyEvents\",\"limit\":-1,\"waterline\":{\"ok\":true,\"value\":[\"0\"]},\"mongodb\":{\"ok\":false,\"code\":\"invalid-siem\"}},{\"method\":\"readyEvents\",\"limit\":1.5,\"waterline\":{\"ok\":true,\"value\":[\"0\"]},\"mongodb\":{\"ok\":false,\"code\":\"invalid-siem\"}},{\"method\":\"cleanupDeadLetters\",\"limit\":0,\"waterline\":{\"ok\":true,\"value\":0},\"mongodb\":{\"ok\":true,\"value\":4}},{\"method\":\"cleanupDeadLetters\",\"limit\":-1,\"waterline\":{\"ok\":true,\"value\":3},\"mongodb\":{\"ok\":false,\"code\":\"invalid-siem\"}},{\"method\":\"cleanupDeadLetters\",\"limit\":1.5,\"waterline\":{\"ok\":true,\"value\":3},\"mongodb\":{\"ok\":false,\"code\":\"invalid-siem\"}}]}"
+  ]
+}

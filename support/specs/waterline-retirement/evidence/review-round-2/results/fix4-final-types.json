@@ -1,0 +1,11 @@
+{
+  "name": "fix4-final-types",
+  "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 26110,
+  "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

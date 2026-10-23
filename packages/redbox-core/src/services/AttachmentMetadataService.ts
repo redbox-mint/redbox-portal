@@ -1,3 +1,4 @@
+import { retainHttpRequestFollowup } from '../middleware/requestLifetime';
 import { createHash, randomUUID } from 'node:crypto';
 import { Services as services } from '../CoreService';
 import { AttachmentAccessAuditAttributes, AttachmentMetadataAttributes } from '../waterline-models';
@@ -634,12 +635,12 @@ export namespace Services {
         await AttachmentAccessAudit.create(normalizedEvent as AttachmentAccessAuditAttributes).fetch();
         try {
           if (typeof SecurityEventService !== 'undefined') {
-            void SecurityEventService.emitFromAttachmentAudit({
+            await retainHttpRequestFollowup(sails, SecurityEventService.emitFromAttachmentAudit({
               ...normalizedEvent,
               brandId: this.optionalString(event.brandId),
             }).catch(() => {
               this.logger.error(`${this.logHeader} SIEM attachment audit emit failed`);
-            });
+            }));
           }
         } catch { this.logger.error(`${this.logHeader} SIEM attachment audit emit failed`); }
 

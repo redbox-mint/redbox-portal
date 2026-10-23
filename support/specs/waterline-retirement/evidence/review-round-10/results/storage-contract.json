@@ -1,0 +1,20 @@
+{
+  "name": "storage-contract",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 9254,
+  "sha256": "3f5f4791404a4cace158dc85fc7b5a98fdc5ab595bdb607b516ca540e202cd37",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 211,
+      "failures": 0
+    }
+  ]
+}

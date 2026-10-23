@@ -1,0 +1,230 @@
+{
+  "notes": [
+    "Expected failing-before proofs are recorded separately in fix-validation.json.",
+    "No test timeout, healthcheck, budget, assertion or skip was relaxed. No production source was changed and reverted for a before proof.",
+    "Two early standalone runtime probes overlapped a dist rebuild and produced MODULE_NOT_FOUND. Both were excluded and repeated serially; the accepted final matrix and stock runs are serial after builds.",
+    "An initial matrix supervisor was stopped before full suites to incorporate malformed-order and initializing-query fixes. Its incomplete static attempt is excluded; final-static and the complete matrix run at 84f7c6ce6.",
+    "A corrected cursor-after result replaced its initial MODULE_NOT_FOUND result before compact capture; the excluded initial output remains in the tool transcript.",
+    "Raw logs are ignored; compact result JSON records exact commands, exit codes, duration and log SHA256."
+  ],
+  "supersededOrExploratory": [
+    {
+      "name": "gridfs-cursor-before",
+      "command": "node .tmp/review-round-7/gridfs-cursor.cjs",
+      "sourceCommit": "1b471907ca462ebdd460fd014ad4b5e890385a12",
+      "exitCode": 1,
+      "durationMs": 682,
+      "sha256": "18cdb571a13672170eeae85863c161e2b21112c9dcec93f1fa78354944108d61",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Exploratory native cursor.closed assertion. With buffered documents, closed remains false after close; the accepted archived-source proof and final fixtures assert a live server cursor ID and killCursors instead."
+    },
+    {
+      "name": "gridfs-cursor-after",
+      "command": "node .tmp/review-round-7/gridfs-cursor.cjs",
+      "sourceCommit": "1b471907ca462ebdd460fd014ad4b5e890385a12",
+      "exitCode": 0,
+      "durationMs": 519,
+      "sha256": "5b29f02a035e9eed0261bbaecae3ee7497ac12bf15c09fadcf71e0c977a60962",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Passing corrected server-cursor probe; superseded by the retained two-owner live fixtures and initializing-response controls."
+    },
+    {
+      "name": "gridfs-live-downloads",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+      "sourceCommit": "1b471907ca462ebdd460fd014ad4b5e890385a12",
+      "exitCode": 1,
+      "durationMs": 4005,
+      "sha256": "ffa0a2f0f0faab58cd50f0c072c2b2fb5192c26e82d78de98fd954174b43eb03",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "New live fixture missed f.app.config.storage; corrected fixture setup, then six live outcomes pass in gridfs-live-downloads-fixed-fixture. No production regression."
+    },
+    {
+      "name": "gridfs-live-downloads-fixed-fixture",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+      "sourceCommit": "1b471907ca462ebdd460fd014ad4b5e890385a12",
+      "exitCode": 0,
+      "durationMs": 4854,
+      "sha256": "ec9f402cad15f26e8bc024f3fb2232f747ca597207c0acb3b12d1753f38b0f23",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [
+        "{\"passing\":6,\"failures\":0,\"owners\":[\"flydrive\",\"legacy\"],\"outcomes\":[\"cancel\",\"error\",\"complete\"],\"concurrentDisposal\":true}"
+      ],
+      "disposition": "Passing first six live download outcomes; superseded by final 14-outcome plus2-initializing fixtures."
+    },
+    {
+      "name": "fix2-validation",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts test/services/writeGridFSStream.test.ts",
+      "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+      "exitCode": 1,
+      "durationMs": 45360,
+      "sha256": "5cf17a752d7041647b6936937b2a69be0bf3190aba6267ee013914038d2782cb",
+      "counts": {
+        "passing": [
+          19
+        ],
+        "failing": [
+          1
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "First upload patch preserved drainage but source cancellation replaced a destination construction error with AbortError. Corrected idle source ownership and captured original errors before iterator cleanup."
+    },
+    {
+      "name": "fix2-native-finalization",
+      "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+      "sourceCommit": "7f8cc460f2a321f88ef66b19516cc1e51106dc43",
+      "exitCode": 1,
+      "durationMs": 11123,
+      "sha256": "4977bf1aa1ce0640d2d52fdc38b5c8e75993311a56e34aa60bcca61587eb22b5",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Live qualification exposed iterator cancellation replacing a chunk error. Captured the native write callback error first; retained uncertain finalization bytes for existing staged recovery. Final14 live outcomes pass."
+    },
+    {
+      "name": "fix2-final-validation",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts test/services/writeGridFSStream.test.ts",
+      "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+      "exitCode": 0,
+      "durationMs": 47856,
+      "sha256": "454e037b0b9c19da388d1a636b279261a680f9ee7e1583e63ce5d055a43fbf00",
+      "counts": {
+        "passing": [
+          21
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Earlier21 passing upload controls; superseded by finalization and Node binary qualification."
+    },
+    {
+      "name": "fix2-commit-validation",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts test/services/writeGridFSStream.test.ts",
+      "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+      "exitCode": 0,
+      "durationMs": 47705,
+      "sha256": "ca83646b4a34667651bef7ffe489a548ab2566544f41e772b1f2ddff59a16d6c",
+      "counts": {
+        "passing": [
+          22
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Earlier22 passing controls before later Node binary qualification; final 70 focused and full core suites supersede it."
+    },
+    {
+      "name": "gridfs-live-final",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams",
+      "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+      "exitCode": 0,
+      "durationMs": 6776,
+      "sha256": "751e5dc55e24dbde9c6fcb2d4495fe1e809d2cb4715e23ca006fd88ad4cbb85a",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [
+        "{\"passing\":12,\"failures\":0,\"owners\":[\"flydrive\",\"legacy\"],\"outcomes\":[\"cancel\",\"error\",\"complete\"],\"concurrentDisposal\":true,\"uploadFailures\":[\"source with pending chunk\",\"chunk insert\",\"file insert\"]}"
+      ],
+      "disposition": "Earlier12 live outcomes; expanded final 14 includes applied-file/failed-ack qualification."
+    },
+    {
+      "name": "gridfs-upload-after",
+      "command": "node .tmp/review-round-7/gridfs-upload.cjs",
+      "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+      "exitCode": 0,
+      "durationMs": 465,
+      "sha256": "dbcf80b1693138bcc5aba53b37f8058482574aaa658ca40bd4fbd52c89c41d72",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Passing standalone held-chunk probe; retained two-owner live fixture supersedes it."
+    },
+    {
+      "name": "numeric-live-before",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh review-scalars",
+      "sourceCommit": "7f8cc460f2a321f88ef66b19516cc1e51106dc43",
+      "exitCode": 1,
+      "durationMs": 2290,
+      "sha256": "b7a144911d106799c72bc1fc04211af8c43185b0c24efac24fae30b619f191d0",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Discarded MODULE_NOT_FOUND caused by an overlapping dist rebuild. Repeated in isolation as numeric-live-before-isolated; before 63 mismatches are genuine."
+    },
+    {
+      "name": "upload-binary-qualification-before",
+      "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/writeGridFSStream.test.ts --grep \"preserves Node\"",
+      "sourceCommit": "88bff6b403c0f56ee6906fbf0905e50bc5976467",
+      "exitCode": 2,
+      "durationMs": 1324,
+      "sha256": "a9192ee178ea50e6bb31566599a2496b0f770ff6b7e31956753c263ff6a99a34",
+      "counts": {
+        "passing": [
+          0
+        ],
+        "failing": [
+          2
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "Qualification of the new upload writer found multi-byte view truncation and invalid object chunk acceptance against Node pipeline; corrected in 8304b61e0 and both controls now pass."
+    },
+    {
+      "name": "cursor-initializing-validation",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && node_modules/.bin/tsc --noEmit -p .tmp/review-round-7/tsconfig.changed-tests.json && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-initializing && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh gridfs-streams && cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/GridFSDriver.test.ts test/services/writeGridFSStream.test.ts test/middleware/requestLifetime.test.ts test/middleware/redboxSession.test.ts",
+      "sourceCommit": "ed87ef8607a341772588793e80a94ac71896e754",
+      "exitCode": 2,
+      "durationMs": 22461,
+      "sha256": "448359219d953310481908af12c3d2214f2ceac50f4cc954202b50dbb1792fd4",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "The extra compiler caught that the pinned vendor declarations strip private s state. Confined the observed cursor ABI to a narrow local structural cast inside the concrete byte owner; final builds/types and live race checks pass."
+    },
+    {
+      "name": "storage-tests",
+      "command": "npm run test:storage-mongo",
+      "sourceCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+      "exitCode": 1,
+      "durationMs": 45662,
+      "sha256": "e78ac6e49b7d683c931a9815b08d8cec85ad2218732bd836348a953486fdb5f4",
+      "counts": {
+        "passing": [
+          287
+        ],
+        "pending": [
+          38
+        ],
+        "failing": [
+          1
+        ]
+      },
+      "passGroups": 0,
+      "checks": [],
+      "disposition": "The existing upload fake was a duplex PassThrough with a manually emitted finish and no native chunkSizeBytes. The drained writer correctly waits for real completion, so this fake timed out. Replaced it with a completing Writable, supplied native chunk metadata and asserted transferred bytes. No timeout or assertion was relaxed; complete storage rerun passes in storage-fixture-validation."
+    },
+    {
+      "name": "final-review-files",
+      "command": "python3 .tmp/review-round-7/check-files.py",
+      "sourceCommit": "84f7c6ce688e1350b9966dbdd5fd4c9592e22d8d",
+      "exitCode": 1,
+      "durationMs": 2265,
+      "sha256": "2a77afd8ce90831224cf7fdf41da367d2a9cf78c0516ba323f3094e91e13d582",
+      "counts": {},
+      "passGroups": 0,
+      "checks": [
+        "{\"passing\":true,\"node\":\"v24.18.0\",\"loaded\":{\".\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"},\"packages/redbox-core\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\",\"rttc\":\"10.0.1\"},\"packages/sails-hook-redbox-storage-mongo\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"}}}"
+      ],
+      "disposition": "The optional whole-file formatting check flagged only pre-existing index.ts barrel formatting. Compared complete original/current Prettier edit deltas and asserted they are identical; all other changed core TS/CJS files pass. Required lint passed unchanged. No cosmetic production edit."
+    }
+  ]
+}

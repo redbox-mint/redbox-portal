@@ -1,0 +1,98 @@
+{
+  "taskPrefix": "wrp9",
+  "containersRemaining": 0,
+  "networksRemaining": 0,
+  "namedTaskVolumesRemaining": 0,
+  "mainAnonymousVolumesRemoved": 4,
+  "mainAnonymousVolumeIds": [
+    "ee13ba6496727f65c0e5d047d7383d66a05d04c62028c3282914ed1e2e9499f0",
+    "a672dffc91d325362771fb8323d590b4888f60d618012f16c76b95fdae8a9755",
+    "b5555648a216b528e292a4269ce05f4a69e7867ba8411c9290638965ef22b5e7",
+    "4ccfce9583cb1ea2e6e522678843ad57ef1fe7ab7274f44909b8739398bb5e16"
+  ],
+  "priorDockerImageRemoved": true,
+  "ownedBuildCacheRecordsRemoved": 13,
+  "remainingOwnedCacheRecords": 0,
+  "exactPrunes": [
+    {
+      "id": "8acd7v1sx0yeeufgb3z4arsek",
+      "outputSha256": "f796a26c92618f0522963ea7e0aa310e94afcb5aa44581c8ed7ebc9ccf4b45ca"
+    },
+    {
+      "id": "ib3ttkkj8qk9fugrruha6o0ke",
+      "outputSha256": "943a98c5bbd4322fef59045ccea9084320d729e58a4b61c49220abf9d8f7c815"
+    },
+    {
+      "id": "r4pwdt5leos0pdc9dgu8yyzhs",
+      "outputSha256": "45478241ed835f3acbc12ea074f578fe4dd892d21d3ec0a8559ada48118be5c1"
+    },
+    {
+      "id": "rh8nyrs2916idi92ksk6405dz",
+      "outputSha256": "4d6cec3c4da05d12d654e66b1d4a9655003b7c0ef877d61f9a0f8adccab2e55b"
+    },
+    {
+      "id": "kl4ku2gvyfgp5r7rz6ynamaco",
+      "outputSha256": "81e51c8aff5ceaac379c2babf30f9649e0ee6d9ff8b1fae6453a46513bc657f2"
+    },
+    {
+      "id": "u3q09u0m4n9ru5idqp01zb9nw",
+      "outputSha256": "d3373bf12c291fa4e8f610847f2bb6dc699e38d303f33c8ae09a11c1d3ccdab1"
+    },
+    {
+      "id": "b1oo7mnqr59nkbd8k408lbp36",
+      "outputSha256": "4afca24acf4cb51d0d418375b80dc35f40eb58a4a3c87feee5de034a146430fd"
+    },
+    {
+      "id": "ywbvk4p65f278g7du7heljhxy",
+      "outputSha256": "6ef9dc32d07f5e3c7918788720ded055bc1cbd78291ae9a31af6979d8bdcdf54"
+    },
+    {
+      "id": "udo01jffpepxo4rsnqu1eptqx",
+      "outputSha256": "380e6f62b3451979e126c9bf340aa2afde8399d600bfe9257363196439e7a086"
+    },
+    {
+      "id": "r2msz0yk77nnllau2sfniw477",
+      "outputSha256": "74778f014db357a61ea49d03bf32acb7e19efd3c708ef7a5d4e67ca591c1f254"
+    },
+    {
+      "id": "jnyc5t7piy95pb2o40j8wktqw",
+      "outputSha256": "2a0f796a68f0c4f69b2bafd02c1964210cb0b83d40f7124b677e6f0433642eef"
+    },
+    {
+      "id": "mdtrepgtj8ucagz6e5d4xznrg",
+      "outputSha256": "349e572934943ef2ffa8a1599eea5ccfe7431d9ed8c000b02d9d02c6cfabb646"
+    },
+    {
+      "id": "41oaf1vgvqkd2rktrs7o17g1z",
+      "outputSha256": "1cfb248775db0a15be7c5f0fd1fa7267fb48fa907ed6c3502980fc438f7bff65"
+    }
+  ],
+  "cachePruneScope": "Children before parents, one exact task-created ID per --all prune; no global prune. Shared base images and unrelated cache retained.",
+  "priorArchive": {
+    "path": ".tmp/wrp9/prior-5afe0957c.tar",
+    "sha256": "982bf3e8d24819615260448945ff3d129ef45ce5df4a8f0d71572c63db6fc15c",
+    "bytes": 723593216
+  },
+  "p8ArchiveUnchanged": true,
+  "unrelatedDevelopmentContainers": "Same three identities/names remain running; no mutation command targeted them.",
+  "globalPruneUsed": false,
+  "volumeAudit": "No remaining Docker volume was created since the pre-B source checkpoint; task anonymous and named volume cleanup is complete.",
+  "buildCacheWindow": {
+    "build-cache-before.jsonl": {
+      "path": ".tmp/wrp9/build-cache-before.jsonl",
+      "sha256": "50e57c43c080528d0d63e25e073e56b9c72df87548b1176709bc6fcd48f26dd0"
+    },
+    "build-cache-after.jsonl": {
+      "path": ".tmp/wrp9/build-cache-after.jsonl",
+      "sha256": "779c3b63dba137f29e8328a7a51243ebe7d95067d6a2e2f02c48aea4bdb4e667"
+    },
+    "owned-build-cache.json": {
+      "path": ".tmp/wrp9/owned-build-cache.json",
+      "sha256": "0896d8c6172bc09fc30234dad20212c94aaaef142d69017bda31fcf318c3364e"
+    }
+  },
+  "temporaryInputsRemoved": [
+    ".tmp/wrp9/prior (1.9GiB image context)",
+    ".tmp/wrp9/bruno-tests (277MiB disposable exact-lock tools)"
+  ]
+}

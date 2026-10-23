@@ -1,0 +1,95 @@
+{
+  "sourceCommit": "400f9e7932df387a426ee9c19015268e3ad4b35d",
+  "checks": [
+    {
+      "command": "npm --prefix packages/redbox-core run build",
+      "exitCode": 0,
+      "elapsedSeconds": 24.85,
+      "log": "promotion-build.log",
+      "logSha256": "bcc613425982b4c8579b97453d12432cd4b6a5120482015eec6fe16ea68f0973",
+      "result": "PASS"
+    },
+    {
+      "command": "npm run test:core",
+      "exitCode": 0,
+      "elapsedSeconds": 103.33,
+      "log": "promotion-core.log",
+      "logSha256": "4dcc7343be0783810486086437aa6339053b7196904586339d128bfbb0b05ff1",
+      "result": "4142 passing (1m); 106 existing pending"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "exitCode": 0,
+      "elapsedSeconds": 20.56,
+      "log": "promotion-types.log",
+      "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+      "result": "PASS"
+    },
+    {
+      "command": "node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "elapsedSeconds": 1.76,
+      "log": "promotion-root-types.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "PASS"
+    },
+    {
+      "command": "npm run lint",
+      "exitCode": 0,
+      "elapsedSeconds": 0.48,
+      "log": "promotion-lint.log",
+      "logSha256": "ffd7788771281206201f43f39715daa90652d026ae012002b7646b81615f3439",
+      "result": "PASS"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "exitCode": 0,
+      "elapsedSeconds": 72.81,
+      "log": "promotion-indexes.log",
+      "logSha256": "97ae6dead73358f32713240e05b5792af098c32da9d08946c9e1781f81ddc876",
+      "result": "12 cases; omitted selectors prepare all nine scopes; Q fresh readiness and duplicate AppConfig preservation"
+    },
+    {
+      "command": "CONFIGURATION_BACKENDS=default CONFIGURATION_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-portal.sh",
+      "exitCode": 0,
+      "elapsedSeconds": 301.31,
+      "log": "promotion-mocha.log",
+      "logSha256": "4a26245d49864f7d978e2a70a27c7316d6c665fa0b547d8355b0813d1201777f",
+      "result": "53 passing (2m)"
+    },
+    {
+      "command": "CONFIGURATION_BACKENDS=default CONFIGURATION_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-bruno.sh",
+      "exitCode": 0,
+      "elapsedSeconds": 256.84,
+      "log": "promotion-bruno.log",
+      "logSha256": "ad779394b7633ebc1d0aba4f8d0f53b5c51e27009251567095e86d055b05b3db",
+      "result": "305/305 requests; 549/549 tests"
+    },
+    {
+      "command": "env -u RBPORTAL_CONFIGURATION_BACKEND bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "exitCode": 0,
+      "elapsedSeconds": 54.01,
+      "log": "promotion-development.log",
+      "logSha256": "bf5cb05ac3ebe7dab4629e629c84f2d02c4d3cf27051095413dc48f2fc7c8fab",
+      "result": "standard app.js HTTP startup; real maintenance inspect ready for all nine scopes; 4 applied migrations; own project cleaned"
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-package.sh",
+      "exitCode": 0,
+      "result": "PASS: omitted Q selector selects mongodb; installed/pruned/offline types/imports/shims and Q operations/queries/SIEM/CAS/lease on Node 24.16.0 and 26.11.1; npm 11.20.0 lock",
+      "log": "package-default-final.log",
+      "logSha256": "e8b98e8283c6888d8818b0e0410156ea57fe04d36ca945bf5c13888ce81d8bee"
+    }
+  ],
+  "date": "2026-10-20",
+  "gateCommit": "c05c867dd",
+  "promotionCommit": "d2dc6f8ce",
+  "bootstrapFixtureFollowup": "af47d1c66",
+  "developmentYamlFollowup": "400f9e793",
+  "packageDefaultProbe": "0cdd7de42",
+  "result": "PASS: fresh default Mocha, Bruno and app.js; all nine scopes; core/types/lint; explicit rollback retained",
+  "node": "24.18.0",
+  "standardRunnerNode": "26.10.0",
+  "mongo": "8.0.34",
+  "topology": "standalone; only task-owned disposable projects/volumes"
+}

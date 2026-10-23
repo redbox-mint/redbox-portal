@@ -1,0 +1,13 @@
+{
+  "name": "mappings-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh review-mappings",
+  "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+  "exitCode": 1,
+  "durationMs": 4781,
+  "sha256": "83b0a3d9f3d125efd25443eeedc3771f761c1f4355d0c3085b21d1d9460e56a8",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":0,\"failures\":[\"themeconfig.css.autoCreatedAt: Missing expected exception.\",\"themeconfig.css.autoUpdatedAt: Missing expected exception.\",\"form.name.autoCreatedAt: Missing expected exception.\",\"form.name.autoUpdatedAt: Missing expected exception.\",\"recordtype.workflowSteps.autoCreatedAt: Missing expected exception.\",\"recordtype.workflowSteps.autoUpdatedAt: Missing expected exception.\",\"i18nbundle.displayName.autoCreatedAt: Missing expected exception.\",\"i18nbundle.displayName.autoUpdatedAt: Missing expected exception.\",\"i18nbundle.entries.autoCreatedAt: Missing expected exception.\",\"i18nbundle.entries.autoUpdatedAt: Missing expected exception.\",\"appconfig.configKey.autoCreatedAt: Missing expected exception.\",\"appconfig.configKey.autoUpdatedAt: Missing expected exception.\",\"form.createdAt.autoUpdatedAt: Missing expected exception.\",\"appconfig.updatedAt.autoCreatedAt: Missing expected exception.\"]}"
+  ]
+}

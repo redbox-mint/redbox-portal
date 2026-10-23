@@ -1,0 +1,311 @@
+{
+  "phase": "P10b: public package boundary, P10.5 and P10.6",
+  "base": "eb27a7fbfa5f79b2ca997634ae40938c342c6552",
+  "verifiedRuntimeHead": "97052abed459a35eeb9f4f5b31902729adc0d741",
+  "runtimeSource": {
+    "files": 619,
+    "sha256": "cd6bd02176adf7cbf0941cbddab479946de36051116b5a932b60df4513620844",
+    "algorithm": "SHA-256 of sorted repository-relative path + NUL + bytes for all files in core/src and storage-mongo/src"
+  },
+  "acceptedLedgers": [
+    {
+      "ledger": "part1-checks.json",
+      "exitCode": 0,
+      "durationMs": 140111,
+      "counts": {
+        "lintWarnings": 0,
+        "lintErrors": 0,
+        "publishedSurfaces": 42,
+        "advisoryFindings": 816
+      },
+      "reportedPassGroups": 1
+    },
+    {
+      "ledger": "part1-import-guard.json",
+      "exitCode": 0,
+      "durationMs": 2551,
+      "reportedPassGroups": 2
+    },
+    {
+      "ledger": "driver-locks-final-pinned.json",
+      "exitCode": 0,
+      "durationMs": 14935
+    },
+    {
+      "ledger": "final-build-pinned.json",
+      "exitCode": 0,
+      "durationMs": 53514,
+      "counts": {
+        "lintWarnings": 0,
+        "lintErrors": 0
+      },
+      "reportedPassGroups": 1
+    },
+    {
+      "ledger": "final-core-pinned.json",
+      "exitCode": 0,
+      "durationMs": 98206,
+      "counts": {
+        "passing": 4159,
+        "pending": 113
+      }
+    },
+    {
+      "ledger": "final-storage-pinned.json",
+      "exitCode": 0,
+      "durationMs": 37219,
+      "counts": {
+        "passing": 288,
+        "pending": 38
+      }
+    },
+    {
+      "ledger": "final-s-live.json",
+      "exitCode": 0,
+      "durationMs": 36537,
+      "checkRuns": [
+        {
+          "passing": 37,
+          "failures": 0,
+          "stagedIndexScopes": 15
+        },
+        {
+          "passing": 8,
+          "failures": 0,
+          "indexScopes": 15
+        },
+        {
+          "passing": 16,
+          "failures": 0,
+          "atomicUnitsMoved": 0,
+          "modelFreeEntrypoint": true
+        },
+        {
+          "passing": 16,
+          "failures": 0,
+          "selector": "waterline"
+        },
+        {
+          "passing": 16,
+          "failures": 0,
+          "selector": "mongodb"
+        },
+        {
+          "passing": 5,
+          "failures": 0
+        }
+      ]
+    },
+    {
+      "ledger": "final-sqs-after-stock.json",
+      "exitCode": 0,
+      "durationMs": 6174,
+      "counts": {
+        "testFilesPassed": 1,
+        "testFilesTotal": 1,
+        "testsPassed": 6,
+        "testsTotal": 6
+      },
+      "reportedPassGroups": 1
+    },
+    {
+      "ledger": "final-mocha-default.json",
+      "exitCode": 0,
+      "durationMs": 275458,
+      "counts": {
+        "passing": 419,
+        "pending": 10
+      }
+    },
+    {
+      "ledger": "final-mocha-mongodb.json",
+      "exitCode": 0,
+      "durationMs": 280803,
+      "counts": {
+        "passing": 419,
+        "pending": 10
+      }
+    },
+    {
+      "ledger": "final-bruno-default-retry.json",
+      "exitCode": 0,
+      "durationMs": 238235,
+      "counts": {
+        "requests": 309,
+        "requestsPassed": 309,
+        "testsPassed": 553,
+        "testsTotal": 553,
+        "assertionsPassed": 3,
+        "assertionsTotal": 3
+      }
+    },
+    {
+      "ledger": "final-bruno-mongodb.json",
+      "exitCode": 0,
+      "durationMs": 244011,
+      "counts": {
+        "requests": 309,
+        "requestsPassed": 309,
+        "testsPassed": 553,
+        "testsTotal": 553,
+        "assertionsPassed": 3,
+        "assertionsTotal": 3
+      }
+    },
+    {
+      "ledger": "final-dev-default.json",
+      "exitCode": 0,
+      "durationMs": 73207,
+      "reportedPassGroups": 2
+    },
+    {
+      "ledger": "final-dev-mongodb.json",
+      "exitCode": 0,
+      "durationMs": 62599,
+      "reportedPassGroups": 2
+    },
+    {
+      "ledger": "tip-foundation.json",
+      "exitCode": 0,
+      "durationMs": 9860,
+      "counts": {
+        "passing": 12
+      }
+    },
+    {
+      "ledger": "tip-cache.json",
+      "exitCode": 0,
+      "durationMs": 10819,
+      "counts": {
+        "passing": 17
+      }
+    },
+    {
+      "ledger": "tip-indexes.json",
+      "exitCode": 0,
+      "durationMs": 98182,
+      "reportedPassGroups": 15
+    },
+    {
+      "ledger": "tip-migration.json",
+      "exitCode": 0,
+      "durationMs": 63221,
+      "counts": {
+        "passing": 14,
+        "pending": 1
+      }
+    },
+    {
+      "ledger": "tip-reference.json",
+      "exitCode": 0,
+      "durationMs": 51566,
+      "reportedPassGroups": 13
+    },
+    {
+      "ledger": "tip-configuration.json",
+      "exitCode": 0,
+      "durationMs": 30077,
+      "reportedPassGroups": 9
+    },
+    {
+      "ledger": "tip-progress.json",
+      "exitCode": 0,
+      "durationMs": 32309,
+      "reportedPassGroups": 2
+    },
+    {
+      "ledger": "tip-harvest.json",
+      "exitCode": 0,
+      "durationMs": 33118,
+      "reportedPassGroups": 2
+    },
+    {
+      "ledger": "tip-siem.json",
+      "exitCode": 0,
+      "durationMs": 36980,
+      "reportedPassGroups": 2
+    },
+    {
+      "ledger": "tip-figshare.json",
+      "exitCode": 0,
+      "durationMs": 35962,
+      "reportedPassGroups": 2
+    }
+  ],
+  "liveResults": "s-final-results.json",
+  "environment": "tip-environment.json",
+  "cleanup": "cleanup-final.json",
+  "scope": {
+    "default": "waterline",
+    "GS": "OPEN",
+    "GTX": "CLOSED",
+    "OPS-TX-01": "undecided",
+    "completed": [
+      "P10.5",
+      "P10.6"
+    ],
+    "excluded": [
+      "P10.4",
+      "P10.7",
+      "P10.8"
+    ],
+    "atomicUnitsMoved": 0,
+    "institutionDatabaseInspected": false,
+    "suppliedTopologyChanged": false,
+    "pushed": false
+  },
+  "publicSurface": {
+    "existingValidatorReused": "assertJsonValue",
+    "internalFirstPartyExports": [
+      "mongoDatabase",
+      "persistenceOperation",
+      "assertStorageMapping",
+      "storageAuditFields"
+    ],
+    "supportedExtensionSurfaceAdded": false,
+    "catalogueSurfaces": 42,
+    "advisoryFindings": 816,
+    "importGuard": "scripts/verify-core-imports.cjs via npm run lint"
+  },
+  "qualification": {
+    "freshVolumes": true,
+    "stockSuites": [
+      "npm run test:mocha",
+      "npm run test:bruno:general"
+    ],
+    "stockSelectors": [
+      "default",
+      "mongodb"
+    ],
+    "runtimeVersionGuards": "pre/post stock install, in-process Mocha, fresh dev",
+    "cleanInstalledArtifactClaim": false,
+    "priorImageRollbackClaim": false,
+    "fullP107MatrixClaim": false,
+    "newSkippedTests": 0
+  },
+  "limitsAndCorrections": [
+    "Default guarded Bruno first failed at an external DataCite 10s timeout; unchanged complete fresh-volume retry passed (final-bruno-default.json -> final-bruno-default-retry.json).",
+    "Initial stock tip-* runs used a stale nested driver; diagnostic only. Final-* guarded runs load mongodb 7.7.0 in root/core/storage and compiler 5.9.3.",
+    "Agenda 6.2.6 completed-job watchdog sleeps max(processEvery/2, lockLifetime/2) then checks stopped before I/O. Worker/connection draining is measured; whole-process timer quiescence is not claimed.",
+    "SQS uses a local protocol endpoint and synthetic credentials. Production AWS was not contacted."
+  ],
+  "dependencyDecision": {
+    "pins": "root/core/storage mongodb 7.7.0; Waterline retains private mongodb 6.3.0",
+    "lockGenerator": "npm 11.20.0",
+    "dedicatedCommit": "a06fad4b125a73418d74b3eb59d642aa0c628db3",
+    "legacyGridfsAbi": "Fixed by moving legacy byte bucket only to owned BSON 7 Db; Record/U manager remains baseline."
+  },
+  "openHumanDecisions": [
+    "OPS-TX-01 topology/transaction approval before P10.4",
+    "Whether Counter requires a stronger allocation contract",
+    "Existing release/security/institution and G-S operational acceptance gates"
+  ],
+  "evidence": {
+    "rawLogsCommitted": false,
+    "sourcePatchesCommitted": false,
+    "p10bBytes": 73169,
+    "p10aAndP10bBytes": 160861,
+    "p10bFiles": 89,
+    "limitBytes": 500000
+  }
+}

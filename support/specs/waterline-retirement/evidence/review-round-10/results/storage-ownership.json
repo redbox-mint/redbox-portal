@@ -1,0 +1,20 @@
+{
+  "name": "storage-ownership",
+  "stage": "retained",
+  "command": "P10_OWNER_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 9254,
+  "sha256": "3a89c8955ae921be1725cd3803dbb9520e0a623f93d4b4382960e6da2a2b6db3",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 17,
+      "failures": 0
+    }
+  ]
+}

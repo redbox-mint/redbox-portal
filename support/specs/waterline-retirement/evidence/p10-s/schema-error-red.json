@@ -1,0 +1,14 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-storage.sh contract"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 5.534,
+  "sha256": "7bac6954721688e277cea7f772f13b8044ea525fe6252be83fe0d62fadaa0a92",
+  "logBytes": 44298,
+  "counts": [],
+  "failureExcerpt": "> the old records in your database; either by hand, or using a migration script.\n> \n> (For example, to wipe all data, you might just use `migrate: drop`.)\n> \n> More rarely, this warning could mean there is a bug in the adapter itself.  If you\n> believe that is the case, then please contact the maintainer of this adapter by opening\n> an issue, or visit http://sailsjs.com/support for help.\n\nAssertionError [ERR_ASSERTION]: The validation function is expected to return \"true\". Received false\n\nCaught error:\n\nPersistenceError: Staged storage operation failed. A dispatched write may have applied; reconcile before retrying.\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/storage-contract.cjs:125:3 {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: [PersistenceError],\n  expected: [Function (anonymous)],\n  operator: 'rejects',\n  diff: 'simple'\n}",
+  "totals": {}
+}

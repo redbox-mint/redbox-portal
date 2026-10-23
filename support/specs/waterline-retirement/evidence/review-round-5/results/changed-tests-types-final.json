@@ -1,0 +1,11 @@
+{
+  "name": "changed-tests-types-final",
+  "command": "node_modules/.bin/tsc --noEmit -p .tmp/review-round-5/tsconfig.changed-tests.json",
+  "sourceCommit": "322b5c9f4ef9d6d513623adbb1ac6e8651a53077",
+  "exitCode": 0,
+  "durationMs": 31294,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

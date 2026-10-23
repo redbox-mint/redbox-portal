@@ -1,0 +1,55 @@
+{
+  "stage": "promotion",
+  "sourceBase": "8350d1f66",
+  "runtimeChanges": {
+    "sha256": "3bf395dca6ad086249893e218dc89ef870f6d7cbefe92fc629f6a9becbde781f",
+    "summaryManifest": "raw-artifacts.json"
+  },
+  "runtimePatchSha256": "3bf395dca6ad086249893e218dc89ef870f6d7cbefe92fc629f6a9becbde781f",
+  "imageTag": "redbox-c2:promote",
+  "imageId": "sha256:cce6fc8a6144a6e2966af06b08dba6aa0e4688f9b6526d37a5d2d499b7ebcfbd",
+  "labels": {
+    "redbox.cache-stage": "promote",
+    "redbox.source-base": "8350d1f66"
+  },
+  "node": "26.11.1",
+  "buildCommand": "docker build --progress plain --target test --label redbox.source-base=8350d1f66 --label redbox.cache-stage=promote -t redbox-c2:promote .",
+  "buildExitCode": 0,
+  "approximateBuildSeconds": 6110.49,
+  "checks": [
+    {
+      "name": "tls-srv",
+      "command": "bash packages/redbox-core/test/fixtures/cache-persistence/run-c2-tls-srv.sh",
+      "exitCode": 0,
+      "log": "tls-srv.txt",
+      "logSha256": "5e57ab9cec23cf75421eb3722b0ac8949ef0162ea857e8595185d49d35fc23fc",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "lifecycle",
+      "command": "bash packages/redbox-core/test/fixtures/cache-persistence/run-c2-lifecycle.sh",
+      "exitCode": 0,
+      "log": "lifecycle.txt",
+      "logSha256": "977766cac4047b7f3aa08ab415b8b7821bba3bc3c44a698649d19fdd16ca0111",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    },
+    {
+      "name": "recovery",
+      "command": "C2_RECOVERY_OUTPUT=support/specs/waterline-retirement/evidence/c2/promote/recovery-checkpoint.json bash packages/redbox-core/test/fixtures/cache-persistence/run-c2-recovery.sh",
+      "exitCode": 0,
+      "log": "recovery.txt",
+      "logSha256": "496e4a72b74533f0ec5bb60779632ddfce8399583446fb1e61c82e9873f92ae3",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json"
+    }
+  ],
+  "verifier": {
+    "commands": 26,
+    "allPassed": true,
+    "logHashesMatch": true
+  },
+  "imageBuildLogSha256": "71995156502b57328f3e68eedd7be912a5f4d424be63011c333ba545c500b5ac",
+  "runtimeChangesReproduction": "git diff PROMOTION REMOVAL -- . :!support/specs/waterline-retirement/evidence :!support/specs/waterline-retirement/c2-validation.md"
+}

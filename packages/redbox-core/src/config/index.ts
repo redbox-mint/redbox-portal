@@ -191,6 +191,7 @@ export interface PassportConfig {
  * Provides type-safe access to all configuration values
  */
 export interface SailsConfig {
+    beforeShutdown?: (cb: (error?: unknown) => void) => void;
     appConfigSecrets?: AppConfigSecretsConfig;
     // Core config keys (migrated)
     api: ReDBoxAPIConfig;

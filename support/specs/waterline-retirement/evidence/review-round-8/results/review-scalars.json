@@ -1,0 +1,13 @@
+{
+  "name": "review-scalars",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh review-scalars",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 7228,
+  "sha256": "dcee4690e3bfb27f9cc6dbab856b01489dacbbc9377435f04041a9725dd12ca3",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":315,\"failures\":0,\"firstFailures\":[],\"baseline\":\"actual loaded Waterline create/fetch for every J2/J3 numeric field\"}"
+  ]
+}

@@ -1,0 +1,67 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:migration-transition
+npm notice run bash test/fixtures/waterline-retirement/run-migration.sh
+
+
+  migration persistence ownership and diagnostics
+    ✔ uses shared safe diagnostics and preserves the cache error contract
+    ✔ initializes once, retains loaded hook callbacks/errors, drains and fences old references across restart
+    ✔ cleans failed composition and refuses missing models and backend mutation
+    ✔ redacts driver failures and duplicate details without swallowing operation errors
+
+  M shared repository and deployment contract
+{"mongo":"8.0.34","fcv":{"featureCompatibilityVersion":{"version":"8.0"},"ok":1},"hello":{"isWritablePrimary":true,"topologyVersion":{"processId":"6ad6550fd83c265dafcdcfd3","counter":0},"maxBsonObjectSize":16777216,"maxMessageSizeBytes":48000000,"maxWriteBatchSize":100000,"localTime":"2026-10-19T17:36:20.927Z","logicalSessionTimeoutMinutes":30,"connectionId":6,"minWireVersion":0,"maxWireVersion":25,"readOnly":false,"ok":1}}
+Dynamic imports imported
+M backend=waterline adapter=WaterlineMigrationLedgerRepository pid=107820 readinessMs=3.16
+{"backend":"waterline","physicalDocuments":[{"_id":{"$oid":"6ad6551a70fa6f6b8584eed3"},"name":"defaults","ranAt":{"$numberInt":"0"},"createdAt":"2026-10-19T17:36:26.455Z","updatedAt":"2026-10-19T17:36:26.455Z","source":"","appVersion":"","durationMs":{"$numberInt":"0"},"executedBy":""},{"_id":{"$oid":"6ad6551a70fa6f6b8584eed2"},"name":"full","source":"hook","appVersion":"1.2.3","ranAt":{"$numberDouble":"1792420000123.0"},"durationMs":{"$numberDouble":"3.25"},"executedBy":"host-fixture","createdAt":"2026-10-19T17:36:26.396Z","updatedAt":"2026-10-19T17:36:26.396Z"},{"_id":{"$oid":"6ad6551a9d230abf1778a683"},"name":"historical","ranAt":{"$numberInt":"-1"},"unknown":{"retain":true}}],"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"name":{"$numberInt":"1"}},"name":"migration_name_unique","unique":true}]}
+    ✔ shares exact raw fields, defaults, identity, duplicate/missing and read-only history with waterline (5640ms)
+Dynamic imports imported
+M backend=waterline adapter=WaterlineMigrationLedgerRepository pid=108078 readinessMs=6.03
+Dynamic imports imported
+M backend=waterline adapter=WaterlineMigrationLedgerRepository pid=109218 readinessMs=16.63
+    ✔ preserves Umzug lexical/applied/pending/failed/skipped/restart behavior with waterline (30646ms)
+Dynamic imports imported
+M backend=mongodb adapter=MongoMigrationLedgerRepository pid=110054 readinessMs=168.03
+{"backend":"mongodb","physicalDocuments":[{"_id":{"$oid":"6ad65541708eec1c675f7791"},"name":"defaults","source":"","appVersion":"","ranAt":{"$numberInt":"0"},"durationMs":{"$numberInt":"0"},"executedBy":"","createdAt":"2026-10-19T17:37:05.852Z","updatedAt":"2026-10-19T17:37:05.852Z"},{"_id":{"$oid":"6ad65541708eec1c675f7790"},"name":"full","source":"hook","appVersion":"1.2.3","ranAt":{"$numberDouble":"1792420000123.0"},"durationMs":{"$numberDouble":"3.25"},"executedBy":"host-fixture","createdAt":"2026-10-19T17:37:05.841Z","updatedAt":"2026-10-19T17:37:05.841Z"},{"_id":{"$oid":"6ad655419d230abf1778a684"},"name":"historical","ranAt":{"$numberInt":"-1"},"unknown":{"retain":true}}],"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"name":{"$numberInt":"1"}},"name":"migration_name_unique","unique":true}]}
+    ✔ shares exact raw fields, defaults, identity, duplicate/missing and read-only history with mongodb (8287ms)
+Dynamic imports imported
+M backend=mongodb adapter=MongoMigrationLedgerRepository pid=110257 readinessMs=88.07
+Dynamic imports imported
+M backend=mongodb adapter=MongoMigrationLedgerRepository pid=110452 readinessMs=140.59
+    ✔ preserves Umzug lexical/applied/pending/failed/skipped/restart behavior with mongodb (14632ms)
+Dynamic imports imported
+M backend=waterline adapter=WaterlineMigrationLedgerRepository pid=110621 readinessMs=2.97
+Dynamic imports imported
+M backend=mongodb adapter=MongoMigrationLedgerRepository pid=110760 readinessMs=135.55
+    ✔ interoperates in both directions with simultaneous mixed processes and explicit config rollback (11781ms)
+Dynamic imports imported
+M backend=default adapter=MongoMigrationLedgerRepository pid=110871 readinessMs=68.85
+    ✔ uses the qualified driver default and supports explicit Waterline rollback (5024ms)
+Dynamic imports imported
+M backend=waterline adapter=WaterlineMigrationLedgerRepository pid=110966 readinessMs=3.73
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+    ✔ preserves loaded institution callbacks on Waterline and refuses the unsupported driver mapping (30826ms)
+    ✔ requires explicit index preparation and refuses duplicates, conflicting indexes and collation without repairing history (1333ms)
+Dynamic imports imported
+M backend=mongodb adapter=MongoMigrationLedgerRepository pid=111728 readinessMs=107.29
+Dynamic imports imported
+M backend=waterline adapter=WaterlineMigrationLedgerRepository pid=111823 readinessMs=2.66
+    ✔ rehearses one deployment runner while the other instance skips pending migration bodies (9231ms)
+Dynamic imports imported
+M backend=mongodb adapter=MongoMigrationLedgerRepository pid=111907 readinessMs=134.59
+Dynamic imports imported
+M backend=waterline adapter=WaterlineMigrationLedgerRepository pid=112105 readinessMs=5.20
+    ✔ demonstrates that unique ledger names cannot prevent two migration bodies executing (19297ms)
+Dynamic imports imported
+M backend=mongodb adapter=MongoMigrationLedgerRepository pid=112259 readinessMs=179.20
+Dynamic imports imported
+PRE-P2 IMAGE ROLLBACK PASS: reads driver ledger, no replay, pending body writes interoperable history.
+
+{"priorImage":"sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be","ledgerDocumentCheckpoint":"30273340c7c17dfafad41f82e6ef05699aeeff7086f0d4ffbc630f89c888fe4e","unchangedAfterPriorImage":true,"externalAssets":"none in the ledger fixture"}
+    ✔ runs the designated built pre-P2 image against driver-written history on unchanged MongoDB 8 (34711ms)
+
+
+  15 passing (3m)
+

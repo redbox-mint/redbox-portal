@@ -1,0 +1,15 @@
+{
+  "name": "dev-waterline",
+  "command": "RBPORTAL_CACHE_BACKEND=waterline RBPORTAL_MIGRATION_BACKEND=waterline RBPORTAL_REFERENCE_BACKEND=waterline RBPORTAL_CONFIGURATION_BACKEND=waterline RBPORTAL_PROGRESS_BACKEND=waterline RBPORTAL_HARVEST_BACKEND=waterline RBPORTAL_SIEM_BACKEND=waterline RBPORTAL_FIGSHARE_BACKEND=waterline RBPORTAL_STORAGE_BACKEND=waterline bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 64780,
+  "sha256": "37fc6346113580f4cae55078f4d716eb44b153f2478e9843631bd5ec88c39041",
+  "counts": {
+    "pending": [
+      4
+    ]
+  },
+  "passGroups": 2,
+  "checks": []
+}

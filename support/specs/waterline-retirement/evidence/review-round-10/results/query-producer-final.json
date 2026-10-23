@@ -1,0 +1,20 @@
+{
+  "name": "query-producer-final",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-producer",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 5941,
+  "sha256": "50e71d60a40bb347e15e8e6bf860f42397fa298642b4565e8a2cd2606217bd48",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 18,
+      "failures": 0
+    }
+  ]
+}

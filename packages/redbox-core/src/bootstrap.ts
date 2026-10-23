@@ -1,3 +1,5 @@
+import { initializePersistence, cleanupPersistenceAfterFailure } from './persistence/runtime';
+import { ensureSiemDeliveryStorage } from './services/siem/SiemDeliveryStore';
 /**
  * Core Bootstrap Function
  *
@@ -10,7 +12,6 @@
  */
 
 import { lastValueFrom, Observable } from 'rxjs';
-import { ensureSiemDeliveryStorage } from './services/siem/SiemDeliveryStore';
 import { registerRequestChronicleErrorCapture } from './middleware/requestChronicle';
 import { BrandingAwareFunction, isPinoLogger } from './config';
 import type { LoDashStatic } from 'lodash';
@@ -44,8 +45,6 @@ export async function bootstrapRecordSchema(): Promise<void> {
  * in the correct order. Hook bootstraps run after this completes.
  */
 export async function coreBootstrap(): Promise<void> {
-  // migrate:safe does not apply Waterline index declarations. Finish native DDL
-  // before bootstrap can start capture jobs or delivery workers.
   await ensureSiemDeliveryStorage();
   const schedule = require('node-schedule');
 
@@ -198,6 +197,15 @@ export async function coreBootstrap(): Promise<void> {
  * that need to be in place before services bootstrap.
  */
 export async function preLiftSetup(): Promise<void> {
+  try {
+    await runPreLiftSetup();
+  } catch (error) {
+    await cleanupPersistenceAfterFailure(sails);
+    throw error;
+  }
+}
+
+async function runPreLiftSetup(): Promise<void> {
   registerRequestChronicleErrorCapture(sails);
   const csrfSetting = sails.config.security.csrf as boolean | string;
   if (csrfSetting === 'false') {
@@ -231,6 +239,8 @@ export async function preLiftSetup(): Promise<void> {
 
   sails.log.debug('Starting bootstrap process with bootstrapAlways set to: ' + sails.config.appmode.bootstrapAlways);
   void getMergedApiRoutes();
+
+  await initializePersistence(sails);
 
   // Initialize all services that have an init() method
   // This allows services registered via redbox-loader shims to perform

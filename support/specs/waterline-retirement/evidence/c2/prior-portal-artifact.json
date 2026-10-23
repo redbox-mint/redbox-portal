@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "b83234da9a6e5ce31387c75f3873bd3100e83175",
+  "buildCommand": "docker build --progress plain --target test --label org.opencontainers.image.revision=b83234da9a6e5ce31387c75f3873bd3100e83175 --label redbox.qualification=cache-c2 -t redbox-c2:prior-portal-b83234da9 .tmp/c2/prior-source",
+  "sourcePreparation": "git archive of the exact source commit, with its original Dockerfile and locks",
+  "tag": "redbox-c2:prior-portal-b83234da9",
+  "immutableImageId": "sha256:cd54d56b5adf3afa9fc7c3ba610601375907bb1a368fc7201a5233c675b75f7c",
+  "labels": {
+    "org.opencontainers.image.revision": "b83234da9a6e5ce31387c75f3873bd3100e83175",
+    "redbox.qualification": "cache-c2"
+  },
+  "probeCommand": "bash packages/redbox-core/test/fixtures/cache-persistence/run-c2-prior-portal.sh",
+  "exitCode": 0,
+  "originalDefault": "prisma",
+  "node": "26.11.1",
+  "appStartupMs": 50395.919074000005,
+  "mountedInputs": "synthetic deployment config, owned writable attachments/font checkpoint, read-only observer only; no current application code or dependencies",
+  "logSha256": {
+    "prior-portal-image-build.txt": "ecd406f0925da0c4259cb28a42bb38bde9f13f1f588b81024cf4e31afb975259",
+    "prior-portal-image-inspect.json": "e9e7e8aa3cfe4082ab751f5456fb3096a356458ebabad668e2cc9af8fd994cab",
+    "prior-portal.txt": "05e2139f10d1a0147ff3fae33f9dd43a202ad1bcc787b5a4b5d09466c38e55c7",
+    "prior-portal-cold-seed-timeout.txt": "8b40a88e66db98fbf7959ce2b173c4c8a7df28ca60681ada74ba1d90ba10bb1f"
+  }
+}

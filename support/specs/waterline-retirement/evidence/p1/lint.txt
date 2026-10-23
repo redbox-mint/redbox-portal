@@ -1,0 +1,2 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 lint
+npm notice run cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts

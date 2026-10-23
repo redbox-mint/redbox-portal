@@ -1,0 +1,11 @@
+{
+  "name": "fix-create-fetch-static",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence",
+  "sourceCommit": "7b2c4843e7f67e754df60aa8a4c9ca8dabdc16f1",
+  "exitCode": 0,
+  "durationMs": 45063,
+  "sha256": "191204b80c45c21fe9c262a10d398f6617e56753b15dfd05537f5da4a4db5cae",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

@@ -1,0 +1,16 @@
+{
+  "package-lock.json": {
+    "npmGeneratedSha256": "5d5c691280140766c4fc0a3f45b9ef02dee9a4dabe3f14b850ffc95e5a927922",
+    "orderedSha256": "1227d2a84d3848c9b48d9608be2f0436fc5282df61842efe38b881f0962453c8",
+    "canonicalJsonSha256": "652d1021fe090f220d981e1021f9ab8fce480716040129f2f747f296800cb657",
+    "semanticIdentityAsserted": true,
+    "method": "Preserve baseline object key order for unchanged entries; npm 11.20.0 generated all dependency values. No graph/value edits."
+  },
+  "packages/redbox-core/package-lock.json": {
+    "npmGeneratedSha256": "262938b9ad45f78741def2cd5b5ebe746c4e114f15097b50e1b5435277be6f40",
+    "orderedSha256": "9ce4e54e01c2d9777e385190ab8e0e25835814d2fb1831e2f548452a49ad061a",
+    "canonicalJsonSha256": "7b8d412e91657ea351c47f781328470db98a5d298596a2ac0a63f251aafc3f11",
+    "semanticIdentityAsserted": true,
+    "method": "Preserve baseline object key order for unchanged entries; npm 11.20.0 generated all dependency values. No graph/value edits."
+  }
+}

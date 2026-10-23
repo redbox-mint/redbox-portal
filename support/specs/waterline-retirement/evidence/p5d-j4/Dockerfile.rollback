@@ -1,0 +1,7 @@
+FROM redbox-p5c-j3:prior-7c1906849
+USER root
+RUN rm -rf /fixture/node_modules/@researchdatabox/redbox-core/dist /fixture/node_modules/@researchdatabox/redbox-core/bin /fixture/node_modules/@researchdatabox/redbox-core/redbox-loader-templates
+COPY core /fixture/node_modules/@researchdatabox/redbox-core
+LABEL org.opencontainers.image.revision="32e2c2fcaf528ff4e72cd59f78941173656ee93e"
+USER node
+RUN --network=none node /fixture/package-smoke.cjs

@@ -1,0 +1,106 @@
+[
+  {
+    "id": "redbox-orm-reevaluation-spike@0.0.0",
+    "name": "redbox-orm-reevaluation-spike",
+    "version": "0.0.0",
+    "size": 14075,
+    "unpackedSize": 57263,
+    "shasum": "a7dbff5c5ec68e22ef7d5fb349e22f5589b53286",
+    "integrity": "sha512-HTzUmtmiIHOunCWdwxHsI+DM1l4VsxnZSGibkmmysch2rYCTA1z7GTnnFIv9vj4Q1U3Z4Z/2tXvtaYYS8/rULw==",
+    "filename": "redbox-orm-reevaluation-spike-0.0.0.tgz",
+    "files": [
+      {
+        "path": "README.md",
+        "size": 4022,
+        "mode": 420
+      },
+      {
+        "path": "dist/driver.d.ts",
+        "size": 397,
+        "mode": 420
+      },
+      {
+        "path": "dist/driver.js",
+        "size": 2659,
+        "mode": 420
+      },
+      {
+        "path": "dist/generated/contract.json",
+        "size": 9419,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.d.ts",
+        "size": 191,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.js",
+        "size": 488,
+        "mode": 420
+      },
+      {
+        "path": "dist/mikro.d.ts",
+        "size": 101,
+        "mode": 420
+      },
+      {
+        "path": "dist/mikro.js",
+        "size": 6180,
+        "mode": 420
+      },
+      {
+        "path": "dist/mongoose.d.ts",
+        "size": 101,
+        "mode": 420
+      },
+      {
+        "path": "dist/mongoose.js",
+        "size": 4669,
+        "mode": 420
+      },
+      {
+        "path": "dist/prisma.d.ts",
+        "size": 101,
+        "mode": 420
+      },
+      {
+        "path": "dist/prisma.js",
+        "size": 2185,
+        "mode": 420
+      },
+      {
+        "path": "dist/run.d.ts",
+        "size": 11,
+        "mode": 420
+      },
+      {
+        "path": "dist/run.js",
+        "size": 19889,
+        "mode": 420
+      },
+      {
+        "path": "dist/types.d.ts",
+        "size": 796,
+        "mode": 420
+      },
+      {
+        "path": "dist/types.js",
+        "size": 640,
+        "mode": 420
+      },
+      {
+        "path": "fixtures/p0.ejson",
+        "size": 4785,
+        "mode": 420
+      },
+      {
+        "path": "package.json",
+        "size": 629,
+        "mode": 420
+      }
+    ],
+    "entryCount": 18,
+    "bundled": []
+  }
+]

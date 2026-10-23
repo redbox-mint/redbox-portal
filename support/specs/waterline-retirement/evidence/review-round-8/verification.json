@@ -1,0 +1,289 @@
+{
+  "recordedAt": "2026-10-21T03:49:34.415980+00:00",
+  "reviewedRange": {
+    "base": "79c116fe0a6e07830ac1313d7403b4277b39e498",
+    "head": "2ad8458edc2e13b2a5633342e9ef779341670186"
+  },
+  "runtimeCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "runtimeSha256": "d9b04ea40d4a879fd57660709520aa020bc09938752ff3b0c0e41d9b4e139e61",
+  "acceptedResultFiles": [
+    "results/core-tests.json",
+    "results/storage-tests.json",
+    "results/foundation.json",
+    "results/migration.json",
+    "results/cache-mongodb.json",
+    "results/cache-transition.json",
+    "results/reference.json",
+    "results/query-pages.json",
+    "results/query-adversarial.json",
+    "results/query-baseline.json",
+    "results/query-associations.json",
+    "results/query-equality.json",
+    "results/query-producer-final.json",
+    "results/tenant-scope-final.json",
+    "results/configuration.json",
+    "results/configuration-readiness.json",
+    "results/configuration-siem.json",
+    "results/indexes.json",
+    "results/progress.json",
+    "results/harvest.json",
+    "results/siem.json",
+    "results/figshare.json",
+    "results/siem-readiness.json",
+    "results/figshare-readiness.json",
+    "results/siem-unit.json",
+    "results/figshare-unit.json",
+    "results/figshare-unit-mongodb.json",
+    "results/review-mappings.json",
+    "results/record-arrays.json",
+    "results/review-scalars.json",
+    "results/gridfs-streams.json",
+    "results/gridfs-initializing.json",
+    "results/storage-contract.json",
+    "results/storage-qualification.json",
+    "results/storage-live.json",
+    "results/storage-ownership.json",
+    "results/storage-owner-failures.json",
+    "results/storage-backfill.json",
+    "results/storage-readiness.json",
+    "results/storage-ownership-waterline.json",
+    "results/cross-group-scalars.json",
+    "results/cross-group-timestamps.json",
+    "results/cross-group-mappings.json",
+    "results/id-values.json",
+    "results/recordtype-selection.json",
+    "results/id-mappings.json",
+    "results/migration-values.json",
+    "results/domain-queries.json",
+    "results/job-queries.json",
+    "results/harvest-pages.json",
+    "results/siem-native-pages.json",
+    "results/siem-native-values.json",
+    "results/dashboard-native-values.json",
+    "results/cache-values.json",
+    "results/attachment-values.json",
+    "results/final-static.json",
+    "results/final-review-files.json",
+    "results/fresh-mocha.json",
+    "results/fresh-bruno.json",
+    "results/dev-default.json",
+    "results/dev-waterline.json"
+  ],
+  "coreStoragePersistenceCases": 55,
+  "acceptedFinalCommands": 61,
+  "counts": {
+    "core": {
+      "passing": 4242,
+      "pending": 116
+    },
+    "storage": {
+      "passing": 288,
+      "pending": 38
+    },
+    "storageLive": {
+      "passing": 326
+    },
+    "mocha": {
+      "passing": 419,
+      "pending": 10
+    },
+    "bruno": {
+      "requests": 309,
+      "tests": 553,
+      "assertions": 3
+    }
+  },
+  "loadedComparisonChecks": {
+    "id-values": {
+      "passing": 228,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "recordtype-selection": {
+      "passing": 12,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "cross-group-scalars": {
+      "concern": "scalars",
+      "passing": 7280,
+      "failures": 0,
+      "summary": {
+        "reference": 2040,
+        "configuration": 800,
+        "progress": 840,
+        "harvest": 2240,
+        "siem": 1360
+      },
+      "firstFailures": []
+    },
+    "cross-group-timestamps": {
+      "concern": "timestamps",
+      "passing": 1520,
+      "failures": 0,
+      "summary": {
+        "reference": 640,
+        "configuration": 320,
+        "progress": 160,
+        "harvest": 240,
+        "siem": 160
+      },
+      "firstFailures": []
+    },
+    "cross-group-mappings": {
+      "passing": 600,
+      "failures": 0,
+      "summary": {
+        "migration": 18,
+        "reference": 168,
+        "configuration": 74,
+        "progress": 56,
+        "harvest": 128,
+        "siem": 80,
+        "figshare": 64,
+        "cache": 12
+      },
+      "firstFailures": []
+    },
+    "id-mappings": {
+      "passing": 18,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "migration-values": {
+      "passing": 106,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "domain-queries": {
+      "passing": 160,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "job-queries": {
+      "passing": 466,
+      "failures": 0,
+      "firstFailures": [],
+      "lastFailures": []
+    },
+    "harvest-pages": {
+      "passing": 648,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "siem-native-pages": {
+      "passing": 10,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "siem-native-values": {
+      "passing": 6,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "dashboard-native-values": {
+      "passing": 5,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "attachment-values": {
+      "passing": 700,
+      "failures": 0,
+      "firstFailures": []
+    },
+    "cache-values": {
+      "passing": 22,
+      "failures": 0,
+      "firstFailures": []
+    }
+  },
+  "newComparisonChecks": 11781,
+  "stockRetry": {
+    "initialResult": "results/fresh-bruno-first.json",
+    "finalResult": "results/fresh-bruno.json",
+    "initialFailure": "valid 21884-byte font upload returned413 after2174ms in unchanged branding code outside programme range",
+    "sourceFixtureAssertionOrBudgetChanges": 0,
+    "rootCauseConfirmed": false
+  },
+  "queryPages": {
+    "passing": 12672,
+    "pages": 11340,
+    "uncounted": 1260,
+    "progressOptionRefusals": 72,
+    "writers": [
+      "waterline",
+      "mongodb"
+    ],
+    "readers": [
+      "waterline",
+      "mongodb"
+    ],
+    "baseline": "loaded Waterline complete projected pages and independent count"
+  },
+  "adversarial": {
+    "passing": 6129,
+    "comparisons": 6129,
+    "parityComparisons": 3777,
+    "explicitRefusals": 2352,
+    "failures": 0,
+    "firstFailures": [],
+    "writers": [
+      "waterline",
+      "mongodb"
+    ],
+    "readers": [
+      "waterline",
+      "mongodb"
+    ],
+    "baseline": "loaded Waterline find/count plus legacy plain projection"
+  },
+  "retainedBaseline": {
+    "passing": 3106,
+    "failures": 0,
+    "firstFailures": [],
+    "baseline": "loaded Waterline find/count",
+    "writers": [
+      "waterline",
+      "mongodb"
+    ]
+  },
+  "readiness": {
+    "dev-default": {
+      "ready": true,
+      "selectedIndexScopes": 49,
+      "selectedCollections": 20
+    },
+    "dev-waterline": {
+      "ready": true,
+      "selectedIndexScopes": 0,
+      "selectedCollections": 0
+    }
+  },
+  "rollbackArtifacts": {
+    "redbox-p2:prior-11742e9": "sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be",
+    "redbox-p3-r:prior-cb874201": "sha256:2511de69363c6322f57a41f71023d46f34d90f1637dde354081a587cb4f800ba",
+    "redbox-p4-q:prior-f8c8cd7d": "sha256:4721b7009cfcd84aee975a5e8eca22a17f611b1c18f7f54507dcac391dcb9d20",
+    "redbox-p5a-j1:prior-0aa801ee6": "sha256:de7cb0885ac19d3386b534c165633b75354db8291f8ec7bea244749028a0cfd8",
+    "redbox-p5b-j2:prior-c2ceddb45": "sha256:df2088a9aa517b23f9b4ef1e51e1a837a52115be7ff7bda93bd0f85d6252d6ce",
+    "redbox-p5c-j3:prior-7c1906849": "sha256:409c2bebce607feedb5950c89bd39f05b1ea81f55886dbedf0301243f551c69e",
+    "redbox-p5d-j4:prior-32e2c2fca": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+    "redbox-p10-s:prior-12e566575": "sha256:c138489fc72f566815113599b699e13ad55486176f333c394238b361bca094d3"
+  },
+  "limits": {
+    "gTx": "CLOSED",
+    "opsTx01": "undecided",
+    "atomicUnitsMoved": 0,
+    "topology": "MongoDB 8.0.34 standalone",
+    "manifestOrLockChanges": 0,
+    "packedReleaseImageMatrixRerun": false,
+    "additionalOperationBenchmarksRerun": false
+  },
+  "coverage": "coverage.md",
+  "operationInventory": "adapter-paths.json",
+  "reviewAxes": "review-axes.json",
+  "fixes": "fix-validation.json",
+  "attempts": "attempts.json",
+  "runtime": "runtime.json",
+  "dependencies": "dependencies.json",
+  "cleanup": "cleanup.json"
+}

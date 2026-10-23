@@ -1,0 +1,177 @@
+{
+  "fixture": {
+    "forms": 20,
+    "stages": 20,
+    "componentsPerForm": 24,
+    "configurationBytes": 26639,
+    "rawPreserved": true
+  },
+  "results": {
+    "waterline": [
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 8.46720699999969,
+        "p95": 13.253286000000116,
+        "p99": 15.759148999999525,
+        "throughput": 119.18106201073286,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 758026240,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "waterline",
+          "loadedMs": 327.27230299999974,
+          "readinessMs": 86.07545499999969,
+          "rss": 361664512,
+          "pid": 206705,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 8,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 8.532682999999452,
+        "p95": 13.245516999999381,
+        "p99": 15.444015000000036,
+        "throughput": 119.44128282738416,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 756060160,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "waterline",
+          "loadedMs": 365.7668530000001,
+          "readinessMs": 89.5074709999999,
+          "rss": 342528000,
+          "pid": 206781,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 8,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 8.670595000000503,
+        "p95": 13.343840999999884,
+        "p99": 15.736925000000156,
+        "throughput": 117.79413987095005,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 756727808,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "waterline",
+          "loadedMs": 358.338389,
+          "readinessMs": 90.47548499999994,
+          "rss": 343064576,
+          "pid": 206818,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 8,
+          "closed": 3
+        }
+      }
+    ],
+    "mongodb": [
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 5.119946000000709,
+        "p95": 7.163070999999945,
+        "p99": 8.16559899999993,
+        "throughput": 212.0706460670541,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 391884800,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "mongodb",
+          "loadedMs": 375.31724699999995,
+          "readinessMs": 122.7681520000001,
+          "rss": 344698880,
+          "pid": 206731,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 10,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 5.153369999999995,
+        "p95": 7.251486000000114,
+        "p99": 8.543091999999888,
+        "throughput": 208.44741582233505,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 397262848,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "mongodb",
+          "loadedMs": 355.195749,
+          "readinessMs": 113.38954899999999,
+          "rss": 382451712,
+          "pid": 206751,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 10,
+          "closed": 3
+        }
+      },
+      {
+        "operations": 1000,
+        "warmups": 100,
+        "p50": 5.223590999999942,
+        "p95": 7.3014729999995325,
+        "p99": 8.56182600000011,
+        "throughput": 206.9745187113062,
+        "errors": 0,
+        "conflicts": 0,
+        "rss": 391573504,
+        "databaseCallsIncludingWarmups": 1650,
+        "ready": {
+          "backend": "mongodb",
+          "loadedMs": 352.5900569999999,
+          "readinessMs": 128.28262399999994,
+          "rss": 342814720,
+          "pid": 206851,
+          "ownedDriverClients": 1
+        },
+        "connections": {
+          "baseline": 3,
+          "active": 10,
+          "closed": 3
+        }
+      }
+    ]
+  },
+  "comparisons": {
+    "p95": 0.5450449021405288,
+    "throughput": 1.7605599278408806,
+    "rss": 0.519954978192562,
+    "calls": 1
+  },
+  "environment": {
+    "node": "24.18.0",
+    "mongo": "8.0.34",
+    "topology": "isolated standalone",
+    "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh operations"
+  }
+}

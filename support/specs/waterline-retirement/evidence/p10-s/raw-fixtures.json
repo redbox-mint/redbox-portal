@@ -1,0 +1,2162 @@
+{
+  "entities": {
+    "attachmentmetadata": {
+      "datastore": "mongodb",
+      "collection": "attachmentmetadata",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff5071974"
+        },
+        "oid": "spike",
+        "fileId": "bytes",
+        "storageKey": "spike/bytes",
+        "accessCount": 3,
+        "mutationState": "prepared",
+        "isJournal": true,
+        "attemptCount": 2,
+        "createdAt": "2026-10-20T13:17:23.295Z",
+        "updatedAt": "2026-10-20T13:17:23.295Z",
+        "attachmentId": null,
+        "operation": null,
+        "generation": null,
+        "mutationFileId": null,
+        "coordinationToken": null,
+        "lastAttemptAt": null,
+        "coordinationLeaseExpiresAt": null,
+        "lastSafeErrorCode": null,
+        "contentType": "",
+        "contentLength": 0,
+        "etag": "",
+        "lastModified": "",
+        "filename": "",
+        "mimeType": "",
+        "uploadedBy": "",
+        "attachmentField": "",
+        "lastAccessedAt": "",
+        "lastAccessedBy": ""
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "oid": {
+          "type": "string",
+          "required": true,
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "fileId": {
+          "type": "string",
+          "required": true,
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "storageKey": {
+          "type": "string",
+          "required": true,
+          "validations": {},
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "isJournal": {
+          "type": "boolean",
+          "defaultsTo": false,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_boolean"
+          },
+          "required": false
+        },
+        "attachmentId": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "operation": {
+          "type": "string",
+          "validations": {
+            "isIn": [
+              "add",
+              "finalize",
+              "delete"
+            ]
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "mutationState": {
+          "type": "string",
+          "validations": {
+            "isIn": [
+              "prepared",
+              "pending",
+              "applied",
+              "incomplete",
+              "unknown",
+              "cancelled",
+              "cleanup-pending",
+              "cleanup-checking",
+              "cleanup-removing",
+              "cleaned",
+              "staging-available",
+              "staging-preparing",
+              "staging-cleanup"
+            ]
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "generation": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "mutationFileId": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "coordinationToken": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "attemptCount": {
+          "type": "number",
+          "defaultsTo": 0,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        },
+        "lastAttemptAt": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "coordinationLeaseExpiresAt": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "lastSafeErrorCode": {
+          "type": "string",
+          "allowNull": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "contentType": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "contentLength": {
+          "type": "number",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        },
+        "etag": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "lastModified": {
+          "type": "string",
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "filename": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "mimeType": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "uploadedBy": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "attachmentField": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "lastAccessedAt": {
+          "type": "string",
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "lastAccessedBy": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "accessCount": {
+          "type": "number",
+          "defaultsTo": 0,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        }
+      }
+    },
+    "attachmentaccessaudit": {
+      "datastore": "mongodb",
+      "collection": "attachmentaccessaudit",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff5071975"
+        },
+        "oid": "spike",
+        "action": "download",
+        "accessedAt": "2026-10-20T00:00:00.000Z",
+        "createdAt": "2026-10-20T13:17:23.325Z",
+        "updatedAt": "2026-10-20T13:17:23.325Z",
+        "fileId": "",
+        "storageKey": "",
+        "accessedBy": "",
+        "itemCount": 0
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "oid": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "fileId": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "storageKey": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "action": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "accessedBy": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "accessedAt": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          }
+        },
+        "itemCount": {
+          "type": "number",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        }
+      }
+    },
+    "counter": {
+      "datastore": "mongodb",
+      "collection": "counter",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff5071976"
+        },
+        "name": "spike-counter",
+        "value": 0,
+        "createdAt": "2026-10-20T13:17:23.344Z",
+        "updatedAt": "2026-10-20T13:17:23.344Z",
+        "branding": null
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "branding": {
+          "model": "brandingconfig",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "value": {
+          "type": "number",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        }
+      }
+    },
+    "record": {
+      "datastore": "redboxStorage",
+      "collection": "record",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff5071977"
+        },
+        "redboxOid": "ordinary",
+        "revision": 0,
+        "metadata": {
+          "null": null,
+          "false": false,
+          "zero": 0,
+          "empty": ""
+        },
+        "createdAt": "2026-10-20T13:17:23.362Z",
+        "updatedAt": "2026-10-20T13:17:23.362Z",
+        "harvestId": "",
+        "metaMetadata": null,
+        "workflow": null,
+        "authorization": null,
+        "figshareSyncIntent": null,
+        "recordVersion": 0,
+        "dateCreated": "2026-10-20T13:17:23.362Z",
+        "lastSaveDate": "2026-10-20T13:17:23.362Z"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "figshareSyncIntent.pending": 1,
+            "figshareSyncIntent.readiness": 1,
+            "figshareSyncIntent.requestedAt": 1
+          },
+          "name": "figshareSyncIntent.pending_1_figshareSyncIntent.readiness_1_figshareSyncIntent.requestedAt_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "harvestId": 1
+          },
+          "name": "harvestId_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "harvestId": 1,
+            "metaMetadata.brandId": 1,
+            "metaMetadata.type": 1
+          },
+          "name": "harvestId_1_metaMetadata.brandId_1_metaMetadata.type_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "dateCreated": 1
+          },
+          "name": "dateCreated_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "dateCreated": -1
+          },
+          "name": "dateCreated_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "lastSaveDate": 1
+          },
+          "name": "lastSaveDate_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "lastSaveDate": -1
+          },
+          "name": "lastSaveDate_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.brandId": 1
+          },
+          "name": "metaMetadata.brandId_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.type": 1
+          },
+          "name": "metaMetadata.type_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.createdOn": 1
+          },
+          "name": "metaMetadata.createdOn_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.createdOn": -1
+          },
+          "name": "metaMetadata.createdOn_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.lastSaveDate": 1
+          },
+          "name": "metaMetadata.lastSaveDate_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.lastSaveDate": -1
+          },
+          "name": "metaMetadata.lastSaveDate_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "redboxOid": 1
+          },
+          "name": "redboxOid_1",
+          "unique": true
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "redboxOid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "harvestId": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "revision": {
+          "type": "number",
+          "defaultsTo": 0,
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        },
+        "incarnationId": {
+          "type": "string",
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "lifecycleOperationId": {
+          "type": "string",
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "metaMetadata": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "metadata": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "workflow": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "authorization": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "figshareSyncIntent": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "recordVersion": {
+          "type": "number",
+          "defaultsTo": 0,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        },
+        "dateCreated": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "lastSaveDate": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        }
+      }
+    },
+    "deletedrecord": {
+      "datastore": "redboxStorage",
+      "collection": "deletedrecord",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff5071978"
+        },
+        "redboxOid": "deleted",
+        "revision": 0,
+        "deletedRecordMetadata": {
+          "metadata": {
+            "preserved": true
+          }
+        },
+        "createdAt": "2026-10-20T13:17:23.373Z",
+        "updatedAt": "2026-10-20T13:17:23.373Z",
+        "brandId": "",
+        "lifecycleState": "deleted",
+        "lifecycleOperation": null,
+        "dateDeleted": "2026-10-20T13:17:23.373Z"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "redboxOid": 1
+          },
+          "name": "redboxOid_1",
+          "unique": true
+        },
+        {
+          "v": 2,
+          "key": {
+            "lifecycleState": 1,
+            "lifecycleOperation.requestId": 1
+          },
+          "name": "lifecycleState_1_lifecycleOperation.requestId_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "deletedRecordMetadata.metaMetadata.brandId": 1,
+            "redboxOid": 1
+          },
+          "name": "deletedRecordMetadata.metaMetadata.brandId_1_redboxOid_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "brandId": 1,
+            "redboxOid": 1
+          },
+          "name": "brandId_1_redboxOid_1"
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "redboxOid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "revision": {
+          "type": "number",
+          "defaultsTo": 0,
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        },
+        "incarnationId": {
+          "type": "string",
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "brandId": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "lifecycleState": {
+          "type": "string",
+          "defaultsTo": "deleted",
+          "validations": {
+            "isIn": [
+              "delete-pending",
+              "deleted",
+              "restore-pending",
+              "purge-pending",
+              "recovery-required"
+            ]
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "lifecycleOperation": {
+          "type": "json",
+          "validations": {},
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "deletedRecordMetadata": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "dateDeleted": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        }
+      }
+    },
+    "recordaudit": {
+      "datastore": "redboxStorage",
+      "collection": "recordaudit",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff5071979"
+        },
+        "redboxOid": "ordinary",
+        "action": "spike",
+        "record": {
+          "metadata": {
+            "zero": 0
+          }
+        },
+        "createdAt": "2026-10-20T13:17:23.383Z",
+        "updatedAt": "2026-10-20T13:17:23.383Z",
+        "occurredAt": "",
+        "user": null,
+        "dateCreated": "2026-10-20T13:17:23.383Z",
+        "executionSummary": null,
+        "concurrency": null
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "redboxOid": 1,
+            "createdAt": 1
+          },
+          "name": "redboxOid_1_createdAt_1"
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "redboxOid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "occurredAt": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "user": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "record": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "dateCreated": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "action": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "executionSummary": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "concurrency": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        }
+      }
+    },
+    "integrationaudit": {
+      "datastore": "redboxStorage",
+      "collection": "integrationaudit",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff507197a"
+        },
+        "redboxOid": "ordinary",
+        "integrationName": "spike",
+        "httpStatusCode": 200,
+        "requestSummary": {
+          "missingOptional": null
+        },
+        "createdAt": "2026-10-20T13:17:23.393Z",
+        "updatedAt": "2026-10-20T13:17:23.393Z",
+        "brandId": "",
+        "integrationAction": "",
+        "triggeredBy": "",
+        "status": "",
+        "message": "",
+        "errorDetail": "",
+        "traceId": "",
+        "spanId": "",
+        "parentSpanId": "",
+        "startedAt": "",
+        "completedAt": "",
+        "durationMs": 0,
+        "responseSummary": null,
+        "dateCreated": "2026-10-20T13:17:23.393Z"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "redboxOid": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "brandId": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "integrationName": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "integrationAction": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "triggeredBy": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "status": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "message": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "errorDetail": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "httpStatusCode": {
+          "type": "number",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        },
+        "traceId": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "spanId": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "parentSpanId": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "startedAt": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "completedAt": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "durationMs": {
+          "type": "number",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          },
+          "required": false
+        },
+        "requestSummary": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "responseSummary": {
+          "type": "json",
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          },
+          "required": false
+        },
+        "dateCreated": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_stringtimestamp"
+          },
+          "required": false
+        }
+      }
+    },
+    "recordschemaartifact": {
+      "datastore": "redboxStorage",
+      "collection": "recordschemaartifact",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff507197b"
+        },
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "document": {
+          "type": "object"
+        },
+        "contractFormat": "redbox-record-contract/1",
+        "completeness": "complete",
+        "byteLength": 17,
+        "createdAt": "2026-10-20T13:17:23.426Z",
+        "updatedAt": "2026-10-20T13:17:23.426Z",
+        "lastAccessedAt": ""
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1
+          },
+          "name": "digest_1",
+          "unique": true
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "digest": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "regex": {
+              "$regularExpression": {
+                "pattern": "^[a-f0-9]{64}$",
+                "options": ""
+              }
+            }
+          },
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "document": {
+          "type": "json",
+          "required": true,
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_json"
+          }
+        },
+        "contractFormat": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "isIn": [
+              "redbox-record-contract/1"
+            ]
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "completeness": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "isIn": [
+              "complete",
+              "partial"
+            ]
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "byteLength": {
+          "type": "number",
+          "required": true,
+          "validations": {
+            "min": 1
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_number"
+          }
+        },
+        "lastAccessedAt": {
+          "type": "string",
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        }
+      }
+    },
+    "recordschemareference": {
+      "datastore": "redboxStorage",
+      "collection": "recordschemareference",
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff507197c"
+        },
+        "referenceKey": "spike:grant",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "grant",
+        "brand": "brand",
+        "portal": "portal",
+        "schemaKind": "create",
+        "recordType": "rdmp",
+        "operation": "create",
+        "createdAt": "2026-10-20T13:17:23.435Z",
+        "updatedAt": "2026-10-20T13:17:23.435Z",
+        "oid": "",
+        "owner": "",
+        "purpose": "",
+        "expiresAt": ""
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "referenceKey": 1
+          },
+          "name": "referenceKey_1",
+          "unique": true
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1
+          },
+          "name": "record_schema_reference_digest_kind"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1,
+            "brand": 1,
+            "portal": 1,
+            "referenceKey": 1
+          },
+          "name": "record_schema_reference_grant_lookup"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1,
+            "brand": 1,
+            "portal": 1,
+            "schemaKind": 1,
+            "recordType": 1,
+            "operation": 1,
+            "oid": 1
+          },
+          "name": "record_schema_reference_authorization_lookup"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1,
+            "brand": 1,
+            "portal": 1,
+            "schemaKind": 1,
+            "recordType": 1,
+            "operation": 1,
+            "referenceKey": 1
+          },
+          "name": "record_schema_reference_authorization_cursor_lookup"
+        },
+        {
+          "v": 2,
+          "key": {
+            "oid": 1,
+            "kind": 1
+          },
+          "name": "record_schema_reference_oid_kind",
+          "sparse": true
+        },
+        {
+          "v": 2,
+          "key": {
+            "kind": 1,
+            "expiresAt": 1
+          },
+          "name": "record_schema_reference_pin_expiry",
+          "partialFilterExpression": {
+            "kind": "pin"
+          }
+        }
+      ],
+      "attributes": {
+        "createdAt": {
+          "type": "string",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "autoUpdatedAt": true,
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        },
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "referenceKey": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "regex": {
+              "$regularExpression": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$",
+                "options": ""
+              }
+            }
+          },
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "digest": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "regex": {
+              "$regularExpression": {
+                "pattern": "^[a-f0-9]{64}$",
+                "options": ""
+              }
+            }
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "kind": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "isIn": [
+              "grant",
+              "save",
+              "pin"
+            ]
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "brand": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "maxLength": 512
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "portal": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "maxLength": 512
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "schemaKind": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "isIn": [
+              "create",
+              "update"
+            ]
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "recordType": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "maxLength": 512
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "oid": {
+          "type": "string",
+          "validations": {
+            "maxLength": 512
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "operation": {
+          "type": "string",
+          "required": true,
+          "validations": {
+            "maxLength": 512
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          }
+        },
+        "owner": {
+          "type": "string",
+          "validations": {
+            "maxLength": 512
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "purpose": {
+          "type": "string",
+          "validations": {
+            "maxLength": 2048
+          },
+          "autoMigrations": {
+            "unique": false,
+            "autoIncrement": false,
+            "columnType": "_string"
+          },
+          "required": false
+        },
+        "expiresAt": {
+          "type": "string",
+          "autoMigrations": {
+            "columnType": "datetime",
+            "unique": false,
+            "autoIncrement": false
+          },
+          "required": false
+        }
+      }
+    }
+  },
+  "native": {
+    "record": {
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff507197e"
+        },
+        "redboxOid": "native",
+        "metadata": {
+          "zero": 0
+        },
+        "metaMetadata": {
+          "brandId": "brand"
+        },
+        "revision": 0,
+        "recordVersion": 1,
+        "incarnationId": "d8f64cb4-a262-4828-9f48-3301715a2846",
+        "dateCreated": "2026-10-20T13:17:23.453Z",
+        "lastSaveDate": "2026-10-20T13:17:23.453Z"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "figshareSyncIntent.pending": 1,
+            "figshareSyncIntent.readiness": 1,
+            "figshareSyncIntent.requestedAt": 1
+          },
+          "name": "figshareSyncIntent.pending_1_figshareSyncIntent.readiness_1_figshareSyncIntent.requestedAt_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "harvestId": 1
+          },
+          "name": "harvestId_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "harvestId": 1,
+            "metaMetadata.brandId": 1,
+            "metaMetadata.type": 1
+          },
+          "name": "harvestId_1_metaMetadata.brandId_1_metaMetadata.type_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "dateCreated": 1
+          },
+          "name": "dateCreated_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "dateCreated": -1
+          },
+          "name": "dateCreated_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "lastSaveDate": 1
+          },
+          "name": "lastSaveDate_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "lastSaveDate": -1
+          },
+          "name": "lastSaveDate_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.brandId": 1
+          },
+          "name": "metaMetadata.brandId_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.type": 1
+          },
+          "name": "metaMetadata.type_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.createdOn": 1
+          },
+          "name": "metaMetadata.createdOn_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.createdOn": -1
+          },
+          "name": "metaMetadata.createdOn_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.lastSaveDate": 1
+          },
+          "name": "metaMetadata.lastSaveDate_1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "metaMetadata.lastSaveDate": -1
+          },
+          "name": "metaMetadata.lastSaveDate_-1"
+        },
+        {
+          "v": 2,
+          "key": {
+            "redboxOid": 1
+          },
+          "name": "redboxOid_1",
+          "unique": true
+        }
+      ]
+    },
+    "recordidentity": {
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff507197d"
+        },
+        "redboxOid": "native",
+        "incarnationId": "d8f64cb4-a262-4828-9f48-3301715a2846",
+        "createdAt": "2026-10-20T13:17:23.451Z"
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "redboxOid": 1
+          },
+          "name": "redboxOid_1",
+          "unique": true
+        }
+      ]
+    },
+    "recordschemaartifact": {
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff507197f"
+        },
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "document": {
+          "type": "object"
+        },
+        "contractFormat": "redbox-record-contract/1",
+        "completeness": "complete",
+        "byteLength": 17,
+        "createdAt": {
+          "$date": "2026-10-20T13:17:23.458Z"
+        },
+        "updatedAt": {
+          "$date": "2026-10-20T13:17:23.458Z"
+        }
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1
+          },
+          "name": "digest_1",
+          "unique": true
+        }
+      ]
+    },
+    "recordschemareference": {
+      "raw": {
+        "_id": {
+          "$oid": "6ad769e3ea4fb97ff5071980"
+        },
+        "referenceKey": "spike:pin",
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "kind": "pin",
+        "brand": "brand",
+        "portal": "portal",
+        "schemaKind": "create",
+        "recordType": "rdmp",
+        "operation": "retain",
+        "createdAt": {
+          "$date": "2026-10-20T13:17:23.460Z"
+        },
+        "updatedAt": {
+          "$date": "2026-10-20T13:17:23.460Z"
+        },
+        "owner": "spike",
+        "purpose": "fixture",
+        "expiresAt": {
+          "$date": "2030-01-01T00:00:00Z"
+        }
+      },
+      "indexes": [
+        {
+          "v": 2,
+          "key": {
+            "_id": 1
+          },
+          "name": "_id_"
+        },
+        {
+          "v": 2,
+          "key": {
+            "referenceKey": 1
+          },
+          "name": "referenceKey_1",
+          "unique": true
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1
+          },
+          "name": "record_schema_reference_digest_kind"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1,
+            "brand": 1,
+            "portal": 1,
+            "referenceKey": 1
+          },
+          "name": "record_schema_reference_grant_lookup"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1,
+            "brand": 1,
+            "portal": 1,
+            "schemaKind": 1,
+            "recordType": 1,
+            "operation": 1,
+            "oid": 1
+          },
+          "name": "record_schema_reference_authorization_lookup"
+        },
+        {
+          "v": 2,
+          "key": {
+            "digest": 1,
+            "kind": 1,
+            "brand": 1,
+            "portal": 1,
+            "schemaKind": 1,
+            "recordType": 1,
+            "operation": 1,
+            "referenceKey": 1
+          },
+          "name": "record_schema_reference_authorization_cursor_lookup"
+        },
+        {
+          "v": 2,
+          "key": {
+            "oid": 1,
+            "kind": 1
+          },
+          "name": "record_schema_reference_oid_kind",
+          "sparse": true
+        },
+        {
+          "v": 2,
+          "key": {
+            "kind": 1,
+            "expiresAt": 1
+          },
+          "name": "record_schema_reference_pin_expiry",
+          "partialFilterExpression": {
+            "kind": "pin"
+          }
+        }
+      ]
+    }
+  },
+  "byteFixture": {
+    "bytes": [
+      0,
+      1,
+      2,
+      255,
+      128,
+      10,
+      13
+    ],
+    "sha256": "485e14ce22ed49772212f763502bae237bcd47f4f0bd767f1f677d5025b376ff",
+    "roundTrip": true
+  },
+  "counterRace": {
+    "readers": 2,
+    "attemptedIncrements": 2,
+    "finalValue": 1,
+    "uniqueScope": "name alone, not branding/name"
+  }
+}

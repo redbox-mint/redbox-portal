@@ -1,0 +1,1610 @@
+{
+  "environment": {
+    "node": "v24.18.0",
+    "mongo": "8.0.34",
+    "rounds": 3,
+    "memoryRetentionRepeats": 2,
+    "forcedGC": true,
+    "cyclesPerRound": 500,
+    "operationsPerCycle": 5,
+    "concurrency": 8,
+    "warmupCycles": 100,
+    "serviceCompletionsPerRound": 100,
+    "cacheHitsPerRound": 1000,
+    "cacheDatabaseReadsPerRound": 100,
+    "previewsPerRound": 100,
+    "connectionSampleMs": 25,
+    "description": "Each cycle create/read/update/read/delete; JSON object with nested array. Sequential service sets poll persisted completion at 1ms; memory hits, forced database cache reads and actual BrandingService preview create/fetch follow. Brand metadata is fixed; actual CSS generation and cache persistence are live."
+  },
+  "samples": [
+    {
+      "round": 0,
+      "backend": "waterline",
+      "ready": {
+        "backend": "waterline",
+        "adapter": "WaterlineCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810310,
+        "legacy": false,
+        "startupMs": 2521.398905,
+        "startupStagesMs": {
+          "coreImported": 2143.320158,
+          "ormLoaded": 2519.31625,
+          "persistenceReady": 2520.132147,
+          "cacheBootstrapped": 2521.355798
+        },
+        "memory": {
+          "rss": 329256960,
+          "heapTotal": 255545344,
+          "heapUsed": 141997480,
+          "external": 41094301,
+          "arrayBuffers": 41388179
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 9,
+      "retainedMemory": [
+        {
+          "rss": 419565568,
+          "heapTotal": 279400448,
+          "heapUsed": 125638384,
+          "external": 45880908,
+          "arrayBuffers": 41912832
+        },
+        {
+          "rss": 465178624,
+          "heapTotal": 296177664,
+          "heapUsed": 125558064,
+          "external": 49615344,
+          "arrayBuffers": 46044355
+        },
+        {
+          "rss": 466882560,
+          "heapTotal": 298274816,
+          "heapUsed": 125706160,
+          "external": 47971239,
+          "arrayBuffers": 41584432
+        },
+        {
+          "rss": 467013632,
+          "heapTotal": 281497600,
+          "heapUsed": 125799336,
+          "external": 46637524,
+          "arrayBuffers": 41847184
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 3200,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 0.8158969999999499,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 4755.188477000001,
+      "operationsPerSecond": 525.7415162599873,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 35.57880599999953,
+        "p50": 74.76701200000025,
+        "p95": 89.09739200000149,
+        "p99": 100.5352270000003,
+        "max": 118.9470110000002
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 5.862369000000399,
+        "p50": 7.256605000000491,
+        "p95": 9.087206000000151,
+        "p99": 17.844253999999637,
+        "max": 17.844253999999637
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.009038999998665531,
+        "p50": 0.009979999998904532,
+        "p95": 0.0125160000006872,
+        "p99": 0.03329200000007404,
+        "max": 0.08605399999942165
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 1.886940999998842,
+        "p50": 2.1421549999995477,
+        "p95": 2.7713130000011006,
+        "p99": 3.0767780000005587,
+        "max": 3.0767780000005587
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 6.903442000000723,
+        "p50": 9.500114000000394,
+        "p95": 13.137800000000425,
+        "p99": 32.852553000000626,
+        "max": 32.852553000000626
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 465047552,
+        "heapTotal": 352014336,
+        "heapUsed": 246948240,
+        "external": 49615303,
+        "arrayBuffers": 49909141
+      },
+      "latencyDistributionMs": {
+        "p50": 74.7472230000003,
+        "p95": 89.0827960000006,
+        "p99": 100.15601600000082,
+        "max": 118.9470110000002
+      },
+      "completionDistributionMs": {
+        "p50": 7.2551170000006096,
+        "p95": 9.060332000000926,
+        "p99": 16.118032000000312,
+        "max": 17.844253999999637
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.009979000000384985,
+        "p95": 0.012468999999327934,
+        "p99": 0.030573000000003958,
+        "max": 0.08605399999942165
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 2.1376860000000306,
+        "p95": 2.7700019999992946,
+        "p99": 2.9960529999989376,
+        "max": 3.0767780000005587
+      },
+      "previewDistributionMs": {
+        "p50": 9.492823999999018,
+        "p95": 11.93735100000049,
+        "p99": 16.92400599999928,
+        "max": 32.852553000000626
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 1,
+      "backend": "prisma",
+      "ready": {
+        "backend": "prisma",
+        "adapter": "PrismaCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810342,
+        "legacy": false,
+        "startupMs": 3509.8217120000004,
+        "startupStagesMs": {
+          "coreImported": 2438.6493290000003,
+          "ormLoaded": 2794.421248,
+          "persistenceReady": 3506.517433,
+          "cacheBootstrapped": 3509.7332920000003
+        },
+        "memory": {
+          "rss": 417767424,
+          "heapTotal": 305373184,
+          "heapUsed": 188851520,
+          "external": 59006280,
+          "arrayBuffers": 59279885
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 433135616,
+          "heapTotal": 305569792,
+          "heapUsed": 152856952,
+          "external": 64450746,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 438509568,
+          "heapTotal": 306356224,
+          "heapUsed": 152362376,
+          "external": 61367819,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 438640640,
+          "heapTotal": 305831936,
+          "heapUsed": 152403112,
+          "external": 66791453,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 438902784,
+          "heapTotal": 306618368,
+          "heapUsed": 152776184,
+          "external": 63935354,
+          "arrayBuffers": 64141290
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 1503,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 712.0961849999999,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 2228.4047340000006,
+      "operationsPerSecond": 1121.8787870336662,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 16.0141450000001,
+        "p50": 35.03222099999948,
+        "p95": 43.007558999999674,
+        "p99": 47.77600199999961,
+        "max": 50.31272099999933
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 3.254823999999644,
+        "p50": 4.421430000000328,
+        "p95": 6.882000999999946,
+        "p99": 8.150590000000193,
+        "max": 8.150590000000193
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.010651000000507338,
+        "p50": 0.011626999999862164,
+        "p95": 0.014329999999972642,
+        "p99": 0.03071799999997893,
+        "max": 0.0978930000001128
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 1.1793079999997644,
+        "p50": 1.416482999999971,
+        "p95": 2.121086000000105,
+        "p99": 2.270821999999498,
+        "max": 2.270821999999498
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 3.613391999999294,
+        "p50": 4.423084000000017,
+        "p95": 9.353226000001087,
+        "p99": 26.362581999999747,
+        "max": 26.362581999999747
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 438509568,
+        "heapTotal": 307404800,
+        "heapUsed": 166091224,
+        "external": 61367778,
+        "arrayBuffers": 61639295
+      },
+      "latencyDistributionMs": {
+        "p50": 35.022775000000365,
+        "p95": 42.88531299999977,
+        "p99": 47.76535100000001,
+        "max": 50.31272099999933
+      },
+      "completionDistributionMs": {
+        "p50": 4.371825000000172,
+        "p95": 6.589269000000058,
+        "p99": 7.857934000000569,
+        "max": 8.150590000000193
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.011625999999523629,
+        "p95": 0.014320000000225264,
+        "p99": 0.029586000000563217,
+        "max": 0.0978930000001128
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 1.4003609999999753,
+        "p95": 2.1202269999994314,
+        "p99": 2.189295000000129,
+        "max": 2.270821999999498
+      },
+      "previewDistributionMs": {
+        "p50": 4.422411999999895,
+        "p95": 9.158117000000857,
+        "p99": 13.723925000000236,
+        "max": 26.362581999999747
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 2,
+      "backend": "mongodb",
+      "ready": {
+        "backend": "mongodb",
+        "adapter": "MongoCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810370,
+        "legacy": false,
+        "startupMs": 3119.6729530000002,
+        "startupStagesMs": {
+          "coreImported": 2645.088572,
+          "ormLoaded": 3062.602958,
+          "persistenceReady": 3118.585792,
+          "cacheBootstrapped": 3119.639135
+        },
+        "memory": {
+          "rss": 330420224,
+          "heapTotal": 255283200,
+          "heapUsed": 144482144,
+          "external": 41122791,
+          "arrayBuffers": 41396396
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 397135872,
+          "heapTotal": 291721216,
+          "heapUsed": 124947376,
+          "external": 45604791,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 408276992,
+          "heapTotal": 271273984,
+          "heapUsed": 124406864,
+          "external": 46207353,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 408276992,
+          "heapTotal": 271273984,
+          "heapUsed": 124514424,
+          "external": 45382609,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 408932352,
+          "heapTotal": 271536128,
+          "heapUsed": 124720896,
+          "external": 45077733,
+          "arrayBuffers": 41453360
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 1500,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 55.98283399999991,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 1497.430668,
+      "operationsPerSecond": 1669.526378365853,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 16.300672000000304,
+        "p50": 23.284249000000273,
+        "p95": 31.177617000000282,
+        "p99": 35.17088200000035,
+        "max": 37.82502399999976
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 2.3983140000000276,
+        "p50": 3.869900000000598,
+        "p95": 6.3677239999997255,
+        "p99": 7.2414129999997385,
+        "max": 7.2414129999997385
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.012415000000146392,
+        "p50": 0.013896000000386266,
+        "p95": 0.01838199999929202,
+        "p99": 0.04939199999989796,
+        "max": 0.11906300000009651
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 0.8595560000003388,
+        "p50": 1.029751999999462,
+        "p95": 2.071063000000322,
+        "p99": 2.7347570000001724,
+        "max": 2.7347570000001724
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 2.594046999999591,
+        "p50": 3.236826000000292,
+        "p95": 4.97834899999998,
+        "p99": 6.705093999999917,
+        "max": 6.705093999999917
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 408276992,
+        "heapTotal": 291983360,
+        "heapUsed": 148687584,
+        "external": 46207312,
+        "arrayBuffers": 46480877
+      },
+      "latencyDistributionMs": {
+        "p50": 23.26645499999995,
+        "p95": 30.810505999999805,
+        "p99": 35.05936699999984,
+        "max": 37.82502399999976
+      },
+      "completionDistributionMs": {
+        "p50": 3.8068339999999807,
+        "p95": 5.522600999999668,
+        "p99": 7.2128249999996115,
+        "max": 7.2414129999997385
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.013891999999941618,
+        "p95": 0.01827199999934237,
+        "p99": 0.048124999999345164,
+        "max": 0.11906300000009651
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 1.0239439999995739,
+        "p95": 1.9589059999998426,
+        "p99": 2.137195000000247,
+        "max": 2.7347570000001724
+      },
+      "previewDistributionMs": {
+        "p50": 3.1770010000000184,
+        "p95": 4.882560000000012,
+        "p99": 6.538744999999835,
+        "max": 6.705093999999917
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 3,
+      "backend": "mongodb",
+      "ready": {
+        "backend": "mongodb",
+        "adapter": "MongoCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810488,
+        "legacy": false,
+        "startupMs": 3116.956766,
+        "startupStagesMs": {
+          "coreImported": 2652.817188,
+          "ormLoaded": 3059.0940109999997,
+          "persistenceReady": 3115.89684,
+          "cacheBootstrapped": 3116.906411
+        },
+        "memory": {
+          "rss": 329289728,
+          "heapTotal": 254758912,
+          "heapUsed": 144688568,
+          "external": 41122791,
+          "arrayBuffers": 41396396
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 396529664,
+          "heapTotal": 291196928,
+          "heapUsed": 124960712,
+          "external": 45604791,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 406884352,
+          "heapTotal": 271536128,
+          "heapUsed": 124404648,
+          "external": 46196715,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 407015424,
+          "heapTotal": 271536128,
+          "heapUsed": 124514144,
+          "external": 45414597,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 408326144,
+          "heapTotal": 271536128,
+          "heapUsed": 124716536,
+          "external": 45153952,
+          "arrayBuffers": 41453360
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 1502,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 56.8028290000002,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 1569.8632020000005,
+      "operationsPerSecond": 1592.4954459821774,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 18.27210500000001,
+        "p50": 24.252722000000176,
+        "p95": 32.28464499999973,
+        "p99": 35.447001999999884,
+        "max": 39.075144000000364
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 2.4280619999999544,
+        "p50": 3.3340679999992062,
+        "p95": 5.5357289999992645,
+        "p99": 6.249272000000019,
+        "max": 6.249272000000019
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.01196299999992334,
+        "p50": 0.01323699999920791,
+        "p95": 0.017092999999476888,
+        "p99": 0.04615600000033737,
+        "max": 0.13148700000056124
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 0.84967400000005,
+        "p50": 1.0231750000002648,
+        "p95": 2.1542890000000625,
+        "p99": 2.753794999999627,
+        "max": 2.753794999999627
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 2.6987660000004325,
+        "p50": 3.2358150000000023,
+        "p95": 5.689838000000236,
+        "p99": 9.387467999999899,
+        "max": 9.387467999999899
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 406884352,
+        "heapTotal": 291196928,
+        "heapUsed": 148670656,
+        "external": 46196674,
+        "arrayBuffers": 46470239
+      },
+      "latencyDistributionMs": {
+        "p50": 24.25160599999981,
+        "p95": 32.24175100000048,
+        "p99": 35.248945000000276,
+        "max": 39.075144000000364
+      },
+      "completionDistributionMs": {
+        "p50": 3.307927999999265,
+        "p95": 5.36233700000048,
+        "p99": 5.816546000000017,
+        "max": 6.249272000000019
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.013235999999778869,
+        "p95": 0.01702599999953236,
+        "p99": 0.04257000000052358,
+        "max": 0.13148700000056124
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 1.0191090000007534,
+        "p95": 1.80584700000054,
+        "p99": 2.7356509999999616,
+        "max": 2.753794999999627
+      },
+      "previewDistributionMs": {
+        "p50": 3.2278980000000956,
+        "p95": 5.557469999999739,
+        "p99": 8.097571000000244,
+        "max": 9.387467999999899
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 4,
+      "backend": "waterline",
+      "ready": {
+        "backend": "waterline",
+        "adapter": "WaterlineCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810508,
+        "legacy": false,
+        "startupMs": 3152.0099,
+        "startupStagesMs": {
+          "coreImported": 2729.8674610000003,
+          "ormLoaded": 3149.567907,
+          "persistenceReady": 3150.617368,
+          "cacheBootstrapped": 3151.977408
+        },
+        "memory": {
+          "rss": 328818688,
+          "heapTotal": 254496768,
+          "heapUsed": 142320656,
+          "external": 41094301,
+          "arrayBuffers": 41388179
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 421355520,
+          "heapTotal": 280449024,
+          "heapUsed": 125633592,
+          "external": 45881330,
+          "arrayBuffers": 41518896
+        },
+        {
+          "rss": 466051072,
+          "heapTotal": 297226240,
+          "heapUsed": 125588512,
+          "external": 49572904,
+          "arrayBuffers": 44119600
+        },
+        {
+          "rss": 466444288,
+          "heapTotal": 273371136,
+          "heapUsed": 125703888,
+          "external": 44335092,
+          "arrayBuffers": 41584432
+        },
+        {
+          "rss": 469590016,
+          "heapTotal": 287526912,
+          "heapUsed": 124362056,
+          "external": 48364829,
+          "arrayBuffers": 41649968
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 3200,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 1.0494610000000648,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 5700.5021289999995,
+      "operationsPerSecond": 438.55785743536916,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 55.12487300000066,
+        "p50": 89.22851900000023,
+        "p95": 107.92725400000018,
+        "p99": 133.46504099999947,
+        "max": 148.25538799999958
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 7.128121000001556,
+        "p50": 10.830094000000827,
+        "p95": 18.32426200000009,
+        "p99": 31.465712000001076,
+        "max": 31.465712000001076
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.012067999999999302,
+        "p50": 0.013013999998293002,
+        "p95": 0.019398999998884392,
+        "p99": 0.061150999999881606,
+        "max": 0.1262299999998504
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 2.2164769999999407,
+        "p50": 2.731984999998531,
+        "p95": 3.4867539999995643,
+        "p99": 6.1043250000002445,
+        "max": 6.1043250000002445
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 6.722757999999885,
+        "p50": 8.179838000000018,
+        "p95": 10.655619999999544,
+        "p99": 18.918556000000535,
+        "max": 18.918556000000535
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 466051072,
+        "heapTotal": 352276480,
+        "heapUsed": 246292264,
+        "external": 49572863,
+        "arrayBuffers": 49866701
+      },
+      "latencyDistributionMs": {
+        "p50": 89.16418999999951,
+        "p95": 107.7999779999991,
+        "p99": 132.7383460000001,
+        "max": 148.25538799999958
+      },
+      "completionDistributionMs": {
+        "p50": 10.827700999998342,
+        "p95": 17.871369000000414,
+        "p99": 22.976190999999744,
+        "max": 31.465712000001076
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.013012999999773456,
+        "p95": 0.018165999999837368,
+        "p99": 0.05862399999932677,
+        "max": 0.1262299999998504
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 2.7319530000004306,
+        "p95": 3.433944000000338,
+        "p99": 6.101098000001002,
+        "max": 6.1043250000002445
+      },
+      "previewDistributionMs": {
+        "p50": 8.179278999999951,
+        "p95": 10.603682999999364,
+        "p99": 12.888997000000018,
+        "max": 18.918556000000535
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 5,
+      "backend": "prisma",
+      "ready": {
+        "backend": "prisma",
+        "adapter": "PrismaCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810564,
+        "legacy": false,
+        "startupMs": 4351.868917,
+        "startupStagesMs": {
+          "coreImported": 2646.3648150000004,
+          "ormLoaded": 3045.879684,
+          "persistenceReady": 4343.938021999999,
+          "cacheBootstrapped": 4351.813591
+        },
+        "memory": {
+          "rss": 419635200,
+          "heapTotal": 305201152,
+          "heapUsed": 188019864,
+          "external": 59006280,
+          "arrayBuffers": 59279885
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 434454528,
+          "heapTotal": 306618368,
+          "heapUsed": 152864688,
+          "external": 64451084,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 440352768,
+          "heapTotal": 307404800,
+          "heapUsed": 152331728,
+          "external": 62912194,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 440352768,
+          "heapTotal": 307404800,
+          "heapUsed": 152332912,
+          "external": 62586034,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 440590336,
+          "heapTotal": 307929088,
+          "heapUsed": 151308000,
+          "external": 64310225,
+          "arrayBuffers": 60973440
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 1501,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 1298.0583379999994,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 2539.534444,
+      "operationsPerSecond": 984.4324048868856,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 17.298602000000756,
+        "p50": 39.73700099999951,
+        "p95": 49.956255000000056,
+        "p99": 54.21817199999896,
+        "max": 55.422451999999794
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 3.5237029999989318,
+        "p50": 4.877360000000408,
+        "p95": 8.178121999999348,
+        "p99": 12.211025000000518,
+        "max": 12.211025000000518
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.013673999999809894,
+        "p50": 0.015108999999938533,
+        "p95": 0.021826999998665997,
+        "p99": 0.06435400000009395,
+        "max": 0.12316300000020419
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 1.2651249999998981,
+        "p50": 1.588395999999193,
+        "p95": 2.818349000001035,
+        "p99": 3.2421549999999115,
+        "max": 3.2421549999999115
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 3.8392079999994166,
+        "p50": 4.746900000000096,
+        "p95": 10.31510100000014,
+        "p99": 29.42791700000089,
+        "max": 29.42791700000089
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 440352768,
+        "heapTotal": 308191232,
+        "heapUsed": 175157944,
+        "external": 62912153,
+        "arrayBuffers": 63183670
+      },
+      "latencyDistributionMs": {
+        "p50": 39.71971499999927,
+        "p95": 49.94633300000078,
+        "p99": 53.468504000000394,
+        "max": 55.422451999999794
+      },
+      "completionDistributionMs": {
+        "p50": 4.843633000000409,
+        "p95": 7.968699999999444,
+        "p99": 10.616939000001366,
+        "max": 12.211025000000518
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.015108999999938533,
+        "p95": 0.02095499999995809,
+        "p99": 0.06298600000081933,
+        "max": 0.12316300000020419
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 1.5813100000013947,
+        "p95": 2.596454000000449,
+        "p99": 3.0869910000001255,
+        "max": 3.2421549999999115
+      },
+      "previewDistributionMs": {
+        "p50": 4.746608999999808,
+        "p95": 9.970343000000867,
+        "p99": 11.490506000000096,
+        "max": 29.42791700000089
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 6,
+      "backend": "prisma",
+      "ready": {
+        "backend": "prisma",
+        "adapter": "PrismaCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810617,
+        "legacy": false,
+        "startupMs": 4110.269847,
+        "startupStagesMs": {
+          "coreImported": 2802.371004,
+          "ormLoaded": 3245.317543,
+          "persistenceReady": 4106.224956999999,
+          "cacheBootstrapped": 4110.215053
+        },
+        "memory": {
+          "rss": 417918976,
+          "heapTotal": 304848896,
+          "heapUsed": 188755480,
+          "external": 59006280,
+          "arrayBuffers": 59279885
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 433684480,
+          "heapTotal": 308453376,
+          "heapUsed": 152867264,
+          "external": 64450762,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 441942016,
+          "heapTotal": 309239808,
+          "heapUsed": 152356888,
+          "external": 61846531,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 441942016,
+          "heapTotal": 309501952,
+          "heapUsed": 152358736,
+          "external": 60715287,
+          "arrayBuffers": 59344803
+        },
+        {
+          "rss": 442335232,
+          "heapTotal": 310026240,
+          "heapUsed": 152784848,
+          "external": 66787221,
+          "arrayBuffers": 59410339
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 1502,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 860.9074139999993,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 2570.7637060000006,
+      "operationsPerSecond": 972.4736638241615,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 20.52186299999994,
+        "p50": 40.30983599999945,
+        "p95": 50.95533399999931,
+        "p99": 55.66866000000027,
+        "max": 59.12886399999934
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 3.7469120000005205,
+        "p50": 4.991479000000254,
+        "p95": 7.055413000000044,
+        "p99": 12.120558999999048,
+        "max": 12.120558999999048
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.011135999999169144,
+        "p50": 0.012416999999913969,
+        "p95": 0.01551399999880232,
+        "p99": 0.046593000000939355,
+        "max": 0.10722100000020873
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 1.3295209999996587,
+        "p50": 1.5666849999997794,
+        "p95": 2.332184999999299,
+        "p99": 2.9982399999989866,
+        "max": 2.9982399999989866
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 3.938925999998901,
+        "p50": 5.067754000001514,
+        "p95": 11.530362999999852,
+        "p99": 31.860147000001234,
+        "max": 31.860147000001234
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 441942016,
+        "heapTotal": 309501952,
+        "heapUsed": 168955568,
+        "external": 61846490,
+        "arrayBuffers": 62118007
+      },
+      "latencyDistributionMs": {
+        "p50": 40.29002700000001,
+        "p95": 50.50273599999855,
+        "p99": 55.29814499999975,
+        "max": 59.12886399999934
+      },
+      "completionDistributionMs": {
+        "p50": 4.9870649999993475,
+        "p95": 6.9218349999991915,
+        "p99": 8.171831999999995,
+        "max": 12.120558999999048
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.012415999999575433,
+        "p95": 0.015423999999256921,
+        "p99": 0.041159000000334345,
+        "max": 0.10722100000020873
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 1.5636389999999665,
+        "p95": 2.303856000000451,
+        "p99": 2.7957430000005843,
+        "max": 2.9982399999989866
+      },
+      "previewDistributionMs": {
+        "p50": 5.03731499999958,
+        "p95": 11.04292500000156,
+        "p99": 18.276394999998956,
+        "max": 31.860147000001234
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 7,
+      "backend": "mongodb",
+      "ready": {
+        "backend": "mongodb",
+        "adapter": "MongoCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810639,
+        "legacy": false,
+        "startupMs": 3414.296742,
+        "startupStagesMs": {
+          "coreImported": 2750.621557,
+          "ormLoaded": 3326.355656,
+          "persistenceReady": 3412.796327,
+          "cacheBootstrapped": 3414.2427500000003
+        },
+        "memory": {
+          "rss": 329125888,
+          "heapTotal": 254758912,
+          "heapUsed": 144228888,
+          "external": 41122791,
+          "arrayBuffers": 41396396
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 399773696,
+          "heapTotal": 291983360,
+          "heapUsed": 124974272,
+          "external": 45538657,
+          "arrayBuffers": 45811923
+        },
+        {
+          "rss": 407760896,
+          "heapTotal": 269438976,
+          "heapUsed": 124408448,
+          "external": 46120496,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 407760896,
+          "heapTotal": 269701120,
+          "heapUsed": 124518736,
+          "external": 45490771,
+          "arrayBuffers": 41453360
+        },
+        {
+          "rss": 409726976,
+          "heapTotal": 270487552,
+          "heapUsed": 124719696,
+          "external": 45230110,
+          "arrayBuffers": 41453360
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 1500,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 86.44067099999984,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 1716.970107,
+      "operationsPerSecond": 1456.053305650242,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 10.36866000000009,
+        "p50": 26.35501700000077,
+        "p95": 35.93488900000011,
+        "p99": 45.948505999999725,
+        "max": 47.45060199999989
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 2.6170260000008057,
+        "p50": 3.922702000000754,
+        "p95": 5.2790109999996275,
+        "p99": 7.4522360000000845,
+        "max": 7.4522360000000845
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.012907000000268454,
+        "p50": 0.013751999999840336,
+        "p95": 0.016867000000274857,
+        "p99": 0.04758499999934429,
+        "max": 0.1295559999998659
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 0.8965319999997519,
+        "p50": 1.1288150000000314,
+        "p95": 1.9692850000001272,
+        "p99": 2.8912529999997787,
+        "max": 2.8912529999997787
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 2.7131729999991876,
+        "p50": 3.3953270000001794,
+        "p95": 5.597146000000066,
+        "p99": 7.507327000000259,
+        "max": 7.507327000000259
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 407900160,
+        "heapTotal": 291983360,
+        "heapUsed": 148471024,
+        "external": 46120455,
+        "arrayBuffers": 46394020
+      },
+      "latencyDistributionMs": {
+        "p50": 26.350451999999677,
+        "p95": 35.857435999999325,
+        "p99": 44.895847000000686,
+        "max": 47.45060199999989
+      },
+      "completionDistributionMs": {
+        "p50": 3.868964999999662,
+        "p95": 5.219554000000244,
+        "p99": 6.3127119999999195,
+        "max": 7.4522360000000845
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.01375000000007276,
+        "p95": 0.016838999999890802,
+        "p99": 0.03725800000029267,
+        "max": 0.1295559999998659
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 1.1248969999996916,
+        "p95": 1.9273639999992156,
+        "p99": 2.5930149999994683,
+        "max": 2.8912529999997787
+      },
+      "previewDistributionMs": {
+        "p50": 3.394575000000259,
+        "p95": 5.564328000000387,
+        "p99": 6.453719999999521,
+        "max": 7.507327000000259
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    },
+    {
+      "round": 8,
+      "backend": "waterline",
+      "ready": {
+        "backend": "waterline",
+        "adapter": "WaterlineCacheEntryRepository",
+        "selectorProvided": true,
+        "pid": 810667,
+        "legacy": false,
+        "startupMs": 3237.189494,
+        "startupStagesMs": {
+          "coreImported": 2797.030252,
+          "ormLoaded": 3234.595592,
+          "persistenceReady": 3235.706771,
+          "cacheBootstrapped": 3237.137001
+        },
+        "memory": {
+          "rss": 328933376,
+          "heapTotal": 255021056,
+          "heapUsed": 142289656,
+          "external": 41094301,
+          "arrayBuffers": 41388179
+        },
+        "node": "v24.18.0",
+        "cacheExpiry": 60
+      },
+      "baselineConnections": 3,
+      "peakConnections": 10,
+      "retainedMemory": [
+        {
+          "rss": 416358400,
+          "heapTotal": 279138304,
+          "heapUsed": 125640440,
+          "external": 45881175,
+          "arrayBuffers": 41915392
+        },
+        {
+          "rss": 465903616,
+          "heapTotal": 297750528,
+          "heapUsed": 125596160,
+          "external": 49615363,
+          "arrayBuffers": 44187904
+        },
+        {
+          "rss": 467738624,
+          "heapTotal": 298012672,
+          "heapUsed": 125714208,
+          "external": 47307562,
+          "arrayBuffers": 42591344
+        },
+        {
+          "rss": 470622208,
+          "heapTotal": 306925568,
+          "heapUsed": 125823896,
+          "external": 49801669,
+          "arrayBuffers": 44381264
+        }
+      ],
+      "databaseCalls": {
+        "insert": 700,
+        "query": 3203,
+        "update": 500,
+        "delete": 600,
+        "getmore": 0
+      },
+      "readinessMs": 1.1111789999999928,
+      "count": 500,
+      "concurrency": 8,
+      "operations": 2500,
+      "elapsedMs": 6043.107807,
+      "operationsPerSecond": 413.6944234395651,
+      "failures": 0,
+      "loggedErrors": 0,
+      "latencyMs": {
+        "count": 500,
+        "min": 45.95937799999956,
+        "p50": 95.74818899999991,
+        "p95": 113.6628639999999,
+        "p99": 121.26523199999974,
+        "max": 127.81304400000045
+      },
+      "completionMs": {
+        "count": 100,
+        "min": 6.507750999999189,
+        "p50": 9.190389000001232,
+        "p95": 13.097889000000578,
+        "p99": 25.36566700000003,
+        "max": 25.36566700000003
+      },
+      "cacheHitMs": {
+        "count": 1000,
+        "min": 0.01109100000030594,
+        "p50": 0.012079000000085216,
+        "p95": 0.015143999999054358,
+        "p99": 0.047313999999460066,
+        "max": 0.12825900000098045
+      },
+      "cacheDatabaseReadMs": {
+        "count": 100,
+        "min": 2.1466440000003786,
+        "p50": 2.546658999999636,
+        "p95": 3.2900939999999537,
+        "p99": 4.343555000001288,
+        "max": 4.343555000001288
+      },
+      "previewMs": {
+        "count": 100,
+        "min": 7.018984000000273,
+        "p50": 8.702138999999079,
+        "p95": 12.432151999999405,
+        "p99": 23.777055000000473,
+        "max": 23.777055000000473
+      },
+      "previewCssBytes": 10158,
+      "memory": {
+        "rss": 465772544,
+        "heapTotal": 352800768,
+        "heapUsed": 247124424,
+        "external": 49615322,
+        "arrayBuffers": 49909160
+      },
+      "latencyDistributionMs": {
+        "p50": 95.69893500000035,
+        "p95": 113.55162100000052,
+        "p99": 121.25513399999909,
+        "max": 127.81304400000045
+      },
+      "completionDistributionMs": {
+        "p50": 8.970697999999174,
+        "p95": 13.035055000000284,
+        "p99": 20.81180999999924,
+        "max": 25.36566700000003
+      },
+      "cacheHitDistributionMs": {
+        "p50": 0.012076000000888598,
+        "p95": 0.015096999999514082,
+        "p99": 0.04589099999975588,
+        "max": 0.12825900000098045
+      },
+      "cacheDatabaseReadDistributionMs": {
+        "p50": 2.5388100000000122,
+        "p95": 3.2830289999983506,
+        "p99": 3.557676000000356,
+        "max": 4.343555000001288
+      },
+      "previewDistributionMs": {
+        "p50": 8.684794999999212,
+        "p95": 12.386384999999791,
+        "p99": 13.759836999999607,
+        "max": 23.777055000000473
+      },
+      "afterShutdownConnections": 3,
+      "rejectedConnections": 0
+    }
+  ],
+  "backends": {
+    "waterline": {
+      "latencyMs": {
+        "p50": 87.56044800000018,
+        "p95": 108.70351300000038,
+        "p99": 121.25513399999909,
+        "max": 148.25538799999958
+      },
+      "completionMs": {
+        "p50": 8.47838800000136,
+        "p95": 15.55517399999917,
+        "p99": 20.81180999999924,
+        "max": 31.465712000001076
+      },
+      "cacheHitMs": {
+        "p50": 0.012184999999590218,
+        "p95": 0.01554500000020198,
+        "p99": 0.04589099999975588,
+        "max": 0.12825900000098045
+      },
+      "cacheDatabaseReadMs": {
+        "p50": 2.4768839999997,
+        "p95": 3.2370720000017172,
+        "p99": 4.343555000001288,
+        "max": 6.1043250000002445
+      },
+      "previewMs": {
+        "p50": 8.918163000000277,
+        "p95": 11.952487999998993,
+        "p99": 16.92400599999928,
+        "max": 32.852553000000626
+      },
+      "operationsPerSecond": 459.3312657116405,
+      "failures": 0,
+      "startupMs": {
+        "p50": 3152.0099,
+        "p95": 3237.189494,
+        "p99": 3237.189494,
+        "max": 3237.189494
+      },
+      "rssMiB": [
+        443.50390625,
+        444.4609375,
+        444.1953125
+      ],
+      "heapUsedMiB": [
+        235.50819396972656,
+        234.88260650634766,
+        235.67621612548828
+      ],
+      "connections": [
+        {
+          "baseline": 3,
+          "peak": 9,
+          "after": 3
+        },
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        },
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        }
+      ]
+    },
+    "prisma": {
+      "latencyMs": {
+        "p50": 38.7105760000004,
+        "p95": 48.70903199999975,
+        "p99": 53.605381999999736,
+        "max": 59.12886399999934
+      },
+      "completionMs": {
+        "p50": 4.843633000000409,
+        "p95": 7.252371000000494,
+        "p99": 10.017083000000639,
+        "max": 12.211025000000518
+      },
+      "cacheHitMs": {
+        "p50": 0.012504999998782296,
+        "p95": 0.017881000001580105,
+        "p99": 0.04678599999988364,
+        "max": 0.12316300000020419
+      },
+      "cacheDatabaseReadMs": {
+        "p50": 1.551313999998456,
+        "p95": 2.303856000000451,
+        "p99": 2.948738000000958,
+        "max": 3.2421549999999115
+      },
+      "previewMs": {
+        "p50": 4.827870999999504,
+        "p95": 9.970343000000867,
+        "p99": 18.276394999998956,
+        "max": 31.860147000001234
+      },
+      "operationsPerSecond": 1026.2616185815712,
+      "failures": 0,
+      "startupMs": {
+        "p50": 4110.269847,
+        "p95": 4351.868917,
+        "p99": 4351.868917,
+        "max": 4351.868917
+      },
+      "rssMiB": [
+        418.1953125,
+        419.953125,
+        421.46875
+      ],
+      "heapUsedMiB": [
+        158.39693450927734,
+        167.04363250732422,
+        161.1285858154297
+      ],
+      "connections": [
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        },
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        },
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        }
+      ]
+    },
+    "mongodb": {
+      "latencyMs": {
+        "p50": 24.72167999999965,
+        "p95": 33.50552700000026,
+        "p99": 37.82502399999976,
+        "max": 47.45060199999989
+      },
+      "completionMs": {
+        "p50": 3.66079499999978,
+        "p95": 5.4113509999997405,
+        "p99": 6.752324999999473,
+        "max": 7.4522360000000845
+      },
+      "cacheHitMs": {
+        "p50": 0.013581999999587424,
+        "p95": 0.01756299999942712,
+        "p99": 0.04637499999989814,
+        "max": 0.13148700000056124
+      },
+      "cacheDatabaseReadMs": {
+        "p50": 1.0567000000000917,
+        "p95": 1.9589059999998426,
+        "p99": 2.7347570000001724,
+        "max": 2.8912529999997787
+      },
+      "previewMs": {
+        "p50": 3.285149999999703,
+        "p95": 5.486238000000412,
+        "p99": 6.705093999999917,
+        "max": 9.387467999999899
+      },
+      "operationsPerSecond": 1572.6917099994241,
+      "failures": 0,
+      "startupMs": {
+        "p50": 3119.6729530000002,
+        "p95": 3414.296742,
+        "p99": 3414.296742,
+        "max": 3414.296742
+      },
+      "rssMiB": [
+        389.36328125,
+        388.03515625,
+        389.00390625
+      ],
+      "heapUsedMiB": [
+        141.79953002929688,
+        141.78338623046875,
+        141.59300231933594
+      ],
+      "connections": [
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        },
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        },
+        {
+          "baseline": 3,
+          "peak": 10,
+          "after": 3
+        }
+      ]
+    }
+  }
+}

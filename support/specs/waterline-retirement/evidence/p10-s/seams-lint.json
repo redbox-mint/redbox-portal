@@ -1,0 +1,12 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "lint"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 0.467,
+  "sha256": "5702fe78f762907924ebb42be6f3be09aeab2bed3ec50a2bcaa76c6b630e192f",
+  "logBytes": 583,
+  "counts": []
+}

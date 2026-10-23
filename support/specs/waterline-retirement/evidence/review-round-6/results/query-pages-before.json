@@ -1,0 +1,13 @@
+{
+  "name": "query-pages-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-pages",
+  "sourceCommit": "1dab20b089f8e846128f96e4a2110bbfd9dd9234",
+  "exitCode": 0,
+  "durationMs": 75532,
+  "sha256": "a684a9a8befcc9f4c36c79645202b99ffec92dca8f481dd22b5ae259ed107582",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":12672,\"pages\":11340,\"uncounted\":1260,\"progressOptionRefusals\":72,\"writers\":[\"waterline\",\"mongodb\"],\"readers\":[\"waterline\",\"mongodb\"],\"baseline\":\"loaded Waterline complete projected pages and independent count\"}"
+  ]
+}

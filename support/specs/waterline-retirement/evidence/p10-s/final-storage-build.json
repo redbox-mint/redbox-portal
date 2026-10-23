@@ -1,0 +1,15 @@
+{
+  "command": [
+    "npm",
+    "--prefix",
+    "packages/sails-hook-redbox-storage-mongo",
+    "run",
+    "build"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 5.14,
+  "sha256": "f6fd0c274512c0c509bfa380cc1cb28919e4ecad6ea585ef74765907e6e75640",
+  "logBytes": 112,
+  "counts": [],
+  "totals": {}
+}

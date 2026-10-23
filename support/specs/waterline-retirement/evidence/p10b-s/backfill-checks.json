@@ -1,0 +1,19 @@
+{
+  "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && npm run lint && bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill",
+  "exitCode": 0,
+  "durationMs": 28432,
+  "rawBytes": 1089,
+  "sha256": "a54b1ac8a279f56363f7b6ec81a2cfe5647a7e2abf8e3d045154399dcf5f40a7",
+  "counts": {
+    "lintWarnings": 0,
+    "lintErrors": 0
+  },
+  "reportedPassGroups": 1,
+  "checkRuns": [
+    {
+      "passing": 15,
+      "failures": 0,
+      "atomicUnitsMoved": 0
+    }
+  ]
+}

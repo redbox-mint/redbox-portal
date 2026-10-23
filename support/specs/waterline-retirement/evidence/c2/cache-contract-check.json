@@ -1,0 +1,10 @@
+{
+  "name": "cache-contract",
+  "command": "npm run check:cache-contract",
+  "exitCode": 0,
+  "log": "qualify/cache-contract.txt",
+  "durationSeconds": 11.38,
+  "logSha256": "be9182fcc71d6c26cf41df5ed874295b90b0d305861e1d107dc3d5fe58f96990",
+  "logSummary": "qualify/raw-artifacts.json",
+  "logRetained": false
+}

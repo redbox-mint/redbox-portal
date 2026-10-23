@@ -1,0 +1,119 @@
+
+
+  SIEM services and helpers
+    ✔ defines disabled defaults for the brand-aware SIEM config model
+    ✔ redacts sensitive nested payload fields and limits oversized payloads
+    ✔ does not redact fields merely because their key contains a denylisted word
+    ✔ formats Splunk and OpenTelemetry payloads with destination headers
+    ✔ escapes CEF and LEEF header delimiters in user-controlled fields
+    ✔ fails payload construction for unsupported adapter types
+    ✔ queues enabled security events after applying severity mapping and redaction
+    ✔ does not queue events when SIEM is disabled or the category is excluded
+
+  SIEM native storage indexes
+    ✔ blocks loaded baseline preparation when native index setup fails
+Dynamic imports imported
+    ✔ creates indexes before capture writes and recovers a replay after forwarding enqueue failed
+Dynamic imports imported
+    ✔ propagates capture index failures before create or queue
+Dynamic imports imported
+    ✔ does not suppress E_UNIQUE when the matching tenant event does not exist
+Dynamic imports imported
+    ✔ does not suppress 11000 when the matching tenant event does not exist
+Dynamic imports imported
+    ✔ does not suppress E_CONNECTION when the matching tenant event does not exist
+Dynamic imports imported
+    ✔ prepares the loaded baseline before polling when no brands are configured
+    ✔ coalesces concurrent setup and caches by manager and table, not collection wrapper
+    ✔ propagates index failures to all waiters and retries on the next use
+Dynamic imports imported
+    ✔ stops forwarding on index failure and does not mark failed bootstrap ready
+    ✔ retries failed attempt initialization without repeating successful event DDL
+Dynamic imports imported
+    ✔ initializes indexes before querying delivery monitoring
+    ✔ rejects a datastore that cannot create native indexes
+
+  SIEM native Mongo index acceptance
+    ✔ creates default-named query indexes and rejects duplicate eventIds under safe migration (225ms)
+
+  SIEM receiver and delivery regression tests
+    ✔ delivers valid splunk-hec-json output to an HTTP receiver
+    ✔ delivers valid otel-otlp-logs output to an HTTP receiver
+    ✔ delivers valid syslog-rfc5424-json output to an HTTP receiver
+    ✔ delivers valid cef output to an HTTP receiver
+    ✔ delivers valid leef output to an HTTP receiver
+    ✔ delivers 1 event(s) as stacked JSON objects accepted by a Splunk HEC receiver
+    ✔ delivers 2 event(s) as stacked JSON objects accepted by a Splunk HEC receiver
+Dynamic imports imported
+    ✔ preserves HTTP 401 and bounded safe diagnostics through Effect
+Dynamic imports imported
+    ✔ preserves HTTP 503 and bounded safe diagnostics through Effect
+Dynamic imports imported
+    ✔ records a timeout without leaking URL credentials
+Dynamic imports imported
+    ✔ bounds a trickling HTTP response by an absolute deadline
+Dynamic imports imported
+    ✔ rejects OTLP partial success and Splunk application errors
+Dynamic imports imported
+    ✔ accepts OTLP warning-only responses with rejectedLogRecords=0
+Dynamic imports imported
+    ✔ accepts OTLP warning-only responses with rejectedLogRecords=0
+Dynamic imports imported
+    ✔ accepts OTLP warning-only responses with rejectedLogRecords=undefined
+    native Mongo delivery claims and progress
+      ✔ allows exactly one claimant and rejects expired/stale owner writes (253ms)
+Dynamic imports imported
+      ✔ renews ownership before the next operation and retains acknowledgements for disabled destinations (61ms)
+      ✔ recovers legacy processing records with absent or null leases
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+      ✔ concurrent workers send once even while delivery takes time (100ms)
+Dynamic imports imported
+      ✔ keeps successful destinations terminal across retries and uses exponential eligibility (66ms)
+Dynamic imports imported
+      ✔ exhausts unequal destination budgets independently and cleans retained attempts (97ms)
+Dynamic imports imported
+      ✔ recovers an interrupted reserved attempt without resending an acknowledged destination
+
+  SIEM capture and privacy regression boundaries
+    ✔ emits exactly once after the actual production record worker persists successfully
+    ✔ captures integrationtest direct audits and keeps queue failure out of storage outcomes
+    ✔ captures successful modern post-commit reconciliation through its public worker
+    ✔ preserves request branding for real user login/logout audit and sanitizes attributes before serialization
+    ✔ captures failed authentication and authorization denial through actual controller/policy seams
+    ✔ accepts an explicit subject at the public request failure seam without capturing request body
+    ✔ skips routine browser login redirects while retaining unauthenticated API denials
+    ✔ omits a non-string local login username ({"password":"PRIVATE-PASSWORD"})
+    ✔ omits a non-string local login username (["alice"])
+    ✔ omits a non-string local login username (42)
+    ✔ omits a non-string local login username (null)
+    ✔ emits successful login/logout only after session success and keeps their request brands
+    ✔ enqueues a normal login event at the minimum accepted budget with canonical identity intact
+    ✔ enqueues oversized Unicode login details at the minimum with an explicit bounded marker
+    ✔ honors configured severity and no-ops when disabled or brand is unknown
+    ✔ matches custom dotted denylist paths in both content roots at segment boundaries
+    ✔ minimizes persisted record-worker capture to identity and concurrency context
+    ✔ canonicalizes source timestamp 2026-10-14T10:00:00+10:00 before enqueueing
+    ✔ canonicalizes source timestamp 1970-01-01T00:00:00Z before enqueueing
+    ✔ canonicalizes source timestamp invaliddate before enqueueing
+    ✔ excludes repeated private fields, decodes only known attributes, and redacts mandatory credentials
+    ✔ respects privacy opt-ins while always redacting credentials
+    ✔ preserves metadata and truncation marker and bounds final Unicode JSON bytes
+
+  SIEM ownership and primitive privacy boundaries
+    ✔ rejects unresolved ownership at every public capture entry before default config lookup
+    ✔ redacts primitive emails in structured attributes before storage and delivery
+    ✔ redacts primitive emails in serialized attributes before storage and delivery
+    ✔ retains primitive emails on opt-in and keeps arbitrary JSON strings opaque
+    ✔ resolves record ownership through the configured record service seam
+    ✔ never sends a stored unknown-brand event to the inherited default collector
+
+
+  73 passing (1s)
+

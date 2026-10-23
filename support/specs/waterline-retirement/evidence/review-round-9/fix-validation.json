@@ -1,0 +1,87 @@
+{
+  "reviewHead": "bf5e18e6adbd38c4c42b85d61ed110ad6acbf311",
+  "runtimeCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "issues": [
+    {
+      "number": 1,
+      "severity": "P2",
+      "issue": "Progress update/delete discarded envelope clauses and sibling predicates, permitting broader writes than Waterline accepts",
+      "locationAtReviewHead": "packages/redbox-core/src/persistence/progress/MongoProgressRepositories.ts:125",
+      "commit": "7b2c4843e7f67e754df60aa8a4c9ca8dabdc16f1",
+      "before": "results/progress-writes-before.json",
+      "accepted": "results/progress-writes.json",
+      "beforeDifferences": 88
+    },
+    {
+      "number": 2,
+      "severity": "P3",
+      "issue": "No-match shortcuts bypassed model patch validation in J1, R dashboard and Q configuration/bundle operations",
+      "locationAtReviewHead": "packages/redbox-core/src/persistence/progress/MongoProgressRepositories.ts:117",
+      "commit": "b8205bb50386ffb11b5dcb719f7a2d15f9c84c4c",
+      "before": "results/outcomes-before.json",
+      "accepted": "results/operation-outcomes.json",
+      "beforeDifferences": 13
+    },
+    {
+      "number": 3,
+      "severity": "P3",
+      "issue": "R/Q/J1/J2 creates returned pre-serialization input instead of fetched values, changing valid JSON with unpaired surrogate text",
+      "locationAtReviewHead": "packages/redbox-core/src/persistence/reference/MongoReferenceRepositories.ts:53",
+      "commit": "074bbc70656ae5cbd1e9ce090232b83e8589189c",
+      "before": "results/outcomes-before.json",
+      "accepted": "results/operation-outcomes.json",
+      "beforeDifferences": 16
+    },
+    {
+      "number": 4,
+      "severity": "P3",
+      "issue": "Readiness accepted fetch flags that change returned-record behavior in Q/J1",
+      "locationAtReviewHead": "packages/redbox-core/src/persistence/progress/preflight.ts:43",
+      "commit": "100a5f9f752ae04992092aa5c634259177625530",
+      "before": "results/fetch-mappings-before.json",
+      "accepted": "results/fetch-mappings.json",
+      "beforeDifferences": 9
+    },
+    {
+      "number": 5,
+      "severity": "P3",
+      "issue": "Model createEach batches used one automatic clock per row instead of one per operation",
+      "locationAtReviewHead": "packages/redbox-core/src/persistence/configuration/MongoConfigurationRepositories.ts:157",
+      "commit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+      "before": "results/batch-clocks-before.json",
+      "accepted": "results/batch-clocks.json",
+      "beforeDifferences": 3
+    }
+  ],
+  "perFixBuildTypechecks": [
+    "results/fix-no-match-static.json",
+    "results/fix-progress-writes-static.json",
+    "results/fix-create-fetch-static-final.json",
+    "results/fix-fetch-mappings-static.json",
+    "results/fix-batch-clocks-static.json"
+  ],
+  "notes": [
+    "No production change was reverted to obtain before proof. Each fix built and passed strict persistence typechecking before commit.",
+    "Create readback now adds the same lookup performed by loaded sails-mongo fetch; missing readback fails explicitly.",
+    "New ordinary DTO tests distinguish strict finite JSON from native Date/lease/schema behavior.",
+    "No gated owner, selector, topology, manifest, lockfile or byte/session implementation changed."
+  ],
+  "rejectedCacheCandidate": {
+    "commit": "3beb1deed9bac6558a454eccb1c1b346dc0ed899",
+    "reason": "C2 validation explicitly preserves null timestamp omission on driver and refusal on Waterline. The unchanged transition test caught the misclassified candidate. Removed from unpublished history; no cache production source delta or revert commit remains.",
+    "proof": "results/rejected-cache-candidate-transition.json",
+    "finalControl": "results/cache-read-values.json"
+  },
+  "batchBeforeSourceEquivalence": {
+    "executedCandidateCommit": "3beb1deed9bac6558a454eccb1c1b346dc0ed899",
+    "equivalentAcceptedCommit": "100a5f9f752ae04992092aa5c634259177625530",
+    "files": {
+      "packages/redbox-core/src/persistence/timestamps.ts": "43e9894ddeec68b7342cd6159056de5f487c46d5dce8e3770633513949af3fb5",
+      "packages/redbox-core/src/persistence/configuration/physical.ts": "ef0dad197c1fffd368c118a0f58ce2cf7f70843451d0d3bc7c112b689110a96d",
+      "packages/redbox-core/src/persistence/configuration/MongoConfigurationRepositories.ts": "b10e9dc4c8c75890a53fd7f6a236958c4bd33fd4994e9d20a6ab0c4b2ce22c60",
+      "packages/redbox-core/src/persistence/harvest/physical.ts": "aae9a0a30a521c507eeb1e31fd356edabac9440c197f9e8315d64ea419bbf7eb",
+      "packages/redbox-core/src/persistence/harvest/MongoHarvestRepositories.ts": "d1fcd7252d95c6750db5e7afb9713ca58ee76c5243c87173c202ce5ebbc51a41"
+    },
+    "explanation": "The discarded cache candidate changed no batch encoder or timestamp code. These accepted-source hashes reproduce the before batch clock implementation without retaining the rejected cache change."
+  }
+}

@@ -1,3 +1,4 @@
+import { cleanupPersistenceAfterFailure } from '../persistence/runtime';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { runPendingMigrations } from './MigrationRunner';
@@ -104,7 +105,8 @@ export function createGeneratedBootstrap(
       .then(() => {
         cb();
       })
-      .catch(error => {
+      .catch(async error => {
+        await cleanupPersistenceAfterFailure(sails);
         sails.log.verbose('Bootstrap failed!!!');
         sails.log.error(error);
         cb(error);

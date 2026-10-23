@@ -1,0 +1,117 @@
+{
+  "method": "Independent Standards and Spec whole-feature P1/P2 passes. Final tasks begin after the complete 77-command qualification. No raw review transcripts are committed.",
+  "finalTestCheckpoint": "1f84a1cc0",
+  "checkpointNote": "Final prompt HEAD 4bd1aea7a is followed during active review by a callback type annotation in 1f84a1cc0. Runtime source and compiled hashes remain identical to 2ad89fd80. Strict typing and all 102 focused tests pass at 1f84a1cc0.",
+  "hardDocumentedStandardsBreaches": 0,
+  "rounds": [
+    {
+      "round": "initial",
+      "requestedHead": "4df2d44fd",
+      "runtimeCheckpoint": "4df2d44fd",
+      "baseline": "ef23e07fe",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A46d79205-4557-4ab3-b2d3-358fb5f9bcab%3Adelegate-task%3Awaterline-r14-standards-initial",
+          "providerInstanceId": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "status": "completed",
+          "reportSha256": "8360dc53a4cd7e55819f2db701a92135f7553c023279defd450ceb40c53808fb",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            "R14-02",
+            "R14-01"
+          ],
+          "disposition": "All findings fixed; duplicate IDs remain separate per axis."
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A46d79205-4557-4ab3-b2d3-358fb5f9bcab%3Adelegate-task%3Awaterline-r14-spec-initial",
+          "providerInstanceId": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "status": "completed",
+          "reportSha256": "fc150cbb5b1a7b2843eb8ebbb7336a16eafe74f00a161e19cab3ea02718933bd",
+          "p1": 0,
+          "p2": 1,
+          "findings": [
+            "R14-01"
+          ],
+          "disposition": "All findings fixed; duplicate IDs remain separate per axis."
+        }
+      ]
+    },
+    {
+      "round": "final",
+      "requestedHead": "4bd1aea7a",
+      "runtimeCheckpoint": "2ad89fd80",
+      "baseline": "ef23e07fe",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A46d79205-4557-4ab3-b2d3-358fb5f9bcab%3Adelegate-task%3Awaterline-r14-standards-final",
+          "providerInstanceId": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "status": "completed",
+          "reportSha256": "d9ca8a022439ac7a6f8191a1bbf6166091590796576935435af92451ea1a83c0",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "disposition": "NO ISSUES FOUND"
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A46d79205-4557-4ab3-b2d3-358fb5f9bcab%3Adelegate-task%3Awaterline-r14-spec-final",
+          "providerInstanceId": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "status": "completed",
+          "reportSha256": "d9ca8a022439ac7a6f8191a1bbf6166091590796576935435af92451ea1a83c0",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "disposition": "NO ISSUES FOUND"
+        }
+      ]
+    }
+  ]
+}

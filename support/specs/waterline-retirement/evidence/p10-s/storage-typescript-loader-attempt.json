@@ -1,0 +1,13 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "test:storage-mongo"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 5.543,
+  "sha256": "d67a74978da67288cab70036f5dd119abe270fdc87dd5b92ee836a2640ce8ec2",
+  "logBytes": 3222,
+  "counts": [],
+  "failureExcerpt": "    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)\n    at ModuleLoader.#resolve (node:internal/modules/esm/loader:683:17)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)\n    at ModuleJob.link (node:internal/modules/esm/module_job:253:17)\n    at new ModuleJob (node:internal/modules/esm/module_job:232:26)\n    at ModuleLoader.#getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:572:11)\n    at afterResolve (node:internal/modules/esm/loader:607:52)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:613:12)\n    at node:internal/modules/esm/loader:632:32\n    at TracingChannel.tracePromise (node:diagnostics_channel:362:14)\n    at ModuleLoader.import (node:internal/modules/esm/loader:628:21)\n    at defaultImportModuleDynamicallyForScript (node:internal/modules/esm/utils:239:31)\n    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:263:12)\n    at Object.exports.doImport (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/node_modules/mocha/lib/nodejs/esm-utils.js:36:43)\n    at formattedImport (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/node_modules/mocha/lib/nodejs/esm-utils.js:10:28)\n    at Object.requireModule [as requireOrImport] (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/node_modules/mocha/lib/nodejs/esm-utils.js:102:36)\n    at Object.exports.loadFilesAsync (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/node_modules/mocha/lib/nodejs/esm-utils.js:155:34)\n    at async singleRun (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/node_modules/mocha/lib/cli/run-helpers.js:174:3) {\n  code: 'ERR_MODULE_NOT_FOUND',\n  url: 'file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage'\n}"
+}

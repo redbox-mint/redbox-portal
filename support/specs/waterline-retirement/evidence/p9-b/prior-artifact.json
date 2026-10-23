@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "5afe0957c6b98e49ad608dfd27b89e2ca66d3012",
+  "imageId": "sha256:9e7383a7dedeb5e0e844482bd798b46e84005239dd7456754eea49c9252cf674",
+  "architecture": "arm64",
+  "labels": {
+    "org.opencontainers.image.revision": "5afe0957c6b98e49ad608dfd27b89e2ca66d3012",
+    "redbox.task": "wrp9-815a2a6e"
+  },
+  "buildLog": {
+    "path": ".tmp/wrp9/prior-build.log",
+    "sha256": "cc7202cdabfcca1a205b19ece8fc91951c1fbb2f8f66964dc75c8e75b5b73e80"
+  },
+  "recipe": "runners/Dockerfile.prior",
+  "limits": "Local installed ARM64 dependencies and compiled pre-B core/storage/internal packages; not a clean production-pruned institution portal/hooks/assets image.",
+  "rehearsal": {
+    "priorPassed": 6,
+    "currentDriverReadbackPassed": 2,
+    "failed": 0,
+    "log": {
+      "path": ".tmp/wrp9/prior-qualification.log",
+      "sha256": "af96e2894547b46e880c0b663372d143ab4daecf8c453570508b72a6016a320f"
+    }
+  }
+}

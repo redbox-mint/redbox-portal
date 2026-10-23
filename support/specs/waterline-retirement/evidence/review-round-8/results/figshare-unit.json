@@ -1,0 +1,15 @@
+{
+  "name": "figshare-unit",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-unit",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 19728,
+  "sha256": "35d9318a25a2d3926f3cd9aaf7f07258d06d9c3670f0a45f75a6cab0cc362cb8",
+  "counts": {
+    "passing": [
+      56
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

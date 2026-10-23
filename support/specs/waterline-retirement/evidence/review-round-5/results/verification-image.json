@@ -1,0 +1,11 @@
+{
+  "name": "verification-image",
+  "command": "docker image inspect redbox-waterline-r4:npm11.20.0 --format \"{{.Id}} {{.Config.User}}\" && docker run --rm --network none redbox-waterline-r4:npm11.20.0 node -e 'console.log(JSON.stringify({node:process.version,npm:require(\"node:child_process\").execFileSync(\"npm\",[\"--version\"],{encoding:\"utf8\"}).trim()}))'",
+  "sourceCommit": "283d57744c3c7cbe56b7364768f5187a49dda9f6",
+  "exitCode": 0,
+  "durationMs": 1266,
+  "sha256": "d7c46b25794722be22b71f5502feafd14e47a045ab6fb8ed7264db41f2a146d1",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

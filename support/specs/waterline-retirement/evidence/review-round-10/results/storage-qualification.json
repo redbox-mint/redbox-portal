@@ -1,0 +1,20 @@
+{
+  "name": "storage-qualification",
+  "stage": "retained",
+  "command": "P10_PRIOR_IMAGE=redbox-p10-s:prior-12e566575 bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh qualification",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 34750,
+  "sha256": "4eb654ca032fbd441c40abc6c8e5e1adbaa3ec1c949f20b7dbcdb366d5b4fc74",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 14,
+      "failures": 0
+    }
+  ]
+}

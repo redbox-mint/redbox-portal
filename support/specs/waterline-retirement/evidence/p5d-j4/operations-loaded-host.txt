@@ -1,0 +1,116 @@
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+{
+  "group": "figshare",
+  "node": "v24.18.0",
+  "mongo": "8.0.34",
+  "payloadBytes": 15000,
+  "rows": 20,
+  "warmups": 100,
+  "operations": 1000,
+  "samples": [
+    {
+      "round": 0,
+      "backend": "waterline",
+      "p95": 9.368021000000226,
+      "throughput": 216.87806655230176,
+      "rss": 400654336,
+      "clients": 0,
+      "readinessMs": 4.434856999999738,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 5,
+      "afterConnections": 2
+    },
+    {
+      "round": 0,
+      "backend": "mongodb",
+      "p95": 15.965165999999954,
+      "throughput": 142.30741109675392,
+      "rss": 400117760,
+      "clients": 1,
+      "readinessMs": 156.3062200000004,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 8,
+      "afterConnections": 2
+    },
+    {
+      "round": 1,
+      "backend": "mongodb",
+      "p95": 18.107861000000412,
+      "throughput": 130.0023142140961,
+      "rss": 399269888,
+      "clients": 1,
+      "readinessMs": 195.93872100000044,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 8,
+      "afterConnections": 2
+    },
+    {
+      "round": 1,
+      "backend": "waterline",
+      "p95": 10.810708999999406,
+      "throughput": 170.8955753454102,
+      "rss": 402624512,
+      "clients": 0,
+      "readinessMs": 10.62253899999996,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 5,
+      "afterConnections": 2
+    },
+    {
+      "round": 2,
+      "backend": "waterline",
+      "p95": 5.508221999999478,
+      "throughput": 313.261517702276,
+      "rss": 397438976,
+      "clients": 0,
+      "readinessMs": 5.275520999999571,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 5,
+      "afterConnections": 2
+    },
+    {
+      "round": 2,
+      "backend": "mongodb",
+      "p95": 10.501678000000538,
+      "throughput": 171.19690440250926,
+      "rss": 402067456,
+      "clients": 1,
+      "readinessMs": 167.46205700000064,
+      "calls": 1760,
+      "baselineConnections": 2,
+      "activeConnections": 8,
+      "afterConnections": 2
+    }
+  ],
+  "ratios": {
+    "p95": 1.7353053410152537,
+    "throughput": 0.632645344017303,
+    "rss": 1.0006140326938298,
+    "calls": 1
+  },
+  "pass": false
+}
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(ratios.p95 <= 1.2)
+
+    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/durable-figshare-operations.cjs:84:5
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

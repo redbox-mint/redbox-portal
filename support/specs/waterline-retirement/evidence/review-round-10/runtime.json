@@ -1,0 +1,19 @@
+{
+  "reviewHead": "8a449eb7b615d84cd9951691b6830dfcbabe720b",
+  "runtimeFixCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "runtimeSourceFiles": 629,
+  "runtimeSourceSha256": "781cbfae1204735be913002e995982ad24c551c5891386fa98ec9052b324815f",
+  "runtimeSourceUnchangedDuringAcceptedValidation": true,
+  "runtimeFilesChangedSinceReviewHead": [
+    "packages/redbox-core/src/persistence/cache/MongoCacheEntryRepository.ts",
+    "packages/redbox-core/src/persistence/indexes.ts"
+  ],
+  "artifactHashes": {
+    "packages/redbox-core/dist/index.js": "5e9436b2fd42ac4d8c66868e50114b4ff3ca0dba6e30352b0c675fecf753e9d6",
+    "packages/redbox-core/dist/persistence/indexes.js": "20a0ce7d0f102be7a30489e27f27ed5a5fafa32ead233fc68fb49edb2df940a7",
+    "packages/redbox-core/dist/persistence/cache/MongoCacheEntryRepository.js": "ebc16b9981d1dc6b1ab71261e43b5f5a79ae1176c6ebd88ee41285c61dd75571",
+    "packages/sails-hook-redbox-storage-mongo/dist/index.js": "95adf87ff64d825c4aeaaf5b2e4421cc7e87228a3c92025879ef51dffee444d1"
+  },
+  "worktreeNote": "The new fixtures, updated cache failure assertion, docs and formatting of the newly added index predicate helper were uncommitted during qualification; their final hashes are recorded. No behavior changed after accepted tests.",
+  "qualificationContentCommit": "d73b89047e7fe7437e7c3712501324c2282a2564"
+}

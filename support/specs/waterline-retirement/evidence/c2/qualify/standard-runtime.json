@@ -1,0 +1,11 @@
+{
+  "imageTag": "development-rbportal:latest",
+  "imageId": "sha256:3d66a33890bafea037db006e8bc33a5bdf0baf952ac9c0b2dc6fe52856f84bf0",
+  "node": "v26.10.0",
+  "source": "standard source-mounted runners use this checkout, compiled core and unmodified npm commands",
+  "backend": "mongodb explicit for pre-promotion qualification",
+  "mochaProject": "cache-c2-qualify-mocha-11640-9787",
+  "brunoProject": "cache-c2-qualify-bruno-17725-10241",
+  "freshOwnedData": true,
+  "isolation": "project-specific network; new Mongo/mail/attachment/upload data; fixed mail hostname network-local alias; unchanged tests and healthchecks"
+}

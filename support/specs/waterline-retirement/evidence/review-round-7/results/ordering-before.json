@@ -1,0 +1,18 @@
+{
+  "name": "ordering-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/unit/progress-persistence.test.ts --grep \"refuses trailing progress\"",
+  "sourceCommit": "babf38830297ce279e03f90d2fc91926dfb24062",
+  "exitCode": 1,
+  "durationMs": 1296,
+  "sha256": "2276ef18d080b8f853489176294e9cc47120a6445e544928e44c4f8e877917f2",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      1
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

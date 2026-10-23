@@ -1,0 +1,15 @@
+{
+  "name": "native-values-final-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-values && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh dashboard-native-values && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh siem-native-pages && bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-contract && Q_PRIOR_IMAGE=redbox-p4-q:prior-f8c8cd7d npm --prefix packages/redbox-core run test:configuration-transition",
+  "sourceCommit": "d637580da0dde3f79033e3649777c7533c31d418",
+  "exitCode": 0,
+  "durationMs": 131506,
+  "sha256": "adf78f27b18306e46de1e7d269b2e49f2e9e135318a4c8c0e8bbecbf821126c7",
+  "counts": {},
+  "passGroups": 12,
+  "checks": [
+    "{\"passing\":6,\"failures\":0,\"firstFailures\":[]}",
+    "{\"passing\":5,\"failures\":0,\"firstFailures\":[]}",
+    "{\"passing\":10,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

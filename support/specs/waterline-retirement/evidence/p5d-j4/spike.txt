@@ -1,0 +1,436 @@
+Dynamic imports imported
+{
+  "loaded": {
+    "createdAt": {
+      "type": "string",
+      "autoCreatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "updatedAt": {
+      "type": "string",
+      "autoUpdatedAt": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_stringtimestamp"
+      },
+      "required": false
+    },
+    "id": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_stringkey"
+      },
+      "required": false
+    },
+    "oid": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": true,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "brandId": {
+      "type": "string",
+      "required": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      }
+    },
+    "revision": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "importedGeneration": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "work": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "nextActionAt": {
+      "type": "number",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "dispatchUntil": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "leaseOwner": {
+      "type": "string",
+      "allowNull": true,
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "leaseUntil": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "binding": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "namespace": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "articleId": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "create": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "createGeneration": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "createRequest": {
+      "type": "number",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_number"
+      },
+      "required": false
+    },
+    "publish": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "receipts": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "checkpoints": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "status": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "waitingReason": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "publication": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "embargoed": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "accessible": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "observedAt": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "publicationAuditKey": {
+      "type": "string",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_string"
+      },
+      "required": false
+    },
+    "error": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "audit": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    },
+    "auditClosed": {
+      "type": "boolean",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_boolean"
+      },
+      "required": false
+    },
+    "corrections": {
+      "type": "json",
+      "autoMigrations": {
+        "unique": false,
+        "autoIncrement": false,
+        "columnType": "_json"
+      },
+      "required": false
+    }
+  },
+  "initial": {
+    "_id": {
+      "$oid": "6ad6c8710a0c0f46a4f58d7d"
+    },
+    "oid": "spike-native",
+    "brandId": "brand",
+    "checkpoints": {},
+    "dispatchUntil": 0,
+    "importedGeneration": 0,
+    "leaseOwner": null,
+    "leaseUntil": 0,
+    "nextActionAt": null,
+    "receipts": [],
+    "revision": 0,
+    "status": "queued",
+    "work": {
+      "sync": {
+        "requested": 0,
+        "processed": 0,
+        "sourceGeneration": 0,
+        "dueAt": null,
+        "policies": [],
+        "requestedBy": ""
+      },
+      "cleanup": {
+        "requested": 0,
+        "processed": 0,
+        "sourceGeneration": 0,
+        "dueAt": null,
+        "policies": [],
+        "requestedBy": ""
+      },
+      "observe": {
+        "requested": 0,
+        "processed": 0,
+        "sourceGeneration": 0,
+        "dueAt": null,
+        "policies": [],
+        "requestedBy": ""
+      }
+    }
+  },
+  "replacement": {
+    "_id": {
+      "$oid": "6ad6c8710a0c0f46a4f58d7d"
+    },
+    "oid": "spike-native",
+    "brandId": "brand",
+    "checkpoints": {},
+    "dispatchUntil": 0,
+    "importedGeneration": 0,
+    "leaseOwner": "owner",
+    "leaseUntil": 1792460943900,
+    "nextActionAt": 1792460913894,
+    "receipts": [
+      {
+        "key": "receipt",
+        "localId": "local",
+        "digest": "hash",
+        "size": 0,
+        "name": "test",
+        "articleId": "51",
+        "kind": "hosted",
+        "state": "available",
+        "desired": true
+      }
+    ],
+    "revision": 3,
+    "status": "running",
+    "work": {
+      "sync": {
+        "requested": 1,
+        "processed": 0,
+        "sourceGeneration": 0,
+        "dueAt": 1792460913894,
+        "policies": [],
+        "requestedBy": ""
+      },
+      "cleanup": {
+        "requested": 0,
+        "processed": 0,
+        "sourceGeneration": 0,
+        "dueAt": null,
+        "policies": [],
+        "requestedBy": ""
+      },
+      "observe": {
+        "requested": 0,
+        "processed": 0,
+        "sourceGeneration": 0,
+        "dueAt": null,
+        "policies": [],
+        "requestedBy": ""
+      }
+    }
+  },
+  "indexes": [
+    {
+      "v": 2,
+      "key": {
+        "_id": 1
+      },
+      "name": "_id_"
+    },
+    {
+      "v": 2,
+      "key": {
+        "oid": 1
+      },
+      "name": "oid_1",
+      "unique": true
+    },
+    {
+      "v": 2,
+      "key": {
+        "namespace": 1,
+        "articleId": 1
+      },
+      "name": "namespace_1_articleId_1",
+      "unique": true,
+      "partialFilterExpression": {
+        "articleId": {
+          "$type": "string"
+        },
+        "namespace": {
+          "$type": "string"
+        }
+      }
+    },
+    {
+      "v": 2,
+      "key": {
+        "nextActionAt": 1,
+        "dispatchUntil": 1
+      },
+      "name": "nextActionAt_1_dispatchUntil_1"
+    }
+  ]
+}
+PASS J4 original loaded-native initial omission/defaults, partial/unique indexes, full replacement/unset, numeric millisecond lease, revision and receipt spike

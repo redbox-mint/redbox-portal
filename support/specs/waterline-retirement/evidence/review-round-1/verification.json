@@ -1,0 +1,800 @@
+{
+  "rollbackArtifacts": {
+    "redbox-p2:prior-11742e9": "sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be",
+    "redbox-p3-r:prior-cb874201": "sha256:2511de69363c6322f57a41f71023d46f34d90f1637dde354081a587cb4f800ba",
+    "redbox-p4-q:prior-f8c8cd7d": "sha256:4721b7009cfcd84aee975a5e8eca22a17f611b1c18f7f54507dcac391dcb9d20",
+    "redbox-p5a-j1:prior-0aa801ee6": "sha256:de7cb0885ac19d3386b534c165633b75354db8291f8ec7bea244749028a0cfd8",
+    "redbox-p5b-j2:prior-c2ceddb45": "sha256:df2088a9aa517b23f9b4ef1e51e1a837a52115be7ff7bda93bd0f85d6252d6ce",
+    "redbox-p5c-j3:prior-7c1906849": "sha256:409c2bebce607feedb5950c89bd39f05b1ea81f55886dbedf0301243f551c69e",
+    "redbox-p5d-j4:prior-32e2c2fca": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+    "redbox-p10-s:prior-12e566575": "sha256:c138489fc72f566815113599b699e13ad55486176f333c394238b361bca094d3"
+  },
+  "reviewedRange": {
+    "base": "79c116fe0a6e07830ac1313d7403b4277b39e498",
+    "head": "0bfa20b1077a92cd5204fa34a96c89a3bbcba889",
+    "commits": 87
+  },
+  "finalRuntimeCommit": "36413a21e",
+  "recordedAt": "2026-10-20T19:05:34.619335+00:00",
+  "fixes": [
+    {
+      "commit": "0dd163a22",
+      "subject": "fix(progress): drain all accepted workspace jobs after failures"
+    },
+    {
+      "commit": "ba932dbe2",
+      "subject": "fix(persistence): reject lossy reference JSON before encoding"
+    },
+    {
+      "commit": "b5c846368",
+      "subject": "fix(persistence): preserve case-sensitive reference query filters"
+    },
+    {
+      "commit": "fe1572c7e",
+      "subject": "fix(storage): refuse unsupported staged collection collations"
+    },
+    {
+      "commit": "a5ed4ba26",
+      "subject": "fix(persistence): forward every promoted group rollback override"
+    },
+    {
+      "commit": "e5ff6b554",
+      "subject": "fix(persistence): drain queue and HTTP producers before repository shutdown"
+    },
+    {
+      "commit": "36413a21e",
+      "subject": "fix(forms): snapshot authoring configs before persistence"
+    }
+  ],
+  "results": [
+    {
+      "name": "form-registry",
+      "command": "bootstrap all registered forms against strict JSON repository seam",
+      "exitCode": 0,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 32,
+          "failures": 0
+        }
+      ],
+      "sha256": "e10f5b8b779baf3d30539ce90cfd24c73a0245c6808853ae1a49c78b7005d6ea"
+    },
+    {
+      "name": "core-tests",
+      "command": "npm run test:core",
+      "exitCode": 0,
+      "counts": {
+        "passing": 4167,
+        "pending": 113
+      },
+      "checks": [],
+      "sha256": "82ae1d5a08844ef06b4bf48c8af5c83efebbdaccc75e96f1769ee51d06d9d483"
+    },
+    {
+      "name": "core-build",
+      "command": "npm --prefix packages/redbox-core run build",
+      "exitCode": 0,
+      "counts": {},
+      "checks": [],
+      "sha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e"
+    },
+    {
+      "name": "storage-build",
+      "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run build",
+      "exitCode": 0,
+      "counts": {},
+      "checks": [],
+      "sha256": "f6fd0c274512c0c509bfa380cc1cb28919e4ecad6ea585ef74765907e6e75640"
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "root-lint",
+      "command": "npm run lint",
+      "exitCode": 0,
+      "durationMs": 2998,
+      "counts": {},
+      "checks": [],
+      "sha256": "811852ec79792c985e70b1e78754bc4ca92b8dddf5472053517956c89f07799e",
+      "passGroups": 1
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "core-lint",
+      "command": "npm --prefix packages/redbox-core run lint",
+      "exitCode": 0,
+      "durationMs": 578,
+      "counts": {},
+      "checks": [],
+      "sha256": "c6b2d91500b66e188b9104fdafde9c07fb0d85581e14fdba01e8e2f7eff0b183",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-lint",
+      "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run lint",
+      "exitCode": 0,
+      "durationMs": 437,
+      "counts": {},
+      "checks": [],
+      "sha256": "6cbd4fe43fac19386eb653569e56bdaabf2d5d38d6b60e87d25a92c10f7cf409",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "persistence-types",
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "exitCode": 0,
+      "durationMs": 28794,
+      "counts": {},
+      "checks": [],
+      "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "root-types",
+      "command": "node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "durationMs": 2898,
+      "counts": {},
+      "checks": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-test-types",
+      "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile",
+      "exitCode": 0,
+      "durationMs": 6471,
+      "counts": {},
+      "checks": [],
+      "sha256": "e68b7a76c23677271a0cf4cf4564f762e8032f685e76b79daadf7ee7ff0f8931",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "foundation",
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "exitCode": 0,
+      "durationMs": 10609,
+      "counts": {
+        "passing": 12
+      },
+      "checks": [],
+      "sha256": "824c729fb677f854678f90812604805c8cc70606594c7630ac0092c4b8b921c0",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "migration",
+      "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+      "exitCode": 0,
+      "durationMs": 93149,
+      "counts": {
+        "passing": 15
+      },
+      "checks": [],
+      "sha256": "85c319187fb53c48005f461b20b377294ad01337ab9855f9bd09450f35513475",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "cache-mongodb",
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-mongodb",
+      "exitCode": 0,
+      "durationMs": 16561,
+      "counts": {
+        "passing": 17
+      },
+      "checks": [],
+      "sha256": "298c7907e92b32ba7c09e0d2c78e820896ec91ae50e6a480549a6b588ae31188",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "cache-transition",
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "exitCode": 0,
+      "durationMs": 95316,
+      "counts": {
+        "passing": 14
+      },
+      "checks": [],
+      "sha256": "706c8d7a4129635e838f29f022b8168dbabf3b818b7a0bbb584d2d71a3d80d01",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-tests",
+      "command": "npm run test:storage-mongo",
+      "exitCode": 0,
+      "durationMs": 57281,
+      "counts": {
+        "passing": 288,
+        "pending": 38
+      },
+      "checks": [],
+      "sha256": "5c06d633b6510bc6f6511f91f7911b01d47e0348a361745aad6e08af6609cbbd",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "reference",
+      "command": "npm --prefix packages/redbox-core run test:reference-transition",
+      "exitCode": 0,
+      "durationMs": 64596,
+      "counts": {},
+      "checks": [],
+      "sha256": "c18bf27eaed87bf1351396a59e2ee5466ee8184a8efa65009a0234d121bef07d",
+      "passGroups": 13
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "configuration",
+      "command": "Q_PRIOR_IMAGE=redbox-p4-q:prior-f8c8cd7d npm --prefix packages/redbox-core run test:configuration-transition",
+      "exitCode": 0,
+      "durationMs": 45085,
+      "counts": {},
+      "checks": [],
+      "sha256": "7d168ac0ff5b566c99cf02e26bd201d6302e2d3e26c24ed42bbd46dfc08d6cb2",
+      "passGroups": 10
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "configuration-readiness",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh readiness",
+      "exitCode": 0,
+      "durationMs": 24434,
+      "counts": {},
+      "checks": [],
+      "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+      "passGroups": 1
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "configuration-siem",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh siem",
+      "exitCode": 0,
+      "durationMs": 15804,
+      "counts": {},
+      "checks": [],
+      "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8",
+      "passGroups": 1
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "indexes",
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "exitCode": 0,
+      "durationMs": 118062,
+      "counts": {},
+      "checks": [],
+      "sha256": "b6161bdc24cbd148127e9f075fc66d16538f311b52b2034fbd9d7933ac7c52d4",
+      "passGroups": 15
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "progress",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh progress-contract",
+      "exitCode": 0,
+      "durationMs": 33645,
+      "counts": {},
+      "checks": [],
+      "sha256": "8e29da01ddc2e335c5ba01feca8bbf0e6ce5b29683088df0094a7f5accc19607",
+      "passGroups": 2
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "harvest",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh harvest-contract",
+      "exitCode": 0,
+      "durationMs": 33236,
+      "counts": {},
+      "checks": [],
+      "sha256": "181c5061832ec5af78380db0daa815869cff3c1870c7a548b14be99f6c34bf33",
+      "passGroups": 2
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "siem",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-contract",
+      "exitCode": 0,
+      "durationMs": 36772,
+      "counts": {},
+      "checks": [],
+      "sha256": "e8a7b0f1a4f7aca1aba0d3b089c835bd194dd7224c372d04fc9143bb878725fa",
+      "passGroups": 2
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "figshare",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-contract",
+      "exitCode": 0,
+      "durationMs": 33903,
+      "counts": {},
+      "checks": [],
+      "sha256": "fb2ee5c18fbdea089f55e0598cb42d6fee6150388d1b29fa25a2ded5ea268c74",
+      "passGroups": 2
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-contract",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract",
+      "exitCode": 0,
+      "durationMs": 7296,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 37,
+          "failures": 0
+        }
+      ],
+      "sha256": "e0e5a6941681cff645ac8a45aea072b765d59cd78f92e3c11b2ebf93bf6b444d",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-qualification",
+      "command": "P10_PRIOR_IMAGE=redbox-p10-s:prior-12e566575 bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh qualification",
+      "exitCode": 0,
+      "durationMs": 31495,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0
+        }
+      ],
+      "sha256": "706827a39d5e343612eb018aa3d6a4740f886b1ad4b869d629585d851cbc1e2b",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-live",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh integration",
+      "exitCode": 0,
+      "durationMs": 86774,
+      "counts": {
+        "passing": 326
+      },
+      "checks": [],
+      "sha256": "1ba656f8e3a47343e3bccce015a454299a8fb5ef85b46c009fb2a1a7c1cd6854",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-ownership",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+      "exitCode": 0,
+      "durationMs": 8605,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 17,
+          "failures": 0
+        }
+      ],
+      "sha256": "bc000a83c641161b7e6af3f4ceb2a220898e5fae1aef46db95c127501d5ab9e3",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-owner-failures",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh owner-failures",
+      "exitCode": 0,
+      "durationMs": 5886,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 5,
+          "failures": 0
+        }
+      ],
+      "sha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-backfill",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh backfill",
+      "exitCode": 0,
+      "durationMs": 5977,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 16,
+          "failures": 0
+        }
+      ],
+      "sha256": "d827dfd51348eaef05525f53a03fcae70228897e4d75aa233209d5e7f3c96312",
+      "passGroups": 0
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "storage-readiness-final",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh readiness",
+      "exitCode": 0,
+      "durationMs": 7856,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 14,
+          "failures": 0,
+          "indexScopes": 15
+        }
+      ],
+      "sha256": "526731691dd8d40fab965463bfcbe9511e527fff1d6dee5bf56f4f387aca24ae"
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "ownership-mongodb",
+      "command": "P10_OWNER_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+      "exitCode": 0,
+      "durationMs": 6851,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 17,
+          "failures": 0,
+          "connectionCounts": [
+            {
+              "stage": "observer-only",
+              "current": 2
+            },
+            {
+              "stage": "orm-and-shared-runtime",
+              "current": 6
+            },
+            {
+              "stage": "all-owners-active",
+              "current": 14
+            },
+            {
+              "stage": "after-owner-cleanup-orm-retained",
+              "current": 5
+            },
+            {
+              "stage": "after-app-lower-observer-only",
+              "current": 2
+            }
+          ]
+        }
+      ],
+      "sha256": "3404ce82ebd164351c836bf5a7739a98bd462a094c730ae3a74a5e45983f6741"
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "fresh-mocha",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha default",
+      "exitCode": 0,
+      "durationMs": 353371,
+      "counts": {
+        "passing": 419,
+        "pending": 10
+      },
+      "checks": [],
+      "sha256": "b3e3967c6e9f44c5776016f9562f85e51b9086c49d1bbb615a98b2db6727185b"
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "fresh-bruno",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh bruno default",
+      "exitCode": 0,
+      "durationMs": 315502,
+      "counts": {
+        "requests": {
+          "passed": 309,
+          "total": 309
+        },
+        "tests": {
+          "passed": 553,
+          "total": 553
+        },
+        "assertions": {
+          "passed": 3,
+          "total": 3
+        }
+      },
+      "checks": [],
+      "sha256": "11c41f3fb2639db12b51ba150880b6efddcf54ba7daee990af7ee1bc7634d16d"
+    },
+    {
+      "name": "dev-default",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "exitCode": 0,
+      "counts": {},
+      "checks": [],
+      "sha256": "4d9e6b293117cf8cfe9d719c78ba5d20cc491096a86038dd710ea64123a4c523",
+      "retryOf": "dev-default-dns",
+      "readiness": {
+        "ready": true,
+        "scopes": 49,
+        "collections": 20
+      }
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "dev-waterline",
+      "command": "RBPORTAL_CACHE_BACKEND=waterline RBPORTAL_MIGRATION_BACKEND=waterline RBPORTAL_REFERENCE_BACKEND=waterline RBPORTAL_CONFIGURATION_BACKEND=waterline RBPORTAL_PROGRESS_BACKEND=waterline RBPORTAL_HARVEST_BACKEND=waterline RBPORTAL_SIEM_BACKEND=waterline RBPORTAL_FIGSHARE_BACKEND=waterline RBPORTAL_STORAGE_BACKEND=waterline bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "exitCode": 0,
+      "durationMs": 57527,
+      "counts": {},
+      "checks": [],
+      "sha256": "4b04c208354c3f78604eba0075a1f444fd40a749956430da23a53abf5af9b2e9",
+      "readiness": {
+        "ready": true,
+        "scopes": 0,
+        "collections": 0
+      }
+    },
+    {
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "name": "reference-operations",
+      "command": "npm --prefix packages/redbox-core run test:reference-operations",
+      "exitCode": 0,
+      "durationMs": 82261,
+      "counts": {},
+      "checks": [],
+      "sha256": "b42a033238f35fb84ccc271375a0ab43d5c0dd9809d5061319e4820b0328c86f",
+      "budgets": {
+        "comparisons": {
+          "p95": 1.0376208582765154,
+          "throughput": 1.0308432164043406,
+          "rss": 0.510324280759583,
+          "calls": 1
+        },
+        "maxReadinessMs": 125.1158190000001,
+        "warmups": 100,
+        "operations": 1000,
+        "repeats": 3,
+        "pass": true
+      }
+    },
+    {
+      "name": "storage-operations",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh operations",
+      "sourceCommit": "36413a21e2ffaec4d7afe8933b269b0a2a502608",
+      "exitCode": 0,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 1,
+          "failures": 0
+        }
+      ],
+      "sha256": "8c38744494d302557794a3a001a1d926dd84e3f82da96c54bc701b2a2128b376",
+      "retryOf": "storage-readiness-outlier",
+      "budgets": {
+        "ratios": {
+          "p95": 0.2903412434374188,
+          "throughput": 2.4279450191182717,
+          "rss": 0.9368122805232603,
+          "calls": 0.6331046477920572
+        },
+        "limits": {
+          "p95": 1.2,
+          "throughput": 0.9,
+          "rss": 1.1,
+          "calls": 1.25,
+          "readinessMs": 250
+        },
+        "warmups": 100,
+        "operations": 1000,
+        "repeats": 3,
+        "pass": true,
+        "atomicUnitsMoved": 0
+      }
+    }
+  ],
+  "regressions": [
+    {
+      "name": "workspace-drain",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {
+        "passing": 6,
+        "failing": 2
+      },
+      "checks": [],
+      "sha256": "1a612f882065273ad5801febe04bb3d92aac416171fbee79e5ec878c700cc1ba",
+      "preFixReproduction": true
+    },
+    {
+      "name": "reference-json",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {
+        "passing": 10,
+        "failing": 1
+      },
+      "checks": [],
+      "sha256": "32a093fdf6797d677412e7bf6b450da28855e925a37431e3876c17d393fae7f9",
+      "preFixReproduction": true
+    },
+    {
+      "name": "reference-case",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {},
+      "checks": [],
+      "sha256": "b911e2c45ff874ed50664f78f621af103846277ac4636eba6ecf84df075be2a5",
+      "preFixReproduction": true
+    },
+    {
+      "name": "storage-collation",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {},
+      "checks": [],
+      "sha256": "3038c3bb1f2a908ac7544bc181494ab3f7375f4ee39201c50bb7b9aaf5d02f2a",
+      "preFixReproduction": true
+    },
+    {
+      "name": "agenda-drain",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {
+        "passing": 0,
+        "failing": 1
+      },
+      "checks": [],
+      "sha256": "a6f65df3d41c1740e3416de12224bb35d048569d3a8171425f9f413ebeb672d3",
+      "preFixReproduction": true
+    },
+    {
+      "name": "http-drain",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {
+        "passing": 3,
+        "failing": 1
+      },
+      "checks": [],
+      "sha256": "4d2ad62af812e66b7e68833cbf382a052271f7b2b2fdc1af20eef0eb07be18ee",
+      "preFixReproduction": true
+    },
+    {
+      "name": "form-producer",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {
+        "passing": 0,
+        "failing": 1
+      },
+      "checks": [],
+      "sha256": "27df714184df39d21cc58e315cd169375038b8520147e4f1cbede95591649f2c",
+      "preFixReproduction": true
+    },
+    {
+      "name": "form-waterline-compatibility",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {
+        "passing": 0,
+        "failing": 1
+      },
+      "checks": [],
+      "sha256": "62b27ccbac25ea33c343ac2ad17bcd3d228f88225e0bdce9d649cdc5e6dc5ae6",
+      "preFixReproduction": true
+    },
+    {
+      "name": "fresh-form-bootstrap",
+      "command": "focused regression before fix",
+      "exitCode": 1,
+      "counts": {
+        "passing": 0,
+        "failing": 1
+      },
+      "checks": [],
+      "sha256": "a62388648a0ef47b2578264c106fdb5d2d6af89417f375dc345c4883fdbf933c",
+      "preFixReproduction": true
+    }
+  ],
+  "configurationChecks": {
+    "resolvedComposeConfigurations": 20,
+    "renderedTemplateConfigurations": 4,
+    "promotedGroups": 8,
+    "backends": [
+      "waterline",
+      "mongodb"
+    ],
+    "failures": 0
+  },
+  "dependencies": {
+    "manifestsAndLocksUnchanged": true,
+    "sha256": {
+      "package.json": "ecbd42222613dc5f23be0d15fa34878a440d9c1e98dfa8d48c013f32a84a04d1",
+      "package-lock.json": "c181398481f2224c1d7d331b549637899fe9cbe8cee8e362bff0e1c5d34ae08a",
+      "packages/redbox-core/package.json": "22190d179ac81962154a158190c3bf8edcb8340558bb5b6b2142d67a74bc15e1",
+      "packages/redbox-core/package-lock.json": "9ce4e54e01c2d9777e385190ab8e0e25835814d2fb1831e2f548452a49ad061a",
+      "packages/sails-hook-redbox-storage-mongo/package.json": "b0e77d593700cae72a270b8e25061d508339fd1eca25d4ad746f5cca9ed08e44",
+      "packages/sails-hook-redbox-storage-mongo/package-lock.json": "06145b9c2052c5af9b8d361ec6a05970643196c29afd5a007747fa8077f7a84c"
+    },
+    "mongodb": {
+      "root": "7.7.0",
+      "core": "7.7.0",
+      "storage": "7.7.0"
+    },
+    "storageCompiler": "5.9.3",
+    "existingLockProvenance": "npm 11.20.0; no lock regeneration in this review",
+    "hostNode": "v24.18.0",
+    "hostNpm": "12.0.2",
+    "stockImageNpm": "11.19.1"
+  },
+  "gates": {
+    "G-TX": "CLOSED",
+    "OPS-TX-01": "undecided",
+    "atomicSAndUVB": "unchanged",
+    "P11P12": "unchanged"
+  },
+  "supersededAttempts": [
+    {
+      "name": "core-concurrent-producer-check",
+      "command": "npm run test:core (overlapped focused producer checks; unchanged startup deadline)",
+      "exitCode": 1,
+      "counts": {
+        "passing": 4165,
+        "pending": 113,
+        "failing": 1
+      },
+      "checks": [],
+      "sha256": "9af4186a91bbce7590bd823af24f72f8d939e6157f4d1e9bc037d1f89e8e3ece"
+    },
+    {
+      "name": "dev-default-dns",
+      "command": "fresh isolated development readiness; getaddrinfo ENOTFOUND mongodb before ORM loaded",
+      "exitCode": 1,
+      "counts": {},
+      "checks": [],
+      "sha256": "541bbbf28640b723303138ce81a555732f6bac55bb9d546a67a55e08525a3096"
+    },
+    {
+      "name": "storage-readiness-outlier",
+      "command": "unchanged isolated S operation budget fixture; one 334 ms readiness sample exceeded 250 ms",
+      "exitCode": 1,
+      "counts": {},
+      "checks": [
+        {
+          "passing": 0,
+          "failures": 1
+        }
+      ],
+      "sha256": "e1b9cb357a49e809c98abbf525660d3f3be017d9f9ad2a169192b81e370e2d2d",
+      "budgets": {
+        "ratios": {
+          "p95": 0.2863377258735143,
+          "throughput": 2.4858673228647685,
+          "rss": 0.9406245188310288,
+          "calls": 0.6331046477920572
+        },
+        "limits": {
+          "p95": 1.2,
+          "throughput": 0.9,
+          "rss": 1.1,
+          "calls": 1.25,
+          "readinessMs": 250
+        },
+        "readinessSamplesMs": [
+          67.88203899999962,
+          166.53933700000016,
+          173.98133300000018,
+          67.29229200000009,
+          69.49874200000022,
+          334.23556400000007
+        ]
+      }
+    }
+  ],
+  "cleanup": {
+    "remainingRunningContainers": [],
+    "pushed": false
+  },
+  "omissions": [
+    "No transaction/topology changes or gated implementation",
+    "No historical evidence rewritten",
+    "No full official-release or institution qualification claim"
+  ]
+}

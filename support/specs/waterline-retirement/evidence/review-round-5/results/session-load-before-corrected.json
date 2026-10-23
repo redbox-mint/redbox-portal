@@ -1,0 +1,18 @@
+{
+  "name": "session-load-before-corrected",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts --grep \"initial session lookup\"",
+  "sourceCommit": "4669115498501a4306811c5dd6d3e5a1a6febd53",
+  "exitCode": 3,
+  "durationMs": 2108,
+  "sha256": "a90a48861e654e65f4dfce5b9f53966091edc1a2eb03c288f61f15650d5195be",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      3
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

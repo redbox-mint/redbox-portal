@@ -1,0 +1,804 @@
+{
+  "method": "Independent Standards and Spec tasks; compact findings/resolutions and report hashes, no raw transcripts.",
+  "rounds": [
+    {
+      "round": "initial",
+      "source": "dc77696de",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "ba7e194f2edc9d82c68c0eee7253a418c85ac51da81b05bdeaf3c4fa2bd00808",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Actual handler ownership",
+              "disposition": "fixed",
+              "commit": "f05d62074"
+            },
+            {
+              "severity": "P2",
+              "finding": "Accepted staged audit reacquisition",
+              "disposition": "fixed",
+              "commit": "ac1485647"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:114",
+            "packages/sails-hook-redbox-storage-mongo/src/persistence/MongoStagedStorage.ts:92",
+            ":\n\n1. **P2 \u2014 Track handler promises independently of Agenda\u2019s running-job count.** [AgendaQueueService.ts:114](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:114) returns ",
+            "node_modules/agenda/dist/JobProcessor.js:462\u2013495",
+            "IntegrationNotificationService.ts:137"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "4a77f3a31ef384ce186f10cc8ed75498ef908dfcb7300e8f655e2d03cd4df78c",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Actual handler ownership",
+              "disposition": "fixed",
+              "commit": "f05d62074"
+            },
+            {
+              "severity": "P2",
+              "finding": "Quiesce consumers before pending enqueues",
+              "disposition": "fixed",
+              "commit": "f05d62074"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:114",
+            "packages/redbox-core/src/services/AgendaQueueService.ts:176",
+            ":\n\n1. **Actual handlers can outlive queue ownership.** [AgendaQueueService.ts:114](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:114) never tracks the handler promise independently. Agenda\u2019s watchdog races ",
+            " without cancelling their JavaScript handlers. A RAiD retry awaiting a remote response beyond its configured lock can therefore remain active while shutdown reports drained and disconnects resources; its later retry/audit enqueue loses durability. The ALS completion permission also remains active. This violates [p1-foundation.md:17](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/p1-foundation.md:17): \u201cstop producers and await accepted handlers that still need to start repository operations.\u201d Track actual handler settlement independently; a bounded drain failure must retain ownership and revoke completion admission until cleanup succeeds.\n\n2. **Pending enqueues delay stopping consumers.** [AgendaQueueService.ts:176](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:176) waits for pending writes before invoking Agenda drain. While an accepted SQS/Mongo enqueue stalls, polling continues claiming persisted jobs. "
+          ]
+        }
+      ]
+    },
+    {
+      "round": "fix",
+      "source": "601a8318c",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-fix-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "ea1c8f94333cdf18b7fcc4420e81979351a42a09b29ae1e38f2f6e75ce9df133",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Final acknowledgement ownership",
+              "disposition": "fixed",
+              "commit": "3f50da154"
+            },
+            {
+              "severity": "P2",
+              "finding": "Prefetched claim release",
+              "disposition": "fixed",
+              "commit": "3f50da154"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:133",
+            "packages/redbox-core/src/services/AgendaQueueService.ts:171",
+            " for successful SQS jobs. Cleanup can destroy the SDK client during that acknowledgement; Agenda swallows the save failure, leaving a successfully executed job available for redelivery. Ownership must extend through Agenda\u2019s final persistence/acknowledgement.\n\n- **P2 \u2014 Draining discards prefetched jobs without releasing their locks.** [AgendaQueueService.ts:171](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:171). Sequence: Mongo Agenda prefetches more jobs than its concurrency permits, then shutdown begins. Agenda 6.2.6\u2019s "
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-fix-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "d00e0fba0f92fabee1185b6806bd847600469b3983fe48432d25d9a3002700e6",
+          "p1": 0,
+          "p2": 1,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Final acknowledgement ownership",
+              "disposition": "fixed",
+              "commit": "3f50da154"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:133",
+            "agenda/dist/Job.js:599"
+          ]
+        }
+      ]
+    },
+    {
+      "round": "ack",
+      "source": "3f50da154",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-ack-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "753803edbe024a7b106f4b6a5a5fd48b08b0d62e09e5eb5d063617f650c78735",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Partial successful release repeated against successor",
+              "disposition": "fixed",
+              "commit": "f48c69dad"
+            },
+            {
+              "severity": "P2",
+              "finding": "Completion permission revoked on early stop failure",
+              "disposition": "fixed",
+              "commit": "f48c69dad"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:233",
+            "packages/redbox-core/src/services/AgendaQueueService.ts:165",
+            ". If another worker has since claimed A, that worker\u2019s lock is cleared, permitting concurrent duplicate execution. Retain successful-release bookkeeping and skip those IDs on retry.\n\n- **P2 \u2014 An early unlock failure loses accepted completion work before the deadline.** [AgendaQueueService.ts:165](/home/andrew/.t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:165): every drain rejection immediately sets "
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-ack-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "c3b254a85c66e16338b25f23a692499584ef3325e938df6347683a1965db72ef",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Recovered null-next-run claim not unlocked",
+              "disposition": "fixed",
+              "commit": "f48c69dad"
+            },
+            {
+              "severity": "P2",
+              "finding": "Admitted revision maintenance reacquisition",
+              "disposition": "fixed",
+              "commit": "8d05516e0"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:236",
+            "packages/sails-hook-redbox-storage-mongo/src/persistence/RecordRevisionMaintenance.ts:61",
+            ", so this call silently changes nothing. The wrapper deletes its claim bookkeeping and cleanup succeeds, leaving the renewed lock until its configured lifetime expires. The late-claim and final-release paths have the same problem. Preserve Mongo\u2019s unconditional bulk release while retaining attribute-based SQS release. Violates [p1-foundation.md:103](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/p1-foundation.md:103): \u201cStop releases prefetched claims,\u201d and line 121\u2019s late-claim release requirement.\n\n- **P2 \u2014 Admitted revision maintenance still reacquires a forbidden database.** [RecordRevisionMaintenance.ts:61](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/sails-hook-redbox-storage-mongo/src/persistence/RecordRevisionMaintenance.ts:61) calls ",
+            "AgendaQueueService.ts:117\u2013265,278\u2013413,671\u2013824",
+            "persistence/runtime.ts:221\u2013287"
+          ]
+        }
+      ]
+    },
+    {
+      "round": "release",
+      "source": "8d05516e0",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-release-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "ffd058ec27e01f3c17c4ffefff88620a2e59cc7215d31af40185473409bafd13",
+          "p1": 0,
+          "p2": 1,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Recovered jobs stranded after unlock",
+              "disposition": "fixed",
+              "commit": "73683793c"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:225",
+            "runtime.ts:234",
+            "requestLifetime.ts:29",
+            "RecordRevisionMaintenance.ts:56"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-release-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "624ed325d21aa1aac3b2a032a786195f460bdfd427355746c33e0bf4c9a843bb",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Ambiguous release retry lacks fence",
+              "disposition": "fixed",
+              "commit": "73683793c"
+            },
+            {
+              "severity": "P2",
+              "finding": "Pending acquisition delays drain deadline",
+              "disposition": "fixed",
+              "commit": "bd0c2e4f5"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:225",
+            "packages/redbox-core/src/persistence/runtime.ts:240",
+            "AgendaQueueService.ts:118\u2013285",
+            "runtime.ts:172\u2013287",
+            "RecordRevisionMaintenance.ts:56\u201375",
+            "MongoStagedStorage.ts:86\u2013150"
+          ]
+        }
+      ]
+    },
+    {
+      "round": "fence",
+      "source": "bd0c2e4f5",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-fence-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "047d82fd7c50cbc86d83096fdc1fce9148158ecf048a7158d3db005cf29f92c9",
+          "p1": 0,
+          "p2": 1,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Automatic removal readiness gap",
+              "disposition": "fixed",
+              "commit": "61adee143"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:166",
+            "AgendaQueueService.ts:119\u2013281,318\u2013428,627\u2013728",
+            "runtime.ts:172\u2013288",
+            "RecordRevisionMaintenance.ts:54\u201375"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-fence-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "235ec435da0af2e18297f80cf0c8072c29e6bc5472914ec12b22154ae26daec1",
+          "p1": 0,
+          "p2": 1,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Recovery consults stale next-run snapshot",
+              "disposition": "fixed",
+              "commit": "61adee143"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:679",
+            "AgendaQueueService.ts:119\u2013278,318\u2013428,627\u2013728",
+            "runtime.ts:172\u2013288",
+            "RecordRevisionMaintenance.ts:54\u201375"
+          ]
+        }
+      ]
+    },
+    {
+      "round": "finalization",
+      "source": "61adee143",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-finalization-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "3618c2a2a942cef5f4eca6a022c2486488ff82cfcbf6f481aa7bba6da750368c",
+          "p1": 0,
+          "p2": 1,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Acknowledged heartbeat fence not refreshed",
+              "disposition": "fixed",
+              "commit": "e3d592bde"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:278",
+            "runtime.ts:234",
+            "requestLifetime.ts:29",
+            "RecordRevisionMaintenance.ts:56"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-finalization-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "bf0b79f1aa152e19449ff1cfac3fa4c8039596f51b01dee100d85a74f7aa12f8",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "AgendaQueueService.ts:119\u2013288",
+            "AgendaQueueService.ts:394\u2013428,633\u2013738",
+            "persistence/runtime.ts:221\u2013288",
+            "RecordRevisionMaintenance.ts:54\u201375",
+            "MongoStagedStorage.ts:82\u2013150",
+            "AgendaQueueService.test.ts:111\u2013340",
+            "storage-ownership.cjs:149\u2013209"
+          ]
+        }
+      ]
+    },
+    {
+      "round": "heartbeat",
+      "source": "e3d592bde",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-heartbeat-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "0f56540a07298c61954c571684cb04ca87663f5ee36a32fde9f9d6c24b040bf5",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Ambiguous heartbeat discards possible fence",
+              "disposition": "fixed",
+              "commit": "127595832"
+            },
+            {
+              "severity": "P2",
+              "finding": "Detached active Figshare heartbeat",
+              "disposition": "fixed",
+              "commit": "76f36bab0"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:275",
+            "packages/redbox-core/src/services/figshare-v2/worker.ts:814",
+            " updates MongoDB but its reply is lost, the wrapper retains only the preceding timestamp. If the final save also fails, shutdown\u2019s conditional release matches nothing, yet deletes the retained claim and reports success. Recovery waits for lock expiry instead of making the job runnable during cleanup. Preserve both possible fences after an ambiguous save. This violates the release contract in [p1-foundation.md:121](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/p1-foundation.md:121) and unknown-outcome recovery rule in [ADR0003:147](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/adr/0003-orm-reevaluation.md:147).\n\n- **P2 \u2014 An in-flight Figshare heartbeat can outlive its worker and drain.** [worker.ts:814](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/figshare-v2/worker.ts:814) clears the interval without awaiting its active callback. Hold an already-applied "
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-heartbeat-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "7523696b69fb8a9630c8e4ab7e35debd637fe11f8629d704812c109fae963f70",
+          "p1": 0,
+          "p2": 2,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Detached active Figshare heartbeat",
+              "disposition": "fixed",
+              "commit": "76f36bab0"
+            },
+            {
+              "severity": "P2",
+              "finding": "Partial startup blocks accepted completion",
+              "disposition": "fixed",
+              "commit": "c9cc76d39"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/figshare-v2/worker.ts:193",
+            "packages/redbox-core/src/services/figshare-v2/worker.ts:814",
+            "packages/redbox-core/src/services/AgendaQueueService.ts:122",
+            ". Retain and await the heartbeat task before releasing the worker. Violates [implementation_plan.md:230](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/implementation_plan.md:230): \u201cWorkers must stop/await in-flight operations before closing persistence resources.\u201d\n\n- **P2 \u2014 Partial startup failure still revokes accepted workers\u2019 completion admission.** [AgendaQueueService.ts:122](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:122) rejects every enqueue when "
+          ]
+        }
+      ]
+    },
+    {
+      "round": "owned-heartbeat",
+      "source": "127595832",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-owned-heartbeat-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "500fed0d206f8c9fd44b664229d92e9dd715256cd28bd2d015c49a14ba193990",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:119",
+            "packages/redbox-core/src/services/figshare-v2/worker.ts:192",
+            "packages/redbox-core/src/persistence/runtime.ts:234"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-owned-heartbeat-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "58093e7097ad9f9ea27bf2290ba993bd7d3fe2d008d3c7ebfc2d6b969e8c3fcd",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:119",
+            "packages/redbox-core/src/services/figshare-v2/worker.ts:192",
+            "packages/redbox-core/src/persistence/runtime.ts:234",
+            " for concrete P1/P2 specification defects.\n\nCoverage:\n\n- [AgendaQueueService.ts](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/AgendaQueueService.ts:119): admission/deadlines (119\u2013217), claim and renewal ownership (231\u2013303), partial/concurrent startup (327\u2013449), conditional Mongo release (658\u2013703), completion/removal ownership (728\u2013754).\n- [Figshare worker](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/services/figshare-v2/worker.ts:192): heartbeat serialization and awaited teardown (192\u2013204, 812\u2013816).\n- [Foundation cleanup](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/runtime.ts:234): drain ordering and retained resources after failure (234\u2013288).\n- Cross-checked actual Agenda "
+          ]
+        }
+      ]
+    },
+    {
+      "round": "whole-feature-before-sails",
+      "source": "f96082066",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-whole-feature-final-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "c44a108830d7df687114f08c81f5711f6c90da413c114eabd73994fb5680855d",
+          "p1": 0,
+          "p2": 1,
+          "findings": [
+            {
+              "severity": "P2",
+              "finding": "Real Sails teardown ignored failed drains",
+              "disposition": "fixed",
+              "commit": "0341c6241"
+            }
+          ],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/services/AgendaQueueService.ts:392",
+            "packages/redbox-core/node_modules/sails/lib/app/lower.js:49",
+            " ([lower.js:49](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/node_modules/sails/lib/app/lower.js:49)); the ORM\u2019s listener then tears down its adapters ([index.js:178](/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/sails-hook-orm/index.js:178)). SIGTERM subsequently exits the process.\n\nConcrete trigger: an accepted Figshare worker remains in remote I/O beyond ",
+            "persistence/runtime.ts:243",
+            "AgendaQueueService.ts:146,231,649,728",
+            "middleware/requestLifetime.ts:60",
+            "figshare-v2/worker.ts:189,812",
+            "RecordRevisionMaintenance.ts:57"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-whole-feature-final-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "a8b109fc001873af0b7d0a75ebe6279cccae0aa3f8a05b62a76c83472a351af3",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "persistence/selection.ts:19",
+            "persistence/runtime.ts:116,221,234",
+            "persistence/reference/NamedQueryExecution.ts:143,171,270",
+            "persistence/scalars.ts:17",
+            "persistence/timestamps.ts:13",
+            "persistence/indexes.ts:49",
+            "persistence/cache/MongoCacheEntryRepository.ts:15",
+            "services/AgendaQueueService.ts:146,231,649,735",
+            "services/figshare-v2/worker.ts:192,815",
+            "persistence/StoragePersistence.ts:61",
+            "persistence/MongoStagedStorage.ts:69,154",
+            "persistence/RecordRevisionMaintenance.ts:17"
+          ]
+        }
+      ]
+    },
+    {
+      "round": "sails",
+      "source": "0341c6241",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-sails-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "f22118c5bd72f5dc5193c40938faec2efb551cb2a02bf0d848608204f600624b",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "persistence/shutdown.ts:11\u201394",
+            "lower.js:20\u2013197",
+            "private/initialize.js:34\u201394",
+            "persistence/runtime.ts:117\u2013165,236\u2013290",
+            "AgendaQueueService.ts:147\u2013300,377\u2013398"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-sails-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "8bdd4369df0c5eb5b5262857cf2c677e39d1cfb385b8bffabf8b9ee606499876",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/persistence/shutdown.ts:11",
+            "packages/redbox-core/src/persistence/runtime.ts:117",
+            "packages/redbox-core/src/services/AgendaQueueService.ts:147"
+          ]
+        }
+      ]
+    },
+    {
+      "round": "whole-feature-final",
+      "source": "0341c6241",
+      "axes": [
+        {
+          "axis": "standards",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-qualified-whole-standards-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "09145fac2b1510486a385b8d4b70a107ee0718bd87511c63c68554c91ac88542",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "packages/redbox-core/src/persistence/runtime.ts:117",
+            "packages/redbox-core/src/persistence/shutdown.ts:11",
+            "packages/redbox-core/src/services/AgendaQueueService.ts:147",
+            "packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts:171",
+            "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts:52",
+            "packages/sails-hook-redbox-storage-mongo/src/persistence/RecordRevisionMaintenance.ts:17"
+          ]
+        },
+        {
+          "axis": "spec",
+          "taskId": "node:delegated-task:command%3Amcp%3A627b9b0c-2849-4a66-a25f-3ed94c7eeecb%3Adelegate-task%3Awaterline-r13-qualified-whole-spec-v1",
+          "provider": "codex_hattie",
+          "model": "gpt-6.1-sol",
+          "options": [
+            {
+              "id": "reasoningEffort",
+              "value": "xhigh"
+            },
+            {
+              "id": "serviceTier",
+              "value": "priority"
+            }
+          ],
+          "reportSha256": "71b18b99633d450c2d11d61743ddc6d7736ce2756a2475248ad8e4c546f0f455",
+          "p1": 0,
+          "p2": 0,
+          "findings": [],
+          "reportedCoordinates": [
+            "runtime.ts:145",
+            "shutdown.ts:11",
+            "AgendaQueueService.ts:125",
+            "StoragePersistence.ts:64"
+          ]
+        }
+      ]
+    }
+  ]
+}

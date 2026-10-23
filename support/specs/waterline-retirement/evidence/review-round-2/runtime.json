@@ -1,0 +1,26 @@
+{
+  "reviewedBase": "79c116fe0a6e07830ac1313d7403b4277b39e498",
+  "reviewedHead": "21207078af9d46f1578edd29e3246db660c05e05",
+  "runtimeCommit": "f291c3260f0456f92730ed8e972bc8df920895fa",
+  "runtimeFiles": 619,
+  "runtimeSha256": "3bd4843b71208598d4b2b9f7e529b290b0019bf54ac9f4bffb2b52a08a99cf34",
+  "runtimePins": {
+    "mongodb": "7.7.0",
+    "typescript": "5.9.3"
+  },
+  "node": "v24.18.0",
+  "hostNpmRunOnly": "12.0.2",
+  "lockMaintenanceNpm": "11.20.0",
+  "commits": [
+    "f291c3260 fix(persistence): refuse overlapping query predicates",
+    "b6e12e6b0 fix(persistence): preserve typed named query comparisons",
+    "ceb24d481 fix(persistence): reject unsafe reference extension field names",
+    "de33c8f1c fix(storage): preserve audit scalar coercion and validation",
+    "f944c0411 fix(persistence): apply tenant scope after query normalization"
+  ],
+  "artifactHashes": {
+    "packages/redbox-core/dist/persistence/reference/NamedQueryExecution.js": "8f92c97755011f9da7251929b3651a4bf42922a0bfeaaf0553efea2531e6e6f1",
+    "packages/redbox-core/dist/persistence/reference/physical.js": "30b3b5b19b4e94a10f05261712a94a9ed29ca269a15ad7d9da78cba42ea5b2ea",
+    "packages/sails-hook-redbox-storage-mongo/dist/persistence/MongoStagedStorage.js": "b263fc1c18ff2fe1cbb302284ab3a21b00c4ee07597763a4dc70cb4f3248742a"
+  }
+}

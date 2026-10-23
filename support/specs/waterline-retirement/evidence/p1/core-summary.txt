@@ -1,0 +1,12 @@
+Source: f7050fff0c3056a9837ead2f9dc28546af2615a6
+Command: npm run test:core
+Exit: 0
+This is the final result/startup excerpt from the ordinary complete core suite,
+not the full verbose stdout. The ordinary core run reports 95 pending cases, not counted as passes.
+The dedicated live qualification suites have no skips.
+The existing startup child timeout remains 12000 ms, unchanged.
+
+✔ loads core without a browser DOM or the full Effect barrel, then sanitizes on first use (11928ms)
+
+4123 passing (1m)
+95 pending

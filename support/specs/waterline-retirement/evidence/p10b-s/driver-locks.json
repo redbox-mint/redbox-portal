@@ -1,0 +1,8 @@
+{
+  "command": "npx --yes --package npm@11.20.0 npm install --package-lock-only --ignore-scripts --strict-peer-deps --prefix packages/sails-hook-redbox-storage-mongo && npx --yes --package npm@11.20.0 npm install --package-lock-only --ignore-scripts --strict-peer-deps && npx --yes --package npm@11.20.0 npm install --ignore-scripts --strict-peer-deps --prefix packages/sails-hook-redbox-storage-mongo",
+  "exitCode": 1,
+  "durationMs": 3942,
+  "rawBytes": 629,
+  "sha256": "be8e2d4a2c1a70d3a3be885c915fe8250e98479b72ed1b06f6d1180dd81c660e",
+  "failureExcerpt": "npm notice run redbox-portal@2.1.0 npx\nnpm notice run 'npm' install --package-lock-only --ignore-scripts --strict-peer-deps --prefix packages/sails-hook-redbox-storage-mongo\nnpm warn Unknown env config \"global-ignore-file\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.\nnpm error code EALLOWSCRIPTS\nnpm error --allow-scripts is not allowed in project-scoped installs. Add the entries to the \"allowScripts\" field in package.json, or to .npmrc, instead.\nnpm error A complete log of this run can be found in: /home/andrew/.npm/_logs/2026-10-20T14_59_00_261Z-debug-0.log"
+}

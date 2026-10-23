@@ -1,0 +1,15 @@
+{
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+  "exitCode": 143,
+  "durationMs": 54661,
+  "rawBytes": 709,
+  "sha256": "f9f7b7611be8610c05dd33f4a3e9be943bde621bbcd653bf5550f54fc63dd9ff",
+  "failureExcerpt": "Dynamic imports imported\n{\"passing\":16,\"failures\":0,\"selector\":\"waterline\",\"bytes\":1048587,\"sha256\":\"df4a197909a34edf52c4bd8c64bd8edb3674db2dfb4978f1a498db6198051f2a\",\"connectionCounts\":[{\"stage\":\"observer-only\",\"current\":2},{\"stage\":\"orm-and-shared-runtime\",\"current\":6},{\"stage\":\"all-owners-active\",\"current\":15},{\"stage\":\"after-owner-cleanup-orm-retained\",\"current\":5},{\"stage\":\"after-app-lower-observer-only\",\"current\":2}],\"drainMs\":131,\"sqsCommands\":{\"GetQueueAttributes\":1,\"ReceiveMessage\":4,\"SendMessage\":1},\"sqsOwnedClientDestroy\":1,\"legacyGridfsAbi\":\"owned BSON 7 Db; Waterline BSON 6 manager retained only for records\",\"historyRouting\":\"application DB; explicit queue address preserved\"}\nTerminated",
+  "checkRuns": [
+    {
+      "passing": 16,
+      "failures": 0,
+      "selector": "waterline"
+    }
+  ]
+}

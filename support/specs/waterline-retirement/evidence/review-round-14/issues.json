@@ -1,0 +1,48 @@
+{
+  "baseline": "ef23e07fe",
+  "input": "4df2d44fd",
+  "uniqueFindings": 2,
+  "p1": 0,
+  "p2": 2,
+  "issues": [
+    {
+      "id": "R14-01",
+      "severity": "P2",
+      "introducedBy": "60c59ed7c",
+      "locations": [
+        "packages/redbox-core/src/persistence/storage/MongoAttachmentRepository.ts:712 (input)",
+        "packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts:643 (input)",
+        "packages/redbox-core/src/services/RecordsService.ts:8146 (input)"
+      ],
+      "scenario": "Enable SIEM and hold brand lookup or capture queue persistence while the primary audit succeeds. The new awaits withhold successful attachment download/list and synchronous record-audit responses until the optional dependency settles.",
+      "contract": [
+        "support/specs/waterline-retirement/design.md:119",
+        "support/specs/waterline-retirement/p10-s-classification.md:63"
+      ],
+      "fix": "67220e557",
+      "resolution": "Retain the explicit follow-up promise in the existing app-local HTTP lifetime; release the primary response. Existing worker/direct-call awaits and queue deadline/admission remain intact.",
+      "proofs": [
+        "http-followup-red: 3 failures",
+        "http-followup-green: 9 passing",
+        "focused-final-typed: 102 passing"
+      ]
+    },
+    {
+      "id": "R14-02",
+      "severity": "P2",
+      "introducedBy": "R13 retained claim release/cleanup retry lifecycle (3f50da154 and successors)",
+      "locations": [
+        "packages/redbox-core/src/services/AgendaQueueService.ts:242 (input)",
+        "packages/agenda-sqs-backend/src/SqsJobRepository.ts:239 (unchanged backend error propagation made blocking by branch drain)"
+      ],
+      "scenario": "An SQS prefetched receipt expires while waiting behind active work. ChangeMessageVisibility returns MessageNotInflight or ReceiptHandleIsInvalid. Retained release retries reuse that unusable receipt forever, and the branch Sails guard refuses every shutdown retry after all actual handlers settle.",
+      "fix": "2ad89fd80",
+      "resolution": "Only claim release treats these confirmed ended-receipt errors as successful relinquishment with a fixed bounded warning. Other release failures remain owned and retryable; Mongo fencing is untouched.",
+      "proofs": [
+        "sqs-stale-red: 2 failures",
+        "focused-final-typed: 102 passing, including 2 actual SDK/protocol controls"
+      ],
+      "primarySource": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html"
+    }
+  ]
+}

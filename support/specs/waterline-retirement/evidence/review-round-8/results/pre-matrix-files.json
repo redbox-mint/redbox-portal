@@ -1,0 +1,13 @@
+{
+  "name": "pre-matrix-files",
+  "command": "python3 .tmp/review-round-8/check-files.py",
+  "sourceCommit": "8d97945a51a39939e36577abc5a10d07e16cbb34",
+  "exitCode": 1,
+  "durationMs": 7219,
+  "sha256": "bbf947c0b92188aa8616381f17bf8f906c817034e8a5ac5596d0b0624476ba38",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":true,\"node\":\"v24.18.0\",\"loaded\":{\".\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"},\"packages/redbox-core\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\",\"rttc\":\"10.0.1\"},\"packages/sails-hook-redbox-storage-mongo\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"}}}"
+  ]
+}

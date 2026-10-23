@@ -1,0 +1,15 @@
+v24.16.0
+Prisma collects anonymous CLI usage data, enabled by default. What's collected and why: https://www.prisma.io/docs/cli. Opt out: run "prisma telemetry disable", set DO_NOT_TRACK=1 or PRISMA_DISABLE_TELEMETRY=1.
+{"kind":"step-started","step":"Resolving contract source...","id":"resolveSource","commandId":"contract.emit","timestamp":"2026-10-19T14:19:01.723Z"}
+{"kind":"step-finished","step":"Resolving contract source...","id":"resolveSource","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T14:19:02.022Z"}
+{"kind":"step-started","step":"Emitting contract...","id":"emit","commandId":"contract.emit","timestamp":"2026-10-19T14:19:02.022Z"}
+{"kind":"step-finished","step":"Emitting contract...","id":"emit","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T14:19:02.275Z"}
+(node:9) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///spike/src/contract.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /spike/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"kind":"result","envelope":{"ok":true,"commandId":"contract.emit","result":{"ok":true,"storageHash":"01e53ccdf84b406a460f4f3225d724f0afc725014178c8ae1477ecb8dfe22d54","profileHash":"251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3","outDir":"/spike/src/generated","files":{"json":"/spike/src/generated/contract.json","dts":"/spike/src/generated/contract.d.ts"},"timings":{"total":560}},"exitCode":0,"diagnostics":[],"nextActions":[]},"commandId":"contract.emit","timestamp":"2026-10-19T14:19:02.283Z"}
+Prisma agent skills are out of date (installed @prisma/orm-mongo 8.0.0-rc.18, synced none). Run: prisma skills sync
+
+> redbox-orm-reevaluation-spike@0.0.0 build
+> tsc && node copy-artifacts.cjs

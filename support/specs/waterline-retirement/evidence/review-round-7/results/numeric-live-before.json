@@ -1,0 +1,11 @@
+{
+  "name": "numeric-live-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh review-scalars",
+  "sourceCommit": "7f8cc460f2a321f88ef66b19516cc1e51106dc43",
+  "exitCode": 1,
+  "durationMs": 2290,
+  "sha256": "b7a144911d106799c72bc1fc04211af8c43185b0c24efac24fae30b619f191d0",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

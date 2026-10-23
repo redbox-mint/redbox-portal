@@ -1,0 +1,36 @@
+{
+  "name": "batch-clocks-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh batch-clocks",
+  "sourceCommit": "3beb1deed9bac6558a454eccb1c1b346dc0ed899",
+  "exitCode": 1,
+  "durationMs": 9702,
+  "sha256": "6c7ce912a1f04232861d761cb0c6a93d53a439051276645f39c53c9d71c6869c",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 11,
+      "failures": 3,
+      "details": [
+        {
+          "collection": "i18ntranslation",
+          "backend": "mongodb",
+          "field": "createdAt",
+          "clockCount": 35
+        },
+        {
+          "collection": "i18ntranslation",
+          "backend": "mongodb",
+          "field": "updatedAt",
+          "clockCount": 35
+        },
+        {
+          "collection": "harvestrecordevent",
+          "backend": "mongodb",
+          "field": "updatedAt",
+          "clockCount": 56
+        }
+      ]
+    }
+  ]
+}

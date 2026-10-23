@@ -1,0 +1,13 @@
+{
+  "name": "id-values",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-values",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 6696,
+  "sha256": "1d3534b921237ee776ae98aa09e6a8beb2e2ac94406b31b321ce0fc9de2666b6",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":228,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

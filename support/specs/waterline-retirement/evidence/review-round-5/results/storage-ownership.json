@@ -1,0 +1,13 @@
+{
+  "name": "storage-ownership",
+  "command": "P10_OWNER_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+  "sourceCommit": "e78b77780344b5bfa45608ffd6b89d54566fcae9",
+  "exitCode": 0,
+  "durationMs": 8647,
+  "sha256": "3404ce82ebd164351c836bf5a7739a98bd462a094c730ae3a74a5e45983f6741",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":17,\"failures\":0,\"selector\":\"mongodb\",\"bytes\":1048587,\"sha256\":\"df4a197909a34edf52c4bd8c64bd8edb3674db2dfb4978f1a498db6198051f2a\",\"connectionCounts\":[{\"stage\":\"observer-only\",\"current\":2},{\"stage\":\"orm-and-shared-runtime\",\"current\":6},{\"stage\":\"all-owners-active\",\"current\":14},{\"stage\":\"after-owner-cleanup-orm-retained\",\"current\":5},{\"stage\":\"after-app-lower-observer-only\",\"current\":2}],\"drainMs\":192,\"sqsCommands\":{\"GetQueueAttributes\":1,\"ReceiveMessage\":3,\"SendMessage\":1},\"sqsOwnedClientDestroy\":1,\"legacyGridfsAbi\":\"owned BSON 7 Db; Waterline BSON 6 manager retained only for records\",\"historyRouting\":\"application DB; explicit queue address preserved\"}"
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "qualifiedFrom": "344d1be41",
+  "default": "mongodb",
+  "explicitRollback": "waterline",
+  "selector": "persistence.groups.vocabulary.backend",
+  "composeEnv": "RBPORTAL_VOCABULARY_BACKEND",
+  "composeAndTemplateFallbacksUpdated": 10,
+  "transactions": false,
+  "node": "24.16.0",
+  "npm": "11.20.0",
+  "mongo": "9.0.4",
+  "topology": "standalone",
+  "checks": {
+    "promotion-build.log": {
+      "exit": 0,
+      "command": "timeout 180 npm --prefix packages/redbox-core run build",
+      "log": ".tmp/wrp8/promotion-build.log",
+      "sha256": "e652a9faf053767d6420cc35d5e310c24cd10fe87d128dbd9a27ae26f4776166"
+    },
+    "promotion-types.log": {
+      "exit": 0,
+      "command": "timeout 180 npm --prefix packages/redbox-core run typecheck:persistence",
+      "log": ".tmp/wrp8/promotion-types.log",
+      "sha256": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f"
+    },
+    "promotion-lint.log": {
+      "exit": 0,
+      "command": "timeout 60 npm --prefix packages/redbox-core run lint",
+      "log": ".tmp/wrp8/promotion-lint.log",
+      "sha256": "c2cdfd9d235ecb54b619e02b32b49610c7577f96d6348203b0615845473ed023"
+    },
+    "promotion-root-types.log": {
+      "exit": 0,
+      "command": "timeout 120 node_modules/.bin/tsc --noEmit",
+      "log": ".tmp/wrp8/promotion-root-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "packagedLiveRunner": {
+    "command": "timeout 600 npm --prefix packages/redbox-core run test:vocabulary-transition",
+    "parityPassed": 31,
+    "omittedDefaultPassed": 6,
+    "failed": 0,
+    "defaultCases": [
+      "omitted V selector resolves MongoDB without changing U/B",
+      "default reads all seven entities while loaded V queries throw",
+      "default creates and revises through the driver",
+      "closed default handles refuse new work",
+      "explicit Waterline rollback reads and writes default-driver data",
+      "fresh omitted-selector restart reads rollback writes"
+    ],
+    "selfCleanup": true,
+    "log": ".tmp/wrp8/promotion-transition.log",
+    "sha256": "5bad18b5656da31e360ceddd0ae54cbc7851b273cc5fb2150edb7ee5eeb01e9f"
+  },
+  "omittedSelectorRehearsal": {
+    "passed": 6,
+    "failed": 0,
+    "results": [
+      "omitted V selector resolves MongoDB without changing U/B",
+      "default reads all seven entities while loaded V queries throw",
+      "default creates and revises through the driver",
+      "closed default handles refuse new work",
+      "explicit Waterline rollback reads and writes default-driver data",
+      "fresh omitted-selector restart reads rollback writes"
+    ],
+    "backend": "mongodb",
+    "selectorOmitted": true,
+    "log": ".tmp/wrp8/promotion-default.log",
+    "sha256": "a4ef6a06c6847b6df3395466b8c68bf4ff80c5d68f42db10adc76e44629b54ab"
+  },
+  "core": {
+    "passed": 4316,
+    "pending": 117,
+    "failed": 0,
+    "log": ".tmp/wrp8/promotion-core.log",
+    "sha256": "809214f5c20225d219f4b3389e1faff780950c0521d975c05b372e6d8dc7c16d"
+  },
+  "isolatedStartup": {
+    "passed": 1,
+    "pending": 0,
+    "failed": 0,
+    "log": ".tmp/wrp8/promotion-startup.log",
+    "sha256": "2944ef846516f6bce7c77eaabbbc1b6b2d85e9e52503d8e182371046adf25678"
+  },
+  "portalMocha": {
+    "passed": 22,
+    "pending": 2,
+    "failed": 0,
+    "log": ".tmp/wrp8/mocha-default.log",
+    "sha256": "9c437f07d57faa65fcd86bb0fdf0624a1023d5bc12721259811fc4c1fd6a0028"
+  },
+  "indexes": {
+    "passed": 16,
+    "failed": 0,
+    "defaultScopes": 70,
+    "defaultCollections": 27,
+    "vocabularyScopes": 21,
+    "vocabularyCollections": 7,
+    "log": ".tmp/wrp8/index-promotion.log",
+    "sha256": "1d7cf370a73951b6c56d85df4fc390b0b2517aace0728b82882c7e1f1473915d"
+  },
+  "recipe": "runners/run-promotion.sh",
+  "limits": "Bruno both explicit selectors passed before promotion; default selector is exercised by all-seven live driver-bypass and fresh existing portal Mocha. No production/private-hook qualification or consistency strengthening."
+}

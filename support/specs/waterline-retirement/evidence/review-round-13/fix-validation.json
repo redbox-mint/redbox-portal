@@ -1,0 +1,108 @@
+{
+  "input": "dc77696de",
+  "qualification": "0341c6241",
+  "primaryP1": 0,
+  "primaryP2": 12,
+  "fixReviewCorrections": [
+    "captured HTTP application isolation",
+    "startup error timing and pending-start ownership",
+    "Agenda final acknowledgement ownership",
+    "partial release retry ownership",
+    "original admission deadline after early failure",
+    "Mongo recovered null-nextRunAt release",
+    "runnable state of recovered Mongo jobs",
+    "fencing ambiguous release responses with unique Agenda owner",
+    "resource drains start before pending acquisition wait",
+    "full automatic-removal promise before internal ready await",
+    "current persisted next-run state drives fenced recovery",
+    "acknowledged heartbeat lock/owner refresh before failed final save",
+    "possible Mongo fences after ambiguous heartbeat save",
+    "partial startup failure quiesces consumers but preserves active completion admission",
+    "preserve startup-failed diagnostic precedence while automatic drain is active"
+  ],
+  "focused": {
+    "name": "sails-guard-focused",
+    "passing": 113,
+    "exitCode": 0,
+    "scope": [
+      "AgendaQueueService",
+      "AuditFollowupDrain",
+      "persistence-foundation",
+      "requestLifetime",
+      "redboxSession",
+      "persistence-shutdown"
+    ],
+    "strictTypes": "heartbeat-owned-types",
+    "sha256": "b80892a63fe9c83189fe9ae9812172af0f15340907bd4213c063915f4d97d3ed",
+    "strictTypesSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "realAgendaRemovalInterleavings": 16,
+    "strictTypesSource": "127595832",
+    "finalRequiredTypes": "All required persistence/cache/root/production typechecks passed at 0341c6241, including the new Sails unit."
+  },
+  "live": [
+    {
+      "name": "maintenance-after",
+      "passing": 36,
+      "exitCode": 0,
+      "scope": "five audit operations, admitted revision maintenance under both selectors, rejection/error release",
+      "sha256": "d0e3225c2262d8007814c818d818ce5210f9858ba8f16554fb4cbe40254a49c4"
+    },
+    {
+      "name": "uncertain-heartbeat-after",
+      "passing": 25,
+      "exitCode": 0,
+      "scope": "Actual SQS held acknowledgement, recovered Mongo redelivery, equal-timestamp successor fencing after lost response, current stored null recovery and future retry preservation, actual Job.touch renewal followed by failed final save, ambiguous applied renewal",
+      "sha256": "95a513ce08405e8db2dba9e82d6f71431a4ada064f280bf08b6930ab80e050ea"
+    },
+    {
+      "name": "figshare-heartbeat-after",
+      "passing": [
+        57,
+        57
+      ],
+      "exitCode": 0,
+      "scope": "Figshare worker HTTP/Mongo controls, both selectors, active heartbeat held through lease release",
+      "sha256": "b2501971c7b7df7228a6c694c6c7cf2735cde9608a673777138e47b89b9a4ea5"
+    }
+  ],
+  "beforeProofLoading": "Earlier probes load immutable git source in memory; Sails baseline controls use unchanged f96082066 source/built artifacts before the guard. No reviewed worktree source was changed and reverted.",
+  "excludedSetupCorrections": [
+    "fixture import/model stub setup",
+    "strict test type annotations",
+    "supported fractional-second Agenda test clock",
+    "mandatory SQS ReceiveMessage MD5 checksum"
+  ],
+  "rawLogs": "Ignored .tmp only; retained evidence contains counts and SHA-256, no transcripts or patches.",
+  "diagnosticPrecedence": {
+    "commit": "f96082066",
+    "severity": "P3",
+    "trivial": true,
+    "trigger": "automatic startup-failure drain masked the existing startup-failed diagnostic with draining",
+    "beforeCommand": "storage-owner-failures",
+    "beforeSource": "127595832",
+    "beforeExitCode": 1,
+    "afterPassing": 5,
+    "afterExitCode": 0,
+    "afterSha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+    "flaky": false,
+    "beforeSha256": "48f26eb303ac20f68929b0c91e7e33fb427ad299066a07fe193259e3a5daa218"
+  },
+  "sailsShutdown": {
+    "commit": "0341c6241",
+    "unitRealSails": true,
+    "livePassing": 4,
+    "controls": [
+      "lower",
+      "SIGTERM",
+      "SIGINT",
+      "SIGUSR2"
+    ],
+    "nativeCheckpointPreserved": true,
+    "concurrentAttemptsCoalesce": true,
+    "liveSha256": "bf518d18c71904a8378b1b02ccb2f82d752068e7755f45f1c11c99b65cfc2cc1",
+    "persistenceTypesExitCode": 0,
+    "persistenceTypesSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lintExitCode": 0,
+    "lintSha256": "c2cdfd9d235ecb54b619e02b32b49610c7577f96d6348203b0615845473ed023"
+  }
+}

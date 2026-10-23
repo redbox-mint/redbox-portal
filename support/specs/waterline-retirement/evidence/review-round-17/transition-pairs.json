@@ -1,0 +1,627 @@
+{
+  "source": "3691a3d73",
+  "method": "Exhaustive ordered transition-pair source inspection; linked witnesses cover atoms/risky overlaps, not separate execution of every cell.",
+  "events": [
+    "claim",
+    "heartbeat",
+    "ambiguous_write",
+    "redelivery",
+    "completion",
+    "state_save_failure",
+    "expiry",
+    "drain_deadline",
+    "release",
+    "release_retry",
+    "retry_save",
+    "user_save"
+  ],
+  "pairCount": 288,
+  "backendDifferences": {
+    "mongodb": "Persisted unique per-acquisition lastModifiedBy fences both state save and release. Heartbeat timestamps remain normal lease clocks, not retained candidate identities.",
+    "sqs": "AWS receipt handle identifies delivery. Exact terminal errors end only that receipt. Stale DeleteMessage may acknowledge without affecting a newer receipt."
+  },
+  "semantics": "Each row follows one target delivery. claim/redelivery can introduce another independent delivery; later stale operations still use their captured target. completion/retry_save/release mean acknowledged success; release_retry includes retained failure and successful/ended outcomes, handled conditionally. drain_deadline is an application overlay, including already-admitted late acquisitions.",
+  "rules": {
+    "new_delivery": {
+      "outcome": "New acquisition has an independent delivery key; old owner/acknowledgement cannot remove or release it. Open admission is required. An already-admitted late receive is owned and immediately released.",
+      "code": [
+        "ownAgendaRepository/acquiring",
+        "releaseClaim"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/old-unlock",
+        "AgendaQueueService/same-ID late claim",
+        "AgendaQueueService/older SQS receipt unlocks or completes"
+      ]
+    },
+    "late_delivery": {
+      "outcome": "New claim calls are refused after drain. An already-admitted receive that returns after deadline is recorded, released in its owned operation and not run; release failure retains it for retry.",
+      "code": [
+        "ownAgendaRepository/acquiring closing guard",
+        "drainWorkers",
+        "withDrainDeadline"
+      ],
+      "witnesses": [
+        "AgendaQueueService/settles a late claim",
+        "AgendaQueueService/failed late-claim unlocks",
+        "default-drain"
+      ]
+    },
+    "ordered_save": {
+      "outcome": "Snapshot submission, then serialize with preceding save/release. Retain owned record for renewal; acknowledged lockless completion/retry ends it. Ambiguous/nonterminal failure retains it. Confirmed ownership/receipt loss ends it.",
+      "code": [
+        "ownAgendaRepository/saveJobState",
+        "sequence",
+        "Mongo owned predicate",
+        "receiptEnded"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/overlapping-touch",
+        "storage-agenda-claims/retry-reply-loss",
+        "storage-agenda-claims/completed-reply-loss",
+        "AgendaQueueService/ended and AccessDenied state-save errors"
+      ]
+    },
+    "expired_save": {
+      "outcome": "Local elapsed expiry is not permission to delete ownership. With no successor Mongo may still save its own lock; with a successor its owner predicate misses and ends only the old record. SQS ended-receipt errors end only that receipt; ambiguous errors remain owned.",
+      "code": [
+        "Mongo owned predicate",
+        "ownAgendaRepository/saveJobState catch",
+        "receiptEnded"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/successor-save",
+        "AgendaQueueService/expired prefetch receipts",
+        "AgendaQueueService/older SQS delivery completes"
+      ]
+    },
+    "redelivered_save": {
+      "outcome": "New delivery remains independent. Old Mongo state writes miss the unique new owner; old SQS writes address only the old receipt and may fail terminally or be acknowledged without touching the new receipt. Never delete the new record.",
+      "code": [
+        "Mongo owned predicate",
+        "claimKey",
+        "ownAgendaRepository/saveJobState"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/successor-save",
+        "AgendaQueueService/older SQS delivery completes"
+      ]
+    },
+    "ended_save": {
+      "outcome": "The ended delivery has no map entry. Reject state save locally without dispatch; future persisted retry/completion and any new delivery are preserved.",
+      "code": [
+        "ownAgendaRepository/saveJobState missing/recheck guards"
+      ],
+      "witnesses": [
+        "AgendaQueueService/serializes SQS renewal before release",
+        "storage-agenda-claims/completed-reply-loss",
+        "storage-agenda-claims/retry-reply-loss"
+      ]
+    },
+    "deadline_save": {
+      "outcome": "Existing accepted jobs retain ownership of final state writes after deadline. The deadline refuses completion enqueues, not cleanup/state-write ownership. Serialize and retain failed outcomes; resources remain open until work and release settle.",
+      "code": [
+        "drainWorkers",
+        "withDrainDeadline",
+        "ownBackendOperation",
+        "ownAgendaRepository/saveJobState"
+      ],
+      "witnesses": [
+        "AgendaQueueService/watchdog-completed processor",
+        "default-drain",
+        "http-default-drain"
+      ]
+    },
+    "release_outcome_save": {
+      "outcome": "If the previous release retry succeeded/confirmed ended, reject save without dispatch. If it failed nonterminally, serialize a still-owned save; remote ownership predicates/receipt classification resolve an applied-but-unacknowledged release safely.",
+      "code": [
+        "releaseClaim",
+        "sequence",
+        "ownAgendaRepository/saveJobState"
+      ],
+      "witnesses": [
+        "AgendaQueueService/early unlock failure",
+        "AgendaQueueService/AccessDenied ownership",
+        "storage-ownership/applied release reply loss"
+      ]
+    },
+    "release_owned": {
+      "outcome": "Use the single serialized, deduplicated release path. Mongo matches only this delivery owner and a Date lock, preserving future nextRunAt and repairing null/missing state. SQS addresses only this receipt. Failure retains the record for retry.",
+      "code": [
+        "releaseClaim",
+        "Mongo owned/pipeline",
+        "SQS release/receiptEnded"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/old-unlock",
+        "storage-agenda-claims/overlapping-touch",
+        "storage-agenda-claims/final-save-refused",
+        "AgendaQueueService/serializes SQS renewal before release"
+      ]
+    },
+    "release_redelivered": {
+      "outcome": "An old Mongo release misses a successor owner even at the same timestamp. An old SQS release uses its own receipt and never the redelivered receipt. The new record remains independently releasable/retryable.",
+      "code": [
+        "claimKey",
+        "Mongo owned predicate",
+        "releaseClaim"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/old-unlock",
+        "AgendaQueueService/older SQS receipt unlocks",
+        "AgendaQueueService/same-ID late claim"
+      ]
+    },
+    "release_uncertain": {
+      "outcome": "Release follows the uncertain save. If a final save applied, its unlocked Mongo document cannot be resurrected; if it did not, the owned lock becomes runnable. SQS may confirm ended or remain retryable.",
+      "code": [
+        "sequence",
+        "Mongo owned/pipeline",
+        "receiptEnded"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/completed-reply-loss",
+        "storage-agenda-claims/retry-reply-loss",
+        "storage-agenda-claims/final-save-refused",
+        "storage-agenda-claims/many-failed-touches"
+      ]
+    },
+    "release_ended": {
+      "outcome": "No local record remains, so release/retry is a no-op. Never dispatch an ID-only fallback that could release a successor or erase a persisted retry.",
+      "code": [
+        "releaseClaim missing guard",
+        "unlockJobs retained enumeration"
+      ],
+      "witnesses": [
+        "AgendaQueueService/routes single-unlock exactly once",
+        "AgendaQueueService/does not unlock successfully released claim again"
+      ]
+    },
+    "release_again": {
+      "outcome": "Concurrent retries share one release promise; nonterminal failure clears only that promise, retaining the record. A later attempt succeeds, confirms ended, or remains retryable. An applied lost reply cannot release a successor.",
+      "code": [
+        "releaseClaim/releasing promise",
+        "Mongo owned predicate",
+        "receiptEnded"
+      ],
+      "witnesses": [
+        "AgendaQueueService/late claim after older release reply",
+        "storage-ownership/applied release reply loss",
+        "AgendaQueueService/expired prefetch receipts",
+        "AgendaQueueService/partial unlock failure"
+      ]
+    },
+    "drain_overlay": {
+      "outcome": "Stop further acquisition promptly. Expiring admission does not end outstanding claims or authorize closing resources. Await actual handlers, HTTP work, completion/enqueue/repository operations; retain failed ownership for a cleanup retry.",
+      "code": [
+        "drainWorkers",
+        "drainAgenda",
+        "withDrainDeadline"
+      ],
+      "witnesses": [
+        "default-drain",
+        "http-default-drain",
+        "storage-owner-failures",
+        "storage-shutdown"
+      ]
+    },
+    "expiry_owned": {
+      "outcome": "Keep local uncertain ownership until an acknowledged outcome or remote confirmed ownership loss. No timer deletes a possible claim. Redelivery obtains an independent owner and normal fenced save/release resolves the old one.",
+      "code": [
+        "ownAgendaRepository/claims lifecycle",
+        "Mongo owned predicate",
+        "receiptEnded"
+      ],
+      "witnesses": [
+        "storage-ownership/recovered prefetch",
+        "AgendaQueueService/ended SQS receipt errors",
+        "storage-agenda-claims/old-unlock"
+      ]
+    },
+    "expiry_ended": {
+      "outcome": "Ended delivery remains ended; elapsed time cannot recreate its record, retry or release. A new receive/claim is a separate transition.",
+      "code": [
+        "claims deletion",
+        "acquiring record insertion only"
+      ],
+      "witnesses": [
+        "AgendaQueueService/SQS lifetime tests",
+        "receipt-lifetime"
+      ]
+    },
+    "user_save": {
+      "outcome": "Active Mongo handler Job.save is serialized with state writes/release; update user/scheduling fields under the owner/live-lock predicate and retain processor fields and the ownership record. A Mongo owner/live-lock miss ends only the captured delivery. SQS keeps its enqueue-copy semantics without ending/releasing the current receipt.",
+      "code": [
+        "ownAgendaRepository/saveJob",
+        "Mongo repository.saveJob owned update",
+        "SQS pinned saveJob"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/user-save",
+        "storage-agenda-claims/successor-save",
+        "AgendaQueueService/SQS receipt controls"
+      ]
+    },
+    "user_save_ended": {
+      "outcome": "An ended/stale Mongo job carrying a claim token cannot fall back to an unfenced write. SQS user-save remains an explicit enqueue-copy, never a mutation/release of another receipt. Fresh unclaimed creation/scheduling retains the pinned repository path.",
+      "code": [
+        "Mongo repository.saveJob token/admission guard",
+        "ownAgendaRepository/saveJob"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/user-save",
+        "storage-agenda-claims/successor-save",
+        "fresh-mocha",
+        "fresh-bruno"
+      ]
+    },
+    "deadline_user_save": {
+      "outcome": "An already accepted Mongo handler can persist user/scheduling fields while resources remain owned; save/release is serialized. Native SQS Job.save retains upstream enqueue-copy behavior. QueueService completion enqueue admission remains bounded separately; this wrapper does not claim to remove the Job.agenda native SDK API.",
+      "code": [
+        "ownAgendaRepository/saveJob",
+        "ownBackendOperation",
+        "completionAdmission"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/user-save",
+        "default-drain",
+        "http-default-drain"
+      ]
+    },
+    "release_outcome_user_save": {
+      "outcome": "After a successful/ended release retry, reject a Mongo delivery user save without a database write. After a failed retry, serialize the owned user save; an applied-but-unacknowledged release produces an owner/live-lock miss rather than resurrecting it. SQS retains explicit enqueue-copy behavior without mutating/releasing any old or newer receipt.",
+      "code": [
+        "releaseClaim",
+        "ownAgendaRepository/saveJob",
+        "Mongo owned user-save predicate"
+      ],
+      "witnesses": [
+        "storage-agenda-claims/user-save",
+        "storage-agenda-claims/successor-save",
+        "AgendaQueueService/failed release retry controls"
+      ]
+    }
+  },
+  "matrices": {
+    "mongodb": {
+      "claim": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "heartbeat": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "ambiguous_write": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_uncertain",
+        "release_retry": "release_uncertain",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "redelivery": {
+        "claim": "new_delivery",
+        "heartbeat": "redelivered_save",
+        "ambiguous_write": "redelivered_save",
+        "redelivery": "new_delivery",
+        "completion": "redelivered_save",
+        "state_save_failure": "redelivered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_redelivered",
+        "release_retry": "release_redelivered",
+        "retry_save": "redelivered_save",
+        "user_save": "user_save_ended"
+      },
+      "completion": {
+        "claim": "new_delivery",
+        "heartbeat": "ended_save",
+        "ambiguous_write": "ended_save",
+        "redelivery": "new_delivery",
+        "completion": "ended_save",
+        "state_save_failure": "ended_save",
+        "expiry": "expiry_ended",
+        "drain_deadline": "drain_overlay",
+        "release": "release_ended",
+        "release_retry": "release_ended",
+        "retry_save": "ended_save",
+        "user_save": "user_save_ended"
+      },
+      "state_save_failure": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_uncertain",
+        "release_retry": "release_uncertain",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "expiry": {
+        "claim": "new_delivery",
+        "heartbeat": "expired_save",
+        "ambiguous_write": "expired_save",
+        "redelivery": "new_delivery",
+        "completion": "expired_save",
+        "state_save_failure": "expired_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "expired_save",
+        "user_save": "user_save"
+      },
+      "drain_deadline": {
+        "claim": "late_delivery",
+        "heartbeat": "deadline_save",
+        "ambiguous_write": "deadline_save",
+        "redelivery": "late_delivery",
+        "completion": "deadline_save",
+        "state_save_failure": "deadline_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "deadline_save",
+        "user_save": "deadline_user_save"
+      },
+      "release": {
+        "claim": "new_delivery",
+        "heartbeat": "ended_save",
+        "ambiguous_write": "ended_save",
+        "redelivery": "new_delivery",
+        "completion": "ended_save",
+        "state_save_failure": "ended_save",
+        "expiry": "expiry_ended",
+        "drain_deadline": "drain_overlay",
+        "release": "release_ended",
+        "release_retry": "release_ended",
+        "retry_save": "ended_save",
+        "user_save": "user_save_ended"
+      },
+      "release_retry": {
+        "claim": "new_delivery",
+        "heartbeat": "release_outcome_save",
+        "ambiguous_write": "release_outcome_save",
+        "redelivery": "new_delivery",
+        "completion": "release_outcome_save",
+        "state_save_failure": "release_outcome_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_again",
+        "release_retry": "release_again",
+        "retry_save": "release_outcome_save",
+        "user_save": "release_outcome_user_save"
+      },
+      "retry_save": {
+        "claim": "new_delivery",
+        "heartbeat": "ended_save",
+        "ambiguous_write": "ended_save",
+        "redelivery": "new_delivery",
+        "completion": "ended_save",
+        "state_save_failure": "ended_save",
+        "expiry": "expiry_ended",
+        "drain_deadline": "drain_overlay",
+        "release": "release_ended",
+        "release_retry": "release_ended",
+        "retry_save": "ended_save",
+        "user_save": "user_save_ended"
+      },
+      "user_save": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      }
+    },
+    "sqs": {
+      "claim": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "heartbeat": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "ambiguous_write": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_uncertain",
+        "release_retry": "release_uncertain",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "redelivery": {
+        "claim": "new_delivery",
+        "heartbeat": "redelivered_save",
+        "ambiguous_write": "redelivered_save",
+        "redelivery": "new_delivery",
+        "completion": "redelivered_save",
+        "state_save_failure": "redelivered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_redelivered",
+        "release_retry": "release_redelivered",
+        "retry_save": "redelivered_save",
+        "user_save": "user_save_ended"
+      },
+      "completion": {
+        "claim": "new_delivery",
+        "heartbeat": "ended_save",
+        "ambiguous_write": "ended_save",
+        "redelivery": "new_delivery",
+        "completion": "ended_save",
+        "state_save_failure": "ended_save",
+        "expiry": "expiry_ended",
+        "drain_deadline": "drain_overlay",
+        "release": "release_ended",
+        "release_retry": "release_ended",
+        "retry_save": "ended_save",
+        "user_save": "user_save_ended"
+      },
+      "state_save_failure": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_uncertain",
+        "release_retry": "release_uncertain",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      },
+      "expiry": {
+        "claim": "new_delivery",
+        "heartbeat": "expired_save",
+        "ambiguous_write": "expired_save",
+        "redelivery": "new_delivery",
+        "completion": "expired_save",
+        "state_save_failure": "expired_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "expired_save",
+        "user_save": "user_save"
+      },
+      "drain_deadline": {
+        "claim": "late_delivery",
+        "heartbeat": "deadline_save",
+        "ambiguous_write": "deadline_save",
+        "redelivery": "late_delivery",
+        "completion": "deadline_save",
+        "state_save_failure": "deadline_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "deadline_save",
+        "user_save": "deadline_user_save"
+      },
+      "release": {
+        "claim": "new_delivery",
+        "heartbeat": "ended_save",
+        "ambiguous_write": "ended_save",
+        "redelivery": "new_delivery",
+        "completion": "ended_save",
+        "state_save_failure": "ended_save",
+        "expiry": "expiry_ended",
+        "drain_deadline": "drain_overlay",
+        "release": "release_ended",
+        "release_retry": "release_ended",
+        "retry_save": "ended_save",
+        "user_save": "user_save_ended"
+      },
+      "release_retry": {
+        "claim": "new_delivery",
+        "heartbeat": "release_outcome_save",
+        "ambiguous_write": "release_outcome_save",
+        "redelivery": "new_delivery",
+        "completion": "release_outcome_save",
+        "state_save_failure": "release_outcome_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_again",
+        "release_retry": "release_again",
+        "retry_save": "release_outcome_save",
+        "user_save": "release_outcome_user_save"
+      },
+      "retry_save": {
+        "claim": "new_delivery",
+        "heartbeat": "ended_save",
+        "ambiguous_write": "ended_save",
+        "redelivery": "new_delivery",
+        "completion": "ended_save",
+        "state_save_failure": "ended_save",
+        "expiry": "expiry_ended",
+        "drain_deadline": "drain_overlay",
+        "release": "release_ended",
+        "release_retry": "release_ended",
+        "retry_save": "ended_save",
+        "user_save": "user_save_ended"
+      },
+      "user_save": {
+        "claim": "new_delivery",
+        "heartbeat": "ordered_save",
+        "ambiguous_write": "ordered_save",
+        "redelivery": "new_delivery",
+        "completion": "ordered_save",
+        "state_save_failure": "ordered_save",
+        "expiry": "expiry_owned",
+        "drain_deadline": "drain_overlay",
+        "release": "release_owned",
+        "release_retry": "release_owned",
+        "retry_save": "ordered_save",
+        "user_save": "user_save"
+      }
+    }
+  }
+}

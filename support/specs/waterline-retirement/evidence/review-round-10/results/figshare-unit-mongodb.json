@@ -1,0 +1,15 @@
+{
+  "name": "figshare-unit-mongodb",
+  "stage": "retained",
+  "command": "J_FIGSHARE_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh figshare-unit",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 22094,
+  "sha256": "7406c45ec9cc91ed2c21c66cb55ac9f2ed270cf78dd17aeab2011fa9b2b1181b",
+  "counts": {
+    "passing": [56],
+    "pending": [],
+    "failing": []
+  },
+  "checks": []
+}

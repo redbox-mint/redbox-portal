@@ -1,0 +1,104 @@
+{
+  "input": "2cdb5442dd3994b345b43c2dcb5faa615ff113f8",
+  "fixed": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+  "fixes": [
+    "a23b7cbe4",
+    "3691a3d73"
+  ],
+  "baselineReplay": {
+    "mechanism": "Only AgendaQueueService is transpiled in memory from exact input 2cdb5442d and loaded at its normal dist module path; other ReDBox runtime/compiled artifacts and dependency manifests are unchanged; replay uses the installed pinned dependencies. No worktree source reversal.",
+    "loaderSha256": "ce25264ee9fb670b97d0e61555390044df5596ae952be2dc01893aa31a00ad7b",
+    "results": [
+      {
+        "name": "old-unlock-baseline",
+        "command": "CLAIM_SCENARIO=old-unlock NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-17/old-runtime.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+        "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+        "exitCode": 1,
+        "expectedExitCode": 1,
+        "durationMs": 2393,
+        "sha256": "665bd6b662f6816d57f27abd9614abf5d50d14dd15b4eb18451398243515cf35",
+        "counts": {
+          "passing": [],
+          "pending": [],
+          "failing": []
+        },
+        "summary": []
+      },
+      {
+        "name": "overlapping-touch-baseline",
+        "command": "CLAIM_SCENARIO=overlapping-touch NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-17/old-runtime.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+        "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+        "exitCode": 1,
+        "expectedExitCode": 1,
+        "durationMs": 3904,
+        "sha256": "099306d2ac3c762e614f31ac958b97d0319ed3444d99e21217cbf14760d0f33d",
+        "counts": {
+          "passing": [],
+          "pending": [],
+          "failing": []
+        },
+        "summary": []
+      },
+      {
+        "name": "many-failed-touches-baseline",
+        "command": "CLAIM_SCENARIO=many-failed-touches NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-17/old-runtime.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+        "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+        "exitCode": 1,
+        "expectedExitCode": 1,
+        "durationMs": 4209,
+        "sha256": "55785f825e4191b8633fed54001e4b7b9133cbd683a2cacfae7d1d55c48db2da",
+        "counts": {
+          "passing": [],
+          "pending": [],
+          "failing": []
+        },
+        "summary": []
+      }
+    ]
+  },
+  "fixedLive": {
+    "name": "agenda-claims",
+    "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh agenda-claims",
+    "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+    "exitCode": 0,
+    "expectedExitCode": 0,
+    "durationMs": 2316,
+    "sha256": "e82f54596bd77c03db855c7653fc7c4c70c7567568328253352664060226ff3a",
+    "counts": {
+      "passing": [],
+      "pending": [],
+      "failing": []
+    },
+    "summary": [
+      {
+        "passing": 8,
+        "failures": 0,
+        "realMongoAndAgenda": true
+      }
+    ]
+  },
+  "fixedFocused": {
+    "name": "focused",
+    "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/AgendaQueueService.test.ts test/services/AuditFollowupDrain.test.ts test/middleware/requestLifetime.test.ts",
+    "source": "3691a3d73e0c6b942fb3d243c8ee00c181308f40",
+    "exitCode": 0,
+    "expectedExitCode": 0,
+    "durationMs": 9761,
+    "sha256": "d47fd0a49158c9f6f85a6fa9a11935cd532738cbc6ebe8f345260b8973632037",
+    "counts": {
+      "passing": [
+        116
+      ],
+      "pending": [],
+      "failing": []
+    },
+    "summary": []
+  },
+  "pairInspection": {
+    "backends": 2,
+    "transitions": 12,
+    "orderedPairs": 288,
+    "method": "Source inspection with named test witnesses; not a claim of independent live execution of each pair."
+  },
+  "design": "ownership-state-machine.md"
+}

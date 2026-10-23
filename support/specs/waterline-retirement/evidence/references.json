@@ -1,0 +1,1508 @@
+{
+  "sourceCommit": "fb37b37d119a484c96818560cf8a853417c1ec99",
+  "declared": [
+    {
+      "source": "AppConfig",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "Q",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "AsynchProgress",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "J1",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "BrandingConfig",
+      "field": "roles",
+      "target": "Role",
+      "group": "B",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "collection": "role",
+        "via": "branding"
+      },
+      "loaded": {
+        "collection": "role",
+        "via": "branding",
+        "references": "role",
+        "referenceIdentity": "role",
+        "on": "branding",
+        "onKey": "branding"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "BrandingConfigHistory",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "B",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "Counter",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "S",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "DashboardType",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "R",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCategory",
+      "field": "source",
+      "target": "FigshareVocabularySource",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "figsharevocabularysource"
+      },
+      "loaded": {
+        "model": "figsharevocabularysource",
+        "columnName": "source",
+        "type": "string",
+        "foreignKey": true,
+        "references": "figsharevocabularysource",
+        "referenceIdentity": "figsharevocabularysource",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCategory",
+      "field": "entry",
+      "target": "VocabularyEntry",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "vocabularyentry"
+      },
+      "loaded": {
+        "model": "vocabularyentry",
+        "columnName": "entry",
+        "type": "string",
+        "foreignKey": true,
+        "references": "vocabularyentry",
+        "referenceIdentity": "vocabularyentry",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCrosswalk",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCrosswalk",
+      "field": "localVocabulary",
+      "target": "Vocabulary",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "vocabulary"
+      },
+      "loaded": {
+        "model": "vocabulary",
+        "columnName": "localVocabulary",
+        "type": "string",
+        "foreignKey": true,
+        "references": "vocabulary",
+        "referenceIdentity": "vocabulary",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCrosswalk",
+      "field": "figshareSource",
+      "target": "FigshareVocabularySource",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "figsharevocabularysource"
+      },
+      "loaded": {
+        "model": "figsharevocabularysource",
+        "columnName": "figshareSource",
+        "type": "string",
+        "foreignKey": true,
+        "references": "figsharevocabularysource",
+        "referenceIdentity": "figsharevocabularysource",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCrosswalkMapping",
+      "field": "crosswalk",
+      "target": "FigshareVocabularyCrosswalk",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "figsharevocabularycrosswalk"
+      },
+      "loaded": {
+        "model": "figsharevocabularycrosswalk",
+        "columnName": "crosswalk",
+        "type": "string",
+        "foreignKey": true,
+        "references": "figsharevocabularycrosswalk",
+        "referenceIdentity": "figsharevocabularycrosswalk",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCrosswalkMapping",
+      "field": "localEntry",
+      "target": "VocabularyEntry",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "vocabularyentry"
+      },
+      "loaded": {
+        "model": "vocabularyentry",
+        "columnName": "localEntry",
+        "type": "string",
+        "foreignKey": true,
+        "references": "vocabularyentry",
+        "referenceIdentity": "vocabularyentry",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularyCrosswalkMapping",
+      "field": "figshareCategory",
+      "target": "FigshareVocabularyCategory",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "figsharevocabularycategory"
+      },
+      "loaded": {
+        "model": "figsharevocabularycategory",
+        "columnName": "figshareCategory",
+        "type": "string",
+        "foreignKey": true,
+        "references": "figsharevocabularycategory",
+        "referenceIdentity": "figsharevocabularycategory",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularySource",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularySource",
+      "field": "vocabulary",
+      "target": "Vocabulary",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "vocabulary"
+      },
+      "loaded": {
+        "model": "vocabulary",
+        "columnName": "vocabulary",
+        "type": "string",
+        "foreignKey": true,
+        "references": "vocabulary",
+        "referenceIdentity": "vocabulary",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "FigshareVocabularySyncRun",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "Form",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "R",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "I18nBundle",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "Q",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "I18nBundle",
+      "field": "entries",
+      "target": "I18nTranslation",
+      "group": "Q",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "collection": "i18ntranslation",
+        "via": "bundle"
+      },
+      "loaded": {
+        "collection": "i18ntranslation",
+        "via": "bundle",
+        "references": "i18ntranslation",
+        "referenceIdentity": "i18ntranslation",
+        "on": "bundle",
+        "onKey": "bundle"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "I18nTranslation",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "Q",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "I18nTranslation",
+      "field": "bundle",
+      "target": "I18nBundle",
+      "group": "Q",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "i18nbundle"
+      },
+      "loaded": {
+        "model": "i18nbundle",
+        "columnName": "bundle",
+        "type": "string",
+        "foreignKey": true,
+        "references": "i18nbundle",
+        "referenceIdentity": "i18nbundle",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "NamedQuery",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "R",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "PathRule",
+      "field": "role",
+      "target": "Role",
+      "group": "U",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "role"
+      },
+      "loaded": {
+        "model": "role",
+        "columnName": "role",
+        "type": "string",
+        "foreignKey": true,
+        "references": "role",
+        "referenceIdentity": "role",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "PathRule",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "U",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "RecordType",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "R",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "RecordType",
+      "field": "workflowSteps",
+      "target": "WorkflowStep",
+      "group": "R",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "collection": "workflowStep",
+        "via": "recordType"
+      },
+      "loaded": {
+        "collection": "workflowstep",
+        "via": "recordType",
+        "references": "workflowstep",
+        "referenceIdentity": "workflowstep",
+        "on": "recordType",
+        "onKey": "recordType"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "RBReport",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "R",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "Role",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "U",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "Role",
+      "field": "users",
+      "target": "User",
+      "group": "U",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "dominant": true,
+        "collection": "user",
+        "via": "roles"
+      },
+      "loaded": {
+        "collection": "user",
+        "references": "role_users__user_roles",
+        "referenceIdentity": "role_users__user_roles",
+        "on": "role_users",
+        "onKey": "role_users"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "User",
+      "field": "workspaceApps",
+      "target": "WorkspaceApp",
+      "group": "U",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "collection": "workspaceApp",
+        "via": "user"
+      },
+      "loaded": {
+        "collection": "workspaceapp",
+        "via": "user",
+        "references": "workspaceapp",
+        "referenceIdentity": "workspaceapp",
+        "on": "user",
+        "onKey": "user"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "User",
+      "field": "roles",
+      "target": "Role",
+      "group": "U",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "dominant": true,
+        "collection": "role",
+        "via": "users"
+      },
+      "loaded": {
+        "collection": "role",
+        "references": "role_users__user_roles",
+        "referenceIdentity": "role_users__user_roles",
+        "on": "user_roles",
+        "onKey": "user_roles"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "Vocabulary",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "Vocabulary",
+      "field": "entries",
+      "target": "VocabularyEntry",
+      "group": "V",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "collection": "vocabularyentry",
+        "via": "vocabulary"
+      },
+      "loaded": {
+        "collection": "vocabularyentry",
+        "via": "vocabulary",
+        "references": "vocabularyentry",
+        "referenceIdentity": "vocabularyentry",
+        "on": "vocabulary",
+        "onKey": "vocabulary"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "VocabularyEntry",
+      "field": "vocabulary",
+      "target": "Vocabulary",
+      "group": "V",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "vocabulary"
+      },
+      "loaded": {
+        "model": "vocabulary",
+        "columnName": "vocabulary",
+        "type": "string",
+        "foreignKey": true,
+        "references": "vocabulary",
+        "referenceIdentity": "vocabulary",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "VocabularyEntry",
+      "field": "parent",
+      "target": "VocabularyEntry",
+      "group": "V",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "vocabularyentry"
+      },
+      "loaded": {
+        "model": "vocabularyentry",
+        "columnName": "parent",
+        "type": "string",
+        "foreignKey": true,
+        "references": "vocabularyentry",
+        "referenceIdentity": "vocabularyentry",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "VocabularyEntry",
+      "field": "children",
+      "target": "VocabularyEntry",
+      "group": "V",
+      "cardinality": "many",
+      "required": false,
+      "declaration": {
+        "collection": "vocabularyentry",
+        "via": "parent"
+      },
+      "loaded": {
+        "collection": "vocabularyentry",
+        "via": "parent",
+        "references": "vocabularyentry",
+        "referenceIdentity": "vocabularyentry",
+        "on": "parent",
+        "onKey": "parent"
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "WorkflowStep",
+      "field": "form",
+      "target": "Form",
+      "group": "R",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "form"
+      },
+      "loaded": {
+        "model": "form",
+        "columnName": "form",
+        "type": "string",
+        "foreignKey": true,
+        "references": "form",
+        "referenceIdentity": "form",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "WorkflowStep",
+      "field": "recordType",
+      "target": "RecordType",
+      "group": "R",
+      "cardinality": "one",
+      "required": false,
+      "declaration": {
+        "model": "recordType"
+      },
+      "loaded": {
+        "model": "recordtype",
+        "columnName": "recordType",
+        "type": "string",
+        "foreignKey": true,
+        "references": "recordtype",
+        "referenceIdentity": "recordtype",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "WorkspaceApp",
+      "field": "user",
+      "target": "User",
+      "group": "U",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "user"
+      },
+      "loaded": {
+        "model": "user",
+        "columnName": "user",
+        "type": "string",
+        "foreignKey": true,
+        "references": "user",
+        "referenceIdentity": "user",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    },
+    {
+      "source": "WorkspaceType",
+      "field": "branding",
+      "target": "BrandingConfig",
+      "group": "R",
+      "cardinality": "one",
+      "required": true,
+      "declaration": {
+        "required": true,
+        "model": "brandingconfig"
+      },
+      "loaded": {
+        "model": "brandingconfig",
+        "columnName": "branding",
+        "type": "string",
+        "foreignKey": true,
+        "references": "brandingconfig",
+        "referenceIdentity": "brandingconfig",
+        "on": "_id",
+        "onKey": "id",
+        "autoMigrations": {
+          "unique": false,
+          "autoIncrement": false,
+          "columnType": "_stringkey"
+        }
+      },
+      "policy": "No inferred foreign key, delete cascade or uniqueness. Membership duplicate/dangling/deletion observed separately; other groups require operation-specific deletion tests before adoption."
+    }
+  ],
+  "application": [
+    {
+      "source": "User",
+      "fields": "linkedPrimaryUserId",
+      "target": "User",
+      "owner": "UsersService",
+      "semantics": "optional linked alias target"
+    },
+    {
+      "source": "UserLink",
+      "fields": "primaryUserId,secondaryUserId,primaryUsername,secondaryUsername,brandId,createdBy",
+      "target": "User/BrandingConfig",
+      "owner": "UsersService",
+      "semantics": "ID and username graph; actors may be historical"
+    },
+    {
+      "source": "UserAudit",
+      "fields": "user,additionalContext",
+      "target": "User/Role/Record snapshots",
+      "owner": "UsersService",
+      "semantics": "historical JSON/string payload, no foreign-key cascade"
+    },
+    {
+      "source": "AsynchProgress",
+      "fields": "started_by,relatedRecordId,metadata",
+      "target": "User/Record",
+      "owner": "AsynchProgressService",
+      "semantics": "username/OID/application payload"
+    },
+    {
+      "source": "WorkspaceAsync",
+      "fields": "recordType,started_by,args",
+      "target": "RecordType/User and configured service/method targets",
+      "owner": "WorkspaceService",
+      "semantics": "name/username/JSON invocation arguments"
+    },
+    {
+      "source": "HarvestRun",
+      "fields": "sourceRunId,brandId,recordType,startedBy",
+      "target": "BrandingConfig/RecordType/User/external source",
+      "owner": "HarvestRunService",
+      "semantics": "run dimensions, string IDs/names"
+    },
+    {
+      "source": "HarvestRunChunk",
+      "fields": "runId,brandId,recordType,sourceRunId",
+      "target": "HarvestRun/BrandingConfig/RecordType",
+      "owner": "HarvestRunService",
+      "semantics": "run ID string and source scope"
+    },
+    {
+      "source": "HarvestRecordEvent",
+      "fields": "runId,chunkId,brandId,recordType,oid,harvestId,recordSnapshot",
+      "target": "HarvestRun/HarvestRunChunk/Record/external source",
+      "owner": "HarvestRunService",
+      "semantics": "historical event references, no implicit deletion"
+    },
+    {
+      "source": "SecurityEvent",
+      "fields": "brandId,portalId,actor,subject,resource,correlationId,destinationStates",
+      "target": "BrandingConfig/User/Record/configured destination",
+      "owner": "SecurityEventService/siem",
+      "semantics": "redacted snapshots and operational destination identities"
+    },
+    {
+      "source": "SiemDeliveryAttempt",
+      "fields": "eventId,brandId,destinationId,leaseToken",
+      "target": "SecurityEvent/configured destination",
+      "owner": "siem/SiemDeliveryStore",
+      "semantics": "eventId business key, not ObjectId FK; token fencing"
+    },
+    {
+      "source": "FigshareSync",
+      "fields": "oid,brandId,binding,namespace,articleId,work,receipts,checkpoints,publicationAuditKey",
+      "target": "Record/BrandingConfig/remote Figshare/IntegrationAudit",
+      "owner": "figshare-v2",
+      "semantics": "OID, remote identity, source-intent generations and receipt IDs"
+    },
+    {
+      "source": "DashboardConfiguration",
+      "fields": "branding,configData,provenance",
+      "target": "BrandingConfig and configured dashboard/query targets",
+      "owner": "DashboardConfigService",
+      "semantics": "branding string, aggregate configuration references"
+    },
+    {
+      "source": "NamedQuery",
+      "fields": "collectionName,relatedRecordFilters,resultObjectMapping,brandIdFieldPath,mongoQuery,sort",
+      "target": "dynamic loaded model / Record / institution targets",
+      "owner": "NamedQueryService",
+      "semantics": "runtime model/attribute discovery, query expression translation required"
+    },
+    {
+      "source": "RBReport",
+      "fields": "reportSource,databaseQuery,solrQuery,filter",
+      "target": "dynamic named query/storage/Solr targets",
+      "owner": "ReportsService",
+      "semantics": "getReportModel alias plus institution query expressions"
+    },
+    {
+      "source": "RecordType",
+      "fields": "configuration families: hooks,relatedTo,dashboard,recordSchema,transferResponsibility",
+      "target": "Form/WorkflowStep/Vocabulary/User/Role/schema/configured hook targets",
+      "owner": "FormsService/RecordsService",
+      "semantics": "names/IDs and institution-defined DSL/JSON references"
+    },
+    {
+      "source": "Form",
+      "fields": "configuration",
+      "target": "Vocabulary/NamedQuery/User/Role and institution component targets",
+      "owner": "FormsService/form renderer",
+      "semantics": "typed form DSL includes extensible references"
+    },
+    {
+      "source": "WorkflowStep",
+      "fields": "config",
+      "target": "Role/User/service targets",
+      "owner": "WorkflowStepsService",
+      "semantics": "authorization/action DSL"
+    },
+    {
+      "source": "Vocabulary",
+      "fields": "owner,sourceId,sourceVersionId,rvaSourceKey,figshareSourceKey",
+      "target": "external RVA/Figshare/User",
+      "owner": "VocabularyService/RvaImportService",
+      "semantics": "managed source and version business identities"
+    },
+    {
+      "source": "FigshareVocabularySource",
+      "fields": "lastSyncRun,createdBy,updatedBy,connectionKey",
+      "target": "FigshareVocabularySyncRun/User/AppConfig",
+      "owner": "FigshareVocabularyService",
+      "semantics": "string IDs/actor and integration connection key"
+    },
+    {
+      "source": "FigshareVocabularyCategory",
+      "fields": "sourceId,categoryId,taxonomyId,parentSourceId,path",
+      "target": "remote Figshare hierarchy",
+      "owner": "FigshareVocabularyService",
+      "semantics": "external strings/numbers, path array, not local FK"
+    },
+    {
+      "source": "FigshareVocabularyCrosswalk",
+      "fields": "approvedBy,updatedBy",
+      "target": "User",
+      "owner": "FigshareVocabularyService",
+      "semantics": "historical actor identities"
+    },
+    {
+      "source": "FigshareVocabularyCrosswalkMapping",
+      "fields": "approvedBy,evidence",
+      "target": "User/remote/local evidence",
+      "owner": "FigshareVocabularyService",
+      "semantics": "revisioned decision snapshot"
+    },
+    {
+      "source": "FigshareVocabularySyncRun",
+      "fields": "source,localVocabulary,crosswalk,requestedBy,appliedBy,normalizedSnapshot,diff,proposals,result",
+      "target": "FigshareVocabularySource/Vocabulary/FigshareVocabularyCrosswalk/User",
+      "owner": "FigshareVocabularyService",
+      "semantics": "string IDs and snapshot references; latch/terminal state outside helper"
+    },
+    {
+      "source": "BrandingConfigHistory",
+      "fields": "actorId,restoredFromVersion,typeface",
+      "target": "User/BrandingConfig version/asset references",
+      "owner": "BrandingService",
+      "semantics": "cross-datastore branding association plus immutable publication history/assets"
+    },
+    {
+      "source": "BrandingConfig",
+      "fields": "logo,favicon,typeface,draftTypeface",
+      "target": "GridFS/file/S3 and font assets",
+      "owner": "BrandingService/BrandingLogoService",
+      "semantics": "external staged asset references, no Mongo atomicity"
+    },
+    {
+      "source": "AttachmentMetadata",
+      "fields": "oid,fileId,storageKey,attachmentId,mutationFileId,uploadedBy,lastAccessedBy",
+      "target": "Record/User/blob provider",
+      "owner": "AttachmentMetadataService/StorageManagerService",
+      "semantics": "journal, blob IDs and historical actors"
+    },
+    {
+      "source": "AttachmentAccessAudit",
+      "fields": "oid,fileId,storageKey,accessedBy",
+      "target": "Record/User/blob provider",
+      "owner": "AttachmentMetadataService",
+      "semantics": "historical audit, no cascade"
+    },
+    {
+      "source": "Record",
+      "fields": "redboxOid,harvestId,incarnationId,lifecycleOperationId,metaMetadata,workflow,authorization,figshareSyncIntent",
+      "target": "recordidentity/RecordType/WorkflowStep/User/Role/BrandingConfig/FigshareSync",
+      "owner": "MongoStorageService/RecordsService/UsersService",
+      "semantics": "OID + UUID lineage; nested authorization usernames/pending emails, configurable JSON paths"
+    },
+    {
+      "source": "DeletedRecord",
+      "fields": "redboxOid,incarnationId,brandId,lifecycleOperation,deletedRecordMetadata",
+      "target": "recordidentity/Record/BrandingConfig",
+      "owner": "MongoStorageService",
+      "semantics": "tombstone preserves lineage and full historical record snapshot"
+    },
+    {
+      "source": "RecordAudit",
+      "fields": "redboxOid,user,record,concurrency",
+      "target": "Record/User/lineage snapshots",
+      "owner": "MongoStorageService/RecordsService",
+      "semantics": "historical snapshots retained independently"
+    },
+    {
+      "source": "IntegrationAudit",
+      "fields": "redboxOid,brandId,integrationName,triggeredBy,requestSummary,responseSummary",
+      "target": "Record/BrandingConfig/User/external system",
+      "owner": "MongoStorageService/IntegrationsService",
+      "semantics": "historical payloads and actor strings"
+    },
+    {
+      "source": "RecordSchemaReference",
+      "fields": "digest,brand,portal,recordType,oid,owner",
+      "target": "RecordSchemaArtifact/BrandingConfig/RecordType/Record/pin owner",
+      "owner": "MongoStorageService/RecordSchemaService",
+      "semantics": "digest business key, discriminated grant/save/pin; expiry and scope guards"
+    },
+    {
+      "source": "recordidentity",
+      "fields": "redboxOid,incarnationId",
+      "target": "Record/DeletedRecord",
+      "owner": "MongoStorageService",
+      "semantics": "permanent identity ledger; never infer removal from absent active record"
+    }
+  ],
+  "junction": {
+    "identity": "role_users__user_roles",
+    "datastore": "mongodb",
+    "userKey": "user_roles",
+    "roleKey": "role_users",
+    "evidence": "waterline-mongo8.ejson#junction; explicit edge model, ObjectId keys; duplicate and dangling edges persist"
+  },
+  "generatedModels": [
+    {
+      "identity": "archive",
+      "tableName": "archive",
+      "datastore": "mongodb",
+      "schema": {
+        "id": {
+          "type": "string",
+          "columnName": "_id",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          }
+        },
+        "createdAt": {
+          "type": "number",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "columnType": "_numbertimestamp"
+          },
+          "columnName": "createdAt"
+        },
+        "fromModel": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_string"
+          },
+          "columnName": "fromModel"
+        },
+        "originalRecord": {
+          "type": "json",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_json"
+          },
+          "columnName": "originalRecord"
+        },
+        "originalRecordId": {
+          "type": "json",
+          "autoMigrations": {
+            "columnType": "_json"
+          },
+          "columnName": "originalRecordId"
+        }
+      },
+      "attributes": {
+        "id": {
+          "type": "string",
+          "autoMigrations": {
+            "unique": true,
+            "autoIncrement": false,
+            "columnType": "_stringkey"
+          },
+          "required": false
+        },
+        "createdAt": {
+          "type": "number",
+          "autoCreatedAt": true,
+          "autoMigrations": {
+            "columnType": "_numbertimestamp"
+          },
+          "required": false
+        },
+        "fromModel": {
+          "type": "string",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_string"
+          }
+        },
+        "originalRecord": {
+          "type": "json",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_json"
+          }
+        },
+        "originalRecordId": {
+          "type": "json",
+          "autoMigrations": {
+            "columnType": "_json"
+          },
+          "required": false
+        }
+      }
+    },
+    {
+      "identity": "role_users__user_roles",
+      "tableName": "role_users__user_roles",
+      "datastore": "mongodb",
+      "schema": {
+        "id": {
+          "type": "string",
+          "columnName": "_id",
+          "required": false,
+          "autoMigrations": {
+            "columnType": "_stringkey",
+            "unique": true,
+            "autoIncrement": false
+          }
+        },
+        "role_users": {
+          "columnName": "role_users",
+          "type": "string",
+          "foreignKey": true,
+          "model": "role",
+          "references": "role",
+          "referenceIdentity": "role",
+          "on": "_id",
+          "onKey": "_id",
+          "groupKey": "role",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_stringkey"
+          }
+        },
+        "user_roles": {
+          "columnName": "user_roles",
+          "type": "string",
+          "foreignKey": true,
+          "model": "user",
+          "references": "user",
+          "referenceIdentity": "user",
+          "on": "_id",
+          "onKey": "_id",
+          "groupKey": "user",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_stringkey"
+          }
+        }
+      },
+      "attributes": {
+        "id": {
+          "type": "string",
+          "columnName": "_id",
+          "required": false,
+          "autoMigrations": {
+            "columnType": "_stringkey",
+            "unique": true,
+            "autoIncrement": false
+          }
+        },
+        "role_users": {
+          "columnName": "role_users",
+          "type": "string",
+          "foreignKey": true,
+          "model": "role",
+          "references": "role",
+          "referenceIdentity": "role",
+          "on": "_id",
+          "onKey": "_id",
+          "groupKey": "role",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_stringkey"
+          }
+        },
+        "user_roles": {
+          "columnName": "user_roles",
+          "type": "string",
+          "foreignKey": true,
+          "model": "user",
+          "references": "user",
+          "referenceIdentity": "user",
+          "on": "_id",
+          "onKey": "_id",
+          "groupKey": "user",
+          "required": true,
+          "autoMigrations": {
+            "columnType": "_stringkey"
+          }
+        }
+      }
+    }
+  ],
+  "limits": "Checkout catalogue, not an institution data audit. Unknown references inside configurable payloads/queries and private hooks block affected-group adoption; no automatic FK/cascade or orphan cleanup."
+}

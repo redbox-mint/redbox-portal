@@ -1,0 +1,58 @@
+{
+  "stage": "qualify",
+  "cacheSelection": "mongodb explicit; production default remains prisma",
+  "checks": [
+    {
+      "name": "standard-mocha",
+      "command": "RBPORTAL_CACHE_BACKEND=mongodb npm run test:mocha",
+      "exitCode": 0,
+      "durationSeconds": 369,
+      "passing": 418,
+      "pending": 10,
+      "log": "standard-mocha.txt",
+      "logSha256": "8aa6e954f0e78753d89d918e1ffc555143a5c698ead65616e4fcb12c12263a1a",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 10,
+        "passing": 418
+      }
+    },
+    {
+      "name": "standard-bruno-general",
+      "command": "RBPORTAL_CACHE_BACKEND=mongodb npm run test:bruno:general",
+      "exitCode": 0,
+      "durationSeconds": 301,
+      "requestsPassed": 309,
+      "testsPassed": 553,
+      "assertionsPassed": 3,
+      "log": "standard-bruno.txt",
+      "logSha256": "93eac3b569fdbabcbc9bc0354b74d1fce916c2da37b250c07aaedc15fdeaf5c7",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 4
+      }
+    },
+    {
+      "name": "development",
+      "command": "RBPORTAL_CACHE_BACKEND=mongodb bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh",
+      "exitCode": 0,
+      "durationSeconds": 72,
+      "liftCompleteMs": 60959.9,
+      "indexScopes": 34,
+      "collections": 15,
+      "appliedMigrations": 4,
+      "log": "development.txt",
+      "logSha256": "d7e62bf44a05eaa3c1d97cfe963f0cfc836d26a3222de7bd925f06b7385cff7d",
+      "logRetained": false,
+      "logSummary": "raw-artifacts.json",
+      "counts": {
+        "pending": 4
+      }
+    }
+  ],
+  "wrapper": "bash packages/redbox-core/test/fixtures/cache-persistence/run-c2-standard.sh qualify",
+  "isolation": "standard-isolation.yml",
+  "changesToRunnerTestsOrHealthchecks": false
+}

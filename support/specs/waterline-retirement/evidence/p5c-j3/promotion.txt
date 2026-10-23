@@ -1,0 +1,42 @@
+mocha-default: PASS
+redboxportal-mount-1  | level=info time=2026-10-20T12:42:27+1000 pid=173 hostname=506e3fe56243 msg="Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+redboxportal-mount-1  | level=info time=2026-10-20T12:43:31+1000 pid=173 hostname=506e3fe56243 msg="Data migrations: 2 pending: 20990101T000000-p2-portal-01, 20990101T000000-p2-portal-02"
+redboxportal-mount-1  | level=info time=2026-10-20T12:43:31+1000 pid=173 hostname=506e3fe56243 msg="Data migrations: 0 pending."
+redboxportal-mount-1  | level=info time=2026-10-20T12:43:31+1000 pid=173 hostname=506e3fe56243 msg="Data migrations: 1 pending: 20990101T000000-p2-portal-03"
+redboxportal-mount-1  | level=info time=2026-10-20T12:43:31+1000 pid=173 hostname=506e3fe56243 msg="Data migrations: 1 pending: 20990101T000000-p2-portal-03"
+redboxportal-mount-1  | J3 selected backend=mongodb; loaded-manager bypass=true
+redboxportal-mount-1  |   96 passing (2m)
+redboxportal-mount-1  |   1 pending
+
+bruno-default: PASS
+redboxportal-mount-1  | level=info time=2026-10-20T12:45:37+1000 pid=20 hostname=fa8272be00ad msg="Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+bruno-mount-1         | │ Requests      │ 309 (309 Passed) │
+bruno-mount-1         | │ Tests         │     553/553      │
+
+dev-default: PASS
+rbportal-mount-1  | level=info time=2026-10-20T12:48:49+1000 pid=7 hostname=08890e2e9d74 msg="Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+PASS standard development app.js HTTP startup on fresh isolated volume
+PASS default cache=prisma and M=mongodb readiness, shared indexes and durable migration history
+
+indexes-default: PASS
+PASS 1: actual official fresh-volume init prepares cache + M + R + Q + J2 and satisfies J1/J2/J3 driver readiness
+PASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks
+PASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup
+PASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent
+PASS 5: backend selection scopes DDL: both Waterline, M-only driver, cache-only driver and R-only driver
+PASS 6: Q-only DDL prepares dashboard/UID indexes and preserves duplicate AppConfig rows without uniqueness
+PASS 7: conflicting index blocks all ensure writes without dropping the conflict
+PASS 8: configuration failure exits safely without exposing native credentials or changing data/indexes
+PASS 9: R duplicate keys block every selected group and startup without DDL, fallback or document cleanup
+PASS 10: the installed command prepares R key indexes idempotently, preserving raw data and satisfying driver startup
+PASS 11: missing and incompatible sparse R indexes stop startup/ensure without repair
+PASS 12: J2 duplicate dimensions block all 14 scopes before DDL; explicit ensure preserves lineage and prepares every run/chunk/event index
+PASS 13: installed J3 command reviews all eight scopes before DDL, preserves duplicate events on refusal and explicitly prepares both collections
+PASS 14: omitted group selectors prepare the promoted M, R, Q, J1, J2 and J3 defaults plus the retained Prisma cache
+14 persistence-index deployment/upgrade cases passed
+
+packed-default: PASS
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)
+PASS packed J3 plain DTOs, lazy imports, fenced delivery/history and production dependencies v24.16.0
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+PASS packed J3 plain DTOs, lazy imports, fenced delivery/history and production dependencies v26.11.1

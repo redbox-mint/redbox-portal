@@ -1,0 +1,18 @@
+{
+  "name": "session-retry-before",
+  "command": "cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/middleware/requestLifetime.test.ts --grep retry-end",
+  "sourceCommit": "50517f1881527607fb65a9af18fb7869c9eb5058",
+  "exitCode": 8,
+  "durationMs": 2375,
+  "sha256": "adb449f500bcbfb38ad5e7e62b7e00aed13165f879678805e5d03801fc1295c4",
+  "counts": {
+    "passing": [
+      0
+    ],
+    "failing": [
+      8
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

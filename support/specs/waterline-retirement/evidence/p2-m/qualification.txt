@@ -1,0 +1,204 @@
+P2 M qualification excerpts; full source log SHA-256 is recorded for each entry.
+All fixtures use synthetic, disposable data. See p2-m-validation.md for commands and limits.
+
+--- baseline-unit.txt sha256=11a87ded944e4467bbe464807b3efd5ab23ee30cfb68f2613d0949b90ba24660 ---
+    ✔ matches the legacy normalizer credential/escape rules, including encoded colon truncation (90ms)
+    ✔ shares only equivalent effective connection policies, including authSource and options
+    ✔ initializes offline, survives reload, waits for active operations and drains before closing
+    ✔ retains failed resources for retry and preserves prior shutdown errors
+
+  app-scoped non-model resource ownership
+    ✔ disposes only the captured application GridFS clients and survives module reload (90ms)
+    ✔ retains an errored GridFS client and a failed close for app cleanup retry
+    ✔ closes the connect-mongo store created by middleware exactly once
+
+
+  63 passing (1s)
+
+
+--- build.txt sha256=26706e5cf99693ba9d8cc7ed77809e773742107e104e63a3cf1d68f894144367 ---
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 generate:cache-contract
+npm notice run node scripts/cache-contract.cjs generate
+{"kind":"step-started","step":"Resolving contract source...","id":"resolveSource","commandId":"contract.emit","timestamp":"2026-10-19T16:49:25.057Z"}
+{"kind":"step-finished","step":"Resolving contract source...","id":"resolveSource","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T16:49:25.132Z"}
+{"kind":"step-started","step":"Emitting contract...","id":"emit","commandId":"contract.emit","timestamp":"2026-10-19T16:49:25.133Z"}
+{"kind":"step-finished","step":"Emitting contract...","id":"emit","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T16:49:25.323Z"}
+(node:85618) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/prisma/contract.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"kind":"result","envelope":{"ok":true,"commandId":"contract.emit","result":{"ok":true,"storageHash":"cbf09781f810c3d73d37c21822b691fd75a9c25b70ceeb5cb61a9d2b6c5a3d87","profileHash":"251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3","outDir":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-FoCyLX","files":{"json":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-FoCyLX/contract.json","dts":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-FoCyLX/contract.d.ts"},"timings":{"total":274}},"exitCode":0,"diagnostics":[],"nextActions":[]},"commandId":"contract.emit","timestamp":"2026-10-19T16:49:25.331Z"}
+Prisma agent skills are out of date (installed @prisma/orm-mongo 8.0.0-rc.18, synced none). Run: prisma skills sync
+Cache contracts: generate passed
+
+--- cache-contract.txt sha256=1c7c4a288fd89314a6c8f6432dd7359ca3a5d83031ae3566d3fcebfb49053c82 ---
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 check:cache-contract
+npm notice run node scripts/cache-contract.cjs check
+{"kind":"step-started","step":"Resolving contract source...","id":"resolveSource","commandId":"contract.emit","timestamp":"2026-10-19T16:43:02.623Z"}
+{"kind":"step-finished","step":"Resolving contract source...","id":"resolveSource","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T16:43:02.738Z"}
+{"kind":"step-started","step":"Emitting contract...","id":"emit","commandId":"contract.emit","timestamp":"2026-10-19T16:43:02.738Z"}
+{"kind":"step-finished","step":"Emitting contract...","id":"emit","outcome":"ok","commandId":"contract.emit","timestamp":"2026-10-19T16:43:02.957Z"}
+(node:81077) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/src/persistence/prisma/contract.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"kind":"result","envelope":{"ok":true,"commandId":"contract.emit","result":{"ok":true,"storageHash":"cbf09781f810c3d73d37c21822b691fd75a9c25b70ceeb5cb61a9d2b6c5a3d87","profileHash":"251b3ce23f6c9f561892e7c1af9d2cc941a13d64ba1aa7226b90036b09568cc3","outDir":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-C2N0OE","files":{"json":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-C2N0OE/contract.json","dts":"/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/.cache-contract-C2N0OE/contract.d.ts"},"timings":{"total":343}},"exitCode":0,"diagnostics":[],"nextActions":[]},"commandId":"contract.emit","timestamp":"2026-10-19T16:43:02.965Z"}
+Prisma agent skills are out of date (installed @prisma/orm-mongo 8.0.0-rc.18, synced none). Run: prisma skills sync
+Cache contracts: check passed
+
+--- core-final.txt sha256=29c7415549280fe095b30f3be05564af0304a6d915548174a21ed60a4ec71da0 ---
+    ✔ treats entries with broken parent references as root nodes when inlining tree data
+    ✔ retains selected historical checkbox tree nodes as disabled when historicalVocabMode is disable
+
+  createAgendaForBackend
+    ✔ preserves explicit zero lock lifetime and processEvery values in agenda options
+Dynamic imports imported
+
+
+  4126 passing (2m)
+  105 pending
+  1 failing
+
+  1) startup module loading
+       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:
+     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT
+
+null !== 0
+
+      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:38:12)
+      at processImmediate (node:internal/timers:504:21)
+
+
+
+
+--- core-isolated.txt sha256=55eb69d155a113963a84236e4dffb93da822a37bb2ae7f38db716223a2a88bac ---
+    ✔ throws when inline vocab slug cannot be resolved
+    ✔ inlines checkbox tree vocab by paging all entries and building nested treeData
+    ✔ treats entries with broken parent references as root nodes when inlining tree data
+    ✔ retains selected historical checkbox tree nodes as disabled when historicalVocabMode is disable
+
+  createAgendaForBackend
+    ✔ preserves explicit zero lock lifetime and processEvery values in agenda options
+Dynamic imports imported
+
+
+  4127 passing (1m)
+  105 pending
+
+
+--- foundation-final.txt sha256=06c4e80a2277e5fe072f7e2be8eb83113daf26da893268a6152e2f88b450b530 ---
+  app-scoped non-model resource ownership
+    ✔ disposes only the captured application GridFS clients and survives module reload (186ms)
+    ✔ retains an errored GridFS client and a failed close for app cleanup retry
+    ✔ closes the connect-mongo store created by middleware exactly once (52ms)
+
+  isolated standalone driver foundation
+    ✔ routes two DB handles on one compatible pool without models, managers or unintended collections
+    ✔ inspects missing/conflicting/duplicate indexes read-only and ensures only an explicit scope (1679ms)
+    ✔ starts driver cache without CacheEntry/Waterline, refuses missing index and restarts without rewrite (484ms)
+
+
+  12 passing (3s)
+
+
+--- cache-prisma.txt sha256=e67d0d543356dd25a81ebc97d1dda53f4835138c9e8af4b93b1403bf83563e53 ---
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: Error: original startup failure
+    at Context.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:533:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+error: Error: original startup failure
+    at Context.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/integration/CacheEntryPrisma.test.ts:533:21)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    ✔ is available inside service init, and cleans original failures from service init and every generated bootstrap stage (500ms)
+    ✔ closes partial initialization, repeats startup/cleanup, and preserves shutdown hooks and borrowed connections (653ms)
+
+
+  17 passing (15s)
+
+
+--- cache-driver.txt sha256=fc4333d97cad6fb4264b4e8c319fa37363b23990e0f53ed70afa81cc362dbd97 ---
+    ✔ restarts into separate application processes after observing completed Prisma persistence and rolls config back (14860ms)
+Dynamic imports imported
+P5 active backend=prisma selector=default adapter=PrismaCacheEntryRepository pid=85246
+    ✔ uses Prisma against real MongoDB when the selector is absent (3801ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=85263
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=85278
+    ✔ uses explicit Waterline selection with hook datastore/collection/callback overrides; Prisma bypasses standard-model callbacks (6931ms)
+
+
+  15 passing (2m)
+
+
+--- cache-error-regression.txt sha256=ffc3bc9817933fb2beda8b8f20d7f2e65948781216f5f002f60a9cbd0f1ee1b4 ---
+    ✔ applies split datastore database, host, port and credential overrides instead of requiring a duplicate URL
+    ✔ uses existing split host/database credentials when no URL is configured
+    ✔ decodes split credentials exactly once as the Waterline connection URL does
+    ✔ preserves Waterline normalization of numeric split settings and string ports
+    ✔ preserves the URI half of partially overridden credentials
+    ✔ uses resolved URL credentials after sails-mongo normalization and preserves explicit split overrides
+    ✔ preserves certificate authentication without requiring an explicit username
+    ✔ uses the already resolved Waterline database rather than encoding split database settings twice
+    ✔ preserves SRV URLs offline and rejects unsupported/missing configuration with safe errors
+
+
+  20 passing (354ms)
+
+
+--- typecheck-final.txt sha256=bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1 ---
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 typecheck:persistence
+npm notice run tsc --noEmit -p test/tsconfig.persistence.json
+
+--- scoped-lint.txt sha256=73cc7a2bd90dd7780f129e80e2df7d36fed95f50be775c362364dd65108787f1 ---
+Found 0 warnings and 0 errors.
+Finished in 69ms on 22 files with 1 rules using 4 threads.
+
+--- startup-comparison.txt sha256=346a036ea1fb17a6129f1131ed1723d991cfdb1e8514c67860e9c62137fce03e ---
+{"label":"prior","repeat":0,"elapsedMs":10034.248905,"status":0}
+{"label":"current","repeat":0,"elapsedMs":9988.613819,"status":0}
+{"label":"prior","repeat":1,"elapsedMs":10114.693263000001,"status":0}
+{"label":"current","repeat":1,"elapsedMs":10389.945942000002,"status":0}
+{"label":"prior","repeat":2,"elapsedMs":10584.258937999999,"status":0}
+{"label":"current","repeat":2,"elapsedMs":10663.100479,"status":0}
+{"node":"v24.18.0","samples":{"prior":[10034.248905,10114.693263000001,10584.258937999999],"current":[9988.613819,10389.945942000002,10663.100479]},"overheadMs":102.81971133333354,"maxAllowedMs":1024.4400368666668,"provisionalBudgetPass":true}
+
+--- prior-image.txt sha256=7ec177075e06fc460855db4f5147ab0905979e04e86239701a973a402540abe0 ---
+
+#20 exporting to image
+#20 exporting layers
+#20 exporting layers 23.6s done
+#20 exporting manifest sha256:c4cba502638ad0a31670a13a09c41bbb4a49f0a30cf0206f9665d0aaa102f990 0.1s done
+#20 exporting config sha256:b89d8cdeeab3dc71187e492ecd6d166574dc380a0039dff77eb815403e6aa421 done
+#20 exporting attestation manifest sha256:1237f56f19863c6ee12b93caf5823ac570f997632d5c2eec4f72360af1fa2d2c
+#20 exporting attestation manifest sha256:1237f56f19863c6ee12b93caf5823ac570f997632d5c2eec4f72360af1fa2d2c 0.0s done
+#20 exporting manifest list sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be 0.1s done
+#20 naming to docker.io/library/redbox-p2:prior-11742e9 done
+#20 unpacking to docker.io/library/redbox-p2:prior-11742e9
+#20 unpacking to docker.io/library/redbox-p2:prior-11742e9 8.4s done
+#20 DONE 32.3s
+
+--- package-24.txt sha256=7d2d8f253355b819956709d7de1dcea56c790e33c8ad86fdff03eb37107066f9 ---
+sha256:421d82a601724fc010b7c59ba0259a6c2d6cd4b2a171e3b0dac4a6d97869f78f
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)
+PASS installed driver foundation/cache, two DB routing and Prisma interop (v24.16.0)
+PASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v24.16.0)
+PASS production-pruned installed M/Waterline/driver mixed/raw/no-replay (v24.16.0)
+
+--- package-26.txt sha256=5c73fc249c028e572d386d1e8c60b3f170b5d25765c33994bf43099d23253480 ---
+sha256:e583db923db40bf74b38e19525667815ac62474f3f0103505ed6d7fca16bc831
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+PASS installed driver foundation/cache, two DB routing and Prisma interop (v26.11.1)
+PASS installed Prisma repository CRUD + raw BSON on MongoDB 8.0.34 (v26.11.1)
+PASS production-pruned installed M/Waterline/driver mixed/raw/no-replay (v26.11.1)
+
+--- portal-both.txt sha256=17e95da7faef40e95d591fdc4a696837e2b40fb9dcb2418c923cfad656ec2b74 ---
+P2 loaded portal backend=waterline
+    ✔ asserts the selected adapter and dashboard migration history before serving dashboards
+    ✔ does not replay logged bodies and resumes failed and skipped pending bodies (5201ms)
+  6 passing (3m)
+P2 loaded portal backend=mongodb
+    ✔ asserts the selected adapter and dashboard migration history before serving dashboards
+    ✔ does not replay logged bodies and resumes failed and skipped pending bodies
+  6 passing (1m)
+Retained unrelated Solr-before-ready TypeError occurrences: 30

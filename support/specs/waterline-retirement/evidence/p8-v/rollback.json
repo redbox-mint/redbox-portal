@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "0ea5e9bc22396f02d184bc341194a3a579477320",
+  "imageId": "sha256:4d8dd714c3eefb3577bbf63f001f802ee8570af718334676b7d2183a663024be",
+  "database": "wr_p8_contract18",
+  "checkpointSha256": "e7f00f23189969e045f1da4a1c13fe2eca83a8389be5e2ec6df4194c1a138895",
+  "prior": {
+    "passed": 9,
+    "log": ".tmp/wrp8/prior-renewed.log",
+    "sha256": "91c227b8568d03859bb170228f50c17980f103fa5af673aea90957e8496c2311"
+  },
+  "driverReadback": {
+    "passed": 2,
+    "failed": 0,
+    "log": ".tmp/wrp8/prior-readback-renewed.log",
+    "sha256": "cfd710b6bff312b1480146c9f0b2dc9662cf4e58c14eafe2cc0c6cc9865bb427"
+  },
+  "recipe": "runners/run-qualification.sh",
+  "limits": "Source-machine prior image unavailable; local pre-V installed ARM64 core/storage snapshot, not complete clean/pruned private portal+assets image.",
+  "localArchive": {
+    "path": ".tmp/wrp8/prior-0ea5e9bc2.tar",
+    "bytes": 723557888,
+    "sha256": "321e678c626f7883306209e1cbdc257afaf08185b38ce7ee99f5218692a44091",
+    "restoreCommand": "timeout 300 docker image load -i .tmp/wrp8/prior-0ea5e9bc2.tar",
+    "limits": "Ignored local artifact, not committed/published; original image ID and source label are in prior-artifact.json. Docker task image is removed after rehearsal."
+  }
+}

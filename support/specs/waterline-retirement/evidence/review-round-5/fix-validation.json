@@ -1,0 +1,67 @@
+{
+  "notes": [
+    "Per-fix commands execute on working patches before committing them; sourceCommit is the parent checkpoint, not an assertion of an unmodified checkout.",
+    "The sort fix was amended before projection commit/qualification to retain empty-object no-op sorting. The final commit history contains no change-then-revert pair.",
+    "The initial broad generator attempted undefined/invalid combinations; the final fixture explicitly separates the supported subset, required refusal codes and legacy nested-path syntax."
+  ],
+  "fixes": [
+    {
+      "commit": "466911549",
+      "issue": "Action failure must not release a pending session response",
+      "before": "session-failure-before-delayed",
+      "accepted": [
+        "fix1-build",
+        "fix1-http"
+      ]
+    },
+    {
+      "commit": "ebadbf2cf",
+      "issue": "Initial session lookup must drain after transport abort",
+      "before": "session-load-before-corrected",
+      "accepted": [
+        "fix2-build",
+        "fix2-http"
+      ]
+    },
+    {
+      "commit": "698b2a106",
+      "issue": "Malformed query ordering and scalar-descendant paths must be refused",
+      "before": "query-options-before",
+      "accepted": [
+        "fix3-build",
+        "fix3-unit",
+        "query-final-build"
+      ]
+    },
+    {
+      "commit": "322b5c9f4",
+      "issue": "Nested/overlapping projections must preserve legacy DTO shape",
+      "before": "projection-before",
+      "accepted": [
+        "fix4-build",
+        "query-final-build",
+        "query-adversarial-final"
+      ]
+    },
+    {
+      "commit": "f0af8edc0",
+      "issue": "Empty cache names must not be admitted on create/update; legacy reads remain unchanged",
+      "before": "cache-names-before-isolated",
+      "accepted": [
+        "fix5-final-build",
+        "cache-names-final"
+      ]
+    },
+    {
+      "commit": "e78b77780",
+      "issue": "Inherited function projection must be refused",
+      "before": "inherited-projection-before",
+      "accepted": [
+        "final-static",
+        "inherited-projection-unit",
+        "final-focused",
+        "query-adversarial"
+      ]
+    }
+  ]
+}

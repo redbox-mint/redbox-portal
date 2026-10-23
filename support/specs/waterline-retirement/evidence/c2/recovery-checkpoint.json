@@ -1,0 +1,48 @@
+{
+  "redbox_cache_p5_c2.cacheentry": {
+    "count": 13,
+    "data": "6ebeb0712aa550f9e4df390b011a973a1696dbb25eccb3f0cc7be94dc8189157",
+    "indexes": [
+      {
+        "key": {
+          "_id": 1
+        },
+        "name": "_id_"
+      },
+      {
+        "key": {
+          "name": 1
+        },
+        "name": "cacheentry_name_unique",
+        "unique": true
+      }
+    ],
+    "options": {}
+  },
+  "redbox_storage_c2.record": {
+    "count": 1,
+    "data": "5472dfb2fcd1eb370290424445883a35c4b448d2a0809fcadbc6af3ec19ba820",
+    "indexes": [
+      {
+        "key": {
+          "_id": 1
+        },
+        "name": "_id_"
+      }
+    ],
+    "options": {}
+  },
+  "redbox_sessions_c2.sessions": {
+    "count": 1,
+    "data": "86b6933f1b688ae624731ac2469b21af53c138e6589a2b4d3dc8f2b452d5fd40",
+    "indexes": [
+      {
+        "key": {
+          "_id": 1
+        },
+        "name": "_id_"
+      }
+    ],
+    "options": {}
+  }
+}

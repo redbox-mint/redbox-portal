@@ -1,0 +1,38 @@
+{
+  "result": "PASS",
+  "circleciYamlParsed": true,
+  "cacheSelector": {
+    "type": "enum",
+    "enum": [
+      "waterline",
+      "mongodb"
+    ],
+    "default": "mongodb"
+  },
+  "composeAndArchetypeForwarding": [
+    "packages/redbox-dev-tools/templates/hook-archetype/standard/support/development/docker-compose.yml.hbs",
+    "packages/redbox-dev-tools/templates/hook-archetype/standard/support/integration-testing/docker-compose.mocha.yml.hbs",
+    "packages/sails-hook-redbox-pdfgen/support/api-integration-testing/docker-compose.bruno.yml",
+    "packages/sails-hook-redbox-pdfgen/support/development/docker-compose.yml",
+    "support/development/docker-compose.yml",
+    "support/integration-testing/docker-compose.bruno.general.yml",
+    "support/integration-testing/docker-compose.bruno.oidc.yml",
+    "support/integration-testing/docker-compose.bruno.s3.yml",
+    "support/integration-testing/docker-compose.bruno.yml",
+    "support/integration-testing/docker-compose.mocha.yml",
+    "support/integration-testing/docker-compose.playwright.yml",
+    "support/integration-testing/docker-compose.yml"
+  ],
+  "otherManifestPinsUnchanged": true,
+  "prismaGraphEntries": 0,
+  "removedPaths": [
+    "packages/redbox-core/src/persistence/prisma",
+    "packages/redbox-core/src/persistence/cache/PrismaCacheEntryRepository.ts",
+    "packages/redbox-core/prisma.config.ts",
+    "packages/redbox-core/scripts/cache-contract.cjs"
+  ],
+  "locks": {
+    "package-lock.json": "1227d2a84d3848c9b48d9608be2f0436fc5282df61842efe38b881f0962453c8",
+    "packages/redbox-core/package-lock.json": "9ce4e54e01c2d9777e385190ab8e0e25835814d2fb1831e2f548452a49ad061a"
+  }
+}

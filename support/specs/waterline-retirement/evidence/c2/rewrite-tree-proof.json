@@ -1,0 +1,21 @@
+{
+  "comparisonBase": "d6084a79b",
+  "requestedComparisonCommand": "git diff d6084a79b HEAD -- . ':!support/specs/waterline-retirement/evidence' ':!support/specs/waterline-retirement/c2-validation.md'",
+  "requestedComparisonEmpty": false,
+  "intentionalExceptions": [
+    "packages/redbox-core/test/fixtures/cache-persistence/c2_evidence.py",
+    "packages/redbox-core/test/fixtures/cache-persistence/verify-c2.py",
+    "packages/redbox-core/test/fixtures/cache-persistence/run-c2-standard.sh",
+    "packages/redbox-core/test/fixtures/cache-persistence/run-c2-browser.sh",
+    "packages/redbox-core/test/fixtures/waterline-retirement/review-inventory.py",
+    "packages/redbox-core/test/fixtures/cache-persistence/ARCHIVED-COMPARISONS.md",
+    "support/specs/waterline-retirement/tasks.md",
+    "support/spikes/prisma-cache-persistence/README.md"
+  ],
+  "afterExcludingIntentionalExceptionsEmpty": true,
+  "productionSourceAndPackagingByteIdentical": true,
+  "rewrittenC2CommitsChecked": 7,
+  "originalLargeC2BlobsChecked": 22,
+  "originalLargeC2BlobsReachableFromRewrittenBranch": 0,
+  "rawC2TranscriptsOrPatchesInAnyRewrittenCommit": 0
+}

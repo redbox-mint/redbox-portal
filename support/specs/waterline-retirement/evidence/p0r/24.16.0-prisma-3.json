@@ -1,0 +1,118 @@
+{
+  "candidate": "prisma",
+  "node": "v24.16.0",
+  "at": "2026-10-19T14:19:56.904Z",
+  "fixtureSha256": "4695372f1418990df93caa933987cb7e6b26984bb438bd9b6e4640996a0f2e8b",
+  "checks": [
+    {
+      "name": "existing P0 ObjectId/string times/numeric/no-read-rewrite",
+      "status": "PASS",
+      "ms": 14.470419999999876
+    },
+    {
+      "name": "JSON object/array/empty/false/zero/null writes and reads",
+      "status": "PASS",
+      "ms": 43.248801000000185
+    },
+    {
+      "name": "missing JSON, partial update, unknown field and createdAt preservation",
+      "status": "PASS",
+      "ms": 9.006800000000112,
+      "detail": {
+        "missingRead": "null"
+      }
+    },
+    {
+      "name": "create then raw read with ObjectId and ISO strings",
+      "status": "PASS",
+      "ms": 11.33980600000018
+    },
+    {
+      "name": "belongs-to/has-many and explicit junction populate",
+      "status": "PASS",
+      "ms": 15.004060999999865,
+      "detail": {
+        "explicitEdges": 2,
+        "danglingTarget": 1,
+        "ormPopulation": true
+      }
+    },
+    {
+      "name": "junction add duplicate/remove/replace without array/timestamp/unique conversion",
+      "status": "PASS",
+      "ms": 31.970979999999827
+    },
+    {
+      "name": "private native CAS/stale rejection and competing findOneAndUpdate leases",
+      "status": "PASS",
+      "ms": 23.68289300000015
+    },
+    {
+      "name": "explicit index ensure/inspection, bounded cursor and keyset page",
+      "status": "PASS",
+      "ms": 113.53080899999986
+    },
+    {
+      "name": "GridFS streams coexist on same client, byte integrity",
+      "status": "PASS",
+      "ms": 71.43516399999999
+    }
+  ],
+  "native": {
+    "operations": "official driver on candidate-owned/borrowed client; explicitly native, not ORM API"
+  },
+  "transactions": {
+    "status": "BLOCKED",
+    "reason": "No supported Prisma Mongo transaction API; no driver substitution.",
+    "commit": "UNSUPPORTED",
+    "injectedRollback": "UNSUPPORTED",
+    "writeConflictRetry": "UNSUPPORTED",
+    "crossDatabase": "UNSUPPORTED"
+  },
+  "startup": {
+    "initializeMs": 635.096568,
+    "rssDelta": 70537216,
+    "heapDelta": 27127784,
+    "rss": 146333696
+  },
+  "notes": [
+    "transaction is undefined. Commit/rollback/conflict/cross-db ORM tests BLOCKED; driver-only tests are separately labelled native coexistence. One dbName routes an entire client. Missing optional JSON decodes to null."
+  ],
+  "server": {
+    "version": "8.0.34",
+    "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+  },
+  "topology": {
+    "setName": "wr_p0r",
+    "members": 1,
+    "directConnection": true
+  },
+  "commandSummary": {
+    "startup:hello": 1,
+    "startup:buildInfo": 1,
+    "startup:dropDatabase": 2,
+    "startup:insert": 10,
+    "startup:update": 9,
+    "startup:find": 11,
+    "startup:aggregate": 22,
+    "startup:delete": 3,
+    "startup:listIndexes": 1,
+    "native:find": 6,
+    "native:update": 3,
+    "native:insert": 3,
+    "native:findAndModify": 2,
+    "native:createIndexes": 3,
+    "native:listIndexes": 3,
+    "native:getMore": 1,
+    "native:delete": 2
+  },
+  "crossDatabaseCommands": [],
+  "status": "PASS",
+  "closedMemory": {
+    "rss": 150261760,
+    "heapTotal": 113356800,
+    "heapUsed": 42875712,
+    "external": 40209310,
+    "arrayBuffers": 36145061
+  }
+}

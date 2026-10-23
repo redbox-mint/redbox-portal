@@ -1,0 +1,86 @@
+P4 Q promotion d2dc6f8ce: PASS.
+Core fixture/YAML followups: af47d1c66 / 400f9e793.
+Exact commands, exits and hashes: promotion.json.
+
+exit 0: npm --prefix packages/redbox-core run build
+PASS
+
+exit 0: npm run test:core
+4142 passing (1m); 106 existing pending
+    ✔ replaces completed detached dispatches without double-counting pending actions
+    ✔ keeps the real core bootstrap pending until record-schema startup finishes after storage readiness
+    - rehearses one deployment runner while the other instance skips pending migration bodies
+    ✔ should execute pending migrations in lexical name order and log each success
+    ✔ should log the pending migration names before executing
+    ✔ increments attempts when pending and preserves the count when applied
+    ✔ observes pending completion without another upload or completion POST
+    - pauses invalid observationMs configuration without losing pending work, and resumes after correction
+    - pauses invalid cleanupMs configuration without losing pending work, and resumes after correction
+    - reports an interrupted managed upload for repair, but waits quietly on a foreign pending upload
+      ✔ should restore pending permissions
+      ✔ should leave permissions pending when duplicate email matches are not linked
+      ✔ resolves edit and view users while preserving roles and pending lists
+      ✔ rebinds pending attachment URLs and clears the pending flag
+      ✔ does not open an S3 body while attachment metadata is still pending
+      ✔ should not crash when no pending records found
+      ✔ propagates pending-access mutation failures through the user lifecycle hook
+    pending
+      ✔ should find pending records
+    ✔ loads core without a browser DOM or the full Effect barrel, then sanitizes on first use (10415ms)
+  4142 passing (1m)
+  106 pending
+
+exit 0: npm --prefix packages/redbox-core run typecheck:persistence
+PASS
+
+exit 0: node_modules/.bin/tsc --noEmit
+PASS
+
+exit 0: npm run lint
+PASS
+Found 0 warnings and 0 errors.
+
+exit 0: npm --prefix packages/redbox-core run test:persistence-indexes
+12 cases; omitted selectors prepare all nine scopes; Q fresh readiness and duplicate AppConfig preservation
+PASS 1: actual official fresh-volume init prepares exactly cache + M + R + Q and satisfies driver readiness
+PASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks
+PASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup
+PASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent
+PASS 5: backend selection scopes DDL: both Waterline, M-only driver, cache-only driver and R-only driver
+PASS 6: Q-only DDL prepares dashboard/UID indexes and preserves duplicate AppConfig rows without uniqueness
+PASS 7: conflicting index blocks all ensure writes without dropping the conflict
+PASS 8: configuration failure exits safely without exposing native credentials or changing data/indexes
+PASS 9: R duplicate keys block every selected group and startup without DDL, fallback or document cleanup
+PASS 10: the installed command prepares R key indexes idempotently, preserving raw data and satisfying driver startup
+PASS 11: missing and incompatible sparse R indexes stop startup/ensure without repair
+PASS 12: omitted group selectors prepare the promoted M, R and Q defaults plus the retained Prisma cache
+
+exit 0: CONFIGURATION_BACKENDS=default CONFIGURATION_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-portal.sh
+53 passing (2m)
+redboxportal-mount-1  |   pending: [Function: bound pending],
+redboxportal-mount-1  |   pending: [Function: bound pending],
+redboxportal-mount-1  | level=info time=2026-10-20T08:57:48+1000 pid=165 hostname=f6f77fdc035f msg="Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+redboxportal-mount-1  |   53 passing (2m)
+
+exit 0: CONFIGURATION_BACKENDS=default CONFIGURATION_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-bruno.sh
+305/305 requests; 549/549 tests
+redboxportal-mount-1  | level=info time=2026-10-20T09:00:59+1000 pid=20 hostname=e189c26b8f9c msg="Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+solr-1                | 2026-10-19 23:01:40.316 WARN  (qtp1507118393-38-null-3) [ t:null-3] i.o.s.m.SdkObservableInstrument CallbackRegistration{instrumentDescriptors=[InstrumentDescriptor{name=solr_core_update_docs_pending_commit, description=Current number of documents pending commit. Value is reset to 0 on commit., unit=, type=OBSERVABLE_GAUGE, valueType=LONG, advice=Advice{explicitBucketBoundaries=null, attributes=null}}]} has called close() multiple times.
+bruno-mount-1         |    ✓ Permissions tab response includes resolved and pending access groups
+bruno-mount-1         | │ Requests      │ 305 (305 Passed) │
+bruno-mount-1         | │ Tests         │     549/549      │
+
+exit 0: env -u RBPORTAL_CONFIGURATION_BACKEND bash packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh
+standard app.js HTTP startup; real maintenance inspect ready for all nine scopes; 4 applied migrations; own project cleaned
+rbportal-mount-1  | level=info time=2026-10-20T09:05:33+1000 pid=7 hostname=466b7ff635ef msg="Data migrations: 4 pending: 20260904000000-branding-typeface-backfill, 20260925T000000-dashboard-stage-configuration, 20261014T000000-admin-sidebar-text-color, @researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions"
+PASS standard development app.js HTTP startup on fresh isolated volume
+{"mode":"inspect","ready":true,"groups":[{"group":"cache","backend":"prisma","collection":"cacheentry","index":"ready","duplicateKeyGroups":0},{"group":"migration","backend":"mongodb","collection":"migration","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"recordtype","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"dashboardtype","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"report","index":"ready","duplicateKeyGroups":0},{"group":"reference","backend":"mongodb","collection":"namedquery","index":"ready","duplicateKeyGroups":0},{"group":"configuration","backend":"mongodb","collection":"dashboardconfiguration","index":"ready","duplicateKeyGroups":0},{"group":"configuration","backend":"mongodb","collection":"i18nbundle","index":"ready","duplicateKeyGroups":0},{"group":"configuration","backend":"mongodb","collection":"i18ntranslation","index":"ready","duplicateKeyGroups":0}]}
+PASS default cache=prisma and M=mongodb readiness, shared indexes and durable migration history
+
+exit 0: bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-package.sh
+PASS: omitted Q selector selects mongodb; installed/pruned/offline types/imports/shims and Q operations/queries/SIEM/CAS/lease on Node 24.16.0 and 26.11.1; npm 11.20.0 lock
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)
+PASS installed production-pruned default Q runtime, offline NodeNext types/import, all repositories/queries/CAS/lease (v24.16.0)
+PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)
+PASS installed production-pruned default Q runtime, offline NodeNext types/import, all repositories/queries/CAS/lease (v26.11.1)
+

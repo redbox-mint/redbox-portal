@@ -1,0 +1,13 @@
+{
+  "name": "id-values-validation",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh id-values",
+  "sourceCommit": "9ecc9003acdc94b34cec8d5e9e394f72dc090698",
+  "exitCode": 0,
+  "durationMs": 49678,
+  "sha256": "df7d26da98afedb50ec6ab892cec0a4da0988de3e6d4699cc6df2643ec4e322c",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":228,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

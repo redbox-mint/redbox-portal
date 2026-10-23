@@ -1,0 +1,24 @@
+{
+  "name": "fresh-mocha",
+  "command": "env -u RBPORTAL_CACHE_BACKEND -u RBPORTAL_MIGRATION_BACKEND -u RBPORTAL_REFERENCE_BACKEND -u RBPORTAL_CONFIGURATION_BACKEND -u RBPORTAL_PROGRESS_BACKEND -u RBPORTAL_HARVEST_BACKEND -u RBPORTAL_SIEM_BACKEND -u RBPORTAL_FIGSHARE_BACKEND -u RBPORTAL_STORAGE_BACKEND bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh mocha default",
+  "sourceCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+  "exitCode": 0,
+  "durationMs": 286458,
+  "sha256": "82006d6f1735221d91b7ae3d83b92e49610c86cd50575a984a9930e177a3845b",
+  "counts": {
+    "passing": [
+      419
+    ],
+    "pending": [
+      4,
+      2,
+      0,
+      1,
+      1,
+      10
+    ]
+  },
+  "passGroups": 0,
+  "checks": [],
+  "disposition": "Passed on the unmodified development image, whose bundled npm is 11.19.1; superseded by the required npm 11.20.0 verification-image run."
+}

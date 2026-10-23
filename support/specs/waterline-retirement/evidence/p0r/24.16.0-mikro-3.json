@@ -1,0 +1,211 @@
+{
+  "candidate": "mikro",
+  "node": "v24.16.0",
+  "at": "2026-10-19T14:19:58.647Z",
+  "fixtureSha256": "4695372f1418990df93caa933987cb7e6b26984bb438bd9b6e4640996a0f2e8b",
+  "checks": [
+    {
+      "name": "existing P0 ObjectId/string times/numeric/no-read-rewrite",
+      "status": "PASS",
+      "ms": 20.997518000000014
+    },
+    {
+      "name": "JSON object/array/empty/false/zero/null writes and reads",
+      "status": "PASS",
+      "ms": 44.82429400000001
+    },
+    {
+      "name": "missing JSON, partial update, unknown field and createdAt preservation",
+      "status": "PASS",
+      "ms": 10.234536000000048,
+      "detail": {
+        "missingRead": "null"
+      }
+    },
+    {
+      "name": "create then raw read with ObjectId and ISO strings",
+      "status": "PASS",
+      "ms": 8.716895000000022
+    },
+    {
+      "name": "belongs-to/has-many and explicit junction populate",
+      "status": "PASS",
+      "ms": 42.452999999999975,
+      "detail": {
+        "explicitEdges": 2,
+        "danglingTarget": 1,
+        "ormPopulation": true
+      }
+    },
+    {
+      "name": "junction add duplicate/remove/replace without array/timestamp/unique conversion",
+      "status": "PASS",
+      "ms": 43.657250999999974
+    },
+    {
+      "name": "ORM/driver multi-document commit",
+      "status": "PASS",
+      "ms": 13.980043999999907
+    },
+    {
+      "name": "injected failure after two writes rolls both back",
+      "status": "PASS",
+      "ms": 8.338391000000001
+    },
+    {
+      "name": "real write-conflict, whole callback retry, durable result",
+      "status": "PASS",
+      "ms": 20.14960700000006
+    },
+    {
+      "name": "cross-database branding commit with one session/client",
+      "status": "PASS",
+      "ms": 9.371853999999985
+    },
+    {
+      "name": "cross-database branding mid-operation rollback",
+      "status": "PASS",
+      "ms": 7.24898799999994
+    },
+    {
+      "name": "private native CAS/stale rejection and competing findOneAndUpdate leases",
+      "status": "PASS",
+      "ms": 23.93640400000004
+    },
+    {
+      "name": "explicit index ensure/inspection, bounded cursor and keyset page",
+      "status": "PASS",
+      "ms": 114.80320300000005
+    },
+    {
+      "name": "GridFS streams coexist on same client, byte integrity",
+      "status": "PASS",
+      "ms": 80.117347
+    }
+  ],
+  "native": {
+    "operations": "official driver on candidate-owned/borrowed client; explicitly native, not ORM API"
+  },
+  "transactions": {
+    "writeConflict112": 1,
+    "conflictCallbackCalls": 2,
+    "crossDatabaseSessionCount": 1,
+    "commitDisconnect": {
+      "status": "NOT_QUALIFIED",
+      "reason": "Optional two-disconnect exploratory run was stopped at 46 seconds without a result; see validation. Source does not supply convenient commit retry loop."
+    },
+    "status": "PASS"
+  },
+  "startup": {
+    "initializeMs": 188.97903200000002,
+    "rssDelta": 16506880,
+    "heapDelta": 3136304,
+    "rss": 92127232
+  },
+  "notes": [
+    "Explicit edge entity, no Mongo many-to-many arrays. Two ORM contexts borrow one client; storage EM receives app transaction context. Own bounded transient/code-112 retry (3); ambiguous-commit retry is NOT qualified. Plain DTO projection is mandatory."
+  ],
+  "server": {
+    "version": "8.0.34",
+    "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+  },
+  "topology": {
+    "setName": "wr_p0r",
+    "members": 1,
+    "directConnection": true
+  },
+  "commandSummary": {
+    "startup:hello": 1,
+    "startup:buildInfo": 1,
+    "startup:dropDatabase": 2,
+    "startup:insert": 10,
+    "startup:update": 9,
+    "startup:find": 39,
+    "startup:delete": 3,
+    "startup:aggregate": 2,
+    "startup:listIndexes": 1,
+    "transaction-commit:insert": 1,
+    "transaction-commit:update": 1,
+    "transaction-commit:find": 2,
+    "transaction-commit:commitTransaction": 1,
+    "transaction-commit:aggregate": 1,
+    "transaction-rollback:insert": 1,
+    "transaction-rollback:update": 1,
+    "transaction-rollback:abortTransaction": 1,
+    "transaction-rollback:find": 1,
+    "transaction-rollback:aggregate": 1,
+    "transaction-conflict:find": 3,
+    "transaction-conflict:update": 3,
+    "transaction-conflict:abortTransaction": 1,
+    "transaction-conflict:commitTransaction": 1,
+    "transaction-crossdb-commit:insert": 1,
+    "transaction-crossdb-commit:update": 1,
+    "transaction-crossdb-commit:commitTransaction": 1,
+    "transaction-crossdb-commit:find": 2,
+    "transaction-crossdb-rollback:insert": 1,
+    "transaction-crossdb-rollback:update": 1,
+    "transaction-crossdb-rollback:abortTransaction": 1,
+    "transaction-crossdb-rollback:aggregate": 1,
+    "transaction-crossdb-rollback:find": 1,
+    "native:find": 6,
+    "native:update": 3,
+    "native:insert": 3,
+    "native:findAndModify": 2,
+    "native:createIndexes": 3,
+    "native:listIndexes": 3,
+    "native:getMore": 1,
+    "native:delete": 2
+  },
+  "crossDatabaseCommands": [
+    {
+      "phase": "transaction-crossdb-commit",
+      "name": "insert",
+      "db": "wr_p0r_storage",
+      "session": "97e97b2e0229d17a",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-commit",
+      "name": "update",
+      "db": "wr_p0r_app",
+      "session": "97e97b2e0229d17a",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-commit",
+      "name": "commitTransaction",
+      "db": "admin",
+      "session": "97e97b2e0229d17a",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-rollback",
+      "name": "insert",
+      "db": "wr_p0r_storage",
+      "session": "97e97b2e0229d17a",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-rollback",
+      "name": "update",
+      "db": "wr_p0r_app",
+      "session": "97e97b2e0229d17a",
+      "transaction": true
+    },
+    {
+      "phase": "transaction-crossdb-rollback",
+      "name": "abortTransaction",
+      "db": "admin",
+      "session": "97e97b2e0229d17a",
+      "transaction": true
+    }
+  ],
+  "status": "PASS",
+  "closedMemory": {
+    "rss": 100704256,
+    "heapTotal": 39165952,
+    "heapUsed": 19911896,
+    "external": 21261557,
+    "arrayBuffers": 18334882
+  }
+}

@@ -1,0 +1,128 @@
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+{
+  "group": "progress",
+  "node": "v24.18.0",
+  "mongo": "8.0.34",
+  "payloadBytes": 15000,
+  "rows": 20,
+  "warmups": 100,
+  "operations": 1000,
+  "samples": [
+    {
+      "round": 0,
+      "backend": "waterline",
+      "p50": 4.648541999999907,
+      "p95": 7.671696000000338,
+      "p99": 13.297113999999965,
+      "throughput": 213.05385090524368,
+      "rss": 486002688,
+      "clients": 0,
+      "readinessMs": 1.6500909999999749,
+      "calls": 2201,
+      "baselineConnections": 2,
+      "activeConnections": 6,
+      "afterConnections": 3
+    },
+    {
+      "round": 0,
+      "backend": "mongodb",
+      "p50": 2.6183380000002217,
+      "p95": 4.461550999999872,
+      "p99": 6.9207100000003265,
+      "throughput": 416.10782640054543,
+      "rss": 417243136,
+      "clients": 1,
+      "readinessMs": 52.58216399999992,
+      "calls": 1926,
+      "baselineConnections": 3,
+      "activeConnections": 7,
+      "afterConnections": 3
+    },
+    {
+      "round": 1,
+      "backend": "mongodb",
+      "p50": 2.668937999999798,
+      "p95": 4.314273999999841,
+      "p99": 5.988104000000021,
+      "throughput": 406.2970596616581,
+      "rss": 416227328,
+      "clients": 1,
+      "readinessMs": 51.601136000000224,
+      "calls": 1926,
+      "baselineConnections": 3,
+      "activeConnections": 7,
+      "afterConnections": 3
+    },
+    {
+      "round": 1,
+      "backend": "waterline",
+      "p50": 4.673792000000049,
+      "p95": 7.328813999999511,
+      "p99": 12.309152999999242,
+      "throughput": 214.606554902224,
+      "rss": 487940096,
+      "clients": 0,
+      "readinessMs": 1.7775799999999435,
+      "calls": 2201,
+      "baselineConnections": 3,
+      "activeConnections": 6,
+      "afterConnections": 3
+    },
+    {
+      "round": 2,
+      "backend": "waterline",
+      "p50": 4.669902999999977,
+      "p95": 7.192890000000261,
+      "p99": 12.259162999999717,
+      "throughput": 214.86666720450663,
+      "rss": 485855232,
+      "clients": 0,
+      "readinessMs": 2.0570950000001176,
+      "calls": 2201,
+      "baselineConnections": 3,
+      "activeConnections": 6,
+      "afterConnections": 3
+    },
+    {
+      "round": 2,
+      "backend": "mongodb",
+      "p50": 2.7498079999995753,
+      "p95": 4.583593999999721,
+      "p99": 7.3717649999998685,
+      "throughput": 395.89409853292386,
+      "rss": 418631680,
+      "clients": 1,
+      "readinessMs": 52.01420499999995,
+      "calls": 1926,
+      "baselineConnections": 3,
+      "activeConnections": 7,
+      "afterConnections": 3
+    }
+  ],
+  "ratios": {
+    "p95": 0.6019545901033355,
+    "throughput": 1.8961052938736216,
+    "rss": 0.8577228700658817,
+    "calls": 0.8750567923671059
+  },
+  "pass": true
+}
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(samples.every(s => s.afterConnections <= s.baselineConnections))
+
+    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/jobs-operations.cjs:111:5
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

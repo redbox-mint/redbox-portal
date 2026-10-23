@@ -1,0 +1,11 @@
+{
+  "name": "final-storage-lint",
+  "command": "npm --prefix packages/sails-hook-redbox-storage-mongo run lint",
+  "sourceCommit": "ceb24d4814aa8c5f6624530815485b8aa9acc003",
+  "exitCode": 0,
+  "durationMs": 350,
+  "sha256": "0a48324d85950b7a2004ee76418125f8e75f22b304515b3ce954b25bd5284f74",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

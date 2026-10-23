@@ -1,0 +1,85 @@
+{
+  "source": "790e92ca53bf7a6e2d0f0b756b912adf53d620fa",
+  "mainRunner": {
+    "commands": 77,
+    "exitCode": 0,
+    "failed": []
+  },
+  "unchangedRetries": [],
+  "flakyRetriesRequired": 0,
+  "developmentCorrections": [],
+  "captureAttempts": [
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "48b4162f17b792cb71f19827a50c85d4ee19bf6f6ab31ac1c9db04eed2fd180e"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "48b4162f17b792cb71f19827a50c85d4ee19bf6f6ab31ac1c9db04eed2fd180e"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "48b4162f17b792cb71f19827a50c85d4ee19bf6f6ab31ac1c9db04eed2fd180e"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "48b4162f17b792cb71f19827a50c85d4ee19bf6f6ab31ac1c9db04eed2fd180e"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "48b4162f17b792cb71f19827a50c85d4ee19bf6f6ab31ac1c9db04eed2fd180e"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "48b4162f17b792cb71f19827a50c85d4ee19bf6f6ab31ac1c9db04eed2fd180e"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 1,
+      "outputSha256": "48b4162f17b792cb71f19827a50c85d4ee19bf6f6ab31ac1c9db04eed2fd180e"
+    },
+    {
+      "suite": "mocha",
+      "exitCode": 0,
+      "outputSha256": "7403e31b9911991716fba5cf094f454315b89c3a8f28aaca4c1ae45f748c5aa5"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "2de87bb4ff5d3e0958d543526dbced305de9bbb20cff1a00febe2bbdf9848ab1"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "2de87bb4ff5d3e0958d543526dbced305de9bbb20cff1a00febe2bbdf9848ab1"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "2de87bb4ff5d3e0958d543526dbced305de9bbb20cff1a00febe2bbdf9848ab1"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "2de87bb4ff5d3e0958d543526dbced305de9bbb20cff1a00febe2bbdf9848ab1"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 1,
+      "outputSha256": "2de87bb4ff5d3e0958d543526dbced305de9bbb20cff1a00febe2bbdf9848ab1"
+    },
+    {
+      "suite": "bruno",
+      "exitCode": 0,
+      "outputSha256": "36a5996a9ecdb78511c5f35c357d0fbe9c70ae71d7104b1709313ff63ca2992c"
+    }
+  ],
+  "quotaLimitEncountered": false,
+  "captureInterpretation": "Read-only stock artifact capture polls ran before a portal container existed (7 Mocha, 5 Bruno), then succeeded. Their failure hashes match an explicit no-container control. These are readiness polling attempts, not failed tests or test reruns."
+}

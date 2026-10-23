@@ -1,0 +1,177 @@
+{
+  "sourceCommit": "463f13c66",
+  "node": "24.16.0",
+  "npm": "11.20.0",
+  "architecture": "linux/arm64",
+  "mongo": "9.0.4",
+  "fcv": "9.0",
+  "topology": "standalone",
+  "driver": "7.7.0",
+  "dependencyLockChanges": false,
+  "checks": {
+    "build-final.log": {
+      "exit": 0,
+      "command": "timeout 180 npm --prefix packages/redbox-core run build",
+      "log": ".tmp/wrp8/build-final.log",
+      "sha256": "e652a9faf053767d6420cc35d5e310c24cd10fe87d128dbd9a27ae26f4776166"
+    },
+    "typecheck-final.log": {
+      "exit": 0,
+      "command": "timeout 180 npm --prefix packages/redbox-core run typecheck:persistence",
+      "log": ".tmp/wrp8/typecheck-final.log",
+      "sha256": "3eaa13ba239b4ba2e10c8991ae4133957ad16939ac026d88eb960e25cede755f"
+    },
+    "lint-final.log": {
+      "exit": 0,
+      "command": "timeout 60 npm --prefix packages/redbox-core run lint",
+      "log": ".tmp/wrp8/lint-final.log",
+      "sha256": "c2cdfd9d235ecb54b619e02b32b49610c7577f96d6348203b0615845473ed023"
+    },
+    "root-tsc-final.log": {
+      "exit": 0,
+      "command": "timeout 120 node_modules/.bin/tsc --noEmit",
+      "log": ".tmp/wrp8/root-tsc-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "focusedExistingServicesAndModels": {
+    "passed": 160,
+    "pending": 0,
+    "failed": 0,
+    "log": ".tmp/wrp8/focused-final.log",
+    "sha256": "dc3107b5a65f34d09b540ac081e8becef7dbfd36ddfff1eb0f9a2895ee76ff05"
+  },
+  "selectors": {
+    "waterline": {
+      "core": {
+        "passed": 4316,
+        "pending": 117,
+        "failed": 0,
+        "log": ".tmp/wrp8/core-final-waterline.log",
+        "sha256": "d968411139dcd131402bc5a55d84ca267b466b4737f7f1e8520e12f2f8fd72d8"
+      },
+      "isolatedStartup": {
+        "passed": 1,
+        "pending": 0,
+        "failed": 0,
+        "log": ".tmp/wrp8/startup-waterline.log",
+        "sha256": "1c4eeb3e3fd15239dcd48bb257f232072a52056103d3e7979178a534ec63ebe9"
+      },
+      "portalMocha": {
+        "passed": 22,
+        "pending": 2,
+        "failed": 0,
+        "log": ".tmp/wrp8/mocha-waterline.log",
+        "sha256": "2f90825de6f3b4796c95969953d988456e1545356ad09e736ef4c7191c6c5ca8"
+      },
+      "brunoGeneral": {
+        "requests": 309,
+        "tests": 553,
+        "assertions": 3,
+        "failed": 0,
+        "vocabularyRequests": 22,
+        "vocabularyCases": [
+          "1 - REST API/11 - Vocabulary/List Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Create Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Get Vocabulary Detail.bru",
+          "1 - REST API/11 - Vocabulary/Sync Vocabulary (Invalid - Non-RVA).bru",
+          "1 - REST API/11 - Vocabulary/Import RVA Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Sync Imported RVA Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Sync Vocabulary (Invalid).bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary by Slug.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Not Found.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Entries.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Entries Invalid Query.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Children.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Children Invalid Parent.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Query Invalid Params.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path Invalid Params.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Query Failure.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path Too Many Notations.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path Not Found.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Service Invalid Params.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Service Not Found.bru",
+          "2 - AJAX calls/1 - Admin User Tests/Vocabulary/List Admin Vocabulary.bru"
+        ],
+        "resultSha256": "32366fc1975411d39a0587291be2a42bf38ada4fea799b32719b56d7932ceb90",
+        "log": ".tmp/wrp8/bruno-waterline.log",
+        "sha256": "68ebd78d04e20034b1cef8b05137ed4f2d8d8377413e24dd77eaab0fb705f33a"
+      }
+    },
+    "mongodb": {
+      "core": {
+        "passed": 4316,
+        "pending": 117,
+        "failed": 0,
+        "log": ".tmp/wrp8/core-final-mongodb.log",
+        "sha256": "45fe88a4fe86eca4f65d046461f058fb20aec36e1fc30c17ab4029fd79f2fb6a"
+      },
+      "isolatedStartup": {
+        "passed": 1,
+        "pending": 0,
+        "failed": 0,
+        "log": ".tmp/wrp8/startup-mongodb.log",
+        "sha256": "e092e3f4d1d8e2df9a09e06f9b1c0d9d96038eda0df12eee013be1ebc0c2bb87"
+      },
+      "portalMocha": {
+        "passed": 22,
+        "pending": 2,
+        "failed": 0,
+        "log": ".tmp/wrp8/mocha-mongodb.log",
+        "sha256": "6408b71b3bbd6e839e95fee559b193b416cb968851b498f3313a6fff995d0968"
+      },
+      "brunoGeneral": {
+        "requests": 309,
+        "tests": 553,
+        "assertions": 3,
+        "failed": 0,
+        "vocabularyRequests": 22,
+        "vocabularyCases": [
+          "1 - REST API/11 - Vocabulary/List Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Create Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Get Vocabulary Detail.bru",
+          "1 - REST API/11 - Vocabulary/Sync Vocabulary (Invalid - Non-RVA).bru",
+          "1 - REST API/11 - Vocabulary/Import RVA Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Sync Imported RVA Vocabulary.bru",
+          "1 - REST API/11 - Vocabulary/Sync Vocabulary (Invalid).bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary by Slug.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Not Found.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Entries.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Entries Invalid Query.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Children.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Children Invalid Parent.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Query Invalid Params.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path Invalid Params.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Query Failure.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path Too Many Notations.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Expand Path Not Found.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Service Invalid Params.bru",
+          "1 - REST API/3 - Search/Get Form Vocabulary Service Not Found.bru",
+          "2 - AJAX calls/1 - Admin User Tests/Vocabulary/List Admin Vocabulary.bru"
+        ],
+        "resultSha256": "48e91c0d7c61d2e8591963929448abc4a60ffae8f08f331b7adc54d66d4b6c8f",
+        "log": ".tmp/wrp8/bruno-mongodb.log",
+        "sha256": "a4c679c0cfbfc078f25736013e2013e84fb9918300be59459fbf26cd6f1cda28"
+      }
+    }
+  },
+  "indexes": {
+    "passed": 16,
+    "failed": 0,
+    "omittedDefaultScopes": 49,
+    "omittedDefaultCollections": 20,
+    "optInVScopes": 21,
+    "optInVCollections": 7,
+    "command": "P2_INDEX_URI=<owned-loopback-redbox-portal> timeout 600 node packages/redbox-core/test/fixtures/waterline-retirement/persistence-indexes.cjs",
+    "log": ".tmp/wrp8/index-qualification.log",
+    "sha256": "e181cb7510d77909cd099b637670ffe45afaad638b68621369c65def28a542ad"
+  },
+  "limits": [
+    "Mocha uses existing integration bootstrap/config and seven affected files; no unrelated frontend/nyc/install steps.",
+    "Bruno General uses stock directories1-4 and exact locked CLI in disposable copy; Keycloak26.5.6 matches General; Solr uses Mocha-base pinned digest.",
+    "Two portal Mocha optional external cases pending; Bruno RVA tests accept downstream unavailability and do not certify external uptime.",
+    "Core model-double suites use Waterline test seam; actual adapters are exercised by live contract/portal tests."
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "recordedAt": "2026-10-21T05:04:42.135410+00:00",
+  "taskOwnedContainers": [],
+  "taskOwnedNetworks": [],
+  "taskOwnedVolumes": [],
+  "runningContainers": [],
+  "retainedImagesUnchanged": {
+    "redbox-p2:prior-11742e9": true,
+    "redbox-p3-r:prior-cb874201": true,
+    "redbox-p4-q:prior-f8c8cd7d": true,
+    "redbox-p5a-j1:prior-0aa801ee6": true,
+    "redbox-p5b-j2:prior-c2ceddb45": true,
+    "redbox-p5c-j3:prior-7c1906849": true,
+    "redbox-p5d-j4:prior-32e2c2fca": true,
+    "redbox-p10-s:prior-12e566575": true,
+    "redbox-c2:prior-b83234da9": true,
+    "redbox-c2:prior-portal-b83234da9": true,
+    "redbox-waterline-r4:npm11.20.0": true
+  },
+  "retainedImageIds": {
+    "redbox-p2:prior-11742e9": "sha256:8a996239b1ba3a94e71ce9d35f6a2f5b0edef00ccbdd51131a476fbfab0771be",
+    "redbox-p3-r:prior-cb874201": "sha256:2511de69363c6322f57a41f71023d46f34d90f1637dde354081a587cb4f800ba",
+    "redbox-p4-q:prior-f8c8cd7d": "sha256:4721b7009cfcd84aee975a5e8eca22a17f611b1c18f7f54507dcac391dcb9d20",
+    "redbox-p5a-j1:prior-0aa801ee6": "sha256:de7cb0885ac19d3386b534c165633b75354db8291f8ec7bea244749028a0cfd8",
+    "redbox-p5b-j2:prior-c2ceddb45": "sha256:df2088a9aa517b23f9b4ef1e51e1a837a52115be7ff7bda93bd0f85d6252d6ce",
+    "redbox-p5c-j3:prior-7c1906849": "sha256:409c2bebce607feedb5950c89bd39f05b1ea81f55886dbedf0301243f551c69e",
+    "redbox-p5d-j4:prior-32e2c2fca": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+    "redbox-p10-s:prior-12e566575": "sha256:c138489fc72f566815113599b699e13ad55486176f333c394238b361bca094d3",
+    "redbox-c2:prior-b83234da9": "sha256:4f4f3570cae35fab61929d66fe79b8bf4d037359e35704d9af09b94def707e06",
+    "redbox-c2:prior-portal-b83234da9": "sha256:cd54d56b5adf3afa9fc7c3ba610601375907bb1a368fc7201a5233c675b75f7c",
+    "redbox-waterline-r4:npm11.20.0": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd"
+  },
+  "pushed": false,
+  "note": "Fixtures and fresh Compose wrappers remove their owned volumes; unrelated pre-existing stopped containers/images are retained."
+}

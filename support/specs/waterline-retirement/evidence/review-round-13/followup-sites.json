@@ -1,0 +1,3052 @@
+{
+  "commit": "0341c6241962729905b0400af1e1097efc81f567",
+  "purpose": "Reproducible source-coordinate inventory; not independent fault injection at every matched line.",
+  "roots": [
+    "packages/redbox-core/src/persistence",
+    "packages/redbox-core/src/services",
+    "packages/redbox-core/src/middleware",
+    "packages/redbox-core/src/controllers",
+    "packages/redbox-core/src/policies",
+    "packages/sails-hook-redbox-storage-mongo/src",
+    "packages/agenda-sqs-backend/src"
+  ],
+  "patterns": {
+    "followup": "AgendaQueueService|\\.now\\(|\\.schedule\\(|enqueue|completeAudit|failAudit|emitFrom|storeAudit|create(?:Record|Integration)Audit|recordAccess",
+    "ownership": "beforeShutdown|\\bdrain\\b|shutdown|closing|registerPersistenceResource|cleanupPersistence|backendOperations|jobCompletions|claimReleases",
+    "detached": "\\bvoid\\b|\\.subscribe\\(|set(?:Timeout|Interval)\\(|\\.then\\(",
+    "admission": "persistenceOperation|acceptSubmission|acceptedJob|accepting\\(|hasActiveHttpRequest|runHttpRequestContext"
+  },
+  "files": 191,
+  "matchedSites": 1293,
+  "categories": {
+    "followup": 226,
+    "ownership": 221,
+    "detached": 776,
+    "admission": 70
+  },
+  "rows": [
+    {
+      "path": "packages/agenda-sqs-backend/src/SqsBackend.ts",
+      "sha256": "f5bb2c3ded3f4ec47509ab5e96c7b76fd2e629de8e3654c05d06524dee83687c",
+      "coordinates": {
+        "detached": [
+          25,
+          31
+        ]
+      }
+    },
+    {
+      "path": "packages/agenda-sqs-backend/src/SqsJobRepository.ts",
+      "sha256": "f4ab2287c7571813b5f751099a2deba16e4811a4757c60a0bc4fb2fe81b1c4ae",
+      "coordinates": {
+        "followup": [
+          151,
+          152
+        ],
+        "detached": [
+          47,
+          48,
+          49,
+          64,
+          70,
+          85,
+          136,
+          220,
+          226,
+          236
+        ]
+      }
+    },
+    {
+      "path": "packages/agenda-sqs-backend/src/SqsMessageCodec.ts",
+      "sha256": "05e9e78fadba7b30c33696877c88d0e7b0d39910ed513b25f77973d5f5bbfed8",
+      "coordinates": {
+        "detached": [
+          32,
+          36
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/bootstrap.ts",
+      "sha256": "860a833a5fee67ecd2448027f1d21ea136ead2d937661bfa1aa13fed5d7ef007",
+      "coordinates": {
+        "followup": [
+          217
+        ],
+        "ownership": [
+          2,
+          205
+        ],
+        "detached": [
+          31,
+          35,
+          36,
+          49,
+          157,
+          200,
+          210,
+          243,
+          275
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/ActionController.ts",
+      "sha256": "9672bfa84fb66b09f74c436d8a700c5c9de756b16859b764ebb40d67dc3419c4",
+      "coordinates": {
+        "detached": [
+          35
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/AdminController.ts",
+      "sha256": "f45f3a3ebe54ec3caf9b2372abee7580a5bedc689fc972ce6a8351acc967ab51",
+      "coordinates": {
+        "detached": [
+          133,
+          370,
+          388,
+          410,
+          415,
+          442,
+          447,
+          478
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/AsynchController.ts",
+      "sha256": "8b29a9949f56730193acb4171e88e3f7607476d8f42732f2cf6cd6e6dd03bdb5",
+      "coordinates": {
+        "detached": [
+          36,
+          44,
+          51,
+          60,
+          68,
+          108
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/BrandingAppController.ts",
+      "sha256": "6fcf24611c97b51e1dde2e5ee5b3ab386a3f11b0224135a99a4d0877563bc089",
+      "coordinates": {
+        "detached": [
+          335,
+          385
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/BrandingController.ts",
+      "sha256": "486be883769d8263967fe04710b34ac6a01882e38b5acd4cd43572c7fada5261",
+      "coordinates": {
+        "followup": [
+          94,
+          106,
+          196,
+          223
+        ],
+        "detached": [
+          105,
+          128
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/BrandingControllerSupport.ts",
+      "sha256": "10a1ff5cf2bc2021eb737ca8971f098798de6b0b0329d07d625787cde357a495",
+      "coordinates": {
+        "detached": [
+          66,
+          70,
+          72
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/EmailController.ts",
+      "sha256": "b71a60c23bace0df3b79627a917b79563db6174b4647479e109fd2d7b06c6b16",
+      "coordinates": {
+        "detached": [
+          39,
+          117,
+          137
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/RecordAuditController.ts",
+      "sha256": "5946da76a7a4f14bfda04b1a69795d378088069d8548b02f5c1089ad147b4cbb",
+      "coordinates": {
+        "detached": [
+          136
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/RecordController.ts",
+      "sha256": "b65ad90494a8f006a23cf33e79b8017eaf178754ccbad56d461db17bf43a6fc8",
+      "coordinates": {
+        "detached": [
+          104,
+          905,
+          916,
+          938,
+          1152,
+          1745,
+          1775,
+          2070,
+          2075,
+          2080
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/ReportController.ts",
+      "sha256": "93023ea7407c269d510c620eeac30f2fc3a33151812eb6c761fde7c0c9bf2a4e",
+      "coordinates": {
+        "detached": [
+          65
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/ReportsController.ts",
+      "sha256": "3c7496e6e79bd300ca7347875046e0039bde7cf89a55af874d4e996297233a76",
+      "coordinates": {
+        "detached": [
+          35
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/UserController.ts",
+      "sha256": "dcb8d41ed804ee6aaccf0172a9d7784430412ab41a9b58ecd50055d551ea3643",
+      "coordinates": {
+        "detached": [
+          208,
+          248,
+          288,
+          316,
+          364,
+          378,
+          458,
+          587,
+          634,
+          643
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/WorkspaceAsyncController.ts",
+      "sha256": "99c4bdc2f8c93c003ab5ecae8d027fe0f3a2607e5a653981d2681e2a45a18d2a",
+      "coordinates": {
+        "detached": [
+          29,
+          42
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/WorkspaceTypesController.ts",
+      "sha256": "0fb2c041e1a2ba5834b509a14f27181311e9b52cea73853c9e6eef087c8c2f03",
+      "coordinates": {
+        "detached": [
+          50,
+          67,
+          94
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/webservice/AdminController.ts",
+      "sha256": "997ab562768e30f5b8e22240536b9c1538c6b0c62d03c9b5d05ca86eb0d80db3",
+      "coordinates": {
+        "followup": [
+          31
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/webservice/BrandingController.ts",
+      "sha256": "7b1d0b0a5524f15b718eeb3bba4b2d9f5e7a65e64119b8e8853f1ec8686c945b",
+      "coordinates": {
+        "detached": [
+          340,
+          391
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+      "sha256": "7b7fa628dd2fe607384cab0f5a493ed77f3f4288f2155a4b157685e6ca236d58",
+      "coordinates": {
+        "detached": [
+          155,
+          1045,
+          1109,
+          1128,
+          1135,
+          1305,
+          1311,
+          1704,
+          2371
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/webservice/RecordSchemaController.ts",
+      "sha256": "322fc480ebf5a1ec7eebaadf23aeada8f234d018fecba06096e6f1b6541666b4",
+      "coordinates": {
+        "detached": [
+          136
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/webservice/SearchController.ts",
+      "sha256": "934c1bb075678ae4441ef9f610e8d2e79e2381480d2abd981ad098e3493b6323",
+      "coordinates": {
+        "detached": [
+          40
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/webservice/SiemController.ts",
+      "sha256": "25429a9959061ae880936817ca348d2c713f2bdb68d89e60cc661d0347fd08b0",
+      "coordinates": {
+        "detached": [
+          72
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+      "sha256": "c390b9569f708f2dc899837d12bb111ba515ce74aee699adba31cc05efdcdb88",
+      "coordinates": {
+        "detached": [
+          282,
+          305,
+          312,
+          406,
+          430,
+          510,
+          560
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/loader/MigrationRunner.ts",
+      "sha256": "702c9640b12a00ac987e1f5c4035942b614fbae0d204d0d61b94776f7f6f09d9",
+      "coordinates": {
+        "followup": [
+          43,
+          44,
+          100
+        ],
+        "detached": [
+          11,
+          12,
+          36,
+          49,
+          77
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/middleware/redboxSession.ts",
+      "sha256": "4f315a9b30fbee9d4e313ff7b7bfb30090d5a4c5d75f49d7d58a9477dc060c8e",
+      "coordinates": {
+        "ownership": [
+          1,
+          35,
+          36,
+          37,
+          40,
+          45,
+          46,
+          55,
+          56,
+          57,
+          58,
+          59,
+          94
+        ],
+        "detached": [
+          34,
+          59,
+          80,
+          81,
+          95,
+          96,
+          105,
+          106
+        ],
+        "admission": [
+          2,
+          108
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/middleware/requestChronicle.ts",
+      "sha256": "18d8685c936c6db4d5c490de0cd44615faa11cf073770c57ebdf007faa0b3371",
+      "coordinates": {
+        "detached": [
+          14,
+          53
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/middleware/requestLifetime.ts",
+      "sha256": "8c88b08fa95a51c35b1d3883fb6fbcb6f7e2ab8b7ebf45ea92d8a4d3e9c043fd",
+      "coordinates": {
+        "followup": [
+          29,
+          36
+        ],
+        "ownership": [
+          19,
+          29,
+          30,
+          31,
+          34
+        ],
+        "detached": [
+          14,
+          19,
+          30,
+          33,
+          60,
+          115,
+          121,
+          134,
+          139,
+          146
+        ],
+        "admission": [
+          37,
+          40,
+          168
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/cache/CacheEntryRepository.ts",
+      "sha256": "d8b8a68f5fad94b5e6c614505a194c245362e935a6170a12d5d2c215de8a3f43",
+      "coordinates": {
+        "detached": [
+          29,
+          31,
+          33
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/cache/MongoCacheEntryRepository.ts",
+      "sha256": "b5777ef1aed414e104c2f8f4d068523ec3a11a3fe7001306e162d32c816b96af",
+      "coordinates": {
+        "detached": [
+          34,
+          48,
+          67
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/cache/WaterlineCacheEntryRepository.ts",
+      "sha256": "4255685016d81de57093d2a37d6b18a3623b0c952d085f5298f3e1e2ed940200",
+      "coordinates": {
+        "detached": [
+          36,
+          41,
+          47
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/cache/configuration.ts",
+      "sha256": "07b64d48e922bf3fff204e1bdf4932dd7187e69dc3e2ee1620ded19964218898",
+      "coordinates": {
+        "ownership": [
+          179
+        ],
+        "detached": [
+          44,
+          254
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/cache/preflight.ts",
+      "sha256": "7fe1b05060de2556f8e0d1023b38066c1b4e37bd0a4a4ee75c04f0263dc55273",
+      "coordinates": {
+        "detached": [
+          60
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/cache/runtime.ts",
+      "sha256": "eeb934d0ec4a2f87732657221e6bbc8fd0f2600e0f8f69eb22c33946c73c53db",
+      "coordinates": {
+        "ownership": [
+          6,
+          18,
+          19,
+          32,
+          33,
+          34,
+          51,
+          62,
+          114,
+          137,
+          151,
+          152,
+          162,
+          164,
+          188
+        ],
+        "detached": [
+          17,
+          18,
+          31,
+          36,
+          39,
+          55,
+          148,
+          169
+        ],
+        "admission": [
+          4,
+          121
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/cache/validation.ts",
+      "sha256": "8c688bb4755f5ebb4904d5dced79a2dcc6efe5c1ca643a805a00e6af1e1e346b",
+      "coordinates": {
+        "detached": [
+          16
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/configuration/ConfigurationRepositories.ts",
+      "sha256": "761c1eda532fb2b6c6e5e3ff61a2e84deff0bb5d59c57dd739a6cb7dbd948648",
+      "coordinates": {
+        "detached": [
+          49,
+          64,
+          68,
+          103
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/configuration/MongoNamedQueryTargets.ts",
+      "sha256": "5ca5658926f0313823d4c4e7e9ed1be6fd45807cbb2e8280d4b62ce8af072838",
+      "coordinates": {
+        "ownership": [
+          52
+        ],
+        "admission": [
+          4,
+          57
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/configuration/WaterlineConfigurationRepositories.ts",
+      "sha256": "bff29d4b9602deaf69ddc3642e7463aaf2a1a6ae0646b0d5176bf380f93ef6f5",
+      "coordinates": {
+        "detached": [
+          16
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/configuration/physical.ts",
+      "sha256": "0286fb63d435c8b341a2efb39beda9ac280fdc38384fe17c2c342b6739fe9cd0",
+      "coordinates": {
+        "detached": [
+          59
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/configuration/preflight.ts",
+      "sha256": "04e740e371e0eb8f4a08e35486c8fdbe6b2e2086a9bb76c3634bb612b04cfe83",
+      "coordinates": {
+        "detached": [
+          43
+        ],
+        "admission": [
+          5,
+          132
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/configuration/runtime.ts",
+      "sha256": "d77e7a662cbfdb8f1aef3ea4e3b77dd1d9e7c5f49e221f97affde062be04aba8",
+      "coordinates": {
+        "ownership": [
+          9,
+          10,
+          37,
+          38,
+          82,
+          102
+        ],
+        "detached": [
+          17,
+          27
+        ],
+        "admission": [
+          8,
+          93
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/figshare/FigshareSyncRepository.ts",
+      "sha256": "c80e73db81f033d8f4e8750f6ecf427256ace60d730d310b2d55768bbe91c5c0",
+      "coordinates": {
+        "detached": [
+          8,
+          9,
+          11,
+          12,
+          13,
+          15,
+          16,
+          17
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/figshare/NativeFigshareRepository.ts",
+      "sha256": "fde077f428beb4fd0ef932a62f42071db90060e15fdf9980f60ef6e5a7fb2671",
+      "coordinates": {
+        "followup": [
+          148,
+          162,
+          185,
+          197,
+          210,
+          233,
+          235,
+          247,
+          263,
+          283,
+          284,
+          297,
+          298,
+          302
+        ],
+        "detached": [
+          23,
+          24,
+          44,
+          54,
+          94,
+          98,
+          105,
+          108,
+          142,
+          171,
+          197,
+          226,
+          242,
+          251,
+          315
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/figshare/WaterlineFigshareRepository.ts",
+      "sha256": "231207118becbbe3223421b222c69f198cc01227734888315eb10f5904bd61ea",
+      "coordinates": {
+        "detached": [
+          27,
+          28
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/figshare/preflight.ts",
+      "sha256": "a8f5a28bf1a8dec21f0ab0b90f57a2a81993b63a31a94bcfb3100a0640f6fa45",
+      "coordinates": {
+        "detached": [
+          64
+        ],
+        "admission": [
+          5,
+          157
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/figshare/runtime.ts",
+      "sha256": "3ed64ad68fa0d43baaf368a36cd124deb4fd6e71b9f0d70583f8ed2c08718527",
+      "coordinates": {
+        "ownership": [
+          10,
+          11,
+          37,
+          38,
+          63,
+          80
+        ],
+        "detached": [
+          17,
+          27
+        ],
+        "admission": [
+          9,
+          72
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/harvest/HarvestRepositories.ts",
+      "sha256": "0467d0b53a9e634273572a84ba78a1ed07d1578dbcaa3438271036fe83d2b42a",
+      "coordinates": {
+        "detached": [
+          103,
+          110,
+          113,
+          122
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/harvest/physical.ts",
+      "sha256": "e59c76b035d749deeb31cdc7d91fc542b367bf054d826136c3c3414a6defabd7",
+      "coordinates": {
+        "detached": [
+          238
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/harvest/preflight.ts",
+      "sha256": "4ceed45ac9d020ab3bff4f75d86500271f0a85adfaa80f2e4e94f7e66e952a4a",
+      "coordinates": {
+        "detached": [
+          165
+        ],
+        "admission": [
+          5,
+          263
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/harvest/runtime.ts",
+      "sha256": "4735c4d297e8eda396d83c85445fd360ca834be3747f2416697c7432c3610095",
+      "coordinates": {
+        "ownership": [
+          9,
+          10,
+          37,
+          38,
+          79,
+          99
+        ],
+        "detached": [
+          17,
+          27
+        ],
+        "admission": [
+          8,
+          90
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/indexes.ts",
+      "sha256": "6ad4e9e7d4dd07da26c753386a86a1fbc9cdfeec7236f5d787e095400acafa57",
+      "coordinates": {
+        "detached": [
+          128
+        ],
+        "admission": [
+          2,
+          53,
+          144
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/migration/MigrationLedgerRepository.ts",
+      "sha256": "e60f14b8aa36b787820dd6ef4bdbc366bc05d27d4f0179732103a5d5cf12648d",
+      "coordinates": {
+        "detached": [
+          17,
+          18
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/migration/MongoMigrationLedgerRepository.ts",
+      "sha256": "963793d66e6074dda9c9361a9628e9da473820855e2c41da783739ad38d5e699",
+      "coordinates": {
+        "detached": [
+          44,
+          69
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/migration/WaterlineMigrationLedgerRepository.ts",
+      "sha256": "daae34945b285af7e609a66b14df8f3e80269414078710c6ce37a7a7e1dc7a24",
+      "coordinates": {
+        "detached": [
+          22,
+          26
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/migration/preflight.ts",
+      "sha256": "950c5d9461bdaf14260b0d23c1ef6808ceae6d479eff0688d32d0b8a63c06041",
+      "coordinates": {
+        "detached": [
+          18
+        ],
+        "admission": [
+          6,
+          91
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/migration/runtime.ts",
+      "sha256": "9f0a0e8fdef491ff12dc001b051dda62c3b0a8f417526f75bba344dc169dc084",
+      "coordinates": {
+        "ownership": [
+          8,
+          9,
+          40,
+          41,
+          94
+        ],
+        "detached": [
+          19,
+          30
+        ],
+        "admission": [
+          6,
+          79
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/pagination.ts",
+      "sha256": "698c876839e5ce0a14e258ea7c9e9b18dc8e6497d3ee1bcd5506b5b9339465e2",
+      "coordinates": {
+        "detached": [
+          4
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/progress/MongoNamedQueryTargets.ts",
+      "sha256": "b4d1f6ec9dc72d66ba65354a7620a62478f19bc8acf4906e0f88a6364d368f54",
+      "coordinates": {
+        "ownership": [
+          52
+        ],
+        "admission": [
+          4,
+          57
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/progress/ProgressRepositories.ts",
+      "sha256": "e9fdc91926c171f3805b4660e9935ab1b6d0898ede32d3de9e1b0a535e5fb6f1",
+      "coordinates": {
+        "detached": [
+          30,
+          36
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/progress/physical.ts",
+      "sha256": "0323d443d0440cb010bf721af277304cc6a800f9ef3a32f5856efa091dd67dd7",
+      "coordinates": {
+        "detached": [
+          50
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/progress/preflight.ts",
+      "sha256": "7112ac0fdf1fe586659492f437d137badd3ff7287d7ef43fb9ed0a722eca118a",
+      "coordinates": {
+        "detached": [
+          27
+        ],
+        "admission": [
+          5,
+          128
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/progress/runtime.ts",
+      "sha256": "6fae08e87fb2387aad342f73605c7d33caad0a7330ec357d18c56a6bb428a6b2",
+      "coordinates": {
+        "ownership": [
+          9,
+          10,
+          37,
+          38,
+          79,
+          99
+        ],
+        "detached": [
+          17,
+          27
+        ],
+        "admission": [
+          8,
+          90
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/reference/MongoNamedQueryTargets.ts",
+      "sha256": "614fec6f0be7c337f433d745628b6a5367662b4880e0f5aad1576a5b167287db",
+      "coordinates": {
+        "ownership": [
+          51
+        ],
+        "admission": [
+          4,
+          56
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/reference/NamedQueryExecution.ts",
+      "sha256": "0af77f3f08e563f446aa0eb8b58fe8ce754a1d3b440eadcb479bc05e3a1682c1",
+      "coordinates": {
+        "detached": [
+          63,
+          91,
+          179
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/reference/ReferenceRepositories.ts",
+      "sha256": "df927bc94d2e0bef52c2d8374cd594de0a0ec44a26cb40bda8f9ba0adb71217a",
+      "coordinates": {
+        "detached": [
+          62,
+          70,
+          79,
+          86,
+          93,
+          106,
+          107
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/reference/WaterlineNamedQueryTargets.ts",
+      "sha256": "d9869e084d4dab4acfd89c88426f3a0872e40b805ba4a2e9434932f86d85617a",
+      "coordinates": {
+        "detached": [
+          104
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/reference/physical.ts",
+      "sha256": "2a185eab52b2272b612d8526d615ce0e0397f6ed042fa28ccaf386558820d00a",
+      "coordinates": {
+        "detached": [
+          328
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/reference/preflight.ts",
+      "sha256": "770421f1ec9e24dd07eca55fea1e010748804eb27725f703852bb4a66a7e349d",
+      "coordinates": {
+        "detached": [
+          33
+        ],
+        "admission": [
+          5,
+          116
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/reference/runtime.ts",
+      "sha256": "1db8bef3da3f757109cace703394f9e589ba07ce25445c01b9a9abb7037e2d7e",
+      "coordinates": {
+        "ownership": [
+          9,
+          10,
+          37,
+          38,
+          89,
+          116
+        ],
+        "detached": [
+          17,
+          27
+        ],
+        "admission": [
+          8,
+          98
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/runtime.ts",
+      "sha256": "6c4515c0dd6d41d15905f22712aa6655596a96ee14119e969e8b6eaf8dde7553",
+      "coordinates": {
+        "ownership": [
+          4,
+          92,
+          97,
+          119,
+          133,
+          134,
+          135,
+          140,
+          152,
+          159,
+          161,
+          162,
+          176,
+          179,
+          215,
+          221,
+          225,
+          236,
+          238,
+          241,
+          244,
+          247,
+          251,
+          270,
+          287,
+          289,
+          294,
+          296
+        ],
+        "detached": [
+          10,
+          20,
+          44,
+          48,
+          61,
+          71,
+          86,
+          92,
+          117,
+          137,
+          140,
+          159,
+          195,
+          196,
+          227,
+          229,
+          236,
+          244,
+          294,
+          302,
+          316
+        ],
+        "admission": [
+          223
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/scalars.ts",
+      "sha256": "c11013707ae111e830d801b0de1145b010cfaab01bd217967f9c4a051a02b53f",
+      "coordinates": {
+        "detached": [
+          88
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/shutdown.ts",
+      "sha256": "5a836416b4e99cdd8c53012ef18f7f8a6a45d5993df5e5d8e7ec8ff3b3797d28",
+      "coordinates": {
+        "ownership": [
+          7,
+          10,
+          14,
+          55,
+          60,
+          63,
+          67
+        ],
+        "detached": [
+          4,
+          11,
+          54,
+          59,
+          77,
+          79
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/siem/SiemRepository.ts",
+      "sha256": "3f8f68a52b562de4f2332c6db8d5bfbde8a6f76ab1003a1a2aca8f6e6d75df6c",
+      "coordinates": {
+        "detached": [
+          63,
+          67,
+          73
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/siem/WaterlineDelivery.ts",
+      "sha256": "504e3c6cbb89d21bede27ee18996aa01ba4be8a4181096d8bc660af9e0b294f2",
+      "coordinates": {
+        "followup": [
+          151
+        ],
+        "detached": [
+          32,
+          38,
+          65,
+          72,
+          222
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/siem/physical.ts",
+      "sha256": "619cbea4b7b2010fa2b0b93107b3aab1a8830252737dafb2bf89790b41793644",
+      "coordinates": {
+        "detached": [
+          149
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/siem/preflight.ts",
+      "sha256": "4495839a6f6dc7861a0f0060850847c16588bf327e236b6890eab9ba979220e2",
+      "coordinates": {
+        "detached": [
+          105
+        ],
+        "admission": [
+          5,
+          202
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/siem/runtime.ts",
+      "sha256": "5c1cb9f9853e2377cd2c9c9aa5e3f33ed247f82c4eba078d5d5b023b20d8c552",
+      "coordinates": {
+        "ownership": [
+          9,
+          10,
+          37,
+          38,
+          69,
+          86
+        ],
+        "detached": [
+          17,
+          27
+        ],
+        "admission": [
+          8,
+          78
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/MongoAttachmentRepository.ts",
+      "sha256": "813c62b5f9cf6d8d26e27e75eef62385f0a2a5761649f05c9b743bde7d054bdc",
+      "coordinates": {
+        "followup": [
+          66,
+          88,
+          684,
+          712,
+          723,
+          890,
+          895,
+          904
+        ],
+        "detached": [
+          39,
+          44,
+          63,
+          64,
+          65,
+          66,
+          125,
+          130,
+          165,
+          184,
+          208,
+          229,
+          232,
+          392,
+          426,
+          658,
+          676,
+          684
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/StorageRepositories.ts",
+      "sha256": "84a98874222d992d0f79b6a1ccdfaa6369db41b02800b48855cc163b305c0c4b",
+      "coordinates": {
+        "followup": [
+          58
+        ],
+        "detached": [
+          31,
+          36,
+          55,
+          56,
+          57,
+          58,
+          71
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts",
+      "sha256": "bb3e8b08b95952df85a1ea5bf551428ecefa70c2a57ddbc607debb5aec99040c",
+      "coordinates": {
+        "followup": [
+          64,
+          86,
+          618,
+          643,
+          655,
+          823,
+          828,
+          837
+        ],
+        "detached": [
+          37,
+          42,
+          61,
+          62,
+          63,
+          64,
+          91,
+          183,
+          581,
+          590,
+          610,
+          618
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/attachmentNormalization.ts",
+      "sha256": "e0b3815fe942b26da217c4d650b8c7e16b75ea52c03bafef920297c2087306ff",
+      "coordinates": {
+        "detached": [
+          6,
+          34
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/attachmentPhysical.ts",
+      "sha256": "66566eb8767d30c2c976cb6ec26cab00cf40a63e4108636e27a5dcb33d3cc19f",
+      "coordinates": {
+        "detached": [
+          12
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/mapping.ts",
+      "sha256": "433ca127e7be45eebf9561c9a16b0147904c399505b34145d46ea55fcdaa1d7e",
+      "coordinates": {
+        "detached": [
+          16
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/preflight.ts",
+      "sha256": "0dc7155692cddeba7d949e6d85531b01dbd7cee176a072d91b17016ad4a7a859",
+      "coordinates": {
+        "admission": [
+          2,
+          54
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/storage/runtime.ts",
+      "sha256": "c9484c98d819acc463a519762bc379477a425d12b60face52e4db4657db59efe",
+      "coordinates": {
+        "followup": [
+          105
+        ],
+        "ownership": [
+          10,
+          11,
+          37,
+          38,
+          80,
+          146
+        ],
+        "detached": [
+          17,
+          27
+        ],
+        "admission": [
+          9,
+          117
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/persistence/types.ts",
+      "sha256": "50c9152a4b00e665ef72a5dd6e5247d812a66e4a53a2758d168c2f4b5572651b",
+      "coordinates": {
+        "ownership": [
+          23
+        ],
+        "detached": [
+          23,
+          24
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/brandingAndPortal.ts",
+      "sha256": "d01ec61a82101899a925ade7370f217d27b0ffd5c2652a963f4e375a5d7f888f",
+      "coordinates": {
+        "detached": [
+          9
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/checkAuth.ts",
+      "sha256": "ec39238fd4d5fb4e090857b58b46005f1119d39d937cde7be41fae42e66e9a00",
+      "coordinates": {
+        "detached": [
+          22,
+          37,
+          82,
+          95,
+          108,
+          113
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/checkBrandingValid.ts",
+      "sha256": "8318f67b6543f4582b0ef791108420d068edbdc8782a37028bacb8f629c5b9a4",
+      "coordinates": {
+        "detached": [
+          12
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/companionAttachmentUploadAuth.ts",
+      "sha256": "cccefe02e7c00bd5d71bb249f00bd497d519f1a58e02160a924394e5d88c788b",
+      "coordinates": {
+        "detached": [
+          149
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/contentSecurityPolicy.ts",
+      "sha256": "28da64db29a6cae797b4fff7a1bb51ba43fd24b40597360c8767c63d141ff3e7",
+      "coordinates": {
+        "detached": [
+          66,
+          117
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/disallowedHeadRequestHandler.ts",
+      "sha256": "96cf5b24cb490850510fd16130ea89baf26837ef902d1e2d6334bfd0a27c80c6",
+      "coordinates": {
+        "detached": [
+          6
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/i18nLanguages.ts",
+      "sha256": "919d597dd95f0a7d37d4fe5f1358e1617c70e193d583ab0e029ef7b0eed3a5dd",
+      "coordinates": {
+        "detached": [
+          15
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/isAuthenticated.ts",
+      "sha256": "8bbc12ca042d978a13692006bc1fc7243e79f22004a372878284b2a014d3af32",
+      "coordinates": {
+        "detached": [
+          7,
+          12
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/isWebServiceAuthenticated.ts",
+      "sha256": "8a92b4f0a1f94f49504a815bcfa8e7b200427f5bf4b5e47032158134fb612c3e",
+      "coordinates": {
+        "detached": [
+          7,
+          9
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/menuResolver.ts",
+      "sha256": "4540ff42d024a5cea278f480546d051f0c620a0e1f3ad2cb1b5efa7357f41d93",
+      "coordinates": {
+        "detached": [
+          9
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/noCache.ts",
+      "sha256": "295e97575bb6e619497175b64bbdebedbe56acca6ba8b1855ded0f96ac8c7d7f",
+      "coordinates": {
+        "detached": [
+          9
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/prepWs.ts",
+      "sha256": "b4de87dd06453e01e09b7e9c98e33145a3d1cdf705c42478219fe419fe420f76",
+      "coordinates": {
+        "detached": [
+          7
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/sessionAuth.ts",
+      "sha256": "d2fa0676750f814b76aab60b708192832811529196d4823d36ef44846df5a05c",
+      "coordinates": {
+        "detached": [
+          9,
+          19
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/setLang.ts",
+      "sha256": "fcb6b889a803065e4e57d25a105412093a5cf465ddeb0928c31488f96ef9768d",
+      "coordinates": {
+        "detached": [
+          6
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/policies/validateApiContractRequest.ts",
+      "sha256": "382d673a277c171c96cda466a8c310b63dbb745b8bead0a33bf9821c37a4fb4c",
+      "coordinates": {
+        "detached": [
+          91
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/AgendaQueueService.ts",
+      "sha256": "3bbdba85fc59c692f95b3e19e3343b39bc47f97dd6893b1583334d87c50234a6",
+      "coordinates": {
+        "followup": [
+          211,
+          482,
+          557,
+          776,
+          786,
+          801,
+          807,
+          871,
+          881,
+          903
+        ],
+        "ownership": [
+          2,
+          101,
+          102,
+          108,
+          109,
+          110,
+          124,
+          140,
+          148,
+          154,
+          164,
+          170,
+          172,
+          173,
+          174,
+          192,
+          211,
+          227,
+          228,
+          245,
+          255,
+          284,
+          317,
+          319,
+          329,
+          354,
+          373,
+          377,
+          378,
+          379,
+          381,
+          382,
+          386,
+          387,
+          393,
+          395,
+          420,
+          440,
+          451,
+          744,
+          748,
+          749
+        ],
+        "detached": [
+          52,
+          98,
+          107,
+          108,
+          110,
+          111,
+          113,
+          114,
+          120,
+          142,
+          147,
+          151,
+          161,
+          180,
+          187,
+          193,
+          196,
+          203,
+          209,
+          222,
+          228,
+          232,
+          334,
+          388,
+          393,
+          443,
+          493,
+          542,
+          742,
+          743,
+          863
+        ],
+        "admission": [
+          6,
+          120,
+          122,
+          128,
+          501,
+          514,
+          522,
+          538,
+          861,
+          869,
+          875,
+          879,
+          890
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/AppConfigSecrets.ts",
+      "sha256": "c6db82e8e2488d46d88b93437b57df44504d144ec00b83cc74a052595c71847d",
+      "coordinates": {
+        "followup": [
+          156,
+          173,
+          212,
+          227,
+          234,
+          237,
+          252,
+          296,
+          300
+        ],
+        "ownership": [
+          186,
+          188,
+          190,
+          208
+        ],
+        "detached": [
+          81,
+          110,
+          140,
+          146,
+          185,
+          189,
+          226,
+          232,
+          253,
+          319
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/AppConfigService.ts",
+      "sha256": "c5575b7b74b7cbd200ac414427efff407e94b88909e000ba13581a41e528fed3",
+      "coordinates": {
+        "detached": [
+          52,
+          70,
+          78,
+          90,
+          149,
+          505,
+          509,
+          524,
+          525,
+          656
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/AttachmentMetadataService.ts",
+      "sha256": "e2973d0a8633187f0475efdb91bf738c0ced6df55084ec767adff0950f481d1c",
+      "coordinates": {
+        "followup": [
+          34,
+          105,
+          106,
+          107,
+          108
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/BrandingLogoService.ts",
+      "sha256": "63db2718163dc9f07c929da52e03fd2aaf297f18a64594089b8390a42781694d",
+      "coordinates": {
+        "followup": [
+          30,
+          41,
+          48
+        ],
+        "ownership": [
+          5,
+          19,
+          330,
+          331,
+          332,
+          333,
+          346
+        ],
+        "detached": [
+          30,
+          39,
+          59,
+          60,
+          349,
+          361
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/BrandingService.ts",
+      "sha256": "fc5b0d3aeb9e1583df1802a18bdcfa57b322ffdc5f0cd6bb9c0a90578d2ac26f",
+      "coordinates": {
+        "followup": [
+          643,
+          670,
+          687
+        ],
+        "detached": [
+          495,
+          725,
+          929,
+          950
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/BrandingTypefaceService.ts",
+      "sha256": "dec2972a430306423fd41fbf220104d075276d8ff8b82b06fdf5e90088d56468",
+      "coordinates": {
+        "followup": [
+          344
+        ],
+        "detached": [
+          153,
+          283,
+          293
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/BrandingWoff2Inspector.ts",
+      "sha256": "c2e0ff0fdf5361dbcb41f107f83e38dca78830b2216e0517e404137adf516512",
+      "coordinates": {
+        "ownership": [
+          338,
+          406,
+          431
+        ],
+        "detached": [
+          351,
+          409,
+          410,
+          415,
+          421
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/CacheService.ts",
+      "sha256": "08a24610eaaa40d50016e720a1033019ac0df512130ec4fc81bdae4baafd2c52",
+      "coordinates": {
+        "detached": [
+          92,
+          118
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/ConfigService.ts",
+      "sha256": "a7d8ba4a4ffd3017b7b4432b9242838f29f4496d1c88abc9f514bee7a098b6d8",
+      "coordinates": {
+        "detached": [
+          138,
+          151,
+          362
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/DashboardConfigService.ts",
+      "sha256": "3942903e58d5b26f009f662bb309023df257d4b1020f56382c693ddcadf05b32",
+      "coordinates": {
+        "followup": [
+          680
+        ],
+        "detached": [
+          258,
+          274,
+          310,
+          779,
+          998,
+          1103
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/DashboardTypesService.ts",
+      "sha256": "a4fa2d3aab6743b49752978b3d75f5dff6890f4ffdd3116f350e40996f7c617a",
+      "coordinates": {
+        "detached": [
+          176
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/DoiService.ts",
+      "sha256": "e28eaf6ce35abce0b4a9622572b13b3abf0580bc63a7d03c1867fdc3ef137d8f",
+      "coordinates": {
+        "detached": [
+          679
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/DomSanitizerService.ts",
+      "sha256": "0538b5decf68232428f4b217ac0f779b3b88b94d1b668952b6bb0d38723a11fa",
+      "coordinates": {
+        "ownership": [
+          496
+        ],
+        "detached": [
+          12,
+          13,
+          27,
+          28
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/EmailService.ts",
+      "sha256": "95f6b7cb3da4d1fb499279978b7816656c755a31ac11e5b50f62ef7abdb69430",
+      "coordinates": {
+        "detached": [
+          226,
+          232,
+          330
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/FigshareService.ts",
+      "sha256": "3aa420b1c18785d56763a2d9d9469a82a23ac7b6d9d308de0d0364dd6aeea236",
+      "coordinates": {
+        "followup": [
+          347
+        ],
+        "ownership": [
+          55,
+          64
+        ],
+        "detached": [
+          63,
+          64,
+          200,
+          204,
+          307,
+          313,
+          322,
+          351,
+          352,
+          379,
+          383,
+          393
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/FigshareVocabularyService.ts",
+      "sha256": "78026aa31cb109b02f9937dfc9b5313e7c85eb99d4e91296c617aac6d6e91583",
+      "coordinates": {
+        "followup": [
+          339,
+          653,
+          701,
+          801
+        ],
+        "detached": [
+          428,
+          443,
+          858,
+          1260,
+          1967,
+          2055,
+          2097,
+          2329,
+          2378,
+          2422
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/FormsService.ts",
+      "sha256": "8924209171e3fa222eb542a8902f3fcb7bcc70b2749e1db1017a5a9b202e062d",
+      "coordinates": {
+        "followup": [
+          944,
+          962,
+          965,
+          1006,
+          1030
+        ],
+        "detached": [
+          881,
+          893
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/HarvestRunService.ts",
+      "sha256": "63b17b78880ee0a0dec01b6140a5db0f16db9a87d9a75add4197ec9581a5ebdd",
+      "coordinates": {
+        "followup": [
+          201
+        ],
+        "ownership": [
+          74,
+          90,
+          94,
+          95,
+          96,
+          97,
+          98,
+          110
+        ],
+        "detached": [
+          67,
+          93,
+          98,
+          110,
+          117,
+          119,
+          241,
+          632,
+          647,
+          679,
+          742,
+          746,
+          780
+        ],
+        "admission": [
+          115,
+          1307,
+          1395,
+          1516
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/I18nEntriesService.ts",
+      "sha256": "5b9dc828db52f94192bc6c7bc7b8091b79764394045b9695867a6e9ce0960e47",
+      "coordinates": {
+        "detached": [
+          52,
+          187,
+          209,
+          319,
+          469,
+          525,
+          566,
+          681
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/IntegrationAuditService.ts",
+      "sha256": "c6b119e88716cd99fe24e789dc77b913a8d22f94094d4584f47c0365750fb1fe",
+      "coordinates": {
+        "followup": [
+          129,
+          130,
+          280,
+          281,
+          284,
+          298,
+          300,
+          312,
+          323,
+          332,
+          334,
+          368,
+          385
+        ],
+        "detached": [
+          278,
+          317,
+          332,
+          337,
+          339,
+          368,
+          385,
+          973,
+          1028
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/IntegrationNotificationService.ts",
+      "sha256": "b80f0363cfc87a8590c7cb063c01a7197341582217ffa248a90ccbdb7bfbb411",
+      "coordinates": {
+        "followup": [
+          178,
+          183
+        ],
+        "detached": [
+          51
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/NamedQueryService.ts",
+      "sha256": "122bece74ef0bb5a6d28ddf7f87e7d33ec68b5806d4974b3172eefa1f924ab06",
+      "coordinates": {
+        "detached": [
+          210,
+          218
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/OniService.ts",
+      "sha256": "30516ba0b0ba47a65ef7e88864a81bb5bd39665693c4ab9d5f14c0fbef6fb9ff",
+      "coordinates": {
+        "detached": [
+          45,
+          121,
+          152
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/RDMPService.ts",
+      "sha256": "6aa044581080d9578895f8967751ddb5cf4d50050ce0f03e4e57e367e713b046",
+      "coordinates": {
+        "followup": [
+          434
+        ],
+        "detached": [
+          80
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/RaidService.ts",
+      "sha256": "bbaf9bae69cd91f43f0e9f495c6197c5aeca37f2dd77e6c4b9c2e5b29ae573f6",
+      "coordinates": {
+        "followup": [
+          155,
+          230
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/RecordSchemaService.ts",
+      "sha256": "17340acec5afd0ea192ada1b6d1e395332354213faaaf6d034672b7abee62b13",
+      "coordinates": {
+        "followup": [
+          146,
+          517,
+          518,
+          521,
+          3482,
+          3509,
+          3512,
+          3521,
+          3526,
+          3548,
+          3552,
+          3729,
+          3731
+        ],
+        "detached": [
+          329,
+          331,
+          339,
+          2370,
+          2379,
+          2407,
+          3162,
+          3971,
+          4097,
+          4107
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/RecordTypesService.ts",
+      "sha256": "cd3a0ed688ad1d17644e7b87a239dd26f4e8264d7d4802fd57acb17cc737e688",
+      "coordinates": {
+        "detached": [
+          167,
+          176,
+          184,
+          192
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/RecordValidationService.ts",
+      "sha256": "0a7629ff1ebd2727cf6076db4c2feb1eea4580252d30230c2c262c4303da8ab7",
+      "coordinates": {
+        "followup": [
+          823,
+          850,
+          2636,
+          2640,
+          2644
+        ],
+        "detached": [
+          373,
+          381,
+          752,
+          2639,
+          2668,
+          2677,
+          2775,
+          2890,
+          2898
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/RecordsService.ts",
+      "sha256": "7dc68add676896fda8ee70929de9e62b4883ae0e889705aa0db0ca64f6d35516",
+      "coordinates": {
+        "followup": [
+          2334,
+          2369,
+          2707,
+          2717,
+          2748,
+          2757,
+          2860,
+          6210,
+          6213,
+          6316,
+          6322,
+          6859,
+          7027,
+          7036,
+          7043,
+          8128,
+          8129,
+          8130,
+          8146
+        ],
+        "detached": [
+          541,
+          601,
+          629,
+          901,
+          1215,
+          1371,
+          1582,
+          1922,
+          2333,
+          2592,
+          2600,
+          2728,
+          2834,
+          2929,
+          2942,
+          2943,
+          2967,
+          3000,
+          3077,
+          3187,
+          3368,
+          3385,
+          3403,
+          3549,
+          3623,
+          3747,
+          3888,
+          6403,
+          7039,
+          7044,
+          7805,
+          8387
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/SecurityEventService.ts",
+      "sha256": "69f2ffc1f597eec575181786fca817375364d4c600aa2bc10cfa2e326806151d",
+      "coordinates": {
+        "followup": [
+          27,
+          28,
+          29,
+          30,
+          86,
+          121,
+          123,
+          167,
+          190,
+          226,
+          240,
+          260
+        ],
+        "ownership": [
+          33,
+          38,
+          41,
+          42,
+          43,
+          44,
+          45,
+          49
+        ],
+        "detached": [
+          39,
+          40,
+          45,
+          49,
+          50,
+          52,
+          53,
+          109,
+          113,
+          145,
+          171,
+          190,
+          226,
+          240,
+          253,
+          254
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/SiemForwardingService.ts",
+      "sha256": "234cc5815c5fec1ab8640cae42975d5bd420a638128fd7e525dbcfa389e58538",
+      "coordinates": {
+        "followup": [
+          144,
+          188,
+          192,
+          194,
+          198
+        ],
+        "ownership": [
+          25,
+          32,
+          35,
+          36,
+          37,
+          38,
+          39,
+          43
+        ],
+        "detached": [
+          33,
+          34,
+          39,
+          43,
+          44,
+          46,
+          47,
+          55,
+          93,
+          143,
+          154,
+          212,
+          213,
+          232
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/SolrSearchService.ts",
+      "sha256": "c21126ef563cffd96e9e5194a46a5e29614929fbe91a1de0ffdec769b7156fa2",
+      "coordinates": {
+        "followup": [
+          317,
+          328,
+          335,
+          342
+        ],
+        "detached": [
+          78,
+          90,
+          207,
+          274,
+          288,
+          324,
+          328,
+          338,
+          362,
+          413
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/StandardDatastreamService.ts",
+      "sha256": "3d851a2b429313565bac7840ea2d42479399654ba26e6ca02e3d112fb45b8846",
+      "coordinates": {
+        "followup": [
+          204
+        ],
+        "detached": [
+          166,
+          178,
+          198,
+          797,
+          835,
+          912
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/StorageManagerService.ts",
+      "sha256": "30b4bd99d4f29c88907953be3e4bf7ee784ba0dacbc0418ba61f17903bfa3c49",
+      "coordinates": {
+        "detached": [
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          102,
+          105,
+          120,
+          159,
+          190
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/TranslationService.ts",
+      "sha256": "420fdf9dfe71f11adc10171773bc726fadf82416751380151a56298295bfa7ea",
+      "coordinates": {
+        "detached": [
+          28
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/UsersService.ts",
+      "sha256": "5081260ff6ecd74e4072accffae2a6f4312eddd5792ba2ca8314cb54b6bf4121",
+      "coordinates": {
+        "followup": [
+          1904
+        ],
+        "detached": [
+          39,
+          43,
+          44,
+          50,
+          51,
+          52,
+          192,
+          353,
+          386,
+          398,
+          743,
+          785,
+          790,
+          1006,
+          1021,
+          1106,
+          1127,
+          1157,
+          1197,
+          1268,
+          1288,
+          1313,
+          1542,
+          1566,
+          1601,
+          1641,
+          1690,
+          1712,
+          1739,
+          1771,
+          1774,
+          1894,
+          1904,
+          2410
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/VocabularyService.ts",
+      "sha256": "fdb95ade34935e50a348f6e24304cdbb153524120c47093f114ac5783f733ab0",
+      "coordinates": {
+        "detached": [
+          184,
+          717,
+          866,
+          881,
+          1020,
+          1109,
+          1154,
+          1201,
+          1281,
+          1296
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/WorkflowStepsService.ts",
+      "sha256": "559f460b818e67a86797129acdeab3dc5e3ae6f3b229c5549de6404cc8653d56",
+      "coordinates": {
+        "detached": [
+          106,
+          114
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/WorkspaceAsyncService.ts",
+      "sha256": "7c853d9b19e78c7d51b48c47f2180cb265671a75e0e47a9545062f8d975697a1",
+      "coordinates": {
+        "ownership": [
+          24,
+          66,
+          69,
+          70,
+          71,
+          72,
+          73,
+          85
+        ],
+        "detached": [
+          36,
+          64,
+          68,
+          73,
+          85,
+          90,
+          94,
+          97,
+          104,
+          106,
+          109,
+          112,
+          113,
+          119
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/doi-v2/audit.ts",
+      "sha256": "4335843bafd61b8df2f7ddbeb93e8009aa5aae85404445d95dcc931255f66fd7",
+      "coordinates": {
+        "followup": [
+          26,
+          27,
+          32,
+          33
+        ],
+        "detached": [
+          25,
+          31
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/doi-v2/bindings.ts",
+      "sha256": "c95f5fe4a4b8f00d90c8deb474e0b7b2e82cdb34b392beb2e444f0bab8d1d471",
+      "coordinates": {
+        "detached": [
+          8
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/doi-v2/context.ts",
+      "sha256": "f8a7507f9282ce4f495b59498772472e84ab78c88140d723b08cdac48ee8c2b8",
+      "coordinates": {
+        "followup": [
+          15
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/doi-v2/http.ts",
+      "sha256": "2ed6f4a9d367a7bba2a55aa17dcfad5012e3062f55c07d3866efde00cbb67d14",
+      "coordinates": {
+        "detached": [
+          69
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/admin.ts",
+      "sha256": "c93b0436b062741ece7e08aa8012cc36a9ed850dc715768e54b1fa294b09efe7",
+      "coordinates": {
+        "followup": [
+          171,
+          183,
+          189
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/assets.ts",
+      "sha256": "63c7222b911da10e098649a9dd8d31383b434be1198b11aaa5b461c49562368e",
+      "coordinates": {
+        "detached": [
+          78
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/audit.ts",
+      "sha256": "cb7463f5898d98fc9fdb9dc5ca7f1a3d7e4bd8d41160f771edb6431bed4e8040",
+      "coordinates": {
+        "followup": [
+          31,
+          32,
+          37,
+          38
+        ],
+        "detached": [
+          30,
+          36
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/bindings.ts",
+      "sha256": "c7282c12f084e9f91c46854413070cc882ba5dc76f4c2858b95fc5bc228ab72f",
+      "coordinates": {
+        "detached": [
+          34
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/categories.ts",
+      "sha256": "0283a38384539531c0267e3b4fb95b31a3c0f8332844f904a277eedf54627594",
+      "coordinates": {
+        "detached": [
+          380,
+          489
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/config.ts",
+      "sha256": "8f1da137e5c083220230ee72ac440c05ad9e9ae393acf8c09b55772cf2d78c7e",
+      "coordinates": {
+        "detached": [
+          184
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/context.ts",
+      "sha256": "5e5ec3d68f516280eb038af60f7d8457c51d29bea704a402b7d2bfcc57260d33",
+      "coordinates": {
+        "followup": [
+          52
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/execution.ts",
+      "sha256": "b0e9f4d926c57511542cc114572aebc8d9d23a9aa903ceabed13361e7f4a4aef",
+      "coordinates": {
+        "detached": [
+          11
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/http.ts",
+      "sha256": "b805d3caa4ff41984960456fec23391bb58a6df73672138d0d671fba7caa2a1e",
+      "coordinates": {
+        "detached": [
+          218
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/managed-assets.ts",
+      "sha256": "14ad36170113d0d9b74507f7efc8dc345e2260c280b6fe5e3d974e2d0717e5d8",
+      "coordinates": {
+        "detached": [
+          13,
+          17
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/metadata.ts",
+      "sha256": "d33a0916ca47ea53ef298737338eeb66dae8ee22323c61be6ef35b0968f407a9",
+      "coordinates": {
+        "detached": [
+          289
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/observability.ts",
+      "sha256": "430cd6600458a2ff7bc6c308428fddf6aa4365389d1400bb3c945a96f8862cdd",
+      "coordinates": {
+        "detached": [
+          33
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/runtime.ts",
+      "sha256": "e2b31db167e9496d8545bede5bdebba06a6c870834a09f243942b543fe7d1a7b",
+      "coordinates": {
+        "followup": [
+          76
+        ],
+        "detached": [
+          44
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/types.ts",
+      "sha256": "46b0e4eb04277ea8871d274c57a70639093b7628a6c5b5be0e6cf0ba5f840630",
+      "coordinates": {
+        "detached": [
+          285
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/worker-lifecycle.ts",
+      "sha256": "81e60aede71d936913d0b7e7a19414ae516bcc9f2e07a65493289ea58f3718e1",
+      "coordinates": {
+        "ownership": [
+          35,
+          36
+        ],
+        "detached": [
+          18,
+          20,
+          26,
+          31,
+          37
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/figshare-v2/worker.ts",
+      "sha256": "4e7c76d5cc408a2a0c75bfc708463d44bf6cc31b042679f31a4e066447dee8fa",
+      "coordinates": {
+        "followup": [
+          113,
+          148,
+          188,
+          228,
+          634,
+          637,
+          800
+        ],
+        "detached": [
+          86,
+          105,
+          106,
+          156,
+          161,
+          192,
+          193,
+          205
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/index.ts",
+      "sha256": "76843ce515880d80f257f1b60798e3debbe32ab006f52e5dc7dab63c198c45f3",
+      "coordinates": {
+        "followup": [
+          7,
+          66,
+          176,
+          177,
+          178
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/integration-v2/bindings.ts",
+      "sha256": "17e98618e53b5e06d6956863c987e14b26eca4094172d1d80902f7906bc4dd0c",
+      "coordinates": {
+        "detached": [
+          57,
+          80,
+          102,
+          134
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/audit.ts",
+      "sha256": "7c27e4c9cd6d3717f61caed47b8b924e15636b7d8100f9d85ffe95c904376fd8",
+      "coordinates": {
+        "followup": [
+          23,
+          40,
+          43
+        ],
+        "detached": [
+          15,
+          16,
+          67,
+          76
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/bindings.ts",
+      "sha256": "a35cb416bb48c3e9eaad8f33872dd7cc266b91c83e1486c490bfd0c5f64790c1",
+      "coordinates": {
+        "detached": [
+          8
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/crate.ts",
+      "sha256": "f6b88f7cca421dc7ca5323b522fdc23c1a67730b20e2a66651dcfb0506c4a18c",
+      "coordinates": {
+        "detached": [
+          58,
+          71,
+          306,
+          416
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/flydriveOcflStore.ts",
+      "sha256": "296e68e2cb25d9fef52852750bee3ae39d81e366d03f8bf57a3c9419610bf3b5",
+      "coordinates": {
+        "detached": [
+          216,
+          219,
+          221,
+          226,
+          265,
+          274,
+          281,
+          388,
+          414
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/ingestion.ts",
+      "sha256": "847d163ec6d77140a47dded5e1180eeaf22dfec628d6b3b0cc48a4156e28806d",
+      "coordinates": {
+        "followup": [
+          110,
+          137
+        ],
+        "detached": [
+          33,
+          41,
+          60,
+          61,
+          69
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/mapping.ts",
+      "sha256": "adf414992fc15561a63a6695ea1ea2457a432b02c2d90ac9b03f2a47cbd1dd9f",
+      "coordinates": {
+        "detached": [
+          86,
+          153
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/repository.ts",
+      "sha256": "1b200556c4776562e122969967feb62875d49f3f2a0d7d8d08f8bbb48aed0389",
+      "coordinates": {
+        "detached": [
+          90,
+          156,
+          160,
+          177
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/runtime.ts",
+      "sha256": "eb0d107c3bb298b3d118212da5770963058a1cca0f80ed6589b6ebf8d003dbdb",
+      "coordinates": {
+        "detached": [
+          31,
+          32,
+          33,
+          34,
+          38
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/oni-v2/types.ts",
+      "sha256": "682332979a6b97efd6f0190e5f6ee64e8fdf9df65ecb2f5db949e4463e7a86fe",
+      "coordinates": {
+        "detached": [
+          82,
+          83,
+          84,
+          113,
+          114,
+          119,
+          120,
+          128
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/raid-v2/audit.ts",
+      "sha256": "47c13ef0d6ada0f9ad313d910c72f7c2e7e5dd4a435da05a0351cb6b52250ed2",
+      "coordinates": {
+        "followup": [
+          9,
+          10,
+          26,
+          29
+        ],
+        "detached": [
+          9,
+          10
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/raid-v2/http.ts",
+      "sha256": "fb7aaf577f29348d99b2ef7248e9dfd373dd280f4a752a8145fb0c09bad9d6ef",
+      "coordinates": {
+        "followup": [
+          35,
+          46
+        ],
+        "detached": [
+          14,
+          83
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/raid-v2/logger.ts",
+      "sha256": "110316f849dded514edad2b6446ba3180288fc0d8ab15b9aeb411e4cc8836628",
+      "coordinates": {
+        "detached": [
+          4
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/raid-v2/mapping.ts",
+      "sha256": "adf04e0fa02bc5f952f1898a300685ae957c14994bb68c938c563e29ed081282",
+      "coordinates": {
+        "detached": [
+          26,
+          91
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/raid-v2/runtime.ts",
+      "sha256": "03b5c5ae9ca7d0ac7181aa26d22e77f62d23bba84556ad4659e02954ae89dd45",
+      "coordinates": {
+        "followup": [
+          117
+        ],
+        "detached": [
+          19,
+          23,
+          50,
+          132
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/raid-v2/types.ts",
+      "sha256": "f85f63c406ad19629bafe892d653504a00c4677d041cbc926a4d96e880496eec",
+      "coordinates": {
+        "detached": [
+          23,
+          24,
+          32
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/record-hooks/coordinator.ts",
+      "sha256": "342eeb6faab7220f173d0bc1622c43c709fb2c89ce25cdb0cb2781807db21206",
+      "coordinates": {
+        "detached": [
+          129,
+          150,
+          307
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/siem/SiemAdapters.ts",
+      "sha256": "590d73fe8939f2f15406cabd2b7b8ff20f56d43b55b983156cf46c45e658b27a",
+      "coordinates": {
+        "followup": [
+          21
+        ]
+      }
+    },
+    {
+      "path": "packages/redbox-core/src/services/siem/SiemConfigSecrets.ts",
+      "sha256": "24beac1b681442ef928cc5eba62b7ea70cf5b3d5f4498890bd4c42a7b6698724",
+      "coordinates": {
+        "detached": [
+          4
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/index.ts",
+      "sha256": "12425cc7def855244808dd6ff26699b508ca6f00d8b87be3c8c4de99123ff704",
+      "coordinates": {
+        "detached": [
+          17
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/migrations/recordRevisionBackfill.ts",
+      "sha256": "e5c47d65ed1b5e5a274fe3fdf37e5538e927da81d502613f08acea50245e4f20",
+      "coordinates": {
+        "detached": [
+          15
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/models/DeletedRecord.ts",
+      "sha256": "125809006401882fb591debacd83b3527ac3eca30fecf0cd3f543a4eb98b821f",
+      "coordinates": {
+        "detached": [
+          23,
+          36
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/models/Record.ts",
+      "sha256": "40dd16df7b6ccd0bf3ace9012dc86c3355187aea00e18f04232e5a371a911567",
+      "coordinates": {
+        "detached": [
+          21,
+          33
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/persistence/MongoStagedStorage.ts",
+      "sha256": "edcf306b431590a6e45b9cb52105cfd4d40ff792301b1be44f4c74ea4d17550e",
+      "coordinates": {
+        "followup": [
+          110,
+          113
+        ],
+        "detached": [
+          82
+        ],
+        "admission": [
+          13,
+          170
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/persistence/RecordRevisionMaintenance.ts",
+      "sha256": "7fae390e34db008e3bc0cb22c64ef6b9cb1c7edecbbb83e004088475b3555083",
+      "coordinates": {
+        "detached": [
+          61,
+          63
+        ],
+        "admission": [
+          1,
+          64
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/persistence/StoragePersistence.ts",
+      "sha256": "665a21b6df9b18ece968c206b6ab43e49f1ca2ea522d224d8433155cd3964566",
+      "coordinates": {
+        "followup": [
+          45,
+          46,
+          68,
+          70
+        ],
+        "detached": [
+          3
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts",
+      "sha256": "7f963ec4784a2823628939c03019977d87a55acd99ba3a2f6a168d3cfafa8f17",
+      "coordinates": {
+        "followup": [
+          479,
+          480,
+          2843,
+          3712,
+          3759,
+          3775
+        ],
+        "ownership": [
+          28,
+          400,
+          401
+        ],
+        "detached": [
+          388,
+          398,
+          426,
+          431,
+          796,
+          986,
+          1011,
+          1043,
+          1082,
+          1112,
+          1120,
+          1882,
+          3422
+        ]
+      }
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts",
+      "sha256": "c3a5658a983fa7d05710ffa7692471a43f8a99bf0c045462c5f10dc326a590ed",
+      "coordinates": {
+        "followup": [
+          221,
+          222,
+          223,
+          224,
+          225,
+          226,
+          227,
+          228
+        ],
+        "ownership": [
+          1,
+          29,
+          30
+        ],
+        "detached": [
+          14,
+          15,
+          24
+        ]
+      }
+    }
+  ]
+}

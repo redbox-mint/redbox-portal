@@ -1,0 +1,10 @@
+{
+  "name": "inherited-projection-before",
+  "sourceCommit": "4a486a6fb5ff0dbb084592027d22606ca521df0d",
+  "probe": "project an absent JSON toString member through the shipped plain projector",
+  "observed": {
+    "memberType": "function",
+    "ownMember": true
+  },
+  "sha256": "81f467951e48f88dd282feed191177f0ebe7cbed614f0ea96310b84861d65f47"
+}

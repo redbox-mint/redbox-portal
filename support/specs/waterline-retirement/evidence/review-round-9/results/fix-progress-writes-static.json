@@ -1,0 +1,11 @@
+{
+  "name": "fix-progress-writes-static",
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence",
+  "sourceCommit": "b8205bb50386ffb11b5dcb719f7a2d15f9c84c4c",
+  "exitCode": 0,
+  "durationMs": 42601,
+  "sha256": "191204b80c45c21fe9c262a10d398f6617e56753b15dfd05537f5da4a4db5cae",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

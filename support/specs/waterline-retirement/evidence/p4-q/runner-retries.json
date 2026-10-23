@@ -1,0 +1,68 @@
+[
+  {
+    "log": "core.log",
+    "sha256": "5bfa4fd29a911b8e3c8f52a3c8953f00ce2bd26bd070e68cbdd484f5c14d3747",
+    "qualifies": false,
+    "disposition": "Startup module-load deadline exceeded during the earlier concurrent run; not a passing core suite."
+  },
+  {
+    "log": "core-final.log",
+    "sha256": "06cdcb5013053b92bfa5601d9593daa8d441f5e1b284dd9209a17b4ba821b198",
+    "qualifies": false,
+    "disposition": "Interrupted previous-account run with no completion footer; not a passing core suite."
+  },
+  {
+    "log": "mocha.log",
+    "sha256": "06ea600a99df69430814d2d44a617461c7284d174833043a243e9e3375073c26",
+    "qualifies": false,
+    "disposition": "Waterline 53 passed; MongoDB stopped in cache initialization before Q assertions; not a MongoDB Q pass."
+  },
+  {
+    "log": "mocha-mongodb-final.log",
+    "sha256": "47342f8fd8c3f56ac477076b073cd061aceab08e210b7edb0304a42fc50a7b92",
+    "qualifies": false,
+    "disposition": "52 passed, one selection assertion failed: root direct lift omitted Q environment forwarding and exercised Waterline. Fixed in ca3b919c7."
+  },
+  {
+    "log": "query-case-red-2.log",
+    "sha256": "610ccd5f844c37b8086ae1996ded58cc21406c1055fca1eee521dc666c12ee5d",
+    "qualifies": false,
+    "disposition": "Loaded adapter comparison exposed MongoDB Q case-insensitive named-query text modifiers; corrected in Q private translator."
+  },
+  {
+    "log": "json-guard-red.log",
+    "sha256": "4718e0149812946fd29502931c3df00d43bf6864d6fd3173ef01e7e6521b174b",
+    "qualifies": false,
+    "disposition": "Regression was red before reusing strict JSON validation; accessors must never execute."
+  },
+  {
+    "log": "bruno-verified.log",
+    "sha256": "93a3a9f81a3400c4a3f5ed8a7a78a9c89c1acc8d1b22c53cf83c82d4fb81f1a8",
+    "qualifies": false,
+    "disposition": "Waterline 305/305 requests and 549/549 tests passed. MongoDB stopped at Save SIEM Config (127 passed, 1 failed, 177 bailed) because normalized optional credentials were own undefined values, rejected by the strict plain JSON boundary. The domain form adapter now omits these fields, matching actual Waterline BSON; full MongoDB rerun pending."
+  },
+  {
+    "log": "siem-red.log",
+    "sha256": "c33a37600e427d8565d217c69a0783dc80d0d407b898c5a310facea7f79b5f59",
+    "qualifies": false,
+    "disposition": "Reduced real service save reproduced the SIEM producer incompatibility before the fix; field-type-only output shows Waterline physically omits absent optional credentials."
+  },
+  {
+    "log": "mocha-siem-final.log",
+    "sha256": "d5fc2febc5b5cccd48f49f64a043662b05b00d4bab35b6a94dec3fe615a11837",
+    "qualifies": false,
+    "disposition": "Stopped before Compose because Bruno had created root-owned files in this worktree temporary attachment tree. Restored ownership of that test-only tree to the workspace user; unchanged standard runner restarted. No application/DB data or readiness/index behavior changed."
+  },
+  {
+    "log": "promotion-core-before-fixture-fix.log",
+    "sha256": "b6bcabe2774d3310f25922f08e4e18397a59f310d5074937a2868b6f59491496",
+    "qualifies": false,
+    "disposition": "Post-promotion core run correctly refused two inert Q model mappings: isolated bootstrap tests omitted their Q selector. af47d1c66 pins Q Waterline alongside M/R for those fixture-only tests. Focused ordering tests pass and the complete promoted core rerun passes 4142 tests with 106 existing pending; readiness remains strict."
+  },
+  {
+    "log": "development-before-yaml-fix.log",
+    "sha256": "081d0b16aa2179d9fc6baa01594b4db263eceb65462bb85a9fc9a73174a7d097",
+    "qualifies": false,
+    "disposition": "Development Compose mixed list-style R/Q selectors with a mapping environment anchor (R error already present before Q). 400f9e793 fixes those two entries. All 8 source Compose YAML files parse, and the unchanged isolated standard development startup/maintenance check passes."
+  }
+]

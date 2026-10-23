@@ -1,0 +1,24 @@
+{
+  "name": "operation-outcomes",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh operation-outcomes",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 7706,
+  "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 346,
+      "summary": {
+        "read-missing-null-bson": 171,
+        "unsupported-bson-refusal": 57,
+        "create-fetch": 80,
+        "create-fetch-missing": 6,
+        "no-match-validation": 32
+      },
+      "failures": 0,
+      "firstFailures": []
+    }
+  ]
+}

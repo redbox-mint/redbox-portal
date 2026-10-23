@@ -1,0 +1,28 @@
+{
+  "command": [
+    "bash",
+    "packages/redbox-core/test/fixtures/waterline-retirement/run-storage-standard.sh",
+    "bruno",
+    "mongodb"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 271.466,
+  "sha256": "0ccedc3b4104ce6831f1d2b9a989fc9c8a77fa510f749e46d7c59bc3dad34bcc",
+  "logBytes": 2355352,
+  "results": {
+    "requests": {
+      "passed": 309,
+      "total": 309
+    },
+    "tests": {
+      "passed": 553,
+      "total": 553
+    },
+    "assertions": {
+      "passed": 3,
+      "total": 3
+    }
+  },
+  "selector": "mongodb",
+  "fixture": "unique Compose project and fresh volumes, unfiltered stock npm runner, original dependency pins"
+}

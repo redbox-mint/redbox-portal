@@ -1,0 +1,1968 @@
+{
+  "firstFullBrunoRaw": {
+    "sha256": "f5d49f9faba8908b1d84a58ca3775c744c4128d03b8b01289c4d3ac8939f44e6",
+    "summary": "309/309 requests; 553/553 tests; 3/3 assertions. Child cleanup completed; stopped parent was terminated before it wrote a result record. Preliminary only."
+  },
+  "excluded": [
+    {
+      "reason": "The temporary focused typecheck included only declaration files, omitting service globals and duplicating sails declarations; the corrected complete source scope passes without changing project settings.",
+      "name": "fix-integration-assertions",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && node_modules/.bin/tsc --noEmit && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && node_modules/.bin/tsc --noEmit -p .tmp/review-round-12/tsconfig.integration-audit.json && git diff --check",
+      "exitCode": 2,
+      "durationMs": 61762,
+      "sha256": "106125a459c146635cb706b54d33f9008935ece488508d54d7911506cbbbe616",
+      "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+      "worktreeChanges": [
+        " M test/integration/services/AttachmentMetadataService.test.ts"
+      ],
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "reason": "Fixture attempted two loaded Sails instances in one process; stopped after the adapter registration error and cleaned its resources.",
+      "name": "drain-before",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+      "exitCode": 143,
+      "durationMs": 42001,
+      "sha256": "4cc48fa526711fa6ccf7106c7d8ea6dc74bf92bd43fa43a35508fc726cb0141c",
+      "sourceCommit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+      "worktreeChanges": [
+        " M packages/redbox-core/src/persistence/reference/runtime.ts",
+        " M packages/redbox-core/src/persistence/storage/runtime.ts",
+        "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+      ],
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "reason": "Pre-fix probe used an invalid attachmentId; replaced with a bounded identifier.",
+      "name": "drain-before-corrected",
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+      "exitCode": 1,
+      "durationMs": 5128,
+      "sha256": "b69c604c872f81e8a52e6372a27e6a37443256aff096cda5d801a11824405bf0",
+      "sourceCommit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+      "worktreeChanges": [
+        " M packages/redbox-core/src/persistence/reference/runtime.ts",
+        " M packages/redbox-core/src/persistence/storage/runtime.ts",
+        "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+      ],
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "reason": "Original-module preload initially resolved paths relative to the fixture working directory; corrected to the repository root.",
+      "name": "drain-baseline-valid",
+      "command": "NODE_OPTIONS=\"--require=$PWD/.tmp/review-round-12/baseline-runtimes.cjs\" bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+      "exitCode": 1,
+      "durationMs": 1294,
+      "sha256": "04f4bd1312e21e9f9e4be59c5985d8c3b9552d598639f8aacb477c59ba49d1a2",
+      "sourceCommit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+      "worktreeChanges": [
+        " M packages/redbox-core/src/persistence/reference/runtime.ts",
+        " M packages/redbox-core/src/persistence/storage/runtime.ts",
+        "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+      ],
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "reason": "Intermediate guard types did not match Promise/Function types; corrected before commit.",
+      "name": "fix-compound-drain",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+      "exitCode": 2,
+      "durationMs": 23453,
+      "sha256": "6dc765088d64089a19f5c58ff5a52e70a9894ea6d8528934857ad4c7f34a1f1a",
+      "sourceCommit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+      "worktreeChanges": [
+        " M packages/redbox-core/src/persistence/reference/runtime.ts",
+        " M packages/redbox-core/src/persistence/storage/runtime.ts",
+        "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+      ],
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "reason": "Build/typechecks pass, but the unqualified attachmentId causes two expected schema refusals; corrected fixture retained all assertions.",
+      "name": "fix-compound-drain-final",
+      "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/redbox-core run typecheck:persistence && npm --prefix packages/redbox-core run lint && node_modules/.bin/tsc --noEmit && bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh accepted-drain",
+      "exitCode": 1,
+      "durationMs": 57365,
+      "sha256": "6a4ce8ec4f3827bd99284b2a5d90398c1d68a5cb6943abfc2c16997e90ecc3fd",
+      "sourceCommit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+      "worktreeChanges": [
+        " M packages/redbox-core/src/persistence/reference/runtime.ts",
+        " M packages/redbox-core/src/persistence/storage/runtime.ts",
+        "?? packages/redbox-core/test/fixtures/waterline-retirement/reference-accepted-drain.cjs"
+      ],
+      "counts": {
+        "passing": [],
+        "pending": [],
+        "failing": []
+      }
+    },
+    {
+      "reason": "Isolated before-each source import exceeded the existing 2-second default Mocha hook deadline; no budget changed.",
+      "name": "legacy-audits-before",
+      "command": "cd packages/sails-hook-redbox-storage-mongo && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register --require test/setup.ts test/services/MongoStorageService.test.ts --grep \"bounds.*(native failures|audit read errors)\"",
+      "exitCode": 1,
+      "durationMs": 7736,
+      "sha256": "8e7ae01ac4eae9e94cf1f75a261469169b3b6de317cec1da413ebfbaa1613d51",
+      "sourceCommit": "a0503fbe02540c96738b830da2027633b6a1a3c1",
+      "worktreeChanges": [
+        " M packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts"
+      ],
+      "counts": {
+        "passing": [
+          "0"
+        ],
+        "pending": [],
+        "failing": [
+          "1"
+        ]
+      }
+    },
+    {
+      "reason": "Same isolated import limitation with original module loader; immutable-source standalone proof replaces this probe.",
+      "name": "legacy-audits-baseline",
+      "command": "cd packages/sails-hook-redbox-storage-mongo && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require chai --require ts-node/register/transpile-only --require ../../.tmp/review-round-12/baseline-storage.cjs --require test/setup.ts test/services/MongoStorageService.test.ts --grep \"bounds.*(native failures|audit read errors)\"",
+      "exitCode": 1,
+      "durationMs": 4080,
+      "sha256": "6741400512ff08ad5108a795ec73d1b05bc4b84dbf9b26a8f35d5e8d1dbde311",
+      "sourceCommit": "a0503fbe02540c96738b830da2027633b6a1a3c1",
+      "worktreeChanges": [
+        " M packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts",
+        " M packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts"
+      ],
+      "counts": {
+        "passing": [
+          "0"
+        ],
+        "pending": [],
+        "failing": [
+          "1"
+        ]
+      }
+    }
+  ],
+  "turnInterruption": {
+    "reason": "User turn interruption terminated the process group during SIEM. Thirty commands completed successfully; no SIEM result record was accepted. Cleaned the owned waterline-p5-durable MongoDB container e669085d3de5 before resuming.",
+    "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+    "completed": 30,
+    "remaining": 45,
+    "interruptedRawSha256": "4ad2b8f47c1e3aa64c9ca9367e348b5f252495b362b8813a77bf02420138630e"
+  },
+  "migrationReplay": {
+    "name": "migration-replay",
+    "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+    "exitCode": 0,
+    "durationMs": 75922,
+    "sha256": "a4a111a540516d286dbd359cf988e176111ee12910136b3ce75d44f87e1aad92",
+    "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+    "worktreeChanges": [],
+    "counts": {
+      "passing": [
+        "15"
+      ],
+      "pending": [],
+      "failing": []
+    }
+  },
+  "partialRuns": [
+    {
+      "directory": "rollback-startup-attempt",
+      "sourceCommit": "73bb34656",
+      "reason": "The pre-P2 rollback image worker exceeded its unchanged 30-second startup deadline. Fourteen migration cases passed and this rollback case failed. Runner stopped at the cache-transition boundary, child completed 17 cases and cleaned up; no runtime/test/configuration changed. The exact migration command and then the complete inventory were rerun with unchanged budgets.",
+      "completed": [
+        {
+          "name": "accepted-drain",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7900,
+          "sha256": "f15bebbb98109d888f932447464b860d3c35a9a411e637ff45e1e1c412f734e0",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 24,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "batch-clocks",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7669,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 14,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "cache-mongodb",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 16834,
+          "sha256": "065680e22fcac5401ba88100931c16f648c7170b847f1d143854ad00f7868c04",
+          "counts": {
+            "passing": [
+              17
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "cache-read-values",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5183,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 60,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "core-tests",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 119799,
+          "sha256": "aa72c9c0c5da15de452d609765f0879e65db4b09888f1ba25d3e9401df39344e",
+          "counts": {
+            "passing": [
+              4257
+            ],
+            "pending": [
+              116
+            ],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "error-boundaries",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 292,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 138,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "fetch-mappings",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 4620,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 19,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "final-static",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 78929,
+          "sha256": "5504628084d3b7fa50b7ae75f49c54578a192836e4888679ca5938b498d4c012",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "foundation",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 8554,
+          "sha256": "41b4b2820729e6ae616560cc9e4966f78a14542721f9e44fce70400c25cc9765",
+          "counts": {
+            "passing": [
+              12
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "migration",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 1,
+          "durationMs": 93684,
+          "sha256": "a6ea6b9f7985f422afb70ce71ac0b587e65c4f811c32fa7e8611ae92da3f44b6",
+          "counts": {
+            "passing": [
+              14
+            ],
+            "pending": [],
+            "failing": [
+              1
+            ]
+          },
+          "checks": []
+        },
+        {
+          "name": "operation-boundaries",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 32161,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 34,
+              "failures": 0,
+              "summary": {
+                "document-size": 8,
+                "duplicate-error-code": 4,
+                "duplicate-no-write": 4,
+                "literal-unicode-case": 10,
+                "batch-size": 6,
+                "batch-invalid-before-write": 2
+              }
+            }
+          ]
+        },
+        {
+          "name": "operation-outcomes",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 8498,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 346,
+              "failures": 0,
+              "summary": {
+                "read-missing-null-bson": 171,
+                "unsupported-bson-refusal": 57,
+                "create-fetch": 80,
+                "create-fetch-missing": 6,
+                "no-match-validation": 32
+              }
+            }
+          ]
+        },
+        {
+          "name": "progress-writes",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7752,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 172,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-tests",
+          "sourceCommit": "73bb3465655790217c684b21eaaf04028305692d",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 41448,
+          "sha256": "5ee7ea99fd02657756aa7fd08c07841b07ee5b0c88f7420f947e32f0dcbaa571",
+          "counts": {
+            "passing": [
+              291
+            ],
+            "pending": [
+              38
+            ],
+            "failing": []
+          },
+          "checks": []
+        }
+      ],
+      "cacheTransitionRaw": {
+        "sha256": "5091bd92a372b9845d378d8ce72bb9bcecc10b283b97553cdc5b22182e811070",
+        "passing": 17
+      }
+    },
+    {
+      "directory": "first-full",
+      "sourceCommit": "63a8ddee2",
+      "reason": "Fresh Mocha caught two old native-message assertions after the intentional bounded audit error change: 417 passing, 10 pending, 2 failing. Updated expectations preserve ordering/no-write checks and add cause non-disclosure; no runtime changed. Parent stopped at the Bruno boundary, allowed Bruno to finish and clean up, then terminated. The complete 75-command inventory is rerun at the test-fix commit.",
+      "completed": [
+        {
+          "name": "accepted-drain",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6088,
+          "sha256": "f15bebbb98109d888f932447464b860d3c35a9a411e637ff45e1e1c412f734e0",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 24,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "attachment-values",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 23555,
+          "sha256": "ca782e7f4c952c8a6c5ca263b69fa007c62e887d1fbbfecdcfe61e235b59c7e9",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 700,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "batch-clocks",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6819,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 14,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "cache-mongodb",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 12405,
+          "sha256": "163e49c9cd61dc107adb1418e602cf549d7f466df94c800faff286a67d179d06",
+          "counts": {
+            "passing": [
+              17
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "cache-read-values",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7214,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 60,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "cache-transition",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 93008,
+          "sha256": "94a9706932d722960dce693cbe2c45e89cd3dcc189b9223589139c8bd3922898",
+          "counts": {
+            "passing": [
+              17
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "cache-values",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5483,
+          "sha256": "107b89f6af5919667c1ccb1d01fd6ae58e63ed718e5c4fca7fabddaf45def947",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 22,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "configuration-readiness",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 19431,
+          "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "configuration-siem",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 11647,
+          "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "configuration",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 38699,
+          "sha256": "d9929f7997f87eeb77e2094431154c5cec873b5d493c52b0932f2eb2c79f04a8",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "core-tests",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 118575,
+          "sha256": "ff20355a961e9654abe150cc7b524e85d57aa9df82f23f2d94602555346d9012",
+          "counts": {
+            "passing": [
+              4257
+            ],
+            "pending": [
+              116
+            ],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "cross-group-mappings",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6320,
+          "sha256": "9e20bfe406373b18159be8d29f3b58546f7ac17ef8b86918356b69a84a602c98",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 600,
+              "failures": 0,
+              "summary": {
+                "migration": 18,
+                "reference": 168,
+                "configuration": 74,
+                "progress": 56,
+                "harvest": 128,
+                "siem": 80,
+                "figshare": 64,
+                "cache": 12
+              }
+            }
+          ]
+        },
+        {
+          "name": "cross-group-scalars",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 60091,
+          "sha256": "bf7cf5a82f613d7d1b609b9cbd9ebea6012270cab0d7a6dc3162a5f3b8555bc4",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 7280,
+              "failures": 0,
+              "summary": {
+                "reference": 2040,
+                "configuration": 800,
+                "progress": 840,
+                "harvest": 2240,
+                "siem": 1360
+              }
+            }
+          ]
+        },
+        {
+          "name": "cross-group-timestamps",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 17323,
+          "sha256": "01bc41f05a700855b563dcdceedbee8fe3f6e7c07d455cec4c9544b6eb3c3160",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 1520,
+              "failures": 0,
+              "summary": {
+                "reference": 640,
+                "configuration": 320,
+                "progress": 160,
+                "harvest": 240,
+                "siem": 160
+              }
+            }
+          ]
+        },
+        {
+          "name": "dashboard-native-values",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6984,
+          "sha256": "7ff3f3c7f8acb93c058d4acf7fb7b8622ee76ac445d34d23d9402cfbe210da83",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 5,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "domain-queries",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6160,
+          "sha256": "29128c4cf39404cf1f4f611257c6a1c586728b4427161442873de9d23dd0b750",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 160,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "error-boundaries",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 282,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 138,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "fetch-mappings",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6338,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 19,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "figshare-readiness",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6536,
+          "sha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "figshare-unit-mongodb",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 21205,
+          "sha256": "5e300da92d7bb114c11ffebe4cc0f769f2319af1f88e99119925949cc69c95dc",
+          "counts": {
+            "passing": [
+              56
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "figshare-unit",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 20872,
+          "sha256": "40a290ef2d282836334a974bf662d522a6435df812bfe7ca2e8e620bcce92498",
+          "counts": {
+            "passing": [
+              56
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "figshare",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 38273,
+          "sha256": "c9ce53c81ddd3bf01adece6373e3e0853e8529a31738759af1957a825f5e2b6a",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "final-static",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 81087,
+          "sha256": "7a204a05d66d17769b375191fbadeeda6ccb1dabdbd056623390ee41d32fdb90",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "foundation",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 9280,
+          "sha256": "558fac380d51cd716533e8a16980570b8832f5e55ca5b49dd29958759c4b054a",
+          "counts": {
+            "passing": [
+              12
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "fresh-mocha",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 2,
+          "durationMs": 321060,
+          "sha256": "9e756e266b4e689e710772add5477559bdf6a642338d1ff22c6fdda64d6663db",
+          "counts": {
+            "passing": [
+              417
+            ],
+            "pending": [
+              4,
+              2,
+              0,
+              1,
+              1,
+              10
+            ],
+            "failing": [
+              2
+            ]
+          },
+          "checks": []
+        },
+        {
+          "name": "gridfs-initializing",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7190,
+          "sha256": "4f8360e29190b6f71418003858e4bf920a93c4dfe09f5d86771c33dfec6cf634",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 2
+            }
+          ]
+        },
+        {
+          "name": "gridfs-streams",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7579,
+          "sha256": "8d0e940e8dac1e0ed00195820459c2f2c6d00bd7792424ac484ec22256a530a6",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 14,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "harvest-pages",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7580,
+          "sha256": "e86fe16886a272adbc60aa5bfef6a679b3b72b2615f3276a71377fc2e92a781f",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 648,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "harvest",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 34343,
+          "sha256": "2a203443407a57cbbd81681d61a5dc7cbde99fc3223d12d96f30f147cf665fdf",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "id-mappings",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 57529,
+          "sha256": "f905b8d6227609d10dbd24ec757df71695170693cd516682a1056f2ce6d42edf",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 18,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "id-values",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7051,
+          "sha256": "1d3534b921237ee776ae98aa09e6a8beb2e2ac94406b31b321ce0fc9de2666b6",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 228,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "indexes",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 109576,
+          "sha256": "2621b97047cfc67ea04e4e80b6138f5ac76ef90117badedb2fe4d92f82812c22",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "job-queries",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7505,
+          "sha256": "0a433b2820b0c7ebc4645fdc6d4a33caf381e6a6049c0c901c6c8e0565b77c59",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 466,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "migration-values",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6110,
+          "sha256": "8bb3fec7e17bd99b127c1ae4c1d9f0f2d5b5127bb8b09cb2e965586f2b6f9943",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 106,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "migration",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 70373,
+          "sha256": "b87aae260fc4b37dc436c2a07973ae7062552932397ce963efff814a4ebecdcd",
+          "counts": {
+            "passing": [
+              15
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "mixed-clocks",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 13004,
+          "sha256": "6a1027c10ef8592c001a10701aa80e248449c9d5deaf8cf0f97c3003c3e68d08",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 29,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "operation-boundaries",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 33425,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 34,
+              "failures": 0,
+              "summary": {
+                "document-size": 8,
+                "duplicate-error-code": 4,
+                "duplicate-no-write": 4,
+                "literal-unicode-case": 10,
+                "batch-size": 6,
+                "batch-invalid-before-write": 2
+              }
+            }
+          ]
+        },
+        {
+          "name": "operation-outcomes",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7253,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 346,
+              "failures": 0,
+              "summary": {
+                "read-missing-null-bson": 171,
+                "unsupported-bson-refusal": 57,
+                "create-fetch": 80,
+                "create-fetch-missing": 6,
+                "no-match-validation": 32
+              }
+            }
+          ]
+        },
+        {
+          "name": "progress-writes",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6585,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 172,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "progress",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 33578,
+          "sha256": "92688b558240a29a7841ea9c523bc2e64b45e7c61dbc079058da002c2c596597",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "query-adversarial",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 34024,
+          "sha256": "4db1ce8627a76eb4db5a8669a841eeafb881d52311aa1b2bea4cfe52662c5b54",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 6129,
+              "failures": 0,
+              "comparisons": 6129
+            }
+          ]
+        },
+        {
+          "name": "query-associations",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5417,
+          "sha256": "8864c96519175f3031c3c5fbc0d41be4e4b464b4595a3104190939de8c33ec50",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 28,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "query-baseline",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 28851,
+          "sha256": "86d6ceb64fc7bd6908a4d140f50ccb34522029d7b59f4f58ab2e36885b4a29c7",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 3106,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "query-equality",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5363,
+          "sha256": "f0a80a4df327d704d9e04daa6f2a689aa8f927ee2750b9b331e0e1d71bf86d86",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 2,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "query-pages",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 85325,
+          "sha256": "a684a9a8befcc9f4c36c79645202b99ffec92dca8f481dd22b5ae259ed107582",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 12672,
+              "pages": 11340,
+              "uncounted": 1260,
+              "progressOptionRefusals": 72
+            }
+          ]
+        },
+        {
+          "name": "query-producer-final",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6609,
+          "sha256": "50e71d60a40bb347e15e8e6bf860f42397fa298642b4565e8a2cd2606217bd48",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 18,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "record-arrays",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 4911,
+          "sha256": "8cb306d04b4d2e072b393368862498df295d07d5b1db0631764d87d3575aace6",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 10,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "recordtype-selection",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6528,
+          "sha256": "df9d4204112491e87251fe72adabd7940c503ed290b21662c12e5908d0bfe885",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 12,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "reference",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 47210,
+          "sha256": "d64996344e1efb32ab3550b315152cf6cf59b6f58d7583f6606e81bafe4109ca",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "review-mappings",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6287,
+          "sha256": "d7776806dc633bfcda2a48ec3f00cebd53eefc361dfdf88e3f1c9b7907a06fa4",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 14,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "review-scalars",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5781,
+          "sha256": "dcee4690e3bfb27f9cc6dbab856b01489dacbbc9377435f04041a9725dd12ca3",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 315,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "siem-native-pages",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5464,
+          "sha256": "5af111b64668be0b8af9bc6536bac538a716bd7c4cfc0f949b3cca296192134d",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 10,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "siem-native-values",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5504,
+          "sha256": "94766e5a7e40dd633a6b7334f4278fe3ac31d153fc4e4007ffb30e0ab4584822",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 6,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "siem-readiness",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6092,
+          "sha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "siem-unit",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 16622,
+          "sha256": "a6478ea69de4b8d8362ed3e3fe503dabd2047d9766c5d57b8ca834f76f459ae3",
+          "counts": {
+            "passing": [
+              73
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "siem",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 37167,
+          "sha256": "1120a7bb1b1ace16df2952a1856db9cf0ac9212a82a838c3fd732035c0d56f9e",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "storage-backfill",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6986,
+          "sha256": "9f29348d0d8292649b209b2d237df1b720c2c641ae5c391b2d45188831ccb2f4",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 16,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-contract",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7896,
+          "sha256": "3f5f4791404a4cace158dc85fc7b5a98fdc5ab595bdb607b516ca540e202cd37",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 211,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-live",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 93506,
+          "sha256": "58de873c7134395e3f53aaf1f32ae8f541c3f451cb3d41bc6a9fee2046650731",
+          "counts": {
+            "passing": [
+              329
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "storage-owner-failures",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6225,
+          "sha256": "1ebd721f1650afa16cded61314f22ba312fe7590833a921e7d1f398b624e0e18",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 5,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-ownership-waterline",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 8645,
+          "sha256": "c91848ee348fac1a05bf62ec4643a0806b1abf283f80c2a1b93a2ac9ca463148",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 17,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-ownership",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 8976,
+          "sha256": "31fdabd2cb75d2dc89183d0b0ab8405bbafd71551973bb24d17498dcec0d3ef8",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 17,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-qualification",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 36359,
+          "sha256": "9c777083240b64f6c7bea645e67927120d21c7995bfcced886baba4c0abad7d1",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 14,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-readiness",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 8448,
+          "sha256": "526731691dd8d40fab965463bfcbe9511e527fff1d6dee5bf56f4f387aca24ae",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 14,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-tests",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 43426,
+          "sha256": "1bd140d9c4a81a8b37391fad649a564a320646116862563107d107dcce41d910",
+          "counts": {
+            "passing": [
+              291
+            ],
+            "pending": [
+              38
+            ],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "tenant-scope-final",
+          "sourceCommit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6798,
+          "sha256": "485a6e4c9b63ac59ee814e0af9f51b49f77e20351679b8cbfcb2dedc5f321975",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 428,
+              "failures": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "directory": "head",
+      "sourceCommit": "8584a2303",
+      "reason": "Stopped at a command boundary before fixes; only completed records and raw migration results are preliminary.",
+      "completed": [
+        {
+          "name": "batch-clocks",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 8092,
+          "sha256": "e89f4741ed41fde7fe5cba1938425c58d25eddbe39423414ada2f78a1bebdd36",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 14,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "cache-read-values",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6371,
+          "sha256": "01d8205143c970209c4f531367030833141bf9b27e01a48f293b81b20f9241ca",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 60,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "core-tests",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 121704,
+          "sha256": "319ec4bc4774e685ba44c273fde53473ee206cdafdcc795b69893aac42b1b9b7",
+          "counts": {
+            "passing": [
+              4253
+            ],
+            "pending": [
+              116
+            ],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "error-boundaries",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 247,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 138,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "fetch-mappings",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 5953,
+          "sha256": "534b688c334c908d983692888b1c7df63fa9c5ef1797c18c37426f2c9e3c3606",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 19,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "final-static",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 73223,
+          "sha256": "2b997cbc9544d23d671c95baa8a05e4e0cce08d0e429a5bc9da1e401d3814c42",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "foundation",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 9778,
+          "sha256": "6e608e37f331dd5d78edce94901b69ae30fbfcfa84d5949a6f25bb1be752b7d5",
+          "counts": {
+            "passing": [
+              12
+            ],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        },
+        {
+          "name": "operation-boundaries",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 29743,
+          "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 34,
+              "failures": 0,
+              "summary": {
+                "document-size": 8,
+                "duplicate-error-code": 4,
+                "duplicate-no-write": 4,
+                "literal-unicode-case": 10,
+                "batch-size": 6,
+                "batch-invalid-before-write": 2
+              }
+            }
+          ]
+        },
+        {
+          "name": "operation-outcomes",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 8791,
+          "sha256": "802c7958f34bcd8c78b425c1a31fc7446bae7db1a11ef75ddb65682237aa2105",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 346,
+              "failures": 0,
+              "summary": {
+                "read-missing-null-bson": 171,
+                "unsupported-bson-refusal": 57,
+                "create-fetch": 80,
+                "create-fetch-missing": 6,
+                "no-match-validation": 32
+              }
+            }
+          ]
+        },
+        {
+          "name": "progress-writes",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 7503,
+          "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 172,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "storage-tests",
+          "sourceCommit": "8584a23033e53fbce53bde20d56bd382449a7bad",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 45441,
+          "sha256": "1b3bb102b43b6aafb2483c1e8d0192767f903dffe3eabc6c62adfc256c1a0ad9",
+          "counts": {
+            "passing": [
+              288
+            ],
+            "pending": [
+              38
+            ],
+            "failing": []
+          },
+          "checks": []
+        }
+      ]
+    },
+    {
+      "directory": "preliminary",
+      "sourceCommit": "bd336c6c9",
+      "reason": "Stopped at a command boundary before additional audit fixes; never accepted as a complete run.",
+      "completed": [
+        {
+          "name": "accepted-drain",
+          "sourceCommit": "bd336c6c965c442e9361590c905eb72d9a7c071a",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 6340,
+          "sha256": "f15bebbb98109d888f932447464b860d3c35a9a411e637ff45e1e1c412f734e0",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 24,
+              "failures": []
+            }
+          ]
+        },
+        {
+          "name": "error-boundaries",
+          "sourceCommit": "bd336c6c965c442e9361590c905eb72d9a7c071a",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 278,
+          "sha256": "8611b5ad1bb108233da3a6c937a038e9f08bcd172a7386fa4784d7a6580d993e",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": [
+            {
+              "passing": 138,
+              "failures": 0
+            }
+          ]
+        },
+        {
+          "name": "final-static",
+          "sourceCommit": "bd336c6c965c442e9361590c905eb72d9a7c071a",
+          "worktreeChanges": [],
+          "exitCode": 0,
+          "durationMs": 88164,
+          "sha256": "680b6837acff5d048e4abaee17fbc3867cec431dbac6269605c4b6030f9b9d66",
+          "counts": {
+            "passing": [],
+            "pending": [],
+            "failing": []
+          },
+          "checks": []
+        }
+      ]
+    }
+  ]
+}

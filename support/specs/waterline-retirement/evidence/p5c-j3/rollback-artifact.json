@@ -1,0 +1,11 @@
+{
+  "source": "7c1906849b1dd3bdffe6930d9976202b1ccf6ac4",
+  "image": "redbox-p5c-j3:prior-7c1906849",
+  "imageId": "sha256:409c2bebce607feedb5950c89bd39f05b1ea81f55886dbedf0301243f551c69e",
+  "locks": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  },
+  "assembly": "Full pre-J3 core build at clean 7c1906849; installed pruned qualification dependency image overlay; offline-smoke-tested. Dependencies unchanged.",
+  "checkpoint": "Owned standalone database and unchanged collections/indexes across image probes."
+}

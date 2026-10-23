@@ -1,0 +1,13 @@
+{
+  "name": "storage-operations",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh operations",
+  "sourceCommit": "658e932cdb97443d750274c967a2b1f94a35870b",
+  "exitCode": 0,
+  "durationMs": 66898,
+  "sha256": "2aaa59f74845f810504d9025ed3e4431e6343ba1f63868a248160a00a675dd30",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "PASS three paired repetitions; budgets and connection cleanup summarized in ../operations.json"
+  ]
+}

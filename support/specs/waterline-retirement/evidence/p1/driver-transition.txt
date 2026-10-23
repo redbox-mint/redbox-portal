@@ -1,0 +1,69 @@
+npm notice run @researchdatabox/redbox-core@0.0.1-beta.9022 test:cache-driver-transition
+npm notice run C2_DRIVER=true bash test/fixtures/cache-persistence/run-transition.sh
+
+
+  P5 shared adapter contract and independent application instances
+P5 MongoDB 8.0.34
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=70933
+    ✔ runs the same raw-document repository contract with explicit waterline (5260ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=71004
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with waterline (5378ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=71102
+    ✔ runs the same raw-document repository contract with explicit prisma (6461ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=71210
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with prisma (7305ms)
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=71248
+    ✔ runs the same raw-document repository contract with explicit mongodb (5364ms)
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=71280
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with mongodb (5102ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=71321
+    ✔ preserves draft and retained-version preview create/fetch/expiry with waterline (4823ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=71351
+    ✔ preserves draft and retained-version preview create/fetch/expiry with prisma (6584ms)
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=71383
+    ✔ preserves draft and retained-version preview create/fetch/expiry with mongodb (5438ms)
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=71483
+Dynamic imports imported
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=71480
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=71481
+Dynamic imports imported
+P5 active backend=mongodb selector=mongodb adapter=MongoCacheEntryRepository pid=71581
+    ✔ interoperates bidirectionally with all three simultaneous backends and driver restart (19115ms)
+Dynamic imports imported
+    ✔ refuses a custom hook mapping before selecting the driver (6286ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=71777
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=71818
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=71906
+    ✔ switches sequentially and uses simultaneous mixed processes with competing names, updates, expiry and deletion (17435ms)
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=71922
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=71938
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=71996
+    ✔ restarts into separate application processes after observing completed Prisma persistence and rolls config back (15122ms)
+Dynamic imports imported
+P5 active backend=prisma selector=default adapter=PrismaCacheEntryRepository pid=72012
+    ✔ uses Prisma against real MongoDB when the selector is absent (4984ms)
+Dynamic imports imported
+P5 active backend=waterline selector=waterline adapter=WaterlineCacheEntryRepository pid=72046
+Dynamic imports imported
+P5 active backend=prisma selector=prisma adapter=PrismaCacheEntryRepository pid=72061
+    ✔ uses explicit Waterline selection with hook datastore/collection/callback overrides; Prisma bypasses standard-model callbacks (10522ms)
+
+
+  15 passing (2m)

@@ -1,0 +1,277 @@
+{
+  "candidateDiffSha256": "61442a3f6c83cdc83ac1e9f8c9a50c91adfe13c0c616a556d3989d2e0f519272",
+  "commands": [
+    {
+      "label": "persistence-types",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "typecheck:persistence"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 37.34,
+      "log": "/tmp/redbox-p5d-j4-persistence-types.log",
+      "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+      "summary": ""
+    },
+    {
+      "label": "root-types",
+      "command": [
+        "node_modules/.bin/tsc",
+        "--noEmit"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 3.21,
+      "log": "/tmp/redbox-p5d-j4-root-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "summary": ""
+    },
+    {
+      "label": "cache-contract",
+      "command": [
+        "npm",
+        "run",
+        "check:cache-contract"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 4.08,
+      "log": "/tmp/redbox-p5d-j4-cache-contract.log",
+      "sha256": "53180888d04a9dd85159b959a8a9d622cbd61bff3ca468eaebf6e5f827b9e9e2",
+      "summary": "Cache contracts: check passed"
+    },
+    {
+      "label": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 1.14,
+      "log": "/tmp/redbox-p5d-j4-lint.log",
+      "sha256": "f44942c8b7663ba3d63b874096c77db4c270f9b0862b9954ea775a894b6736c5",
+      "summary": "Found 0 warnings and 0 errors."
+    },
+    {
+      "label": "foundation",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "test:persistence-foundation"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "sourceCommit": "15e16344b74a8f060399a8718d95a8857ed01bd8",
+      "log": "/tmp/redbox-p5d-foundation-final.log",
+      "sha256": "b4a38a12ba50f12466432ee253dd96fb11cc8eabb34d4d6b7ca86c3c3947c977",
+      "summary": "12 passing; corrected stale J3 default assertion, no production change"
+    },
+    {
+      "label": "cache-transition",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/cache-persistence/run-transition.sh"
+      ],
+      "environment": {
+        "P5_SKIP_BUILD": "true"
+      },
+      "exitCode": 0,
+      "seconds": 84.9,
+      "log": "/tmp/redbox-p5d-j4-cache-transition.log",
+      "sha256": "cd6ba80100c5d606c5bb6922a69b8b3e43c1fb989581a4e8d6fbfe6c6219f0fc",
+      "summary": "  8 passing (1m)"
+    },
+    {
+      "label": "cache-driver",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/cache-persistence/run-transition.sh"
+      ],
+      "environment": {
+        "P5_SKIP_BUILD": "true",
+        "C2_DRIVER": "true"
+      },
+      "exitCode": 0,
+      "seconds": 235.42,
+      "log": "/tmp/redbox-p5d-j4-cache-driver.log",
+      "sha256": "d6080400e6be412a9afb05495e63fb6d3d1c7c31a50159937bb3215cb70c3788",
+      "summary": "  15 passing (4m)"
+    },
+    {
+      "label": "migration",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "test:migration-transition"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 166.06,
+      "log": "/tmp/redbox-p5d-j4-migration.log",
+      "sha256": "4888fa6dd51effb36b0cae98d2eb50eb1e59b0aa51ab2de64e56ccbfca54aab2",
+      "summary": "  14 passing (3m)\n  1 pending"
+    },
+    {
+      "label": "reference",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh",
+        "contract"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 78.57,
+      "log": "/tmp/redbox-p5d-j4-reference.log",
+      "sha256": "0b33f3cd180ee882ccb59e58b4607ed1a07dfc6f2839b2ade41c50a286f4a15b",
+      "summary": "PASS all eight entities, raw defaults, both directions, unknown fields, read without rewrite\nPASS create-only keys, duplicate validation, explicit one/many/dangling relationships\nPASS tenant count, projection, ordering, pagination, unsupported-target/operator and required-field refusal\nPASS simultaneous independent mixed instances, restart, config rollback and forward, stale-reference fencing\nPASS fresh-process restart and baseline-compatible refusal of uppercase foreign IDs\nPASS historical missing fields and extension data without read normalization writes\nPASS unsupported raw BSON refuses repository/query reads without rewriting data or returning a smaller page\nPASS duplicate singular-name refusal without writes, nested comparison/membership filters on both backends\nPASS cross-group record tenant and user-role/link access, count after access, secret exclusion and missing related-target refusal\nPASS loaded hook callback/collection overrides on Waterline and driver refusal for unmigrated overrides\nPASS migrated service hook and explicit institution target parity, tenant/count/order/projection/page, unsupported-predicate refusal\nPASS prior cb874201 installed artifact: reads driver reference/form/report data, old callback update and write\nPASS designated pre-change built-image rollback on unchanged MongoDB"
+    },
+    {
+      "label": "configuration",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh",
+        "contract"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 59.89,
+      "log": "/tmp/redbox-p5d-j4-configuration.log",
+      "sha256": "0b0988535d8e4a8c901895f29fe411af1eccf8d760bb95403cb717df11030401",
+      "summary": "PASS four model physical mappings, both directions, defaults/empty/null, partial/create-only UID, no read rewrite and extension preservation\nPASS competing revisions, unique branding, in-document all-or-none CAS and injected update failure without retry/save fallback\nPASS applied CAS and lease writes with failed acknowledgments remain visible without automatic retry or compensation\nPASS physical lease, competing acquire, owner/expiry fencing, stale release/renew/token and injected failure\nPASS AppConfig latest selection/duplicate save refusal, all Q tenant query readers/projections and service sanitization\nPASS independent simultaneous mixed instances, config rollback/forward, retained-reference fencing and new-process restart\nPASS actual loaded hook callbacks/custom collection retained on Waterline; MongoDB refuses unsupported overrides\nPASS migrated institution service hook on both adapters through the public plain repository seam\nPASS unsupported BSON repository/query refusal without read rewrite or silently omitted rows"
+    },
+    {
+      "label": "configuration-readiness",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh",
+        "readiness"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 34.12,
+      "log": "/tmp/redbox-p5d-j4-configuration-readiness.log",
+      "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+      "summary": "PASS all four callback-override refusals, sparse/conflicting UID indexes, duplicate blocking before any group DDL, safe ensure/readiness"
+    },
+    {
+      "label": "configuration-siem",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh",
+        "siem"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 23.64,
+      "log": "/tmp/redbox-p5d-j4-configuration-siem.log",
+      "sha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8",
+      "summary": "PASS SIEM save/masking through AppConfigService and identical physical optional-field semantics on both Q backends"
+    },
+    {
+      "label": "progress",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh",
+        "progress-contract"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 74.39,
+      "log": "/tmp/redbox-p5d-j4-progress.log",
+      "sha256": "39c650ef8481442fffad0212c11b7ea6cbd9bd685d745d9b639ee9f8b66ce916",
+      "summary": "PASS prior J1 image loaded models/read/write\nPASS J1 raw/bidirectional/simultaneous mixed/fresh-process restart/config rollback/prior-image rollback/hooks/named-query tenant scope/cleanup/rejected and unknown-ack failure contracts"
+    },
+    {
+      "label": "harvest",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-jobs.sh",
+        "harvest-contract"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 63.83,
+      "log": "/tmp/redbox-p5d-j4-harvest.log",
+      "sha256": "495b9c6f435594c4a2831b7e4d22b99b03dc51f22d20c0ad2da7aa87cd0536e7",
+      "summary": "PASS actual pre-J2 image reads run/chunk/event lineage and writes compatible status\nPASS J2 raw/bidirectional/mixed contention/unique dimensions/hash+attempt/restart/config+prior-image rollback/retention/known and ambiguous failures/no BSON leak"
+    },
+    {
+      "label": "indexes",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "test:persistence-indexes"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 196.31,
+      "log": "/tmp/redbox-p5d-j4-indexes.log",
+      "sha256": "9fe6b7296a2575a4b965bb5b2377da50b8d30d991c28c3227e44d615a38ce87d",
+      "summary": "PASS 1: actual official fresh-volume init prepares cache + M + R + Q + J2 and satisfies J1/J2/J3 driver readiness\nPASS 2: existing-volume inspect preserves raw documents and missing indexes; ignores migrate:drop; no business callbacks\nPASS 3: duplicate M history blocks all selected DDL, including a missing cache index, without cleanup\nPASS 4: explicit existing-volume ensure prepares both selected groups, preserves BSON and is idempotent\nPASS 5: backend selection scopes DDL: both Waterline, M-only driver, cache-only driver and R-only driver\nPASS 6: Q-only DDL prepares dashboard/UID indexes and preserves duplicate AppConfig rows without uniqueness\nPASS 7: conflicting index blocks all ensure writes without dropping the conflict\nPASS 8: configuration failure exits safely without exposing native credentials or changing data/indexes\nPASS 9: R duplicate keys block every selected group and startup without DDL, fallback or document cleanup\nPASS 10: the installed command prepares R key indexes idempotently, preserving raw data and satisfying driver startup\nPASS 11: missing and incompatible sparse R indexes stop startup/ensure without repair\nPASS 12: J2 duplicate dimensions block all 14 scopes before DDL; explicit ensure preserves lineage and prepares every run/chunk/event index\nPASS 13: installed J3 command reviews all eight scopes before DDL, preserves duplicate events on refusal and explicitly prepares both collections\nPASS 14: installed J4 command audits partial binding duplicates before all DDL and retains null/missing exclusions on explicit upgrade\nPASS 15: omitted group selectors prepare the promoted M, R, Q, J1, J2 and J3 defaults plus the retained Prisma cache\n15 persistence-index deployment/upgrade cases passed"
+    },
+    {
+      "label": "storage",
+      "command": [
+        "npm",
+        "run",
+        "test:storage-mongo"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 104.49,
+      "log": "/tmp/redbox-p5d-j4-storage.log",
+      "sha256": "702f9b3a84426adb46468752e855d9154bd4198a6fefb842efef57a5a2793e84",
+      "summary": "  288 passing (1m)\n  38 pending"
+    },
+    {
+      "label": "build",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "build"
+      ],
+      "exitCode": 0,
+      "log": "/tmp/redbox-p5d-optin-build2.log",
+      "sha256": "2a99237d43db9b04f9481fe46019f469771ae9d29056fd23d47f88155a40a015",
+      "runtimeSourceCommit": "645e74f04c058ff7bfb091a6cdc269429a7512b9",
+      "summary": "Build passed before fixture runners; no subsequent runtime changes."
+    }
+  ],
+  "invocationBaseCommit": "2ecb7062a8eb8c79bd768cb2104b98c962fc8fa0",
+  "runtimeSourceCommit": "645e74f04c058ff7bfb091a6cdc269429a7512b9",
+  "runtimeSourceTree": "b59a7ad5533547dd48a052bb003e90d61d13e148",
+  "bootstrapCommit": "165e36855c288b12cb44333a155ed4ff019c4216",
+  "candidateDiffScope": "Tracked diff at invocation. Full runtime tree is identified separately above.",
+  "excludedAttempts": [
+    {
+      "label": "foundation",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "test:persistence-foundation"
+      ],
+      "environment": {},
+      "exitCode": 1,
+      "seconds": 12.25,
+      "log": "/tmp/redbox-p5d-j4-foundation.log",
+      "sha256": "0c9132bee0b3aa2dd070eae089902966a0e40f3929970b19f111efc00f638cdc",
+      "summary": "  11 passing (2s)\n  1 failing\n      AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "implementation": "79d776c93",
+  "models": [
+    "HarvestRun",
+    "HarvestRunChunk",
+    "HarvestRecordEvent"
+  ],
+  "consumers": [
+    "services/HarvestRunService.ts",
+    "controllers/webservice/HarvestRunController.ts",
+    "controllers/webservice/RecordController.ts",
+    "StorageService.ts",
+    "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts"
+  ],
+  "remainingDirectCalls": [],
+  "scope": "Core/public checkout inventory only. Remaining calls are baseline adapter ownership; models/shims retained for Waterline/associations and P11/P12. Private institution hooks remain INST-01."
+}

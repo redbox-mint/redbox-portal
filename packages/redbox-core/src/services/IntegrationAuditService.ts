@@ -297,7 +297,7 @@ export namespace Services {
         }
         this.enqueueNotification(entry);
         if (typeof SecurityEventService !== 'undefined') {
-          void SecurityEventService.emitFromIntegrationAudit({ ...entry }).catch(error => {
+          await SecurityEventService.emitFromIntegrationAudit({ ...entry }).catch(error => {
             sails.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
             sails.log.error(error);
           });
@@ -1025,13 +1025,13 @@ export namespace Services {
       return summaries;
     }
 
-    public storeIntegrationAudit(job: AnyRecord): void {
+    public async storeIntegrationAudit(job: AnyRecord): Promise<void> {
       const jobObj = job as AnyRecord;
       const jobAttrs = (jobObj.attrs ?? {}) as AnyRecord;
       const data = ((jobAttrs.data ?? jobAttrs) as Partial<IntegrationAuditModel>) ?? {};
       try {
         const entry = new IntegrationAuditModel(data);
-        void this.persistEntry(entry);
+        await this.persistEntry(entry);
       } catch (error) {
         sails.log.error(`${this.logHeader} Failed to construct integration audit entry from queued payload.`);
         sails.log.error(error);

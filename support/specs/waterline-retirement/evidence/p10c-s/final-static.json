@@ -1,0 +1,32 @@
+{
+  "command": "npm --prefix packages/redbox-core run build && npm --prefix packages/sails-hook-redbox-storage-mongo run build && npm --prefix packages/redbox-core run typecheck:persistence && node_modules/.bin/tsc --noEmit && npm --prefix packages/sails-hook-redbox-storage-mongo run test:compile && npm run lint && npm --prefix packages/redbox-core run lint && npm --prefix packages/sails-hook-redbox-storage-mongo run lint && node packages/redbox-core/test/fixtures/waterline-retirement/verify-storage-runtime.cjs && python3 .tmp/p10c/dist-parity.py after && git diff --check",
+  "exitCode": 0,
+  "durationMs": 63337,
+  "rawBytes": 1507,
+  "sha256": "e71abbddae8bc34e4d6f9188681d9c80a2e7de4431fa9278ef5f11b49cf3e382",
+  "sourceCommit": "0be51a5f6af57d9d05c759e674951debfc8914db",
+  "counts": {},
+  "checks": [
+    {
+      "check": "storage-runtime-pins",
+      "node": "v24.18.0",
+      "expected": "7.7.0",
+      "loaded": {
+        "root": "7.7.0",
+        "core": "7.7.0",
+        "storage": "7.7.0"
+      },
+      "compiler": "5.9.3"
+    },
+    {
+      "passing": 1,
+      "failures": 0,
+      "compiledArtifactParity": {
+        "files": 1823,
+        "sha256": "325a9b5fe146cb374bb0ea8fb97986f3bb4940396f67359317f2437c1fd1857e"
+      }
+    }
+  ],
+  "passGroups": 1,
+  "compiledArtifactParityAlgorithm": "SHA-256 of sorted repository-relative path + NUL + file bytes for every core/dist and storage-mongo/dist file; identical before/after post-stock rebuild. The temporary helper was removed with the phase cache."
+}

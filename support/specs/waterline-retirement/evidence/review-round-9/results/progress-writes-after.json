@@ -1,0 +1,17 @@
+{
+  "name": "progress-writes-after",
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-progress-writes.cjs",
+  "sourceCommit": "b8205bb50386ffb11b5dcb719f7a2d15f9c84c4c",
+  "exitCode": 0,
+  "durationMs": 6692,
+  "sha256": "e103ff7f96cfc0392336a6d2d6e5561d23fa20fdf9549c09b8ad54c1bbd41066",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 172,
+      "failures": 0,
+      "firstFailures": []
+    }
+  ]
+}

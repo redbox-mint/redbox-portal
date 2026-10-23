@@ -1,0 +1,10 @@
+{
+  "source": "32e2c2fcaf528ff4e72cd59f78941173656ee93e",
+  "image": "redbox-p5d-j4:prior-32e2c2fca",
+  "imageId": "sha256:4815a80990de89a0bb0430e2023f9d9e77d9e5d41edf516a4573546eb1e037d5",
+  "locks": {
+    "package-lock.json": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+    "packages/redbox-core/package-lock.json": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed"
+  },
+  "assembly": "Full pre-J4 core runtime from J3 promotion 32e2c2fca, installed pruned unchanged qualification dependency layer, offline smoke tested. The following 58e345e54 commit changes only J3 documentation."
+}

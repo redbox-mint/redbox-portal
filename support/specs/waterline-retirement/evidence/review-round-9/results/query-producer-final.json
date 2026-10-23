@@ -1,0 +1,27 @@
+{
+  "name": "query-producer-final",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-producer",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 5330,
+  "sha256": "50e71d60a40bb347e15e8e6bf860f42397fa298642b4565e8a2cd2606217bd48",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 18,
+      "failures": 0,
+      "bundledDefinitions": 16,
+      "actualProducer": "NamedQueryService.setParamsInQuery",
+      "expression": {
+        "name": {
+          "endsWith": "blue",
+          "contains": "red"
+        }
+      },
+      "baselineCount": 1,
+      "selectedCount": 1,
+      "target": "user"
+    }
+  ]
+}

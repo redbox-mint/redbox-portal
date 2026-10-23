@@ -1,0 +1,18 @@
+{
+  "name": "cache-names-before-isolated",
+  "command": "bash .tmp/review-round-5/cache-names.sh",
+  "sourceCommit": "698b2a10691c1aecaf7f75c82060771d58bc95d0",
+  "exitCode": 1,
+  "durationMs": 12008,
+  "sha256": "e648497023e20d3b56bb2b078c250874a3001f0aa9b2fc569d321f62e596cf3a",
+  "counts": {
+    "passing": [
+      1
+    ],
+    "failing": [
+      1
+    ]
+  },
+  "passGroups": 0,
+  "checks": []
+}

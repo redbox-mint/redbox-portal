@@ -1,0 +1,17 @@
+{
+  "name": "recordtype-selection",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh recordtype-selection",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 5047,
+  "sha256": "df9d4204112491e87251fe72adabd7940c503ed290b21662c12e5908d0bfe885",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 12,
+      "failures": 0,
+      "firstFailures": []
+    }
+  ]
+}

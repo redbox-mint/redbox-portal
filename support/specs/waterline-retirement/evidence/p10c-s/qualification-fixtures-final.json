@@ -1,0 +1,11 @@
+{
+  "command": "node_modules/.bin/prettier --check packages/redbox-core/test/fixtures/waterline-retirement/storage-{client,worker,qualification,operations,integration}.cjs && npm run lint && git diff --check",
+  "exitCode": 0,
+  "durationMs": 2113,
+  "rawBytes": 351,
+  "sha256": "f73888b59e0ca78f74fe0d28f94589288adf279ced4cd0198ba6a407ba1942e1",
+  "sourceCommit": "12e566575e046dc9b217f189f90adaf0e1126f3f",
+  "counts": {},
+  "checks": [],
+  "passGroups": 1
+}

@@ -1,0 +1,12 @@
+{
+  "command": "node --check packages/redbox-core/test/fixtures/waterline-retirement/storage-client.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/storage-worker.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/storage-qualification.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/storage-operations.cjs && node --check packages/redbox-core/test/fixtures/waterline-retirement/storage-integration.cjs && bash -n packages/redbox-core/test/fixtures/waterline-retirement/run-storage-package.sh && node_modules/.bin/prettier --check packages/redbox-core/test/fixtures/waterline-retirement/storage-*.cjs && npm run lint && git diff --check",
+  "exitCode": 1,
+  "durationMs": 1433,
+  "rawBytes": 611,
+  "sha256": "c7ea5568e571d6482ffa8d26344e5beffa546339c54b0493ded291fb27a6a490",
+  "sourceCommit": "12e566575e046dc9b217f189f90adaf0e1126f3f",
+  "counts": {},
+  "checks": [],
+  "passGroups": 0,
+  "failureExcerpt": "Checking formatting...\n[warn] packages/redbox-core/test/fixtures/waterline-retirement/storage-backfill.cjs\n[warn] packages/redbox-core/test/fixtures/waterline-retirement/storage-contract.cjs\n[warn] packages/redbox-core/test/fixtures/waterline-retirement/storage-counter.cjs\n[warn] packages/redbox-core/test/fixtures/waterline-retirement/storage-owner-failures.cjs\n[warn] packages/redbox-core/test/fixtures/waterline-retirement/storage-ownership.cjs\n[warn] packages/redbox-core/test/fixtures/waterline-retirement/storage-readiness.cjs\n[warn] Code style issues found in 6 files. Run Prettier with --write to fix."
+}

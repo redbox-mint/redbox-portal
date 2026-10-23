@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-10-20T23:39:57.568513+00:00",
+  "taskOwnedResources": {
+    "containers": [],
+    "networks": [],
+    "volumes": []
+  },
+  "runningContainers": [],
+  "rollbackImagesUnchanged": {
+    "redbox-p2:prior-11742e9": true,
+    "redbox-p3-r:prior-cb874201": true,
+    "redbox-p4-q:prior-f8c8cd7d": true,
+    "redbox-p5a-j1:prior-0aa801ee6": true,
+    "redbox-p5b-j2:prior-c2ceddb45": true,
+    "redbox-p5c-j3:prior-7c1906849": true,
+    "redbox-p5d-j4:prior-32e2c2fca": true,
+    "redbox-p10-s:prior-12e566575": true
+  },
+  "retainedVerificationImage": "redbox-waterline-r4:npm11.20.0",
+  "pushed": false,
+  "preexistingStoppedContainersRetained": 31,
+  "notes": [
+    "All remaining stopped containers predate this task; unrelated Docker objects were left untouched."
+  ]
+}

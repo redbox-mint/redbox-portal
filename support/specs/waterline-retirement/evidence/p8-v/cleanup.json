@@ -1,0 +1,65 @@
+{
+  "taskPrefix": "wrp8",
+  "containersRemaining": 0,
+  "networksRemaining": 0,
+  "mainVolumeDestroyEventsVerified": 2,
+  "mainVolumesRemaining": 0,
+  "priorDockerImageRemoved": true,
+  "ownedBuildCacheRecordsRemoved": 13,
+  "remainingOwnedCacheRecords": 0,
+  "cachePruneScope": "Every prune used one exact ID from the original task build window. Default prune removed five records; eight shared base cache metadata records required --all with the same exact ID filter. Base images and unrelated cache were retained.",
+  "finalExactPrunes": [
+    {
+      "id": "v9fq9cgn5rk6t5rlh7xh8m6km",
+      "outputSha256": "271bd73df0ba19a3610aed648b5ca1ba363c23591fd5efedca96192722e93eee"
+    },
+    {
+      "id": "wz1g5jhqrx4ie09oqrvdzv1y0",
+      "outputSha256": "aff775edbb0d443c7148dae0a4531015e96fddfd997ded84d979d21cc7930c4d"
+    },
+    {
+      "id": "tr8pytgi0gct93ejn5cap9wc1",
+      "outputSha256": "70ac5e04d62e3117caa4f52764e0f87687dd67156b3faa861bf1869d9e301d94"
+    },
+    {
+      "id": "qzj6kmeru7apwnwsmlbji4wty",
+      "outputSha256": "705b4c4cc343f4c0f5121feb0682646be9ccf6fa6fb32596f2d6144b632fa515"
+    },
+    {
+      "id": "rsg3nzvreegog4i8iu6i9ydjj",
+      "outputSha256": "d38a1df51082223010350d2fc16462bf5b25d3dd200a8c3c6a671065a0a863fa"
+    },
+    {
+      "id": "tb1biv9lfvycssoje5f81ht8z",
+      "outputSha256": "110f54eb182a849b1191f22db60f1975254c0befff4ee0dbbbd2ab5f48b652b2"
+    },
+    {
+      "id": "07q0b7k1dimr5741e4mveo1we",
+      "outputSha256": "b3bbadf29305035a9af1e93f5e3a31ff8c3ed659236b0d542e04acbf5401855e"
+    }
+  ],
+  "priorArchive": {
+    "path": ".tmp/wrp8/prior-0ea5e9bc2.tar",
+    "bytes": 723557888,
+    "sha256": "321e678c626f7883306209e1cbdc257afaf08185b38ce7ee99f5218692a44091"
+  },
+  "unrelatedDevelopmentContainers": "All three remain running; no mutation commands targeted them.",
+  "globalPruneUsed": false,
+  "ownedBuildCacheIds": [
+    "07q0b7k1dimr5741e4mveo1we",
+    "h477vd7oov1tk85tpzzo0xfxt",
+    "lhlgd9ltc4kpf73br6vbdsliv",
+    "qzj6kmeru7apwnwsmlbji4wty",
+    "rsg3nzvreegog4i8iu6i9ydjj",
+    "tb1biv9lfvycssoje5f81ht8z",
+    "tr8pytgi0gct93ejn5cap9wc1",
+    "us3fguv7fx7gc3t6aapn1ns1t",
+    "v9fq9cgn5rk6t5rlh7xh8m6km",
+    "wz1g5jhqrx4ie09oqrvdzv1y0",
+    "xc9kovsbpl26b24y6kj6jxoxw",
+    "zcjuc9f6pjh7m7jue6has65cr",
+    "zfnoipej058fudwyvjnx978am"
+  ],
+  "ownedBuildCacheManifestSha256": "e17ac3cba84fd6447f4b2b9d2cb6fd090e584424768512a4888bb4a3e8a8ad87",
+  "namedTaskVolumesRemaining": 0
+}

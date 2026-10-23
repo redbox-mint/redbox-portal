@@ -1,0 +1,13 @@
+{
+  "name": "storage-readiness",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh readiness",
+  "sourceCommit": "97e30c25256580ff795c0acf212724cfce6d42ae",
+  "exitCode": 0,
+  "durationMs": 7302,
+  "sha256": "526731691dd8d40fab965463bfcbe9511e527fff1d6dee5bf56f4f387aca24ae",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":14,\"failures\":0,\"indexScopes\":15,\"checks\":[\"inspect-only\",\"all-scopes-before-DDL\",\"duplicate-counts\",\"conflict-retention\",\"explicit-ensure\",\"idempotence\",\"logical-database-routing\",\"sanitized-inspection-failure\",\"native-schema-hidden-options\"]}"
+  ]
+}

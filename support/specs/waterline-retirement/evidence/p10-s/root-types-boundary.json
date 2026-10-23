@@ -1,0 +1,12 @@
+{
+  "command": [
+    "node_modules/.bin/tsc",
+    "--noEmit"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 2.487,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "logBytes": 0,
+  "counts": [],
+  "totals": {}
+}

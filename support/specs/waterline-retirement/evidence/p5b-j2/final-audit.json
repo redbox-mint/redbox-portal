@@ -1,0 +1,36 @@
+{
+  "runtimeCheckpoint": "7e4fc3d6ee950acd63693e6b9dbc736dde15f5f1",
+  "promotionCommit": "7e4fc3d6ee950acd63693e6b9dbc736dde15f5f1",
+  "independentPromotionCommits": {
+    "progress": "95a7cade5380a0379d3e761df1abb7378666b651",
+    "harvest": "7e4fc3d6ee950acd63693e6b9dbc736dde15f5f1"
+  },
+  "selectors": {
+    "progress": "mongodb",
+    "harvest": "mongodb",
+    "siem": "waterline",
+    "figshare": "waterline"
+  },
+  "sourceAudit": {
+    "directJ1J2ModelConsumerCallsOutsideAdapters": 0,
+    "publicDomainContractsContainBsonDriverOrLoadedModelTypes": false,
+    "applicationManifestsAndLocksUnchanged": true,
+    "sharedFreshScriptEqualsHookTemplate": true
+  },
+  "cleanup": {
+    "taskContainers": [],
+    "taskNetworks": [],
+    "taskVolumes": [],
+    "otherPersistenceFixtureContainers": [],
+    "brunoEnvironmentAndLockRestored": true,
+    "runtimeTreeCleanBeforeThisDocumentationRecord": true
+  },
+  "rollbackImages": {
+    "p5a-j1": "sha256:de7cb0885ac19d3386b534c165633b75354db8291f8ec7bea244749028a0cfd8",
+    "p5b-j2": "sha256:df2088a9aa517b23f9b4ef1e51e1a837a52115be7ff7bda93bd0f85d6252d6ce"
+  },
+  "runtimeCommitsWithRequiredFinalCoauthorTrailer": 11,
+  "pushPerformed": false,
+  "scope": "Bounded transaction-free next qualification; standalone topology unchanged; G-TX closed and OPS-TX-01 undecided.",
+  "remaining": "Private institution hooks/data, published production images, release security/support/capacity/failover and P10 owner qualification remain separate. Ambiguous acknowledgements require durable-state/external-effect reconciliation; no exactly-once or multi-document guarantee."
+}

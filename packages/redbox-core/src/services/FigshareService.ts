@@ -1,3 +1,4 @@
+import {initializeFigshareWorkers,drainFigshareWorkers,figshareWork} from './figshare-v2/worker-lifecycle';
 import { dispatchFigshare, runFigshareWorker, getSyncStore, importRecordIntent } from './figshare-v2/worker';
 import { workerClient } from './figshare-v2/execution';
 import { buildMetadataPayload as buildLocalMetadataPayload } from './figshare-v2/metadata';
@@ -51,6 +52,7 @@ export namespace Services {
       'writeBack',
       'syncRecordWithFigshare',
       'init',
+      'drain',
       'validateFigshareRecord',
       'wakeFigshareRecord',
       'requestFigshareCleanup',
@@ -58,6 +60,8 @@ export namespace Services {
       'syncRecordJob',
     ];
 
+    public override init():void{initializeFigshareWorkers(sails);}
+    public async drain():Promise<void>{await drainFigshareWorkers(sails);}
     private _msgPrefix!: string;
 
     private msgPrefix() {
@@ -330,7 +334,8 @@ export namespace Services {
       return record;
     }
 
-    public async wakeFigshareRecord(oid: string, record?: RecordModel): Promise<RecordModel | undefined> {
+    public wakeFigshareRecord(oid:string,record?:RecordModel):Promise<RecordModel|undefined>{return figshareWork(sails,()=>this.wakeAccepted(oid,record));}
+    private async wakeAccepted(oid: string, record?: RecordModel): Promise<RecordModel | undefined> {
       const fresh = await RecordsService.getMeta(oid);
       const config = fresh && resolveFigsharePublishingConfig(fresh, { requireToken: false });
       if (!fresh || !config?.processing?.enabled || config.processingError || fresh.figshareSyncIntent?.readiness === 'initialising') return record;

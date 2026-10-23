@@ -1,0 +1,8 @@
+{
+  "command": "DEBUG=agenda:jobProcessor bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh ownership",
+  "exitCode": 1,
+  "durationMs": 11183,
+  "rawBytes": 790,
+  "sha256": "70900a5d3ede81075199feae41603631801a3e25e2e88f41698bb7e9b39c93c5",
+  "failureExcerpt": "Dynamic imports imported\n2026-10-20T15:11:20.982Z agenda:jobProcessor creating interval to call processJobs every [50000ms]\n2026-10-20T15:11:21.025Z agenda:jobProcessor creating interval to call processJobs every [50000ms]\n{\"queueState\":[{\"_id\":\"6ad78499e3fe6989ba347260\",\"name\":\"wait\",\"nextRunAt\":\"2026-10-20T15:11:21.075Z\",\"lockedAt\":null,\"failReason\":null,\"lastRunAt\":null,\"disabled\":null}],\"definitions\":[\"wait\"],\"processor\":true}\nError: deadline: Agenda worker entered\n    at until (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/storage-ownership.cjs:15:122)\n    at async /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/storage-ownership.cjs:131:54"
+}

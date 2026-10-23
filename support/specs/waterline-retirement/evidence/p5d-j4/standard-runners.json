@@ -1,0 +1,38 @@
+{
+  "runtimeCommit": "645e74f04",
+  "bootstrapCommit": "165e36855",
+  "freshVolumes": true,
+  "stockCommandsUnchanged": true,
+  "commands": [
+    {
+      "label": "mocha-matrix",
+      "command": "FIGSHARE_SKIP_PREWARM=false bash packages/redbox-core/test/fixtures/waterline-retirement/run-figshare-portal.sh",
+      "exitCode": 0,
+      "passing": {
+        "waterline": 2,
+        "mongodb": 2
+      },
+      "backendObserved": {
+        "waterline": "waterline",
+        "mongodb": "mongodb"
+      },
+      "driverBypassesLoadedManager": true,
+      "log": "/tmp/redbox-p5d-stock-mocha.log",
+      "sha256": "5b9be7807fbf174521de955c0891dee2697ebe3c73141d2aba5e07cbc834a666"
+    },
+    {
+      "label": "bruno-general-matrix",
+      "command": "FIGSHARE_SKIP_PREWARM=false bash packages/redbox-core/test/fixtures/waterline-retirement/run-figshare-bruno.sh",
+      "exitCode": 0,
+      "backends": [
+        "waterline",
+        "mongodb"
+      ],
+      "requestsEach": 309,
+      "testsEach": 553,
+      "assertionsEach": 3,
+      "log": "/tmp/redbox-p5d-stock-bruno.log",
+      "sha256": "65bdac2284d99b0425742ee7f62b587545c01504e6938d355aa1ce7326a52859"
+    }
+  ]
+}

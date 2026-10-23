@@ -1,0 +1,56 @@
+[
+  {
+    "commit": "2123ec7f0e446cf5d12648cc2983cc62add49fb8",
+    "area": "native storage startup diagnostics",
+    "result": "PASS",
+    "assessment": "Controlled classification and safe integer MongoDB code; operation/index/connectivity/permission guidance retained. No raw cause/stack/credentials forwarded."
+  },
+  {
+    "commit": "880f135b65732fca041c03cafc61313b3820ac45",
+    "area": "compound storage/reference operation ownership",
+    "result": "PASS",
+    "assessment": "Concrete internal composition remains unwrapped; success, validation, rejected read, staging-claim and dispatched-write errors release active tracking. Both selectors covered."
+  },
+  {
+    "commit": "bd336c6c965c442e9361590c905eb72d9a7c071a",
+    "area": "worker completion enqueue admission",
+    "result": "FIXED R13",
+    "assessment": "Scoped permission is necessary; actual handlers and Agenda finalization require separate ownership, bounded original admission deadline, immediate consumer stop and retry-safe claim release."
+  },
+  {
+    "commit": "666524fb0b149539934e37188dc1ef04601a80fe",
+    "area": "attachment access audit diagnostic",
+    "result": "PASS",
+    "assessment": "Operation and bounded unknown classification retained; payload/native error values omitted. R13 awaits the existing security follow-up without changing that redaction."
+  },
+  {
+    "commit": "9e1493d25d21f24574768fa5afe57c5f4c250dcf",
+    "area": "integration audit awaited persistence/follow-up",
+    "result": "PASS",
+    "assessment": "Handler now awaits persistence/SIEM; notification enqueue is owned by queue. Existing caught failure/retry semantics retained. Follow-ups run once after successful persistence."
+  },
+  {
+    "commit": "a0503fbe02540c96738b830da2027633b6a1a3c1",
+    "area": "RAiD delayed completion retry admission",
+    "result": "FIXED R13 ownership",
+    "assessment": "Only active worker/request contexts can enqueue while draining and before original deadline. Stopped consumers prevent cycles from executing; remote waits remain owned across watchdog expiry."
+  },
+  {
+    "commit": "63a8ddee2cd55fd615d5252969a0b66f0ec7a35b",
+    "area": "bounded staged audit responses and criteria removal",
+    "result": "PASS",
+    "assessment": "No raw query/native causes in staged responses or logs. Reads/writes retain operation, validation/unknown classification and reconcile/connectivity guidance."
+  },
+  {
+    "commit": "73bb3465655790217c684b21eaaf04028305692d",
+    "area": "stock bounded-error assertions",
+    "result": "PASS",
+    "assessment": "Ordering/no-write and nested-cause nondisclosure checks retained."
+  },
+  {
+    "commit": "dc77696de526b89f8b3b709384b6cc1e6e13357b",
+    "area": "R12 review evidence",
+    "result": "PASS",
+    "assessment": "Read first and cross-checked scope, retained gates, toolchain, repeatable inventory and cleanup requirements."
+  }
+]

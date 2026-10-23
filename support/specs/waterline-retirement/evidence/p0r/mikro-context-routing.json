@@ -1,0 +1,105 @@
+{
+  "candidate": "mikro",
+  "node": "v24.18.0",
+  "at": "2026-10-19T14:15:31.425Z",
+  "fixtureSha256": "4695372f1418990df93caa933987cb7e6b26984bb438bd9b6e4640996a0f2e8b",
+  "checks": [
+    {
+      "name": "existing P0 ObjectId/string times/numeric/no-read-rewrite",
+      "status": "PASS",
+      "ms": 19.173973000000046
+    },
+    {
+      "name": "JSON object/array/empty/false/zero/null writes and reads",
+      "status": "PASS",
+      "ms": 45.870700000000056
+    },
+    {
+      "name": "missing JSON, partial update, unknown field and createdAt preservation",
+      "status": "PASS",
+      "ms": 8.439343000000008,
+      "detail": {
+        "missingRead": "null"
+      }
+    },
+    {
+      "name": "create then raw read with ObjectId and ISO strings",
+      "status": "PASS",
+      "ms": 8.143126000000052
+    },
+    {
+      "name": "belongs-to/has-many and explicit junction populate",
+      "status": "PASS",
+      "ms": 36.77722899999992,
+      "detail": {
+        "explicitEdges": 2,
+        "danglingTarget": 1,
+        "ormPopulation": true
+      }
+    },
+    {
+      "name": "junction add duplicate/remove/replace without array/timestamp/unique conversion",
+      "status": "PASS",
+      "ms": 41.36735799999997
+    },
+    {
+      "name": "ORM/driver multi-document commit",
+      "status": "PASS",
+      "ms": 14.972951999999964
+    },
+    {
+      "name": "injected failure after two writes rolls both back",
+      "status": "PASS",
+      "ms": 8.393249999999966
+    },
+    {
+      "name": "real write-conflict, whole callback retry, durable result",
+      "status": "PASS",
+      "ms": 20.016164000000003
+    },
+    {
+      "name": "cross-database branding commit with one session/client",
+      "status": "FAIL",
+      "error": {
+        "name": "TypeError",
+        "message": "Cannot read properties of null (reading 'version')"
+      }
+    }
+  ],
+  "native": {},
+  "transactions": {
+    "writeConflict112": 1,
+    "conflictCallbackCalls": 2
+  },
+  "startup": {
+    "initializeMs": 183.11959,
+    "rssDelta": 17592320,
+    "heapDelta": 4472592,
+    "rss": 95707136
+  },
+  "notes": [
+    "Explicit edge entity, no Mongo many-to-many arrays. Two ORM contexts borrow one client; storage EM receives app transaction context. Own bounded transient/code-112 retry (3); ambiguous-commit retry is NOT qualified. Plain DTO projection is mandatory."
+  ],
+  "server": {
+    "version": "8.0.34",
+    "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+  },
+  "topology": {
+    "setName": "wr_p0r",
+    "members": 1,
+    "directConnection": true
+  },
+  "closedMemory": {
+    "rss": 98881536,
+    "heapTotal": 39198720,
+    "heapUsed": 20097288,
+    "external": 21228837,
+    "arrayBuffers": 18588834
+  },
+  "status": "FAIL",
+  "error": {
+    "name": "TypeError",
+    "message": "Cannot read properties of null (reading 'version')",
+    "stack": "TypeError: Cannot read properties of null (reading 'version')\n    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/dist/run.js:176:101\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async check (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/dist/run.js:32:24)\n    at async transactions (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/dist/run.js:170:5)\n    at async main (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/spikes/orm-reevaluation/dist/run.js:268:9)"
+  }
+}

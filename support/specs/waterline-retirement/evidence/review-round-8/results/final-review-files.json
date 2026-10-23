@@ -1,0 +1,13 @@
+{
+  "name": "final-review-files",
+  "command": "python3 .tmp/review-round-8/check-files.py",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 38288,
+  "sha256": "fadd6da8c6c7126bda777fdafe6ced441eec06039994a2cec031bbf68b67a871",
+  "counts": {},
+  "passGroups": 1,
+  "checks": [
+    "{\"passing\":true,\"node\":\"v24.18.0\",\"loaded\":{\".\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"},\"packages/redbox-core\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\",\"rttc\":\"10.0.1\"},\"packages/sails-hook-redbox-storage-mongo\":{\"mongodb\":\"7.7.0\",\"typescript\":\"5.9.3\"}}}"
+  ]
+}

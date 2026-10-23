@@ -1,0 +1,39 @@
+{
+  "baseline": "c2ceddb45",
+  "dependenciesChanged": false,
+  "locksChanged": false,
+  "pins": "exact; no dependency updates",
+  "temporaryPackedConsumerLocks": "npm 11.20.0, asserted by fixture",
+  "files": [
+    {
+      "path": "package.json",
+      "sha256": "c459feacc7eb1be236988202fa5acf8bfce53dcb4eff55defeb7d32d7a68b2eb",
+      "unchangedFromBaseline": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "8de4e9436169c342a28aade6bd34608ddfaa98d01204bf064f0e0bba7df4d15c",
+      "unchangedFromBaseline": true
+    },
+    {
+      "path": "packages/redbox-core/package.json",
+      "sha256": "74266b6b157a55b719a490f9e789c4aa25cd99b6a3ff1e6b4501078dac35eead",
+      "unchangedFromBaseline": true
+    },
+    {
+      "path": "packages/redbox-core/package-lock.json",
+      "sha256": "0f86427ce8eb3fc3ad3f6d389d22063b6f637a3b4c2fd5c172583f82cda635ed",
+      "unchangedFromBaseline": true
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/package.json",
+      "sha256": "376242657dfad2f88d0a81831c4805b37d162fdbd750dda53d7ffbe169ceb07d",
+      "unchangedFromBaseline": true
+    },
+    {
+      "path": "packages/sails-hook-redbox-storage-mongo/package-lock.json",
+      "sha256": "9a904db058edc02097b9aba9d9581d627339c433f939e7b14a318b1767d84718",
+      "unchangedFromBaseline": true
+    }
+  ]
+}

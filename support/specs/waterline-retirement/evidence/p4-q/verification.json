@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-20",
+  "codeCheckpoint": "4bef01eb0",
+  "checks": [
+    {
+      "command": "npm run check:cache-contract",
+      "exitCode": 0,
+      "log": "cache-contract-verified.log",
+      "logSha256": "dce28259b440ab02904479d26df09b0d41c7689795fd8f9d46e3fc23519ac58a",
+      "elapsedSeconds": 2.16
+    },
+    {
+      "command": "node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "log": "root-types-verified.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "elapsedSeconds": 1.92
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-foundation",
+      "exitCode": 0,
+      "log": "foundation-verified.log",
+      "logSha256": "2fa4d002a25552c966640e62689c98539519af9ec020b16b83ef3aa0fd40fb17",
+      "elapsedSeconds": 8.55,
+      "result": "12 passing (734ms)"
+    },
+    {
+      "command": "P3_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-prisma",
+      "exitCode": 0,
+      "log": "cache-prisma-verified.log",
+      "logSha256": "604ea830e2b07d269cb9e017e12a18762a3ec5c9a663371406ba1ce5530c3c48",
+      "elapsedSeconds": 11.01,
+      "result": "17 passing (5s)"
+    },
+    {
+      "command": "P5_SKIP_BUILD=true npm --prefix packages/redbox-core run test:cache-driver-transition",
+      "exitCode": 0,
+      "log": "cache-driver-verified.log",
+      "logSha256": "152221b640bd688d37d67cb2fc36319243004cdeb0d662069b00acfa1b8103ab",
+      "elapsedSeconds": 84.71,
+      "result": "15 passing (1m)"
+    },
+    {
+      "command": "P2_ROLLBACK_IMAGE=redbox-p2:prior-11742e9 npm --prefix packages/redbox-core run test:migration-transition",
+      "exitCode": 0,
+      "log": "migration-verified.log",
+      "logSha256": "12811abb9f41f8e0922915eb8ed806510d01e4c74719d07ffa680acbd5867a84",
+      "elapsedSeconds": 73.51,
+      "result": "15 passing (1m)"
+    },
+    {
+      "command": "R_PRIOR_IMAGE=redbox-p3-r:prior-cb874201 npm --prefix packages/redbox-core run test:reference-transition",
+      "exitCode": 0,
+      "log": "reference-verified.log",
+      "logSha256": "8b531a7cc84f3d9be1f25d19ecdbc812ab384d598d0d49f14886a06d86f1950e",
+      "elapsedSeconds": 43.35
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run test:persistence-indexes",
+      "exitCode": 0,
+      "log": "indexes-verified.log",
+      "logSha256": "5075d034d26d9a109555fa7348b8056dd1b0add61c73da68b6d6569923e741cd",
+      "elapsedSeconds": 75.14
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh spike",
+      "exitCode": 0,
+      "log": "spike-verified.log",
+      "logSha256": "573a5ba86b0d2daaab77bb94af406ca31735f67d0931918a282f46dfdeacf916",
+      "elapsedSeconds": 4.88
+    },
+    {
+      "command": "Q_PRIOR_IMAGE=redbox-p4-q:prior-f8c8cd7d npm --prefix packages/redbox-core run test:configuration-transition",
+      "exitCode": 0,
+      "log": "contract-verified.log",
+      "logSha256": "eb2ba67887e1a1dc92ec1f2a8db49412e6794413bc41ddc53432a382c8900e8d",
+      "elapsedSeconds": 34.31
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh readiness",
+      "exitCode": 0,
+      "log": "readiness-verified.log",
+      "logSha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+      "elapsedSeconds": 18.36
+    },
+    {
+      "command": "Q_OPERATIONS_OUTPUT=/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/support/specs/waterline-retirement/evidence/p4-q/operations.json npm --prefix packages/redbox-core run test:configuration-operations",
+      "exitCode": 0,
+      "log": "operations-verified.log",
+      "logSha256": "a8ce955c1aba401b19852be95138d068b96bc6223464fb37a789e5c638335eab",
+      "elapsedSeconds": 59.23
+    },
+    {
+      "command": "prettier --check Q implementation, units, integration and fixtures; bash -n configuration runners",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "format-final.log",
+      "logSha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "command": "CONFIGURATION_BACKENDS=mongodb CONFIGURATION_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-portal.sh",
+      "exitCode": 0,
+      "result": "53 passing; actual Q mongodb asserted; standard runner without dependency prewarm or manual index preparation",
+      "log": "mocha-q-forwarded.log",
+      "logSha256": "11863551fc0f6d7c1a8b4a2e3570defdb6b3ce3aa5f8a1d2b653f06ebf8224b7",
+      "scopeNote": "Earlier query-fix checkpoint; final SIEM producer, core, package and both standard runners are recorded separately."
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run build",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "build-siem-fix.log",
+      "logSha256": "5fec8885e2b0cf43ea33ea1bf1ea17687e5b997f7417b1c08e01d74b6b742fdc"
+    },
+    {
+      "command": "npm run test:core",
+      "exitCode": 0,
+      "result": "4142 passing, 106 existing pending; offline startup 10623ms < 12000ms",
+      "log": "core-siem-final.log",
+      "logSha256": "f7cd959b81c6ec5907b9ed084f749868966b141ba8cd582e030fb5d4c5beaff5"
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration.sh siem",
+      "exitCode": 0,
+      "result": "PASS: real service masks secrets and stores identical physical JSON on both Q backends, with optional credentials absent",
+      "log": "siem-green.log",
+      "logSha256": "4d25990fa38cb407bc2d1b1e8cf1813978225f22f101268c64e1e7dfcec12ca8"
+    },
+    {
+      "command": "npm run lint",
+      "exitCode": 0,
+      "result": "0 warnings/errors",
+      "log": "lint-siem-final.log",
+      "logSha256": "4ac6d7e5e1f11209b64272203a311b7d4f8248e1552783b6881629088aa360cf"
+    },
+    {
+      "command": "npm --prefix packages/redbox-core run typecheck:persistence",
+      "exitCode": 0,
+      "result": "PASS",
+      "log": "types-siem-final.log",
+      "logSha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1"
+    },
+    {
+      "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-package.sh",
+      "exitCode": 0,
+      "result": "PASS: installed/pruned Q runtime including SIEM form adapter, queries/CAS/leases; offline types/imports/shims on Node 24.16.0 and 26.11.1; npm 11.20.0 lock",
+      "log": "package-siem-final.log",
+      "logSha256": "8b974e2fd7f1ad7881ef638442ad4f78e385a58c40f603799375ba773b024d3e"
+    },
+    {
+      "command": "CONFIGURATION_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-portal.sh",
+      "exitCode": 0,
+      "result": "53 passing per Q backend; final SIEM-corrected code; actual backend assertions; fresh volumes; no dependency prewarming or manual index preparation",
+      "log": "mocha-siem-retry.log",
+      "logSha256": "7e32243c1b5d6a639d7f8eb85c17f1e9284febe2c09e7e1b4827c79edebfcf8f"
+    },
+    {
+      "command": "CONFIGURATION_SKIP_PREWARM=true bash packages/redbox-core/test/fixtures/waterline-retirement/run-configuration-bruno.sh",
+      "exitCode": 0,
+      "result": "305/305 requests and 549/549 tests on EACH Q backend; SIEM save 200 and masking; fresh volumes; no dependency prewarm or manual indexes",
+      "log": "bruno-siem-final.log",
+      "logSha256": "b3adfe7e0d23dbb1e9a426303496c7015b3b34cb9107fd7cc00a44c2e92de885"
+    }
+  ],
+  "configurationCode": "4bef01eb0",
+  "node": "24.18.0",
+  "mongo": "8.0.34",
+  "topology": "standalone; only task-created containers/projects",
+  "standardRunnerNode": "26.10.0",
+  "packedNodes": [
+    "24.16.0",
+    "26.11.1"
+  ],
+  "gate": "G-Q PASS for transaction-free next; Q default promotion remains separate"
+}

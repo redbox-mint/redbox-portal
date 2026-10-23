@@ -1,0 +1,11 @@
+{
+  "name": "migration-query-boundary-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh migration-values",
+  "sourceCommit": "676c953c69f97e76b6ccf201b25230b22f35b04c",
+  "exitCode": 1,
+  "durationMs": 20661,
+  "sha256": "042d38a4da3feda2b5bb0f2e826c0dd85e6279cc5cab561648fa1ee655ddc06c",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-durable.sh storage-spike"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 9.087,
+  "sha256": "a5d5ed33fabdb927ad08aabcdfd3d6790fb5b5f874d1ca8839a7055b0e2f2572",
+  "logBytes": 302,
+  "counts": [],
+  "failureExcerpt": "Dynamic imports imported\nTypeError: storage is not a constructor\n    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/durable-storage-spike.cjs:18:21\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+}

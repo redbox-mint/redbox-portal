@@ -1,0 +1,7 @@
+{
+  "command": "node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js install --package-lock-only --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer && node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --dry-run --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer && node /home/andrew/.npm/_npx/9ecf9ce147f291fb/node_modules/npm/bin/npm-cli.js ci --dry-run --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --include=peer --prefix packages/sails-hook-redbox-storage-mongo",
+  "exitCode": 0,
+  "durationMs": 20850,
+  "rawBytes": 17435,
+  "sha256": "0b9baa768993128db4d9150539d01b97c572744c8c3bf6850acf8d4c3fa16993"
+}

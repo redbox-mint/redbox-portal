@@ -1,0 +1,19 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-durable.sh storage-spike"
+  ],
+  "exitCode": 0,
+  "durationSeconds": 4.722,
+  "sha256": "4b7febf2129c3b983a1087a383540b37bc54924f450dfbf327db49a615b9a5b9",
+  "logBytes": 1551,
+  "counts": [],
+  "results": {
+    "loadedEntities": 9,
+    "callbackProtection": true,
+    "nativeIdentityAndSchemaFixtures": true,
+    "counterLostUpdateCharacterized": true,
+    "ownedDriverByteRoundTrip": true
+  }
+}

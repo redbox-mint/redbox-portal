@@ -1,0 +1,13 @@
+{
+  "name": "dashboard-native-values",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh dashboard-native-values",
+  "sourceCommit": "4103c6c48e1c761de7cec96bdfe7df56a8f381e9",
+  "exitCode": 0,
+  "durationMs": 4952,
+  "sha256": "7ff3f3c7f8acb93c058d4acf7fb7b8622ee76ac445d34d23d9402cfbe210da83",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":5,\"failures\":0,\"firstFailures\":[]}"
+  ]
+}

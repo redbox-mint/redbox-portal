@@ -1,0 +1,34 @@
+{
+  "sourceHead": "ea3e79a01c0523971f059a7151effff12325237c",
+  "runtimeSourceFiles": 619,
+  "runtimeSourceSha256": "cd6bd02176adf7cbf0941cbddab479946de36051116b5a932b60df4513620844",
+  "hostNode": "v24.18.0",
+  "hostNpm": "12.0.2",
+  "lockGenerator": "11.20.0",
+  "strictLockFlags": [
+    "--ignore-scripts",
+    "--strict-peer-deps",
+    "--legacy-peer-deps=false",
+    "--include=peer"
+  ],
+  "driver": {
+    "root": "7.7.0",
+    "storage": "7.2.0",
+    "waterlinePrivate": "6.3.0"
+  },
+  "portalImage": {
+    "id": "sha256:3d66a33890bafea037db006e8bc33a5bdf0baf952ac9c0b2dc6fe52856f84bf0",
+    "node": "v26.10.0"
+  },
+  "database": {
+    "version": "8.0.34",
+    "fcv": "8.0",
+    "topology": "standalone"
+  },
+  "institutionDatabaseInspected": false,
+  "locks": {
+    "package-lock.json": "c9e53a92f30ab04fbe82fbc9495a0e96d43c293fddf05086e932d6f8564dfb6c",
+    "packages/sails-hook-redbox-storage-mongo/package-lock.json": "06145b9c2052c5af9b8d361ec6a05970643196c29afd5a007747fa8077f7a84c"
+  },
+  "qualification": "diagnostic: stock install exposed stale nested MongoDB 7.2.0; superseded by guarded final runs"
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd packages/redbox-core && bash test/fixtures/waterline-retirement/run-durable.sh storage-spike"
+  ],
+  "exitCode": 1,
+  "durationSeconds": 6.186,
+  "sha256": "6c599333ebcded3cae49e469f262105bc6f93a2ca16d392d18433ae5c2ae1ca4",
+  "logBytes": 1893,
+  "counts": [],
+  "failureExcerpt": "> that it matches the existing records in your database.  Or you could update/destroy\n> the old records in your database; either by hand, or using a migration script.\n> \n> (For example, to wipe all data, you might just use `migrate: drop`.)\n> \n> More rarely, this warning could mean there is a bug in the adapter itself.  If you\n> believe that is the case, then please contact the maintainer of this adapter by opening\n> an issue, or visit http://sailsjs.com/support for help.\n\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nundefined !== ''\n\n    at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/packages/redbox-core/test/fixtures/waterline-retirement/durable-storage-spike.cjs:42:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: undefined,\n  expected: '',\n  operator: 'strictEqual',\n  diff: 'simple'\n}"
+}

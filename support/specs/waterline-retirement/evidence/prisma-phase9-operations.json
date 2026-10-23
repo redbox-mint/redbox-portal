@@ -1,0 +1,101 @@
+{
+  "baselineCommit": "0ea5e9bc22396f02d184bc341194a3a579477320",
+  "candidateCommit": "f4959e4ca67563636897e732d8cf02986deab80c",
+  "baseline": {
+    "startupMs": 10497.579709000001,
+    "benchmark": {
+      "cycles": 3000,
+      "warmups": 100,
+      "p50": 3.4993799999992916,
+      "p95": 4.890668000000005,
+      "p99": 11.940386999998736,
+      "cyclesPerSecond": 267.4814893458665,
+      "rssMiB": 909.57421875,
+      "dbCalls": 15550,
+      "dbCallsPerCycle": 5.016129032258065
+    },
+    "shutdownMs": 21.46516200000042
+  },
+  "candidate": {
+    "startupMs": 13447.652586,
+    "benchmark": {
+      "cycles": 3000,
+      "warmups": 100,
+      "p50": 3.665941000002931,
+      "p95": 5.84279400000014,
+      "p99": 7.242880999998306,
+      "cyclesPerSecond": 251.2033250321126,
+      "rssMiB": 680.34375,
+      "dbCalls": 15561,
+      "dbCallsPerCycle": 5.019677419354839
+    },
+    "shutdownMs": 12.675552000000607
+  },
+  "ratios": {
+    "p95": 1.1946821988325795,
+    "cyclesPerSecond": 0.9391428380574572,
+    "rssMiB": 0.7479804681964003,
+    "dbCallsPerCycle": 1.0007073954983923,
+    "startup": 1.2810240987711463
+  },
+  "workload": {
+    "warmupCycles": 100,
+    "measuredBatches": 3,
+    "cyclesPerBatch": 1000,
+    "operationsPerCycle": [
+      "create",
+      "read",
+      "update",
+      "read",
+      "delete"
+    ],
+    "cycleErrors": 0,
+    "dbProfileScope": "cache namespace including background calls",
+    "startupTimer": "after importing Sails until lifted",
+    "independentColdStartReplicates": 1
+  },
+  "limits": [
+    "candidate startup includes a real pending migration",
+    "three measured batches share one process",
+    "database call totals include background cache operations",
+    "baseline ownership maps were not censused",
+    "natural exit can linger in Agenda watchdog timers on both artifacts"
+  ],
+  "inFlightDrain": {
+    "pendingUploadAtLower": true,
+    "resourcesBefore": {
+      "names": [
+        "migration-ledger",
+        "reference-definitions",
+        "configuration-repositories",
+        "progress-repositories",
+        "harvest-repositories",
+        "siem-repository",
+        "figshare-repository",
+        "storage-repository",
+        "identity-repository",
+        "branding-repository",
+        "vocabulary-repositories",
+        "storage-mongo-staged",
+        "storage-gridfs",
+        "agenda",
+        "gridfs",
+        "sessions"
+      ],
+      "pools": 1,
+      "prisma": 2
+    },
+    "shutdownMs": 747.692670000004,
+    "resourcesAfter": {
+      "resources": 0,
+      "pools": 0,
+      "prisma": 0
+    },
+    "checks": [
+      "real GridFS round trip",
+      "HTTP session request",
+      "accepted slow GridFS upload drained"
+    ]
+  },
+  "finalSuiteCodeCommit": "45640a5e15a468e44340c1fa172cbee3b19a1aeb"
+}

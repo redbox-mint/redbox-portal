@@ -38,7 +38,7 @@ services:
       node --enable-source-maps --inspect=0.0.0.0:9876 app.js;"
 
   mongodb:
-    image: mongo:7
+    image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
     networks:
       main:
         aliases:
@@ -46,6 +46,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
+      - "../../../../support/resources/mongodb-persistence-indexes.js:/docker-entrypoint-initdb.d/20-persistence-indexes.js:ro"
       - ".tmp/mongo:/data/db"
 
   solr:

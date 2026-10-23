@@ -1,0 +1,32 @@
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+{"readiness":[{"backend":"waterline","loadedMs":976.09501,"readinessMs":21.402304000000186,"rss":341299200,"pid":208522,"ownedDriverClients":0},{"backend":"mongodb","loadedMs":1011.562011,"readinessMs":249.06686499999978,"rss":344416256,"pid":209005,"ownedDriverClients":1}],"indexes":[{"datastore":"mongodb","collection":"recordtype","name":"recordtype_key_unique","index":"ready","duplicateKeyGroups":0},{"datastore":"mongodb","collection":"dashboardtype","name":"dashboardtype_key_unique","index":"ready","duplicateKeyGroups":0},{"datastore":"mongodb","collection":"report","name":"report_key_unique","index":"ready","duplicateKeyGroups":0},{"datastore":"mongodb","collection":"namedquery","name":"namedquery_key_unique","index":"ready","duplicateKeyGroups":0}]}
+PASS all eight entities, raw defaults, both directions, unknown fields, read without rewrite
+PASS create-only keys, duplicate validation, explicit one/many/dangling relationships
+PASS tenant count, projection, ordering, pagination, unsupported-target/operator and required-field refusal
+PASS simultaneous independent mixed instances, restart, config rollback and forward, stale-reference fencing
+Dynamic imports imported
+PASS fresh-process restart and baseline-compatible refusal of uppercase foreign IDs
+PASS historical missing fields and extension data without read normalization writes
+PASS duplicate singular-name refusal without writes, nested comparison/membership filters on both backends
+
+`.native()` is deprecated.  Please use `.getDatastore().manager` instead.
+(See http://sailsjs.com/upgrading)
+
+
+`.native()` is deprecated.  Please use `.getDatastore().manager` instead.
+(See http://sailsjs.com/upgrading)
+
+PASS cross-group record tenant and user-role/link access, count after access, secret exclusion and missing related-target refusal
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+Dynamic imports imported
+PASS loaded hook callback/collection overrides on Waterline and driver refusal for unmigrated overrides
+PASS migrated service hook and explicit institution target parity, tenant/count/order/projection/page, unsupported-predicate refusal
+Dynamic imports imported
+PASS prior cb874201 installed artifact: reads driver reference/form/report data, old callback update and write
+PASS designated pre-change built-image rollback on unchanged MongoDB

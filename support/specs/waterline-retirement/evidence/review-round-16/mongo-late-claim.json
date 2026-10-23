@@ -1,0 +1,56 @@
+{
+  "sourceBefore": "1d6666614",
+  "sourceAfter": "c323055d8e85d10daa352e02b50256048a392ca8",
+  "red": {
+    "name": "late-claim-live-red",
+    "exitCode": 1,
+    "source": "1d6666614d48bcc646bb3d7b0ba5a6aec5cdac65",
+    "durationMs": 1194,
+    "sha256": "1872d0886945506ff94685b28bea1be93e93bd8b0e44ca1d1c27c6af61686a0a",
+    "summary": [],
+    "cleanupExitCode": 0
+  },
+  "green": {
+    "name": "late-claim-live-green",
+    "exitCode": 0,
+    "source": "c323055d8e85d10daa352e02b50256048a392ca8",
+    "durationMs": 730,
+    "sha256": "edbbb37cd35607c38b660baeb06aeb68305ff2f25cae5f525b6a3cacd4eacdcd",
+    "summary": [
+      {
+        "passing": 1,
+        "failures": 0,
+        "realMongoClaimAndRelease": true,
+        "lateClaimPersistedBeforeRetry": true,
+        "newClaimRetained": true,
+        "cleanupRetry": true,
+        "releases": 4,
+        "executions": 0
+      }
+    ],
+    "cleanupExitCode": 0
+  },
+  "unitRed": {
+    "exitCode": 1,
+    "failing": 1,
+    "sha256": "b2ff95b0f7cd8454a6b80fbc68b1c435719a92967106745986f6f08b60a9e473"
+  },
+  "unitGreen": {
+    "exitCode": 0,
+    "passing": 1,
+    "sha256": "28339b90e13eec83c9555a03b8177c490091a3e1c81b67e53c6e8c4754c6a556"
+  },
+  "probeScriptSha256": "b4f01119af0d0e1c3ab8e977db7e2a1170ebb21526a7410afd340ea358adc9c2",
+  "fixtureDevelopmentFailure": {
+    "result": {
+      "name": "late-claim-live-green",
+      "exitCode": 1,
+      "source": "c323055d8e85d10daa352e02b50256048a392ca8",
+      "durationMs": 689,
+      "sha256": "d2156a454f127c9a0b645de34d2f481e3c8efa3847f43d1e3d00cf1567063a19",
+      "summary": [],
+      "cleanupExitCode": 0
+    },
+    "cause": "Expected cleanup rejection occurred while observer read awaited before assert.rejects attached. Added immediate rejection observation; assertions/runtime unchanged. Not a flaky retry."
+  }
+}

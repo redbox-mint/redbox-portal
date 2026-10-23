@@ -1,0 +1,25 @@
+{
+  "name": "boundaries",
+  "command": "node packages/redbox-core/test/fixtures/waterline-retirement/reference-operation-boundaries.cjs",
+  "sourceCommit": "7b2c4843e7f67e754df60aa8a4c9ca8dabdc16f1",
+  "exitCode": 0,
+  "durationMs": 26162,
+  "sha256": "12ace192a1e79900a48eeda263ea8e9d1a165bfcaaac363f94f3cba63d250301",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 34,
+      "summary": {
+        "document-size": 8,
+        "duplicate-error-code": 4,
+        "duplicate-no-write": 4,
+        "literal-unicode-case": 10,
+        "batch-size": 6,
+        "batch-invalid-before-write": 2
+      },
+      "failures": 0,
+      "details": []
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "priorImage": "redbox-cache-p4:runtime-815a2a6e",
+  "head": "0341c6241962729905b0400af1e1097efc81f567",
+  "priorImageId": "sha256:ba6b99f1c669cff71db60c2e2a7396dc13cf0d99dd7f26e711df157a1c3186b8",
+  "priorImageProvenance": "support/specs/prisma-cache-persistence/p4-validation.md:260",
+  "priorHttpReady": true,
+  "priorHttpStatus": "404",
+  "sentinels": 6,
+  "failedFastMs": 6639,
+  "servedWithMissingIndexes": false,
+  "documentedRemedy": true,
+  "beforeInspection": {
+    "ready": false,
+    "scopes": 49
+  },
+  "ensure": {
+    "ready": true,
+    "scopes": 49,
+    "collections": 20
+  },
+  "after": {
+    "ready": true,
+    "scopes": 49,
+    "collections": 20
+  },
+  "headHttpReadyAfterEnsure": true,
+  "headHttpStatus": "200",
+  "sentinelsPreserved": true,
+  "sentinelSha256": "87bce12244eb4759db33764184e3294b27424ff4c93c36033873145f8802750a",
+  "cleanupExitCode": 0,
+  "logSha256": {
+    "missing-index-startup.log": "2a58f25cde22d263bd5081e006d83f847a6715054ebb2790ed1a0b559ff675f6",
+    "rbportal-mount.log": "7f50346852bd059a01edb98eaafd305460b59aa667f339b278b682b121c91f8a",
+    "prior-seed.log": "5ea6927b04cbc656696221b90f7e0f73370486766495ccef1ffa59a19d15f213",
+    "ensure.log": "0174b174cf4afb5e50195611dbc8584ddbd71f844fb8be7bd1a91ebca81c7014",
+    "after.log": "bdbe34db51270e7b50e03c2de6b1c16626d3fe8631f787ef2a93555f325e18ab",
+    "rbportal-build.log": "a2826f5472ca5bddbc1ff4c49892b33e1a258ac8137f8fc99c770e558ae52514",
+    "before.log": "837f0c65af1db74f76d1d426b9dfca128a5b6c2eaaf01b758aaacf1f1cf6be0a"
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "qualificationCommit": "73bb3465655790217c684b21eaaf04028305692d",
+  "hostNode": "v24.18.0",
+  "pins": {
+    "npm": "11.20.0",
+    "mongodb": "7.7.0",
+    "rttc": "10.0.1",
+    "typescript": "5.9.3"
+  },
+  "sourceAndArtifactTreesStableThroughoutFinalRun": true,
+  "trees": {
+    "sources": {
+      "files": 629,
+      "sha256OfSortedPathHashMap": "3d855b474c66301b42b153da3eba6f7e16755a3ffdb55aca7a50e16ae690e7f5"
+    },
+    "artifacts": {
+      "files": 1853,
+      "sha256OfSortedPathHashMap": "5ade23c6127cb1fc6bada5bebba4aa6e407f29fbef198c8ab4e75a649bf09df3"
+    }
+  },
+  "sources": {
+    "packages/redbox-core/src/services/AgendaQueueService.ts": "1f8d4a1e89f0813234628eefedfaaabbca2f0d8daa226bcfb9687b61fa8698e8",
+    "packages/redbox-core/src/services/IntegrationAuditService.ts": "c6b119e88716cd99fe24e789dc77b913a8d22f94094d4584f47c0365750fb1fe",
+    "packages/redbox-core/src/persistence/reference/runtime.ts": "1db8bef3da3f757109cace703394f9e589ba07ce25445c01b9a9abb7037e2d7e",
+    "packages/redbox-core/src/persistence/storage/runtime.ts": "c9484c98d819acc463a519762bc379477a425d12b60face52e4db4657db59efe",
+    "packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts": "0c328be876f87979db838a3a491bbe4edd898197205e88a6ded96c88077aaca5",
+    "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts": "7f963ec4784a2823628939c03019977d87a55acd99ba3a2f6a168d3cfafa8f17"
+  },
+  "artifacts": {
+    "packages/redbox-core/dist/services/AgendaQueueService.js": "6f15203ee28068b57e568a6203347a1b28799ab1078af4d94ed3bf4270bcceff",
+    "packages/redbox-core/dist/services/IntegrationAuditService.js": "6ff7582a41e60199c3d479e3c52670a74aaa708f9093ceece3f1423989299c44",
+    "packages/redbox-core/dist/persistence/storage/runtime.js": "bd3e3755cdf26f31135b7dbdc3daa1c85564d704008f7493c779e679fd2fc3f7",
+    "packages/redbox-core/dist/persistence/storage/WaterlineAttachmentRepository.js": "57b00980983f87e0f3af4f9f978ef38f275acf5eeea5100f474dca470cc21f69",
+    "packages/redbox-core/dist/persistence/reference/runtime.js": "5f6e472d79d8afb4a3a31100fe106b8e19329ea0149fd2d80db83f95fae1731f",
+    "packages/sails-hook-redbox-storage-mongo/dist/persistence/WaterlineNativeStorage.js": "92a9cf0cd9e8bfd210f734f13d011a525fa312a84d4cbe4b031da5532b335aee"
+  },
+  "manifestsAndLocksUnchanged": true,
+  "dependencyHashes": {
+    "angular/package-lock.json": "e3ed90eecb6fc82fbefa5d580381a151d3cc1730a83cc3c0210bb462f9dc54a6",
+    "angular/package.json": "9add83fb11123dfda666719fbceebf57c6478cc5f5c958c65d741442a1177d44",
+    "angular/projects/researchdatabox/portal-ng-common/ng-package.json": "4808799285faff1666daa5f06112367da76a644aa944668fcc01fad99dcc8a5b",
+    "angular/projects/researchdatabox/portal-ng-common/package-lock.json": "e6d58bf011bad357fc0e1d133206493a2f049af75d4661d72fe98e12b511962a",
+    "angular/projects/researchdatabox/portal-ng-common/package.json": "db3563a22747b7c68f1e3b53a7ec32f02205450a289b3fb2c0ad82940a95308b",
+    "angular/projects/researchdatabox/portal-ng-form-custom/ng-package.json": "55845295752747599ae4fb15cb198d6f0644753bab11e17d6e0061c90e13db30",
+    "angular/projects/researchdatabox/portal-ng-form-custom/package-lock.json": "484ddb440ff43b0d6bb9ac14ac779e154094ce424b3be3d67b043ef23f94be0c",
+    "angular/projects/researchdatabox/portal-ng-form-custom/package.json": "9c061e711550413d4a973e63e61032638e85690ef033bab986ab78d8f2f99a0c",
+    "package-lock.json": "3b453c1bbac3831ad836b9defdaece5b6ec5ed4a8cb6d2be76752a2689e83eb9",
+    "package.json": "ecbd42222613dc5f23be0d15fa34878a440d9c1e98dfa8d48c013f32a84a04d1",
+    "packages/agenda-sqs-backend/package-lock.json": "320abba2b5ae3e2bf348ff341d8c27352b99f2202b0c69ccf855b7a05d1915f4",
+    "packages/agenda-sqs-backend/package.json": "da4237c2d37c43bebe481a4c68481e916cb1c09787d84dd59467c224421ca478",
+    "packages/raido/package-lock.json": "fcb44ccdcb8f1dfc8db81de7c8c4a027c5f924a97a0c1e54bc3a90150b8ced15",
+    "packages/raido/package.json": "164e52c5c024c35360084c90014b8b8e24f51f2a5dd68c5ff248bebc9d582f11",
+    "packages/redbox-core/package-lock.json": "b84354085a9d71de1103d5dbf2a3662e3aaf3d4031c655858ea5c25e547e51ef",
+    "packages/redbox-core/package.json": "c67608a2eb1c5c43c9a67eeb84e7e8775ace14cfbee3c06d0dc3095fd7bdbb77",
+    "packages/redbox-dev-tools/package-lock.json": "d3d61122e9b97d042f36e51c49c8f88e2ac2540761d69aa210cb9e63ec30820b",
+    "packages/redbox-dev-tools/package.json": "6b0a0d6779a1ff5dee4519529bfbe947705dfe700874761dde9ccb73c1f80ca8",
+    "packages/redbox-hook-dev/package-lock.json": "c2cc0a4d0573f05e756742122d9580fc79b5df20390a25ea33c36d3e5d8b55bd",
+    "packages/redbox-hook-dev/package.json": "e896b61c8148120907b54dc9c18e1db55ba6c7930d98c41a8dbceec4c0335258",
+    "packages/rva-registry/package-lock.json": "9f833c5bac0500af9053ca3973c0e82a66cf8ad424009248f3a6487215aab104",
+    "packages/rva-registry/package.json": "0a5388ad727993c083f48d3c0b6e13279801941de26795b8ec1fdde2faf6b751",
+    "packages/sails-hook-redbox-pdfgen/package-lock.json": "e0d20521b4caf6c48c11a02738f28fa6f096490eb17e8c1786098931716b1f11",
+    "packages/sails-hook-redbox-pdfgen/package.json": "15d69e819e4224afdcae74cc400f4ef5161c8b2f0b1376fbee75d89ec72b9190",
+    "packages/sails-hook-redbox-pdfgen/test/bruno/package-lock.json": "102c7ecaa3e119f6312fd2f89e664d2ed31e730f73e8e1425336268b5333e7d4",
+    "packages/sails-hook-redbox-pdfgen/test/bruno/package.json": "60377d089d92cb55ac86647e4a08aa8a29c32a646354deb7efc85792bd6c7fa5",
+    "packages/sails-hook-redbox-storage-mongo/package-lock.json": "959ac9e39e987ecb6922fe4054cdb4dd5c4109ee85c1daa61a7b36b574881cdc",
+    "packages/sails-hook-redbox-storage-mongo/package.json": "b0e77d593700cae72a270b8e25061d508339fd1eca25d4ad746f5cca9ed08e44",
+    "packages/sails-ng-common/package-lock.json": "a0bf98934899280710bfad848fa51bae3779a9e44310144d1c5fa0323aa34cc2",
+    "packages/sails-ng-common/package.json": "59a2d08dc96a286b30d49c4c8baa90f281ed30fb6a5347f46e424be812705044",
+    "support/build/api-descriptors/package-lock.json": "340c9664e342f45aa3b2f4d27bc80fbd55e85fb9391ffcaea19ce6a7a80d9cba",
+    "support/build/api-descriptors/package.json": "c612af5dce20ee1a30911609665e6e6e23623a55643aeb3e4122697ba39a9064",
+    "support/documentation/package.json": "a51bff776fdd53226e2e67d8f654d17dadfe3decc8bf8bf869cba3aff9813826",
+    "support/ng19-forms-migration/package-lock.json": "136252da4fc6d080d1281dc23e08240f72bc3f11a4088576c646dcad0b49e373",
+    "support/ng19-forms-migration/package.json": "a268b660de7dc467501345ecd3cc2c9eefb58a22b1bb3afb69cd6cb00e2f330d",
+    "support/spikes/orm-reevaluation/package-lock.json": "d7784ad6a06452c56394f74f37bde6d6727d6100340edf1df2aad128479f8a5e",
+    "support/spikes/orm-reevaluation/package.json": "c6d2c8e740983c444b6aa57d1461116998162c2883d471f73e5280916badc74f",
+    "support/tools/figshare-metadata-inspector/package-lock.json": "1e45f80981af9cffc60fbe032c7bdf5854f3c948db673ad806556d7c6b283b7f",
+    "support/tools/figshare-metadata-inspector/package.json": "50dcdcd1a3b7defecbfa4fdb8b18dea6edbc1e96c15a847d362728c782ea7efb",
+    "test/bruno/package-lock.json": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406",
+    "test/bruno/package.json": "02eeaf34090074e57dc17111dadda2a964f619aed25fed79abe8e8531e3b10c8"
+  },
+  "stockContainers": {
+    "mocha": {
+      "node": "v26.10.0",
+      "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+      "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+      "sha256": {
+        "packages/redbox-core/dist/services/AgendaQueueService.js": "6f15203ee28068b57e568a6203347a1b28799ab1078af4d94ed3bf4270bcceff",
+        "packages/redbox-core/dist/services/IntegrationAuditService.js": "6ff7582a41e60199c3d479e3c52670a74aaa708f9093ceece3f1423989299c44",
+        "packages/redbox-core/dist/persistence/storage/runtime.js": "bd3e3755cdf26f31135b7dbdc3daa1c85564d704008f7493c779e679fd2fc3f7",
+        "packages/redbox-core/dist/persistence/storage/WaterlineAttachmentRepository.js": "57b00980983f87e0f3af4f9f978ef38f275acf5eeea5100f474dca470cc21f69",
+        "packages/redbox-core/dist/persistence/reference/runtime.js": "5f6e472d79d8afb4a3a31100fe106b8e19329ea0149fd2d80db83f95fae1731f",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/WaterlineNativeStorage.js": "92a9cf0cd9e8bfd210f734f13d011a525fa312a84d4cbe4b031da5532b335aee"
+      },
+      "container": "adcfa7696afe",
+      "project": "p10-s-mocha-default-30439-15014",
+      "image": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd",
+      "npm": "11.20.0",
+      "matchesHostArtifacts": true
+    },
+    "bruno": {
+      "node": "v26.10.0",
+      "coreEntry": "/opt/redbox-portal/packages/redbox-core/dist/index.js",
+      "storageEntry": "/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/dist/index.js",
+      "sha256": {
+        "packages/redbox-core/dist/services/AgendaQueueService.js": "6f15203ee28068b57e568a6203347a1b28799ab1078af4d94ed3bf4270bcceff",
+        "packages/redbox-core/dist/services/IntegrationAuditService.js": "6ff7582a41e60199c3d479e3c52670a74aaa708f9093ceece3f1423989299c44",
+        "packages/redbox-core/dist/persistence/storage/runtime.js": "bd3e3755cdf26f31135b7dbdc3daa1c85564d704008f7493c779e679fd2fc3f7",
+        "packages/redbox-core/dist/persistence/storage/WaterlineAttachmentRepository.js": "57b00980983f87e0f3af4f9f978ef38f275acf5eeea5100f474dca470cc21f69",
+        "packages/redbox-core/dist/persistence/reference/runtime.js": "5f6e472d79d8afb4a3a31100fe106b8e19329ea0149fd2d80db83f95fae1731f",
+        "packages/sails-hook-redbox-storage-mongo/dist/persistence/WaterlineNativeStorage.js": "92a9cf0cd9e8bfd210f734f13d011a525fa312a84d4cbe4b031da5532b335aee"
+      },
+      "container": "49717353ab87",
+      "project": "p10-s-bruno-default-npm1120-22433-6313",
+      "image": "sha256:71e19ab6fd97d7527fb36f8c1d678da61ff2f92124dfb651dec130d8c96ed4cd",
+      "npm": "11.20.0",
+      "cliNpm": "11.20.0",
+      "matchesHostArtifacts": true
+    }
+  },
+  "baselinePreservation": {
+    "inputCommit": "8584a2303",
+    "checked": 26,
+    "unchanged": 24,
+    "changed": [
+      "packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts",
+      "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts"
+    ],
+    "files": {
+      "packages/redbox-core/src/middleware/redboxSession.ts": {
+        "sha256": "0c7256ad338dabdcc9451aac2b51f1583aecfc4a903ffac3ad79d0e866982f9c",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/middleware/requestLifetime.ts": {
+        "sha256": "a3b1d6f824c3a69a1a1be4f2bca21ea4115bcde1e89edf69bc5934e6ba955f53",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/cache/WaterlineCacheEntryRepository.ts": {
+        "sha256": "4255685016d81de57093d2a37d6b18a3623b0c952d085f5298f3e1e2ed940200",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/configuration/WaterlineConfigurationRepositories.ts": {
+        "sha256": "bff29d4b9602deaf69ddc3642e7463aaf2a1a6ae0646b0d5176bf380f93ef6f5",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/configuration/dashboardCas.ts": {
+        "sha256": "7506b3c62be20540738d255654e05f2fc70a2455060024afeff8080beb84bfe7",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/configuration/secretLeases.ts": {
+        "sha256": "a88e6d349bb35960f52d51b8b1c8fec2acd3909d9c536a33bb2f436ef292af45",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/figshare/NativeFigshareRepository.ts": {
+        "sha256": "fde077f428beb4fd0ef932a62f42071db90060e15fdf9980f60ef6e5a7fb2671",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/figshare/WaterlineFigshareRepository.ts": {
+        "sha256": "231207118becbbe3223421b222c69f198cc01227734888315eb10f5904bd61ea",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/harvest/WaterlineHarvestRepositories.ts": {
+        "sha256": "b88a2e97f60477b92236450f548a4915ae341566f6236143c7fe09aa823c1aa0",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/harvest/WaterlineRunCounters.ts": {
+        "sha256": "a7ac00353845c7b11f69a9dd6496627eed22069fc6827634d8a7ec44212cdb12",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/migration/WaterlineMigrationLedgerRepository.ts": {
+        "sha256": "daae34945b285af7e609a66b14df8f3e80269414078710c6ce37a7a7e1dc7a24",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/progress/WaterlineProgressRepositories.ts": {
+        "sha256": "f2157fd024040735365150d486055e3b6a4c98819ffa734d3250949c0c765a6d",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/reference/WaterlineNamedQueryTargets.ts": {
+        "sha256": "d9869e084d4dab4acfd89c88426f3a0872e40b805ba4a2e9434932f86d85617a",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/reference/WaterlineReferenceRepositories.ts": {
+        "sha256": "2c3e1adc20ff95855a6124891545c72ad0128a01461a8ee23b6966137fc40e4a",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/siem/WaterlineDelivery.ts": {
+        "sha256": "504e3c6cbb89d21bede27ee18996aa01ba4be8a4181096d8bc660af9e0b294f2",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/siem/WaterlineSiemRepository.ts": {
+        "sha256": "92ecab7a0ac06a3ff96934c443b13b793ce2d20bf8ef2d22932d2d7fbb7ce761",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts": {
+        "sha256": "0c328be876f87979db838a3a491bbe4edd898197205e88a6ded96c88077aaca5",
+        "unchangedSinceInput": false
+      },
+      "packages/redbox-core/src/persistence/storage/WaterlineCounterRepository.ts": {
+        "sha256": "cb95689338a1031ea7e1cca7205e4bfbb71a8c6dcb2d6bbfcfd03e646276dbb4",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/storage/GridFSDriver.ts": {
+        "sha256": "368b9d3227ef8f57d6362551b10b20620d5e0efbd0ac6551155368f941994950",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/storage/ownGridFSDownload.ts": {
+        "sha256": "ffd8ae91a917af3bc6980e75cb45f887860fd55b4c3e095384acd64516b894c1",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/storage/writeGridFSStream.ts": {
+        "sha256": "3a5e97dfab9abd7e76451584963c72a7044e47211b75a4a843747b0967ac47c6",
+        "unchangedSinceInput": true
+      },
+      "packages/sails-hook-redbox-storage-mongo/src/migrations/recordRevisionBackfill.ts": {
+        "sha256": "e5c47d65ed1b5e5a274fe3fdf37e5538e927da81d502613f08acea50245e4f20",
+        "unchangedSinceInput": true
+      },
+      "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts": {
+        "sha256": "7f963ec4784a2823628939c03019977d87a55acd99ba3a2f6a168d3cfafa8f17",
+        "unchangedSinceInput": false
+      },
+      "packages/sails-hook-redbox-storage-mongo/src/persistence/recordRevisionBackfill.ts": {
+        "sha256": "669f02d5f079f08decf3289a010597e824e62c13224c4bd49d6d616175855476",
+        "unchangedSinceInput": true
+      },
+      "packages/sails-hook-redbox-storage-mongo/src/persistence/recordSchemaCodec.ts": {
+        "sha256": "889b7ec7acdf0a91d82aac1ebb42b302327f09bbc7b83cdad69edc9a78aa58e5",
+        "unchangedSinceInput": true
+      },
+      "packages/redbox-core/src/persistence/cache/MongoCacheEntryRepository.ts": {
+        "sha256": "b5777ef1aed414e104c2f8f4d068523ec3a11a3fe7001306e162d32c816b96af",
+        "unchangedSinceInput": true
+      }
+    }
+  },
+  "retainedMethodBodies": [
+    {
+      "file": "packages/sails-hook-redbox-storage-mongo/src/persistence/WaterlineNativeStorage.ts",
+      "compared": 133,
+      "unchanged": 126,
+      "changed": [
+        "init",
+        "createIndices",
+        "createRecordAudit",
+        "getRecordAudit",
+        "createIntegrationAudit",
+        "getIntegrationAudit",
+        "countIntegrationAudit"
+      ],
+      "added": [
+        "initializationDiagnostic",
+        "readAudit"
+      ],
+      "unexpected": []
+    },
+    {
+      "file": "packages/redbox-core/src/persistence/storage/WaterlineAttachmentRepository.ts",
+      "compared": 31,
+      "unchanged": 30,
+      "changed": [
+        "recordAccess"
+      ],
+      "added": [],
+      "unexpected": []
+    }
+  ]
+}

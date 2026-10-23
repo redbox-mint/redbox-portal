@@ -1,0 +1,328 @@
+{
+  "artifact-smoke.txt": {
+    "sha256": "98fbddd62e3fd34bd3d370edd727c98f1b395d1fb39deaedd1b2838ad1ffe954",
+    "bytes": 171,
+    "lines": 2,
+    "summaryExcerpt": "{\"result\":\"PASS\",\"probe\":\"full image: MongoDB default, no Prisma code/dependencies, actionable retired selector, zero sockets\",\"node\":\"v26.11.1\"}"
+  },
+  "build.txt": {
+    "sha256": "a28d4bce07028582f24d6ca9d13ec76e3e4b50d4e795d6a4f1500eec59a8134e",
+    "bytes": 100,
+    "lines": 2
+  },
+  "cache-driver-prerequisites.txt": {
+    "sha256": "a3784e97da1f81f54f8455f25a29765e5fb164ebf42200c4f3d676433a642475",
+    "bytes": 3870,
+    "lines": 43,
+    "counts": {
+      "passing": 17
+    }
+  },
+  "cache-types.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "cache.txt": {
+    "sha256": "13a959e30d54a7a865b17587db9a1d74702a2d0b71c6159ddc702728693d53dc",
+    "bytes": 6713,
+    "lines": 115,
+    "counts": {
+      "passing": 14
+    }
+  },
+  "ci-clean-install.txt": {
+    "sha256": "dca4652ce3606b4264af5271e7c136a01bcfefdc3e7f0df75bffe61bd62a8fa0",
+    "bytes": 6980,
+    "lines": 48
+  },
+  "configuration-readiness.txt": {
+    "sha256": "1e4bd0dd48210216d81adee142edd1e3e0f009e1b6ce2caf50d8fcc1f646e491",
+    "bytes": 262,
+    "lines": 6,
+    "summaryExcerpt": "PASS all four callback-override refusals, sparse/conflicting UID indexes, duplicate blocking before any group DDL, safe ensure/readiness"
+  },
+  "configuration.txt": {
+    "sha256": "7d083d45fe26628e14c1c97e8abcecb9c58c41ab88acd543820a5df75b2031d5",
+    "bytes": 2229,
+    "lines": 22,
+    "summaryExcerpt": "PASS migrated institution service hook on both adapters through the public plain repository seam\nPASS unsupported BSON repository/query refusal without read rewrite or silently omitted rows\nPASS pre-Q f8c8cd7de installed image reads driver config/dashboard/bundle/entry/lease and writes unchanged database"
+  },
+  "core-attempt2.txt": {
+    "sha256": "53047da1399028e3c84777129657170e0c6e1e0237562d10e2f366feef964019",
+    "bytes": 359318,
+    "lines": 6130,
+    "counts": {
+      "passing": 4159,
+      "pending": 113
+    }
+  },
+  "core.txt": {
+    "sha256": "4a8d7d749df507cd122a92cbdd516dc1e71ec1a132b0629e6b21a04bee71a825",
+    "bytes": 359700,
+    "lines": 6142,
+    "counts": {
+      "passing": 4158,
+      "pending": 113,
+      "failing": 1
+    },
+    "exitCode": 1,
+    "attemptExcerpt": "       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:\n     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT\n\nnull !== 0\n\n      at Context.<anonymous> (test/unit/startup-module-loading.test.ts:44:12)\n      at processImmediate (node:internal/timers:504:21)"
+  },
+  "development.txt": {
+    "sha256": "5c7f37b75f7f8afce41b57e82fb2e17dd8306e418b35661e12d710163ee17fd0",
+    "bytes": 363597,
+    "lines": 1621,
+    "counts": {
+      "pending": 4
+    },
+    "summaryExcerpt": "PASS standard development app.js HTTP startup on fresh isolated volume\nPASS cache=mongodb and M=mongodb readiness, shared indexes and durable migration history"
+  },
+  "figshare-readiness.txt": {
+    "sha256": "2fda460809044a4325b95f92919b7292150bfcf88d25dd58595e597e196acb9d",
+    "bytes": 232,
+    "lines": 2,
+    "summaryExcerpt": "PASS J4 inspect-only startup; all three scopes before DDL; full OID + scalar partial duplicate audit; null/missing exclusions; arrays refused without mutation; conflicts retained; model-free explicit ensure"
+  },
+  "figshare-unit.txt": {
+    "sha256": "a0a11bd931c5cfa66f90feadb2f46ca2122e154dd78525641bbbbedff09a3054",
+    "bytes": 5544,
+    "lines": 66,
+    "counts": {
+      "passing": 56
+    }
+  },
+  "figshare.txt": {
+    "sha256": "694fb0dac3d2cdc0a4f6d5d6d00a6333f8638b96a4300617bfa8bc27ee2aa43c",
+    "bytes": 653,
+    "lines": 14,
+    "summaryExcerpt": "PASS pre-J4 image native read/write/replacement/ms lease\nPASS J4 raw/bidirectional/mixed CAS/owner expiry/restart/config and prior-image rollback/dispatch/receipts/generation/readback-before-ack/known and unknown failures/drain/hooks/unsupported BSON"
+  },
+  "foundation.txt": {
+    "sha256": "3a48bb8459ee1ef04ac594c8e6965ef002eb201e1ceebd761fff6b31f41eca47",
+    "bytes": 1460,
+    "lines": 25,
+    "counts": {
+      "passing": 12
+    }
+  },
+  "harvest.txt": {
+    "sha256": "fb691a71e90bde45ab190d3919ce71209d43a0d931da5dcac82d9e2d309acf1c",
+    "bytes": 686,
+    "lines": 13,
+    "summaryExcerpt": "PASS actual pre-J2 image reads run/chunk/event lineage and writes compatible status\nPASS J2 raw/bidirectional/mixed contention/unique dimensions/hash+attempt/restart/config+prior-image rollback/retention/known and ambiguous failures/no BSON leak"
+  },
+  "image-build-seconds.txt": {
+    "sha256": "177af2a59080c2fa215653d0e81a8f6d7305a74f6264ae7954a7367f7f097c6a",
+    "bytes": 5,
+    "lines": 1
+  },
+  "image-build-started.txt": {
+    "sha256": "1baeb4c9ca0184e1e81b1a97a28d413eab772e516e859d588cf58589f3ab42d4",
+    "bytes": 21,
+    "lines": 1
+  },
+  "image-build.txt": {
+    "sha256": "5887b9937728108161f54b81771fe4a76d8c3de70408af692596b053ccf5bbdc",
+    "bytes": 74752,
+    "lines": 1194
+  },
+  "image-inspect.json": {
+    "sha256": "c0bd176e0e848bd2eb2bc766388e1992b787e3a6f2bac2838c017b634730a9ff",
+    "bytes": 5114,
+    "lines": 105,
+    "images": [
+      {
+        "id": "sha256:a548beebd26afabcc29a3ae2d89ece6a7d3e1dc9f69d3c7b5090b155c54d9a2c",
+        "tags": [
+          "redbox-c2:remove"
+        ],
+        "labels": {
+          "redbox.cache-stage": "remove",
+          "redbox.source-base": "8fe06bec6"
+        }
+      }
+    ]
+  },
+  "indexes.txt": {
+    "sha256": "4e4db40b48e19958ef58dcf0ef9ad96b0eafbde6cb6e550fdfc11b43199ffccb",
+    "bytes": 1940,
+    "lines": 19,
+    "summaryExcerpt": "PASS 13: installed J3 command reviews all eight scopes before DDL, preserves duplicate events on refusal and explicitly prepares both collections\nPASS 14: installed J4 command audits partial binding duplicates before all DDL and retains null/missing exclusions on explicit upgrade\nPASS 15: omitted group selectors prepare the promoted M, R, Q, J1, J2, J3 and J4 defaults plus the promoted MongoDB cache"
+  },
+  "lifecycle.txt": {
+    "sha256": "977766cac4047b7f3aa08ab415b8b7821bba3bc3c44a698649d19fdd16ca0111",
+    "bytes": 180,
+    "lines": 2,
+    "summaryExcerpt": "PASS C2 actual cache write drain, refused new work, model-free restart, standalone server restart, missing/duplicate/conflicting readiness without cleanup"
+  },
+  "lint.txt": {
+    "sha256": "d60f59b56ec989ce4eab33ee98d219a18aefaa8bf68bdd46054ceda627e249ef",
+    "bytes": 191,
+    "lines": 4
+  },
+  "lock-generation.txt": {
+    "sha256": "9bbc998518033a7c670aa789e77b72019b5b10c47f455ccb1d72e3f87b20f973",
+    "bytes": 262,
+    "lines": 11
+  },
+  "migration.txt": {
+    "sha256": "e8f67dd0cb64ae65e1ab2db9884505700b871edfa9608cfe7ed713d45fa4bf90",
+    "bytes": 6171,
+    "lines": 67,
+    "counts": {
+      "passing": 15
+    },
+    "summaryExcerpt": "PRE-P2 IMAGE ROLLBACK PASS: reads driver ledger, no replay, pending body writes interoperable history."
+  },
+  "packed-24.txt": {
+    "sha256": "3538cd6028ecfa76171d06021081774b6301fb65586d155b3b73571a0298f9ec",
+    "bytes": 10002,
+    "lines": 150,
+    "summaryExcerpt": "#19 4.743 PASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)\nPASS installed core/artifacts/shims: no sources, CLI or sockets (v24.16.0)\nPASS installed default MongoDB cache CRUD/raw BSON, retained fields and two-database routing on MongoDB 8.0.34 (v24.16.0)"
+  },
+  "packed-26.txt": {
+    "sha256": "f85c59e115987c917e1f810dced8603e57a061ca12160deca293c67ddb5c966e",
+    "bytes": 9879,
+    "lines": 149,
+    "summaryExcerpt": "#19 2.403 PASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)\nPASS installed core/artifacts/shims: no sources, CLI or sockets (v26.11.1)\nPASS installed default MongoDB cache CRUD/raw BSON, retained fields and two-database routing on MongoDB 8.0.34 (v26.11.1)"
+  },
+  "production-source.patch": {
+    "sha256": "462c087c91d22d1b6424be961cfd9b398a2985b970c9bc2c72c9ecafb406be96",
+    "bytes": 1361576,
+    "lines": 34691
+  },
+  "progress.txt": {
+    "sha256": "c10ab658c0fcdcea0cbc3b7fd95a43771c5fdc8643ae11fe0dec2be45167977c",
+    "bytes": 671,
+    "lines": 13,
+    "summaryExcerpt": "PASS prior J1 image loaded models/read/write\nPASS J1 raw/bidirectional/simultaneous mixed/fresh-process restart/config rollback/prior-image rollback/hooks/named-query tenant scope/cleanup/rejected and unknown-ack failure contracts"
+  },
+  "recovery.txt": {
+    "sha256": "16db4facf689209b99e2b60524edc0d364d1bbc69b534c17fa0017d7f5591e9a",
+    "bytes": 5856,
+    "lines": 59,
+    "artifactHashes": {
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-recovery-OLuLxs/checkpoint.archive.gz": "9ed0f37d093ca5065feb6413f28fc874711cd6309040d812fd1fb47f086be961",
+      "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/c2-recovery-OLuLxs/assets.tar.gz": "447f70c5f20492c01c19f9be0de0953fe6351e2f8dea61c2afb7de4df33632ea"
+    },
+    "summaryExcerpt": "{\"result\":\"PASS\",\"mode\":\"rollback\",\"ready\":{\"backend\":\"waterline\",\"adapter\":\"WaterlineCacheEntryRepository\",\"selectorProvided\":true,\"pid\":910179,\"legacy\":false,\"startupMs\":2696.961014,\"startupStagesMs\":{\"coreImported\":2232.184558,\"ormLoaded\":2694.6918530000003,\"persistenceReady\":2695.6275680000003,\"cacheBootstrapped\":2696.857131},\"memory\":{\"rss\":341516288,\"heapTotal\":260624384,\"heapUsed\":158083312,\"external\":41095965,\"arrayBuffers\":41389864},\"node\":\"v24.18.0\",\"cacheExpiry\":3600},\"checkpoint\":\"driver-completed; retained storage/session; JSON/ObjectId/string timestamps\"}\nPASS promoted default driver reads observed service completion after Waterline config rollback\nPASS C2 current default drive"
+  },
+  "reference.txt": {
+    "sha256": "98492e73c4aa0393a9c676b169e66a38f8b704f75918d221dfa73dc73a156ca8",
+    "bytes": 2770,
+    "lines": 35,
+    "summaryExcerpt": "PASS migrated service hook and explicit institution target parity, tenant/count/order/projection/page, unsupported-predicate refusal\nPASS prior cb874201 installed artifact: reads driver reference/form/report data, old callback update and write\nPASS designated pre-change built-image rollback on unchanged MongoDB"
+  },
+  "root-types.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "siem-readiness.txt": {
+    "sha256": "5e889bf8ed6ab197f37ea9402c60cedd5aa77adec338305cb278357af966a827",
+    "bytes": 225,
+    "lines": 2,
+    "summaryExcerpt": "PASS J3 missing startup is inspect-only; all eight upgrade scopes reviewed before DDL; duplicates/conflicts block without modifying data; explicit ensure; loaded-model-free driver; sanitized guidance"
+  },
+  "siem-unit.txt": {
+    "sha256": "66506783f943b877982c0a62864e3e61ddebdaa5e11804e76edaf60a26605c83",
+    "bytes": 6918,
+    "lines": 119,
+    "counts": {
+      "passing": 73
+    }
+  },
+  "siem.txt": {
+    "sha256": "ca689a3434d7fb40dd39532eb5e9916e9caf20d811e785456525ae09547f8314",
+    "bytes": 604,
+    "lines": 14,
+    "summaryExcerpt": "PASS pre-J3 image loaded read/write/native fencing\nPASS J3 raw/bidirectional/mixed contention/expiry/restart/config rollback/prior image/hooks/replay/retry/redaction/retention/ambiguous failure/draining"
+  },
+  "source-hashes.txt": {
+    "sha256": "b7b94a0ec231a6dab7a4d163b67334a9e8c2d5d79342193dcee0d39cc979bb2f",
+    "bytes": 333,
+    "lines": 3,
+    "artifactHashes": {
+      "support/specs/waterline-retirement/evidence/c2/remove/production-source.patch": "462c087c91d22d1b6424be961cfd9b398a2985b970c9bc2c72c9ecafb406be96",
+      "package-lock.json": "1227d2a84d3848c9b48d9608be2f0436fc5282df61842efe38b881f0962453c8",
+      "packages/redbox-core/package-lock.json": "9ce4e54e01c2d9777e385190ab8e0e25835814d2fb1831e2f548452a49ad061a"
+    }
+  },
+  "standard-bruno-keycloak.txt": {
+    "sha256": "e2625ed0a16b65ce916c201d0aaad620e1760e6986240d96e44f8897b968e674",
+    "bytes": 12338,
+    "lines": 105
+  },
+  "standard-bruno.txt": {
+    "sha256": "e0be638b65565cd4814bf9520a6e2034c7da8b1e27a130512db740f27c0bb84c",
+    "bytes": 2468047,
+    "lines": 11616,
+    "counts": {
+      "pending": 4
+    },
+    "summaryExcerpt": "bruno-mount-1         | \u2502 Requests      \u2502 309 (309 Passed) \u2502\nbruno-mount-1         | \u2502 Tests         \u2502     553/553      \u2502\nbruno-mount-1         | \u2502 Assertions    \u2502       3/3        \u2502"
+  },
+  "standard-image-cold.txt": {
+    "sha256": "3c2f151c6408c738cbfe23f5407ac650a5257c0e82e1bb10d4a1f82b8a3b3105",
+    "bytes": 146,
+    "lines": 2,
+    "attemptExcerpt": "sha256:a548beebd26afabcc29a3ae2d89ece6a7d3e1dc9f69d3c7b5090b155c54d9a2c {\"redbox.cache-stage\":\"remove\",\"redbox.source-base\":\"8fe06bec6\"}\nv26.11.1"
+  },
+  "standard-image.txt": {
+    "sha256": "3c2f151c6408c738cbfe23f5407ac650a5257c0e82e1bb10d4a1f82b8a3b3105",
+    "bytes": 146,
+    "lines": 2
+  },
+  "standard-mocha-keycloak-before-app.txt": {
+    "sha256": "d58ca249004a652b2762f4667ea4adf2e819fec33e3d85e727f2d1fed778363b",
+    "bytes": 5190,
+    "lines": 72,
+    "exitCode": 1,
+    "attemptExcerpt": " Container cache-c2-remove-mocha-32307-6347-keycloak-1 Error dependency keycloak failed to start\ndependency failed to start: container cache-c2-remove-mocha-32307-6347-keycloak-1 is unhealthy\n Container cache-c2-remove-mocha-32307-6347-redboxportal-mount-1 Stopping \n Container cache-c2-remove-mocha-32307-6347-redboxportal-mount-1 Stopped \n Container cache-c2-remove-mocha-32307-6347-redboxportal-mount-1 Removing \n Container cache-c2-remove-mocha-32307-6347-redboxportal-mount-1 Removed \n Container cache-c2-remove-mocha-32307-6347-keycloak-1 Stopping "
+  },
+  "standard-mocha-keycloak-cold.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0,
+    "attemptExcerpt": ""
+  },
+  "standard-mocha-keycloak.txt": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "lines": 0
+  },
+  "standard-mocha.txt": {
+    "sha256": "3216be5f41a606afe8bb68bfc999d9000d3653bc2f2d1f2cf27ed4de8ce7ece1",
+    "bytes": 1145399,
+    "lines": 8180,
+    "counts": {
+      "pending": 10,
+      "passing": 418
+    },
+    "summaryExcerpt": "redboxportal-mount-1  |     Additional MenuService Tests"
+  },
+  "standard-run-cold-image.txt": {
+    "sha256": "ded383d569cd0b986ea184eb8a4771b20ce4a6f53fd72a9a83f77010d3020e3e",
+    "bytes": 98,
+    "lines": 1,
+    "attemptExcerpt": "C2 stage=remove project=cache-c2-remove-mocha-32307-6347 command=npm run test:mocha cache=default"
+  },
+  "standard-run.txt": {
+    "sha256": "139ba53df83cf2a63b8490106917f183e81ba70eccdd670590bd9152b395f8d9",
+    "bytes": 343,
+    "lines": 5,
+    "summaryExcerpt": "PASS C2 stage=remove mocha seconds=446\nPASS C2 stage=remove bruno seconds=284\nPASS C2 stage=remove development startup/checks seconds=120"
+  },
+  "tls-srv.txt": {
+    "sha256": "5e57ab9cec23cf75421eb3722b0ac8949ef0162ea857e8595185d49d35fc23fc",
+    "bytes": 179,
+    "lines": 2,
+    "summaryExcerpt": "{\"result\":\"PASS live authenticated TLS and SRV/TXT, CA rejection, authentication rejection, no fallback\",\"srvQueries\":1,\"txtQueries\":1,\"node\":\"v26.11.1\"}"
+  },
+  "types.txt": {
+    "sha256": "bab886303e6554deb0a345e7394180c60ac83f16c38a0b73fa67f0fb12ae14a1",
+    "bytes": 144,
+    "lines": 2
+  }
+}

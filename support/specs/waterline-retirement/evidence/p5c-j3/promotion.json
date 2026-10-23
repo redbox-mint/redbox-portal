@@ -1,0 +1,108 @@
+{
+  "gate": "G-J3",
+  "sourceCommit": "338482f3ab72dc141079283ab459c9f41766e773",
+  "selectedDefault": "mongodb",
+  "freshVolumes": true,
+  "stockRunnerCommandsUnchanged": true,
+  "commands": [
+    {
+      "label": "build",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "build"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 25.67,
+      "log": "/tmp/redbox-p5c-build.log",
+      "sha256": "048c2c21d67c36af6298c2fdb7f477560959ed9cb76bdbef669e5df1bc7cb00d"
+    },
+    {
+      "label": "mocha-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-siem-portal.sh"
+      ],
+      "environment": {
+        "SIEM_BACKENDS": "default",
+        "SIEM_SKIP_PREWARM": "false",
+        "SIEM_MOCHA_PATHS": "test/integration/persistence/*.test.ts\ntest/integration/services/SecurityEventService.test.ts\ntest/integration/services/SiemForwardingService.test.ts\ntest/integration/services/SiemApi.test.ts\ntest/integration/services/AppConfigService.test.ts\ntest/integration/services/DashboardConfigService.test.ts\ntest/integration/services/DashboardTypesService.test.ts\ntest/integration/services/I18nEntriesService.test.ts\ntest/integration/services/FormsService.test.ts\ntest/integration/services/WorkflowStepsService.test.ts\ntest/integration/services/ReportsService.test.ts\ntest/integration/services/NamedQueryService.test.ts\ntest/integration/models/I18nTranslation.test.ts"
+      },
+      "exitCode": 0,
+      "seconds": 345.74,
+      "log": "/tmp/redbox-p5c-mocha-default.log",
+      "sha256": "f3e799a2c07f62091898e87fa7e4a44846d5d7380aea0ff1b00c6cbdcc7047db"
+    },
+    {
+      "label": "bruno-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-siem-bruno.sh"
+      ],
+      "environment": {
+        "SIEM_BACKENDS": "default",
+        "SIEM_SKIP_PREWARM": "false"
+      },
+      "exitCode": 0,
+      "seconds": 286.48,
+      "log": "/tmp/redbox-p5c-bruno-default.log",
+      "sha256": "51a5ce5c3623996720361cf5ce7e560440b14c017369a20fbd3783c841453476"
+    },
+    {
+      "label": "dev-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-persistence-dev.sh"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 72.79,
+      "log": "/tmp/redbox-p5c-dev-default.log",
+      "sha256": "07e59ea49eaa760a304ce3d2bf1780b798e45c2780acf0568ef8669c9778bb33"
+    },
+    {
+      "label": "indexes-default",
+      "command": [
+        "npm",
+        "--prefix",
+        "packages/redbox-core",
+        "run",
+        "test:persistence-indexes"
+      ],
+      "environment": {},
+      "exitCode": 0,
+      "seconds": 98.84,
+      "log": "/tmp/redbox-p5c-indexes-default.log",
+      "sha256": "41f61368cc768d764c71db819c69b6317ec2ce0e918c4192028179612957675c"
+    },
+    {
+      "label": "packed-default",
+      "command": [
+        "bash",
+        "packages/redbox-core/test/fixtures/waterline-retirement/run-durable-package.sh"
+      ],
+      "environment": {
+        "J_PACKAGE_EVIDENCE": "support/specs/waterline-retirement/evidence/p5c-j3/packed-artifact.json"
+      },
+      "exitCode": 0,
+      "log": "/tmp/redbox-p5c-packed-default.log",
+      "sha256": "c01c9de6890bbf649a2ff18c82d4c308d20189523132b9c99813e8fed64f487c"
+    }
+  ],
+  "decision": "PASS for transaction-free next, provisional bounded operations/rollback limits",
+  "date": "2026-10-20",
+  "qualificationCommit": "338482f3ab72dc141079283ab459c9f41766e773",
+  "candidateDiffSha256": "1adc39ef1ce9652b293d387fe6750d235da95d02c386d71e257e062c6ef8fc57",
+  "independentSelectors": {
+    "siem": "mongodb",
+    "figshare": "waterline"
+  },
+  "mochaPassing": 96,
+  "brunoRequests": 309,
+  "brunoTests": 553,
+  "preparedIndexScopes": 31,
+  "deploymentCases": 14
+}

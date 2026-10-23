@@ -1,0 +1,16 @@
+volumes:
+  c2-email:
+  c2-attachments:
+  c2-uploads:
+services:
+  email:
+    volumes: !override
+      - c2-email:/data
+    networks:
+      main:
+        aliases:
+          - integration-testing-email-1
+  redboxportal-mount:
+    volumes:
+      - c2-attachments:/attachments
+      - c2-uploads:/opt/redbox-portal/.tmp/uploads

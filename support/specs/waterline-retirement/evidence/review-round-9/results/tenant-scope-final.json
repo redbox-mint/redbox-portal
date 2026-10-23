@@ -1,0 +1,23 @@
+{
+  "name": "tenant-scope-final",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh tenant-scope",
+  "sourceCommit": "5493fbe6133dfcb43ff784e0cf7d4f7c0baf1c02",
+  "exitCode": 0,
+  "durationMs": 6850,
+  "sha256": "485a6e4c9b63ac59ee814e0af9f51b49f77e20351679b8cbfcb2dedc5f321975",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    {
+      "passing": 428,
+      "failures": 0,
+      "refused": 168,
+      "backends": [
+        "mongodb",
+        "waterline"
+      ],
+      "targets": 5,
+      "countsAndRows": true
+    }
+  ]
+}

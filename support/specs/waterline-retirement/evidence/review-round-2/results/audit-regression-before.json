@@ -1,0 +1,11 @@
+{
+  "name": "audit-regression-before",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-storage.sh contract",
+  "sourceCommit": "f944c0411e669a1dc55d7ad4ac2f77cf10c37cee",
+  "exitCode": 1,
+  "durationMs": 5682,
+  "sha256": "99c4b8742c65fc787a51e7977d56102d112048690ddb2b23c19c7c57cf7867e1",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

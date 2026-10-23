@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-20T20:04:14.820253+00:00",
+  "ownedDockerObjectsRemaining": {
+    "containers": [],
+    "networks": [],
+    "volumes": []
+  },
+  "runningContainers": 0,
+  "unrelatedHistoricalDockerObjects": "left untouched",
+  "retainedRollbackImagesVerified": 8,
+  "prunedImages": false,
+  "pushed": false,
+  "manifestAndLockChanges": 0,
+  "runtimeSourceAndArtifactsUnchangedAfterStockTests": true
+}

@@ -1,0 +1,74 @@
+{
+  "excluded": [
+    {
+      "run": "initial core build",
+      "result": "3 TypeScript diagnostics in Waterline query return projections; corrected explicit DTO types.",
+      "log": {
+        "path": ".tmp/wrp9/build.log",
+        "sha256": "7cd113c2f1f90ba6f5466bfb547efe6e0779f110f963d5c86844421b550eea07"
+      }
+    },
+    {
+      "run": "initial contract readiness",
+      "result": "Expected missing index; preflight compared custom validator at wrong metadata path. Corrected to validations.custom; both layouts pass afterward."
+    },
+    {
+      "run": "initial focused branding",
+      "passed": 155,
+      "failed": 15,
+      "result": "Preserved original asset update() semantics through a separate setBrandAssets operation; omitted undefined selector terms for legacy backfill/model doubles.",
+      "log": {
+        "path": ".tmp/wrp9/focused.log",
+        "sha256": "f96b0a642e29c8bd23b27377058fc1e9c43c2014417847fb4b47b27605c98ce3"
+      }
+    },
+    {
+      "run": "initial lint",
+      "result": "1 unused import, removed.",
+      "log": {
+        "path": ".tmp/wrp9/lint.log",
+        "sha256": "453cdba78969f9722415b6779ec4fe1d8b1810ef15246f3020ced9adb7846a96"
+      }
+    },
+    {
+      "run": "startup-import under unused task Mongo CPU load",
+      "result": "Unchanged 12000ms subprocess timeout twice; both selectors pass at 10608/9557ms with only P9 Mongo containers stopped. No deadline changed.",
+      "logs": [
+        {
+          "path": ".tmp/wrp9/startup-waterline.log",
+          "sha256": "8cd1b73f23aa252de408a7c17f611e4f7c17edb4ce2e016d140c774208bf546f"
+        },
+        {
+          "path": ".tmp/wrp9/startup-waterline-2.log",
+          "sha256": "ad9ff821b4d8c12a4555828d42228dd8cd38e8da0e87c5d4d484c3a5669b25d3"
+        }
+      ]
+    },
+    {
+      "run": "initial browser one-shot filechooser interception",
+      "result": "Browser fixture raced interception toggles; reproduced with unchanged application markup on headless-shell and native Chromium155. Permanent listener plus initial protocol barrier fixes the fixture without changing keyboard actions/assertions/deadline.",
+      "logs": [
+        {
+          "path": ".tmp/wrp9/browser-waterline-headless-shell.log",
+          "sha256": "b6338bce611e7cda5579cfc08d3eabaa0bb200a4a6aa3d5a1f7b48e5a1ced72e"
+        },
+        {
+          "path": ".tmp/wrp9/browser-waterline-native-unarmed.log",
+          "sha256": "bbf6b8b3dfedf87ec7a0bc258fb3f16794a2f5ea91517fab403aa960cf131bf5"
+        },
+        {
+          "path": ".tmp/wrp9/browser-diagnostic-armed.log",
+          "sha256": "6940a81cf6f8056850bc1db5384c03cf17b02126edd060b4b63fd71929087e09"
+        }
+      ]
+    },
+    {
+      "run": "superseded strict-race-emulation budgets",
+      "result": "Pre TX-PARITY-01a baseline was valid at strict parity. Superseded by atomic conditional driver write, 42-case two-layout contracts and fresh alternating budget samples.",
+      "log": {
+        "path": ".tmp/wrp9/operations.log",
+        "sha256": "42dbb53d47311e6a3c32bb745654d06589304c0c640d58edc8ca496c3ed05051"
+      }
+    }
+  ]
+}

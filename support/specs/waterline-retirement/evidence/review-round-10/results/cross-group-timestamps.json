@@ -1,0 +1,27 @@
+{
+  "name": "cross-group-timestamps",
+  "stage": "retained",
+  "command": "R8_CONCERN=timestamps bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh cross-group-parity",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 17560,
+  "sha256": "01bc41f05a700855b563dcdceedbee8fe3f6e7c07d455cec4c9544b6eb3c3160",
+  "counts": {
+    "passing": [],
+    "pending": [],
+    "failing": []
+  },
+  "checks": [
+    {
+      "passing": 1520,
+      "failures": 0,
+      "summary": {
+        "reference": 640,
+        "configuration": 320,
+        "progress": 160,
+        "harvest": 240,
+        "siem": 160
+      }
+    }
+  ]
+}

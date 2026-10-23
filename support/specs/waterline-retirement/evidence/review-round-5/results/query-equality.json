@@ -1,0 +1,13 @@
+{
+  "name": "query-equality",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-reference.sh query-equality",
+  "sourceCommit": "e78b77780344b5bfa45608ffd6b89d54566fcae9",
+  "exitCode": 0,
+  "durationMs": 5887,
+  "sha256": "f0a80a4df327d704d9e04daa6f2a689aa8f927ee2750b9b331e0e1d71bf86d86",
+  "counts": {},
+  "passGroups": 0,
+  "checks": [
+    "{\"passing\":2,\"failures\":0,\"baseline\":\"loaded Waterline refuses structured equality\",\"replacement\":\"explicit refusal before count/find\"}"
+  ]
+}

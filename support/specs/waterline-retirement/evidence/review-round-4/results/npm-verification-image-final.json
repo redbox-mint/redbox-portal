@@ -1,0 +1,11 @@
+{
+  "name": "npm-verification-image-final",
+  "command": "docker build --network none --pull=false -t redbox-waterline-r4:npm11.20.0 .tmp/review-round-4/npm-image && docker run --rm --network none --entrypoint npm redbox-waterline-r4:npm11.20.0 --version",
+  "sourceCommit": "080267604af65ac7fe499c7631fc37c3074f98f3",
+  "exitCode": 0,
+  "durationMs": 7499,
+  "sha256": "75a6ba5aae790b8f22384b696d33b4e7c85eb558cf0874fcb548ac375718ff19",
+  "counts": {},
+  "passGroups": 0,
+  "checks": []
+}

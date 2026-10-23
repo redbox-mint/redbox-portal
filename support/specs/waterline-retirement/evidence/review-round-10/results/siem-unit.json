@@ -1,0 +1,15 @@
+{
+  "name": "siem-unit",
+  "stage": "retained",
+  "command": "bash packages/redbox-core/test/fixtures/waterline-retirement/run-durable.sh siem-unit",
+  "sourceCommit": "0bea1150bfbb9f8ee80952bc190366fad6ea72f5",
+  "exitCode": 0,
+  "durationMs": 15084,
+  "sha256": "21a62ba7d38138a845afb0d42202e6acfbf05ed7878823ebe53cd510c871b03b",
+  "counts": {
+    "passing": [73],
+    "pending": [],
+    "failing": []
+  },
+  "checks": []
+}
