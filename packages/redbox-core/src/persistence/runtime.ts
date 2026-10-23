@@ -253,6 +253,19 @@ export function persistenceReady(app: PersistenceOwner): boolean {
   return state.ready && !state.closing;
 }
 
+/** Safe ownership diagnostics; no clients, credentials or configuration escape. */
+export function persistenceStatus(app: PersistenceOwner) {
+  const state = stateFor(app);
+  return {
+    ready: state.ready && !state.closing,
+    cleanupPending: state.needsCleanup === true,
+    resources: [...state.resources.keys()],
+    operations: state.active.size,
+    prismaClients: state.prisma.size,
+    pools: state.pools.size + state.failedClients.size,
+  };
+}
+
 /**
  * Track a concrete adapter operation through application draining.
  * @internal
