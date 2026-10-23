@@ -218,7 +218,7 @@
     "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
   },
   "devDependencies": {
-    "@playwright/test": "1.64.0",
+    "@playwright/test": "1.64.1",
     "@types/chai": "5.2.3",
     "@types/jquery": "4.0.1",
     "@types/lodash-es": "4.17.12",
@@ -237,7 +237,7 @@
     "pino-test": "2.0.0",
     "prettier": "3.8.3",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
-    "redoc": "2.5.4",
+    "redoc": "3.0.1",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",
     "serialize-javascript": "7.0.5",

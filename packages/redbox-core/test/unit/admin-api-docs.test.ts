@@ -99,6 +99,20 @@ describe('admin API docs', function () {
         expect(contents).to.not.include('cdn.redoc.ly');
     });
 
+    it('loads the Redoc 3 ES module bundle through a module bootstrap', function () {
+        const viewPath = path.resolve(__dirname, '../../../../views/default/default/admin/api-docs.ejs');
+        const view = fs.readFileSync(viewPath, 'utf8');
+        expect(view).to.match(/js\/redoc\.standalone\.js" type="module"/);
+        expect(view).to.match(/js\/admin-api-docs-bootstrap\.js" type="module"/);
+
+        const bootstrapPath = path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js');
+        const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
+        expect(bootstrap).to.include("import { init } from './redoc.standalone.js';");
+        expect(bootstrap).to.include('disableTelemetry: true');
+        expect(bootstrap).to.include('hideDownloadButtons: true');
+        expect(bootstrap).to.not.include('Redoc.init');
+    });
+
     it('copies the redoc bundle into the webpack public output', function () {
         const webpackConfigPath = path.resolve(__dirname, '../../../../packages/redbox-core/src/config/webpack.config.ts');
         const contents = fs.readFileSync(webpackConfigPath, 'utf8');

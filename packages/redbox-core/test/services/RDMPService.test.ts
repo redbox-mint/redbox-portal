@@ -747,6 +747,96 @@ describe('RDMPService', function () {
   });
 
   describe('queueTriggerCall', function () {
+    it('records enqueue success only after persistence and only once across subscribers', async function () {
+      const diagnostics = sinon.spy(RDMPService, 'updateChronicle');
+      let finish!: (value: unknown) => void;
+      mockSails.services.agendaqueueservice.now.returns(new Promise(resolve => finish = resolve));
+      const record = { metaMetadata: {} };
+      const result = RDMPService.queueTriggerCall('one', record, { jobName: 'pdf' }, {});
+      expect(diagnostics.called).to.equal(false);
+      const first = firstValueFrom(result);
+      const second = firstValueFrom(result);
+      await new Promise(resolve => setImmediate(resolve));
+      expect(diagnostics.args.map(args => args[0].rdmpTriggerPhase)).to.deep.equal(['enqueueing']);
+      finish(undefined);
+      await Promise.all([first, second]);
+      expect(diagnostics.args.map(args => args[0].rdmpTriggerPhase)).to.deep.equal(['enqueueing', 'enqueued']);
+    });
+
+    it('records a failed enqueue without claiming success', async function () {
+      const diagnostics = sinon.spy(RDMPService, 'updateChronicle');
+      const failure = new Error('queue persistence failed');
+      mockSails.services.agendaqueueservice.now.rejects(failure);
+      const result = RDMPService.queueTriggerCall('one', { metaMetadata: {} }, { jobName: 'pdf' }, {});
+      expect(await firstValueFrom(result).then(() => undefined, err => err)).to.equal(failure);
+      expect(diagnostics.args.map(args => args[0].rdmpTriggerPhase)).to.deep.equal(['enqueueing', 'enqueue-failed']);
+      expect(diagnostics.lastCall.args[1]).to.deep.equal([failure]);
+    });
+
+    it('durably submits multiple bootstrap requests without waiting for ready', async function () {
+      RDMPService.queueService = undefined;
+      const first = { metaMetadata: {}, metadata: { title: 'first' } };
+      const second = { metaMetadata: {}, metadata: { title: 'second' } };
+      const options = { jobName: 'pdf', triggerConfiguration: { function: 'PDFService.createPDF' } };
+      const one = RDMPService.queueTriggerCall('one', first, options, { username: 'admin' });
+      const two = RDMPService.queueTriggerCall('two', second, options, {});
+      const results = await Promise.all([firstValueFrom(one), firstValueFrom(two), firstValueFrom(one)]);
+      expect(results).to.deep.equal([first, second, first]);
+      expect(mockSails.services.agendaqueueservice.now.callCount).to.equal(2);
+      expect(mockSails.services.agendaqueueservice.now.firstCall.args).to.deep.equal(['pdf', {
+        oid: 'one', record: first, triggerConfiguration: options.triggerConfiguration, user: { username: 'admin' }
+      }]);
+    });
+
+    it('completes only after persistence, independently of job processing', async function () {
+      let persist!: (value: unknown) => void;
+      mockSails.services.agendaqueueservice.now.returns(new Promise(resolve => persist = resolve));
+      const record = { metaMetadata: {}, metadata: {} };
+      let completed = false;
+      const result = firstValueFrom(RDMPService.queueTriggerCall('one', record, { jobName: 'pdf' }, {}))
+        .then(value => { completed = true; return value; });
+      await Promise.resolve();
+      expect(completed).to.equal(false);
+      persist({ id: 'durable-job' });
+      expect(await result).to.equal(record);
+    });
+
+    it('reports enqueue rejection to every subscriber and retries only on a new request', async function () {
+      const failure = new Error('queue unavailable');
+      mockSails.services.agendaqueueservice.now.onFirstCall().rejects(failure);
+      const record = { metaMetadata: {}, metadata: {} };
+      const result = RDMPService.queueTriggerCall('one', record, { jobName: 'pdf' }, {});
+      for (let i = 0; i < 2; i++) {
+        const error = await firstValueFrom(result).then(() => null, error => error);
+        expect(error).to.equal(failure);
+      }
+      expect(mockSails.services.agendaqueueservice.now.callCount).to.equal(1);
+      expect(await firstValueFrom(RDMPService.queueTriggerCall('one', record, { jobName: 'pdf' }, {}))).to.equal(record);
+      expect(mockSails.services.agendaqueueservice.now.callCount).to.equal(2);
+    });
+
+    it('reports synchronous enqueue errors through the Observable', async function () {
+      const failure = new Error('bad job configuration');
+      mockSails.services.agendaqueueservice.now.throws(failure);
+      const result = RDMPService.queueTriggerCall('one', { metaMetadata: {} }, { jobName: 'bad' }, {});
+      expect(await firstValueFrom(result).then(() => null, error => error)).to.equal(failure);
+    });
+
+    it('reports a missing configured queue as an Observable error', async function () {
+      RDMPService.queueService = undefined;
+      delete mockSails.services.agendaqueueservice;
+      const result = RDMPService.queueTriggerCall('one', { metaMetadata: {} }, { jobName: 'pdf' }, {});
+      const error = await firstValueFrom(result).then(() => null, error => error);
+      expect(error.message).to.equal("RDMPService:: Queue service 'agendaqueueservice' is unavailable.");
+    });
+
+    it('does not resolve the queue for an unmet condition', async function () {
+      RDMPService.queueService = undefined;
+      delete mockSails.services.agendaqueueservice;
+      sinon.stub(RDMPService, 'metTriggerCondition').returns('false');
+      const record = { metaMetadata: {} };
+      expect(await firstValueFrom(RDMPService.queueTriggerCall('one', record, { triggerCondition: 'false' }, {}))).to.equal(record);
+    });
     it('should queue trigger when no condition', async function () {
       const record = { metadata: {} };
       const options = {
