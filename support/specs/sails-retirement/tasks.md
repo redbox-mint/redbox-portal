@@ -203,7 +203,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   named/default exports, missing entrypoints and top-level await behave predictably;
   diagnostics identify the offending package without leaking secrets.
 
-- [ ] **SR-013 — Define and resolve the neutral v6 registration contract.**
+- [x] **SR-013 — Define and resolve the neutral v6 registration contract.**
+
+  **Status:** done; [P2 evidence](evidence/p2-extensions.md#sr-013--neutral-declarations-and-offline-resolution).
 
   **Depends on:** SR-012, SR-004.
 
@@ -215,7 +217,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   or invalid declarations and accidental route collisions fail clearly. Migration
   name order remains independent of hook load priority.
 
-- [ ] **SR-014 — Resolve app-owned factory overrides and scoped host integrations.**
+- [x] **SR-014 — Resolve app-owned factory overrides and scoped host integrations.**
+
+  **Status:** done; [P2 evidence](evidence/p2-extensions.md#sr-014--selected-factories-and-owned-host-integrations).
 
   **Depends on:** SR-013, SR-008.
 
@@ -227,7 +231,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   owns one selected instance. Integrations obey admission/cleanup and do not create
   their own listener, process handlers or unrestricted default service locator.
 
-- [ ] **SR-015 — Convert storage-hook registration and readiness.**
+- [x] **SR-015 — Convert storage-hook registration and readiness.**
+
+  **Status:** done; [P2 evidence](evidence/p2-extensions.md#sr-015--storage-registration-and-readiness).
 
   **Depends on:** SR-014, SR-006.
 
@@ -238,7 +244,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   capability before record-type checks and preserves storage/index readiness and
   stale-handle semantics. No data relocation or new persistence abstraction.
 
-- [ ] **SR-016 — Convert PDF-hook lifecycle before broad route migration.**
+- [x] **SR-016 — Convert PDF-hook lifecycle before broad route migration.**
+
+  **Status:** done; [P2 evidence](evidence/p2-extensions.md#sr-016--pdf-lifecycle-and-declarations).
 
   **Depends on:** SR-014, SR-007.
 

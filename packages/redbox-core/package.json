@@ -231,6 +231,10 @@
       "types": "./dist/http/express/index.d.ts",
       "default": "./dist/http/express/index.js"
     },
-    "./*": "./*"
+    "./*": "./*",
+    "./compat/sails": {
+      "types": "./dist/compat/sails/index.d.ts",
+      "default": "./dist/compat/sails/index.js"
+    }
   }
 }

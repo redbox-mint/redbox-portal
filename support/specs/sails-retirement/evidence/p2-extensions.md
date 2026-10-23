@@ -156,3 +156,55 @@ Mongo fixture errors were a non-hex brand, wrong existing create signature and a
 over-specific stale-error regexp, corrected to the real contracts. Initial storage
 suite **303 passing / 1 failing** needed the existing overridable metTriggerCondition
 method preserved; the final 304-case rerun passes unchanged assertions.
+
+## SR-016 — PDF lifecycle and declarations
+
+`pdfgen/extension` is a neutral public subpath: offline PDF config, typed config
+model descriptor, existing `PDFService-CreatePDF` job and owned PDF module requiring
+storage. `PDF.ts` is the single generation implementation, extracted from the old
+PDFService entry with explicit brand/config/log/datastream/staging/audit inputs.
+The old entry is a constructor/export adapter only. Audit helpers use injected
+operations, with the previous optional-audit behavior retained by its compatibility
+wrapper. No global Sails, service base, event readiness or lower patch participates
+in neutral generation. Legacy PDF shutdown now registers with P1's shared Sails
+persistence adapter; its custom lower patch and swallowed shutdown errors are gone.
+
+Initialization does not execute jobs. Explicit activation enables generation;
+drain refuses new submissions and interrupts/awaits generation and retry fibers.
+Accepted staging/datastream writes are uninterruptible until their actual promises
+settle. Browser/page/temp-directory cleanup failures stay owned for stop/retry
+rather than being logged as successful closure. Backend queue activation remains
+SR-023; real portal browser/progress/upload integration remains P6.
+
+Commands/results (Node 26 PATH as above):
+
+```sh
+npm --prefix packages/redbox-dev-tools ci --ignore-scripts --strict-peer-deps --no-audit --no-fund
+npm --prefix packages/sails-hook-redbox-pdfgen run compile
+node --test packages/redbox-core/test/extensions/pdf-lifecycle.cjs
+npm --prefix packages/sails-hook-redbox-pdfgen run test:unit
+npm run lint
+```
+
+PDF strict production compile **exit 0**. Neutral lifecycle **4 passing, 0 failing,
+0 skipped**, ~1 second: offline/activation gate, real generation control flow with
+a fixture browser, accepted write deadline/drain/retry, canceled delayed retry and
+retained/retried failed browser close. The test executes the existing renderer and
+Effect fibers; it stubs Chromium and byte-store operations, not the PDF lifecycle.
+No Sails/barrel/compat import is loaded. Existing PDF/audit/config suite **75 passing,
+0 failing, 0 pending**, ~1 second. Includes navigation/token restrictions, retries,
+readiness options, duplicate suppression, audit parent/child linkage and cleanup.
+Repo lint **exit 0**, **867 files, 0 warnings/errors**.
+
+Intermediate issues fixed: strict compile rejected an optional legacy datastream
+service name; it now fails with an explicit missing-configuration error. The
+initial PDF test harness lacked dev-tools test types (old root-owned node_modules);
+locked dev-tools reinstall succeeded after the same uid/gid repair (**172 packages**).
+Node's native TS stripping conflicted with ts-node, as P0 characterized; PDF's
+Mocha config now disables it. Test scripts also collided as global TS scripts and
+used an unresolved sinon namespace: test moduleDetection is now `force` and the
+audit stub uses an explicit type import. Strictness remains enabled. The legacy
+lower test now verifies cleanup before the shared adapter's wrapped callback and
+completion of the original caller callback; no assertion was deleted. No npm
+version or dependency pin changed in SR-016. Browser binaries, public HTTP and
+real queue backends were not qualified by these fixture tests.

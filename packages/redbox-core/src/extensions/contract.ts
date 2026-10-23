@@ -50,6 +50,7 @@ export interface RedboxExtension {
   readonly jobs?: Readonly<Record<string, unknown>>;
   readonly forms?: Readonly<Record<string, unknown>>;
   readonly workflows?: Readonly<Record<string, unknown>>;
+  readonly configModels?: readonly { readonly name: string; readonly definition: Readonly<Record<string, unknown>> }[];
   readonly contributors?: readonly { readonly name: string; readonly module: string }[];
   /** Package-relative directories, resolved against the installed artifact. */
   readonly views?: readonly string[];

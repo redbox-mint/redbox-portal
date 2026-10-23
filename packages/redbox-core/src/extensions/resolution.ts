@@ -48,6 +48,7 @@ function validate(provider: ExtensionProvider): void {
     'jobs',
     'forms',
     'workflows',
+    'configModels',
     'contributors',
     'views',
     'assets',
@@ -63,6 +64,7 @@ function validate(provider: ExtensionProvider): void {
     'middleware',
     'migrations',
     'bootstrap',
+    'configModels',
     'contributors',
   ]) {
     const entries = value[field];

@@ -1,3 +1,4 @@
+import type { SinonStub } from 'sinon';
 const { Cause, Effect } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
@@ -12,9 +13,9 @@ const {
 const globalAny = global as any;
 
 type StubAuditService = {
-  startAudit: sinon.SinonStub;
-  completeAudit: sinon.SinonStub;
-  failAudit: sinon.SinonStub;
+  startAudit: SinonStub;
+  completeAudit: SinonStub;
+  failAudit: SinonStub;
 };
 
 function installAuditServiceStub(): StubAuditService {

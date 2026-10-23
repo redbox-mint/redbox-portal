@@ -108,13 +108,17 @@ describe('PDFService Unit Tests', () => {
     pdfService.init();
     globalAny.sails.lower(lowerOptions, lowerCallback);
 
-    expect(shutdownStub.calledOnce).to.be.true;
+    await waitForAssertion(() => expect(shutdownStub.calledOnce).to.be.true);
     expect(originalLower.called).to.be.false;
 
     finishCleanup();
     await waitForAssertion(() => {
-      expect(originalLower.calledOnceWithExactly(lowerOptions, lowerCallback)).to.be.true;
+      expect(originalLower.calledOnce).to.be.true;
+      expect(originalLower.firstCall.args[0]).to.equal(lowerOptions);
+      expect(originalLower.firstCall.args[1]).to.be.a('function');
     });
+    originalLower.firstCall.args[1]();
+    await waitForAssertion(() => expect(lowerCallback.calledOnce).to.be.true);
   });
 
   it('should return the record and log in the background when its brand cannot be resolved', async () => {

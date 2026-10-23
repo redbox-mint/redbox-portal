@@ -1,0 +1,1 @@
+export { attachSailsPersistenceLifecycle } from './persistenceLifecycle';

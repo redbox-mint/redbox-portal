@@ -45,5 +45,17 @@
     "@researchdatabox/redbox-dev-tools": "file:../redbox-dev-tools",
     "@types/node": "24.12.4",
     "typescript": "5.9.3"
+  },
+  "redbox": {
+    "extension": "./extension"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./extension": {
+      "types": "./dist/extension.d.ts",
+      "default": "./dist/extension.js"
+    },
+    "./package.json": "./package.json",
+    "./dist/*": "./dist/*"
   }
 }

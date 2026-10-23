@@ -4,7 +4,15 @@
     "noEmit": true,
     "module": "CommonJS",
     "moduleResolution": "Node",
-    "types": ["node", "mocha", "chai"]
+    "types": [
+      "node",
+      "mocha",
+      "chai"
+    ],
+    "moduleDetection": "force"
   },
-  "include": ["./**/*.ts", "../src/**/*.ts"]
+  "include": [
+    "./**/*.ts",
+    "../src/**/*.ts"
+  ]
 }
