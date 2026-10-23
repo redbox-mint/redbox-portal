@@ -211,6 +211,13 @@ The next implementation must use real configuration/bootstrap/provider bindings
 and installed artifacts; the existing fixtures are reference tests, not a safe
 production composition to promote.
 
+The subsequent application-owned administrator/path-rule extraction and unchanged
+core rerun are recorded in [identity bootstrap evidence](p7-identity-bootstrap.md).
+At source `17766ea5bd7ff9761c9447c226000ed9da2f2e90`, the corrected fresh-database
+run again passed **4481 / 7 unchanged pending / 0 failing**. Its compiled real-Mongo
+bootstrap aggregate passed **1 / 0 / 0**. This removes another production
+composition prerequisite; it does not close the integrated-portal gate above.
+
 ## SR-047 — Clean packed artifacts
 
 Final native source: **`58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`**. A fresh
