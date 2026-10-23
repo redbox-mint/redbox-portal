@@ -5,6 +5,7 @@ import type { IdentityRepositories } from '../../persistence/identity/IdentityRe
 import type { PoliciesConfig, PolicyChain } from '../../config/policies.config';
 import type { AuthenticatedActor } from './identity';
 import UrlPattern from 'url-pattern';
+import { httpAction } from './middleware';
 
 export interface HttpRequestContext {
   readonly brand: BrandRow;
@@ -71,7 +72,9 @@ export function bindHttpPolicies(
       };
     const policy = policies[name];
     if (!policy) throw new Error('HTTP route requires an unbound policy: ' + name);
-    return policy;
+    return httpAction(async (req, res, next) => {
+      await policy(req, res, next);
+    });
   });
 }
 

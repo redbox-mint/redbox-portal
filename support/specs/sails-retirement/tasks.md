@@ -409,7 +409,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   policies fail or succeed correctly using authenticated context, never trusted
   client-supplied identity. Required collaborators are standalone.
 
-- [ ] **SR-028 — Compose per-app middleware and track request completion.**
+- [x] **SR-028 — Compose per-app middleware and track request completion.**
+
+  **Status:** done; [middleware, shared lifetime and real Mongo session checks](evidence/p4-http-pilot.md#sr-028--per-application-middleware-and-accepted-request-completion).
 
   **Depends on:** SR-027, SR-010, SR-023, SR-024.
 

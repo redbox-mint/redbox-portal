@@ -60,7 +60,7 @@ export default {
 };
 ```
 
-Maintenance consumes extension `datastores`, `agendaQueue` and `storage`
+Maintenance consumes extension `datastores`, `agendaQueue`, `redboxSession` and `storage`
 contributions. Domain sections (forms, views, authentication providers) stay offline.
 Explicit files must satisfy the deployment schema; unknown sections fail rather
 than being silently ignored. Retired persistence/ORM selectors are rejected even
@@ -76,6 +76,15 @@ their existing preflights. Mongo Agenda descriptors are included when selected
 jobs/default backend use Mongo; a separate Agenda URL/collection is honored.
 An exclusively SQS job selection acquires no Agenda Mongo maintenance connection.
 No Agenda job or logger collection is created by importing/preparing maintenance.
+
+When Mongo sessions are selected, maintenance also inspects the configured session
+database and collection (`sessions` by default). Explicit `ensure` creates the
+connect-mongo `expires_1` TTL index on `{ expires: 1 }` with `expireAfterSeconds: 0`.
+Incompatible TTL/index options or non-simple collection collation require operator
+review; they are not silently replaced. Standalone HTTP preparation inspects this
+index and fails when it is missing/conflicting. It disables connect-mongo's automatic
+index creation and borrows the runtime-owned Mongo client. Session expiry continues
+through Mongo TTL maintenance; HTTP startup does not perform DDL.
 
 ## Explicit record revision backfill
 

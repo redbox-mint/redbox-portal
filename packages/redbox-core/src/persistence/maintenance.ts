@@ -1,3 +1,4 @@
+import { prepareSessionIndexes } from './sessions/indexes';
 import type { PersistenceOwner } from './owner';
 import { initializePersistence } from './runtime';
 import { PersistenceError } from './errors';
@@ -7,7 +8,7 @@ import type { AgendaQueueOptions } from '../config/agendaQueue.config';
 import type { PersistenceIndexInspection } from './indexes';
 
 export interface IndexReport extends Omit<PersistenceIndexInspection, 'datastore'> {
-  group: PersistenceGroup | 'cache' | 'agenda';
+  group: PersistenceGroup | 'cache' | 'agenda' | 'sessions';
 }
 
 export interface StorageIndexPreparation {
@@ -19,7 +20,7 @@ export interface StorageIndexPreparation {
 export async function prepareSelectedPersistenceIndexes(
   app: PersistenceOwner,
   mode: 'inspect' | 'ensure',
-  selected: { storage?: StorageIndexPreparation; agenda?: AgendaQueueOptions } = {}
+  selected: { storage?: StorageIndexPreparation; agenda?: AgendaQueueOptions; session?: Record<string, unknown> } = {}
 ): Promise<{ mode: string; ready: boolean; groups: IndexReport[] }> {
   await initializePersistence(app);
   const cache = require('./cache/preflight') as typeof import('./cache/preflight');
@@ -115,6 +116,12 @@ export async function prepareSelectedPersistenceIndexes(
       group: 'agenda',
       inspect: app => prepareAgendaIndexes(app, selected.agenda!, 'inspect'),
       ensure: app => prepareAgendaIndexes(app, selected.agenda!, 'ensure'),
+    });
+  if (selected.session)
+    scopes.push({
+      group: 'sessions',
+      inspect: app => prepareSessionIndexes(app, selected.session!, 'inspect'),
+      ensure: app => prepareSessionIndexes(app, selected.session!, 'ensure'),
     });
   const inspect = async (): Promise<IndexReport[]> => {
     const reports: IndexReport[] = [];

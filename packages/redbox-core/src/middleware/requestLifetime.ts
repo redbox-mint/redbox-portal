@@ -11,6 +11,7 @@ interface RequestLifetime {
   active: Set<Promise<unknown>>;
   completed: boolean;
   queued: boolean;
+  completions: Set<() => void>;
   check: () => void;
 }
 
@@ -59,6 +60,13 @@ function promiseLike(value: unknown): value is PromiseLike<unknown> {
 
 /** Own transport and controller work separately: a disconnected client does not cancel a write. */
 export function beginHttpRequest(request: object, response: Response, complete: () => void, app?: object): void {
+  const existing = lifetime(request);
+  if (existing) {
+    if (app && existing.app !== app) throw new Error('HTTP lifetime belongs to a different application.');
+    if (existing.completed) complete();
+    else existing.completions.add(complete);
+    return;
+  }
   const state: RequestLifetime = {
     app,
     transportDone: false,
@@ -69,6 +77,7 @@ export function beginHttpRequest(request: object, response: Response, complete: 
     active: new Set(),
     completed: false,
     queued: false,
+    completions: new Set([complete]),
     check: () => {},
   };
   Object.defineProperty(request, key, { value: state });
@@ -92,7 +101,8 @@ export function beginHttpRequest(request: object, response: Response, complete: 
       state.completed = true;
       response.removeListener('finish', transportDone);
       response.removeListener('close', transportDone);
-      complete();
+      for (const completion of state.completions) completion();
+      state.completions.clear();
     });
   };
   response.once('finish', transportDone);

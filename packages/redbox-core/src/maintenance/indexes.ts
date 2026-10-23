@@ -34,7 +34,7 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
     );
   // Only these startup sections are consumed by maintenance. Forms, provider auth,
   // views, domain configuration and executable work remain offline declarations.
-  const sections = new Set(['datastores', 'agendaQueue', 'storage']);
+  const sections = new Set(['datastores', 'agendaQueue', 'storage', 'redboxSession']);
   const extensions = {
     providers: resolved.providers.map(provider => {
       assertPersistenceConfiguration(provider.declaration.config ?? {});
@@ -75,6 +75,7 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
   try {
     report = await prepareSelectedPersistenceIndexes(owner, options.mode, {
       storage: hook,
+      session: config.redboxSession,
       agenda: mongoAgenda ? config.agendaQueue.options : undefined,
     });
   } finally {

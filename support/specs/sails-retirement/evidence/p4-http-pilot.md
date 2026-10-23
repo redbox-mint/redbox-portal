@@ -104,3 +104,64 @@ returns **401** with a Bearer challenge, rather than a login redirect or a path-
 orphan aliases deny instead of recovering permissive legacy behavior. Authenticated
 wrong-role/wrong-brand requests retain **403**. Consumers must authenticate and
 configure explicit brand grants; there is no anonymous pilot access.
+
+## SR-028 — Per-application middleware and accepted request completion
+
+The explicit standalone order is admission/accepted persistence scope → request
+Chronicle/log context → JSON/urlencoded parsers (1 MiB, extended query parser,
+explicit raw-path exclusions) → session load → per-app Passport initialization and
+fresh session deserialization → route policies → adapter → sanitized error mapping.
+Policy promises and returned action work share the host's existing accepted-work
+lifetime. Ordinary endpoint Observables require exactly one emission and completion;
+a late error or extra emission cannot become a successful first-value response.
+There is no process-wide Passport/parser/session cache or fallback dispatch.
+
+The existing session implementation moved into `http/express/session.ts`; the
+Sails module is a thin lifecycle adapter over that same code. Host and session now
+join one request lifetime. Session-store lookup/save/touch/destroy callbacks and
+Passport deserialization retain ownership after disconnect. A failed standalone
+session save destroys a potentially partial response instead of completing a clean
+200. Headers already sent are never followed by a second JSON response.
+Mongo sessions borrow the runtime client, with a close facade preserving pool
+ownership. Standalone preparation awaits store readiness and **inspects** the TTL
+index; explicit maintenance prepares it. See `maintenance-v6.md` for selected
+session database/collection and index behavior. Default cookies remain secure,
+HttpOnly and SameSite=Lax. Plain-HTTP fixtures explicitly set secure=false.
+Explicit trust-proxy/root-context options do not promote this host to production.
+Browser/provider flows, CSRF, logout routes and upgrade cookie invalidation remain
+P6; the login endpoints in these tests are fixture-only `/__test/*`/`/login` routes.
+
+Actual commands (same qualified PATH and MongoDB 8.0.34/FCV 8.0 host as above):
+
+```sh
+# In packages/redbox-core:
+./node_modules/.bin/tsc
+# Root:
+npm --prefix packages/redbox-core run typecheck:application
+npm --prefix packages/redbox-core test -- --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 10000 test/http/Middleware.test.ts test/http/Policies.test.ts test/middleware/redboxSession.test.ts test/middleware/requestLifetime.test.ts test/http/ExpressHost.test.ts
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http npm --prefix packages/redbox-core run test:http-pilot:mongo
+npm run lint
+```
+
+Middleware/policy/legacy-session/lifetime/host regression: **61 passing, zero
+failures/pending**. Real Prisma/Mongo identity/session suite: **7 passing, zero
+failures/pending**. Delayed real writes run through both normal response and client
+abort: stop hits its explicit deadline while native pools and Prisma clients remain
+owned, then retry closes them after persisted completion. A separate aborted
+Passport deserialize case delays the real identity read until retry. Failed saves
+leave no stored session and the HTTP response cannot complete successfully.
+Two applications prove independent Passport/cookies/stores; one parser, session
+read and request log run per supported request. Context survives Promise/Observable
+work. Existing session/lifetime assertions are preserved.
+
+During development, a late-installed store stub missed the captured method and
+stalled an early fixture run; that owned test process was terminated (143), and
+the stub now installs before middleware construction. Two fixture assertions
+initially failed: Passport deliberately saves during rotation and again at response
+completion, and the login body must be consumed before resetting the log spy.
+Both fixtures were corrected to measure real per-request reads/logs, without
+weakening production behavior. A duplicate test variable briefly failed strict
+compilation and was removed. Final checks and source IDs are recorded below.
+
+Final production compile and strict application typecheck **exit 0**. Repository
+lint: **895 files, 0 warnings/errors**, exit 0. No dependency or lockfile changes.

@@ -12,6 +12,8 @@ export interface ExpressHostOptions {
   /** Supply the same owner as the application when handlers use persistence. */
   readonly owner?: PersistenceOwner;
   readonly hostname: string;
+  readonly rootContext?: string;
+  readonly trustProxy?: boolean | number | string[];
   /** Partial composition only. Register acquired integration cleanup with the application owner. */
   readonly prepare: (router: Router, server: Server) => Promise<void>;
 }
@@ -50,7 +52,11 @@ export class ExpressHost {
     )
       throw new TypeError('Host stopDeadlineMs must be a positive timer interval.');
     const app = express();
+    if (options.rootContext && !/^\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+$/.test(options.rootContext))
+      throw new TypeError('Express rootContext must be a normalized absolute path.');
     app.disable('x-powered-by');
+    app.set('trust proxy', options.trustProxy ?? false);
+    app.set('query parser', 'extended');
     app.use((req, res, next) => {
       const ready = this.status().ready;
       if (req.method === 'GET' && req.path === '/readyz') {
@@ -94,7 +100,7 @@ export class ExpressHost {
         });
       else dispatch();
     });
-    app.use(this.router);
+    app.use(options.rootContext || '/', this.router);
     app.use((_req, res) => {
       res.status(404).json({ error: 'not-found' });
     });
