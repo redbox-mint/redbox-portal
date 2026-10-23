@@ -91,6 +91,8 @@ export interface AgendaQueueOptions {
     db?: string;
     /** MongoDB collection name */
     collection?: string;
+    /** Backend connection deadline in milliseconds (default 30000). */
+    connectionTimeoutMs?: number;
     /** Default lock lifetime */
     defaultLockLifetime?: number;
     /** Process every interval */

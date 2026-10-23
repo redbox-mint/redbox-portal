@@ -241,6 +241,16 @@ describe('contentSecurityPolicy policy', function () {
         expect(csp).to.include('blob:');
         expect(csp).to.include("img-src");
         expect(csp).to.include('https://cdn.redoc.ly');
+        expect(csp).to.match(/font-src [^;]*data:/);
+    });
+
+    it('should not allow data: fonts outside admin api docs', function () {
+        const { req, res, getHeaders } = createMockReqRes();
+
+        contentSecurityPolicy(req, res, () => { });
+
+        const csp = getHeaders()['Content-Security-Policy'];
+        expect(csp).to.not.match(/font-src [^;]*data:/);
     });
 
     it('should end CSP header with semicolon', function () {

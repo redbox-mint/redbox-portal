@@ -20,8 +20,8 @@ import {getStorageRepositories} from '../persistence/storage/runtime';
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, ObservableInput, of, from, zip, throwError, isObservable, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap } from 'rxjs/operators';
+import { Observable, ObservableInput, of, from, zip, throwError, isObservable, firstValueFrom, defer } from 'rxjs';
+import { mergeMap as flatMap, map } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { QueueService } from '../QueueService';
 import { RBValidationError } from '../model/RBValidationError';
@@ -417,8 +417,26 @@ export namespace Services {
           triggerConfiguration: triggerConfiguration,
           user: user
         };
-        this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'queued' });
-        this.queueService.now(jobName, queueMessage);
+        // Bootstrap can persist jobs before Sails ready; the queue owns processor startup.
+        // Cache one submission per call so multiple subscriptions cannot enqueue it twice.
+        // Unsubscribing cannot cancel persistence: do not configure timeout retries without deduplication.
+        let submission: Promise<unknown> | undefined;
+        return defer(() => {
+          submission ??= Promise.resolve().then(async () => {
+            this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'enqueueing' });
+            this.queueService ??= sails.services[sails.config.queue.serviceName] as unknown as QueueService;
+            if (!this.queueService || typeof this.queueService.now !== 'function') {
+              throw new Error(`RDMPService:: Queue service '${sails.config.queue.serviceName}' is unavailable.`);
+            }
+            const queued = await this.queueService.now(jobName, queueMessage);
+            this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'enqueued' });
+            return queued;
+          }).catch(error => {
+            this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'enqueue-failed' }, [error]);
+            throw error;
+          });
+          return from(submission).pipe(map(() => record));
+        });
       }
       return of(record);
     }

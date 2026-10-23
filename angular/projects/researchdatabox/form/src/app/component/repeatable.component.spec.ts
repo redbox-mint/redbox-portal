@@ -10,7 +10,37 @@ import {FieldValueChangedEvent, FormComponentEventBus, FormComponentEventType} f
 import {LoggerService} from '@researchdatabox/portal-ng-common';
 import {applyExpressionTarget} from '../form-state/apply-expression-target';
 import {resolveFieldByPointer} from '../form-state/behaviours/behaviour-field-resolver';
+import {FormServerSyncService} from "../form-server-sync.service";
 
+
+function nestedCreatorsConfig(allowZeroRows = true): FormConfigFrame {
+  return {
+    name: 'nested_repeatable_initialization',
+    componentDefinitions: [{
+      name: 'creators',
+      model: {class: 'RepeatableModel', config: {value: []}},
+      component: {class: 'RepeatableComponent', config: {
+        allowZeroRows: true,
+        elementTemplate: {
+          name: '',
+          model: {class: 'GroupModel', config: {}},
+          component: {class: 'GroupComponent', config: {componentDefinitions: [{
+            name: 'affiliations',
+            model: {class: 'RepeatableModel', config: {value: []}},
+            component: {class: 'RepeatableComponent', config: {
+              allowZeroRows,
+              elementTemplate: {
+                name: '',
+                model: {class: 'SimpleInputModel', config: {}},
+                component: {class: 'SimpleInputComponent'},
+              },
+            }},
+          }]}},
+        },
+      }},
+    }],
+  };
+}
 
 describe('RepeatableComponent', () => {
   beforeEach(async () => {
@@ -607,6 +637,163 @@ describe('RepeatableComponent', () => {
 
     definitionSub.unsubscribe();
     dirtySub.unsubscribe();
+  });
+
+  it('does not publish detached group values while adopting server-normalized repeatable rows', async () => {
+    const first = {family_name: 'Researcher', given_name: 'Alex', text_full_name: 'Alex Researcher'};
+    const appended = {family_name: 'Vale', given_name: 'Nora', text_full_name: null};
+    const citation = 'Researcher, Alex; Vale, Nora';
+    const formConfig: FormConfigFrame = {
+      name: 'grouped_repeatable_server_sync',
+      componentDefinitions: [
+        {
+          name: 'creators',
+          model: {class: 'RepeatableModel', config: {value: [first]}},
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              canSort: true,
+              elementTemplate: {
+                name: '',
+                model: {class: 'GroupModel', config: {}},
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: ['family_name', 'given_name', 'text_full_name'].map(name => ({
+                      name,
+                      model: {class: 'SimpleInputModel', config: {}},
+                      component: {class: 'SimpleInputComponent'},
+                    })),
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          name: 'citation_generated',
+          model: {class: 'SimpleInputModel', config: {value: citation}},
+          component: {class: 'SimpleInputComponent'},
+        },
+      ],
+    };
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    await repeatable.appendNewElement(appended);
+    await fixture.whenStable();
+    const form = formComponent.form!;
+    form.markAsPristine();
+    const sent = structuredClone(form.getRawValue());
+    const server = {...sent, creators: [first, {...appended, text_full_name: 'Nora Vale'}]};
+    const valueEvents: any[] = [];
+    const subscription = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+        if (event.sourceId === '*' && event.fieldId?.startsWith('/creators')) {
+          valueEvents.push(event);
+          // A derived field must never see the partly rebuilt array. This is
+          // the same input read used by scoped citation behaviours.
+          form.get('citation_generated')!.setValue(
+            form.getRawValue().creators.map((creator: any) => `${creator.family_name}, ${creator.given_name}`).join('; '),
+            {emitEvent: false},
+          );
+          form.get('citation_generated')!.markAsDirty();
+        }
+      });
+    try {
+      const result = await TestBed.inject(FormServerSyncService).applyServerMetadata(
+        sent, server, formComponent.formDefMap!, form, 'preserveLocalEdits',
+      );
+      await fixture.whenStable();
+      expect(result.patched).toContain('creators');
+      expect(repeatable.model?.getValue()).toEqual(server.creators);
+      expect(valueEvents).toEqual([]);
+      expect(form.get('citation_generated')!.value).toBe(citation);
+      expect(form.pristine).toBeTrue();
+      const inputs = fixture.nativeElement.querySelectorAll('redbox-groupfield input');
+      expect(Array.from(inputs as NodeListOf<HTMLInputElement>).map(input => input.value))
+        .toEqual(['Researcher', 'Alex', 'Alex Researcher', 'Vale', 'Nora', 'Nora Vale']);
+
+      // Hydration must also establish the child's change-event baseline.
+      // Clearing back to the template default is a real change after sync.
+      form.get('creators.1.text_full_name')!.setValue(null);
+      await fixture.whenStable();
+      const cleared = valueEvents.filter(event => event.fieldId === '/creators/1/text_full_name');
+      expect(cleared.length).toBe(1);
+      expect(cleared[0]?.previousValue).toBe('Nora Vale');
+      expect(cleared[0]?.value).toBeNull();
+      form.get('creators.1.text_full_name')!.setValue('Nora Vale');
+      await fixture.whenStable();
+      expect(valueEvents.filter(event => event.fieldId === '/creators/1/text_full_name').at(-1)?.previousValue).toBeNull();
+      valueEvents.length = 0;
+
+      // Ordinary author operations must still publish complete row values.
+      const third = {family_name: 'Quill', given_name: 'Emil', text_full_name: null};
+      await repeatable.appendNewElement(third);
+      await fixture.whenStable();
+      expect(valueEvents.some(event => event.fieldId === '/creators' && event.value.length === 3)).toBeTrue();
+      expect(valueEvents.filter(event => event.fieldId !== '/creators')).toEqual([]);
+      expect(repeatable.model?.getValue()).toEqual([...server.creators, third]);
+    } finally {
+      subscription.unsubscribe();
+    }
+  });
+
+  it('initializes nested repeatables without publishing values from detached outer rows', async () => {
+    const formConfig = nestedCreatorsConfig();
+    const {fixture, formComponent} = await createFormAndWaitForReady(formConfig);
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    const observed: any[] = [];
+    const sub = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => {
+        if (event.sourceId === '*' && event.fieldId?.startsWith('/creators')) {
+          observed.push({event, creators: structuredClone(formComponent.form!.getRawValue().creators)});
+        }
+      });
+    try {
+      const row = {affiliations: ['University A', 'University B']};
+      await repeatable.appendNewElement(row);
+      await fixture.whenStable();
+      expect(repeatable.model?.getValue()).toEqual([row]);
+      expect(observed.length).toBeGreaterThan(0);
+      expect(observed.every(item => item.creators.length === 1)).toBeTrue();
+      expect(observed.map(item => item.event.fieldId)).toEqual(['/creators']);
+      formComponent.form!.get('creators.0.affiliations.0')!.setValue(null);
+      await fixture.whenStable();
+      const childEvent = observed.find(item => item.event.fieldId === '/creators/0/affiliations/0')?.event;
+      expect(childEvent?.previousValue).toBe('University A');
+      expect(childEvent?.value).toBeNull();
+    } finally {
+      sub.unsubscribe();
+    }
+  });
+
+  for (const savedValue of [null, 'legacy', {name: 'invalid'}, 42]) {
+    it(`normalizes a non-array nested repeatable ${JSON.stringify(savedValue)} to ready empty rows`, async () => {
+      const {fixture, formComponent} = await createFormAndWaitForReady(nestedCreatorsConfig());
+      const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+      await repeatable.appendNewElement({affiliations: savedValue});
+      await fixture.whenStable();
+      const nested = repeatable.formFieldBaseComponents[0].formFieldBaseComponents[0] as RepeatableComponent;
+      expect(nested.isStatusReady()).toBeTrue();
+      expect(nested.formFieldCompMapEntries.length).toBe(0);
+      expect(repeatable.model?.getValue()).toEqual([{affiliations: []}]);
+      await nested.appendNewElement('University A');
+      await fixture.whenStable();
+      expect(repeatable.model?.getValue()).toEqual([{affiliations: ['University A']}]);
+    });
+  }
+
+  it('creates a default nested row without modifying its incoming empty array', async () => {
+    const {fixture, formComponent} = await createFormAndWaitForReady(nestedCreatorsConfig(false));
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    const row = {affiliations: []};
+    await repeatable.appendNewElement(row);
+    await fixture.whenStable();
+    const nested = repeatable.formFieldBaseComponents[0].formFieldBaseComponents[0] as RepeatableComponent;
+    expect(nested.isStatusReady()).toBeTrue();
+    expect(nested.formFieldCompMapEntries.length).toBe(1);
+    expect(nested.model?.getValue()).toEqual([null]);
+    expect(row.affiliations).toEqual([]);
   });
 
   it('should throw a descriptive error when setCustomValue is used without a custom setter and the value length does not match', async () => {

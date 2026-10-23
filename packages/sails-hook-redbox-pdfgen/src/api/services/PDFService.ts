@@ -416,6 +416,12 @@ export namespace Services {
           sails.log.verbose(`PDFService::sails.config.pdfgen.appUrlOverride ${pdfgenAppUrlOverride}`);
         });
 
+        // Prepare responsive canvases in print layout before navigation/readiness.
+        yield* Effect.tryPromise({
+          try: () => page.emulateMediaType('print'),
+          catch: (cause) => new BrowserError(oid, currentURL, cause)
+        });
+
         yield* this.logDebug(`PDFService::Chromium loading page: ${currentURL}`);
 
         const initialNavigationResponse = yield* Effect.tryPromise({
