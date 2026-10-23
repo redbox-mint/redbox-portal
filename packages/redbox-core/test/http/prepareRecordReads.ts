@@ -27,7 +27,7 @@ export async function prepareRecordReads(
   types: RecordTypes,
   storage: StorageService,
   audit: RecordAuditReader,
-  search: SolrReads,
+  search: Pick<SolrReads, 'searchFuzzy'>,
   policies: Readonly<Record<string, RequestHandler>>
 ) {
   const refs = getReferenceRepositories(f.owner);
@@ -109,7 +109,7 @@ export async function prepareRecordReads(
     recordType: type!.id,
     starting: true,
     hidden: false,
-    config: { form: 'dataRecord', authorization: { transitionRoles: ['Admin'] } },
+    config: { form: 'dataRecord', authorization: { editRoles: ['Admin'], transitionRoles: ['Admin'] } },
   });
   const registry = new RecordContractContributorRegistry(
     createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' }))
@@ -154,5 +154,5 @@ export async function prepareRecordReads(
     policies,
     policyConfiguration: { '*': [...pilotPolicyChain] },
   });
-  return { schemas, forms };
+  return { schemas, forms, validation, workflows, config };
 }

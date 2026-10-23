@@ -16,6 +16,7 @@ export function createHttpCsrf(input: HttpCsrfInput) {
     throw new TypeError('CSRF requires explicit canonical browser origins.');
   const implementation = csrfSync({
     size: 32,
+    ignoredMethods: [],
     getTokenFromRequest: req => {
       const token = req.headers['x-csrf-token'] ?? req.body?._csrf;
       return typeof token === 'string' && token.length <= 256 ? token : undefined;

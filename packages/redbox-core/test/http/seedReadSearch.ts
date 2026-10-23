@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { solr } from '../../src/config/solr.config';
 
 export async function seedReadSearch(f: { brand: { id: string }; otherBrand: { id: string } }): Promise<void> {
   assert(process.env.HTTP_READ_SOLR_PORT, 'real Solr required');
@@ -20,7 +21,15 @@ export async function seedReadSearch(f: { brand: { id: string }; otherBrand: { i
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        'add-field': { name, type: 'string', stored: true, indexed: true, multiValued: false },
+        'add-field': solr.cores.default.schema['add-field'].find(field => field.name === name) ?? {
+          // workflow_stage normally uses the configured multivalued '*' dynamic field.
+          // A scalar override cannot be introduced after a writer has indexed that field.
+          name,
+          type: 'string',
+          stored: true,
+          indexed: true,
+          multiValued: true,
+        },
       }),
     });
     assert.equal(r.status, 200, await r.text());

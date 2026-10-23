@@ -58,38 +58,8 @@ export namespace Controllers {
       'enableUser',
     ];
 
-    private async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
-      const links =
-        await getIdentityRepositories().list('userlink', _.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' });
-      const linkCountByPrimary = _.countBy(
-        links as globalThis.Record<string, unknown>[],
-        (link: globalThis.Record<string, unknown>) => String(link.primaryUserId ?? '')
-      );
-      const primaryIds = _.uniq(
-        _.map(links as globalThis.Record<string, unknown>[], (link: globalThis.Record<string, unknown>) =>
-          String(link.primaryUserId ?? '')
-        )
-      );
-      const primaryUsers =
-        _.isEmpty(primaryIds) ? [] : await getIdentityRepositories().list('user', { id: primaryIds });
-      const primaryUsernamesById = _.reduce(
-        primaryUsers as globalThis.Record<string, unknown>[],
-        (acc, user) => {
-          acc[String(user.id ?? '')] = String(user.username ?? '');
-          return acc;
-        },
-        {} as globalThis.Record<string, string>
-      );
-
-      return _.map(users, (user: UserAttributes) => {
-        const enrichedUser = user as UserAttributes & globalThis.Record<string, unknown>;
-        enrichedUser.accountLinkState = enrichedUser.accountLinkState || 'active';
-        enrichedUser.linkedAccountCount = linkCountByPrimary[String(enrichedUser.id ?? '')] || 0;
-        enrichedUser.effectivePrimaryUsername = _.isEmpty(enrichedUser.linkedPrimaryUserId)
-          ? enrichedUser.username
-          : primaryUsernamesById[String(enrichedUser.linkedPrimaryUserId ?? '')] || enrichedUser.username;
-        return enrichedUser;
-      });
+    private enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
+      return UsersService.enrichUsersWithLinkMetadata(users, brandId);
     }
 
     private sanitizeUserForResponse(user: UserAttributes | null): UserAttributes | null {
@@ -126,7 +96,7 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     private requireUserInBrand(userId: string, brandId: string): Promise<UserAttributes | null> {
       return requireUserInBrand(userId, brandId, {
@@ -190,31 +160,34 @@ export namespace Controllers {
       const searchQuery = query.query as string;
       const queryObject: Record<string, unknown> = {};
       queryObject[searchField] = searchQuery;
-      identityCallback(getIdentityRepositories().one('user', queryObject), function (err: unknown, user: UserAttributes | null) {
-        if (err != null) {
-          sails.log.error(err);
+      identityCallback(
+        getIdentityRepositories().one('user', queryObject),
+        function (err: unknown, user: UserAttributes | null) {
+          if (err != null) {
+            sails.log.error(err);
+            return that.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+              headers: that.getNoCacheHeaders(),
+            });
+          }
+          if (user != null) {
+            delete user['token'];
+            delete user['password'];
+            return that.apiRespond(req, res, user);
+          }
+
+          const errorResponse = new APIErrorResponse(
+            'No user found with given criteria',
+            `Searchby: ${searchField} and Query: ${searchQuery}`
+          );
           return that.sendResp(req, res, {
-            status: 500,
-            displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
+            status: 404,
+            displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
             headers: that.getNoCacheHeaders(),
           });
         }
-        if (user != null) {
-          delete user['token'];
-          delete user['password'];
-          return that.apiRespond(req, res, user);
-        }
-
-        const errorResponse = new APIErrorResponse(
-          'No user found with given criteria',
-          `Searchby: ${searchField} and Query: ${searchQuery}`
-        );
-        return that.sendResp(req, res, {
-          status: 404,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: that.getNoCacheHeaders(),
-        });
-      });
+      );
     }
 
     public createUser(req: Sails.Req, res: Sails.Res) {
@@ -281,22 +254,25 @@ export namespace Controllers {
               async (existingUser: UserModel | null) => {
                 try {
                   if (existingUser) {
-                    const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+                    const brand: BrandingModel =
+                      BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
                     if (brand?.id) {
-                      const hasBrandRole = _.some((existingUser.roles ?? []) as unknown as Array<Record<string, unknown>>, (role: Record<string, unknown>) => {
-                        const branding = role.branding as string | Record<string, unknown> | undefined;
-                        const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
-                        return roleBrandId === brand.id;
-                      });
+                      const hasBrandRole = _.some(
+                        (existingUser.roles ?? []) as unknown as Array<Record<string, unknown>>,
+                        (role: Record<string, unknown>) => {
+                          const branding = role.branding as string | Record<string, unknown> | undefined;
+                          const roleBrandId = _.isObject(branding)
+                            ? String((branding as Record<string, unknown>).id ?? '')
+                            : String(branding ?? '');
+                          return roleBrandId === brand.id;
+                        }
+                      );
                       if (!hasBrandRole) {
                         const isLinked = await getIdentityRepositories().one('userlink', {
-                              brandId: brand.id,
-                              status: 'active',
-                              or: [
-                                { primaryUserId: existingUser.id },
-                                { secondaryUserId: existingUser.id }
-                              ]
-                            } as Record<string, unknown>);
+                          brandId: brand.id,
+                          status: 'active',
+                          or: [{ primaryUserId: existingUser.id }, { secondaryUserId: existingUser.id }],
+                        } as Record<string, unknown>);
                         if (!isLinked) {
                           return this.sendResp(req, res, {
                             status: 403,
@@ -350,7 +326,8 @@ export namespace Controllers {
     public async updateUser(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const userReq: UserModel = validated.body as UserModel;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+      const brand: BrandingModel =
+        BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
       let targetUser: UserAttributes | null = null;
       if (brand?.id) {
         targetUser = await this.requireUserInBrand(userReq.id || '', brand.id);
@@ -391,16 +368,16 @@ export namespace Controllers {
             const mergedRoleIds = this.mergeBrandRoleIds(targetUser ?? userReq, brand.id, roleIds);
             UsersService.updateUserRoles(user.id, mergedRoleIds).subscribe(
               (user: unknown) => {
-            //TODO: Add roles to the response
-            const u = user as globalThis.Record<string, unknown>;
-            const userResponse = new CreateUserAPIResponse();
-            userResponse.id = u.id as string;
-            userResponse.username = u.username as string;
-            userResponse.name = u.name as string;
-            userResponse.email = u.email as string;
-            userResponse.type = u.type as string;
-            userResponse.lastLogin = u.lastLogin as Date | null;
-            return this.apiRespond(req, res, userResponse, 201);
+                //TODO: Add roles to the response
+                const u = user as globalThis.Record<string, unknown>;
+                const userResponse = new CreateUserAPIResponse();
+                userResponse.id = u.id as string;
+                userResponse.username = u.username as string;
+                userResponse.name = u.name as string;
+                userResponse.email = u.email as string;
+                userResponse.type = u.type as string;
+                userResponse.lastLogin = u.lastLogin as Date | null;
+                return this.apiRespond(req, res, userResponse, 201);
               },
               (error: unknown) => {
                 sails.log.error('Failed to update user roles:');

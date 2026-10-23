@@ -63,3 +63,16 @@ export {
   vocabularyIntegrationRoutes,
   type VocabularyIntegrationHttpInput,
 } from './vocabularyIntegrations';
+
+export { mountRecordMutationRoutes, recordMutationRoutes, type RecordMutationHttpInput } from './recordMutations';
+
+export { mountHarvestMutationRoutes, harvestMutationRoutes, type HarvestMutationHttpInput } from './harvestMutations';
+export * from './identityLinks';
+export * from './vocabularyAdministration';
+export * from './formVocabulary';
+export * from './siemWrites';
+export * from './adminOperations';
+export * from './brandingOperations';
+export * from './figshareAdministration';
+export * from './integrationOperations';
+export * from './configuredActions';

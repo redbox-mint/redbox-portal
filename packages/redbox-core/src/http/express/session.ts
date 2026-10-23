@@ -201,5 +201,14 @@ export function composeHttpSession(
       }
     }
   };
-  return { middleware: handler, ready, drain };
+  return {
+    middleware: handler,
+    ready,
+    drain,
+    read(id: string): Promise<session.SessionData | null | undefined> {
+      return new Promise((resolve, reject) =>
+        responseStore.get(id, (error, value) => (error ? reject(error) : resolve(value)))
+      );
+    },
+  };
 }

@@ -114,6 +114,7 @@ export namespace Services {
       'addUserAuditEvent',
       'checkAuthorizedEmail',
       'enrichUsersWithEffectiveDisabledState',
+      'enrichUsersWithLinkMetadata',
       'disableUser',
       'enableUser',
       'getUserAudit',

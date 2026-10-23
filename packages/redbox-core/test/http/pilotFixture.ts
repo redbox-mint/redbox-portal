@@ -1,3 +1,4 @@
+import type { Server } from 'node:http';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import type { RequestHandler, Router } from 'express';
 import {
@@ -22,7 +23,11 @@ export async function pilotFixture(
       router: Router,
       fixture: Awaited<ReturnType<typeof mongoFixture>>,
       policies: Readonly<Record<string, RequestHandler>>,
-      recordTypes: RecordTypes
+      recordTypes: RecordTypes,
+      realtime: {
+        server: Server;
+        authenticateCredential: Awaited<ReturnType<typeof prepareHttpMiddleware>>['authenticateCredential'];
+      }
     ): Promise<void>;
   } = {}
 ) {
@@ -47,7 +52,7 @@ export async function pilotFixture(
     hostname: '127.0.0.1',
     port: 0,
     rootContext: options.rootContext,
-    prepare: async router => {
+    prepare: async (router, server) => {
       await domain.initialize(f.brand);
       const auth = await prepareHttpMiddleware(router, {
         owner: f.owner,
@@ -73,7 +78,10 @@ export async function pilotFixture(
         recordSchema: options.recordSchema,
         rootContext: options.rootContext,
       });
-      await options.prepareRoutes?.(router, f, policies, domain);
+      await options.prepareRoutes?.(router, f, policies, domain, {
+        server,
+        authenticateCredential: auth.authenticateCredential,
+      });
       router.use(httpErrorHandler(nothingLogger));
     },
   });

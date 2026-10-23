@@ -1,3 +1,4 @@
+import { mountVocabularyAdministrationRoutes } from '../../src/http/express/vocabularyAdministration';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { Services as Vocabulary } from '../../src/vocabulary/Vocabulary';
@@ -238,6 +239,14 @@ async function administrationFixture(denyAlias = false, failPreparation = false)
         log: nothingLogger,
         audit: (actor, action, context) => users.addUserAuditEvent(actor, action, context),
       });
+      mountVocabularyAdministrationRoutes(router, {
+        vocabulary,
+        csrf,
+        policies,
+        policyConfiguration,
+        log: nothingLogger,
+        audit: (actor, action, context) => users.addUserAuditEvent(actor, action, context),
+      });
       mountVocabularyIntegrationRoutes(router, {
         vocabulary,
         rva,
@@ -369,6 +378,58 @@ describe('owned identity and query administration on Mongo HTTP', function () {
     databaseQuery: { queryName: 'managed_query' },
     columns: [{ label: 'Name', property: 'name' }],
   };
+  it('administers local vocabulary entries with tenant ownership and audit', async () => {
+    const vocabRequest = (
+      route: string,
+      body: unknown = {},
+      method = 'POST',
+      headers: Record<string, string> = f.headers
+    ) => request(route + '?apiVersion=2.0', body, method, headers);
+    const created = await vocabRequest(base + '/api/vocabulary', {
+      name: 'Local',
+      slug: 'owned-local',
+      type: 'flat',
+      entries: [{ label: 'One', value: 'one' }],
+    });
+    assert.equal(created.response.status, 201, JSON.stringify(created.body));
+    const id = (created.body.data as { id: string }).id;
+    const read = await vocabRequest(base + '/api/vocabulary/' + id, undefined, 'GET');
+    assert.equal(read.response.status, 200, JSON.stringify(read.body));
+    assert.equal((read.body.data as { entries: { id: string; label: string }[] }).entries[0]!.label, 'One');
+    const entry = (read.body.data as { entries: { id: string }[] }).entries[0]!.id;
+    assert.equal(
+      (
+        await vocabRequest(
+          base + '/api/vocabulary/' + id + '/reorder',
+          { entryOrders: [{ id: entry, order: 3 }] },
+          'PUT'
+        )
+      ).response.status,
+      200
+    );
+    const foreign = await f.vocabulary.create({ name: 'Foreign', branding: f.otherBrand.id });
+    assert.equal(
+      (await vocabRequest(base + '/api/vocabulary/' + foreign.id, { name: 'stolen' }, 'PUT')).response.status,
+      404
+    );
+    assert.equal(
+      (
+        await vocabRequest(
+          base + '/api/vocabulary/' + id + '/reorder',
+          { entryOrders: [{ id: entry, order: -1 }] },
+          'PUT'
+        )
+      ).response.status,
+      400
+    );
+    assert.equal((await vocabRequest(base + '/api/vocabulary', { name: 'bad' }, 'POST', {})).response.status, 401);
+    assert.equal(
+      (await vocabRequest(base + '/admin/vocabulary', { name: 'bad' }, 'POST', { Cookie: cookie })).response.status,
+      403
+    );
+    assert.equal((await vocabRequest(base + '/api/vocabulary/' + id, undefined, 'DELETE')).response.status, 204);
+    assert.equal(await f.vocabulary.getById(id), null);
+  });
   it('creates, retries and updates users without exposing secrets or replacing foreign memberships', async () => {
     const payload = {
       username: 'created',

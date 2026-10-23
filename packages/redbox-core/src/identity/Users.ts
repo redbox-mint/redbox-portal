@@ -13,6 +13,8 @@ import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { RoleModel } from '../model/storage/RoleModel';
 import type { UserModel } from '../model/storage/UserModel';
 import { recordServiceChronicle } from '../utilities/serviceChronicle';
+export class UserAccountLinkError extends Error {}
+
 export interface UserAdministrationInput {
   readonly repository: IdentityRepositories;
   readonly accounts: AuthenticationAccounts;
@@ -266,12 +268,14 @@ export namespace Services {
     private async rewriteLinkedRecordAuthorizations(
       primaryUser: AnyRecord,
       secondaryUser: AnyRecord,
-      actor: string
+      actor: string,
+      brandId: string
     ): Promise<number> {
       const secondaryUsername = String(secondaryUser.username ?? '');
       const secondaryEmail = String(secondaryUser.email ?? '').toLowerCase();
       const primaryUsername = String(primaryUser.username ?? '');
       const records = await this.recordAccess().storage.records.find({
+        'metaMetadata.brandId': brandId,
         $or: [
           { 'authorization.edit': secondaryUsername },
           { 'authorization.view': secondaryUsername },
@@ -300,6 +304,8 @@ export namespace Services {
             triggerPostSaveTriggers: false,
             mutate: snapshot => {
               const candidate = snapshot as unknown as AnyRecord;
+              if (_.get(candidate, 'metaMetadata.brandId') !== brandId)
+                throw new Error('Record brand changed during account linking');
               const current = (candidate.authorization ?? {}) as AnyRecord;
               candidate.authorization = this.rewriteLinkedAuthorization(
                 current,
@@ -339,6 +345,38 @@ export namespace Services {
 
     private async assertAuthenticationAllowed(user: UserAttributes): Promise<void> {
       return this.authenticationAccounts().assertAuthenticationAllowed(user);
+    }
+
+    public async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
+      const links = await this.input.repository.list(
+        'userlink',
+        _.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' }
+      );
+      const linkCountByPrimary = _.countBy(links as Record<string, unknown>[], (link: Record<string, unknown>) =>
+        String(link.primaryUserId ?? '')
+      );
+      const primaryIds = _.uniq(
+        _.map(links as Record<string, unknown>[], (link: Record<string, unknown>) => String(link.primaryUserId ?? ''))
+      );
+      const primaryUsers = _.isEmpty(primaryIds) ? [] : await this.input.repository.list('user', { id: primaryIds });
+      const primaryUsernamesById = _.reduce(
+        primaryUsers as Record<string, unknown>[],
+        (acc, user) => {
+          acc[String(user.id ?? '')] = String(user.username ?? '');
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+
+      return _.map(users, (user: UserAttributes) => {
+        const enrichedUser = user as UserAttributes & Record<string, unknown>;
+        enrichedUser.accountLinkState = enrichedUser.accountLinkState || 'active';
+        enrichedUser.linkedAccountCount = linkCountByPrimary[String(enrichedUser.id ?? '')] || 0;
+        enrichedUser.effectivePrimaryUsername = _.isEmpty(enrichedUser.linkedPrimaryUserId)
+          ? enrichedUser.username
+          : primaryUsernamesById[String(enrichedUser.linkedPrimaryUserId ?? '')] || enrichedUser.username;
+        return enrichedUser;
+      });
     }
 
     public async enrichUsersWithEffectiveDisabledState<T extends UserAttributes>(users: T[]): Promise<T[]> {
@@ -915,7 +953,7 @@ export namespace Services {
       return this.authenticationAccounts().getEffectiveUser(userOrId);
     };
 
-    public getLinkedAccounts = (primaryUserId: string | UserModel): Observable<UserLinkResponse> => {
+    public getLinkedAccounts = (primaryUserId: string | UserModel, brandId?: string): Observable<UserLinkResponse> => {
       return from(
         (async () => {
           const primaryUser = await firstValueFrom(this.getEffectiveUser(primaryUserId));
@@ -926,6 +964,7 @@ export namespace Services {
           const primaryUserObj = primaryUser as UserModel;
           const links = await this.input.repository.list('userlink', {
             primaryUserId: String(primaryUserObj.id ?? ''),
+            ...(brandId ? { brandId } : {}),
             status: 'active',
           });
           const secondaryIds = _.map(links as AnyRecord[], (link: unknown) =>
@@ -1036,13 +1075,13 @@ export namespace Services {
         (async () => {
           this.recordAccess();
           if (_.isEmpty(primaryUserId) || _.isEmpty(secondaryUserId)) {
-            throw new Error('Both primary and secondary users are required');
+            throw new UserAccountLinkError('Both primary and secondary users are required');
           }
 
           const primaryEffective = await firstValueFrom(this.getEffectiveUser(primaryUserId));
           const secondaryUser = await firstValueFrom(this.getUserWithId(secondaryUserId));
           if (_.isEmpty(primaryEffective) || _.isEmpty(secondaryUser)) {
-            throw new Error('Both users must exist before linking');
+            throw new UserAccountLinkError('Both users must exist before linking');
           }
 
           const primaryUser = primaryEffective as UserModel;
@@ -1052,23 +1091,23 @@ export namespace Services {
 
           const primaryDisabledState = await this.resolveEffectiveDisabledState(primaryUser);
           if (primaryDisabledState.effectiveLoginDisabled) {
-            throw new Error('Cannot link accounts: primary user is disabled');
+            throw new UserAccountLinkError('Cannot link accounts: primary user is disabled');
           }
 
           if (String(primaryUser.id ?? '') === String(secondaryUserObj.id ?? '')) {
-            throw new Error('Cannot link a user to itself');
+            throw new UserAccountLinkError('Cannot link a user to itself');
           }
           if (String(primaryUser.accountLinkState ?? 'active') === 'linked-alias') {
-            throw new Error('Primary user cannot be a linked alias');
+            throw new UserAccountLinkError('Primary user cannot be a linked alias');
           }
           if (
             !_.isEmpty(secondaryUserObj.linkedPrimaryUserId) &&
             String(secondaryUserObj.linkedPrimaryUserId) !== String(primaryUser.id ?? '')
           ) {
-            throw new Error('Secondary user is already linked to another primary account');
+            throw new UserAccountLinkError('Secondary user is already linked to another primary account');
           }
           if (!this.hasRoleInBrand(primaryUser, brandId)) {
-            throw new Error('Primary user must already belong to the current brand');
+            throw new UserAccountLinkError('Primary user must already belong to the current brand');
           }
 
           const secondaryBrandRoles = this.getRolesForBrand(secondaryUserObj, brandId);
@@ -1081,7 +1120,7 @@ export namespace Services {
             return roleBrandId !== brandId;
           });
           if (!_.isEmpty(secondaryForeignRoles)) {
-            throw new Error('Secondary user belongs to a different brand and cannot be linked here');
+            throw new UserAccountLinkError('Secondary user belongs to a different brand and cannot be linked here');
           }
 
           const existingLink = await this.input.repository.one('userlink', {
@@ -1089,7 +1128,7 @@ export namespace Services {
             status: 'active',
           });
           if (!_.isEmpty(existingLink)) {
-            throw new Error('Secondary user is already linked');
+            throw new UserAccountLinkError('Secondary user is already linked');
           }
 
           const secondaryOwnLinks = await this.input.repository.one('userlink', {
@@ -1097,7 +1136,7 @@ export namespace Services {
             status: 'active',
           });
           if (!_.isEmpty(secondaryOwnLinks)) {
-            throw new Error('Secondary user already has linked accounts');
+            throw new UserAccountLinkError('Secondary user already has linked accounts');
           }
 
           await this.input.repository.create('userlink', {
@@ -1152,7 +1191,12 @@ export namespace Services {
             }
           );
 
-          const recordsRewritten = await this.rewriteLinkedRecordAuthorizations(primaryUser, secondaryUserObj, actor);
+          const recordsRewritten = await this.rewriteLinkedRecordAuthorizations(
+            primaryUser,
+            secondaryUserObj,
+            actor,
+            brandId
+          );
 
           await this.addUserAuditEvent({ username: actor }, 'link-accounts', {
             primaryUserId: primaryUser.id,
@@ -1164,7 +1208,7 @@ export namespace Services {
             recordsRewritten: recordsRewritten,
           });
 
-          const linkedAccounts = await firstValueFrom(this.getLinkedAccounts(primaryUser as UserModel));
+          const linkedAccounts = await firstValueFrom(this.getLinkedAccounts(primaryUser as UserModel, brandId));
           return {
             ...linkedAccounts,
             impact: {

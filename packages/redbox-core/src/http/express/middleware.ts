@@ -99,7 +99,21 @@ export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewar
     authentication.initialize,
     authentication.session
   );
-  return authentication;
+  return {
+    ...authentication,
+    async authenticateCredential(credential: { sessionId?: string; authorization?: string }) {
+      if (credential.authorization !== undefined) {
+        const match = /^Bearer (.+)$/i.exec(credential.authorization);
+        return match ? input.identity.bearer(match[1]!) : false;
+      }
+      if (!credential.sessionId) return false;
+      const saved = await owned.read(credential.sessionId);
+      if (!saved || Reflect.get(saved, 'authenticationVersion') !== 6) return false;
+      const passport = Reflect.get(saved, 'passport');
+      const id = passport && typeof passport === 'object' ? Reflect.get(passport, 'user') : undefined;
+      return typeof id === 'string' ? input.identity.session(id) : false;
+    },
+  };
 }
 
 export function httpErrorHandler(log: ILogger): ErrorRequestHandler {
