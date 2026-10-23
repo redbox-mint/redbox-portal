@@ -63,7 +63,10 @@ describe('PDFService Integration Audit', () => {
       delete requireCache[compiledServicePath];
     }
     const compiledService = require(compiledServicePath);
-    pdfService = new compiledService.Services.PDF();
+    pdfService = new compiledService.Services.PDF(Object.assign(
+      require('../../dist/compat/dependencies').legacyPDFDependencies(),
+      { runAcceptedWork: (operation: () => Promise<unknown>) => operation() }
+    ));
     pdfService.DatastreamService = globalAny.sails.services.standarddatastreamservice;
 
     mockPage = {

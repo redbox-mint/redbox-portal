@@ -43,6 +43,7 @@ function fixture(overrides = {}) {
   };
   const dependencies = {
     config: { appUrl: 'http://localhost' },
+    runAcceptedWork: operation => operation(),
     log: { warn() {}, error() {}, debug() {}, verbose() {} },
     brandById: () => ({ id: 'brand', name: 'default' }),
     optionsForBrand: () => ({ token: 'fixture-token', maxRetries: 0, ...overrides.options }),

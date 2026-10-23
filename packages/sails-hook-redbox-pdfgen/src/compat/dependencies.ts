@@ -1,7 +1,9 @@
+import { runAcceptedPersistenceWork } from '@researchdatabox/redbox-core/extensions/storage';
 import type { PDFDependencies } from '../dependencies';
 import type { IntegrationAuditServiceShape } from '../api/services/audit';
 export function legacyPDFDependencies(): PDFDependencies {
   return {
+    runAcceptedWork: operation => runAcceptedPersistenceWork(sails, operation),
     get config() {
       return { appUrl: sails.config.appUrl, loginPath: sails.config.auth?.loginPath };
     },

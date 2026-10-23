@@ -8,6 +8,8 @@ export interface PDFDependencies {
     debug(...args: unknown[]): void;
     verbose(...args: unknown[]): void;
   };
+  /** Bind the application's accepted-work lifetime before starting detached generation or retries. */
+  runAcceptedWork<T>(operation: () => Promise<T>): Promise<T>;
   readonly datastreams: Pick<DatastreamService, 'addDatastream'>;
   readonly audit?: IntegrationAuditServiceShape;
   brandById(id: string): BrandingModel | undefined;

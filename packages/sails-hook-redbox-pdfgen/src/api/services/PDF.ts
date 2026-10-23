@@ -841,13 +841,17 @@ export namespace Services {
                       })
                     )
                   );
-                  const fiber = yield* Effect.forkDaemon(retryEffect);
-                  const retryTask = this.retryTasks.get(currentURL);
-                  if (retryTask?.token === retryToken) {
-                    retryTask.fiber = fiber;
-                  } else {
-                    yield* Fiber.interrupt(fiber).pipe(Effect.asVoid);
-                  }
+                  yield* Effect.sync(() => {
+                    void this.dependencies
+                      .runAcceptedWork(async () => {
+                        const fiber = Effect.runFork(retryEffect);
+                        const retryTask = this.retryTasks.get(currentURL);
+                        if (retryTask?.token === retryToken) retryTask.fiber = fiber;
+                        else await Effect.runPromise(Fiber.interrupt(fiber));
+                        await Effect.runPromise(Fiber.await(fiber));
+                      })
+                      .catch(error => this.dependencies.log.error('PDFService::Retry ownership failed.', error));
+                  });
                 });
               }
 
@@ -872,18 +876,24 @@ export namespace Services {
         );
       });
 
-      const generationFiber = Effect.runFork(
-        effect.pipe(
-          Effect.catchAllCause(cause =>
-            this.logError(`PDFService::Background PDF generation failed for ${oid}.`, Cause.squash(cause))
-          ),
-          Effect.asVoid
-        )
-      );
-      this.generationTasks.add(generationFiber);
-      void Effect.runPromise(Fiber.await(generationFiber)).then(() => {
-        this.generationTasks.delete(generationFiber);
-      });
+      void this.dependencies
+        .runAcceptedWork(async () => {
+          const generationFiber = Effect.runFork(
+            effect.pipe(
+              Effect.catchAllCause(cause =>
+                this.logError(`PDFService::Background PDF generation failed for ${oid}.`, Cause.squash(cause))
+              ),
+              Effect.asVoid
+            )
+          );
+          this.generationTasks.add(generationFiber);
+          try {
+            await Effect.runPromise(Fiber.await(generationFiber));
+          } finally {
+            this.generationTasks.delete(generationFiber);
+          }
+        })
+        .catch(error => this.dependencies.log.error('PDFService::Generation ownership failed.', error));
 
       return of(record);
     }
