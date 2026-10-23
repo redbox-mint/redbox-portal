@@ -47,7 +47,7 @@ if [[ ! -x node_modules/.bin/mocha ]] || [[ ! -x node_modules/.bin/nyc ]]; then
 fi
 
 if [[ ! -f node_modules/redoc/bundles/redoc.standalone.js ]]; then
-  npm install --no-save --ignore-scripts --strict-peer-deps redoc@2.5.2
+  npm install --no-save --ignore-scripts --strict-peer-deps redoc@3.0.1
 fi
 
 npm run webpack

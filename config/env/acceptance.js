@@ -45,7 +45,7 @@ module.exports = {
   appUrl:'http://dlcfportal:1500',
   redboxSession: {
     cookie: {
-      secure: false
+      secure: 'auto'
     }
   },
   db: {

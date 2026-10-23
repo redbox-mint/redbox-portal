@@ -43,6 +43,10 @@ export function buildRedboxSessionOptions(
 export function redboxSession(sessionConfig: session.SessionOptions & { [key: string]: unknown }): RequestHandler {
   const app = typeof sails === 'undefined' ? undefined : sails;
   sessionConfig = buildRedboxSessionOptions(sessionConfig);
+  const configured = sessionConfig.cookie;
+  if (typeof configured === 'function') {
+    throw new TypeError('redboxSession.cookie must be an object; per-request cookie functions are not supported.');
+  }
   const pending = new Set<Promise<void>>();
   let closing = false;
   const drain = async () => {
@@ -135,7 +139,10 @@ export function redboxSession(sessionConfig: session.SessionOptions & { [key: st
   }
 
   // configure express-session using the sessionConfig object
-  const middleware = session(sessionConfig) as unknown as RequestHandler;
+  const middleware = session({
+    ...sessionConfig,
+    cookie: { ...configured, secure: configured?.secure === true ? true : 'auto' as const },
+  }) as unknown as RequestHandler;
   return (req, res, next) => {
     if (closing) {
       next(new Error('Session store is draining.'));
