@@ -1,0 +1,10 @@
+{
+  "collections": 13,
+  "documents": 123,
+  "roleLinks": 4,
+  "workflowFormLinks": 9,
+  "credentialKeysRemaining": 0,
+  "sanitizedEmailValues": 52,
+  "status": "pass",
+  "limitations": "Logical fixture only; credential re-seeding and a complete consistent institution backup/recovery rehearsal are still required."
+}

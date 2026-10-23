@@ -1,0 +1,106 @@
+Dynamic imports imported
+[redbox-loader] Starting shim generation (NODE_ENV !== production)...
+[redbox-loader] Form-config shim mode: core+hook (LOAD_DEFAULT_FORMS=true)
+[redbox-loader] Form-config registry entries: 9 (core 1, hook 8)
+[redbox-loader] Shim generation complete in 17338.19ms
+level=verbose time=2026-10-23T19:04:44+1000 pid=1 hostname=5fa29a294627 name=MongoStorageServiceService msg="Dynamic imports imported"
+level=warn time=2026-10-23T19:04:49+1000 pid=1 hostname=5fa29a294627 msg="Transactions are not supported by this datastore adapter. Falling back to non-transactional create."
+level=warn time=2026-10-23T19:04:49+1000 pid=1 hostname=5fa29a294627 msg="Transactions are not supported by this datastore adapter. Falling back to non-transactional create."
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+WARNING: A function that was initially called over 15 seconds
+ago has still not actually been executed.  Any chance the
+source code is missing an "await"?
+
+ [?] For more help, visit https://sailsjs.com/support
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+WARNING: A function that was initially called over 15 seconds
+ago has still not actually been executed.  Any chance the
+source code is missing an "await"?
+
+ [?] For more help, visit https://sailsjs.com/support
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+WARNING: A function that was initially called over 15 seconds
+ago has still not actually been executed.  Any chance the
+source code is missing an "await"?
+
+ [?] For more help, visit https://sailsjs.com/support
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+WARNING: A function that was initially called over 15 seconds
+ago has still not actually been executed.  Any chance the
+source code is missing an "await"?
+
+ [?] For more help, visit https://sailsjs.com/support
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+level=error time=2026-10-23T19:05:19+1000 pid=1 hostname=5fa29a294627 err_type=Error err_message="RVA import rva:316 timed out after 30000ms" err_stack="Error: RVA import rva:316 timed out after 30000ms
+    at Timeout.<anonymous> (/opt/redbox-portal/packages/redbox-core/dist/utilities/PromiseUtils.js:15:20)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)" msg="Failed RVA bootstrap import: rva:316"
+level=warn time=2026-10-23T19:05:19+1000 pid=1 hostname=5fa29a294627 msg="Transactions are not supported by this datastore adapter. Falling back to non-transactional create."
+i18next: languageChanged en
+i18next: initialized {
+  debug: true,
+  initAsync: true,
+  ns: [ 'translation' ],
+  defaultNS: [ 'translation' ],
+  fallbackLng: [ 'en' ],
+  fallbackNS: false,
+  supportedLngs: [ 'en', 'cimode' ],
+  nonExplicitSupportedLngs: false,
+  load: 'all',
+  preload: [ 'en' ],
+  keySeparator: '.',
+  nsSeparator: ':',
+  pluralSeparator: '_',
+  contextSeparator: '_',
+  enableSelector: false,
+  partialBundledLanguages: false,
+  saveMissing: false,
+  updateMissing: false,
+  saveMissingTo: 'fallback',
+  saveMissingPlurals: true,
+  missingKeyHandler: false,
+  missingInterpolationHandler: false,
+  postProcess: false,
+  postProcessPassResolved: false,
+  returnNull: false,
+  returnEmptyString: true,
+  returnObjects: false,
+  joinArrays: false,
+  returnedObjectHandler: false,
+  parseMissingKeyHandler: false,
+  appendNamespaceToMissingKey: false,
+  appendNamespaceToCIMode: false,
+  overloadTranslationOptionHandler: [Function: overloadTranslationOptionHandler],
+  interpolation: {
+    escapeValue: true,
+    prefix: '{{',
+    suffix: '}}',
+    formatSeparator: ',',
+    unescapePrefix: '-',
+    nestingPrefix: '$t(',
+    nestingSuffix: ')',
+    nestingOptionsSeparator: ',',
+    maxReplaces: 1000,
+    skipOnVariables: true,
+    format: [Function: bound format]
+  },
+  cacheInBuiltFormats: true,
+  lowerCaseLng: true,
+  initImmediate: false,
+  skipOnVariables: false,
+  detection: {
+    order: [ 'cookie' ],
+    lookupCookie: 'lng',
+    caches: [ 'cookie' ],
+    cookieMinutes: 10080,
+    lookupSession: 'lang'
+  },
+  lng: 'en',
+  resources: { en: { translation: [Object] } },
+  ignoreJSONStructure: true
+}
+i18next: languageChanged en
+i18next: languageChanged en

@@ -1,0 +1,70 @@
+
+⚠️  Heads up: Bruno v4 migration
+In v4 (to be released in 3rd week of July), script APIs: bru.setEnvVar(), bru.setGlobalEnvVar(), that set environment variables will write to the disk. If you are using it to set secrets, it could be committed to Git.
+Migrate to bru.setVar() before v4 to keep values runtime-only. Please ignore if already done. Read more: https://github.com/usebruno/bruno/discussions/8257
+
+1 - REST API/1 - Record Management/Create RDMP (201 Created) - 186 ms
+Tests
+   ✓ Status code is 201
+   ✓ Test oid exists
+1 - REST API/1 - Record Management/Get RDMP-s Metadata (200 OK) - 43 ms
+Tests
+   ✓ Status code is 200
+   ✓ Title is correct
+1 - REST API/1 - Record Management/Create Temporary Datapub (201 Created) - 84 ms
+Tests
+   ✓ Status code is 201
+   ✓ Test oid exists
+1 - REST API/1 - Record Management/Transition Workflow of Data publication (200 OK) - 74 ms
+Tests
+   ✓ Status code is 200
+   ✓ Success is set and is equal to true
+1 - REST API/4 - Form Management/List Forms (200 OK) - 41 ms
+Tests
+   ✓ Status code is 200
+   ✓ Has forms in response
+1 - REST API/4 - Form Management/Get Form (200 OK) - 43 ms
+Tests
+   ✓ Status code is 200
+   ✓ Has name property
+1 - REST API/5 - Record Type Management/List Record Types (200 OK) - 51 ms
+Tests
+   ✓ Status code is 200
+   ✓ Has forms in response
+1 - REST API/5 - Record Type Management/Get Record Type (200 OK) - 31 ms
+Tests
+   ✓ Status code is 200
+   ✓ Has name property
+2 - AJAX calls/1 - Admin User Tests/Login via Internal authentication (200 OK) - 111 ms
+Cookie is [redacted synthetic session]
+Tests
+   ✓ Status code is 200
+   ✓ Check that user returned is admin
+2 - AJAX calls/1 - Admin User Tests/Get all Record Types Info (200 OK) - 36 ms
+Tests
+   ✓ Status code is 200
+   ✓ Reponse is an array with more than one result
+2 - AJAX calls/1 - Admin User Tests/Get DataRecord Type info (200 OK) - 40 ms
+Tests
+   ✓ Status code is 200
+   ✓ Response is correct package type
+2 - AJAX calls/1 - Admin User Tests/Get DataPublication Workflow Steps (200 OK) - 41 ms
+Tests
+   ✓ Status code is 200
+   ✓ Response contains 5 steps
+
+📊 Execution Summary
+┌───────────────┬────────────────┐
+│ Metric        │     Result     │
+├───────────────┼────────────────┤
+│ Status        │     ✓ PASS     │
+├───────────────┼────────────────┤
+│ Requests      │ 12 (12 Passed) │
+├───────────────┼────────────────┤
+│ Tests         │     24/24      │
+├───────────────┼────────────────┤
+│ Assertions    │      0/0       │
+├───────────────┼────────────────┤
+│ Duration (ms) │      2596      │
+└───────────────┴────────────────┘
+Wrote json results to /tmp/sails-retirement-v5-bruno-results.json

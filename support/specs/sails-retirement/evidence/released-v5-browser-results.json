@@ -1,0 +1,60 @@
+{
+  "artifact": "qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9",
+  "portalNode": "24.16.0",
+  "workerNode": "26.11.1",
+  "playwright": "1.64.0",
+  "workers": 1,
+  "retries": 0,
+  "stats": {
+    "startTime": "2026-10-23T09:13:10.907Z",
+    "duration": 23958.362,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "renders /default/rdmp/home",
+      "file": "smoke.spec.ts",
+      "line": 11,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1943,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "renders /default/rdmp/user/login",
+      "file": "smoke.spec.ts",
+      "line": 11,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 2170,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "title": "renders /default/rdmp/admin",
+      "file": "smoke.spec.ts",
+      "line": 31,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 1641,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+v24.16.0
+11.13.0
+/opt/redbox-portal
+16074a6712652c14f6e48fe6b395c868e81920ec6fa9f21c7e56f27a59217938  app.js
+agenda-sqs-backend
+raido
+redbox-core
+redbox-dev-tools
+redbox-hook-dev
+rva-registry
+sails-hook-redbox-storage-mongo
+sails-ng-common
+{"labels":"2.1.0","core":"0.0.1-beta.9022","sails":"1.5.17"}

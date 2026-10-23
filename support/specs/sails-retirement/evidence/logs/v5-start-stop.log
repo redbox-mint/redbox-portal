@@ -1,0 +1,322 @@
+Dynamic imports imported
+[redbox-loader] Starting shim generation (NODE_ENV !== production)...
+[redbox-loader] Form-config shim mode: core+hook (LOAD_DEFAULT_FORMS=true)
+[redbox-loader] Form-config registry entries: 9 (core 1, hook 8)
+[redbox-loader] Shim generation complete in 415.63ms
+debug: The `sails.config.cors` config has been deprecated.
+debug: Please use `sails.config.security.cors` instead.
+debug: (we'll use your `sails.config.cors` settings for now).
+
+debug: Warning: no session secret was set!  In development mode, we'll set this for you,
+debug: but session secret must be manually specified in production.
+debug: To set up a session secret, add or update it in `config/session.js`:
+debug: module.exports.session = { secret: 'extremely-secure-keyboard-cat' }
+debug:
+debug: (Or if you don't need sessions enabled, disable the hook.)
+debug:
+debug: For more help:
+debug:  • https://sailsjs.com/config/session
+debug:  • https://sailsjs.com/support
+debug:
+level=verbose time=2026-10-23T19:08:41+1000 pid=1 hostname=8e8e25efb632 name=MongoStorageServiceService msg="Dynamic imports imported"
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /user/login_oidc`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /user/begin_oidc`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/locales`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-crosswalks`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/forms`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/harvest-runs`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/named-query`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/recordtypes`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/report-config`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/roles`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/search`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/users`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/vocabulary`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/admin/config`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/admin/refreshCachedResources`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/branding/history`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/dashboard-config/defaults`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/dashboard-config/info`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/dashboard-config/overrides`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/deletedrecords/list`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-vocabularies/catalogues`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-vocabularies/sources`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-vocabularies/sync-runs`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/forms/get`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/i18n/entries`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/named-query/collections`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/records/list`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/recordtypes/get`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/report/namedQuery`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/users/find`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/users/get`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/users/link/candidates`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/export/record/download/:format`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/admin/config/:configKey`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/dashboard-config/merged-type/:dashboardType`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-vocabularies/previews/:runId`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-vocabularies/sources/:sourceId`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/records/audit/:oid`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/records/datastreams/:oid`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/records/metadata/:oid`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/records/objectmetadata/:oid`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/records/permissions/:oid`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-vocabularies/sources/:sourceId/categories`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/i18n/bundles/:locale/:namespace`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/records/datastreams/:oid/:datastreamId`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/appconfig/:appConfigId`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-crosswalks/:id`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/harvest-runs/:id`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/integration-audit/:oid`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/named-query/:name`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/report-config/:name`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/vocabulary/:id`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-crosswalks/:id/local-entries`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-crosswalks/:id/mappings`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/figshare-crosswalks/:id/usage`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/harvest-runs/:id/events`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/users/:id/audit`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/api/users/:id/links`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/locales/:lng/translation.json`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="Ignoring `csrf: false` setting for route `get /:branding/:portal/locales/:lng/:ns.json`."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632 msg="CSRF protection does not apply to GET, HEAD or OPTIONS routes."
+level=debug time=2026-10-23T19:08:42+1000 pid=1 hostname=8e8e25efb632
+i18next: languageChanged en
+i18next: initialized {
+  debug: true,
+  initAsync: true,
+  ns: [ 'translation' ],
+  defaultNS: [ 'translation' ],
+  fallbackLng: [ 'en' ],
+  fallbackNS: false,
+  supportedLngs: [ 'en', 'cimode' ],
+  nonExplicitSupportedLngs: false,
+  load: 'all',
+  preload: [ 'en' ],
+  keySeparator: '.',
+  nsSeparator: ':',
+  pluralSeparator: '_',
+  contextSeparator: '_',
+  enableSelector: false,
+  partialBundledLanguages: false,
+  saveMissing: false,
+  updateMissing: false,
+  saveMissingTo: 'fallback',
+  saveMissingPlurals: true,
+  missingKeyHandler: false,
+  missingInterpolationHandler: false,
+  postProcess: false,
+  postProcessPassResolved: false,
+  returnNull: false,
+  returnEmptyString: true,
+  returnObjects: false,
+  joinArrays: false,
+  returnedObjectHandler: false,
+  parseMissingKeyHandler: false,
+  appendNamespaceToMissingKey: false,
+  appendNamespaceToCIMode: false,
+  overloadTranslationOptionHandler: [Function: overloadTranslationOptionHandler],
+  interpolation: {
+    escapeValue: true,
+    prefix: '{{',
+    suffix: '}}',
+    formatSeparator: ',',
+    unescapePrefix: '-',
+    nestingPrefix: '$t(',
+    nestingSuffix: ')',
+    nestingOptionsSeparator: ',',
+    maxReplaces: 1000,
+    skipOnVariables: true,
+    format: [Function: bound format]
+  },
+  cacheInBuiltFormats: true,
+  lowerCaseLng: true,
+  initImmediate: false,
+  skipOnVariables: false,
+  detection: {
+    order: [ 'cookie' ],
+    lookupCookie: 'lng',
+    caches: [ 'cookie' ],
+    cookieMinutes: 10080,
+    lookupSession: 'lang'
+  },
+  lng: 'en',
+  resources: { en: { translation: [Object] } },
+  ignoreJSONStructure: true
+}
+i18next: languageChanged en
+i18next: languageChanged en
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="Config Form Schemas Loaded"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="ReDBox storage plugin is active!"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg=".----------------. .----------------. .----------------. "
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| .--------------. | .--------------. | .--------------. |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |  _______     | | |  _________   | | |  ________    | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| | |_   __ \\    | | | |_   ___  |  | | | |_   ___ `.  | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |   | |__) |   | | |   | |_  \\_|  | | |   | |   `. \\ | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |   |  __ /    | | |   |  _|  _   | | |   | |    | | | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |  _| |  \\ \\_  | | |  _| |___/ |  | | |  _| |___.' / | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| | |____| |___| | | | |_________|  | | | |________.'  | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |              | | |              | | |              | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| '--------------' | '--------------' | '--------------' |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="'----------------' '----------------' '----------------' "
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg=".----------------. .----------------. .----------------. "
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| .--------------. | .--------------. | .--------------. |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |   ______     | | |     ____     | | |  ____  ____  | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |  |_   _ \\    | | |   .'    `.   | | | |_  _||_  _| | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |    | |_) |   | | |  /  .--.  \\  | | |   \\ \\  / /   | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |    |  __'.   | | |  | |    | |  | | |    > `' <    | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |   _| |__) |  | | |  \\  `--'  /  | | |  _/ /'`\\ \\_  | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |  |_______/   | | |   `.____.'   | | | |____||____| | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| |              | | |              | | |              | |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="| '--------------' | '--------------' | '--------------' |"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="'----------------' '----------------' '----------------' "
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="Server lifted in `/opt/redbox-portal`"
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="To shut down Sails, press <CTRL> + C at any time."
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="Read more at https://sailsjs.com/support."
+level=info time=2026-10-23T19:08:43+1000 pid=1 hostname=8e8e25efb632 msg="SolrIndexer:: SOLR core is available: redbox"
+level=warn time=2026-10-23T19:12:40+1000 pid=1 hostname=8e8e25efb632 msg="Deprecated call to setWorkflowStepRelatedMetadata. Use transitionWorkflowStepMetadata instead."
+level=warn time=2026-10-23T19:12:40+1000 pid=1 hostname=8e8e25efb632 msg="recordOid: '' is empty! Using response oid: 33520a64899b42cfb3a848d53c235f21 for solr index."
+level=warn time=2026-10-23T19:12:40+1000 pid=1 hostname=8e8e25efb632 msg="Deprecated call to setWorkflowStepRelatedMetadata. Use transitionWorkflowStepMetadata instead."
+level=error time=2026-10-23T19:12:40+1000 pid=1 hostname=8e8e25efb632 msg="post-save trigger sails.services.doiservice.publishDoiTriggerSync failed to complete"
+level=error time=2026-10-23T19:12:40+1000 pid=1 hostname=8e8e25efb632 err_type=Error err_message="DOI connection password must not be empty" err_stack="Error: DOI connection password must not be empty
+    at resolveDoiConnectionPassword (/opt/redbox-portal/packages/redbox-core/dist/configmodels/DoiPublishing.js:39:15)
+    at resolveBrandConfig (/opt/redbox-portal/packages/redbox-core/dist/services/doi-v2/config.js:21:72)
+    at resolveDoiPublishingConfig (/opt/redbox-portal/packages/redbox-core/dist/services/doi-v2/config.js:38:12)
+    at resolveDoiPublishingConfigAsync (/opt/redbox-portal/packages/redbox-core/dist/services/doi-v2/config.js:49:12)
+    at Doi.resolveConfig (/opt/redbox-portal/packages/redbox-core/dist/services/DoiService.js:48:65)
+    at Doi.publishDoi (/opt/redbox-portal/packages/redbox-core/dist/services/DoiService.js:239:39)
+    at Doi.publishDoiTriggerSync (/opt/redbox-portal/packages/redbox-core/dist/services/DoiService.js:352:44)
+    at wrapper (/opt/redbox-portal/node_modules/@sailshq/lodash/lib/index.js:3323:19)
+    at /opt/redbox-portal/packages/redbox-core/dist/services/RecordsService.js:1643:54
+    at arrayEach (/opt/redbox-portal/packages/redbox-core/node_modules/lodash/lodash.js:531:11)
+    at Object.forEach (/opt/redbox-portal/packages/redbox-core/node_modules/lodash/lodash.js:9441:14)
+    at Records.triggerPostSaveTriggers (/opt/redbox-portal/packages/redbox-core/dist/services/RecordsService.js:1630:19)
+    at Records.create (/opt/redbox-portal/packages/redbox-core/dist/services/RecordsService.js:515:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)" msg="DOI connection password must not be empty"

@@ -1,0 +1,341 @@
+{
+  "sourceTag": "v5.0.4",
+  "sourceCommit": "c1dda53999f3b026347008731f33dba834e06c27",
+  "artifact": "qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9",
+  "node": "24.16.0",
+  "npm": "11.13.0",
+  "cli": "@usebruno/cli@3.5.2",
+  "summary": {
+    "totalRequests": 12,
+    "passedRequests": 12,
+    "failedRequests": 0,
+    "errorRequests": 0,
+    "skippedRequests": 0,
+    "skippedByBail": 0,
+    "totalAssertions": 0,
+    "passedAssertions": 0,
+    "failedAssertions": 0,
+    "totalTests": 24,
+    "passedTests": 24,
+    "failedTests": 0,
+    "totalPreRequestTests": 0,
+    "passedPreRequestTests": 0,
+    "failedPreRequestTests": 0,
+    "totalPostResponseTests": 0,
+    "passedPostResponseTests": 0,
+    "failedPostResponseTests": 0
+  },
+  "cases": [
+    {
+      "file": "test/bruno/1 - REST API/1 - Record Management/Create RDMP.bru",
+      "sourceSha256": "35cfe8eb005b7052b6109feed54ace7988f4c4002c73240a564a173f1c9aa51c",
+      "method": "POST",
+      "path": "/default/rdmp/api/records/metadata/rdmp",
+      "status": 201,
+      "tests": [
+        {
+          "description": "Status code is 201",
+          "status": "pass"
+        },
+        {
+          "description": "Test oid exists",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "items",
+        "message",
+        "metadata",
+        "oid",
+        "success",
+        "totalItems"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/1 - REST API/1 - Record Management/Get RDMP-s Metadata.bru",
+      "sourceSha256": "4eb2910be9abc404e95f8d5c16291b3db6d171b5b953c24a8c65e952192ca6db",
+      "method": "GET",
+      "path": "/default/rdmp/api/records/metadata/33520a64899b42cfb3a848d53c235f21",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Title is correct",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "@context",
+        "authorization",
+        "contributor_ci",
+        "contributor_data_manager",
+        "contributors",
+        "dc:accessRights",
+        "dc:identifier",
+        "dc:rightsHolder_dc:name",
+        "description",
+        "finalKeywords",
+        "redbox:retentionPeriod_dc:date",
+        "title",
+        "vivo:Dataset_dc:extent",
+        "vivo:Dataset_dc:location_rdf:PlainLiteral",
+        "vivo:Dataset_dc:source_dc:location_rdf:PlainLiteral",
+        "vivo:Dataset_dc_format",
+        "vivo:Dataset_redbox:DataCollectionMethodology"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/1 - REST API/1 - Record Management/Create Temporary Datapub.bru",
+      "sourceSha256": "fd4836d8684b3a6758e0a559d41c44a38b82c522572a2a74f39dd4838228229c",
+      "method": "POST",
+      "path": "/default/rdmp/api/records/metadata/dataPublication",
+      "status": 201,
+      "tests": [
+        {
+          "description": "Status code is 201",
+          "status": "pass"
+        },
+        {
+          "description": "Test oid exists",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "items",
+        "message",
+        "metadata",
+        "oid",
+        "success",
+        "totalItems"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/1 - REST API/1 - Record Management/Transition Workflow of Data publication.bru",
+      "sourceSha256": "8273d886616a5b13f35af0304e60fc4890e73bca215719ccaa4e3ccb656923aa",
+      "method": "POST",
+      "path": "/default/rdmp/api/records/workflow/step/queued/33b9502e838546a2882661e3359c8e5a",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Success is set and is equal to true",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "items",
+        "message",
+        "metadata",
+        "oid",
+        "success",
+        "totalItems"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/1 - REST API/4 - Form Management/List Forms.bru",
+      "sourceSha256": "4dec7c6f82a898d67090f9eba7b1e4bf62c1cdfaca1719c4b8646b1ec5fd0352",
+      "method": "GET",
+      "path": "/default/rdmp/api/forms",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Has forms in response",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "records",
+        "summary"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/1 - REST API/4 - Form Management/Get Form.bru",
+      "sourceSha256": "86900edebad414f4fd663cd271c42b21ab997c97caa63a71834ff23e6008ae54",
+      "method": "GET",
+      "path": "/default/rdmp/api/forms/get?name=default-1.0-draft",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Has name property",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "branding",
+        "configuration",
+        "createdAt",
+        "id",
+        "name",
+        "updatedAt"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/1 - REST API/5 - Record Type Management/List Record Types.bru",
+      "sourceSha256": "0338298bd3bc34af05d24d8967dea3280b3b880a6aee13a68af3d8698d6fc212",
+      "method": "GET",
+      "path": "/default/rdmp/api/forms",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Has forms in response",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "records",
+        "summary"
+      ],
+      "arrayLength": null,
+      "knownFixtureDefect": "Released request targets forms; this case is not record-type API coverage."
+    },
+    {
+      "file": "test/bruno/1 - REST API/5 - Record Type Management/Get Record Type.bru",
+      "sourceSha256": "dfd1c4ff931835b608b11ef6cd4e3e5408a51b5d192495776c267d4bd02c3406",
+      "method": "GET",
+      "path": "/default/rdmp/api/forms/get?name=default-1.0-draft",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Has name property",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "branding",
+        "configuration",
+        "createdAt",
+        "id",
+        "name",
+        "updatedAt"
+      ],
+      "arrayLength": null,
+      "knownFixtureDefect": "Released request targets forms; this case is not record-type API coverage."
+    },
+    {
+      "file": "test/bruno/2 - AJAX calls/1 - Admin User Tests/Login via Internal authentication.bru",
+      "sourceSha256": "7e9b60856db4a340ac96c70bebbabba231a2271a25e349444c7c393c81d008d6",
+      "method": "POST",
+      "path": "/user/login_local",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Check that user returned is admin",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "message",
+        "url",
+        "user"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/2 - AJAX calls/1 - Admin User Tests/Get all Record Types Info.bru",
+      "sourceSha256": "77c680c138622dcc63ab5eb026539b9a4eb0bfbafcb385f722bb1e3274d56dd4",
+      "method": "GET",
+      "path": "/default/rdmp/record/type/",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Reponse is an array with more than one result",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "list",
+      "bodyKeys": null,
+      "arrayLength": 5
+    },
+    {
+      "file": "test/bruno/2 - AJAX calls/1 - Admin User Tests/Get DataRecord Type info.bru",
+      "sourceSha256": "be712cd2893875e5f5fbd319149416de06797965ff3ed57f4d9869ca5359f475",
+      "method": "GET",
+      "path": "/default/rdmp/record/type/dataRecord",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Response is correct package type",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "dict",
+      "bodyKeys": [
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchFilters",
+        "searchable"
+      ],
+      "arrayLength": null
+    },
+    {
+      "file": "test/bruno/2 - AJAX calls/1 - Admin User Tests/Get DataPublication Workflow Steps.bru",
+      "sourceSha256": "e3ee7d628fa2e3db4c3b69f1612dbd0c74652bbbc495a93da2e8e3f703116701",
+      "method": "GET",
+      "path": "/default/rdmp/record/wfSteps/dataPublication",
+      "status": 200,
+      "tests": [
+        {
+          "description": "Status code is 200",
+          "status": "pass"
+        },
+        {
+          "description": "Response contains 5 steps",
+          "status": "pass"
+        }
+      ],
+      "bodyKind": "list",
+      "bodyKeys": null,
+      "arrayLength": 5
+    }
+  ]
+}

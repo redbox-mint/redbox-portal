@@ -59,7 +59,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   exact; incompatible consumer overrides are investigated rather than globally
   flattened. Record the reason and checks for each dependency change.
 
-- [ ] **SR-003 — Capture representative released-v5 behavior and upgrade fixtures.**
+- [x] **SR-003 — Capture representative released-v5 behavior and upgrade fixtures.**
+
+  **Status:** done; [released artifact, selected public cases and sanitized logical fixture](evidence/p0-released-v5.md).
 
   **Depends on:** SR-001.
 
