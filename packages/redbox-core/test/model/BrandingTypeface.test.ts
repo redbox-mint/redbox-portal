@@ -17,8 +17,6 @@ import {
   type BrandingTypefaceState,
 } from '../../src/model/BrandingTypeface';
 import { branding, getBrandingPositiveInt } from '../../src/config/branding.config';
-import { BrandingConfigWLDef } from '../../src/waterline-models/BrandingConfig';
-import { BrandingConfigHistoryWLDef } from '../../src/waterline-models/BrandingConfigHistory';
 
 const VALID_SHA = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
@@ -122,15 +120,5 @@ describe('BrandingTypeface contracts', function () {
     }
   });
 
-  it('declares typeface and revision fields on Waterline models', function () {
-    const configAttrs = (BrandingConfigWLDef as { attributes?: Record<string, unknown> }).attributes ?? {};
-    expect(configAttrs).to.have.property('typeface');
-    expect(configAttrs).to.have.property('draftTypeface');
-    expect(configAttrs).to.have.property('draftRevision');
-    const historyAttrs = (BrandingConfigHistoryWLDef as { attributes?: Record<string, unknown> }).attributes ?? {};
-    expect(historyAttrs).to.have.property('typeface');
-    expect(historyAttrs).to.have.property('actorId');
-    expect(historyAttrs).to.have.property('actorDisplayName');
-    expect(historyAttrs).to.have.property('restoredFromVersion');
-  });
+
 });

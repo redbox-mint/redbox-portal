@@ -6,7 +6,11 @@ set -o xtrace
 cd /opt/redbox-portal
 
 bash /opt/redbox-portal/support/integration-testing/install-redbox-dependencies-if-writable.sh
-npm --prefix packages/redbox-core exec -- tsc --noEmitOnError false || true
+# Mounted sources use the normal TypeScript core build.
+# Runtime images already contain the compiled package and omit the build scripts.
+if [[ -f packages/redbox-core/scripts/prisma-contract.cjs ]]; then
+  npm --prefix packages/redbox-core run build
+fi
 
 mkdir -p /opt/redbox-portal/coverage/bruno-s3
 rm -rf /opt/redbox-portal/coverage/bruno-s3/*

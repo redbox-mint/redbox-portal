@@ -1,0 +1,1149 @@
+{
+  "sourceCommit": "f6668358d148e09f77fd335bd9941ddaa9dbe949",
+  "scope": "Static named-model calls in source only. Excludes tests, generated dist, node_modules. Generic model variables, lowercase sails.models lookups and transaction helpers require the narrative inventory too. No payloads captured.",
+  "models": {
+    "UserLink": {
+      "packages/redbox-core/src/controllers/AdminController.ts": {
+        "find": [
+          80
+        ]
+      },
+      "packages/redbox-core/src/controllers/webservice/UserManagementController.ts": {
+        "find": [
+          61
+        ],
+        "findOne": [
+          145,
+          325
+        ]
+      },
+      "packages/redbox-core/src/services/NamedQueryService.ts": {
+        "find": [
+          253
+        ]
+      },
+      "packages/redbox-core/src/services/UsersService.ts": {
+        "find": [
+          2019,
+          2080,
+          2137
+        ],
+        "findOne": [
+          2237,
+          2245
+        ],
+        "create": [
+          2252
+        ]
+      }
+    },
+    "User": {
+      "packages/redbox-core/src/controllers/AdminController.ts": {
+        "find": [
+          84
+        ]
+      },
+      "packages/redbox-core/src/controllers/webservice/UserManagementController.ts": {
+        "find": [
+          73,
+          111
+        ],
+        "findOne": [
+          225
+        ]
+      },
+      "packages/redbox-core/src/services/AgendaQueueService.ts": {
+        "getDatastore": [
+          128,
+          254
+        ]
+      },
+      "packages/redbox-core/src/services/RDMPService.ts": {
+        "find": [
+          423
+        ]
+      },
+      "packages/redbox-core/src/services/RecordsService.ts": {
+        "findOne": [
+          7408,
+          7411
+        ]
+      },
+      "packages/redbox-core/src/services/UsersService.ts": {
+        "find": [
+          364,
+          2003,
+          2016,
+          2085,
+          2132,
+          2463
+        ],
+        "findOne": [
+          387,
+          399,
+          652,
+          732,
+          759,
+          1093,
+          1529,
+          1757,
+          1985,
+          1993
+        ],
+        "update": [
+          394,
+          406,
+          793,
+          835,
+          1130,
+          1172,
+          1569,
+          1610,
+          2291,
+          2331,
+          2378,
+          2412
+        ],
+        "create": [
+          1272,
+          1297,
+          1693,
+          1721,
+          1818,
+          1951
+        ],
+        "addToCollection": [
+          1825,
+          2271
+        ],
+        "replaceCollection": [
+          2286,
+          2400
+        ]
+      },
+      "packages/redbox-core/src/services/WorkspaceService.ts": {
+        "findOne": [
+          156,
+          162,
+          168
+        ]
+      }
+    },
+    "BrandingConfig": {
+      "packages/redbox-core/src/controllers/BrandingController.ts": {
+        "findOne": [
+          176,
+          269,
+          341,
+          447
+        ]
+      },
+      "packages/redbox-core/src/services/BrandingLogoService.ts": {
+        "findOne": [
+          59,
+          196,
+          226,
+          302
+        ],
+        "update": [
+          215,
+          250
+        ]
+      },
+      "packages/redbox-core/src/services/BrandingService.ts": {
+        "findOne": [
+          131,
+          182,
+          340,
+          896,
+          902,
+          987
+        ],
+        "create": [
+          136
+        ],
+        "find": [
+          149
+        ],
+        "updateOne": [
+          506,
+          736
+        ],
+        "getDatastore": [
+          717
+        ]
+      },
+      "packages/redbox-core/src/services/BrandingTypefaceService.ts": {
+        "find": [
+          299
+        ],
+        "findOne": [
+          320
+        ]
+      },
+      "packages/redbox-core/src/services/DashboardConfigService.ts": {
+        "find": [
+          941
+        ]
+      },
+      "packages/redbox-core/src/services/RolesService.ts": {
+        "addToCollection": [
+          142,
+          166
+        ]
+      },
+      "packages/redbox-core/src/waterline-models/Vocabulary.ts": {
+        "findOne": [
+          116
+        ]
+      }
+    },
+    "WorkspaceType": {
+      "packages/redbox-core/src/controllers/WorkspaceTypesController.ts": {
+        "findOne": [
+          87
+        ],
+        "update": [
+          113
+        ]
+      },
+      "packages/redbox-core/src/services/WorkspaceTypesService.ts": {
+        "destroy": [
+          52
+        ],
+        "create": [
+          82
+        ],
+        "find": [
+          95
+        ],
+        "findOne": [
+          99
+        ]
+      }
+    },
+    "Record": {
+      "packages/redbox-core/src/controllers/webservice/RecordController.ts": {
+        "find": [
+          2236
+        ]
+      },
+      "packages/redbox-core/src/services/HarvestRunService.ts": {
+        "find": [
+          473,
+          491
+        ]
+      },
+      "packages/redbox-core/src/services/RecordsService.ts": {
+        "findOne": [
+          3697
+        ]
+      },
+      "packages/redbox-core/src/services/SecurityEventService.ts": {
+        "findOne": [
+          297
+        ]
+      },
+      "packages/redbox-core/src/services/UsersService.ts": {
+        "find": [
+          275,
+          2489
+        ]
+      },
+      "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts": {
+        "getDatastore": [
+          485,
+          965
+        ],
+        "create": [
+          970
+        ],
+        "destroyOne": [
+          971
+        ],
+        "findOne": [
+          2416
+        ],
+        "find": [
+          2672
+        ],
+        "count": [
+          3755
+        ]
+      }
+    },
+    "AppConfig": {
+      "packages/redbox-core/src/services/AppConfigService.ts": {
+        "find": [
+          353,
+          398
+        ],
+        "destroy": [
+          489
+        ],
+        "create": [
+          562,
+          585
+        ],
+        "updateOne": [
+          564
+        ]
+      },
+      "packages/redbox-core/src/services/DashboardConfigService.ts": {
+        "find": [
+          899
+        ],
+        "findOne": [
+          1124
+        ],
+        "create": [
+          1128
+        ]
+      },
+      "packages/redbox-core/src/services/DashboardTypesService.ts": {
+        "find": [
+          194
+        ]
+      }
+    },
+    "AsynchProgress": {
+      "packages/redbox-core/src/services/AsynchsService.ts": {
+        "create": [
+          45
+        ],
+        "update": [
+          49,
+          59
+        ],
+        "find": [
+          63
+        ]
+      }
+    },
+    "AttachmentMetadata": {
+      "packages/redbox-core/src/services/AttachmentMetadataService.ts": {
+        "findOne": [
+          98,
+          104,
+          208,
+          272,
+          312,
+          416,
+          458,
+          483,
+          515,
+          599,
+          620,
+          695,
+          711,
+          726,
+          745
+        ],
+        "find": [
+          115,
+          130,
+          152,
+          168,
+          325,
+          354
+        ],
+        "updateOne": [
+          119,
+          291,
+          341,
+          375,
+          406,
+          447,
+          470,
+          502,
+          557,
+          626,
+          672,
+          760,
+          824
+        ],
+        "create": [
+          122,
+          716
+        ],
+        "update": [
+          581
+        ],
+        "destroy": [
+          609
+        ]
+      }
+    },
+    "AttachmentAccessAudit": {
+      "packages/redbox-core/src/services/AttachmentMetadataService.ts": {
+        "create": [
+          634
+        ]
+      }
+    },
+    "BrandingConfigHistory": {
+      "packages/redbox-core/src/services/BrandingService.ts": {
+        "find": [
+          352,
+          921
+        ],
+        "create": [
+          721
+        ],
+        "destroy": [
+          761,
+          767,
+          925,
+          953
+        ],
+        "findOne": [
+          888
+        ]
+      },
+      "packages/redbox-core/src/services/BrandingTypefaceService.ts": {
+        "find": [
+          305,
+          328
+        ]
+      }
+    },
+    "CacheEntry": {
+      "packages/redbox-core/src/services/BrandingService.ts": {
+        "create": [
+          638,
+          661
+        ],
+        "findOne": [
+          675
+        ],
+        "destroy": [
+          679,
+          683
+        ]
+      },
+      "packages/redbox-core/src/services/CacheService.ts": {
+        "findOne": [
+          61,
+          87
+        ],
+        "update": [
+          91
+        ],
+        "create": [
+          94
+        ]
+      }
+    },
+    "DashboardConfiguration": {
+      "packages/redbox-core/src/services/DashboardConfigService.ts": {
+        "findOne": [
+          309
+        ],
+        "update": [
+          346
+        ],
+        "create": [
+          359
+        ]
+      }
+    },
+    "RecordType": {
+      "packages/redbox-core/src/services/DashboardConfigService.ts": {
+        "find": [
+          880
+        ]
+      },
+      "packages/redbox-core/src/services/FormsService.ts": {
+        "findOne": [
+          530
+        ]
+      },
+      "packages/redbox-core/src/services/RecordTypesService.ts": {
+        "find": [
+          73,
+          166
+        ],
+        "destroy": [
+          77
+        ],
+        "create": [
+          133
+        ],
+        "findOne": [
+          158
+        ]
+      }
+    },
+    "WorkflowStep": {
+      "packages/redbox-core/src/services/DashboardConfigService.ts": {
+        "find": [
+          884
+        ]
+      },
+      "packages/redbox-core/src/services/FormsService.ts": {
+        "update": [
+          274
+        ],
+        "findOne": [
+          538
+        ]
+      },
+      "packages/redbox-core/src/services/WorkflowStepsService.ts": {
+        "find": [
+          48,
+          135,
+          146
+        ],
+        "destroy": [
+          50
+        ],
+        "create": [
+          99
+        ],
+        "findOne": [
+          127,
+          150
+        ]
+      }
+    },
+    "DashboardType": {
+      "packages/redbox-core/src/services/DashboardConfigService.ts": {
+        "find": [
+          891
+        ]
+      },
+      "packages/redbox-core/src/services/DashboardTypesService.ts": {
+        "find": [
+          244,
+          308
+        ],
+        "destroy": [
+          246,
+          365
+        ],
+        "create": [
+          288
+        ],
+        "findOne": [
+          303
+        ],
+        "updateOne": [
+          342
+        ]
+      }
+    },
+    "FigshareVocabularySource": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          381,
+          516,
+          1640,
+          2134,
+          2397
+        ],
+        "destroyOne": [
+          866
+        ],
+        "create": [
+          912
+        ],
+        "updateOne": [
+          1002
+        ],
+        "count": [
+          1357
+        ],
+        "find": [
+          1358
+        ]
+      },
+      "packages/redbox-core/src/services/VocabularyService.ts": {
+        "findOne": [
+          197
+        ]
+      }
+    },
+    "FigshareVocabularyCrosswalk": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          392,
+          532,
+          1230,
+          1701,
+          1949,
+          2032
+        ],
+        "destroyOne": [
+          862,
+          2113
+        ],
+        "create": [
+          971,
+          1543,
+          1705
+        ],
+        "updateOne": [
+          1335,
+          1879,
+          1944,
+          2022,
+          2106,
+          2455
+        ],
+        "count": [
+          1431,
+          1623
+        ],
+        "find": [
+          1624
+        ]
+      }
+    },
+    "Vocabulary": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          403,
+          960,
+          1433,
+          1639
+        ],
+        "destroyOne": [
+          870
+        ],
+        "create": [
+          897,
+          1180
+        ]
+      },
+      "packages/redbox-core/src/services/RvaImportService.ts": {
+        "findOne": [
+          132
+        ],
+        "getDatastore": [
+          151
+        ],
+        "updateOne": [
+          154
+        ]
+      },
+      "packages/redbox-core/src/services/VocabularyService.ts": {
+        "findOne": [
+          190,
+          286,
+          296,
+          300,
+          692,
+          759,
+          791,
+          801,
+          824,
+          1168,
+          1235,
+          1283,
+          1312
+        ],
+        "count": [
+          280
+        ],
+        "find": [
+          281
+        ],
+        "create": [
+          683
+        ],
+        "destroyOne": [
+          702,
+          869
+        ],
+        "updateOne": [
+          789
+        ]
+      }
+    },
+    "FigshareVocabularySyncRun": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "findOne": [
+          417,
+          2435
+        ],
+        "update": [
+          430
+        ],
+        "updateOne": [
+          448
+        ],
+        "create": [
+          654
+        ],
+        "count": [
+          1459
+        ],
+        "find": [
+          1460
+        ]
+      }
+    },
+    "FigshareVocabularyCategory": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "find": [
+          485,
+          1034,
+          1251,
+          1390,
+          1492,
+          1795,
+          2189
+        ],
+        "destroy": [
+          865
+        ],
+        "create": [
+          1066
+        ],
+        "updateOne": [
+          1105,
+          1126
+        ],
+        "count": [
+          1429,
+          1430,
+          1688
+        ],
+        "findOne": [
+          1976
+        ]
+      }
+    },
+    "VocabularyEntry": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "find": [
+          496,
+          749,
+          1040,
+          1298,
+          1422,
+          1510,
+          1732,
+          1792,
+          2147,
+          2272
+        ],
+        "destroy": [
+          869
+        ],
+        "create": [
+          1054,
+          1196
+        ],
+        "updateOne": [
+          1097,
+          1130,
+          1146,
+          1217
+        ],
+        "findOne": [
+          1969
+        ]
+      },
+      "packages/redbox-core/src/services/VocabularyService.ts": {
+        "count": [
+          329
+        ],
+        "find": [
+          330,
+          372,
+          379,
+          515,
+          836,
+          913
+        ],
+        "findOne": [
+          358,
+          448,
+          466,
+          476,
+          591,
+          626,
+          889,
+          907,
+          955,
+          959
+        ],
+        "destroy": [
+          701,
+          868,
+          1026
+        ],
+        "updateOne": [
+          850,
+          987,
+          1001,
+          1116
+        ],
+        "create": [
+          964,
+          1074
+        ],
+        "createEach": [
+          1053
+        ]
+      },
+      "packages/redbox-core/src/waterline-models/VocabularyEntry.ts": {
+        "findOne": [
+          59,
+          66,
+          94,
+          103,
+          116
+        ]
+      }
+    },
+    "FigshareVocabularyCrosswalkMapping": {
+      "packages/redbox-core/src/services/FigshareVocabularyService.ts": {
+        "destroy": [
+          861,
+          1894,
+          2112
+        ],
+        "find": [
+          1310,
+          1680,
+          1733,
+          1787,
+          1856,
+          1994,
+          2174
+        ],
+        "create": [
+          1321,
+          1572,
+          1864,
+          1930
+        ],
+        "count": [
+          1645,
+          1650
+        ],
+        "findOne": [
+          1906
+        ],
+        "updateOne": [
+          1920,
+          2013
+        ]
+      }
+    },
+    "Form": {
+      "packages/redbox-core/src/services/FormsService.ts": {
+        "find": [
+          166,
+          201,
+          322
+        ],
+        "destroyOne": [
+          172
+        ],
+        "create": [
+          266
+        ],
+        "findOne": [
+          335,
+          547
+        ]
+      }
+    },
+    "HarvestRun": {
+      "packages/redbox-core/src/services/HarvestRunService.ts": {
+        "updateOne": [
+          271
+        ],
+        "findOne": [
+          276,
+          1050,
+          1074,
+          1877,
+          1907
+        ],
+        "getDatastore": [
+          292
+        ],
+        "create": [
+          1057
+        ],
+        "count": [
+          1867
+        ],
+        "find": [
+          1868
+        ]
+      }
+    },
+    "HarvestRecordEvent": {
+      "packages/redbox-core/src/services/HarvestRunService.ts": {
+        "createEach": [
+          880
+        ],
+        "find": [
+          901,
+          1885,
+          1938
+        ],
+        "count": [
+          1937
+        ]
+      }
+    },
+    "HarvestRunChunk": {
+      "packages/redbox-core/src/services/HarvestRunService.ts": {
+        "updateOne": [
+          916,
+          1714,
+          1815,
+          1824
+        ],
+        "find": [
+          1676,
+          1882
+        ],
+        "create": [
+          1733
+        ]
+      }
+    },
+    "I18nBundle": {
+      "packages/redbox-core/src/services/I18nEntriesService.ts": {
+        "updateOne": [
+          125,
+          308,
+          342,
+          506,
+          549,
+          680
+        ],
+        "create": [
+          295,
+          514,
+          673
+        ],
+        "findOne": [
+          380,
+          579
+        ],
+        "find": [
+          385
+        ]
+      },
+      "packages/redbox-core/src/services/TranslationService.ts": {
+        "findOne": [
+          214,
+          218
+        ],
+        "find": [
+          297
+        ]
+      }
+    },
+    "I18nTranslation": {
+      "packages/redbox-core/src/services/I18nEntriesService.ts": {
+        "findOne": [
+          250
+        ],
+        "updateOne": [
+          285,
+          303
+        ],
+        "create": [
+          286
+        ],
+        "destroyOne": [
+          335
+        ],
+        "find": [
+          370,
+          410,
+          616
+        ],
+        "createEach": [
+          448,
+          685
+        ]
+      }
+    },
+    "NamedQuery": {
+      "packages/redbox-core/src/services/NamedQueryService.ts": {
+        "findOne": [
+          177,
+          382,
+          422,
+          449,
+          457
+        ],
+        "create": [
+          387
+        ],
+        "find": [
+          404
+        ],
+        "updateOne": [
+          427
+        ],
+        "destroyOne": [
+          453
+        ]
+      }
+    },
+    "PathRule": {
+      "packages/redbox-core/src/services/PathRulesService.ts": {
+        "create": [
+          82
+        ],
+        "find": [
+          102
+        ]
+      }
+    },
+    "Counter": {
+      "packages/redbox-core/src/services/RDMPService.ts": {
+        "updateOne": [
+          154
+        ]
+      }
+    },
+    "Role": {
+      "packages/redbox-core/src/services/RolesService.ts": {
+        "find": [
+          113
+        ],
+        "create": [
+          140,
+          160
+        ]
+      },
+      "packages/redbox-core/src/services/UsersService.ts": {
+        "addToCollection": [
+          1835
+        ]
+      }
+    },
+    "SecurityEvent": {
+      "packages/redbox-core/src/services/SecurityEventService.ts": {
+        "create": [
+          242
+        ],
+        "findOne": [
+          247
+        ],
+        "find": [
+          276
+        ],
+        "count": [
+          279
+        ]
+      }
+    },
+    "SiemDeliveryAttempt": {
+      "packages/redbox-core/src/services/SiemForwardingService.ts": {
+        "count": [
+          57,
+          165,
+          263
+        ],
+        "create": [
+          73
+        ],
+        "find": [
+          262
+        ]
+      }
+    },
+    "UserAudit": {
+      "packages/redbox-core/src/services/UsersService.ts": {
+        "find": [
+          636,
+          665
+        ],
+        "create": [
+          1894
+        ]
+      }
+    },
+    "WorkspaceAsync": {
+      "packages/redbox-core/src/services/WorkspaceAsyncService.ts": {
+        "create": [
+          47
+        ],
+        "update": [
+          59
+        ],
+        "find": [
+          65,
+          88
+        ]
+      }
+    },
+    "WorkspaceApp": {
+      "packages/redbox-core/src/services/WorkspaceService.ts": {
+        "update": [
+          183
+        ],
+        "findOne": [
+          193
+        ],
+        "destroy": [
+          199
+        ]
+      }
+    },
+    "FigshareSync": {
+      "packages/redbox-core/src/services/figshare-v2/worker.ts": {
+        "getDatastore": [
+          66
+        ]
+      }
+    },
+    "RecordSchemaArtifact": {
+      "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts": {
+        "getDatastore": [
+          1115
+        ]
+      }
+    },
+    "RecordSchemaReference": {
+      "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts": {
+        "getDatastore": [
+          1123
+        ]
+      }
+    },
+    "DeletedRecord": {
+      "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts": {
+        "findOne": [
+          2428
+        ]
+      }
+    },
+    "RecordAudit": {
+      "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts": {
+        "create": [
+          3600
+        ],
+        "find": [
+          3643
+        ]
+      }
+    },
+    "IntegrationAudit": {
+      "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts": {
+        "create": [
+          3651
+        ],
+        "find": [
+          3705
+        ],
+        "count": [
+          3731
+        ]
+      }
+    }
+  }
+}

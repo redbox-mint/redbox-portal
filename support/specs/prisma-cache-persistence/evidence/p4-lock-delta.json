@@ -1,0 +1,66 @@
+{
+  "base": "0cfbd62b9",
+  "npm": "11.20.0",
+  "locks": {
+    "package-lock.json": {
+      "added": 334,
+      "removed": [
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/core",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-env",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-http",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-ini",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-login",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-node",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-process",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-sso",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/credential-provider-web-identity",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/nested-clients",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/signature-v4-multi-region",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/token-providers",
+        "node_modules/@aws-sdk/client-sqs/node_modules/@aws-sdk/xml-builder",
+        "packages/redbox-core/node_modules/@mongodb-js/saslprep",
+        "packages/redbox-core/node_modules/mongodb",
+        "packages/redbox-core/node_modules/mongodb-connection-string-url",
+        "packages/sails-hook-redbox-storage-mongo/node_modules/@types/whatwg-url",
+        "packages/sails-hook-redbox-storage-mongo/node_modules/bson",
+        "packages/sails-hook-redbox-storage-mongo/node_modules/mongodb-connection-string-url"
+      ],
+      "changedExistingVersions": [
+        {
+          "path": "node_modules/mongodb",
+          "before": "7.2.0",
+          "after": "7.7.0"
+        },
+        {
+          "path": "node_modules/mongodb-connection-string-url",
+          "before": "7.0.1",
+          "after": "7.0.2"
+        },
+        {
+          "path": "packages/sails-hook-redbox-storage-mongo/node_modules/mongodb",
+          "before": "6.21.0",
+          "after": "7.2.0"
+        }
+      ],
+      "removedPeerFlags": []
+    },
+    "packages/redbox-core/package-lock.json": {
+      "added": 395,
+      "removed": [
+        "node_modules/mongodb/node_modules/@types/whatwg-url",
+        "node_modules/mongodb/node_modules/mongodb-connection-string-url",
+        "node_modules/mongodb/node_modules/tr46",
+        "node_modules/mongodb/node_modules/webidl-conversions",
+        "node_modules/mongodb/node_modules/whatwg-url"
+      ],
+      "changedExistingVersions": [
+        {
+          "path": "node_modules/mongodb-connection-string-url",
+          "before": "3.0.2",
+          "after": "7.0.2"
+        }
+      ],
+      "removedPeerFlags": []
+    }
+  }
+}

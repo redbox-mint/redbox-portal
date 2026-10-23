@@ -1,0 +1,38 @@
+
+
+  P5 shared adapter contract and independent application instances
+P5 MongoDB 8.0.34
+Dynamic imports imported
+P5 active backend=waterline adapter=WaterlineCacheEntryRepository pid=2267019
+    ✔ runs the same raw-document repository contract with explicit waterline (20664ms)
+Dynamic imports imported
+P5 active backend=waterline adapter=WaterlineCacheEntryRepository pid=2267165
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with waterline (2949ms)
+Dynamic imports imported
+P5 active backend=prisma adapter=PrismaCacheEntryRepository pid=2267186
+    ✔ runs the same raw-document repository contract with explicit prisma (3841ms)
+Dynamic imports imported
+P5 active backend=prisma adapter=PrismaCacheEntryRepository pid=2267221
+    ✔ preserves real persistence, falsy/null/expiry/error and notification reset behavior with prisma (3616ms)
+Dynamic imports imported
+P5 active backend=waterline adapter=WaterlineCacheEntryRepository pid=2267261
+Dynamic imports imported
+P5 active backend=prisma adapter=PrismaCacheEntryRepository pid=2267277
+Dynamic imports imported
+P5 active backend=waterline adapter=WaterlineCacheEntryRepository pid=2267313
+    ✔ switches sequentially and uses simultaneous mixed processes with competing names, updates, expiry and deletion (9129ms)
+Dynamic imports imported
+P5 active backend=prisma adapter=PrismaCacheEntryRepository pid=2267347
+Dynamic imports imported
+P5 active backend=prisma adapter=PrismaCacheEntryRepository pid=2267465
+Dynamic imports imported
+P5 active backend=waterline adapter=WaterlineCacheEntryRepository pid=2267557
+    ✔ restarts into separate application processes after observing completed Prisma persistence and rolls config back (13813ms)
+Dynamic imports imported
+P5 active backend=waterline adapter=WaterlineCacheEntryRepository pid=2267592
+Dynamic imports imported
+P5 active backend=prisma adapter=PrismaCacheEntryRepository pid=2267625
+    ✔ uses explicit Waterline selection with hook datastore/collection/callback overrides; Prisma bypasses standard-model callbacks (9105ms)
+
+
+  7 passing (1m)

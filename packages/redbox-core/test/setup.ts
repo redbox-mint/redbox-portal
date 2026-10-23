@@ -1,4 +1,3 @@
-import type {} from '../src/waterline-models/types';
 import { repositoryFixtures } from './helpers/repositoryFixtures';
 import '../src/sails';
 import * as lodash from 'lodash';

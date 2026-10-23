@@ -194,7 +194,6 @@ describe('redbox-loader', function () {
         it('should return false via existing files and production env', async function () {
             process.env.NODE_ENV = 'production';
             // Populate dirs
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/models/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
@@ -211,7 +210,6 @@ describe('redbox-loader', function () {
         it('should skip generation if not needed', async function () {
             process.env.NODE_ENV = 'production';
             // Populate dirs
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/models/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
@@ -227,7 +225,6 @@ describe('redbox-loader', function () {
         it('should generate shims when forced', async function () {
             process.env.NODE_ENV = 'production';
             // Even if populated, force it
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/models/test.js'), 'x');
 
             const result = await redboxLoader.generateAllShims(sandboxDir, { forceRegenerate: true });
             expect(result.skipped).to.be.false;
@@ -242,7 +239,6 @@ describe('redbox-loader', function () {
             process.env.NODE_ENV = 'production';
             await fsPromises.writeFile(path.join(sandboxDir, '.regenerate-shims'), '');
             // Populate dirs to avoid "is empty" reason taking precedence?
-            await fsPromises.writeFile(path.join(sandboxDir, 'api/models/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/policies/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/middleware/test.js'), 'x');
             await fsPromises.writeFile(path.join(sandboxDir, 'api/responses/test.js'), 'x');
@@ -338,36 +334,7 @@ describe('redbox-loader', function () {
         });
     });
 
-    describe('generateModelShims', function () {
-        let modelsDir: string;
 
-        beforeEach(async function () {
-            modelsDir = path.join(sandboxDir, 'api', 'models');
-            await fsPromises.mkdir(modelsDir, { recursive: true });
-        });
-
-        it('should generate hook model shims using runtime require access', async function () {
-            const hookModels = {
-                HookModel: {
-                    module: 'test-hook',
-                    model: {
-                        attributes: {
-                            title: { type: 'string' }
-                        }
-                    }
-                }
-            };
-
-            const result = await redboxLoader.generateModelShims(modelsDir, hookModels);
-            expect(result.fromHooks).to.equal(1);
-
-            const content = await fsPromises.readFile(path.join(modelsDir, 'HookModel.js'), 'utf8');
-            expect(content).to.include("Provided by: test-hook");
-            expect(content).to.include("require('test-hook').registerRedboxModels()['HookModel']");
-            expect(content).to.include("globalId: 'HookModel'");
-            expect(content).to.not.include('JSON.stringify');
-        });
-    });
 
     describe('generateConfigShims', function () {
         let configDir: string;
@@ -585,7 +552,6 @@ describe('redbox-loader', function () {
     describe('findAndRegisterHooks', function () {
         it('should return empty arrays for hooks when no dependencies have sails config', async function () {
             const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
-            expect(result.hookModels).to.deep.equal({});
             expect(result.hookPolicies).to.deep.equal({});
             expect(result.hookBootstraps).to.deep.equal([]);
             expect(result.hookApiRoutes).to.deep.equal([]);
@@ -689,14 +655,12 @@ describe('redbox-loader', function () {
                     name: 'redbox-hook-alpha',
                     version: '1.0.0',
                     sails: {
-                        hasModels: true,
                         hasServices: true,
                         hasControllers: true,
                         hasFormConfigs: true,
                     },
                 },
-                `module.exports.registerRedboxModels = function() { return { SharedModel: {} }; };
-                 module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
+                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
                  module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
                  module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
             );
@@ -707,14 +671,12 @@ describe('redbox-loader', function () {
                     name: 'redbox-hook-zeta',
                     version: '1.0.0',
                     sails: {
-                        hasModels: true,
                         hasServices: true,
                         hasControllers: true,
                         hasFormConfigs: true,
                     },
                 },
-                `module.exports.registerRedboxModels = function() { return { SharedModel: {} }; };
-                 module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
+                `module.exports.registerRedboxServices = function() { return { SharedService: {} }; };
                  module.exports.registerRedboxControllers = function() { return { SharedController: {} }; };
                  module.exports.registerRedboxFormConfigs = function() { return { sharedForm: {} }; };`
             );
@@ -734,7 +696,6 @@ describe('redbox-loader', function () {
 
             const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
 
-            expect(result.hookModels.SharedModel.module).to.equal('redbox-hook-alpha');
             expect(result.hookServices.SharedService.module).to.equal('redbox-hook-alpha');
             expect(result.hookControllers.SharedController.module).to.equal('redbox-hook-alpha');
             expect(result.hookFormConfigs.sharedForm.module).to.equal('redbox-hook-alpha');

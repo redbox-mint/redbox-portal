@@ -1,0 +1,17 @@
+services:
+  mongodb:
+    pull_policy: missing
+  solr:
+    pull_policy: missing
+  keycloak:
+    pull_policy: missing
+    healthcheck:
+      start_period: 180s
+      retries: 20
+  email:
+    pull_policy: missing
+    volumes: !override
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p5/email:/data"
+  redboxportal-mount:
+    volumes:
+      - "/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/.tmp/prisma-cache-p5/attachments:/attachments"

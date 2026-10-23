@@ -7,8 +7,6 @@ declare const AppConfigService: any;
 declare const BrandingService: any;
 declare const BrandingLogoService: any;
 declare const BrandingThemeCssService: any;
-declare const BrandingConfig: any;
-declare const BrandingConfigHistory: any;
 
 declare const CacheEntry: any;
 declare const CacheService: any;
@@ -25,7 +23,6 @@ declare const FormRecordConsistencyService: any;
 declare const FormsService: any;
 
 declare const I18nEntriesService: any;
-declare const I18nTranslation: any;
 declare const I18nBundle: any;
 
 declare const NamedQueryService: any;
@@ -53,11 +50,8 @@ declare const FormVocabularyService: any;
 declare const WorkflowStepsService: any;
 
 declare const RecordType: any;
-declare const Record: any;
-declare const DeletedRecord: any;
 declare const RecordAudit: any;
 declare const RBReport: any;
-declare const User: any;
 
 declare const DateTime: any;
 

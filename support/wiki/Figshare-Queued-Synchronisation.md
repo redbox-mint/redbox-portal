@@ -104,7 +104,7 @@ Commands are dry-run by default; add `--apply` to a reviewed correction. `inspec
 
 1. Back up record and core databases. Record the deployed core, Mongo storage hook, CQU hook and stored per-brand AppConfig versions.
 2. Pause old workers, schedules and source traffic as appropriate. Drain in-flight mutations; do not run old and new consumers concurrently against the same records.
-3. Deploy core, matching Mongo storage package, model shims and customer hook together with processing disabled. Verify service identity and account context. Ensure new Mongo indexes can be created.
+3. Deploy core, matching Prisma storage package, generated contracts and migrated customer hook together with processing disabled. Verify service identity and account context. Prepare required indexes explicitly with writers stopped; startup only inspects them.
 4. Run and review migration dry-run. Resolve duplicate legacy article IDs and uncertain creates; apply verified backfill. Legacy files without receipts remain unmanaged.
 5. Enable one staging brand. Verify create-as-owner/update-as-token with distinct account/author IDs, hidden-create recovery, slow uploads, curation, review, manual publication, embargo access and workflow permissions against the institution's real Figshare environment.
 6. Enable production processing only after staging acceptance. Observe queue/source lag, lease renewals, waiting reasons, retry episodes and repair-required records. Save latency should no longer include remote mutation time.

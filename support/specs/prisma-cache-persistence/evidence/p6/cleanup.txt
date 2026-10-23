@@ -1,0 +1,20 @@
+P6 final resource audit (UTC): 2026-10-19T06:11:09Z
+
+Task-owned P6 containers (expected empty):
+
+Task-owned P6 volumes (expected empty):
+
+Task-owned P6 networks (expected empty):
+
+P6 image tags (expected empty; accepted path is cache-only):
+
+Prerequisite fixture containers (expected empty):
+
+Existing development containers: read-only status observation, no data access/actions:
+development-rbportal-1 Exited (137) 3 days ago
+development-mongodb-1 Exited (0) 49 minutes ago
+development-solr-1 Exited (143) 49 minutes ago
+development-seaweedfs-1 Exited (137) 49 minutes ago
+development-rbportal-mount-1 Exited (0) 4 weeks ago
+
+Only each unique task-owned project EXIT trap performed down -v. No global prune.

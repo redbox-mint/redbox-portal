@@ -1,0 +1,1691 @@
+{
+  "node": "v24.18.0",
+  "versions": {
+    "prismaCli": "8.0.0-rc.23",
+    "prismaMongo": "8.0.0-rc.18",
+    "mongodb": "7.7.0",
+    "sails": "1.5.18",
+    "sailsMongo": "2.1.2"
+  },
+  "waterlineCorePath": "packages/redbox-core",
+  "snapshots": [
+    {
+      "label": "Waterline writes / Prisma reads",
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e816"
+          },
+          "name": "waterline-array",
+          "data": [
+            {
+              "$numberInt": "1"
+            },
+            "synthetic",
+            false,
+            null,
+            {
+              "nested": []
+            }
+          ],
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.244Z",
+          "updatedAt": "2026-10-19T00:23:57.244Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e818"
+          },
+          "name": "waterline-empty",
+          "data": "",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.263Z",
+          "updatedAt": "2026-10-19T00:23:57.263Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81c"
+          },
+          "name": "waterline-false",
+          "data": false,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.298Z",
+          "updatedAt": "2026-10-19T00:23:57.298Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81e"
+          },
+          "name": "waterline-notification",
+          "data": {
+            "failedAt": "2026-10-18T00:00:00.000Z",
+            "expiresAt": "2026-10-18T00:05:00.000Z"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.314Z",
+          "updatedAt": "2026-10-19T00:23:57.314Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81d"
+          },
+          "name": "waterline-null",
+          "data": null,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.306Z",
+          "updatedAt": "2026-10-19T00:23:57.306Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e819"
+          },
+          "name": "waterline-number",
+          "data": {
+            "$numberDouble": "42.5"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.271Z",
+          "updatedAt": "2026-10-19T00:23:57.271Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e815"
+          },
+          "name": "waterline-object",
+          "data": {
+            "nested": {
+              "text": "synthetic",
+              "yes": true,
+              "nil": null
+            },
+            "count": {
+              "$numberInt": "42"
+            }
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.231Z",
+          "updatedAt": "2026-10-19T00:23:57.231Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81f"
+          },
+          "name": "waterline-preview",
+          "data": {
+            "css": "/* synthetic */",
+            "branding": "brand",
+            "portal": "portal",
+            "revision": {
+              "$numberInt": "2"
+            }
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.323Z",
+          "updatedAt": "2026-10-19T00:23:57.323Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e817"
+          },
+          "name": "waterline-string",
+          "data": "synthetic",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.255Z",
+          "updatedAt": "2026-10-19T00:23:57.255Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81b"
+          },
+          "name": "waterline-true",
+          "data": true,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.290Z",
+          "updatedAt": "2026-10-19T00:23:57.290Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81a"
+          },
+          "name": "waterline-zero",
+          "data": {
+            "$numberInt": "0"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.280Z",
+          "updatedAt": "2026-10-19T00:23:57.280Z"
+        }
+      ],
+      "physicalTypes": [
+        {
+          "name": "waterline-array",
+          "idType": "objectId",
+          "dataType": "array",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-empty",
+          "idType": "objectId",
+          "dataType": "string",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-false",
+          "idType": "objectId",
+          "dataType": "bool",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-notification",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-null",
+          "idType": "objectId",
+          "dataType": "null",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-number",
+          "idType": "objectId",
+          "dataType": "double",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-object",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-preview",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-string",
+          "idType": "objectId",
+          "dataType": "string",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-true",
+          "idType": "objectId",
+          "dataType": "bool",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-zero",
+          "idType": "objectId",
+          "dataType": "int",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        }
+      ]
+    },
+    {
+      "label": "Prisma updates Waterline rows, unknown fields preserved",
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e816"
+          },
+          "name": "waterline-array",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.244Z",
+          "updatedAt": "2026-10-19T00:23:57.354Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e818"
+          },
+          "name": "waterline-empty",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.263Z",
+          "updatedAt": "2026-10-19T00:23:57.373Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81c"
+          },
+          "name": "waterline-false",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.298Z",
+          "updatedAt": "2026-10-19T00:23:57.412Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81e"
+          },
+          "name": "waterline-notification",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.314Z",
+          "updatedAt": "2026-10-19T00:23:57.431Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81d"
+          },
+          "name": "waterline-null",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.306Z",
+          "updatedAt": "2026-10-19T00:23:57.421Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e819"
+          },
+          "name": "waterline-number",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.271Z",
+          "updatedAt": "2026-10-19T00:23:57.382Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e815"
+          },
+          "name": "waterline-object",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.231Z",
+          "updatedAt": "2026-10-19T00:23:57.339Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81f"
+          },
+          "name": "waterline-preview",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.323Z",
+          "updatedAt": "2026-10-19T00:23:57.440Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e817"
+          },
+          "name": "waterline-string",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.255Z",
+          "updatedAt": "2026-10-19T00:23:57.364Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81b"
+          },
+          "name": "waterline-true",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.290Z",
+          "updatedAt": "2026-10-19T00:23:57.402Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e81a"
+          },
+          "name": "waterline-zero",
+          "data": {
+            "updatedBy": "prisma"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.280Z",
+          "updatedAt": "2026-10-19T00:23:57.391Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        }
+      ],
+      "physicalTypes": [
+        {
+          "name": "waterline-array",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-empty",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-false",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-notification",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-null",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-number",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-object",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-preview",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-string",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-true",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "waterline-zero",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        }
+      ]
+    },
+    {
+      "label": "Prisma writes / Waterline reads",
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e102e"
+          },
+          "name": "prisma-array",
+          "data": [
+            {
+              "$numberInt": "1"
+            },
+            "synthetic",
+            false,
+            null,
+            {
+              "nested": []
+            }
+          ],
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.543Z",
+          "updatedAt": "2026-10-19T00:23:57.543Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1030"
+          },
+          "name": "prisma-empty",
+          "data": "",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.555Z",
+          "updatedAt": "2026-10-19T00:23:57.555Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1034"
+          },
+          "name": "prisma-false",
+          "data": false,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.580Z",
+          "updatedAt": "2026-10-19T00:23:57.580Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1036"
+          },
+          "name": "prisma-notification",
+          "data": {
+            "failedAt": "2026-10-18T00:00:00.000Z",
+            "expiresAt": "2026-10-18T00:05:00.000Z"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.592Z",
+          "updatedAt": "2026-10-19T00:23:57.592Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1035"
+          },
+          "name": "prisma-null",
+          "data": null,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.586Z",
+          "updatedAt": "2026-10-19T00:23:57.586Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1031"
+          },
+          "name": "prisma-number",
+          "data": {
+            "$numberDouble": "42.5"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.561Z",
+          "updatedAt": "2026-10-19T00:23:57.561Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e102d"
+          },
+          "name": "prisma-object",
+          "data": {
+            "nested": {
+              "text": "synthetic",
+              "yes": true,
+              "nil": null
+            },
+            "count": {
+              "$numberInt": "42"
+            }
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.537Z",
+          "updatedAt": "2026-10-19T00:23:57.537Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1037"
+          },
+          "name": "prisma-preview",
+          "data": {
+            "css": "/* synthetic */",
+            "branding": "brand",
+            "portal": "portal",
+            "revision": {
+              "$numberInt": "2"
+            }
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.598Z",
+          "updatedAt": "2026-10-19T00:23:57.598Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e102f"
+          },
+          "name": "prisma-string",
+          "data": "synthetic",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.549Z",
+          "updatedAt": "2026-10-19T00:23:57.549Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1033"
+          },
+          "name": "prisma-true",
+          "data": true,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.574Z",
+          "updatedAt": "2026-10-19T00:23:57.574Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1032"
+          },
+          "name": "prisma-zero",
+          "data": {
+            "$numberInt": "0"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.567Z",
+          "updatedAt": "2026-10-19T00:23:57.567Z"
+        }
+      ],
+      "physicalTypes": [
+        {
+          "name": "prisma-array",
+          "idType": "objectId",
+          "dataType": "array",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-empty",
+          "idType": "objectId",
+          "dataType": "string",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-false",
+          "idType": "objectId",
+          "dataType": "bool",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-notification",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-null",
+          "idType": "objectId",
+          "dataType": "null",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-number",
+          "idType": "objectId",
+          "dataType": "double",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-object",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-preview",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-string",
+          "idType": "objectId",
+          "dataType": "string",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-true",
+          "idType": "objectId",
+          "dataType": "bool",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-zero",
+          "idType": "objectId",
+          "dataType": "int",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        }
+      ]
+    },
+    {
+      "label": "Waterline updates Prisma rows, automatic timestamps",
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e102e"
+          },
+          "name": "prisma-array",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.543Z",
+          "updatedAt": "2026-10-19T00:23:57.626Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1030"
+          },
+          "name": "prisma-empty",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.555Z",
+          "updatedAt": "2026-10-19T00:23:57.652Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1034"
+          },
+          "name": "prisma-false",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.580Z",
+          "updatedAt": "2026-10-19T00:23:57.697Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1036"
+          },
+          "name": "prisma-notification",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.592Z",
+          "updatedAt": "2026-10-19T00:23:57.723Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1035"
+          },
+          "name": "prisma-null",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.586Z",
+          "updatedAt": "2026-10-19T00:23:57.712Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1031"
+          },
+          "name": "prisma-number",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.561Z",
+          "updatedAt": "2026-10-19T00:23:57.662Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e102d"
+          },
+          "name": "prisma-object",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.537Z",
+          "updatedAt": "2026-10-19T00:23:57.612Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1037"
+          },
+          "name": "prisma-preview",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.598Z",
+          "updatedAt": "2026-10-19T00:23:57.735Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e102f"
+          },
+          "name": "prisma-string",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.549Z",
+          "updatedAt": "2026-10-19T00:23:57.641Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1033"
+          },
+          "name": "prisma-true",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.574Z",
+          "updatedAt": "2026-10-19T00:23:57.685Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1032"
+          },
+          "name": "prisma-zero",
+          "data": {
+            "updatedBy": "waterline"
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-19T00:23:57.567Z",
+          "updatedAt": "2026-10-19T00:23:57.673Z",
+          "unrelatedLegacyField": {
+            "keep": true
+          }
+        }
+      ],
+      "physicalTypes": [
+        {
+          "name": "prisma-array",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-empty",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-false",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-notification",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-null",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-number",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-object",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-preview",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-string",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-true",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-zero",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        }
+      ]
+    },
+    {
+      "label": "Both opposite-direction deletes complete",
+      "documents": [],
+      "physicalTypes": []
+    },
+    {
+      "label": "Optional fields, P0 archive, unsupported BSON left intact",
+      "documents": [
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e103a"
+          },
+          "name": "future-seconds",
+          "ts_added": {
+            "$numberLong": "2200000000"
+          },
+          "data": null,
+          "createdAt": "2026-10-19T00:23:57.850Z",
+          "updatedAt": "2026-10-19T00:23:57.850Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1039"
+          },
+          "name": "mapped-omission",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "data": null,
+          "createdAt": "2026-10-19T00:23:57.850Z",
+          "updatedAt": "2026-10-19T00:23:57.850Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99db"
+          },
+          "name": "p0-array",
+          "data": [
+            {
+              "$numberInt": "1"
+            },
+            "synthetic",
+            false,
+            null,
+            {
+              "nested": []
+            }
+          ],
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.669Z",
+          "updatedAt": "2026-10-18T23:53:34.669Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99e0"
+          },
+          "name": "p0-boolean",
+          "data": true,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.801Z",
+          "updatedAt": "2026-10-18T23:53:34.801Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99da"
+          },
+          "name": "p0-branding-preview:synthetic-token",
+          "data": {
+            "css": "/* synthetic preview */",
+            "branding": "synthetic-brand",
+            "portal": "synthetic-portal",
+            "hash": "synthetic-hash",
+            "revision": {
+              "$numberInt": "2"
+            }
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.643Z",
+          "updatedAt": "2026-10-18T23:53:34.643Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99dd"
+          },
+          "name": "p0-emptyString",
+          "data": "",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.727Z",
+          "updatedAt": "2026-10-18T23:53:34.727Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99e1"
+          },
+          "name": "p0-false",
+          "data": false,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.841Z",
+          "updatedAt": "2026-10-18T23:53:34.841Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99d9"
+          },
+          "name": "p0-intnotif:synthetic-brand:synthetic-record:synthetic-integration",
+          "data": {
+            "failedAt": "2026-10-18T00:00:00.000Z",
+            "expiresAt": "2026-10-18T00:05:00.000Z"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.616Z",
+          "updatedAt": "2026-10-18T23:53:34.616Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe50117aabbda6149f"
+          },
+          "name": "p0-legacy-missing",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99e2"
+          },
+          "name": "p0-null",
+          "data": null,
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.868Z",
+          "updatedAt": "2026-10-18T23:53:34.868Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99de"
+          },
+          "name": "p0-number",
+          "data": {
+            "$numberDouble": "42.5"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.751Z",
+          "updatedAt": "2026-10-18T23:53:34.751Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99d8"
+          },
+          "name": "p0-object",
+          "data": {
+            "updated": true
+          },
+          "ts_added": {
+            "$numberInt": "1792339201"
+          },
+          "createdAt": "2026-10-18T23:53:34.499Z",
+          "updatedAt": "2026-10-18T23:53:35.094Z",
+          "unrelatedLegacyField": "keep"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99e3"
+          },
+          "name": "p0-omitted-on-create",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.897Z",
+          "updatedAt": "2026-10-18T23:53:34.897Z",
+          "data": null
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99dc"
+          },
+          "name": "p0-string",
+          "data": "synthetic",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.697Z",
+          "updatedAt": "2026-10-18T23:53:34.697Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad55bfe98c7e805002a99df"
+          },
+          "name": "p0-zero",
+          "data": {
+            "$numberInt": "0"
+          },
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-18T23:53:34.778Z",
+          "updatedAt": "2026-10-18T23:53:34.778Z"
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e1038"
+          },
+          "name": "prisma-omission",
+          "ts_added": {
+            "$numberInt": "1792339201"
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e103d"
+          },
+          "name": "unsupported-binary",
+          "ts_added": {
+            "$numberInt": "1"
+          },
+          "data": {
+            "nested": [
+              {
+                "$binary": {
+                  "base64": "c3ludGhldGlj",
+                  "subType": "00"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e103c"
+          },
+          "name": "unsupported-date",
+          "ts_added": {
+            "$numberInt": "1"
+          },
+          "data": {
+            "nested": [
+              {
+                "$date": {
+                  "$numberLong": "1577934245000"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e103f"
+          },
+          "name": "unsupported-decimal",
+          "ts_added": {
+            "$numberInt": "1"
+          },
+          "data": {
+            "nested": [
+              {
+                "$numberDecimal": "1.25"
+              }
+            ]
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d368e0332df8e103e"
+          },
+          "name": "unsupported-oid",
+          "ts_added": {
+            "$numberInt": "1"
+          },
+          "data": {
+            "nested": [
+              {
+                "$oid": "000000000000000000000001"
+              }
+            ]
+          }
+        },
+        {
+          "_id": {
+            "$oid": "6ad5631d2aef7ce9bad8e820"
+          },
+          "name": "waterline-omission",
+          "ts_added": {
+            "$numberInt": "1792339200"
+          },
+          "createdAt": "2026-10-19T00:23:57.845Z",
+          "updatedAt": "2026-10-19T00:23:57.845Z",
+          "data": null
+        }
+      ],
+      "physicalTypes": [
+        {
+          "name": "future-seconds",
+          "idType": "objectId",
+          "dataType": "null",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "mapped-omission",
+          "idType": "objectId",
+          "dataType": "null",
+          "addedType": "double",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-array",
+          "idType": "objectId",
+          "dataType": "array",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-boolean",
+          "idType": "objectId",
+          "dataType": "bool",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-branding-preview:synthetic-token",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-emptyString",
+          "idType": "objectId",
+          "dataType": "string",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-false",
+          "idType": "objectId",
+          "dataType": "bool",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-intnotif:synthetic-brand:synthetic-record:synthetic-integration",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-legacy-missing",
+          "idType": "objectId",
+          "dataType": "missing",
+          "addedType": "int",
+          "createdType": "missing",
+          "updatedType": "missing"
+        },
+        {
+          "name": "p0-null",
+          "idType": "objectId",
+          "dataType": "null",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-number",
+          "idType": "objectId",
+          "dataType": "double",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-object",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-omitted-on-create",
+          "idType": "objectId",
+          "dataType": "null",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-string",
+          "idType": "objectId",
+          "dataType": "string",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "p0-zero",
+          "idType": "objectId",
+          "dataType": "int",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        },
+        {
+          "name": "prisma-omission",
+          "idType": "objectId",
+          "dataType": "missing",
+          "addedType": "double",
+          "createdType": "missing",
+          "updatedType": "missing"
+        },
+        {
+          "name": "unsupported-binary",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "missing",
+          "updatedType": "missing"
+        },
+        {
+          "name": "unsupported-date",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "missing",
+          "updatedType": "missing"
+        },
+        {
+          "name": "unsupported-decimal",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "missing",
+          "updatedType": "missing"
+        },
+        {
+          "name": "unsupported-oid",
+          "idType": "objectId",
+          "dataType": "object",
+          "addedType": "int",
+          "createdType": "missing",
+          "updatedType": "missing"
+        },
+        {
+          "name": "waterline-omission",
+          "idType": "objectId",
+          "dataType": "null",
+          "addedType": "int",
+          "createdType": "string",
+          "updatedType": "string"
+        }
+      ]
+    }
+  ],
+  "probes": {
+    "omission": {
+      "rawHasData": false,
+      "returnedData": null
+    },
+    "duplicate": {
+      "prisma": {
+        "name": "MongoServerError",
+        "code": {
+          "$numberInt": "11000"
+        },
+        "message": "E11000 duplicate key error collection: redbox_cache_p1_12834.cacheentry index: cacheentry_name_unique dup key: { name: \"mapped-omission\" }"
+      },
+      "waterline": {
+        "name": "AdapterError",
+        "code": "E_UNIQUE",
+        "message": "Would violate uniqueness constraint-- a record already exists with conflicting value(s)."
+      }
+    },
+    "unsupported": {
+      "date-read": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.DECODE_FAILED",
+        "message": "Failed to decode field data of the document with _id 6ad5631d368e0332df8e103c in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 wire value contains a non-JSON BSON date at nested.0"
+      },
+      "date-write": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.ENCODE_FAILED",
+        "message": "Failed to encode field data in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 value must be a JSON value; received Date at nested.0. Store the date as an ISO 8601 string, or declare the field Bson."
+      },
+      "binary-read": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.DECODE_FAILED",
+        "message": "Failed to decode field data of the document with _id 6ad5631d368e0332df8e103d in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 wire value contains a non-JSON BSON binData at nested.0"
+      },
+      "binary-write": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.ENCODE_FAILED",
+        "message": "Failed to encode field data in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 value must be a JSON value; received Binary at nested.0. Store the bytes as a base64 string, or declare the field Binary or Bson."
+      },
+      "oid-read": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.DECODE_FAILED",
+        "message": "Failed to decode field data of the document with _id 6ad5631d368e0332df8e103e in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 wire value contains a non-JSON BSON objectId at nested.0"
+      },
+      "oid-write": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.ENCODE_FAILED",
+        "message": "Failed to encode field data in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 value must be a JSON value; received ObjectId at nested.0. Store its hex string, or declare the field ObjectId or Bson."
+      },
+      "decimal-read": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.DECODE_FAILED",
+        "message": "Failed to decode field data of the document with _id 6ad5631d368e0332df8e103f in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 wire value contains a non-JSON BSON decimal at nested.0"
+      },
+      "decimal-write": {
+        "name": "RuntimeError",
+        "code": "RUNTIME.ENCODE_FAILED",
+        "message": "Failed to encode field data in collection 'cacheentry' with codec 'mongo/json@1': mongo/json@1 value must be a JSON value; received Decimal128 at nested.0. Store the decimal text, or declare the field Decimal128 or Bson."
+      }
+    },
+    "completed": [
+      "22 JSON interop rows",
+      "22 opposite-adapter updates and deletes",
+      "P0 archive reads",
+      "missing operations",
+      "unique enforcement",
+      "unsupported BSON rejection without mutation"
+    ]
+  },
+  "server": {
+    "version": "8.0.34",
+    "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+  },
+  "topology": "standalone, unauthenticated, isolated MongoDB 8 container",
+  "indexesBefore": [
+    {
+      "v": {
+        "$numberInt": "2"
+      },
+      "key": {
+        "_id": {
+          "$numberInt": "1"
+        }
+      },
+      "name": "_id_"
+    }
+  ],
+  "indexesAfter": [
+    {
+      "v": {
+        "$numberInt": "2"
+      },
+      "key": {
+        "_id": {
+          "$numberInt": "1"
+        }
+      },
+      "name": "_id_"
+    },
+    {
+      "v": {
+        "$numberInt": "2"
+      },
+      "key": {
+        "name": {
+          "$numberInt": "1"
+        }
+      },
+      "name": "cacheentry_name_unique",
+      "unique": true
+    }
+  ],
+  "collections": [
+    {
+      "name": "cacheentry",
+      "options": {}
+    }
+  ]
+}

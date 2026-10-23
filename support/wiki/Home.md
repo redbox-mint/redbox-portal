@@ -39,9 +39,14 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Generated Reference Documentation](https://github.com/redbox-mint/redbox-portal/wiki/Generated-Reference-Documentation)**: Current hook extension contracts, form contracts, schemas, machine artifacts, and local generation commands.
 - **[User Management](https://github.com/redbox-mint/redbox-portal/wiki/User-Management)**: Feature-specific notes for the Manage Users UI, related models, and admin user-management endpoints.
 
+- **[Cache persistence](Cache-Persistence.md)**: Architecture/builds, institution and hook migration, existing-volume index preparation, and recovery for the next transition and official v6.
+- **[Persistence index preparation](Persistence-Index-Preparation.md)**: One inspect/ensure command for selected qualified groups and fresh-stack provisioning.
+- **[Branding persistence](Branding-Persistence.md)**: Prisma publication/history, atomic conflicts and external assets.
+- **[Staged storage persistence](Staged-Storage-Persistence.md)**: Prisma storage, native GridFS, index preparation and recovery.
+
 ## Core Packages
 
-- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/redbox-core)**: Core type definitions, **business logic services**, Waterline models, policies, config defaults, and bootstrap functions.
+- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/redbox-core)**: Core type definitions, **business logic services**, Prisma contracts, policies, config defaults, and bootstrap functions.
 - **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types, including service shim generation.
 - **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: Shared tooling for creating and maintaining ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
@@ -71,3 +76,7 @@ Stay connected with the latest updates, releases, and news:
 - **Newsletter**: Subscribe to our newsletter for regular updates delivered to your inbox.
 
 Thank you for visiting the RedBox Portal project wiki! We hope you find this resource helpful and encourage you to contribute to our growing community.
+
+- [Identity and membership persistence](Identity-Persistence.md): Prisma credentials, physical membership edges and recovery.
+
+- [Persistence migration](Persistence-Migration.md): ORM retirement, institution hooks and stale configuration guidance.

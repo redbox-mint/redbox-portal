@@ -34,10 +34,17 @@ function stable(value: unknown, plainOnly = false): string {
 
 /** Resolve raw Sails config, without requiring ORM loading, normalization or a manager. */
 export function resolveDatastore(config: Record<string, unknown>): ResolvedDatastore {
+  if (
+    ['adapter', 'identity', 'schema', 'forceLoadAdapter', 'migrate', 'dontUseObjectIds'].some(key =>
+      Object.hasOwn(config, key)
+    )
+  )
+    throw new PersistenceError(
+      'configuration',
+      'Remove retired ORM datastore adapter/schema/migrate/identity settings. Keep URL, split credentials/database and MongoDB driver options under datastores.mongodb/redboxStorage. See Persistence-Migration.md.'
+    );
   try {
-    const connectionConfig = Object.fromEntries(Object.entries(config).filter(([key]) =>
-      !['adapter', 'identity', 'schema', 'forceLoadAdapter', 'migrate', 'dontUseObjectIds'].includes(key)));
-    const { url, user, password, host, port, database, ...options } = connectionConfig;
+    const { url, user, password, host, port, database, ...options } = config;
     let resolvedUrl = url;
     if (url === undefined && host !== undefined && database !== undefined) resolvedUrl = 'mongodb://localhost/';
     if (typeof resolvedUrl !== 'string' || !resolvedUrl) throw new Error('url');

@@ -1,0 +1,229 @@
+{
+  "recordedAt": "2026-10-19T00:30:04.148Z",
+  "fixtureScope": [
+    "exact local dependency versions supplied as tgz",
+    "add pinned Prisma runtime",
+    "copy spike runtime and emitted artifacts under dist/persistence/prisma-p1"
+  ],
+  "coreTarball": {
+    "filename": "researchdatabox-redbox-core-0.0.1-beta.9022.tgz",
+    "integrity": "sha512-GpiSel8sDjwAXZ+MzCRDRRgCyMeHmXMN1LboiGuuhIPSBSkARKreZwtIHTe9Sm4tJJow4r3TNimf0gAu24k3nQ==",
+    "sha256": "268cd4b64128cd6c937bdb839f28ab06219d34c90aec9fef8f749df7c5ee94be"
+  },
+  "localDependencies": {
+    "@researchdatabox/agenda-sqs-backend": "file:vendor/researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz",
+    "@researchdatabox/sails-ng-common": "file:vendor/researchdatabox-sails-ng-common-0.2.1.tgz",
+    "@researchdatabox/raido-openapi-generated-node": "file:vendor/researchdatabox-raido-openapi-generated-node-0.0.3.tgz",
+    "@researchdatabox/rva-registry-openapi-generated-node": "file:vendor/researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz",
+    "@researchdatabox/redbox-core": "file:vendor/researchdatabox-redbox-core-0.0.1-beta.9022.tgz"
+  },
+  "spikeLockSha256": "ef0414adbb4f931f5f202ad382b820ec7fba82d6f3775faea56998661f946d84",
+  "locks": {
+    "hostNpm": "12.0.2",
+    "dockerNpm": "11.20.0",
+    "hostSha256": "3d5829704d0ab0ad53b0e762598bd2e036d860764aa3b2d923e2c252d826838e",
+    "dockerSha256": "b2a072f3707bca0f12b4f3f884e6b22c01b332c3d8dda5168615d0ccc3d1eb5d",
+    "hostPackageCount": 1322,
+    "dockerPackageCount": 1336,
+    "addedPackages": [
+      {
+        "path": "node_modules/@clack/core",
+        "version": "1.4.0",
+        "peer": true
+      },
+      {
+        "path": "node_modules/@clack/prompts",
+        "version": "1.5.0",
+        "peer": true
+      },
+      {
+        "path": "node_modules/@prisma/cli-engine",
+        "version": "0.7.0",
+        "peer": true
+      },
+      {
+        "path": "node_modules/@prisma/cli-engine/node_modules/package-manager-detector",
+        "version": "1.8.0",
+        "peer": true
+      },
+      {
+        "path": "node_modules/@prisma/management-api-sdk",
+        "version": "1.84.0",
+        "peer": true
+      },
+      {
+        "path": "node_modules/@researchdatabox/redbox-core/node_modules/webpack",
+        "version": "5.111.1",
+        "peer": false
+      },
+      {
+        "path": "node_modules/@stricli/core",
+        "version": "1.3.0",
+        "peer": true
+      },
+      {
+        "path": "node_modules/c12/node_modules/chokidar",
+        "version": "5.0.0",
+        "peer": false
+      },
+      {
+        "path": "node_modules/c12/node_modules/readdirp",
+        "version": "5.1.1",
+        "peer": false
+      },
+      {
+        "path": "node_modules/chokidar/node_modules/glob-parent",
+        "version": "5.1.2",
+        "peer": false
+      },
+      {
+        "path": "node_modules/fast-string-truncated-width",
+        "version": "3.0.3",
+        "peer": true
+      },
+      {
+        "path": "node_modules/fast-string-width",
+        "version": "3.0.2",
+        "peer": true
+      },
+      {
+        "path": "node_modules/fast-wrap-ansi",
+        "version": "0.2.2",
+        "peer": true
+      },
+      {
+        "path": "node_modules/openapi-fetch",
+        "version": "0.14.0",
+        "peer": true
+      },
+      {
+        "path": "node_modules/openapi-types",
+        "version": "12.1.3",
+        "peer": true
+      },
+      {
+        "path": "node_modules/openapi-typescript-helpers",
+        "version": "0.0.15",
+        "peer": true
+      },
+      {
+        "path": "node_modules/readdirp/node_modules/picomatch",
+        "version": "2.3.2",
+        "peer": false
+      },
+      {
+        "path": "node_modules/sass/node_modules/chokidar",
+        "version": "5.0.0",
+        "peer": false
+      },
+      {
+        "path": "node_modules/sass/node_modules/readdirp",
+        "version": "5.1.1",
+        "peer": false
+      },
+      {
+        "path": "node_modules/sisteransi",
+        "version": "1.0.5",
+        "peer": true
+      }
+    ]
+  },
+  "docker": {
+    "id": "sha256:fb3e9c67d0f78737c07fa399dcfaae0f5db857619e1b9b2641b0f21aeb479b68",
+    "repoDigests": [
+      "redbox-prisma-p1@sha256:fb3e9c67d0f78737c07fa399dcfaae0f5db857619e1b9b2641b0f21aeb479b68"
+    ],
+    "architecture": "amd64",
+    "os": "linux",
+    "user": "node",
+    "workingDir": "/tmp",
+    "validation": {
+      "cleanProductionCi": "passed after npm 11.20.0 lock normalization",
+      "installedTypesAndConsumer": "passed",
+      "offlineCoreAndGeneratedShims": "passed in builder and slim runtime",
+      "productionPruneAndStageCopy": "passed",
+      "runtimeCrudAndRawMongo8": "passed as node user from /tmp",
+      "prismaCliInstalled": false
+    }
+  },
+  "matrix": [
+    {
+      "name": "node24-interop",
+      "node": "v24.16.0",
+      "versions": {
+        "prismaCli": "8.0.0-rc.23",
+        "prismaMongo": "8.0.0-rc.18",
+        "mongodb": "7.7.0",
+        "sails": "1.5.18",
+        "sailsMongo": "2.1.2"
+      },
+      "waterlineCorePath": "packages/redbox-core",
+      "server": {
+        "version": "8.0.34",
+        "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+      },
+      "topology": "standalone, unauthenticated, isolated MongoDB 8 container",
+      "completed": [
+        "22 JSON interop rows",
+        "22 opposite-adapter updates and deletes",
+        "P0 archive reads",
+        "missing operations",
+        "unique enforcement",
+        "unsupported BSON rejection without mutation"
+      ],
+      "evidenceSha256": "d8c8f5c238e15f0b34b488744865d4de7af2b76d5f7a7500b15904a5ee38c7bf"
+    },
+    {
+      "name": "node26-interop",
+      "node": "v26.11.1",
+      "versions": {
+        "prismaCli": "8.0.0-rc.23",
+        "prismaMongo": "8.0.0-rc.18",
+        "mongodb": "7.7.0",
+        "sails": "1.5.18",
+        "sailsMongo": "2.1.2"
+      },
+      "waterlineCorePath": "packages/redbox-core",
+      "server": {
+        "version": "8.0.34",
+        "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+      },
+      "topology": "standalone, unauthenticated, isolated MongoDB 8 container",
+      "completed": [
+        "22 JSON interop rows",
+        "22 opposite-adapter updates and deletes",
+        "P0 archive reads",
+        "missing operations",
+        "unique enforcement",
+        "unsupported BSON rejection without mutation"
+      ],
+      "evidenceSha256": "fe6cf333e1a0198bcc5ba69cf58ad10bea488bdbcb0696ca4c9a1fbe64615e61"
+    },
+    {
+      "name": "base-interop",
+      "node": "v24.18.0",
+      "versions": {
+        "prismaCli": "8.0.0-rc.23",
+        "prismaMongo": "8.0.0-rc.18",
+        "mongodb": "7.7.0",
+        "sails": "1.5.18",
+        "sailsMongo": "2.1.2"
+      },
+      "waterlineCorePath": ".tmp/prisma-cache-p1/base/packages/redbox-core",
+      "server": {
+        "version": "8.0.34",
+        "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+      },
+      "topology": "standalone, unauthenticated, isolated MongoDB 8 container",
+      "completed": [
+        "22 JSON interop rows",
+        "22 opposite-adapter updates and deletes",
+        "P0 archive reads",
+        "missing operations",
+        "unique enforcement",
+        "unsupported BSON rejection without mutation"
+      ],
+      "evidenceSha256": "775181e78c2a2fc1a051bcfc158464cdf8f2042a08e57434d5e067f82ad27232"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ export async function prismaStorage(
   url.pathname = '/' + database;
   const app = {
     ...sails,
-    config: { ...sails.config, datastores: { redboxStorage: { adapter: 'sails-mongo', url: url.toString() } } },
+    config: { ...sails.config, datastores: { redboxStorage: { url: url.toString() } } },
   } as Sails.Application;
   await initializePersistence(app);
   const prisma = await prismaDatabase(app, 'redboxStorage');

@@ -1,42 +1,16 @@
-import { FigshareVocabularyCategoryWLDef } from '../../src/waterline-models/FigshareVocabularyCategory';
-import { FigshareVocabularyCrosswalkWLDef } from '../../src/waterline-models/FigshareVocabularyCrosswalk';
-import { FigshareVocabularyCrosswalkMappingWLDef } from '../../src/waterline-models/FigshareVocabularyCrosswalkMapping';
-import { FigshareVocabularySourceWLDef } from '../../src/waterline-models/FigshareVocabularySource';
-import {
-  FigshareVocabularySyncRunWLDef,
-  isAllowedSyncRunTransition,
-} from '../../src/waterline-models/FigshareVocabularySyncRun';
-
 let expect: Chai.ExpectStatic;
 
-type WaterlineDef = {
-  beforeCreate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
-  beforeUpdate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
-};
-
-/** Run a lifecycle hook synchronously and return the record plus any error it raised. */
-function runHook(
-  def: WaterlineDef,
-  hook: 'beforeCreate' | 'beforeUpdate',
-  record: Record<string, unknown>
-): { record: Record<string, unknown>; error?: Error } {
-  let error: Error | undefined;
-  let called = false;
-  def[hook]!(record, err => {
-    called = true;
-    error = err;
-  });
-  if (!called) {
-    throw new Error(`${hook} did not invoke its callback`);
-  }
-  return { record, error };
+import { normalizeSource, normalizeCategory, normalizeCrosswalk, normalizeMapping, normalizeSyncRun, isAllowedSyncRunTransition } from '../../src/persistence/vocabulary/normalization';
+const normalize = { figsharevocabularysource: normalizeSource, figsharevocabularycategory: normalizeCategory, figsharevocabularycrosswalk: normalizeCrosswalk, figsharevocabularycrosswalkmapping: normalizeMapping, figsharevocabularysyncrun: normalizeSyncRun };
+function runHook(collection: any, hook: string, record: Record<string, unknown>) {
+  try { normalize[collection](record, hook === 'beforeCreate'); return { record, error: undefined }; }
+  catch(error) { return { record, error: error as Error }; }
 }
-
 function expectOk(result: { error?: Error }): void {
   expect(result.error, result.error?.message).to.be.undefined;
 }
 
-describe('Figshare vocabulary waterline models', () => {
+describe('Figshare vocabulary normalization', () => {
   before(async () => {
     const chai = await import('chai');
     expect = chai.expect;
@@ -54,7 +28,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('trims the required string fields on create', () => {
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', valid());
+      const result = runHook('figsharevocabularysource', 'beforeCreate', valid());
 
       expectOk(result);
       expect(result.record).to.deep.include({
@@ -66,14 +40,14 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('lowercases and trims the scope', () => {
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', { ...valid(), scope: ' ACCOUNT ' });
+      const result = runHook('figsharevocabularysource', 'beforeCreate', { ...valid(), scope: ' ACCOUNT ' });
 
       expectOk(result);
       expect(result.record.scope).to.equal('account');
     });
 
     it('rejects an unsupported scope', () => {
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', { ...valid(), scope: 'private' });
+      const result = runHook('figsharevocabularysource', 'beforeCreate', { ...valid(), scope: 'private' });
 
       expect(result.error?.message).to.match(/scope must be one of: public, account/);
     });
@@ -82,7 +56,7 @@ describe('Figshare vocabulary waterline models', () => {
       const record = valid() as Record<string, unknown>;
       delete record.displayName;
 
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', record);
+      const result = runHook('figsharevocabularysource', 'beforeCreate', record);
 
       expect(result.error?.message).to.match(/displayName is required/);
       expect((result.error as any)?.code).to.equal('E_INVALID_NEW_RECORD');
@@ -92,32 +66,32 @@ describe('Figshare vocabulary waterline models', () => {
       const record = valid() as Record<string, unknown>;
       delete record.scope;
 
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', record);
+      const result = runHook('figsharevocabularysource', 'beforeCreate', record);
 
       expect(result.error?.message).to.match(/scope is required/);
     });
 
     it('rejects a create with a blank required field', () => {
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', { ...valid(), displayName: '   ' });
+      const result = runHook('figsharevocabularysource', 'beforeCreate', { ...valid(), displayName: '   ' });
 
       expect((result.error as any)?.code).to.equal('E_INVALID_NEW_RECORD');
     });
 
     it('allows a partial update that omits every field', () => {
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeUpdate', { archived: true });
+      const result = runHook('figsharevocabularysource', 'beforeUpdate', { archived: true });
 
       expectOk(result);
     });
 
     it('rejects an update that blanks a required field', () => {
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeUpdate', { displayName: '  ' });
+      const result = runHook('figsharevocabularysource', 'beforeUpdate', { displayName: '  ' });
 
       expect(result.error?.message).to.match(/displayName is required/);
       expect((result.error as any)?.code).to.equal('E_INVALID_VALUES_TO_SET');
     });
 
     it('normalises the scope on update', () => {
-      const result = runHook(FigshareVocabularySourceWLDef, 'beforeUpdate', { scope: 'PUBLIC' });
+      const result = runHook('figsharevocabularysource', 'beforeUpdate', { scope: 'PUBLIC' });
 
       expectOk(result);
       expect(result.record.scope).to.equal('public');
@@ -137,21 +111,21 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('trims strings and coerces the category id to a number', () => {
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', valid());
+      const result = runHook('figsharevocabularycategory', 'beforeCreate', valid());
 
       expectOk(result);
       expect(result.record).to.deep.include({ sourceId: '3101', taxonomyId: '5', categoryId: 42 });
     });
 
     it('trims a supplied parent source id and leaves an explicit null alone', () => {
-      const withParent = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', {
+      const withParent = runHook('figsharevocabularycategory', 'beforeCreate', {
         ...valid(),
         parentSourceId: ' 31 ',
       });
       expectOk(withParent);
       expect(withParent.record.parentSourceId).to.equal('31');
 
-      const rootTerm = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', {
+      const rootTerm = runHook('figsharevocabularycategory', 'beforeCreate', {
         ...valid(),
         parentSourceId: null,
       });
@@ -161,10 +135,10 @@ describe('Figshare vocabulary waterline models', () => {
 
     it('rejects a non-positive or non-integer category id', () => {
       expect(
-        runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', { ...valid(), categoryId: 0 }).error?.message
+        runHook('figsharevocabularycategory', 'beforeCreate', { ...valid(), categoryId: 0 }).error?.message
       ).to.match(/categoryId must be a positive integer/);
       expect(
-        runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', { ...valid(), categoryId: 1.5 }).error?.message
+        runHook('figsharevocabularycategory', 'beforeCreate', { ...valid(), categoryId: 1.5 }).error?.message
       ).to.match(/categoryId must be a positive integer/);
     });
 
@@ -172,32 +146,32 @@ describe('Figshare vocabulary waterline models', () => {
       const record = valid() as Record<string, unknown>;
       delete record.categoryId;
 
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', record);
+      const result = runHook('figsharevocabularycategory', 'beforeCreate', record);
 
       expect(result.error?.message).to.match(/categoryId is required/);
     });
 
     it('allows an update that omits the category id', () => {
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeUpdate', { lastSeenAt: '2026-02-01T00:00:00Z' });
+      const result = runHook('figsharevocabularycategory', 'beforeUpdate', { lastSeenAt: '2026-02-01T00:00:00Z' });
 
       expectOk(result);
     });
 
     it('rejects a path that is not an array', () => {
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', { ...valid(), path: '31/3101' });
+      const result = runHook('figsharevocabularycategory', 'beforeCreate', { ...valid(), path: '31/3101' });
 
       expect(result.error?.message).to.match(/path must be an array of sourceIds/);
     });
 
     it('accepts an array path', () => {
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', { ...valid(), path: ['31', '3101'] });
+      const result = runHook('figsharevocabularycategory', 'beforeCreate', { ...valid(), path: ['31', '3101'] });
 
       expectOk(result);
       expect(result.record.path).to.deep.equal(['31', '3101']);
     });
 
     it('coerces the selectable and historical flags to booleans', () => {
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', {
+      const result = runHook('figsharevocabularycategory', 'beforeCreate', {
         ...valid(),
         selectable: 'false',
         historical: 'true',
@@ -212,13 +186,13 @@ describe('Figshare vocabulary waterline models', () => {
       const record = valid() as Record<string, unknown>;
       delete record.firstSeenAt;
 
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', record);
+      const result = runHook('figsharevocabularycategory', 'beforeCreate', record);
 
       expect(result.error?.message).to.match(/firstSeenAt is required/);
     });
 
     it('rejects an update that blanks a required field', () => {
-      const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeUpdate', { contentHash: '  ' });
+      const result = runHook('figsharevocabularycategory', 'beforeUpdate', { contentHash: '  ' });
 
       expect((result.error as any)?.code).to.equal('E_INVALID_VALUES_TO_SET');
     });
@@ -234,21 +208,21 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('trims the name and updatedBy and defaults the status to draft', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', valid());
+      const result = runHook('figsharevocabularycrosswalk', 'beforeCreate', valid());
 
       expectOk(result);
       expect(result.record).to.deep.include({ name: 'ANZSRC map', updatedBy: 'admin', status: 'draft' });
     });
 
     it('lowercases a supplied status', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', { ...valid(), status: 'ARCHIVED' });
+      const result = runHook('figsharevocabularycrosswalk', 'beforeCreate', { ...valid(), status: 'ARCHIVED' });
 
       expectOk(result);
       expect(result.record.status).to.equal('archived');
     });
 
     it('rejects an unsupported status', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', { ...valid(), status: 'pending' });
+      const result = runHook('figsharevocabularycrosswalk', 'beforeCreate', { ...valid(), status: 'pending' });
 
       expect(result.error?.message).to.match(/status must be one of: draft, approved, archived/);
     });
@@ -256,38 +230,38 @@ describe('Figshare vocabulary waterline models', () => {
     it('rejects a create without a name or updatedBy', () => {
       const withoutName = valid() as Record<string, unknown>;
       delete withoutName.name;
-      expect(runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', withoutName).error?.message).to.match(
+      expect(runHook('figsharevocabularycrosswalk', 'beforeCreate', withoutName).error?.message).to.match(
         /name is required/
       );
 
       const withoutUpdatedBy = valid() as Record<string, unknown>;
       delete withoutUpdatedBy.updatedBy;
-      expect(runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', withoutUpdatedBy).error?.message).to.match(
+      expect(runHook('figsharevocabularycrosswalk', 'beforeCreate', withoutUpdatedBy).error?.message).to.match(
         /updatedBy is required/
       );
     });
 
     it('rejects blank name and updatedBy values', () => {
       expect(
-        runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', { ...valid(), name: '  ' }).error?.message
+        runHook('figsharevocabularycrosswalk', 'beforeCreate', { ...valid(), name: '  ' }).error?.message
       ).to.match(/name is required/);
-      expect(runHook(FigshareVocabularyCrosswalkWLDef, 'beforeUpdate', { updatedBy: '  ' }).error?.message).to.match(
+      expect(runHook('figsharevocabularycrosswalk', 'beforeUpdate', { updatedBy: '  ' }).error?.message).to.match(
         /updatedBy is required/
       );
-      expect(runHook(FigshareVocabularyCrosswalkWLDef, 'beforeUpdate', { name: '  ' }).error?.message).to.match(
+      expect(runHook('figsharevocabularycrosswalk', 'beforeUpdate', { name: '  ' }).error?.message).to.match(
         /name is required/
       );
     });
 
     it('leaves the status untouched on a partial update', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeUpdate', { approvedAt: 'now' });
+      const result = runHook('figsharevocabularycrosswalk', 'beforeUpdate', { approvedAt: 'now' });
 
       expectOk(result);
       expect(result.record.status).to.be.undefined;
     });
 
     it('coerces the revision fields to numbers and ignores nulls', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', {
+      const result = runHook('figsharevocabularycrosswalk', 'beforeCreate', {
         ...valid(),
         workingRevision: '3',
         approvedRevision: null,
@@ -300,15 +274,15 @@ describe('Figshare vocabulary waterline models', () => {
 
     it('rejects non-positive revisions', () => {
       expect(
-        runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', { ...valid(), workingRevision: 0 }).error?.message
+        runHook('figsharevocabularycrosswalk', 'beforeCreate', { ...valid(), workingRevision: 0 }).error?.message
       ).to.match(/workingRevision must be a positive integer/);
       expect(
-        runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', { ...valid(), approvedRevision: 'x' }).error?.message
+        runHook('figsharevocabularycrosswalk', 'beforeCreate', { ...valid(), approvedRevision: 'x' }).error?.message
       ).to.match(/approvedRevision must be a positive integer/);
     });
 
     it('rejects an approved revision ahead of the working revision', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', {
+      const result = runHook('figsharevocabularycrosswalk', 'beforeCreate', {
         ...valid(),
         workingRevision: 2,
         approvedRevision: 3,
@@ -318,7 +292,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('accepts an approved revision equal to the working revision', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', {
+      const result = runHook('figsharevocabularycrosswalk', 'beforeCreate', {
         ...valid(),
         status: 'approved',
         approvedBy: 'admin',
@@ -330,7 +304,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('requires approvedBy once the status is approved', () => {
-      const result = runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', { ...valid(), status: 'approved' });
+      const result = runHook('figsharevocabularycrosswalk', 'beforeCreate', { ...valid(), status: 'approved' });
 
       expect(result.error?.message).to.match(/approvedBy is required when status = approved/);
     });
@@ -346,7 +320,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('coerces the revision, defaults the status and normalises the match type', () => {
-      const result = runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', valid());
+      const result = runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', valid());
 
       expectOk(result);
       expect(result.record).to.deep.include({ revision: 2, status: 'proposed', matchType: 'exact-code' });
@@ -355,35 +329,35 @@ describe('Figshare vocabulary waterline models', () => {
     it('rejects a create without a revision or match type', () => {
       const withoutRevision = valid() as Record<string, unknown>;
       delete withoutRevision.revision;
-      expect(runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', withoutRevision).error?.message).to.match(
+      expect(runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', withoutRevision).error?.message).to.match(
         /revision is required/
       );
 
       const withoutMatchType = valid() as Record<string, unknown>;
       delete withoutMatchType.matchType;
       expect(
-        runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', withoutMatchType).error?.message
+        runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', withoutMatchType).error?.message
       ).to.match(/matchType is required/);
     });
 
     it('rejects a non-positive revision', () => {
-      const result = runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', { ...valid(), revision: -1 });
+      const result = runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', { ...valid(), revision: -1 });
 
       expect(result.error?.message).to.match(/revision must be a positive integer/);
     });
 
     it('rejects an unsupported status or match type', () => {
       expect(
-        runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', { ...valid(), status: 'maybe' }).error?.message
+        runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', { ...valid(), status: 'maybe' }).error?.message
       ).to.match(/status must be one of: proposed, approved, rejected/);
       expect(
-        runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', { ...valid(), matchType: 'fuzzy' }).error
+        runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', { ...valid(), matchType: 'fuzzy' }).error
           ?.message
       ).to.match(/matchType must be one of/);
     });
 
     it('requires approvedBy once the status is approved', () => {
-      const result = runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', {
+      const result = runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', {
         ...valid(),
         status: 'approved',
       });
@@ -392,7 +366,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('accepts an approved mapping with an approver', () => {
-      const result = runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', {
+      const result = runHook('figsharevocabularycrosswalkmapping', 'beforeCreate', {
         ...valid(),
         status: 'approved',
         approvedBy: 'admin',
@@ -402,7 +376,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('leaves an update that only touches evidence alone', () => {
-      const result = runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeUpdate', { evidence: { rule: 'manual' } });
+      const result = runHook('figsharevocabularycrosswalkmapping', 'beforeUpdate', { evidence: { rule: 'manual' } });
 
       expectOk(result);
       expect(result.record.status).to.be.undefined;
@@ -410,7 +384,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects an update that sets an unsupported match type', () => {
-      const result = runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeUpdate', { matchType: 'fuzzy' });
+      const result = runHook('figsharevocabularycrosswalkmapping', 'beforeUpdate', { matchType: 'fuzzy' });
 
       expect(result.error?.message).to.match(/matchType must be one of/);
     });
@@ -427,7 +401,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('defaults the state to fetching and normalises the scope and strings', () => {
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', valid());
+      const result = runHook('figsharevocabularysyncrun', 'beforeCreate', valid());
 
       expectOk(result);
       expect(result.record).to.deep.include({
@@ -441,20 +415,20 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('lowercases an explicit state', () => {
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', { ...valid(), state: 'PREVIEWED' });
+      const result = runHook('figsharevocabularysyncrun', 'beforeCreate', { ...valid(), state: 'PREVIEWED' });
 
       expectOk(result);
       expect(result.record.state).to.equal('previewed');
     });
 
     it('rejects an unsupported state', () => {
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', { ...valid(), state: 'paused' });
+      const result = runHook('figsharevocabularysyncrun', 'beforeCreate', { ...valid(), state: 'paused' });
 
       expect(result.error?.message).to.match(/state must be one of/);
     });
 
     it('rejects an unsupported scope', () => {
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', { ...valid(), scope: 'private' });
+      const result = runHook('figsharevocabularysyncrun', 'beforeCreate', { ...valid(), scope: 'private' });
 
       expect(result.error?.message).to.match(/scope must be one of: public, account/);
     });
@@ -463,7 +437,7 @@ describe('Figshare vocabulary waterline models', () => {
       const record = valid() as Record<string, unknown>;
       delete record.scope;
 
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', record);
+      const result = runHook('figsharevocabularysyncrun', 'beforeCreate', record);
 
       expect(result.error?.message).to.match(/scope is required/);
     });
@@ -472,19 +446,19 @@ describe('Figshare vocabulary waterline models', () => {
       const record = valid() as Record<string, unknown>;
       delete record.expiresAt;
 
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', record);
+      const result = runHook('figsharevocabularysyncrun', 'beforeCreate', record);
 
       expect(result.error?.message).to.match(/expiresAt is required/);
     });
 
     it('rejects an update that blanks a required field', () => {
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeUpdate', { requestedBy: '   ' });
+      const result = runHook('figsharevocabularysyncrun', 'beforeUpdate', { requestedBy: '   ' });
 
       expect(result.error?.message).to.match(/requestedBy is required/);
     });
 
     it('allows a partial update that only sets the state', () => {
-      const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeUpdate', { state: 'applied' });
+      const result = runHook('figsharevocabularysyncrun', 'beforeUpdate', { state: 'applied' });
 
       expectOk(result);
       expect(result.record.state).to.equal('applied');

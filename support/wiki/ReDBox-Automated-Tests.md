@@ -43,8 +43,8 @@ These tests run the Sails.js backend logic in a Docker container.
     - DOI live tests use `datacite_username`, `datacite_password`, `datacite_doiPrefix`, and optional `datacite_baseUrl` when you need to point at a different Datacite host.
     - **Fast Mode**: Use `npm run test:mocha:mount` to mount your local source into the container for dev and avoid image rebuilds.
     - **CI Mode**: `npm run test:mocha` runs against the locally built image (the CircleCI path).
-    - **Custom Paths**: Provide additional test globs via CLI args or the `RBPORTAL_MOCHA_TEST_PATHS` env var (space-delimited). Both are combined.
-      - Example: `RBPORTAL_MOCHA_TEST_PATHS="test/integration/**/auth*.test.ts" npm run test:mocha`
+    - **Custom Paths**: Provide additional test globs via CLI args or the `RBPORTAL_MOCHA_TEST_PATHS` env var (newline-delimited). Both are combined.
+      - Example (Bash/Zsh): `RBPORTAL_MOCHA_TEST_PATHS=$'test/integration/services/CacheService.test.ts\ntest/integration/services/BrandingService.test.ts' npm run test:mocha`
       - Example live run: `RUN_LIVE_INTEGRATION_TESTS=true RBPORTAL_MOCHA_TEST_PATHS="test/integration/services/FormVocabularyService.test.ts" npm run test:mocha:mount`
 
 Relevant current coverage includes `test/integration/services/AdminUserManagementAjax.test.ts`, which verifies the CSRF-backed admin user-management AJAX routes for link-candidate search, linking, linked-account retrieval, disable/enable, and user-audit retrieval.
@@ -100,6 +100,12 @@ Some packages have their own independent test suites.
 
 ## Continuous Integration
 Tests are automatically run in CircleCI on every push. API route validation and OpenAPI generation now run in a dedicated `generate-api-docs` job that builds redbox-core first, while the main build job stays focused on linting and runtime image packaging. See `.circleci/config.yml` for the full pipeline definition.
+
+For Skipper multipart upload fixtures, put optimistic-concurrency text fields
+(such as `expectedDraftRevision`) **before** the file part. The file upload
+callback can complete before trailing text fields are available, producing a
+revision conflict before the intended validation. Keep the same order in local
+Bruno collections copied for targeted runs.
 
 ### 6. Playwright regression suite
 

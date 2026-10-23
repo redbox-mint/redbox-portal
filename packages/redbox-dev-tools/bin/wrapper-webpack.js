@@ -31,7 +31,8 @@ const ensureTsNode = () => {
 let defineWebpackHook;
 if (!defineWebpackHook) {
   try {
-    defineWebpackHook = require('@researchdatabox/redbox-core/dist/hooks/webpack').defineWebpackHook;
+    const core = getRedboxCore();
+    defineWebpackHook = core && core.defineWebpackHook;
   } catch (e) {}
 }
 if (!defineWebpackHook && ensureTsNode()) {
@@ -59,8 +60,8 @@ try {
 }
 if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {
   try {
-    const distWebpack = require('@researchdatabox/redbox-core/dist/config/webpack.config');
-    webpackConfig = distWebpack && distWebpack.webpack ? distWebpack.webpack.config : distWebpack.config || distWebpack;
+    const core = getRedboxCore();
+    webpackConfig = core && core.Config && core.Config.webpack.config;
   } catch (e) {}
 }
 if (!webpackConfig || (Array.isArray(webpackConfig) && webpackConfig.length === 0)) {

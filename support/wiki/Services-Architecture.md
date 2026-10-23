@@ -66,7 +66,7 @@ export module Services {
 | `exports()` | Returns object with bound methods for Sails.js |
 | `logger` | Access to sails.log or fallback console logger |
 | `updateChronicle(info, errors, level)` | Adds safe summaries to the current HTTP request; uses namespace logging for background work. See [Request Chronicle Logging](Request-Chronicle-Logging). |
-| `getObservable()` | Wraps Waterline promises in RxJS Observables |
+| `getObservable()` | Wraps asynchronous operations in RxJS Observables |
 
 ## ServiceExports Object
 
@@ -75,7 +75,7 @@ The `ServiceExports` object in `src/services/index.ts` provides lazy-instantiate
 ```typescript
 export const ServiceExports = {
     get RecordsService() {
-        return getOrCreateService('RecordsService', 
+        return getOrCreateService('RecordsService',
             () => new RecordsServiceModule.Services.Records().exports()
         );
     },
@@ -208,7 +208,7 @@ export module Controllers {
 
         public async getRecord(req, res) {
             const oid = req.param('oid');
-            
+
             // Use services directly
             RecordsService.getMeta(oid).subscribe(
                 record => res.json(record),
@@ -318,7 +318,7 @@ public getRecordWithRelated(oid: string): Observable<any> {
     return this.getMeta(oid).pipe(
         mergeMap(record => {
             const relatedOid = record.metadata.relatedRecord;
-            return relatedOid 
+            return relatedOid
                 ? this.getMeta(relatedOid).pipe(
                     map(related => ({ ...record, related }))
                   )
@@ -332,23 +332,13 @@ public getRecordWithRelated(oid: string): Observable<any> {
 }
 ```
 
-### Waterline Model Access
+### Repository access
 
-Services access Waterline models via globals:
-
-```typescript
-declare var User: Model;
-declare var Record: Model;
-
-public async findUser(username: string): Promise<any> {
-    return await User.findOne({ username });
-}
-
-// Or using the Observable wrapper from base class
-public findUserObs(username: string): Observable<any> {
-    return this.getObservable(User.findOne({ username }));
-}
-```
+Services resolve the plain repository for their domain after initialization.
+For example, `getIdentityRepositories().one('user', { username })` returns a
+credential-safe user snapshot. Model globals and `sails.models` are removed.
+Hooks migrate behavior through service/repository seams; see
+[Persistence Migration](Persistence-Migration.md).
 
 ### Configuration Access
 
@@ -376,7 +366,7 @@ The adapter must implement native atomic active update/removal and conditional
 tombstone update/removal, return the committed or removed revision/state, and
 certify bounded non-application reasons. Supplied expected revisions are never
 ignored. A driver throw or unrecognized result after dispatch remains
-`unknown`; do not fall back to an OID-only Waterline write.
+`unknown`; report the uncertain result for reconciliation.
 
 Verify those guarantees against the adapter's real datastore dialect before
 declaring capability. The bundled Mongo integration tests and
@@ -403,7 +393,7 @@ describe('CacheService', () => {
     it('should cache and retrieve values', async () => {
         await service.bootstrap();
         service.set('testKey', { data: 'value' });
-        
+
         service.get('testKey').subscribe(result => {
             expect(result).toEqual({ data: 'value' });
         });
@@ -452,3 +442,10 @@ cat api/services/RecordsService.js
 - [Redbox Loader](Redbox-Loader) - Shim generation system
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Architecture Overview](Architecture-Overview) - System architecture
+
+## Persistence boundaries
+
+All persistence domains use Prisma behind plain repository contracts. Keep imports
+and service registration offline and resolve repositories lazily after startup.
+See [persistence migration](Persistence-Migration.md) for institution extension
+fields, configuration, ownership and lifecycle requirements.

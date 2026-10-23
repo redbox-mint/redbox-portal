@@ -1,0 +1,22 @@
+http-waterline-final.log (selected output)
+P5 Bruno requested cache backend=waterline
+│ Requests      │ 35 (35 Passed) │
+│ Tests         │     48/48      │
+│ Requests      │ 18 (18 Passed) │
+│ Tests         │     25/25      │
+P5 Playwright active cache backend=waterline
+  1 passed (15.2s)
+http-prisma-api-pass-browser-origin.log (selected output)
+P5 Bruno requested cache backend=prisma
+│ Requests      │ 35 (35 Passed) │
+│ Tests         │     48/48      │
+│ Requests      │ 18 (18 Passed) │
+│ Tests         │     25/25      │
+P5 Playwright active cache backend=prisma
+http-prisma-browser-final.log (selected output)
+P5 Playwright active cache backend=prisma
+  1 passed (14.2s)
+Final waterline portal lift assertion
+redboxportal-mount-1  | P5 HTTP active cache backend=waterline adapter=WaterlineCacheEntryRepository
+Final prisma portal lift assertion
+redboxportal-mount-1  | P5 HTTP active cache backend=prisma adapter=PrismaCacheEntryRepository

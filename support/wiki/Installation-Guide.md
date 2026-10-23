@@ -93,3 +93,7 @@ When moving from an evaluation setup to a production environment, consider the f
 - **Regular Updates**: Keep your Docker images, RedBox Portal application, and all dependencies up to date to ensure you have the latest features and security patches.
 
 By following these considerations, you can ensure a stable and secure production environment for your RedBox Portal deployment.
+
+## Existing databases and persistence migration
+
+Follow [institution persistence migration](Persistence-Migration.md) and [backup/recovery](Cache-Persistence-Recovery.md) before upgrading an existing MongoDB deployment. Prisma is the sole backend for application persistence, including the cache; GridFS bytes continue to use the MongoDB driver. Remove retired backend selectors and Waterline model/ORM settings before startup, which rejects them. New-stack image selection is not an upgrade/downgrade procedure. Existing volumes do not rerun Mongo init scripts and require explicit index preparation before application startup.

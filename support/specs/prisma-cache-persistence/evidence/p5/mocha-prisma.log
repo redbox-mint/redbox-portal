@@ -1,0 +1,26 @@
+Requested backend=prisma; full standard run-mocha-redbox.sh with selected three suites.
+ Network redbox-cache-p5-mocha-prisma-815a2a6e_main Creating
+ Network redbox-cache-p5-mocha-prisma-815a2a6e_main Created
+redboxportal-mount-1  |     ✔ should return non-null fresh data, null on non-existent data
+redboxportal-mount-1  |     ✔ persists best-effort creates and updates for a separate cache instance
+redboxportal-mount-1  |     ✔ should have one brand
+redboxportal-mount-1  |     ✔ should return the default brand
+redboxportal-mount-1  |     ✔ should resolve the correct brand and portal
+redboxportal-mount-1  |       ✔ saveDraft accepts valid variables and rejects invalid keys
+redboxportal-mount-1  |       ✔ preview issues token and stores CSS
+redboxportal-mount-1  |       ✔ preview token expires after TTL
+redboxportal-mount-1  |       ✔ publish bumps version, changes hash, creates history + restore works
+redboxportal-mount-1  | P5 portal active cache backend=prisma
+redboxportal-mount-1  |     ✔ awaits draft persistence, returns scoped content, deletes a valid token and preserves the missing-token error
+redboxportal-mount-1  |     ✔ deletes an expired preview before returning the unchanged expiry error
+redboxportal-mount-1  |     ✔ preserves HTTP CSS responses and 404 bodies for valid, consumed, expired and missing tokens
+redboxportal-mount-1  |     ✔ previews retained versions without changing the draft and rejects versions belonging to another brand
+redboxportal-mount-1  |   13 passing (3m)
+redboxportal-mount-1 exited with code 0
+ Container redbox-cache-p5-mocha-prisma-815a2a6e-redboxportal-mount-1 Removed
+ Container redbox-cache-p5-mocha-prisma-815a2a6e-email-1 Removed
+ Container redbox-cache-p5-mocha-prisma-815a2a6e-mongodb-1 Removed
+ Container redbox-cache-p5-mocha-prisma-815a2a6e-solr-1 Removed
+ Container redbox-cache-p5-mocha-prisma-815a2a6e-keycloak-1 Removed
+ Network redbox-cache-p5-mocha-prisma-815a2a6e_main Removing
+ Network redbox-cache-p5-mocha-prisma-815a2a6e_main Removed

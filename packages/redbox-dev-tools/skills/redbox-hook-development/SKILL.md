@@ -22,7 +22,6 @@ ReDBox hooks are NPM packages that extend or customize ReDBox functionality. The
 
 Declared in `package.json` under the `sails` key:
 
-- `hasModels`: Provides Waterline models.
 - `hasPolicies`: Provides Sails policies.
 - `hasServices`: Provides business logic services (can override core).
 - `hasControllers`: Provides internal/app controllers (Sails controllers used by the portal).
@@ -34,7 +33,6 @@ Declared in `package.json` under the `sails` key:
 
 The hook's main entry point (usually `index.ts` compiled to `index.js`) must export registration functions **only** for the capabilities enabled in `package.json`:
 
-- `registerRedboxModels()` — required when `hasModels` is `true`.
 - `registerRedboxPolicies()` — required when `hasPolicies` is `true`.
 - `registerRedboxServices()` — required when `hasServices` is `true`.
 - `registerRedboxControllers()` — required when `hasControllers` is `true` (internal/app controllers).
@@ -50,16 +48,10 @@ The `redbox-dev-tools` CLI simplifies hook development:
 
 - Use `init` to scaffold a new project.
 - Use generators to add components (controllers, services, etc.).
-- Use `redbox-dev-tools generate model` to add Waterline models.
 
-## Generating Models
+## Persistence extensions
 
-Use the `redbox-dev-tools` CLI generator `generate model`:
-
-- `--identity <identity>`: Waterline identity (table name), defaults to lowercase name.
-- `--attrs <attrs>`: Comma-separated list of attributes (e.g. `name:string:required,age:number`).
-- `--belongs-to <associations>`: Comma-separated belongsTo associations (e.g. `owner:user`).
-- `--has-many <associations>`: Comma-separated hasMany associations (e.g. `pets:animal:owner`).
+Use ReDBox repository/service interfaces and declared Prisma contract fields. Model registration, decorators, globals and generated model shims are removed. Remove `hasModels` and `registerRedboxModels`; stale registrations block startup. Port callbacks to services and qualify partial failures. See `support/wiki/Persistence-Migration.md`.
 
 ## Overriding Core Components
 

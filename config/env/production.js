@@ -11,16 +11,6 @@
  */
 
 module.exports = {
-
-  /***************************************************************************
-   * Set the default database connection for models in the production        *
-   * environment (see config/connections.js and config/models.js )           *
-   ***************************************************************************/
-
-  // models: {
-  //   connection: 'someMysqlServer'
-  // },
-
   /***************************************************************************
    * Set the port in the production environment to 80                        *
    ***************************************************************************/
@@ -36,6 +26,6 @@ module.exports = {
   // }
   db: {
     waitRetries: 5,
-    waitSleep: 10000
-  }
+    waitSleep: 10000,
+  },
 };

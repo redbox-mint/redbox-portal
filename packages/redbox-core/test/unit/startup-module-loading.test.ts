@@ -16,8 +16,10 @@ describe('startup module loading', function () {
         `
         const assert = require('node:assert/strict');
         const core = require('./src');
+        assert.equal(Object.keys(require.cache).some(file => file.includes('/@prisma/orm-mongo/')), false);
         assert.equal(Object.keys(require.cache).some(file => file.includes('/jsdom/')), false);
         assert.equal(Boolean(require.cache[require.resolve('effect')]), false);
+        assert.equal(Object.keys(require.cache).some(file => /\\/persistence\\/(migration|reference|configuration|progress|harvest|siem|figshare|vocabulary|branding|identity|storage)\\/(Prisma|physical|preflight|validation)/.test(file)), false);
         const html = require('./src/utilities/TranslationHtml');
         assert.equal(html.sanitizeTranslationHtml('<p onclick="bad()">Hello</p>'), '<p>Hello</p>');
         const purifier = globalThis.DOMPurify;

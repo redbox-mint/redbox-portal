@@ -24,3 +24,7 @@ Welcome to our Development Guide! This resource aims to help developers effectiv
 - **[Using a Sails Hook to customise ReDBox](https://github.com/redbox-mint/redbox-portal/wiki/Using-a-Sails-Hook-to-customise-ReDBox)**: Creating hooks to extend ReDBox functionality.
 
 Dive into each section for detailed instructions and best practices.
+
+## Cache persistence
+
+Read [cache architecture and build guidance](Cache-Persistence.md) before rebuilding core, and [existing-volume index preparation](Persistence-Index-Preparation.md) before restarting a pre-existing development database with Prisma persistence. Mongo init scripts run only on empty volumes. Review [institution migration](Persistence-Migration.md) for retired model callbacks and mapping overrides.

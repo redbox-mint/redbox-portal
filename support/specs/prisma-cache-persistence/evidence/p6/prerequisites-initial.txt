@@ -1,0 +1,50 @@
+
+
+  opt-in Prisma cache runtime on isolated authenticated MongoDB 8
+error: A hook (`orm`) failed to load!
+    1) "before all" hook for "blocks missing index, creates it only explicitly and idempotently, then initializes exactly once"
+    2) "after all" hook for "closes partial initialization, repeats startup/cleanup, and preserves shutdown hooks and borrowed connections"
+
+
+  0 passing (3s)
+  2 failing
+
+  1) opt-in Prisma cache runtime on isolated authenticated MongoDB 8
+       "before all" hook for "blocks missing index, creates it only explicitly and idempotently, then initializes exactly once":
+     Error: Consistency violation: Unexpected error creating db connection manager:
+```
+MongoServerSelectionError: Server selection timed out after 500 ms
+    at AbortSignal.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/sails-mongo/node_modules/mongodb/src/sdam/topology.ts:568:28)
+    at AbortSignal.[nodejs.internal.kHybridDispatch] (node:internal/event_target:843:20)
+    at AbortSignal.dispatchEvent (node:internal/event_target:776:26)
+    at runAbort (node:internal/abort_controller:547:10)
+    at abortSignal (node:internal/abort_controller:518:3)
+    at TimeoutController.abort (node:internal/abort_controller:566:5)
+    at Timeout.<anonymous> (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/sails-mongo/node_modules/mongodb/src/utils.ts:1273:61)
+    at listOnTimeout (node:internal/timers:605:17)
+    at processTimers (node:internal/timers:541:7)
+```
+      at Object.error (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/sails-mongo/lib/index.js:268:21)
+      at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/machine/lib/private/help-build-machine.js:1514:39
+      at proceedToFinalAfterExecLC (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/parley/lib/private/Deferred.js:1153:14)
+      at proceedToInterceptsAndChecks (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/parley/lib/private/Deferred.js:913:12)
+      at proceedToAfterExecSpinlocks (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/parley/lib/private/Deferred.js:845:10)
+      at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/parley/lib/private/Deferred.js:303:7
+      at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/machine/lib/private/help-build-machine.js:952:35
+      at handlerCbs.error (/mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/machine/lib/private/help-build-machine.js:742:26)
+      at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/sails-mongo/lib/private/machines/create-manager.js:131:22
+      at /mnt/docker-storage/t3/worktrees/redbox-portal/t3-815a2a6e/node_modules/sails-mongo/lib/private/machines/create-manager.js:129:168
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+  2) opt-in Prisma cache runtime on isolated authenticated MongoDB 8
+       "after all" hook for "closes partial initialization, repeats startup/cleanup, and preserves shutdown hooks and borrowed connections":
+     CachePersistenceError: Prisma cache cannot use the application datastore configuration. Check its URL, database, TLS and supported MongoDB driver options.
+      at createApplicationCacheDriver (src/persistence/cache/configuration.ts:171:11)
+      at withCacheDriver (src/persistence/cache/preflight.ts:98:46)
+      at Object.ensureCachePersistenceIndex (src/persistence/cache/preflight.ts:118:3)
+      at Context.<anonymous> (test/integration/CacheEntryPrisma.test.ts:123:21)
+      at processImmediate (node:internal/timers:504:21)
+
+
+
+Terminated

@@ -44,8 +44,13 @@ describe('cache persistence selection and lifecycle', function () {
       .stub(preflight, 'inspectCachePersistence')
       .resolves({ index: 'ready', mongoMajor: 9, duplicateNameGroups: 0 } as any);
   });
-  it('accepts model configuration while the cache uses Prisma', () => {
-    assertPersistenceConfiguration({ models: { migrate: 'safe' } });
+  it('defaults to Prisma and rejects every obsolete explicit selector', () => {
+    assertPersistenceConfiguration({});
+    for (const backend of ['waterline', 'mongodb', 'prisma'])
+      assert.throws(
+        () => assertPersistenceConfiguration({ persistence: { cache: { backend } } }),
+        /selectors have been removed/
+      );
   });
 
   it('requires explicit initialization, reuses one repository per app, and uses the Prisma owner', async function () {

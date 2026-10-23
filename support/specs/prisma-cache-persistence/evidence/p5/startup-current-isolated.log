@@ -1,0 +1,17 @@
+
+
+  startup module loading
+    1) loads core without a browser DOM or the full Effect barrel, then sanitizes on first use
+
+
+  0 passing (12s)
+  1 failing
+
+  1) startup module loading
+       loads core without a browser DOM or the full Effect barrel, then sanitizes on first use:
+     AssertionError [ERR_ASSERTION]: spawnSync /home/andrew/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT
+
+null !== 0
+
+      at Context.<anonymous> (packages/redbox-core/test/unit/startup-module-loading.test.ts:36:12)
+      at processImmediate (node:internal/timers:504:21)

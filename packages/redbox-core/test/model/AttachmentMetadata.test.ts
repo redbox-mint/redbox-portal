@@ -1,25 +1,13 @@
 let expect: Chai.ExpectStatic;
-import { AttachmentMetadataWLDef } from '../../src/waterline-models/AttachmentMetadata';
 
-type WaterlineDef = {
-  attributes?: Record<string, { allowNull?: boolean }>;
-  beforeCreate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
-  beforeUpdate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
-};
-
-function runHook(
-  def: WaterlineDef,
-  hook: 'beforeCreate' | 'beforeUpdate',
-  record: Record<string, unknown>
-): { record: Record<string, unknown>; error?: Error } {
-  let error: Error | undefined;
-  def[hook]!(record, caught => {
-    error = caught;
-  });
-  return { record, error };
+import { normalizeAttachmentMetadata } from '../../src/persistence/storage/attachmentNormalization';
+const AttachmentMetadataContract = {};
+function runHook(_def: unknown, hook: string, record: Record<string, unknown>) {
+  try { normalizeAttachmentMetadata(record, hook === 'beforeCreate'); return { record, error: undefined }; }
+  catch(error) { return { record, error: error as Error }; }
 }
 
-describe('AttachmentMetadata waterline model', function () {
+describe('AttachmentMetadata normalization', function () {
   before(async function () {
     const chai = await import('chai');
     expect = chai.expect;
@@ -33,24 +21,8 @@ describe('AttachmentMetadata waterline model', function () {
     };
   }
 
-  it('allows null for optional attachment coordination metadata', function () {
-    const nullableFields = [
-      'attachmentId',
-      'generation',
-      'mutationFileId',
-      'coordinationToken',
-      'lastAttemptAt',
-      'coordinationLeaseExpiresAt',
-      'lastSafeErrorCode',
-    ];
-
-    for (const field of nullableFields) {
-      expect(AttachmentMetadataWLDef.attributes?.[field]?.allowNull, field).to.equal(true);
-    }
-  });
-
   it('normalizes journal metadata and access counters on create', function () {
-    const result = runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+    const result = runHook(AttachmentMetadataContract, 'beforeCreate', {
       ...valid(),
       accessCount: 'not-a-number',
       isJournal: 1,
@@ -76,7 +48,7 @@ describe('AttachmentMetadata waterline model', function () {
   });
 
   it('normalizes valid partial updates and clears invalid optional values', function () {
-    const result = runHook(AttachmentMetadataWLDef, 'beforeUpdate', {
+    const result = runHook(AttachmentMetadataContract, 'beforeUpdate', {
       accessCount: Infinity,
       isJournal: true,
       attachmentId: '   ',
@@ -100,18 +72,18 @@ describe('AttachmentMetadata waterline model', function () {
 
   it('rejects invalid journal identifiers and states', function () {
     expect(
-      runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+      runHook(AttachmentMetadataContract, 'beforeCreate', {
         ...valid(),
         attachmentId: 'bad id',
       }).error?.message
     ).to.match(/attachmentId must be a bounded identifier/);
     expect(
-      runHook(AttachmentMetadataWLDef, 'beforeUpdate', {
+      runHook(AttachmentMetadataContract, 'beforeUpdate', {
         operation: 'replace',
       }).error?.message
     ).to.match(/operation is invalid/);
     expect(
-      runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+      runHook(AttachmentMetadataContract, 'beforeCreate', {
         ...valid(),
         mutationState: 'running',
       }).error?.message
@@ -120,13 +92,13 @@ describe('AttachmentMetadata waterline model', function () {
 
   it('enforces required physical identity on create and update', function () {
     expect(
-      runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+      runHook(AttachmentMetadataContract, 'beforeCreate', {
         fileId: 'file-1',
         storageKey: 'key-1',
       }).error?.message
     ).to.match(/oid is required/);
     expect(
-      runHook(AttachmentMetadataWLDef, 'beforeUpdate', {
+      runHook(AttachmentMetadataContract, 'beforeUpdate', {
         storageKey: '   ',
       }).error?.message
     ).to.match(/storageKey is required/);
