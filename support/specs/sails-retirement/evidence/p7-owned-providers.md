@@ -52,3 +52,53 @@ No existing test, assertion or timeout was edited.
 These changes remove an actual production collaborator prerequisite; complete
 record-operation registration, provider assembly, production HTTP startup and
 broad P7 acceptance remain open.
+
+## Security-event capture, durable delivery and drain
+
+`integrations/SecurityEvents.ts` now owns capture/normalization/redaction,
+queue submission, persisted capture, ownership resolution and query operations.
+Inputs supply the existing SIEM repository, exact-brand lookup/configuration,
+queue, record lookup and log. It has explicit quiesce/drain/close and no request
+types, CoreService, globals or process handlers. Request context projection and
+the legacy shutdown callback live only in `compat/sails/securityEvents.ts`;
+`services/SecurityEventService.ts` retains the comparison facade.
+
+The unchanged existing suites `SecurityEventOwnership`,
+`SecurityEventCapturePrivacy` and `SiemServices` pass **37 / 0 failing /
+0 pending**, exit **0**, using Node **26.11.1** and the existing source Mocha
+invocation recorded above. Log: `security-events-existing.log`. Core TypeScript
+passes in `workflow-triggers-build-final.log`; focused lint and format pass.
+
+The real qualification uses Mongo **8.0.34**, actual Agenda **6.2.6**/Mongo
+backend, the actual repository/forwarding implementation, a local HTTP HEC receiver
+and the two existing core security job declarations/options:
+
+```sh
+SR_SECURITY_EVENTS_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_security_events \
+node --test packages/redbox-core/test/qualification/security-events.cjs
+```
+
+Result: **1 passing / 0 failing / 0 skipped**, exit **0**. One redacted security
+event and one successful delivery attempt persist, with `deliveryState=delivered`.
+Stop waits while the real collector response is held, then the accepted delivery
+persists before the repository/pools close. Late work is rejected and the compiled
+graph contains no Sails/CoreService/comparison imports. The temporary database
+and receiver are removed in finally. Log: `security-events-mongo-final.log`;
+aggregate body **1899.734864 ms**, natural process exit **62635.074847 ms**.
+
+The exit delay is the already recorded Agenda passive lock-watchdog limitation
+([P3](p3-lifecycle-config.md#sr-022--owned-queue)). Inspector observations after
+cleanup found only two native Promise timeout callbacks, not sockets, with
+`300000 ms` delays when the first new qualifier accidentally used library default
+lock lifetimes. It now selects the actual core declarations (store **30000 ms**,
+forward **120000 ms**), so natural exit waits about **60000 ms**. No force-exit,
+monkey patch, dependency change or existing-test timeout/skip change was used.
+Production operational qualification must still include these actual passive
+timer delays and the selected job lifetimes.
+
+Earlier development attempts: the first aggregate failed **0/1** because its
+owner omitted the SIEM group's existing `redboxStorage` datastore. It now supplies
+both explicit logical datastores. Type checking also caught an unknown record
+lookup being inferred as absent by a Lodash overload; explicit metadata narrowing
+fixes that boundary. Neither failure is counted as a passing run. This proves
+the extracted capture/delivery path, not the complete production portal/job set.
