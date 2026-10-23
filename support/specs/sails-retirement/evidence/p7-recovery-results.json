@@ -3,7 +3,7 @@
   "sourceRelease": "v5.0.4",
   "sourceCommit": "c1dda53999f3b026347008731f33dba834e06c27",
   "sourceImage": "sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9",
-  "componentSourceCommit": "4249667dcec90f49cf4302c77f0d568e2c1b4948",
+  "componentSourceCommit": "58f7cbbd60e23881cdfea9fbcb712ab2b01914ca",
   "qualificationDriverCommit": "cb10596b1",
   "sourceNode": "24.16.0",
   "componentNode": "26.11.1",
@@ -12,13 +12,13 @@
   "topology": "separate standalone core/storage Docker servers",
   "checkpoint": {
     "mode": "snapshot",
-    "collections": 25,
+    "collections": 24,
     "documents": 1895,
     "gridfs": true
   },
   "restored": {
     "mode": "verify",
-    "collections": 25,
+    "collections": 24,
     "documents": 1895,
     "gridfs": true
   },
@@ -46,9 +46,9 @@
     "localLogin": 200,
     "formsRequests": 20,
     "formsLatencyMs": {
-      "p50": 32.90647100000001,
-      "p95": 39.07577399999991,
-      "max": 55.06719100000009
+      "p50": 32.01305100000013,
+      "p95": 60.81980500000009,
+      "max": 96.25554599999998
     }
   },
   "recoveredProbe": {
@@ -57,20 +57,19 @@
     "localLogin": 200,
     "formsRequests": 20,
     "formsLatencyMs": {
-      "p50": 35.66920100000016,
-      "p95": 45.571815000000015,
-      "max": 50.728710999999976
+      "p50": 34.080562999999984,
+      "p95": 43.663828000000024,
+      "max": 44.387414000000035
     }
   },
   "startupSeconds": {
-    "source": 79,
-    "recovered": 11
+    "source": 104,
+    "recovered": 9
   },
   "stopSecondsGranularity": 1,
-  "stopsBelowOneSecond": true,
   "memoryMiB": {
-    "source": 533.3,
-    "recovered": 426.8
+    "source": 609.6,
+    "recovered": 430.8
   },
   "dumpTools": "100.19.1",
   "limitations": [
@@ -109,5 +108,27 @@
     "scopes": 102,
     "ownedPoolsAfterExit": 0,
     "ownedPrismaClientsAfterExit": 0
-  }
+  },
+  "previousComponentSourceCommit": "4249667dcec90f49cf4302c77f0d568e2c1b4948",
+  "logDirectory": "recovery-58f7cbb",
+  "stopSeconds": {
+    "source": 0,
+    "recovered": 1
+  },
+  "collectionCountVariation": {
+    "earlierOnly": [
+      {
+        "database": "redbox-portal",
+        "collection": "figsharesync",
+        "documents": 0
+      }
+    ],
+    "currentOnly": []
+  },
+  "fullProductionExpressPortal": false,
+  "ownedContainersRemoved": 4,
+  "ownedNetworkRemoved": true,
+  "sourceBundledRedboxHooks": [
+    "@researchdatabox/sails-hook-redbox-storage-mongo"
+  ]
 }

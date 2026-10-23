@@ -1,0 +1,58 @@
+{
+  "sourceCommit": "58f7cbbd60e23881cdfea9fbcb712ab2b01914ca",
+  "node": "26.11.1",
+  "npm": "11.20.0",
+  "mocha": "11.7.6",
+  "command": "npm run test:core",
+  "environmentInputs": [
+    "PERSISTENCE_TEST_MONGO_URL",
+    "P1_MONGO_URL",
+    "FIGSHARE_TEST_MONGO_URI",
+    "SIEM_TEST_MONGO_URL"
+  ],
+  "databases": [
+    "MongoDB 8.0.34; loopback 29511; nofile 64000",
+    "MongoDB 9.0.4; authenticated synthetic foundation fixture; loopback 29512; nofile 64000"
+  ],
+  "final": {
+    "passing": 4481,
+    "pending": 7,
+    "failing": 0,
+    "runnerExit": 0,
+    "ownedContainersRemoved": 2
+  },
+  "previouslyPendingNowExecuted": {
+    "foundation": 3,
+    "queuedFigshare": 51,
+    "siem": 7
+  },
+  "failuresBeforeFix": {
+    "passing": 4479,
+    "pending": 7,
+    "failing": 2,
+    "runnerExit": 2
+  },
+  "isolatedFoundationRed": {
+    "passing": 1,
+    "pending": 0,
+    "failing": 2
+  },
+  "isolatedFoundationGreen": {
+    "passing": 3,
+    "pending": 0,
+    "failing": 0
+  },
+  "sharedGroupsFinal": {
+    "passing": 11,
+    "pending": 0,
+    "failing": 0
+  },
+  "remainingExplicitPending": {
+    "raidContributors": 2,
+    "triggerTemplates": 2,
+    "workspaceHttp": 3
+  },
+  "existingTestsChanged": false,
+  "fullProductionExpressPortal": false,
+  "limitation": "Existing core suite uses legacy global setup. Full Bruno profiles, Playwright and root Mocha integration on an installed Express portal remain unexecuted."
+}

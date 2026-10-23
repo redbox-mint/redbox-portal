@@ -20,9 +20,12 @@ rehearsal passes. The missing institution designation is not their only open gat
 - Released Linux amd64 image:
   `qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9`.
   Its own runtime is **Node 24.16.0 / npm 11.13.0 / Sails 1.5.17**. Current
-  source mounts never replace its application, libraries or bundled hooks.
-- V6 component source starts at
-  `4249667dcec90f49cf4302c77f0d568e2c1b4948`; component helpers run on **Node
+  source mounts never replace its application, libraries or bundled hooks. Its
+  bundled ReDBox storage hook is Mongo; PDF is
+  absent from this released base image. The neutral storage extension runs in
+  the v6 component step. This does not qualify a full PDF/provider cutover.
+- Final v6 component source is
+  `58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`; component helpers run on **Node
   26.11.1 / npm 11.20.0**, Prisma ORM **8.0.0-rc.19**.
 - Separate physical MongoDB **8.0.34 / FCV 8.0** core/storage standalone Docker
   servers, image
@@ -52,9 +55,9 @@ The executable rehearsal is
 
 ```sh
 export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
-DOCKER_HOST=unix:///run/sr-p7-engine.sock \
-SR_P7_SCRATCH_ROOT=/mnt/docker-storage/sr-p7-clean-4249667/.tmp/recovery-scratch \
-SR_P7_RECOVERY_LOGS="$PWD/.tmp/sails-retirement/p7/recovery-reviewed" \
+DOCKER_HOST=unix:///var/run/docker.sock \
+SR_P7_SCRATCH_ROOT=/mnt/docker-storage/sr-p7-clean-4254c2e/.tmp/recovery-58f7cbb \
+SR_P7_RECOVERY_LOGS="$PWD/.tmp/sails-retirement/p7/recovery-58f7cbb" \
   bash support/integration-testing/rehearse-sails-retirement-recovery.sh
 ```
 
@@ -69,7 +72,7 @@ configuration and the released image containing the exact source packages/hooks.
 The source's runtime config is copied for audit. The writer-free dumps are a
 quiescent checkpoint, not an online atomic snapshot across independent servers.
 
-Next it runs the actual installed index entrypoint in inspect/ensure/inspect
+Next it runs the actual compiled core index entrypoint in inspect/ensure/inspect
 order, the bundled storage revision migration twice through the durable ledger,
 and a deliberately failing migration body that writes both databases without a
 success ledger entry. Identity/password/membership preservation and resource
@@ -121,36 +124,43 @@ here.
 
 ## Final executed result
 
-The complete `recovery-reviewed` invocation exited **0**, with no conditional
+The final corrected-source `recovery-58f7cbb` invocation exited **0**, with no conditional
 test skips. [Sanitized machine-readable results](p7-recovery-results.json) record
 the following actual outcomes:
 
 | Step | Result |
 | --- | --- |
 | Released-source public probes | Home **200**, JSON local admin login **200**, **20/20** authenticated forms requests **200**. |
-| Quiescent checkpoint | **25 collections / 1895 documents**; both databases, document/index checksums, real GridFS bytes, primary/staging bytes, configuration and saved exact source image. |
+| Quiescent checkpoint | **24 collections / 1895 documents**; both databases, document/index checksums, real GridFS bytes, primary/staging bytes, configuration and saved exact source image. |
 | Index preparation | Inspect exit **2**; reviewed nonunique OID index conversion; ensure and final inspect exit **0**, **102 scopes ready**. Each CLI reports **0 owned pools / 0 Prisma clients** after cleanup. |
 | Bundled revision migration | **1 migration**, **2 active records**, **0 tombstones**, **1 batch**; second run **0 pending**; password and **4 roles** preserved. |
 | Interrupted migration | Actual core collection insert and storage metadata update survive the thrown error; **no success ledger entry**; owner cleanup reaches **0 pools**. |
-| Restoration | Both databases rebuilt from complete native archives; **25 collections / 1895 documents**, every document/index checksum identical; exact GridFS/primary/staging/configuration bytes and original nonunique index restored; saved image loaded. **0 failed documents** in either restore. |
+| Restoration | Both databases rebuilt from complete native archives; **24 collections / 1895 documents**, every document/index checksum identical; exact GridFS/primary/staging/configuration bytes and original nonunique index restored; saved image loaded. **0 failed documents** in either restore. |
 | Recovered source probes | Same image: home **200**, JSON local admin login **200**, **20/20** forms requests **200**. |
-| Source and recovered stop | Both actual container exit codes **0**, no OOM; less than one second at the script's one-second resolution, after probes completed. This is not a busy v6 drain qualification. |
+| Source and recovered stop | Both actual container exit codes **0**, no OOM; **0 s / 1 s** at the script's one-second resolution, after probes completed. This is not a busy v6 drain qualification. |
 | Resource cleanup | Owned portal/Solr/Mongo containers, anonymous volumes and network removed; final owned-resource listings empty. Backup artifacts retained in the recorded scratch directory. |
 
 Native dump/restore tools: **100.19.1**, Git
 `9348e032419d906e40966f477278cce647b9b1eb`, Go **1.26.8**, Linux amd64.
-Observed source/recovered startup: **79 s / 11 s**. Container memory snapshots:
-**533.3 MiB / 426.8 MiB**. Forms latency over 20 sequential requests each:
-source p50 **32.906 ms**, p95 **39.076 ms**, max **55.067 ms**; recovered p50
-**35.669 ms**, p95 **45.572 ms**, max **50.729 ms**. These are loaded observations
+Observed source/recovered startup: **104 s / 9 s**. Container memory snapshots:
+**609.6 MiB / 430.8 MiB**. Forms latency over 20 sequential requests each:
+source p50 **32.013 ms**, p95 **60.820 ms**, max **96.256 ms**; recovered p50
+**34.081 ms**, p95 **43.664 ms**, max **44.387 ms**. These are loaded observations
 of cold logical-fixture bootstrap versus an initialized restored checkpoint,
 both on **released Sails**, not controlled Express performance comparisons or
 promotion tolerances. Docker health interval state was not a readiness assertion;
 the actual public probes above supplied the source/recovered readiness signal.
 
 The retained final checkpoint is under
-`/mnt/docker-storage/sr-p7-clean-4249667/.tmp/recovery-scratch/sr-p7-recovery.*`,
-with the exact selected path in the ignored `recovery-reviewed/scratch-path.txt`.
+`/mnt/docker-storage/sr-p7-clean-4254c2e/.tmp/recovery-58f7cbb/sr-p7-recovery.7dKyZ8`,
+with its path also recorded in the ignored `recovery-58f7cbb/scratch-path.txt`.
+The earlier successful checkpoint is retained separately under
+`/mnt/docker-storage/sr-p7-clean-4249667/.tmp/recovery-scratch/sr-p7-recovery.qqBTnz`.
+That earlier run had 25 collections because it additionally contained the empty
+`redbox-portal.figsharesync` collection; the current run has the same 1895
+documents in 24 collections. Each restore matched its own complete checkpoint,
+including empty collections and index definitions. No collection was omitted
+from either checkpoint or checksum comparison.
 No source restart against partially modified state was used as recovery.
 
 ## Remaining acceptance

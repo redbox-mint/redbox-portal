@@ -1,0 +1,75 @@
+{
+  "sourceCommit": "58f7cbbd60e23881cdfea9fbcb712ab2b01914ca",
+  "cleanGitArchive": true,
+  "target": "runtime",
+  "localTag": "redbox-portal:sr-p7-58f7cbb",
+  "ociIndex": "sha256:297c74f5855462107163f687ff4028a3b6deba14d8f360b27c9e5d09c02670ed",
+  "platformManifest": "sha256:6d7588729528116ba24fffd66f7277f6b3f9cd386a4d8b0c0719f55154d704ed",
+  "config": "sha256:03f0363ce372b9681abc03ca08466dddbf7afd5fc3a7149631ba8257ffc30826",
+  "platform": {
+    "architecture": "amd64",
+    "os": "linux"
+  },
+  "created": "2026-10-24T09:01:57.254198417+10:30",
+  "sizeBytes": 277412236,
+  "node": "26.11.1",
+  "npm": "11.20.0",
+  "buildExit": 0,
+  "angular": {
+    "applications": 20,
+    "libraries": 2,
+    "warnings": 97
+  },
+  "webpack": {
+    "version": "5.111.1",
+    "warnings": 9,
+    "errors": 0
+  },
+  "strictRootInstallPackages": 2117,
+  "strictCoreInstallPackages": 1708,
+  "productionInstallPackages": 1537,
+  "installedAssets": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "views": 6,
+    "applications": 20,
+    "mongodbCore": "7.7.0",
+    "mongodbStorageHook": "7.7.0",
+    "crossPackageBson": true
+  },
+  "installedComponents": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "mongo": "8.0.34",
+    "fcv": "8.0",
+    "topology": "separate physical core/storage standalone servers",
+    "gridfsBytes": true,
+    "readiness": true,
+    "drainAndRetry": true,
+    "freshOwnerRestart": true
+  },
+  "sourceDistOrDependencyMounts": false,
+  "runnerExit": 0,
+  "ownedContainersAndVolumesRemoved": 4,
+  "defaultCommand": [
+    "node",
+    "app.js"
+  ],
+  "defaultHost": "Sails comparison adapter",
+  "fullProductionExpressPortal": false,
+  "published": false,
+  "limitations": [
+    "No installed full production Express composition",
+    "Full existing Bruno/Playwright/root Mocha suites unexecuted on Express",
+    "No portal operational comparison or full v6 cutover",
+    "Optional runtime_pdfgen and test image variants not qualified by this build"
+  ],
+  "localArchive": {
+    "path": "/mnt/docker-storage/sr-p7-clean-4254c2e/.tmp/artifacts-58f7cbb/runtime-image.tar",
+    "sha256": "3094bd1998289cdb4e310e78a38fe2cb5821baca548630f1a8be4eb963411bd5",
+    "bytes": 277441536,
+    "exportExit": 0
+  }
+}

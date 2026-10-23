@@ -66,7 +66,7 @@ instruction as well as `no longer active`. The unchanged Node 26
 `test/unit/persistence-foundation.test.ts` then passed **11/11**, zero pending or
 failures. No assertion was broadened. Focused Oxlint reported **0 warnings /
 0 errors** for both changed modules; index-source formatting and diff checks
-passed. The final complete rerun is recorded below/with the P7 summary.
+passed. The final complete rerun on the committed fixes finished **4481 passing / 7 pending / 0 failing**, runner exit **0**. Its source is `58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`; both owned Mongo containers/volumes were stopped and removed successfully.
 
 ## Seven remaining explicitly disabled cases
 

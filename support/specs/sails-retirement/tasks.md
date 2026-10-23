@@ -3,7 +3,12 @@
 Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
 production-source designation. P6 includes owned pages/installed artifacts and
 real browser/provider lifetime qualification, under the accepted single-instance
-Companion adapter limits. SR-045 onward have not started.
+Companion adapter limits. P7 is in progress: the selected database/topology matrix and released-v5
+checkpoint recovery have passed at component scope; clean corrected-source package
+and runtime-image builds and installed-component qualification have passed. Expanded existing-core regression is 4481 passing /
+7 unchanged explicitly pending / 0 failing. No P7 acceptance is yet claimed;
+the installed production Express composition and full existing-suite execution
+remain prerequisites for promotion. P8 has not started.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -681,6 +686,8 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-045 — Execute the Node 26 and MongoDB 8+ qualification matrix.**
 
+  **Status:** partial; selected four-row Node/Mongo/FCV and physical split/three-member matrix is executed in [P7 evidence](evidence/p7-qualification.md#sr-045--database-matrix). Institution topology/TLS/auth and source designation remain SR-005.
+
   **Depends on:** SR-005, SR-002, SR-025, SR-037, SR-044.
 
   **Deliver:** exact runtime/database/FCV/topology results covering MongoDB 8 and
@@ -692,7 +699,15 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-046 — Run broad API, domain and browser regression.**
 
+  **Status:** partial; existing core regression passes 4481/7 unchanged explicitly pending/0 failing with all four real-Mongo environment inputs supplied; two persistence regressions were fixed without changing tests. Full existing Bruno profiles, Playwright and Mocha integration on a production Express portal remain unexecuted because that installed composition is missing; [integration gate](evidence/p7-qualification.md#sr-046--existing-regression-and-the-integration-gate).
+
   **Depends on:** SR-003, SR-037, SR-044.
+
+  **Additional implementation prerequisite discovered in P7:** bind the extracted
+  modules into an installed production Express portal, including complete domain
+  configuration/bootstrap, selected extension/provider bindings and HTTP/pages.
+  The existing test compositions do not supply this entrypoint. See the linked
+  integration gate; changing the broad runners' host selector alone is insufficient.
 
   **Deliver:** existing Mocha/Bruno/Playwright and relevant package suites over the
   integrated host, comparing representative behavior with released v5 fixtures.
@@ -703,7 +718,10 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-047 — Qualify clean package/image artifacts and operational comparisons.**
 
+  **Status:** partial; clean nine-package builds and twelve packed artifacts pass the 18-check production/offline consumer. Clean runtime image builds all 20 Angular applications/2 libraries and passes installed assets plus split-Mongo/GridFS lifecycle checks (1+1 passing, no skips); full production Express portal/operational qualification remains open; [artifact evidence](evidence/p7-qualification.md#sr-047--clean-packed-artifacts).
+
   **Depends on:** SR-017, SR-018, SR-037, SR-044, SR-045.
+  Full portal qualification also requires SR-046's production-composition prerequisite.
 
   **Deliver:** clean production installs/images and generated institution apps;
   verify exports, async ESM/CJS, Prisma generated/copied artifacts and EJS/Angular
@@ -715,7 +733,10 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-048 — Publish a concrete v6 upgrade and recovery procedure.**
 
+  **Status:** partial; [operator runbook](upgrade-recovery-v6.md) published with real maintenance commands and explicit production startup gate. Complete portal cutover is unexercised; [rehearsal evidence](evidence/institution-upgrade-recovery.md).
+
   **Depends on:** SR-020, SR-025, SR-038, SR-024, SR-045.
+  Complete cutover execution also requires SR-046's production-composition prerequisite.
 
   **Deliver:** versioned artifact/config/hook preparation; maintenance/writers
   stopped; consistent backup; index inspect/reviewed ensure; one migration runner;
@@ -726,6 +747,8 @@ Read the [design](design.md) for behavior and the
   cannot undo writes or external effects. Restore covers binaries/config/hooks too.
 
 - [ ] **SR-049 — Rehearse a representative institution upgrade and recovery.**
+
+  **Status:** partial; released-v5/sanitized-fixture/bundled-hook stand-in checkpoint restoration/restart passed, including 24 collections/1895 documents in the final corrected-source run and binary/configuration/image recovery. Full v6 portal upgrade/restart/stop plus recovery and a designated institution/source remain open; [scope and results](evidence/institution-upgrade-recovery.md).
 
   **Depends on:** SR-047, SR-048, SR-046, SR-045.
 
@@ -738,6 +761,8 @@ Read the [design](design.md) for behavior and the
   Core-only startup or database-only restoration does not complete this task.
 
 - [ ] **SR-050 — Promote the qualified Express host as the internal v6 default.**
+
+  **Status:** blocked by SR-046/047/049 acceptance and the missing production Express composition. Start scripts, Docker and dev workflow still use the actual Sails comparison host; no fixture is promoted and no P8 work has begun; [promotion gate](evidence/p7-qualification.md#sr-050--promotion-gate).
 
   **Depends on:** SR-049, SR-046, SR-047.
 

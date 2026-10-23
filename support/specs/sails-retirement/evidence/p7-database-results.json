@@ -1,9 +1,8 @@
 {
   "node": "v26.11.1",
   "npm": "11.20.0",
-  "sourceCommit": "4249667dcec90f49cf4302c77f0d568e2c1b4948",
+  "sourceCommit": "58f7cbbd60e23881cdfea9fbcb712ab2b01914ca",
   "qualificationDriverCommit": "513bd8505",
-  "sourceScope": "Existing compiled application/persistence code at sourceCommit; new qualification drivers finalized in qualificationDriverCommit.",
   "runnerExit": 0,
   "rows": [
     {
@@ -24,7 +23,7 @@
         "pending": 0
       },
       "elections": [],
-      "durationMs": 22311.271573
+      "durationMs": 5544.284881
     },
     {
       "mongo": "8.0.34",
@@ -47,7 +46,7 @@
         {
           "set": "sr-core",
           "before": "127.0.0.1:29211",
-          "after": "127.0.0.1:29212"
+          "after": "127.0.0.1:29213"
         },
         {
           "set": "sr-storage",
@@ -55,7 +54,7 @@
           "after": "127.0.0.1:29222"
         }
       ],
-      "durationMs": 58010.379178
+      "durationMs": 27595.477146
     },
     {
       "mongo": "9.0.4",
@@ -75,7 +74,7 @@
         "pending": 0
       },
       "elections": [],
-      "durationMs": 7418.078771
+      "durationMs": 6778.305734
     },
     {
       "mongo": "9.0.4",
@@ -106,13 +105,27 @@
           "after": "127.0.0.1:29422"
         }
       ],
-      "durationMs": 52845.089948
+      "durationMs": 28183.533601
     }
   ],
   "containersStoppedAndRemoved": 16,
+  "previousSuccessfulSourceCommit": "4249667dcec90f49cf4302c77f0d568e2c1b4948",
+  "supersededLoadedAttempt": {
+    "sourceCommit": "58f7cbbd60e23881cdfea9fbcb712ab2b01914ca",
+    "logDirectory": "database-58f7cbb",
+    "runnerExit": 1,
+    "mongo8AggregatesPassed": 2,
+    "standaloneExistingPassed": 51,
+    "replicaPersistenceSetup": {
+      "passing": 0,
+      "failing": 1
+    },
+    "ownedContainersRemoved": 8,
+    "timeoutsChanged": false
+  },
   "limitations": [
     "No designated institution topology/source",
-    "Unauthenticated local Docker topology; TLS and institution credentials unqualified",
+    "Local unauthenticated Docker topologies; institution TLS/auth not qualified",
     "Component HTTP qualification, not full portal regression"
   ]
 }
