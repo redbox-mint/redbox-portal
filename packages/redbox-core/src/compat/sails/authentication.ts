@@ -41,7 +41,7 @@ export function sailsAuthenticationProviders(accounts: AuthenticationAccounts): 
     passport: sails.config.passport as unknown as IdentityProvidersInput['passport'],
     accounts,
     config: (ConfigService.getBrand(BrandingService.getDefault().name, 'auth') ?? {}) as AuthBrandConfig,
-    brand: req => BrandingService.getBrand(String(req.session.branding ?? BrandingService.getDefault().name)),
+    brand: req => BrandingService.getBrand(String(req.session?.branding ?? BrandingService.getDefault().name)),
   };
 }
 

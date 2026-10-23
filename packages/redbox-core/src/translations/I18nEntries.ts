@@ -37,6 +37,12 @@ export interface TranslationEntriesInput {
   reloadResources(brandId: string): void | Promise<void>;
 }
 
+/** Namespace delivery observations contain identifiers and outcomes, never translation content. */
+export type NamespaceReadObservation =
+  | { readonly kind: 'packaged'; readonly file: string }
+  | { readonly kind: 'missing' }
+  | { readonly kind: 'resolved'; readonly metadataRemoved: boolean };
+
 export type Bundle = I18nBundleAttributes;
 export type I18nData = Record<string, unknown>;
 type TranslationContentFormat = 'plain' | 'html';
@@ -60,7 +66,12 @@ export class I18nEntries {
   }
 
   /** i18next HTTP-backend data: persisted bundle, composed entries, then packaged defaults. */
-  public async getNamespace(brand: BrandingModel, locale: string, namespace = 'translation'): Promise<unknown | null> {
+  public async getNamespace(
+    brand: BrandingModel,
+    locale: string,
+    namespace = 'translation',
+    observe?: (observation: NamespaceReadObservation) => void
+  ): Promise<unknown | null> {
     const bundle = await this.getBundle(brand, locale, namespace);
     let data: unknown = bundle?.data;
     if (!bundle) {
@@ -68,13 +79,22 @@ export class I18nEntries {
       if (entries.length) data = this.composeNamespace(entries);
       else {
         // A decoded URL must never escape the configured, packaged defaults directory.
-        if (!/^[A-Za-z0-9_-]+$/.test(locale) || !/^[A-Za-z0-9_-]+$/.test(namespace)) return null;
+        if (!/^[A-Za-z0-9_-]+$/.test(locale) || !/^[A-Za-z0-9_-]+$/.test(namespace)) {
+          observe?.({ kind: 'missing' });
+          return null;
+        }
         const { readFile } = await import('node:fs/promises');
         const { join } = await import('node:path');
         try {
-          return JSON.parse(await readFile(join(this.input.localesDirectory, locale, namespace + '.json'), 'utf8'));
+          const file = join(this.input.localesDirectory, locale, namespace + '.json');
+          const payload: unknown = JSON.parse(await readFile(file, 'utf8'));
+          observe?.({ kind: 'packaged', file });
+          return payload;
         } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            observe?.({ kind: 'missing' });
+            return null;
+          }
           throw error;
         }
       }
@@ -82,8 +102,10 @@ export class I18nEntries {
     if (data && typeof data === 'object' && !Array.isArray(data)) {
       const result = { ...data } as Record<string, unknown>;
       delete result._meta;
+      observe?.({ kind: 'resolved', metadataRemoved: Object.hasOwn(data, '_meta') });
       return result;
     }
+    observe?.({ kind: 'resolved', metadataRemoved: false });
     return data ?? {};
   }
 

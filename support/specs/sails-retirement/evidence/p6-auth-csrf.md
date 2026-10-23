@@ -294,3 +294,27 @@ Core and root `npm ci --dry-run --ignore-scripts --strict-peer-deps --no-audit
 mutation. Inventory regeneration passed: **333 declarations, 53 standalone,
 280 remaining**, SR-038 9/9 and SR-039 1/1. `git diff --check` passed.
 The full core suite will run after the remaining requested P5 groups.
+
+### Integrated comparison regression correction
+
+Full-core verification after the read groups exposed lost legacy Passport callback
+arguments and request-chronicle outcomes. The shared account implementation now
+retains the missing-username outcome, one captured error, user-not-found strings
+and safe provider-denial strings for the comparison callback boundary. The
+comparison AAF installer explicitly supplies that callback; standalone AAF retains
+its typed promise rejection and safe HTTP status behavior. No authentication,
+account-write or role-resolution algorithm is duplicated. A comparison callback
+without a session safely resolves the default brand.
+
+The credential-safe actor-shape assertion now includes the supported optional
+profile fields added by SR-038. The startup subprocess still checks that importing
+core acquires no DOM, Prisma models or full Effect barrel; its later comparison
+DOMPurify use now supplies the required application owner and asserts resource
+cleanup, with the original deadlines and sanitization assertions unchanged.
+
+Production compile/contract copy, application typecheck and lint pass. Auth,
+controller/service chronicles, actor/policy and startup comparison regressions:
+**177 passing, zero failing/pending**, `p5-final-regression-fixes2.log`. The first
+full run's **4392 passing / 68 pending / 16 failing** is retained in
+`p5-final-core.log`; no failure was hidden by skips. Final integrated Mongo/provider
+and full-core results are recorded in [p5-record-reads.md](p5-record-reads.md).

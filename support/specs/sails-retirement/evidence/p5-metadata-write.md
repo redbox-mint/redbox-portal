@@ -82,3 +82,26 @@ Inventory: **333 declarations, 75 standalone, 258 remaining**; SR-032 **63/63**.
 Full-core regression is deferred until the remaining requested read groups close.
 This fixture's form-record loader is deliberately metadata-only; it does not claim
 SR-034 storage/export/schema ownership or institution/provider qualification.
+
+## Integrated comparison regression correction
+
+The subsequent full Mongo-backed core invocation exposed translation chronicle
+regressions missed by the initial focused suites. Namespace projection remains in
+one owned operation; an optional, typed outcome observer now restores the
+comparison controller's metadata-removal, packaged-file and missing-namespace
+markers without returning translation content to telemetry. Chronicle test doubles
+now bind the new getNamespace/listLanguages service boundary; their response,
+error-count, original-error-message and no-content-capture assertions remain.
+
+Current-source clean build, subsequent production TypeScript emission/Prisma copy,
+application typecheck and core lint passed. In `packages/redbox-core`, qualified
+Node 26 with `TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types
+-r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js --no-config
+--require chai --require test/setup.ts --timeout 5000` and
+`test/controllers/RequestChronicleControllers.test.ts`,
+`test/services/RequestChronicleServices.test.ts`, `test/http/Policies.test.ts`,
+`test/unit/startup-module-loading.test.ts`, `test/services/UsersService.test.ts`,
+`test/controllers/UserController.test.ts`: **177 passing, zero failing/pending**.
+Logs: `p5-final-regression-fixes2.log`, `p5-final-fixes-build.log`,
+`p5-final-source-{compile,types,lint}.log`. Integrated full-core results are in
+[p5-record-reads.md](p5-record-reads.md).

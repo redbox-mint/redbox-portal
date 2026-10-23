@@ -1,3 +1,4 @@
+import {I18nEntries} from '../../src/translations/I18nEntries';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
@@ -140,8 +141,8 @@ describe('Request chronicle controller integration', function () {
 
   describe('translation responses and capture', function () {
     const methods = {
-      getNamespace: ['getBundle', 'translationGetNamespaceFailed'],
-      getLanguages: ['listBundles', 'translationGetLanguagesFailed'],
+      getNamespace: ['getNamespace', 'translationGetNamespaceFailed'],
+      getLanguages: ['listLanguages', 'translationGetLanguagesFailed'],
       listEntriesApp: ['listEntries', 'translationListEntriesFailed'],
       setEntryApp: ['setEntry', 'translationSetEntryFailed'],
       getBundleApp: ['getBundle', 'translationGetBundleFailed'],
@@ -179,6 +180,7 @@ describe('Request chronicle controller integration', function () {
 
     it('serves namespace JSON without metadata and only captures identifiers', async function () {
       (global as any).I18nEntriesService = {
+        getNamespace: I18nEntries.prototype.getNamespace,
         getBundle: sinon.stub().resolves({ data: { _meta: { revision: 3 }, title: 'Private translation content' } }),
       };
       const req = createReq({ params: { branding: 'default', lng: 'en', ns: 'translation' } });

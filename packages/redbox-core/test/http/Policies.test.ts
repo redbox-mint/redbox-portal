@@ -145,7 +145,14 @@ describe('standalone actor and policy context', () => {
     findByApiTokenHash.resolves(alias);
     const actor = await identity.bearer('synthetic-token');
     assert(actor);
-    assert.deepEqual(actor, { id: 'primary', username: 'owner', roles: [{ id: 'admin', brandId: 'brand' }] });
+    assert.deepEqual(actor, {
+      id: 'primary',
+      username: 'owner',
+      type: 'local',
+      name: undefined,
+      email: undefined,
+      roles: [{ id: 'admin', brandId: 'brand' }],
+    });
     assert.notEqual(findByApiTokenHash.firstCall.args[0], 'synthetic-token');
     // Local auth resolves the same primary, rather than accepting session.user authority.
     assert.deepEqual(await identity.local('alias', 'password'), actor);

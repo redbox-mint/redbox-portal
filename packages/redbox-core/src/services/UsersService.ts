@@ -722,7 +722,10 @@ export namespace Services {
     }
 
     protected aafAuthInit = () => {
-      this.registerSailsHook('on', 'ready', () => installAafAuthentication(this.authenticationProviderInput()));
+      this.registerSailsHook('on', 'ready', () => {
+        const accounts = this.authenticationAccounts();
+        installAafAuthentication(this.authenticationProviderInput(), accounts.aafAuthVerifyCallback.bind(accounts));
+      });
     };
     protected openIdConnectAuth = () => {
       this.registerSailsHook('on', 'ready', () => installOidcAuthentication(this.authenticationProviderInput()));

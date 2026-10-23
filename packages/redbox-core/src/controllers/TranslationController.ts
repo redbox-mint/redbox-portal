@@ -55,7 +55,18 @@ export namespace Controllers {
           return res.badRequest({ message: `Unknown branding: ${brandingName}` });
         }
 
-        const payload = await I18nEntriesService.getNamespace(branding, lng, ns);
+        const payload = await I18nEntriesService.getNamespace(branding, lng, ns, observation => {
+          if (observation.kind === 'packaged')
+            this.updateChronicle(req, { translationBundleFromDisk: true, translationFile: observation.file });
+          else if (observation.kind === 'missing') this.updateChronicle(req, { translationNamespaceNotFound: true });
+          else
+            this.updateChronicle(
+              req,
+              observation.metadataRemoved
+                ? { translationRemoveMetaSuccess: true }
+                : { translationGetNamespaceSuccess: true }
+            );
+        });
         if (payload === null) return res.notFound({ message: 'Namespace not found' });
         return res.json(payload);
       } catch (err) {

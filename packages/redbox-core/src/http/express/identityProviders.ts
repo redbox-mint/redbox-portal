@@ -40,7 +40,10 @@ export function installLocalAuthentication(input: IdentityProvidersInput): void 
   );
 }
 
-export function installAafAuthentication(input: IdentityProvidersInput): void {
+export function installAafAuthentication(
+  input: IdentityProvidersInput,
+  verify?: AuthenticationAccounts['aafAuthVerifyCallback']
+): void {
   if (!input.config.active?.includes('aaf')) return;
   const options = input.config.aaf?.opts ?? {};
   const strategyOptions = {
@@ -58,10 +61,13 @@ export function installAafAuthentication(input: IdentityProvidersInput): void {
   input.passport.use(
     'aaf-jwt',
     new JwtStrategy(strategyOptions, (req: Request, payload: AnyRecord, done) => {
-      void input.accounts.authenticateAaf(input.brand(req), payload).then(
-        user => done(null, user || false),
-        error => done(error, false)
-      );
+      const brand = input.brand(req);
+      if (verify) verify(brand, payload, done);
+      else
+        void input.accounts.authenticateAaf(brand, payload).then(
+          user => done(null, user || false),
+          error => done(error, false)
+        );
     })
   );
 }

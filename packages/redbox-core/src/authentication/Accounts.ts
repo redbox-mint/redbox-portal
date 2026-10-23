@@ -64,6 +64,14 @@ export interface AuthenticationAccountsInput {
   event(info: Record<string, unknown>, errors?: unknown[], level?: 'debug' | 'info' | 'warn'): void;
 }
 export class AuthenticationRejected extends Error {}
+function oidcUsername(config: AnyRecord, info: AnyRecord): string {
+  const mapping = String(_.get(config, 'claimMappings.username', ''));
+  const username = String(_.get(info, mapping, ''));
+  return _.get(config, 'claimMappingOptions.usernameToLowercase') === true ? username.toLowerCase() : username;
+}
+function authenticationCallbackError(error: unknown): unknown {
+  return error instanceof AuthenticationRejected ? error.message : error;
+}
 /** Local credentials share one implementation between the pilot and full login flow. */
 export async function localCredentialUser(
   repository: Pick<IdentityRepositories, 'one' | 'verifyPassword'>,
@@ -323,7 +331,7 @@ export class AuthenticationAccounts {
         { id: existing.id },
         identityProfilePatch(candidate, original)
       );
-      if (!rows[0]) throw new Error('Authenticated account disappeared during login');
+      if (!rows[0]) throw new AuthenticationRejected('No user found');
       saved = rows[0] as unknown as AnyRecord;
       postSubject = rows as unknown as AnyRecord;
     } else {
@@ -358,8 +366,7 @@ export class AuthenticationAccounts {
     const claims = typeof tokens.claims === 'function' ? (tokens.claims() as AnyRecord) : {};
     const info = userinfo ?? claims;
     const mappings = (config.claimMappings ?? {}) as AnyRecord;
-    let username = String(_.get(info, String(mappings.username ?? ''), ''));
-    if (_.get(config, 'claimMappingOptions.usernameToLowercase') === true) username = username.toLowerCase();
+    const username = oidcUsername(config, info);
     if (!username) throw new AuthenticationRejected('Rejected as username does not have a value');
     const brand = this.input.getBrand(String(session.branding ?? this.input.defaultBrand().name));
     const role = this.input.defaultAuthenticatedRole(brand);
@@ -430,12 +437,41 @@ export class AuthenticationAccounts {
     userinfo: AnyRecord | undefined,
     done: DoneCallback
   ): void {
+    this.updateChronicle({ usersAuthProvider: 'oidc', usersAuthOutcome: 'processing' });
+    const claims = typeof tokens.claims === 'function' ? (tokens.claims() as AnyRecord) : {};
+    const info = userinfo ?? claims;
+    if (!oidcUsername(config, info)) {
+      this.updateChronicle({ usersAuthOutcome: 'missing-username' }, [new Error('OIDC username claim is missing.')]);
+      done(null, null, { message: 'Rejected as username does not have a value' });
+      return;
+    }
     const session = (request.session ??= {}) as AnyRecord;
-    void this.authenticateOidc(config, issuer, { session }, tokens, userinfo).then(
-      user => done(null, user),
-      error => done(error, false)
+    void this.authenticateOidc(config, issuer, { session }, tokens, info).then(
+      user => {
+        this.updateChronicle({
+          usersOperation: 'openIdConnectAuthVerifyCallback',
+          usersAuthOutcome: user ? 'success' : 'rejected',
+          usersAuthUserId: user?.id,
+        });
+        done(null, user, undefined);
+      },
+      error => {
+        // The controller captures callback errors once; only identifiers/outcomes belong here.
+        this.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersAuthOutcome: 'failure' });
+        done(authenticationCallbackError(error), false, undefined);
+      }
     );
   }
+  public aafAuthVerifyCallback(brand: BrandingModel, payload: AnyRecord, done: DoneCallback): void {
+    void this.authenticateAaf(brand, payload).then(
+      user => done(null, user || false),
+      error => {
+        const failure = authenticationCallbackError(error);
+        done(failure, false, failure === 'No user found' ? { message: 'No user found' } : undefined);
+      }
+    );
+  }
+
   public mapAdditionalAttributes(profile: unknown, attributeMappings: Record<string, string>) {
     const additionalAttributes: Record<string, unknown> = {};
     for (const attributeMapping in attributeMappings) {
