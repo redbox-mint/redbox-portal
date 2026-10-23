@@ -190,6 +190,9 @@ export namespace Services {
       return {
         ...globalSettings,
         ...profile,
+        ...(profile.ALLOWED_URI_REGEXP && !(profile.ALLOWED_URI_REGEXP instanceof RegExp)
+          ? { ALLOWED_URI_REGEXP: new RegExp(profile.ALLOWED_URI_REGEXP.source, profile.ALLOWED_URI_REGEXP.flags) }
+          : {}),
       };
     }
 

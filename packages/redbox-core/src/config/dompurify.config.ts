@@ -28,7 +28,7 @@ export interface DomPurifyProfile {
     ALLOW_UNKNOWN_PROTOCOLS?: boolean;
 
     /** Regex for allowed URI protocols */
-    ALLOWED_URI_REGEXP?: RegExp;
+    ALLOWED_URI_REGEXP?: RegExp | { source: string; flags?: string };
 
     /** Sanitize DOM nodes */
     SANITIZE_DOM?: boolean;

@@ -245,7 +245,7 @@ export function createDefaultBinding(path: string, defaultValue?: unknown): Valu
   return {
     kind: 'path',
     path,
-    defaultValue
+    ...(defaultValue === undefined ? {} : { defaultValue })
   };
 }
 
