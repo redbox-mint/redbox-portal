@@ -67,5 +67,11 @@ TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
   --no-config test/unit/startup-module-loading.test.ts
 ```
 
-The full Mongo-backed core regression also executes this unchanged assertion body;
-its final result is recorded with the round's upload/realtime qualification.
+The final Mongo-backed `npm run test:core` on source `3551a2985` executes this
+unchanged assertion body in **11.717 s**: **4417 passing / 68 existing pending /
+0 failing**, actual exit **0** (`companion-full-core-final.log`). It ran after
+active HTTP/provider assertions, with only their idle Agenda watchdogs remaining.
+Every new standalone/provider case ran separately without skips; see the
+[upload qualification](p6-uploads.md#final-full-mongo-core-regression). The observed
+source-loader range, including the 20.850 s competing-build run, supports the
+test-only headroom rather than treating the original 11.875 s result as stable.

@@ -1,6 +1,7 @@
 # Sails retirement: v6 implementation plan
 
-Status: implementation not started. Agreed direction recorded on 2026-10-23.
+Status: delivery plan. Executed completion is tracked in [tasks](tasks.md) and
+linked evidence. Agreed direction recorded on 2026-10-23.
 Source baseline: `stack/waterline-4-remove-waterline`, commit
 `59a5cb9a4e426b1d0e6c9f3256c089240bc5b0f2`. Integrate/rebase onto the completed
 Prisma code stack before implementation; Prisma and this change both ship in v6.0.

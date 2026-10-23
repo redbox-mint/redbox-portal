@@ -1,5 +1,13 @@
 # SR-037 — owned API closure and round qualification
 
+The qualification below records the accepted SR-035/SR-036/SR-037/SR-041 round
+at `54e20da55`. Its Companion prerequisite and tight source-loader timing limit
+are historical: the subsequent accepted singleton/bridge decision is implemented
+at `3551a298549512d5b787e2e10ae450da46c6bb77`. See
+[the follow-up qualification](#companion-and-startup-follow-up) and the dedicated
+[uploads](p6-uploads.md), [realtime](p6-realtime.md) and
+[startup-profile](startup-profile.md) evidence for the current results and limits.
+
 ## Sources and coverage
 
 Starting source **a7d5ae36a**, shared `stack/sails-retirement` on **agentvm**.
@@ -191,7 +199,7 @@ Original service/controller regressions and current intermediate-source writes
 supply the additional write comparisons. Existing pending tests establish no
 new standalone/provider acceptance. No provider quota/usage limit occurred.
 
-## Final full Mongo core and task closeout
+## Previous round: full Mongo core and task closeout
 
 At repository root with the qualified PATH above, after build/type/lint and active
 HTTP execution had finished (only Agenda's idle watchdog remained):
@@ -211,13 +219,14 @@ all explicitly invoked new standalone Mongo/provider cases ran without pending.
 The standalone suites cannot share the legacy global setup and were executed
 separately by the complete HTTP command, not silently skipped for acceptance.
 
-SR-035, SR-036, SR-037 and SR-041 meet their scoped acceptance and are ticked.
+At that round's close, SR-035, SR-036, SR-037 and SR-041 met their scoped acceptance
+and were ticked.
 The concrete direct-progress and local multipart/tus dependencies of API saves
-are verified. SR-042 remains unchecked for remote Companion transfer ownership;
-SR-043 remains unchecked for its explicit joint Companion socket acceptance.
-Their public API deficiency is external to the owned implementations; a supported
-upstream lifecycle artifact or maintained fork is the remaining decision.
-SR-040 and SR-044 onward are not started. The tasks header reflects this state.
+were verified. SR-042 was left unchecked for remote Companion transfer ownership;
+SR-043 was left unchecked for its explicit joint Companion socket acceptance.
+The then-proposed upstream/fork prerequisite was superseded by the orchestrator's
+single-instance public-API adapter decision, qualified in the follow-up below.
+SR-040 and SR-044 onward were not started. The tasks header reflected that state.
 The requested wiki redbox-core.md is absent in the checkout; the other requested
 architecture/service/API/form/test/standards pages and all supplied specs were read.
 No push was made. Unrelated GraphQL specification files are untouched.
@@ -234,3 +243,40 @@ docker compose -p sr-p6-auth \
 Both commands exit **0**. Only the round's containers, their disposable volumes
 and the owned OIDC network were removed; unrelated workspace resources were left
 alone. Summarized logs remain in `.tmp/sails-retirement/` for local inspection.
+
+## Companion and startup follow-up
+
+The orchestrator accepted the 7.1.1 single-instance public-API adapter instead of
+waiting for upstream or maintaining a fork. Runtime source is now
+**3551a298549512d5b787e2e10ae450da46c6bb77**, following **ab0164416** (owned
+Companion) and **b6eefc1fc** (measured source-loader budget). The dedicated evidence
+records exact consumer graphs, image IDs, all commands, intermediate corrections,
+released-v5 comparison and residual process/remote-I/O limits:
+
+- [Uploads: adapter, executed commands and results](p6-uploads.md#round-sources-provider-graph-and-executed-commands).
+- [Realtime: actual joint socket protocol and shutdown checks](p6-realtime.md#companion-coexistence-under-the-accepted-public-api-decision).
+- [Startup: source transpilation versus compiled imports](startup-profile.md).
+
+The final integrated command in the uploads evidence executes **153 passing /
+0 failing/pending**, natural process exit **0**, with real Mongo/Solr/Keycloak and
+**34/34 Bruno requests / 53/53 scripted checks**. This supersedes the older
+146-case aggregate; no skipped provider case is counted. Build, strict application
+types and lint pass; lint reports **1046 files, 0 warnings/errors**. The inventory
+check remains **333 declarations / 282 standalone / 152 API contracts**, exit **0**;
+the remaining 51 declarations are still SR-040. No route was reclassified to
+close Companion. The former diagnostic has been replaced by actual initialize,
+singleton, bridge-close and process-cron qualification plus real transfer tests.
+
+Final full Mongo core: **4417 passing / 68 existing pending / 0 failing**, actual
+exit **0**, about two minutes (`companion-full-core-final.log`). Command:
+`PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:34903/redbox_prisma_p5 npm run test:core`,
+at root with the qualified PATH. The startup assertion body passes in **11.717 s**;
+only its source-loader budget changed, as justified by the profile. The 68 pending
+cases are existing regressions, not skipped acceptance. No provider quota or
+usage limit occurred. No push was made; unrelated GraphQL files remain untouched.
+
+SR-042 and SR-043 are now ticked under the accepted adapter decision. Their
+process-owned cron, bounded transport drain and beyond-deadline remote-I/O limits
+are recorded in the design's compatibility breaks and section 9.3. SR-040 and
+SR-044 were not started. Owned disposable providers were removed after natural
+qualification exits; commands/results are in the uploads evidence.

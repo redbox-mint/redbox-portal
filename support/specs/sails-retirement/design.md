@@ -1,8 +1,8 @@
 # Sails retirement: v6 application runtime and Express design
 
-Status: agreed direction, proposed implementation. No implementation stage,
-compatibility result or release qualification is complete because it is described
-here. Prepared on 2026-10-23 against `stack/waterline-4-remove-waterline`, commit
+Status: agreed design. Executed implementation and qualification are tracked in
+[tasks](tasks.md) and linked evidence; a description alone is not completion.
+Prepared on 2026-10-23 against `stack/waterline-4-remove-waterline`, commit
 `59a5cb9a4e426b1d0e6c9f3256c089240bc5b0f2`.
 
 Read with the [implementation plan](implementation_plan.md) and
@@ -98,9 +98,15 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
   from trusted operator records. The forced login must not delete staging state.
 - Portal progress uses direct Socket.IO grants/events. Virtual HTTP subscribe/
   unsubscribe returns 410; consumers acquire a fresh one-use grant over CSRF-
-  protected HTTP and rejoin after reconnect. Companion's separate ws protocol has
-  no accepted lifecycle owner in current 7.1.1/7.2.0 artifacts; remote transfers and
-  joint socket shutdown remain gated by the recorded upstream prerequisite.
+  protected HTTP and rejoin after reconnect.
+- Companion 7.1.1 retains its separate ws protocol and permits one app per process,
+  created during initialize with explicit metrics. Another app or restart needs a
+  fresh process. Its cleanup cron has process lifetime; remote provider I/O may
+  outlive the stop deadline after owned transports terminate. Keep its temporary
+  directory until process exit. Remote completion, completed-event replay and
+  cross-process transfer recovery are not guaranteed. Redis and periodic pings
+  are unsupported by this adapter. Section 9.3 records the accepted bounded-drain
+  contract and its improvement over released v5's lack of transfer drain.
 
 - The migrated identity, query-definition and RVA writes exported by
   `identityAdministrationRoutes`, `queryWriteRoutes` and
@@ -649,6 +655,54 @@ brand/record authorization, callback paths and owned transfer cleanup. Reuse
 Flydrive/GridFS ownership. Audit Companion's own Express/socket dependency graph;
 do not force every Express copy to one version without validating its consumer.
 Session invalidation does not authorize silently losing resumable-upload state.
+
+#### Companion 7.1.1 ownership and residual limitations
+
+The accepted adapter uses the pinned provider's supported `app()`, `socket()` and
+returned emitter. Construct exactly one app during host/application initialize,
+with metrics explicitly enabled or disabled. A process-wide guard refuses another
+app, including after stop; multiple portal applications need separate processes.
+Construction/imports do not start the provider. Its ordinary cleanup cron starts
+with `app()` during initialize and remains process-owned because 7.1.1 supplies no
+public disposer. This timing is accepted; Redis and periodic-ping configurations
+are refused by this adapter because they add undisposable process resources.
+
+Give Companion an unlistened HTTP server used only as an event bridge. Remove its
+unused ordinary HTTP connection parser before forwarding already-upgraded sockets;
+no Companion/ws methods or constructors are patched. Only canonical Companion
+socket paths are forwarded from the real listener. Portal Socket.IO keeps its own
+path/attachment and ordinary handling of other upgrades. The bridge's public
+connection/close events own raw sockets. Upload socket tokens are capabilities
+issued by this app, with a canonical Origin gate; provider auth-callback tokens
+retain the separate provider protocol. Neither token replaces callback write
+credentials, brand/object authorization or browser CSRF.
+
+Companion HTTP admission goes through the owned authentication, brand membership,
+checkAuth, CSRF/bearer and audit chain. Its mount owns bounded JSON/form parsers
+and is excluded from the ordinary host parser. The trusted session/deployment
+selects the unbranded `/companion` mount's brand/portal. Destination allowlists and
+canonical external `server.path`/`implicitPath` are explicit; forwarded authority
+never selects callback URLs. The existing tus owner reauthorizes every callback
+against actor, brand and record and retains persisted offsets across reconnects.
+
+The response's public transfer token retains its existing HTTP completion scope
+until a terminal emitter event, socket-connect timeout, or application stop
+deadline. Quiesce refuses new Companion HTTP requests/upgrades. Draining keeps
+admitted requests/connections until completion or that deadline, then destroys
+remaining transports, releases those transfer scopes and closes the bridge.
+Provider-internal downloads/uploads can continue or fail beyond the deadline:
+7.1.1 exposes no complete cancellation/join operation. Process exit is the final
+boundary; completion of such transfers and restart recovery are not promised.
+Cancellation without a terminal event can retain a scope until the stop deadline.
+The host deadline can race final transport cleanup; ordinary persistence ownership
+is retained and stop may require retry. Released v5 had no transfer drain at all.
+
+Keep the provider temporary directory for the process lifetime and preserve the
+owned tus staging store at cutover. Active in-process Companion tokens can reconnect
+and resume tus work; without Redis there is no replay of terminal events after
+completion or process restart. These are documented limits, not an upstream/fork
+prerequisite. Real URL-provider/tus and joint socket checks are recorded in
+[p6 uploads](evidence/p6-uploads.md) and [p6 realtime](evidence/p6-realtime.md).
 
 ### 9.4 Realtime
 

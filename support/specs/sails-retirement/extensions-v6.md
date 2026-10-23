@@ -129,7 +129,11 @@ browser CSRF. ProgressSockets takes the same persistence owner so its draining
 completion permission belongs to an active admitted HTTP/job scope. A detached
 callback cannot acquire completion privileges from an old scope.
 
-Companion is not a permitted hidden construction-time singleton. Current upstream
-7.1.1 and inspected 7.2.0 expose neither isolated app/transfer ownership nor a
-returned socket close owner; see evidence/p6-uploads.md. Do not attach that provider
-through an untracked integration or copy its algorithms to claim acceptance.
+Companion is an explicit process singleton, constructed only during host/application
+initialize using pinned 7.1.1 public APIs. A second application requires a separate
+process. Set metrics explicitly, attach the provider to the owned unlistened event
+bridge and forward only its canonical socket paths. No registration/import may
+construct `app()`. Cleanup cron and beyond-deadline provider-internal I/O remain
+process-owned; Redis and periodic pings are not supported by this adapter. See the
+[design ownership/limitations](design.md#companion-711-ownership-and-residual-limitations)
+and [executed evidence](evidence/p6-uploads.md).

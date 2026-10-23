@@ -1,8 +1,8 @@
 # Sails retirement: v6 task list
 
 Status: SR-001–SR-039 are complete except SR-005, which awaits institution and
-production-source designation. SR-041 is complete. SR-042 and SR-043 have verified
-owned tus/progress slices but remain blocked on Companion lifecycle support.
+production-source designation. SR-041–SR-043 are complete, including the accepted
+single-instance Companion adapter and real transfer/socket qualification.
 SR-040 and SR-044 onward have not started.
 
 Read the [design](design.md) for behavior and the
@@ -517,12 +517,12 @@ Read the [design](design.md) for behavior and the
   **Status:** done; [owned pipeline, all 23 mutation/harvest declarations,
   concurrency/schema/audit/compensation and actual verification](evidence/p5-record-mutations.md).
   The required direct-progress and local multipart/tus slices are qualified.
-  Remote Companion transfer/coexistence remains the separate SR-042/SR-043 gate;
-  it is not invoked by these save operations.
+  The separate remote Companion transfer/coexistence criteria are now also
+  qualified in SR-042/SR-043; these saves do not invoke remote transfers.
 
   **Depends on:** SR-034, SR-032, SR-039; the direct portal slice of SR-043
-  and local multipart/tus slices of SR-041/SR-042. The remaining Companion
-  transfer/coexistence criteria do not participate in these save operations.
+  and local multipart/tus slices of SR-041/SR-042. Remote Companion
+  transfer/coexistence does not participate in these save operations.
 
   **Deliver:** create/update/delete/transition slices with validation, stored
   concurrency policy, revisions/incarnations, schema grants, audit and compensation.
@@ -551,10 +551,10 @@ Read the [design](design.md) for behavior and the
 
   **Status:** done; [152/152 API contracts, overrides/import closure and full
   qualification](evidence/p5-api-closure.md). Inventory: 282/333 standalone
-  declarations; the remaining 51 are SR-040 pages/static consumers. Remote Companion
-  and joint socket ownership remain explicitly unchecked in P6. Final HTTP: 146
-  passing; Bruno: 34 requests/53 assertions; full Mongo core: 4417 passing,
-  68 existing pending, zero failures.
+  declarations; the remaining 51 are SR-040 pages/static consumers. The accepted
+  Companion adapter and joint socket ownership are qualified in P6. Final HTTP:
+  153 passing; Bruno: 34 requests/53 scripted checks; full Mongo core: 4417 passing,
+  68 existing pending, zero failures. All new provider cases execute without skips.
 
   **Depends on:** SR-032, SR-033, SR-034, SR-035, SR-036.
 
@@ -621,13 +621,13 @@ Read the [design](design.md) for behavior and the
   cancellation and partial/unknown storage outcomes pass. Remove `req.file()`
   consumers only after their route behavior and cleanup are proven.
 
-- [ ] **SR-042 — Integrate tus and Companion with the standalone server.**
+- [x] **SR-042 — Integrate tus and Companion with the standalone server.**
 
-  **Status:** blocked on the external Companion lifecycle contract;
-  [owned tus/resume/callback slice and actual 7.1.1/7.2.0 provider findings](evidence/p6-uploads.md).
-  Four real tus cases pass, including persisted reconstruction and draining audit.
-  Current Companion exposes shared app state and no supported socket/transfer
-  admission/drain/close owner; remote transfers are not claimed as implemented.
+  **Status:** done under the accepted single-instance 7.1.1 public-API adapter
+  decision; [tus, actual URL-provider transfer, authorization/resume/proxy,
+  initialize-time ownership and bounded drain](evidence/p6-uploads.md).
+  Docker qualification: 6 passing, exit 0; final HTTP: 153 passing, no skips/failures.
+  Process-owned cron and remote I/O beyond the deadline are documented limits.
 
   **Depends on:** SR-041, SR-038, SR-034.
 
@@ -638,13 +638,13 @@ Read the [design](design.md) for behavior and the
   shutdown drain work; only one Companion/socket attachment exists. Dependency
   overrides are changed only with consumer-specific compatibility evidence.
 
-- [ ] **SR-043 — Replace portal Sails sockets with direct Socket.IO.**
+- [x] **SR-043 — Replace portal Sails sockets with direct Socket.IO.**
 
-  **Status:** blocked only on the explicit Companion coexistence acceptance;
-  [direct portal sockets, six progress declarations, client conversion and
-  four real session/record/progress/drain cases](evidence/p6-realtime.md) are implemented.
-  The completed direct-progress slice satisfies SR-035's concrete dependency.
-  Joint Companion attachment/transfer shutdown awaits the SR-042 provider artifact.
+  **Status:** done; [direct portal sockets, six progress declarations, client
+  conversion, current session/record authorization, real Companion coexistence,
+  reconnect/resume and deadline termination](evidence/p6-realtime.md).
+  Both protocols attach once without stealing upgrades. The real provider and
+  progress cases pass in the 153-case HTTP matrix and six-case Docker qualification.
 
   **Depends on:** SR-028, SR-034, SR-023.
 

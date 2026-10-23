@@ -122,10 +122,19 @@ verified ownership or let the user restart the upload. Never adopt it based on
 client-supplied IDs or delete it as part of session invalidation. Include the
 staging store in the existing consistent backup/recovery procedure.
 
-Current @uppy/companion 7.1.1 and inspected 7.2.0 lack the isolated app/transfer/
-socket lifetime contract required by SR-042. Do not enable remote-source uploads
-until a lifecycle-capable provider artifact passes the recorded resume, abort,
-shutdown and separate-socket checks. Direct portal Socket.IO and local tus/
-multipart are implemented and independently verified; that does not waive the
-joint Companion acceptance gate. Pages/static packaging remain SR-040 and full
-PDF/browser/provider lifetime combinations remain SR-044.
+Pinned @uppy/companion 7.1.1 uses one explicit initialize-time app per process,
+with a separate unlistened socket bridge. Stop fences new provider HTTP/upgrades,
+drains admitted requests/connections within the application deadline, then
+terminates remaining transports. Provider-internal remote I/O may outlive that
+deadline and fail after the listener closes. Process exit is its final boundary;
+retain the provider temporary directory until then. Cleanup cron starts during
+initialize and has process lifetime. A second app or restart requires a new
+process; Redis/periodic pings are refused by this adapter. Active tokens can
+reconnect within that process; completed token replay/cross-process transfer
+recovery is not promised. This bounded drain improves on released v5, which had
+none. Inspect owned tus offsets after an interrupted transfer and reconcile/restart
+using the authorized actor/record; do not infer completion from a lost socket.
+
+Pages/static packaging remain SR-040 and full PDF/browser/provider lifetime
+combinations remain SR-044. The focused upload/realtime qualification is recorded
+in evidence/p6-uploads.md and evidence/p6-realtime.md.

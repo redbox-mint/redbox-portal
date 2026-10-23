@@ -199,5 +199,20 @@ Socket.IO subscribe/unsubscribe events. Use `assets/js/redbox-progress.js` with 
 configured portal socket path, token URL and current CSRF operation. Reconnect
 fetches a fresh grant and rejoins remembered rooms; both joins and emissions
 reauthorize current actor/record access. Legacy virtual routes return 410.
-Companion's separate provider/protocol remains gated by its upstream lifecycle
-contract, as recorded in evidence/p6-uploads.md and evidence/p6-realtime.md.
+Companion keeps its own ws protocol. Compose one `CompanionUploads` per process and
+await `initialize(server)` in host preparation, then call `mountCompanionRoutes`
+after the owned session/authentication middleware. Exclude its configured mount
+from the ordinary parser; its bounded JSON/form parsers belong to the mount.
+Provide canonical origins, an explicit metrics boolean, upload destinations and
+external server path/implicit proxy prefix. The trusted session/deployment selects
+the unbranded provider URL's brand/portal; bind the ordinary owned policies, CSRF
+and audit operations. Callback uploads must carry an independently verified actor
+credential (and CSRF for browser sessions), never only a shared secret.
+
+Use a fresh process for another application or provider restart. The adapter owns
+its isolated socket bridge and fences/drains admitted HTTP and connections until
+the stop deadline. Retain its temporary directory until process exit. Companion
+cleanup cron and remote I/O beyond that deadline have process lifetime; remote
+completion/recovery across exit is not promised. Redis/periodic pings are refused.
+See evidence/p6-uploads.md and evidence/p6-realtime.md for the real URL/tus and
+socket qualification and the design for accepted residual limits.
