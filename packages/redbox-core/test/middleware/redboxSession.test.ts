@@ -2,6 +2,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import express from 'express';
 import { buildRedboxSessionOptions, redboxSession } from '../../src/middleware/redboxSession';
 
 describe('Middleware: redboxSession', () => {
@@ -49,14 +50,22 @@ describe('Middleware: redboxSession', () => {
     let server: http.Server;
     let port: number;
 
-    const listen = (cookie: Record<string, unknown>) => new Promise<void>(resolve => {
-      const middleware = redboxSession({ secret: 'test-secret', proxy: true, cookie } as never);
-      server = http.createServer((req, res) => {
-        middleware(req as never, res as never, () => {
-          (req as unknown as { session: Record<string, unknown> }).session.started = true;
-          res.end('ok');
-        });
+    // Without an Express trust proxy setting, session-level proxy trust decides HTTPS detection.
+    // With one, the proxy option is left unset (as in the shipped configuration) so express-session
+    // falls back to Express's req.secure.
+    const listen = (
+      cookie: Record<string, unknown>,
+      transport: { proxy?: boolean; trustProxy?: boolean } = { proxy: true }
+    ) => new Promise<void>(resolve => {
+      const middleware = redboxSession({ secret: 'test-secret', cookie, ...('proxy' in transport ? { proxy: transport.proxy } : {}) } as never);
+      const app = express();
+      app.set('trust proxy', transport.trustProxy === true);
+      app.use(middleware);
+      app.get('/', (req, res) => {
+        (req as unknown as { session: Record<string, unknown> }).session.started = true;
+        res.end('ok');
       });
+      server = http.createServer(app);
       server.listen(0, '127.0.0.1', () => {
         port = (server.address() as AddressInfo).port;
         resolve();
@@ -85,6 +94,26 @@ describe('Middleware: redboxSession', () => {
     it('still issues a session cookie over plain HTTP when the configuration disables secure cookies', async () => {
       await listen({ secure: false });
       const cookies = await setCookie();
+      expect(cookies).to.have.lengthOf(1);
+      expect(cookies[0]).to.not.match(/;\s*Secure/i);
+    });
+
+    it('uses Express trust proxy when the session proxy option is unset', async () => {
+      await listen({ secure: false }, { trustProxy: true });
+      expect((await setCookie('https'))[0]).to.match(/;\s*Secure/i);
+      expect((await setCookie())[0]).to.not.match(/;\s*Secure/i);
+    });
+
+    it('does not trust a forwarded protocol when no proxy is trusted', async () => {
+      await listen({ secure: false }, { trustProxy: false });
+      const cookies = await setCookie('https');
+      expect(cookies).to.have.lengthOf(1);
+      expect(cookies[0]).to.not.match(/;\s*Secure/i);
+    });
+
+    it('ignores the forwarded protocol when session proxy trust is disabled', async () => {
+      await listen({ secure: false }, { proxy: false, trustProxy: true });
+      const cookies = await setCookie('https');
       expect(cookies).to.have.lengthOf(1);
       expect(cookies[0]).to.not.match(/;\s*Secure/i);
     });
