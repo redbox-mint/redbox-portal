@@ -1,4 +1,5 @@
 import { PassThrough, Readable, Writable } from 'node:stream';
+import { ReadableStream, WritableStream } from 'node:stream/web';
 import { posix as pathPosix, relative } from 'node:path';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
 
@@ -49,7 +50,11 @@ async function listDiskEntries(
 }
 
 function normalizePrefix(prefix = ''): string {
-  return String(prefix).replace(/^\/+|\/+$/g, '');
+  const value = String(prefix).replace(/^\/+|\/+$/g, '');
+  if (value.includes('\\') || value.includes('\0') || value.split('/').includes('..')) {
+    throw new Error('OCFL keys must stay within their configured storage prefix');
+  }
+  return value;
 }
 
 function encodeFlydriveKey(key: string): string {
@@ -71,6 +76,9 @@ function decodeKey(filePath: string, options: { preserveEquals?: boolean } = {})
 
 function withPrefix(prefix: string, filePath: string, options: { preserveEquals?: boolean } = {}): string {
   const key = normalizeKey(filePath, options);
+  if ([prefix, key].some(value => value.includes('\\') || value.includes('\0') || value.split('/').includes('..'))) {
+    throw new Error('OCFL keys must stay within their configured storage prefix');
+  }
   if (!prefix) {
     return key;
   }
@@ -134,7 +142,10 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       this.prefix = normalizePrefix(options.prefix);
       this.disk = options.disk;
       const underlyingDriver = (options.disk as DiskWithDriver).driver;
-      this.ioDisk = options.keyEncoding === 'raw' && underlyingDriver != null ? underlyingDriver : options.disk;
+      // Both encodings may contain characters rejected by Disk's URL-oriented
+      // normalizer (including the percent signs in the existing encoded layout).
+      // Retain the on-disk representation and use the owned driver's key API.
+      this.ioDisk = underlyingDriver ?? options.disk;
       this.root = options.root;
       this.workspace = options.workspace;
       this.keyEncoding = options.keyEncoding ?? 'flydrive';
@@ -204,11 +215,11 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       throw toError('ENOENT', filePath);
     }
 
-    async createReadStream(filePath: string): Promise<NodeJS.ReadableStream> {
+    async createReadStream(filePath: string): Promise<Readable> {
       return this.ioDisk.getStream(this.keyFor(filePath));
     }
 
-    async createWriteStream(filePath: string): Promise<NodeJS.WritableStream> {
+    async createWriteStream(filePath: string): Promise<Writable> {
       const key = this.keyFor(filePath);
       const uploadStream = new PassThrough();
       const upload = this.ioDisk.putStream(key, uploadStream);
@@ -232,12 +243,12 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
       return writable;
     }
 
-    async createReadable(filePath: string): Promise<NodeJS.ReadableStream> {
-      return this.createReadStream(filePath);
+    async createReadable(filePath: string): Promise<ReadableStream> {
+      return Readable.toWeb(await this.createReadStream(filePath));
     }
 
-    async createWritable(filePath: string): Promise<NodeJS.WritableStream> {
-      return this.createWriteStream(filePath);
+    async createWritable(filePath: string): Promise<WritableStream> {
+      return Writable.toWeb(await this.createWriteStream(filePath));
     }
 
     async readFile(
@@ -260,10 +271,14 @@ export function createStorageManagerOcflStoreClass(OcflStore: OcflStoreConstruct
 
     async writeFile(
       filePath: string,
-      data: string | Uint8Array | Readable,
+      data: string | Uint8Array | Readable | ReadableStream,
       options?: Record<string, unknown>
     ): Promise<void> {
       const key = this.keyFor(filePath);
+      if (data instanceof ReadableStream) {
+        await this.ioDisk.putStream(key, Readable.fromWeb(data), options);
+        return;
+      }
       if (data instanceof Readable) {
         await this.ioDisk.putStream(key, data, options);
         return;

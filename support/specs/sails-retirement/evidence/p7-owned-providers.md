@@ -274,3 +274,68 @@ therefore correctly performed no mint; its assertion failed. Supplying the actua
 trigger input exercises HTTP and persists the expected outcome. Initial TypeScript
 errors exposed the abstract record port's insufficient actor/result types; the
 concrete owned-domain port fixes them without assertions or `any` casts.
+
+## ONI OCFL storage and admitted publication
+
+`integrations/Oni.ts` and `integrations/oni/` own publishing, configuration,
+context, audit, repository and Effect runtime collaborators. The selected
+StorageManager, datastream, brand/account lookup, Records, audit, log and admitted
+work runner are explicit inputs. Repository promises remain retained through
+Effect interruption/timeouts and are drained before persistence closes. Globals
+and old helper signatures remain in comparison delegates only. Ingestion and
+metadata writeback retain their existing algorithms; the aggregate below does
+not configure or claim those effects.
+
+Real OCFL qualification found two previously untested production adapter faults:
+Flydrive 2.2.0 rejects percent signs in the existing encoded OCFL keys, and
+`@ocfl/ocfl` 0.4.0 requires web ReadableStream inputs. The store now uses its owned
+driver for both encodings, preserving the physical `%3D`/`%25` layout rather than
+changing existing objects. Explicit prefix/traversal validation precedes driver
+access. Node attachment streams convert to web streams at the OCFL transaction
+boundary; the storage adapter converts web streams back to the driver's Node
+stream contract. `createReadable`/`createWritable` expose the documented OCFL web
+stream API; legacy Node stream methods remain available.
+
+Node **26.11.1**, qualified toolchain bin on PATH:
+
+```sh
+# From packages/redbox-core
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
+  --no-config --require chai --require test/setup.ts --timeout 5000 \
+  test/services/OniService.test.ts 'test/services/oni-v2/*.test.ts'
+# From repository root
+node packages/redbox-core/node_modules/typescript/bin/tsc -p packages/redbox-core/tsconfig.json
+SR_ONI_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_oni \
+node --test packages/redbox-core/test/qualification/oni.cjs
+```
+
+Core TypeScript exits **0**. Existing ONI suites plus one new traversal regression:
+**83 passing / 0 failing / 0 pending**, exit **0**. Before the adapter fixes the
+unchanged existing suites passed **82/0/0**, while the actual provider aggregate
+failed. Two existing tests were changed with this specific justification: the
+repository test now verifies web-stream type **and consumed attachment content**
+instead of requiring Node-stream identity, and the store test distinguishes its
+legacy Node method from its documented OCFL web method. No skip, timeout or
+behavioral assertion was weakened. Formatter changes are incidental to those
+files. No dependency changed.
+
+Compiled aggregate on actual Mongo **8.0.34**, actual bundled Prisma storage,
+Flydrive filesystem driver and actual OCFL implementation: **2 passing / 0 failing /
+0 skipped**, exit **0**, **3655.730391 ms**. Both default-encoded and explicit-raw
+layouts persist **10 files / 33 selected attachment bytes / 6 audit rows** each.
+A held actual dataset write keeps application stop pending; completion persists
+before pools close. Encoded/raw OCFL sentinel filenames are checked on disk. No
+Sails/CoreService/comparison module enters the graph. Disposable database and
+files are removed in finally. This is provider qualification, not a complete
+production portal or broad-suite result.
+
+Logs in `.tmp/sails-retirement/p7/`: `oni-build-complete.log`,
+`oni-existing-qualified.log`, `oni-mongo-ocfl-qualified.log`. Focused lint has
+**0 errors / 0 warnings**; formatting/diff checks pass. Earlier failed aggregates
+exposed missing qualifier disk selection, the encoded-key fault, unsupported Node
+stream input and a residual comparison context import. The compiler also rejected
+a nonexistent static `Readable.wrap`; the implementation uses its instance API.
+A premature invocation before compiler completion still loaded the preceding
+adapter and is not counted as passing. The final aggregate follows completed
+emission and passes its import check.

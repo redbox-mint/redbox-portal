@@ -73,6 +73,15 @@ describe('Oni Flydrive OCFL store', () => {
     expect(raw.keyFor('/repo/a=b')).to.equal('oni/a=b');
   });
 
+  it('rejects traversal outside the storage prefix before driver access', () => {
+    for (const encoding of ['flydrive', 'raw'] as const) {
+      const { store, disk } = harness(encoding);
+      expect(() => store.keyFor('../../outside')).to.throw('configured storage prefix');
+      expect(() => store.keyFor('folder\\..\\outside')).to.throw('configured storage prefix');
+      expect(disk.put.called).to.equal(false);
+    }
+  });
+
   it('stats files, directories, and missing paths', async () => {
     const { disk, store } = harness();
     const modified = new Date('2025-01-01T00:00:00Z');
@@ -106,7 +115,8 @@ describe('Oni Flydrive OCFL store', () => {
     expect(disk.put.calledOnce).to.equal(true);
     expect(disk.putStream.calledOnce).to.equal(true);
     expect(disk.copy.calledOnceWith('oni/a.txt', 'oni/b.txt')).to.equal(true);
-    expect(await store.createReadable('/repo/a.txt')).to.equal(disk.getStream.returnValues[0]);
+    expect(await store.createReadStream('/repo/a.txt')).to.equal(disk.getStream.returnValues[0]);
+    expect(await store.createReadable('/repo/a.txt')).to.be.instanceOf(ReadableStream);
 
     disk.get.rejects(Object.assign(new Error('cannot read file'), { code: 'CANNOT_READ_FILE' }));
     try {
@@ -134,7 +144,7 @@ describe('Oni Flydrive OCFL store', () => {
     await store.writeFile('/repo/stream=a', Readable.from('streamed'));
     const stat = await store.stat('/repo/meta=data');
     expect(stat.size).to.equal(12);
-    expect(await store.createReadable('/repo/read=stream')).to.equal(driver.getStream.returnValues[0]);
+    expect(await store.createReadable('/repo/read=stream')).to.be.instanceOf(ReadableStream);
     expect(await store.readdir('/repo/folder')).to.deep.equal(['a=b.txt']);
     await store.copyFile('/repo/source=a', '/repo/target=b');
     await store.move('/repo/source=a', '/repo/target=b');

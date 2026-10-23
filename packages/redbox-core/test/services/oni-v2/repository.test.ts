@@ -1,5 +1,5 @@
 let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import { Readable } from 'node:stream';
 import * as sinon from 'sinon';
 import type { OniPublishingSiteConfig } from '../../../src/configmodels/OniPublishing';
@@ -33,16 +33,20 @@ describe('Oni v2 OCFL repository', () => {
     const transaction = { write: sinon.stub().resolves() };
     const rootObject = {
       load: sinon.stub().rejects(Object.assign(new Error('not found'), { code: 'ENOENT' })),
-      update: sinon.stub().callsFake(async (updater: (tx: typeof transaction) => Promise<void>) => updater(transaction)),
+      update: sinon
+        .stub()
+        .callsFake(async (updater: (tx: typeof transaction) => Promise<void>) => updater(transaction)),
     };
     const datasetObject = {
       load: sinon.stub().resolves(),
-      update: sinon.stub().callsFake(async (updater: (tx: typeof transaction) => Promise<void>) => updater(transaction)),
+      update: sinon
+        .stub()
+        .callsFake(async (updater: (tx: typeof transaction) => Promise<void>) => updater(transaction)),
     };
     const storage = {
       load: sinon.stub().resolves(),
       create: sinon.stub().resolves(),
-      object: sinon.stub().callsFake((id: string) => id === 'root-collection' ? rootObject : datasetObject),
+      object: sinon.stub().callsFake((id: string) => (id === 'root-collection' ? rootObject : datasetObject)),
     };
     class FakeOcfl {
       storage = sinon.stub().returns(storage);
@@ -99,12 +103,9 @@ describe('Oni v2 OCFL repository', () => {
       storage: { ...site.storage, driver: 'filesystem' },
     } as unknown as OniPublishingSiteConfig;
 
-    expect(() => createOniRepository(
-      config,
-      invalidSite,
-      {} as DatastreamService,
-      {} as StorageManagerServices.StorageManager
-    )).to.throw("storage driver 'filesystem' is not supported");
+    expect(() =>
+      createOniRepository(config, invalidSite, {} as DatastreamService, {} as StorageManagerServices.StorageManager)
+    ).to.throw("storage driver 'filesystem' is not supported");
   });
 
   it('bootstraps the disk and creates an invalid OCFL storage root', async () => {
@@ -163,7 +164,9 @@ describe('Oni v2 OCFL repository', () => {
 
   it('treats the S3 NoSuchKey response as a missing root collection', async () => {
     const harness = makeHarness();
-    harness.rootObject.load.rejects(Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' }));
+    harness.rootObject.load.rejects(
+      Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' })
+    );
 
     await harness.repository.ensureRootCollection(config, site);
 
@@ -174,8 +177,10 @@ describe('Oni v2 OCFL repository', () => {
     const harness = makeHarness();
     const stream = Readable.from(['streamed']);
     (harness.datastreamService.getDatastream as sinon.SinonStub)
-      .onFirstCall().resolves({ readstream: stream })
-      .onSecondCall().resolves({ body: 'buffered' });
+      .onFirstCall()
+      .resolves({ readstream: stream })
+      .onSecondCall()
+      .resolves({ body: 'buffered' });
     const crate = {
       rootId: 'dataset-1',
       dataRecordOid: 'record-1',
@@ -191,7 +196,12 @@ describe('Oni v2 OCFL repository', () => {
     expect(harness.datasetObject.update.calledOnce).to.be.true;
     expect(harness.datasetObject.update.firstCall.args[1]).to.equal('REPLACE');
     expect(harness.transaction.write.getCall(0).args[0]).to.equal('ro-crate-metadata.json');
-    expect(harness.transaction.write.getCall(1).args).to.deep.equal(['files/one.txt', stream]);
+    const [logicalPath, webStream] = harness.transaction.write.getCall(1).args;
+    expect(logicalPath).to.equal('files/one.txt');
+    expect(webStream).to.be.instanceOf(ReadableStream);
+    const chunks = [];
+    for await (const chunk of webStream) chunks.push(chunk);
+    expect(chunks.join('')).to.equal('streamed');
     expect(harness.transaction.write.getCall(2).args).to.deep.equal(['files/two.txt', 'buffered']);
   });
 });
