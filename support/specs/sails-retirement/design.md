@@ -70,6 +70,21 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
 
 ### 1.3 Recorded HTTP compatibility breaks
 
+- The migrated identity, query-definition and RVA writes exported by
+  `identityAdministrationRoutes`, `queryWriteRoutes` and
+  `vocabularyIntegrationRoutes` require authentication, membership in the requested
+  brand and its Admin role (self profile/token routes use the authenticated actor).
+  Target users/vocabularies must belong to that brand; role changes preserve other
+  brands' memberships. Self profile updates reject role changes, and unknown role
+  names or structured/malformed inputs receive 400 before effects. This closes
+  permissive unruled-path and cross-brand legacy administration cases. Affected
+  browser/API clients must obtain the owning brand's role, use its URLs, provide
+  browser CSRF or a verified API bearer credential, and submit known role names.
+  Backend errors are sanitized; a failed response after committed profile/role,
+  audit or vocabulary steps requires reading current state before retrying. The
+  role-create contract now also accepts its declared path `roleName` when the
+  legacy body/query aliases are absent. Valid body/query precedence is retained.
+
 - Migrated record reads/exports in `recordReadRoutes` require authentication and
   membership in the requested brand. Every object read additionally checks its
   stored brand and view ACL before returning metadata, permissions, audit or a

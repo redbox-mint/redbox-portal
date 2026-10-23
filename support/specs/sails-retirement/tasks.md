@@ -526,6 +526,10 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-036 — Migrate identity administration and external integration mutations.**
 
+  **Status:** partial; [32 protected identity/query/RVA mounts and owned operations](evidence/p5-identity-integration.md).
+  Linking depends on SR-035; remaining independent administration/integration
+  routes and provider qualification are recorded explicitly.
+
   **Depends on:** SR-031, SR-038, SR-039; add actual domain/provider prerequisites.
 
   **Deliver:** reviewed slices for account linking/disable/roles and publishing/

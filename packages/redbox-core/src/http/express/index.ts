@@ -50,4 +50,16 @@ export {
 
 export { mountQueryReadRoutes, queryReadRoutes, type QueryReadHttpInput } from './queryReads';
 
-export {mountRecordReadRoutes,recordReadRoutes,type RecordReadHttpInput} from './recordReads';
+export { mountRecordReadRoutes, recordReadRoutes, type RecordReadHttpInput } from './recordReads';
+
+export {
+  mountIdentityAdministrationRoutes,
+  identityAdministrationRoutes,
+  type IdentityAdministrationHttpInput,
+} from './identityAdministration';
+export { mountQueryWriteRoutes, queryWriteRoutes, type QueryWriteHttpInput } from './queryWrites';
+export {
+  mountVocabularyIntegrationRoutes,
+  vocabularyIntegrationRoutes,
+  type VocabularyIntegrationHttpInput,
+} from './vocabularyIntegrations';

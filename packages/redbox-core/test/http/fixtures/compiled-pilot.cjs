@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const Module = require('node:module');
 const load = Module._load;
 const forbidden =
-  /\/redbox-core\/(?:src\/|dist\/(?:compat\/|controllers\/|(?:index|CoreController)\.js$))|\/node_modules\/sails\//;
+  /\/redbox-core\/(?:src\/|dist\/(?:compat\/|controllers\/|(?:index|CoreBase|CoreService|CoreController)\.js$))|\/node_modules\/sails\//;
 Module._load = function (name, ...args) {
   assert(!['sails', '@researchdatabox/redbox-core'].includes(name), 'Forbidden standalone import: ' + name);
   const resolved = Module._resolveFilename(name, args[0]);
@@ -14,13 +14,15 @@ const { ApplicationRuntime } = require('@researchdatabox/redbox-core/application
 const { RecordTypes } = require('@researchdatabox/redbox-core/record-types');
 // Every newly extracted metadata entrypoint must remain safe in the compiled graph.
 require('@researchdatabox/redbox-core/configuration');
+require('@researchdatabox/redbox-core/identity');
+require('@researchdatabox/redbox-core/vocabulary');
 require('@researchdatabox/redbox-core/forms');
 require('@researchdatabox/redbox-core/translations');
 require('@researchdatabox/redbox-core/dashboards');
 require('@researchdatabox/redbox-core/workflows');
 require('@researchdatabox/redbox-core/workspaces');
 require('@researchdatabox/redbox-core/record-schema');
-for (const module of ['RecordLists', 'DeletedRecordReader', 'relationships'])
+for (const module of ['RecordLists', 'DeletedRecordReader', 'relationships', 'RecordCreateAuthorization'])
   require('../../../dist/records/' + module);
 require('../../../dist/forms/FormProjection');
 require('../../../dist/api-routes/schemaDelivery');
