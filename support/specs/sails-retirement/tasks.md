@@ -1,6 +1,7 @@
 # Sails retirement: v6 task list
 
-Status: P0 baseline work in progress; task evidence is linked below. Planning
+Status: P0 SR-001–SR-004 complete; SR-005 is partial pending institution cohort
+and production-source designation. Task evidence is linked below. Planning
 documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -87,6 +88,10 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   distinguished; PDF events/shutdown and process-level instance caches have owners.
 
 - [ ] **SR-005 — Define database qualification and the institution rehearsal cohort.**
+
+  **Status:** partial; [exact Mongo candidates and executed foundation checks](evidence/p0-qualification.md).
+  Representative institution hook/configuration and approved production upgrade
+  source remain undesignated; topology and release-coverage gaps are explicit.
 
   **Depends on:** SR-001, SR-003.
 

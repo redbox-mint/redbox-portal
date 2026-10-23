@@ -1,0 +1,45 @@
+
+> @researchdatabox/redbox-core@0.0.1-beta.9022 test:persistence
+> bash test/persistence/run.sh
+
+
+> @researchdatabox/redbox-core@0.0.1-beta.9022 test
+> TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/integration/PrismaPersistence.test.ts
+
+
+
+  Prisma persistence regression contracts
+    ✔ recovers GridFS bytes after the first separately configured connection fails (241ms)
+    ✔ closes the live chunk cursor after a malformed legacy logo download (112ms)
+    ✔ uses BSON ids and supplied-field patches without rewriting existing raw documents (49ms)
+    ✔ refuses fixture-only R/Q fields before writes or named-query execution (128ms)
+    ✔ preserves cache JSON, duplicate classification and numeric timestamps
+    ✔ keeps migration execution names and ordering durable (53ms)
+    ✔ keeps configuration BSON references and fences dashboard revisions (113ms)
+    ✔ retains progress defaults and supplied JSON fields (74ms)
+    ✔ atomically accumulates harvest counters under concurrent chunk completion (69ms)
+    ✔ grants one SIEM lease and refuses stale delivery writes (61ms)
+    ✔ persists Figshare state with a single exclusive lease (49ms)
+    ✔ keeps vocabulary normalization and branding drafts on model CRUD
+    ✔ hashes credentials and never returns them through identity projections (359ms)
+    ✔ executes tenant-scoped user, role and path-rule named queries on string timestamps (152ms)
+    ✔ allocates every Counter value exactly once under concurrent first use (83ms)
+    ✔ sorts identity JSON paths before tenant-scoped paging and retains safe populated rows (1129ms)
+    ✔ preserves native record regex options, JSON scalars and Mongo identity refusal (40ms)
+    ✔ retains dotted JSON sorting with tenant scope and paging for form
+    ✔ retains dotted JSON sorting with tenant scope and paging for appconfig
+    ✔ retains dotted JSON sorting with tenant scope and paging for asynchprogress
+    ✔ retains dotted JSON sorting with tenant scope and paging for brandingconfighistory
+    ✔ retains dotted JSON sorting with tenant scope and paging for figsharevocabularysyncrun
+    ✔ retains dotted JSON sorting with tenant scope and paging for record
+    ✔ inspects duplicate indexes without rewriting documents and only prepares explicit scopes
+    ✔ shares session transport with the app runtime and closes it only after the store (85ms)
+    ✔ fences retained repositories across shutdown and restart without rewriting stored data (125ms)
+    Counter named queries
+      ✔ maps ID predicates and sort keys before tenant-scoped count and paging
+      ✔ coerces numeric strings in equality, membership and range predicates
+      ✔ matches Counter text case-sensitively and retains empty and intersected modifiers
+      ✔ preserves internal ObjectId operands in equality and membership without count
+
+
+  30 passing (10s)
