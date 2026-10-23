@@ -1,0 +1,1476 @@
+{
+  "sourceCommit": "a49366803164429f9d8bdd249dadcdf856c9d13e",
+  "method": "Python pathlib recursive api/config JS/TS files, generated-header detection and SHA-256; header is not proof of unedited output",
+  "files": [
+    {
+      "file": "api/controllers/ActionController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "3cb2a8f50e79a7941498dc62e0465af00754f0064c4e6da23abc9b3323e1fb45"
+    },
+    {
+      "file": "api/controllers/AdminController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "87f1dcefbaa5b6ad31a987000b6ee3a27495a8fcf5b021b3c27053cf08c0d51b"
+    },
+    {
+      "file": "api/controllers/AppConfigController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "423516ca1edd45d2ad921b947e7cfc2a6c71b69a36dcac20513aa7b59d4c9e65"
+    },
+    {
+      "file": "api/controllers/AsynchController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6e973cf9ae2c091eead869c777faebe6eee5498ad2bf3fa61fe9aaec97269be7"
+    },
+    {
+      "file": "api/controllers/BrandingAppController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "db73c9587bf0e16a07ce7799dc768efe59792396bfbd392db896df9d713a2888"
+    },
+    {
+      "file": "api/controllers/BrandingController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "53a1e49a02e28c2d17c68da3163b86a1b9e2b633cfcb4f7b8537e4c820f29a28"
+    },
+    {
+      "file": "api/controllers/DashboardConfigController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "47d51fe5cda0f2e41d5162eb9b1f318396fa48bfe744ce5d737955d5480b3f26"
+    },
+    {
+      "file": "api/controllers/DynamicAssetController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8790f6862c434546617c31da138f730b16134ac7bdcc54b9cf092c917c0de6f9"
+    },
+    {
+      "file": "api/controllers/EmailController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "62a5021fb3c7e4f3480db60a7b5f7ee7bb2db2d0bf538c921d026345b352fa5f"
+    },
+    {
+      "file": "api/controllers/ExportController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "922e07edd370e1acd3e493c5623fb5c34ca15c31bbf23fa774b346ff08683ecf"
+    },
+    {
+      "file": "api/controllers/FormVocabularyController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "deb4450d94da3f7472a1e5dda39340225972e8c1e7159cb75666c43844d6c89f"
+    },
+    {
+      "file": "api/controllers/NamedQueryController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b5a90c59e884ab320f3ac5d855183b4a38805c3e2dea1dd50efe64c2fad2b6a1"
+    },
+    {
+      "file": "api/controllers/RecordAuditController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "38aee8dbec02276d20ee4ca2d8645e432a04026a35cdd1e8e16cbdf601c206cd"
+    },
+    {
+      "file": "api/controllers/RecordController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4685084b7e21a59a284475b23c030e491ed0d8c2d2c553fefe0bc4b504d47bfd"
+    },
+    {
+      "file": "api/controllers/RenderViewController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "83230d2dd5da96ba7ba307348d9980046f22ce51d1198cda6871e4b75c2dcfbb"
+    },
+    {
+      "file": "api/controllers/ReportController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c45f5e73aad29cfa64b41daa6035d781500a6ebfc4c4b255d09eacf34e9b190b"
+    },
+    {
+      "file": "api/controllers/ReportsController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "fcf2cd68ef3e3e498afb5ccccfd0a310ebf250dd0df59fc696fadf2c4db97508"
+    },
+    {
+      "file": "api/controllers/TranslationController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b470ec7f776fc80088d9fd462fc187c163a6786c8b43b573e7265dadab227944"
+    },
+    {
+      "file": "api/controllers/UserController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "7b11620172ced27d3f2d3e4a0ad7898e9203d9e78f725e330adcdf8935c2dbe0"
+    },
+    {
+      "file": "api/controllers/VocabularyController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "80ee0905f32c35c3cc20f1924274ca3f4f02a3ad5f6938a3266ec8fe96277bef"
+    },
+    {
+      "file": "api/controllers/WorkspaceAsyncController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "9bf6bee74ed157f588eca7f79f275051faace40ca2a9aa6cd36049d8b6c586a9"
+    },
+    {
+      "file": "api/controllers/WorkspaceTypesController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "cc1dda3be3a5eb8e66ba9ca027f7e365210444f0e46874cfdcbb3c9492dda1fa"
+    },
+    {
+      "file": "api/controllers/webservice/AdminController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "2aee0e746c3a61b980c04d6e6fe64ac025c49f45b5d07e0f1d479f4b7b037b4c"
+    },
+    {
+      "file": "api/controllers/webservice/AppConfigController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ecca4cca4c7dde36ea4ae7e613ed2661ff6a42f8a2e845529d3c8da9275ae75d"
+    },
+    {
+      "file": "api/controllers/webservice/BrandingController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "5716c89a88a1d98c98365e3d9be7799fcc5f933ffa98bfb539304159c679a824"
+    },
+    {
+      "file": "api/controllers/webservice/DashboardConfigController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "a8a344b5c6dee81d430a66498467695619ac2e60a29eaa281401c3c301513fab"
+    },
+    {
+      "file": "api/controllers/webservice/ExportController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6113904354093d971c2c47e401fd918c9c884384f9d7160ab0c25c80523e103f"
+    },
+    {
+      "file": "api/controllers/webservice/FigshareCrosswalkController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "116eb0e5eba68f8ffb5e18c34a705a46e6559c704d9b1430b13dfe366a43382f"
+    },
+    {
+      "file": "api/controllers/webservice/FigshareVocabularyController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6b61742a77fcff19b443109bccafc1c31418466f86fab61224a3b92d545a517f"
+    },
+    {
+      "file": "api/controllers/webservice/FormManagementController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c8defdda7fb8bcea1531f249a7a5e884e6f63d93802c897e4f253386618cfea7"
+    },
+    {
+      "file": "api/controllers/webservice/HarvestRunController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c582a53759e9deeb72907ba85f61cde24e1a4c146d3bda9822604462d8b80231"
+    },
+    {
+      "file": "api/controllers/webservice/IntegrationAuditController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "3cdb4f4cae5fe9900ad516872838fb7dd7e33fb51af7cd545ccb53406aae65bb"
+    },
+    {
+      "file": "api/controllers/webservice/NamedQueryController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "49d2e0586c1020cf75a8622c43c64a660a7247b342862371dd44b7a92103fda1"
+    },
+    {
+      "file": "api/controllers/webservice/RecordController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "db2ab9a81a284fae47ec0ab579ef385b95e5cd1e3bae482511041fe75c9b982a"
+    },
+    {
+      "file": "api/controllers/webservice/RecordSchemaController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "0c1dc2e6f50aa77721ac030c6f474b7f057e4c4278238c811e433a509a53bb5f"
+    },
+    {
+      "file": "api/controllers/webservice/RecordTypeController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1ec01f5f00e61ffcb448425e904534b27bb4c633f1e36a5e7b84f0e57f112f22"
+    },
+    {
+      "file": "api/controllers/webservice/ReportController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "240d6e7048e18c62b8f2e712c7257fe602b1cce81294bc93756ef4d400312344"
+    },
+    {
+      "file": "api/controllers/webservice/SearchController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "842de0dbf068b33f584c6a67e766b16bd98eab936334017d33c7f4ea3c637857"
+    },
+    {
+      "file": "api/controllers/webservice/SiemController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "82365a54b70d610f40fd4aee622a35ae3dc308fbe52c23e52abb78f5bceb3711"
+    },
+    {
+      "file": "api/controllers/webservice/TranslationController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6f462dac925b47679394477e38947e3376f20c76295eee81c9319d4cfc11b3eb"
+    },
+    {
+      "file": "api/controllers/webservice/UserManagementController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4e6685381f61f7c28fa4294f8005363aea586222dcdab71b2d36e125a33af047"
+    },
+    {
+      "file": "api/controllers/webservice/VocabularyController.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "65ea57bef4499aa82132784f76419ea3814b9510904bd65b57f1772c08a98589"
+    },
+    {
+      "file": "api/form-config/index.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "fbb1b69e293ca52079aecb45a9b8656432cd973c433a3e13bd469e200212ef4e"
+    },
+    {
+      "file": "api/middleware/buildRedboxSessionOptions.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8303a57e6eb72e309bb9680f233996bb4e8504aefeb26d74c6ed81eeff9305fa"
+    },
+    {
+      "file": "api/middleware/redboxSession.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8bef45757be389f1e9a0ddfd62ff0fcf29f03ee719ca6c12890268b2041b356d"
+    },
+    {
+      "file": "api/migrations/20260904000000-branding-typeface-backfill.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "bdc86c674b9b233376b37c08ba836de69df024d4d4ea2cf74ed3f858c251c725"
+    },
+    {
+      "file": "api/migrations/20260925T000000-dashboard-stage-configuration.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "941bb38e2fdb0227b5803cf63cadc44a63b87be5ac251341da1e248b013ff5c7"
+    },
+    {
+      "file": "api/migrations/20261014T000000-admin-sidebar-text-color.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "31f289266add0f380a3cb68a5d25a78e0a86760fc92641252ff411246788c0b7"
+    },
+    {
+      "file": "api/models/AppConfig.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d49b044d214c997d6e591c6bc936074279b635a1dc848869d492dfc3d0410e8d"
+    },
+    {
+      "file": "api/models/AsynchProgress.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e93a6b526299d73f6b3d721f91974703ec1518e7acf3c9571c1809b3b892233d"
+    },
+    {
+      "file": "api/models/AttachmentAccessAudit.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "5199ff7fdf6b4ee7456b42c9adbee549fa3aff28ab271ff66c51fa6be26431d4"
+    },
+    {
+      "file": "api/models/AttachmentMetadata.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1635d3f65a1714d7e8c17a8bd753a860babc0b31bac2a0a3fe5cca89238cbb60"
+    },
+    {
+      "file": "api/models/BrandingConfig.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "fd111cbce0d14a76b4faaeb534afd33404c048ec6bade0a44294767283554328"
+    },
+    {
+      "file": "api/models/BrandingConfigHistory.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "02beb07d360ff1752747e0d1582b19a708c85fb986bcff92a79d88745d87ffe2"
+    },
+    {
+      "file": "api/models/CacheEntry.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "cfbd3f3edec82a6a90c6e912b20be2ac04ca3fd10f68181370ee3ed53fd4a565"
+    },
+    {
+      "file": "api/models/Counter.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d2cb2497d8cca67c855835e80c1291703575969c24bf7285024cb82635c1a71e"
+    },
+    {
+      "file": "api/models/DashboardConfiguration.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "30421a036517b969d6c0b69e254b09cc0c7f154ef953b7f81c9acb67fdd9fee6"
+    },
+    {
+      "file": "api/models/DashboardType.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "275c1d48f7275176e932c05c1b5057ddd36108966a65e6c095148a890fb4dce5"
+    },
+    {
+      "file": "api/models/DeletedRecord.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "494a1a264e72543b0600e3b1998dd3d9b5fac72c6c5dc0dcd564a16a7b10b820"
+    },
+    {
+      "file": "api/models/FigshareSync.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e39cba948964d619122cc9c1e06e51d36bfe40f90bf482e6f9a862b3ed645d66"
+    },
+    {
+      "file": "api/models/FigshareVocabularyCategory.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "03b140c570f627e5595800e8bcaf6dffd5d04a4c04a63b67a4ef82135f6940fe"
+    },
+    {
+      "file": "api/models/FigshareVocabularyCrosswalk.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "15c9fe4912c56d91753f1a6d548474188e033dd7c5cc3beffc5d4f6a981ec053"
+    },
+    {
+      "file": "api/models/FigshareVocabularyCrosswalkMapping.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4fb67a6869dbdd4f7faab8f46ef4f87a8d41cc42c05db6f1e2ce430ee579e678"
+    },
+    {
+      "file": "api/models/FigshareVocabularySource.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "451ae814a0409c8ba5baf15521e373a31f5003a07838f6871ef6a1d11f922f00"
+    },
+    {
+      "file": "api/models/FigshareVocabularySyncRun.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "65dacb574fc8c22988dd2ee41561d30382022f5399d43d39f86fb55c5b1e05a8"
+    },
+    {
+      "file": "api/models/Form.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "0a36c8ef1d1230173da15bd1a830c58038a4053f05ecf191eb8bcb54a8b7ff58"
+    },
+    {
+      "file": "api/models/HarvestRecordEvent.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d82925b4395a34486ec603f569153927d8d66a547bc28399d9e805c63b01954c"
+    },
+    {
+      "file": "api/models/HarvestRun.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "52ce5316fd033e2af7ba7932f4ebabd16d505353291cd28c1b2f0154b01af34c"
+    },
+    {
+      "file": "api/models/HarvestRunChunk.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e193ef97275d107576ecaf3837bc516bb9acaec49780ec93b67086b966c47417"
+    },
+    {
+      "file": "api/models/I18nBundle.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b969c99a07b10633f4204f8969c3dbcfc97a54f91e9c075fabf78e981ac5213d"
+    },
+    {
+      "file": "api/models/I18nTranslation.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4f7918f56a20fcee91b90d71f53ac65de42da981cd1d88170b745539cbf22f6d"
+    },
+    {
+      "file": "api/models/IntegrationAudit.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "75787ebc90b9ba52d8e472df257f37b248631346a14651ea8d2e8a1b208f0f95"
+    },
+    {
+      "file": "api/models/Migration.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "aa9a1e5edc56455186ffde3eb6f9bd8f0251337a1e2eb6b62cf4e9012da267b5"
+    },
+    {
+      "file": "api/models/NamedQuery.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6f46ee17b441d3c4f2f0e87e1d799762d7591035bc07aef5d69a673f700a04af"
+    },
+    {
+      "file": "api/models/PathRule.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "58df7c3e8ce6dda839b439506cb75d0f36cf35b100defee5c3ac136538e32fa4"
+    },
+    {
+      "file": "api/models/RBReport.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "79e5e17f3ed1fd2d1b208dd938bc3d762fbc3759d80f61c7b7850932a0d1d1ff"
+    },
+    {
+      "file": "api/models/Record.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "60382d8aa0de1007e86aa587e066585f010ab63115f973fcf28ffd0fb4a11845"
+    },
+    {
+      "file": "api/models/RecordAudit.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ccb0181454edece2c910dc7b7be686a86e3b28732541c7b9ac03dd18732b4741"
+    },
+    {
+      "file": "api/models/RecordSchemaArtifact.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "0bc7162c1187e9139b5b8ec8bbd9959eb46e1001b27323db9bba69ff3bc411c9"
+    },
+    {
+      "file": "api/models/RecordSchemaReference.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "17384c3691ad60b315285607df59a3bb6ab6cb088be827ded12ba7ef6d13f19a"
+    },
+    {
+      "file": "api/models/RecordType.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "5aa20929f5aacfac7bd953e0f52333940e23293f4a498980199f5109d79ef290"
+    },
+    {
+      "file": "api/models/Role.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ffa938f956884529e9df550d5cf0580b9cab1b64689d95c46670608a850434b5"
+    },
+    {
+      "file": "api/models/SecurityEvent.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1a8c333bd50664ceea1e98442edbcc1fee40324a9e01c4cb3c92a4a2a3a01b23"
+    },
+    {
+      "file": "api/models/SiemDeliveryAttempt.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "dddf4ab3f00782acf99c7ceabe42d044cad86252a50d9a48400638e16547fc28"
+    },
+    {
+      "file": "api/models/ThemeConfig.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "794aafe30eaeda471aa518b0bf94b311e49f02eb68ac6d3d9941423f79c3f00b"
+    },
+    {
+      "file": "api/models/User.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8230565af3f292a8638a95dbb7db8bb010f44d6e1ac61e5842c8b6a719ddf3e4"
+    },
+    {
+      "file": "api/models/UserAudit.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "0ce79d4d8527a6f70ab99f064d99b2de04bd0a6bf661654e5186d91bc79e8ecb"
+    },
+    {
+      "file": "api/models/UserLink.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c78301bb06a8386acb86558fac46bf7a938f4e8076db4252b684de813324337d"
+    },
+    {
+      "file": "api/models/Vocabulary.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "fa7227eda97cfc4056c0b65657ef753230230fe62dfbd1978cb0f04988903927"
+    },
+    {
+      "file": "api/models/VocabularyEntry.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6eeb221790bbaad26c9a059248c59bc35decc44913612a71eb3eef32bf823985"
+    },
+    {
+      "file": "api/models/WorkflowStep.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4d4de62d57517c3381606daee344d34952d9a7205fbd710e7fba510d86566b70"
+    },
+    {
+      "file": "api/models/WorkspaceApp.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e3a97addfc8f532a7ea21621dcb90408a5f26672da4f50129f5afaeec4a38813"
+    },
+    {
+      "file": "api/models/WorkspaceAsync.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d8378c546a40f44155491b00b80e6aa878e5a25722a4649de38cf20d6a7bcbd7"
+    },
+    {
+      "file": "api/models/WorkspaceType.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "30bbdcab8df43b19d4ef1f6f9752d2397205a420879c5fab827b5d4d4ce19df7"
+    },
+    {
+      "file": "api/policies/brandingAndPortal.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "3d8b8e8bd6cd6943f01590da8f5fbdeb220771b342a3d0b351c848e727955809"
+    },
+    {
+      "file": "api/policies/checkAuth.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "0517a83f6a4acd3984bd7b2a56390a1bc0131331dfa8b431ff96ec57120a8e07"
+    },
+    {
+      "file": "api/policies/checkBrandingValid.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "42ed723f1972ef2e72900fc0f44726e1c916b07f003d7901fff51e80c7f5fda7"
+    },
+    {
+      "file": "api/policies/checkRecordSchemaAuth.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "fbd52e4c38290a4709e7adf9ad511a355ea0d453f6591acc0ce7fa5ab23ec043"
+    },
+    {
+      "file": "api/policies/companionAttachmentUploadAuth.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "f2156ad4fcad637bb7c43b1c380234b9af988076fc4a523715ce6b53e5897d67"
+    },
+    {
+      "file": "api/policies/contentSecurityPolicy.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "abfba4ac995c942efb2f06e3d32a0bcbcb24c0cfed7bdaf714f2db23bef23be0"
+    },
+    {
+      "file": "api/policies/disallowedHeadRequestHandler.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "251fa68c981fcc55c44315d8557549ba223ccfd0aed7f6e8d66f41d9aff337b7"
+    },
+    {
+      "file": "api/policies/i18nLanguages.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "41b0b9b4e84044dd18a076c97d5ff2fd8664939775d66241a7bc72f480ffe7b3"
+    },
+    {
+      "file": "api/policies/isAuthenticated.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b9d4a1191045f6a7356be7aa29248a547b88702e20563352278e44d1e34aa2e0"
+    },
+    {
+      "file": "api/policies/isWebServiceAuthenticated.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c94d0c9366405092d78b7d9ffb9f490e7d07733d3e1d175ca909388f1e22ffbc"
+    },
+    {
+      "file": "api/policies/menuResolver.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "10438dcecb690c8c1b7c4ff334775b2a6a2c5fe5ab191001c5fba4fdd124d184"
+    },
+    {
+      "file": "api/policies/noCache.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "50dad2a348d2cd4f9235deec2c81da432696228e354a9caee9336e3cf0be6937"
+    },
+    {
+      "file": "api/policies/prepWs.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6d8b3a453ac87447c3fb3a83b3d9aa8b08ceff22774c38c3b903ff0f7e094f65"
+    },
+    {
+      "file": "api/policies/sessionAuth.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "389b377439af656770037de5a83d8673c7e3f4ef7380f02858bb3e406eda71de"
+    },
+    {
+      "file": "api/policies/setLang.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "bd099336bb37c695db82884836188bfb235973ec508e7bb1dd9f744570db6913"
+    },
+    {
+      "file": "api/policies/validateApiContractRequest.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "cab67144a661706c9222aa75cde391825790cd949d38baef1ec9264f4b84b4e9"
+    },
+    {
+      "file": "api/responses/badRequest.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "844275e67c33a50e29468b3f5c6e3d028740d01c35eb7ea0e1aa156751d0a3f4"
+    },
+    {
+      "file": "api/responses/created.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1d4ec77edaaf26f2c974a7076a8bbd1bfe6b321c293f8398b5abcbe0e9fafc4a"
+    },
+    {
+      "file": "api/responses/forbidden.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8691a60a3960b499316a64bd94b0976c932ef441ffea218abbbbb38e031b246a"
+    },
+    {
+      "file": "api/responses/notFound.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "a316703bbd7b037c761fb9b6c544a4b3aafbcaba89095337fb154cb0e51bc022"
+    },
+    {
+      "file": "api/responses/ok.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b2d6a3697abfffc5184dcf1c659a57a60348e351afc426e86c8b4331dad3ec02"
+    },
+    {
+      "file": "api/responses/serverError.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "daa2cf93db2c923003c824fef1018bda05e10489f1f5c46d67d76924c355d57c"
+    },
+    {
+      "file": "api/services/AgendaQueueService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4b307932e87fcbba5965daee8f928053c20cfa7c1284aa852351d5e884e4a8dd"
+    },
+    {
+      "file": "api/services/AppConfigService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "baf1761647f70a9b5687ee2fb6fb546acccaa12d61773dfc280eae4bac805776"
+    },
+    {
+      "file": "api/services/AsynchsService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4caad5804ff608ce02f7c9ba5586424026c184e827917fe03f76aca3b20fda23"
+    },
+    {
+      "file": "api/services/AttachmentMetadataService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "00435502dbb2e317dc228b50612ab2d34f6cd365259ba45dacd3e4440548183f"
+    },
+    {
+      "file": "api/services/BrandingLogoService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "49d6f28e6d5e2f93432e4d39142ec65e9e7da93ff0bd4e9714e093ccd89d7ef6"
+    },
+    {
+      "file": "api/services/BrandingService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "0e7ab56009cc62beac5579ada7f5334db25e9f6e4dd39548b2893df3b766b2fe"
+    },
+    {
+      "file": "api/services/BrandingThemeCssService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6929987d44306c31cc6a50a7bc038a1ae577fae4ed299b2d66c9880e42f30d25"
+    },
+    {
+      "file": "api/services/BrandingTypefaceService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c63f2e5caf0cd6c950e70f618b5fd0e62848387df6221bac85998e2bed185ba4"
+    },
+    {
+      "file": "api/services/CacheService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "11faa3652e3d5deb58ec72fae04a8a2c8a3261165f839c4be8c888136a6741bf"
+    },
+    {
+      "file": "api/services/ConfigService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "95f205250ddbd34b9f844929ca44bfd2717101b14bdb0634c22498777b3a54bf"
+    },
+    {
+      "file": "api/services/ContrastService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d31e1beeee896bbf2fcae9dc87dd7189284ee10c56212332c9f5878c635779da"
+    },
+    {
+      "file": "api/services/DashboardConfigService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "50732f3847c57b003e553fe23b8c877ab28a534b2878bc857d6d6dab28caf2b1"
+    },
+    {
+      "file": "api/services/DashboardTypesService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d08b5f25862d28d05f3d94983aae6ba7cc8d9d62bfcd902bd5e8b690789e682f"
+    },
+    {
+      "file": "api/services/DoiService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e7342e8ff2671af3830beb32ea2cfb760d6061cfd698eb8e27b0c698b0c1afc4"
+    },
+    {
+      "file": "api/services/DomSanitizerService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b584730c3063ebe39d1b691d5defcf84bd998daead87b42cc66b2329a008e7ad"
+    },
+    {
+      "file": "api/services/EmailService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "2e9c2bc76e63917746485c55d6be3f95b3b0a28afae998d118bc30af52cc4793"
+    },
+    {
+      "file": "api/services/FigshareService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8a0090f96621d06f47d80c70082891b65e2e8fddaac0e6d3b2d17d9f12b74797"
+    },
+    {
+      "file": "api/services/FigshareVocabularyService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "7629ba6d1b703cbe7b3bb4544da4d6fe48d79106a102cec9aab4c5c1ceddf2c3"
+    },
+    {
+      "file": "api/services/FormPayloadPrehydrateService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "3353c047729874f9bb4fa7fefc30cae010df986652833d46213be72d5e860717"
+    },
+    {
+      "file": "api/services/FormRecordConsistencyService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d0f5dc93e6bbba21f00fc03d37b02dc3a5be4eb32ab49cecb81bc3adf19ebc5d"
+    },
+    {
+      "file": "api/services/FormVocabularyService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "46074ccf5262a370a1d89211ffa934cee2cc8b5ac26d6fdf4137bb2e1bc47487"
+    },
+    {
+      "file": "api/services/FormsService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ec5733df460c66d383690467ee0d26a03e595e24b485178f5be5722c22a63c96"
+    },
+    {
+      "file": "api/services/HarvestRunService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "bb38a2155bdf3aef2af6654143e3788a413ddfcceec2fbc8109ca43a6da9a9d4"
+    },
+    {
+      "file": "api/services/I18nEntriesService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b44aa6199fe90226f4d57c4f2d2d8994ac6ac2ca3fa33c6bd4fca51c9740628a"
+    },
+    {
+      "file": "api/services/IntegrationAuditService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d7e11c68be4d2c279b75063ab3222a09b8bafd4bc8e4033f0bf01d22ee780750"
+    },
+    {
+      "file": "api/services/IntegrationNotificationService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "82e977a48abf7925dcfca5b0fa338ac15ef49f6dd3230a2d8654edafb42bc05f"
+    },
+    {
+      "file": "api/services/MongoStorageService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "385f5dc28cfa859fe398a5b9625f69ab64e15771286139b0e6049ac9f4bb9ef8"
+    },
+    {
+      "file": "api/services/NamedQueryService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4f5d5fb2b24d7a3a487729263aaefd9f1ccdf18df0ef8df271878625d6e7600a"
+    },
+    {
+      "file": "api/services/NavigationService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8813a86bd5ee134e3b7e47ec3e17c58708749cf21464ed7746a800025bc684b7"
+    },
+    {
+      "file": "api/services/OniService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1f4683e6ed932721cbfb6116716e9e8265b2a835fb697fbf6145084c5bc917a8"
+    },
+    {
+      "file": "api/services/OrcidService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "150c98e0c9dc8282258e56c448ed596e3d9ab2ed28ffe621c6ce50756af53cf9"
+    },
+    {
+      "file": "api/services/PathRulesService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "71b6e6a09763ea5ba16c9d151c6f1f40f50c600530ca58bf221d9ca8b89b39c2"
+    },
+    {
+      "file": "api/services/RDMPService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ddbaea6101aa026d1a34318caaa013ee85a0b992930f99a66179f5fd3cff2cbb"
+    },
+    {
+      "file": "api/services/RaidService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6768ff4a0575512d771f51ac597d0f6c83fed37d58f39b70217d4b2939304f32"
+    },
+    {
+      "file": "api/services/RecordSchemaService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e7dc60f7cf6420036c045c7efd8e549524a87ba65a3998aa4ae75e0cd30dca87"
+    },
+    {
+      "file": "api/services/RecordTypesService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "f330d655669dc009e5855eefdcb8ca2cd42843a4216c9a56dcf44b76e38e6478"
+    },
+    {
+      "file": "api/services/RecordValidationService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "5d0e38add3f562a9eab62a375b47e04e5719cab5761d6064d977aebc178da779"
+    },
+    {
+      "file": "api/services/RecordsService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1cb3ba8ebe191042354b2a58c67086b9b38d4fe4046325e0c785621346a146aa"
+    },
+    {
+      "file": "api/services/ReportsService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "836b147ce013434b7ac86e509805c9425c99252bf9b90663de89b5f7ebbd3746"
+    },
+    {
+      "file": "api/services/RolesService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e3861ddc785c54f2d8dfe95b109633dcc90bd046010eae579154e0ab6b766b16"
+    },
+    {
+      "file": "api/services/RvaImportService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "805ea3e7116f3d6aaa20eaa544c48ff4a9e8e94e4277853187ca68fd950c6e43"
+    },
+    {
+      "file": "api/services/SassCompilerService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "a7418aad044429318667af92286266ecfb38c456419ad051be9f958fe786fb6f"
+    },
+    {
+      "file": "api/services/SecurityEventService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "7dee41dc27dbdf3a3c29ec47018612734139f4dfb0caad3dc9caadfcc3742e6a"
+    },
+    {
+      "file": "api/services/SiemForwardingService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b705e9de185a75d8f6cc0b81344d527fcd975c70bd0e5842a851e81de9458d17"
+    },
+    {
+      "file": "api/services/SolrSearchService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b7868f5a3e6ee022c7713e6d010e33ebca892059160423454723aa7cd2407294"
+    },
+    {
+      "file": "api/services/StandardDatastreamService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "28ec1a8d0b99fb551698652c08d2b8d1505b43720a34c5266e4a339728a18fce"
+    },
+    {
+      "file": "api/services/StorageManagerService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "dd02074c2549dba903acd85ee4ea6285125073ecfe4fee5c1dd89abc38ec9128"
+    },
+    {
+      "file": "api/services/TemplateService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "50d860f346dc64f69d85fef27f07a908cbb4633f24c0ee5128348e0f7e144f74"
+    },
+    {
+      "file": "api/services/TranslationService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "f77d1c40c288a303764fb181f23bdf5b80edd295f572307d199535a7c6a335db"
+    },
+    {
+      "file": "api/services/TriggerService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e926704d703b1872045ecd5c1b3181490d6e8aa30c89d8b6a82920a179f5080e"
+    },
+    {
+      "file": "api/services/UsersService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4546e3ab3341097774624340d16d6344931c1c61c30fda9c3a8a24833d0de581"
+    },
+    {
+      "file": "api/services/ViewUtilsService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "651f99bd611d7174f0b78a769457a83e16304472ac74feb894e4b7b52564f085"
+    },
+    {
+      "file": "api/services/VocabularyService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "01f211aa88ef9cab2d8954a795c6abaf47639dee0d524b1fca97a039b18e7b52"
+    },
+    {
+      "file": "api/services/WorkflowStepsService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "91c76f214ae88864bffe37c9321dc1895a12e4b2645e8d0d8619341c136cf679"
+    },
+    {
+      "file": "api/services/WorkspaceAsyncService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1ff3fc73d967fddddd5dcc78495f9153690e5d5dd38ab532d433c08a1a9a074b"
+    },
+    {
+      "file": "api/services/WorkspaceService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d66d7323635b72044f7f6ecf87211a2cdf76b60821b4f72fa102cc451ae87f97"
+    },
+    {
+      "file": "api/services/WorkspaceTypesService.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ca8b8406e645d37c8124e75e5e34b39f7d4193623dbe3c89802d042d6a5af64e"
+    },
+    {
+      "file": "config/action.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "f5b26bfa51ed698ed05f7e8d675b54b7b88fc42262fb35c6bb4b024a86d395e7"
+    },
+    {
+      "file": "config/agendaQueue.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b49cec560b4ce4a5ad0c3e2638c79359ba3415dcbc6ccf2bdeb52996141fb20c"
+    },
+    {
+      "file": "config/api.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "2cb532f15d38f096191093c3b45ccced9cce81ad743d1479096ef4ffdf047536"
+    },
+    {
+      "file": "config/apiRoutesHooks.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "f1152ebf30a56d5858f26ff45fb9762e61b962d2e3c52917addebe1199c3b4a5"
+    },
+    {
+      "file": "config/appmode.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "bc268ca50f2042a85fbd41428bb327b6a3731194f9f223af9256eac0c30bdff2"
+    },
+    {
+      "file": "config/auth.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "fa06ebbd0fc7588283bca255240bddd78fa452f7f508e0930170975ffe942b0f"
+    },
+    {
+      "file": "config/autoreload.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "85ea9e961b0c8c9a093e42fd394fac2d6d8699c3a247aab3b38c165ebfedf2a6"
+    },
+    {
+      "file": "config/blueprints.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4c35f946abd151710bca16a1f58cef8a6d3f879fe0fa630e4e74e645b2c97d4f"
+    },
+    {
+      "file": "config/bootstrap.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "db57e6f4b863810361515de4269a91c55fa33c6f4bd759edf8d4f33d02a157f6"
+    },
+    {
+      "file": "config/branding.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c1ce3ae228733c081cb00d56dc4c151d2cdc0307a5b89abee06cb00fa3b343f3"
+    },
+    {
+      "file": "config/brandingConfigurationDefaults.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "a891bf335f6de3cc9e4055f924ef0b08e1d1119942dc0ab7a907e93a0eac274a"
+    },
+    {
+      "file": "config/companion.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "4baec109349a8d62a13a0ff9cb1a3b60f0695f804a3267dcda31d1ab4e2baca9"
+    },
+    {
+      "file": "config/cors.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "cd0cfb2b32b8d32c15ab014313d5d7dae680d255191760ef97200dc4b3d5dcb1"
+    },
+    {
+      "file": "config/crontab.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "2959c21ef47be4b9e2ced522e6280f82b248c9fcc162c39c2b137150e9631cf3"
+    },
+    {
+      "file": "config/csp.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "150d40d3ddc33575da02d35c1500f7c6639c1a96b2c42827f1b850ec2cfdf06a"
+    },
+    {
+      "file": "config/custom.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "5d092c14ce286ca8735aa876675b8db6c439e3f4fe9a36523e81bcf9a6b6c1f5"
+    },
+    {
+      "file": "config/custom_cache.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6561eca711126455f48d6ec4ba3012efeceb494ada0e3d8fe51bb8a856dbdd52"
+    },
+    {
+      "file": "config/dashboardtype.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b5e3a05dd1c23159aa18c365668fc4dc4af69d69b741046185b78ed98d2b008a"
+    },
+    {
+      "file": "config/dashboardview.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "315b4467b148bde46ee61ae1beebabb189f5424f04145ba11dbcbaf0ae1d7565"
+    },
+    {
+      "file": "config/datapubs.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "2ed28d1468d7801992b9c08078976657d77a6b18ee0dcd2ce8ec8a89adf367fa"
+    },
+    {
+      "file": "config/datastores.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "eeb7e18bbc7f3ff14e751e04c549b6c9459cd596a6c1fdd4083932a94455fc74"
+    },
+    {
+      "file": "config/dompurify.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "41e756f65c2397ba8ffb77f7e5c8be6e60dede6f4fe2ebb8bfbc67565924e560"
+    },
+    {
+      "file": "config/dynamicasset.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1b8fbe9755cc9f0a0d359c738a87f6469bb04086fda7926e42acb94d84478c65"
+    },
+    {
+      "file": "config/dynamicconfig.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "96ba5bbeb94c481d509134526273e1d7495f3e2d1973ebf08a0c977eb65e4517"
+    },
+    {
+      "file": "config/emailnotification.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "e113d53210208a0e4a7b6f3df9d1fcbaf980d4cb8e34fb75cd5db59b115556ab"
+    },
+    {
+      "file": "config/env/acceptance.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "717615c088936a0d746b335bcd1ce37e74de068d27ad81382bd6cccf973058e0"
+    },
+    {
+      "file": "config/env/development.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "0e654f5b25604f26e4bbe0761848feb10fadca3c89dcb35a4d1cb3c104f4bb28"
+    },
+    {
+      "file": "config/env/docker.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "e2fb9af5f6a202b843a33292836c514879194a1ada969ac5d2310e9861f54f9a"
+    },
+    {
+      "file": "config/env/integrationtest.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "3fc68941487e42dee3c93653d619ec18f075272af5d12b64e4b4bc5cc24d8da9"
+    },
+    {
+      "file": "config/env/production.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "2899ce612d4012feeb82a0d4a1692ffc1bb21c314a9d44619b3ef00f5adf7c7a"
+    },
+    {
+      "file": "config/env/test.js",
+      "tracked": true,
+      "generatedHeader": false,
+      "sha256": "7eea56a937639f58da6303377fe28011b5942d3560220da050644bc17eb0192b"
+    },
+    {
+      "file": "config/figshareDev.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "9ad035ab1cde3c5b1ebfbdb101f4dd3fa8363133c9967eae37aae74f694a0e01"
+    },
+    {
+      "file": "config/globals.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "49dfe3f42c8d9701455cb29b7cdef38db94f9607eb7f3d69ad50292dbd16883e"
+    },
+    {
+      "file": "config/harvestRuns.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6c59526e7d98a896df3316a8393c895182550275753fc6f2afa30cdd900b4ad2"
+    },
+    {
+      "file": "config/http.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "72d051224a8694433054bb7c498c28f517539a1a435f240f3d89f950277e25ab"
+    },
+    {
+      "file": "config/i18n.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b629d59b5ee3cdce915c3a691c0bed2c9d260247339a4684d6d713e14e165f24"
+    },
+    {
+      "file": "config/jsonld.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "39f637303f0ecd07252481acb63fb35c054c63ec1e2ec1fbf4ddab4ce2e8fd1f"
+    },
+    {
+      "file": "config/log.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "0ce5eb383ddeccd1aa5e20fc51f24663af566becdec722b69483a73ec77cdba1"
+    },
+    {
+      "file": "config/lognamespace.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ac1d2d0ce0617c7a4c2bbe61f374319b17142c61650e232b964d8342cadd4a55"
+    },
+    {
+      "file": "config/migrations.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "67458b69d880308a6890cc9a1bedefd78198501cb2e748d0936497c829231ff7"
+    },
+    {
+      "file": "config/mint.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "20cde402a167617d5de2b60b40662ae1fb3bd93a25c57caa88a211a30f6b1b82"
+    },
+    {
+      "file": "config/models.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "de834b776863ad6e6db1d9b0d2ee0f799fb221bf6ef1213ad90152c3871de76b"
+    },
+    {
+      "file": "config/namedQuery.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "c1d9fe220ba2995cdf3d1a18a342afe059a01e9514d0ade514deba0306ce91e3"
+    },
+    {
+      "file": "config/ng2.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "b57bf8555c23a81a556136d4a3114fba6cfeabd72e043737c1085417e0598a80"
+    },
+    {
+      "file": "config/orcid.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "63bbd08ccb9664a37fc653194de7ba156628b69d2e0c918bc873a92ccd0dee7b"
+    },
+    {
+      "file": "config/orm.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "114e5dc7b5f21f6cd2d42f641a367a7d336da51a5dabd6efdd51f715b8ac212d"
+    },
+    {
+      "file": "config/peopleSearch.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "a01ecd2da297427cd196503d75de01e37741e282515fcb8efb8a5d6058302bd1"
+    },
+    {
+      "file": "config/policies.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "569a19998908a2db86905ce6de0586875d8af7a9379c70cdbbf613766c9d6036"
+    },
+    {
+      "file": "config/queue.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "3a3b3cf7c38b2b362847800fc715c6f1b0c87e71c7a9c52f18db06377e0e459e"
+    },
+    {
+      "file": "config/raid.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "612fc98bbd9c33071e26c61bc8a05d16f44b036bbcf8c48096d3cc955a4b8071"
+    },
+    {
+      "file": "config/record.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "ebfe3e57a0a357e0d3bf95c1ee3cc424f7e99e90620f1b03a1212a0810279576"
+    },
+    {
+      "file": "config/recordSchema.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "bf3ad37f75c6db9f624d3f3eecd0d98b5f4ec1e2f3bf58324789f8173b20c83f"
+    },
+    {
+      "file": "config/recordValidation.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "9d8426bb1a9a1ca77ef973a5823b099ac22206fd78589c93c38fb7ae7506aaa6"
+    },
+    {
+      "file": "config/recordtype.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "6d8f0d9240f262b2d2ccd261dc80bffc3cf19b0e1f8aed9810a6699f45459c24"
+    },
+    {
+      "file": "config/redboxSession.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "f2b91d77e6948c643691a705a280c8f520a6bce88ac8336b7fe3201d8008fdde"
+    },
+    {
+      "file": "config/redboxToCkan.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "7f249d2c2f7457e819f0880875b0dba928fae545dcd8ca82463d88768bd304aa"
+    },
+    {
+      "file": "config/reusableFormDefinitions.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "2c4546fc8b6e2e22c54ce11170535f88075fe2e2ee676fe468e6bab06a92663d"
+    },
+    {
+      "file": "config/routes.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "5bef4017ea19161777f6e2f41a2020653c11ee8cfa278bc29750d259d0a51372"
+    },
+    {
+      "file": "config/search.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "74eba30a804ebfe9235aca707373e620180130a9f5696d1dd0be765b64a8a105"
+    },
+    {
+      "file": "config/security.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "8105370e36d2f83086656342b2b3b95c609070400553cfe95ba325afe1484867"
+    },
+    {
+      "file": "config/session.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "fb3fcf07f3681ed1aea9ab83fbd62c4e7ff1367010a81cda0a4dbcb5f2ce00d1"
+    },
+    {
+      "file": "config/sockets.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "d2a473e85f7c670f85f354b3bb424724c5a3e53190e5a5e31e532687b3e32ce7"
+    },
+    {
+      "file": "config/solr.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "cb54608a2af093e8e410f49be9b8019f1784fed10732130771c51b0ee1de6579"
+    },
+    {
+      "file": "config/static_assets.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "116b8fdfb2757318710bd4eed178ac7ad170765eafb98d55b605c268ebee5ed9"
+    },
+    {
+      "file": "config/storage.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "196f81254c78d217378bb4da68accfb772a3f72e9571c20b57748436b795bc8b"
+    },
+    {
+      "file": "config/typescript.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "49f88c1b8973b50aaa24f6539b20fa196fd0b66d0140fea8516e0f3854d428d7"
+    },
+    {
+      "file": "config/validators.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "1841a37f070733a0fe4c0fdf0e53dbf692cbb30581b222ca55ed2b16500c746b"
+    },
+    {
+      "file": "config/views.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "62f3d19a053cfbf7a7146a2b6375d430aa48ab6af381329e4ddfccfda9901f64"
+    },
+    {
+      "file": "config/vocab.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "f93a0ad575a3234dd66b405645b234f3841b83a6ec7a5472dde5ac27ff2b93df"
+    },
+    {
+      "file": "config/webpack.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "215da10329fa0f7c2392fe2d461fd26fe2b46fa64ab84ef92fcc0b4142a2c667"
+    },
+    {
+      "file": "config/workflow.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "10b1f0e1d1bc4bcd96f636671808807db3159554324d46ab309cda4f0e6961da"
+    },
+    {
+      "file": "config/workspacetype.js",
+      "tracked": false,
+      "generatedHeader": true,
+      "sha256": "91f898f26e6e39cff223ec98979d3378bb742f2a94253069cec7c4dea5f1c99e"
+    }
+  ]
+}
