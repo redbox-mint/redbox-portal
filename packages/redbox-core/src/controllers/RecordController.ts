@@ -1,3 +1,5 @@
+import { filterRelationshipGraph, relationshipOptions } from '../records/relationships';
+import { RecordLists } from '../records/RecordLists';
 import { deliverForm, FormDeliveryError } from '../forms/FormDelivery';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -61,7 +63,6 @@ import {
   parsePublicRecordConcurrencyRequest,
   recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
-  recordRepresentationRevision,
   recordSaveResultHeaderOption,
   recordSaveResultHeaders,
 } from '../RecordHttpConcurrency';
@@ -493,29 +494,9 @@ export namespace Controllers {
     }
 
     private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth = 1): RecordRelationshipExpandOptions {
-      const parseCsv = (value: unknown): string[] | undefined => {
-        const normalized = String(value ?? '').trim();
-        if (!normalized) {
-          return undefined;
-        }
-        return normalized
-          .split(',')
-          .map(item => item.trim())
-          .filter(Boolean);
-      };
-
-      const depthValue = req.param('relationshipDepth') ?? req.query.relationshipDepth;
-      const parsedDepth = Number(depthValue);
-      const fields = String(req.param('fields') ?? req.query.fields ?? '')
-        .trim()
-        .toLowerCase();
-
-      return {
-        depth: Number.isFinite(parsedDepth) && parsedDepth >= 0 ? parsedDepth : defaultDepth,
-        includeRelationIds: parseCsv(req.param('relationshipIds') ?? req.query.relationshipIds),
-        includeRecordTypes: parseCsv(req.param('recordTypes') ?? req.query.recordTypes),
-        fields: fields === 'summary' ? 'summary' : 'full',
-      };
+      return relationshipOptions(Object.fromEntries(
+        ['relationshipDepth', 'relationshipIds', 'recordTypes', 'fields'].map(key => [key, req.param(key) ?? req.query[key]])
+      ), defaultDepth);
     }
 
     private async filterRelationshipGraphByAccess(
@@ -523,48 +504,7 @@ export namespace Controllers {
       user: AnyRecord | undefined,
       graph: RecordRelationshipGraph
     ): Promise<RecordRelationshipGraph> {
-      const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
-      const allowedTargetOids = new Set<string>();
-      const omittedByAccess: globalThis.Record<string, number> = {
-        ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>),
-      };
-
-      for (const [recordType, records] of Object.entries(graph.relatedObjects ?? {})) {
-        const keptRecords: unknown[] = [];
-        for (const recordValue of records ?? []) {
-          const record = (recordValue ?? {}) as AnyRecord;
-          const recordOid = String(record.redboxOid ?? '').trim();
-          if (!recordOid) {
-            continue;
-          }
-          if (!brand?.id || _.get(record, 'metaMetadata.brandId') !== brand.id) {
-            continue;
-          }
-          const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record));
-          if (hasAccess) {
-            keptRecords.push(record);
-            allowedTargetOids.add(recordOid);
-          }
-        }
-        if (keptRecords.length > 0) {
-          filteredRelatedObjects[recordType] = keptRecords;
-        }
-      }
-
-      const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
-        if (allowedTargetOids.has(edge.sourceOid) && allowedTargetOids.has(edge.targetOid)) {
-          return true;
-        }
-        omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
-        return false;
-      });
-
-      return {
-        rootOid: graph.rootOid,
-        edges: filteredEdges,
-        relatedObjects: filteredRelatedObjects,
-        omittedByAccess,
-      };
+      return filterRelationshipGraph(brand, user, graph, async (brand, user, record) => firstValueFrom(this.hasViewAccess(brand, user, record)));
     }
 
     private buildLegacyRelatedRecordsResponse(graph: RecordRelationshipGraph) {
@@ -2525,176 +2465,14 @@ export namespace Controllers {
       return this.sendView(req, res, 'admin/deletedRecords');
     }
 
-    private getDocMetadata(doc: { [key: string]: unknown }): { [key: string]: unknown } {
-      const metadata: { [key: string]: unknown } = {};
-      for (const key in doc) {
-        if (key.indexOf('authorization_') != 0 && key.indexOf('metaMetadata_') != 0) {
-          metadata[key] = doc[key];
-        }
-        if (key == 'authorization_editRoles') {
-          metadata[key] = doc[key];
-        }
-      }
-      return metadata;
+
+
+    protected getRecords(...args: Parameters<RecordLists['browser']>) {
+      return new RecordLists({ records: this.recordsService, log: sails.log }).browser(...args);
     }
 
-    protected async getRecords(
-      workflowState: unknown,
-      recordType: unknown,
-      start: unknown,
-      rows: unknown,
-      user: AnyRecord,
-      roles: AnyRecord[],
-      brand: BrandingModel,
-      editAccessOnly: unknown = undefined,
-      packageType: unknown = undefined,
-      sort: unknown = undefined,
-      filterFields: unknown = undefined,
-      filterString: unknown = undefined,
-      filterMode: unknown = undefined,
-      secondarySort: unknown = undefined
-    ) {
-      const username = user['username'] as string;
-      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = (recordType as string).split(',');
-      }
-      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
-        packageType = (packageType as string).split(',');
-      }
-      const results = await this.recordsService.getRecords(
-        workflowState,
-        recordType,
-        start,
-        rows,
-        username,
-        roles,
-        brand,
-        editAccessOnly,
-        packageType,
-        sort,
-        filterFields,
-        filterString,
-        filterMode,
-        secondarySort
-      );
-      if (!results.isSuccessful()) {
-        sails.log.verbose(`Failed to retrieve records!`);
-        return null;
-      }
-
-      const totalItems = results.totalItems;
-      const startIndex = start as number;
-      const noItems = rows as number;
-      const pageNumber = startIndex / noItems + 1;
-
-      const response: { [key: string]: unknown } = {};
-      response['totalItems'] = totalItems;
-      response['currentPage'] = pageNumber;
-      response['noItems'] = noItems;
-
-      const items = [];
-      const docs = results.items;
-
-      for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i] as globalThis.Record<string, unknown>;
-        const item: { [key: string]: unknown } = {};
-        item['oid'] = doc['redboxOid'];
-        item['revision'] = recordRepresentationRevision(doc);
-        const docMetadata = (doc['metadata'] ?? {}) as globalThis.Record<string, unknown>;
-        item['title'] = docMetadata['title'];
-        item['metadata'] = this.getDocMetadata(doc);
-        item['dateCreated'] = doc['dateCreated'];
-        item['dateModified'] = doc['lastSaveDate'];
-        item['hasEditAccess'] = this.recordsService.hasEditAccess(brand, user, roles, doc);
-        items.push(item);
-      }
-
-      response['items'] = items;
-      return response;
-    }
-
-    protected async getDeletedRecords(
-      workflowState: unknown,
-      recordType: unknown,
-      start: unknown,
-      rows: unknown,
-      user: AnyRecord,
-      roles: AnyRecord[],
-      brand: BrandingModel,
-      editAccessOnly: unknown = undefined,
-      packageType: unknown = undefined,
-      sort: unknown = undefined,
-      filterFields: unknown = undefined,
-      filterString: unknown = undefined,
-      filterMode: unknown = undefined
-    ) {
-      const username = user['username'] as string;
-      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = (recordType as string).split(',');
-      }
-      if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
-        packageType = (packageType as string).split(',');
-      }
-      const results = await this.recordsService.getDeletedRecords(
-        workflowState,
-        recordType,
-        start,
-        rows,
-        username,
-        roles,
-        brand,
-        editAccessOnly,
-        packageType,
-        sort,
-        filterFields,
-        filterString,
-        filterMode
-      );
-      if (!results.isSuccessful()) {
-        sails.log.verbose(`Failed to retrieve deleted records!`);
-        return null;
-      }
-
-      const totalItems = results.totalItems;
-      const startIndex = start as number;
-      const noItems = rows as number;
-      const pageNumber = startIndex / noItems + 1;
-
-      const response: { [key: string]: unknown } = {};
-      response['totalItems'] = totalItems;
-      response['currentPage'] = pageNumber;
-      response['noItems'] = noItems;
-
-      const items = [];
-      const docs = results.items;
-
-      for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i] as globalThis.Record<string, unknown>;
-        const item: { [key: string]: unknown } = {};
-        const delRecordMeta = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
-        item['oid'] = doc['redboxOid'];
-        item['revision'] = recordRepresentationRevision(doc);
-        item['lifecycleState'] = doc['lifecycleState'] ?? 'deleted';
-        const lifecycleOperation = (doc['lifecycleOperation'] ?? {}) as globalThis.Record<string, unknown>;
-        if (Object.keys(lifecycleOperation).length > 0) {
-          item['lifecycle'] = {
-            kind: lifecycleOperation['kind'],
-            attempts: lifecycleOperation['attempts'],
-            startedAt: lifecycleOperation['startedAt'],
-            updatedAt: lifecycleOperation['updatedAt'],
-            ...(lifecycleOperation['errorCode'] ? { errorCode: lifecycleOperation['errorCode'] } : {}),
-          };
-        }
-        const delRecordMetadata = (delRecordMeta['metadata'] ?? {}) as globalThis.Record<string, unknown>;
-        item['title'] = delRecordMetadata['title'];
-        item['dateCreated'] = delRecordMeta['dateCreated'];
-        item['dateModified'] = delRecordMeta['lastSaveDate'];
-        item['dateDeleted'] = doc['dateDeleted'];
-        items.push(item);
-      }
-
-      response['items'] = items;
-      return response;
+    protected getDeletedRecords(...args: Parameters<RecordLists['browserDeleted']>) {
+      return new RecordLists({ records: this.recordsService, log: sails.log }).browserDeleted(...args);
     }
   }
 }

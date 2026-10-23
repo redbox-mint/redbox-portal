@@ -1,3 +1,5 @@
+import { filterRelationshipGraph, relationshipOptions } from '../../records/relationships';
+import { RecordLists } from '../../records/RecordLists';
 import { getStorageRepositories } from '../../persistence/storage/runtime';
 // Copyright(c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -434,29 +436,9 @@ export namespace Controllers {
     }
 
     private parseRelationshipExpandOptions(req: Sails.Req, defaultDepth = 1): RecordRelationshipExpandOptions {
-      const parseCsv = (value: unknown): string[] | undefined => {
-        const normalized = String(value ?? '').trim();
-        if (!normalized) {
-          return undefined;
-        }
-        return normalized
-          .split(',')
-          .map(item => item.trim())
-          .filter(Boolean);
-      };
-
-      const depthValue = req.param('relationshipDepth') ?? req.query.relationshipDepth;
-      const parsedDepth = Number(depthValue);
-      const fields = String(req.param('fields') ?? req.query.fields ?? '')
-        .trim()
-        .toLowerCase();
-
-      return {
-        depth: Number.isFinite(parsedDepth) && parsedDepth >= 0 ? parsedDepth : defaultDepth,
-        includeRelationIds: parseCsv(req.param('relationshipIds') ?? req.query.relationshipIds),
-        includeRecordTypes: parseCsv(req.param('recordTypes') ?? req.query.recordTypes),
-        fields: fields === 'summary' ? 'summary' : 'full',
-      };
+      return relationshipOptions(Object.fromEntries(
+        ['relationshipDepth', 'relationshipIds', 'recordTypes', 'fields'].map(key => [key, req.param(key) ?? req.query[key]])
+      ), defaultDepth);
     }
 
     private hasViewAccess(
@@ -484,46 +466,7 @@ export namespace Controllers {
       user: globalThis.Record<string, unknown> | undefined,
       graph: RecordRelationshipGraph
     ): Promise<RecordRelationshipGraph> {
-      const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
-      const allowedTargetOids = new Set<string>();
-      const omittedByAccess: globalThis.Record<string, number> = {
-        ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>),
-      };
-
-      for (const [recordType, records] of Object.entries(graph.relatedObjects ?? {})) {
-        const keptRecords: unknown[] = [];
-        for (const recordValue of (records ?? []) as unknown[]) {
-          const record = (recordValue ?? {}) as globalThis.Record<string, unknown>;
-          const recordOid = String(record.redboxOid ?? '').trim();
-          if (!recordOid) {
-            continue;
-          }
-          const hasAccess = recordOid === graph.rootOid || (await this.hasViewAccess(brand, user, record));
-          if (hasAccess) {
-            allowedTargetOids.add(recordOid);
-            keptRecords.push(record);
-          }
-        }
-
-        if (keptRecords.length > 0) {
-          filteredRelatedObjects[recordType] = keptRecords;
-        }
-      }
-
-      const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
-        if (allowedTargetOids.has(edge.targetOid) || edge.targetOid === graph.rootOid) {
-          return true;
-        }
-        omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
-        return false;
-      });
-
-      return {
-        rootOid: graph.rootOid,
-        edges: filteredEdges,
-        relatedObjects: filteredRelatedObjects,
-        omittedByAccess,
-      };
+      return filterRelationshipGraph(brand, user, graph, async (brand, user, record) => this.hasViewAccess(brand, user, record), 'legacy-api');
     }
 
     private async requireRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
@@ -1491,160 +1434,12 @@ export namespace Controllers {
       return metadata;
     }
 
-    protected async getRecords(
-      workflowState: unknown,
-      recordType: unknown,
-      start: unknown,
-      rows: unknown,
-      user: globalThis.Record<string, unknown>,
-      roles: globalThis.Record<string, unknown>[],
-      brand: unknown,
-      editAccessOnly: unknown = undefined,
-      packageType: unknown = undefined,
-      sort: unknown = undefined,
-      fieldNames: unknown = undefined,
-      filterString: unknown = undefined
-    ) {
-      const username = (user as globalThis.Record<string, unknown>).username;
-      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = (recordType as string).split(',');
-      }
-      if (packageType != null && !_.isEmpty(packageType)) {
-        packageType = (packageType as string).split(',');
-      }
-      if (start == null) {
-        start = 0;
-      }
-      if (rows == undefined) {
-        rows = 10;
-      }
-      const results = await this.RecordsService.getRecords(
-        workflowState,
-        recordType,
-        start,
-        rows,
-        username,
-        roles,
-        brand,
-        editAccessOnly,
-        packageType,
-        sort,
-        fieldNames,
-        filterString
-      );
-      sails.log.debug(results);
-      const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
-      const totalItems = results.totalItems;
-      const startIndex = start as number;
-      const noItems = rows as number;
-      const pageNumber = Math.floor(startIndex / noItems + 1);
-
-      apiReponse.summary.numFound = totalItems;
-      apiReponse.summary.start = startIndex;
-      apiReponse.summary.page = pageNumber;
-
-      const items = [];
-      const docs = results['items'];
-
-      for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i] as globalThis.Record<string, unknown>;
-        const item: { [key: string]: unknown } = {};
-        item['oid'] = doc['redboxOid'];
-        item['revision'] = recordRepresentationRevision(doc);
-        const docMetadata = (doc['metadata'] ?? {}) as globalThis.Record<string, unknown>;
-        item['title'] = docMetadata['title'];
-        item['metadata'] = docMetadata;
-        item['dateCreated'] = doc['dateCreated'];
-        item['dateModified'] = doc['lastSaveDate'];
-        item['hasEditAccess'] = this.RecordsService.hasEditAccess(brand, user, roles, doc);
-        items.push(item);
-      }
-      apiReponse.records = items;
-      return apiReponse;
+    protected getRecords(...args: Parameters<RecordLists['api']>) {
+      return new RecordLists({ records: this.RecordsService, log: sails.log }).api(...args);
     }
 
-    protected async getDeletedRecords(
-      workflowState: unknown,
-      recordType: unknown,
-      start: unknown,
-      rows: unknown,
-      user: globalThis.Record<string, unknown>,
-      roles: globalThis.Record<string, unknown>[],
-      brand: unknown,
-      editAccessOnly: unknown = undefined,
-      packageType: unknown = undefined,
-      sort: unknown = undefined,
-      fieldNames: unknown = undefined,
-      filterString: unknown = undefined
-    ) {
-      const username = (user as globalThis.Record<string, unknown>).username;
-      if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
-        recordType = (recordType as string).split(',');
-      }
-      if (packageType != null && !_.isEmpty(packageType)) {
-        packageType = (packageType as string).split(',');
-      }
-      if (start == null) {
-        start = 0;
-      }
-      if (rows == undefined) {
-        rows = 10;
-      }
-      const results = await this.RecordsService.getDeletedRecords(
-        workflowState,
-        recordType,
-        start,
-        rows,
-        username,
-        roles,
-        brand,
-        editAccessOnly,
-        packageType,
-        sort,
-        fieldNames,
-        filterString
-      );
-      sails.log.debug(results);
-      const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
-      const totalItems = results.totalItems;
-      const startIndex = start as number;
-      const noItems = rows as number;
-      const pageNumber = Math.floor(startIndex / noItems + 1);
-
-      apiReponse.summary.numFound = totalItems;
-      apiReponse.summary.start = startIndex;
-      apiReponse.summary.page = pageNumber;
-
-      const items = [];
-      const docs = results['items'];
-
-      for (let i = 0; i < docs.length; i++) {
-        const doc = docs[i] as globalThis.Record<string, unknown>;
-        const item: { [key: string]: unknown } = {};
-        const deletedRecord = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
-        const deletedRecordMetadata = (deletedRecord['metadata'] ?? {}) as globalThis.Record<string, unknown>;
-        item['oid'] = doc['redboxOid'];
-        item['revision'] = recordRepresentationRevision(doc);
-        item['lifecycleState'] = doc['lifecycleState'] ?? 'deleted';
-        const lifecycleOperation = (doc['lifecycleOperation'] ?? {}) as globalThis.Record<string, unknown>;
-        if (Object.keys(lifecycleOperation).length > 0) {
-          item['lifecycle'] = {
-            kind: lifecycleOperation['kind'],
-            attempts: lifecycleOperation['attempts'],
-            startedAt: lifecycleOperation['startedAt'],
-            updatedAt: lifecycleOperation['updatedAt'],
-            ...(lifecycleOperation['errorCode'] ? { errorCode: lifecycleOperation['errorCode'] } : {}),
-          };
-        }
-        item['title'] = deletedRecordMetadata['title'];
-        item['deletedRecord'] = deletedRecord;
-        item['dateCreated'] = doc['dateCreated'];
-        item['dateModified'] = doc['lastSaveDate'];
-        item['dateDeleted'] = doc['dateDeleted'];
-        items.push(item);
-      }
-      apiReponse.records = items;
-      return apiReponse;
+    protected getDeletedRecords(...args: Parameters<RecordLists['apiDeleted']>) {
+      return new RecordLists({ records: this.RecordsService, log: sails.log }).apiDeleted(...args);
     }
 
     public listRecords(req: Sails.Req, res: Sails.Res) {

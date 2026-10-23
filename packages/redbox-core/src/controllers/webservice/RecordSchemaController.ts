@@ -1,3 +1,4 @@
+import { schemaProblem, createSchemaFailure, updateSchemaFailure, immutableSchemaFailure, schemaResponseHeaders, type RecordSchemaProblemKind, type RecordSchemaControllerLogContext } from '../../api-routes/schemaDelivery';
 import { Controllers as controllers, getValidatedApiRequest } from '../../index';
 import type { BrandingModel, RecordSchemaService } from '../../index';
 import {
@@ -31,83 +32,6 @@ type ResolveImmutableResult = Awaited<ReturnType<RecordSchemaResolver['resolveIm
 type ResolveCreateFailure = Exclude<ResolveCreateResult, { readonly kind: 'resolved' | 'partial' }>;
 type ResolveUpdateFailure = Exclude<ResolveUpdateResult, { readonly kind: 'resolved' | 'partial' }>;
 type ResolveImmutableFailure = Exclude<ResolveImmutableResult, { readonly kind: 'resolved' | 'not-modified' }>;
-
-type RecordSchemaProblemKind =
-  | 'invalid-request'
-  | 'authentication-required'
-  | 'forbidden'
-  | 'not-found'
-  | 'not-resolvable'
-  | 'limit-exceeded'
-  | 'invalid-contract'
-  | 'unavailable';
-
-type RecordSchemaMappedProblemKind = Exclude<RecordSchemaProblemKind, 'invalid-request'>;
-type RecordSchemaControllerLogContext = 'controller-create' | 'controller-update' | 'controller-immutable';
-
-interface RecordSchemaProblemDescriptor {
-  readonly type: string;
-  readonly title: string;
-  readonly status: RecordSchemaProblemStatus;
-  readonly detail: string;
-  readonly code: RecordSchemaProblemCode;
-}
-
-const RECORD_SCHEMA_PROBLEMS: Readonly<Record<RecordSchemaMappedProblemKind, RecordSchemaProblemDescriptor>> = {
-  'authentication-required': {
-    type: 'https://redboxresearchdata.com/problems/record-schema-authentication-required',
-    title: 'Authentication is required',
-    status: 401,
-    detail: 'Authentication is required to resolve a record schema.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.AUTHENTICATION_REQUIRED,
-  },
-  forbidden: {
-    type: 'https://redboxresearchdata.com/problems/record-schema-forbidden',
-    title: 'Record schema request is not authorized',
-    status: 403,
-    detail: 'The record schema request is not authorized.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
-  },
-  'not-found': {
-    type: 'https://redboxresearchdata.com/problems/record-schema-not-found',
-    title: 'Record schema was not found',
-    status: 404,
-    detail: 'No accessible record schema or resolution context was found.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
-  },
-  'not-resolvable': {
-    type: 'https://redboxresearchdata.com/problems/record-schema-not-resolvable',
-    title: 'Record schema could not be resolved',
-    status: 409,
-    detail: 'The record schema could not be resolved from the authoritative context.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.NOT_RESOLVABLE,
-  },
-  'limit-exceeded': {
-    type: 'https://redboxresearchdata.com/problems/record-schema-limit-exceeded',
-    title: 'Record schema limit exceeded',
-    status: 413,
-    detail: 'The record schema exceeds configured complexity or output limits.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
-  },
-  'invalid-contract': {
-    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-contract',
-    title: 'Record schema contract is invalid',
-    status: 422,
-    detail: 'The record schema contract is invalid.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
-  },
-  unavailable: {
-    type: 'https://redboxresearchdata.com/problems/record-schema-unavailable',
-    title: 'Record schema is unavailable',
-    status: 503,
-    detail: 'The record schema capability is temporarily unavailable.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
-  },
-};
-
-function assertNever(value: never): never {
-  throw new Error(`Unexpected record schema result kind: ${String(value)}`);
-}
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -179,18 +103,11 @@ export namespace Controllers {
       kind: RecordSchemaProblemKind,
       instance: string,
       code?: RecordSchemaProblemCode
-    ): RecordSchemaProblem {
-      if (kind === 'invalid-request') {
-        return buildRecordSchemaInvalidRequestProblem(instance, code);
-      }
+    ): RecordSchemaProblem {return schemaProblem(kind,instance,code);}
 
-      return {
-        ...RECORD_SCHEMA_PROBLEMS[kind],
-        instance,
-        code: code === undefined ? RECORD_SCHEMA_PROBLEMS[kind].code : code,
-      };
-    }
-
+    private sendRawProblem(req:Sails.Req,res:Sails.Res,problem:RecordSchemaProblem) {
+return this.sendResp(req,res,{format:'raw-json',mediaType:RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,status:problem.status,data:problem,headers:{'Cache-Control':RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,Vary:RECORD_SCHEMA_RESPONSE_VARY}});
+}
     private sendProblem(
       req: Sails.Req,
       res: Sails.Res,
@@ -233,69 +150,11 @@ export namespace Controllers {
       return this.sendProblem(req, res, 'unavailable', instance);
     }
 
-    private sendCreateFailure(req: Sails.Req, res: Sails.Res, instance: string, result: ResolveCreateFailure) {
-      switch (result.kind) {
-        case 'context-failed':
-          return this.sendContextFailure(req, res, instance, result.failureKind);
-        case 'compiler-failed':
-        case 'meta-validation-failed':
-          return this.sendProblem(req, res, 'invalid-contract', instance, result.code);
-        case 'limit-exceeded':
-          return this.sendProblem(req, res, 'limit-exceeded', instance, result.code);
-        case 'storage-failed':
-        case 'unavailable':
-          return this.sendProblem(req, res, 'unavailable', instance, result.code);
-        default:
-          return assertNever(result);
-      }
-    }
+    private sendCreateFailure(req: Sails.Req, res: Sails.Res, instance: string, result: ResolveCreateFailure) {return this.sendRawProblem(req,res,createSchemaFailure(instance,result));}
 
-    private sendUpdateFailure(req: Sails.Req, res: Sails.Res, instance: string, result: ResolveUpdateFailure) {
-      switch (result.kind) {
-        case 'context-failed':
-          return this.sendContextFailure(req, res, instance, result.failureKind);
-        case 'denied':
-        case 'missing-oid':
-          return this.sendProblem(req, res, 'not-found', instance);
-        case 'invalid-precondition':
-          return this.sendProblem(req, res, 'invalid-request', instance, result.code);
-        case 'precondition-failed':
-          return this.sendProblem(req, res, 'not-resolvable', instance, result.code);
-        case 'compiler-failed':
-        case 'meta-validation-failed':
-          return this.sendProblem(req, res, 'invalid-contract', instance, result.code);
-        case 'limit-exceeded':
-          return this.sendProblem(req, res, 'limit-exceeded', instance, result.code);
-        case 'storage-failed':
-        case 'unavailable':
-          return this.sendProblem(req, res, 'unavailable', instance, result.code);
-        default:
-          return assertNever(result);
-      }
-    }
+    private sendUpdateFailure(req: Sails.Req, res: Sails.Res, instance: string, result: ResolveUpdateFailure) {return this.sendRawProblem(req,res,updateSchemaFailure(instance,result));}
 
-    private sendImmutableFailure(req: Sails.Req, res: Sails.Res, instance: string, result: ResolveImmutableFailure) {
-      switch (result.kind) {
-        case 'invalid-request':
-          return this.sendProblem(req, res, 'invalid-request', instance, result.problem.code);
-        case 'forbidden':
-        case 'not-found':
-          return this.sendProblem(req, res, 'not-found', instance);
-        case 'not-resolvable':
-          return this.sendProblem(req, res, 'not-resolvable', instance, result.problem.code);
-        case 'limit-exceeded':
-          return this.sendProblem(req, res, 'limit-exceeded', instance, result.problem.code);
-        case 'invalid-contract':
-          if (result.authorization !== 'authorized') {
-            return this.sendProblem(req, res, 'not-found', instance);
-          }
-          return this.sendProblem(req, res, 'invalid-contract', instance, result.problem.code);
-        case 'unavailable':
-          return this.sendProblem(req, res, 'unavailable', instance, result.problem.code);
-        default:
-          return assertNever(result);
-      }
-    }
+    private sendImmutableFailure(req: Sails.Req, res: Sails.Res, instance: string, result: ResolveImmutableFailure) {return this.sendRawProblem(req,res,immutableSchemaFailure(instance,result));}
 
     private sendContextFailure(
       req: Sails.Req,
@@ -306,17 +165,7 @@ export namespace Controllers {
       return this.sendProblem(req, res, failureKind, instance);
     }
 
-    private responseHeaders(etag: RecordJsonSchemaEtag, canonicalUrl?: string): Record<string, string> {
-      const headers: Record<string, string> = {
-        ETag: etag,
-        'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
-        Vary: RECORD_SCHEMA_RESPONSE_VARY,
-      };
-      if (canonicalUrl !== undefined) {
-        headers.Link = recordSchemaCanonicalLink(canonicalUrl);
-      }
-      return headers;
-    }
+    private responseHeaders(etag: RecordJsonSchemaEtag, canonicalUrl?: string): Record<string, string> {return schemaResponseHeaders(etag,canonicalUrl);}
 
     private sendSchema(
       req: Sails.Req,

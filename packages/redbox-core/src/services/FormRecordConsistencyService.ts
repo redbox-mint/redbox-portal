@@ -17,36 +17,22 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { FormProjection } from '../forms/FormProjection';
 import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import {
-    guessType, FormValidatorSummaryErrors,
+    FormValidatorSummaryErrors,
     FormConfigFrame, TemplateCompileInput, FormModesConfig,
-    ReusableFormDefinitions, arrayStartsWithArray, diffRecordValues,
+    ReusableFormDefinitions,
     RecordValueChange, RecordValuePath
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
 import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
-import { DataValueFormConfigVisitor } from "../visitor/data-value.visitor";
-import { JsonTypeDefSchemaFormConfigVisitor } from "../visitor/json-type-def.visitor";
 import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
 import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
-
-const isPermittedChangesSchemaObject = (value: unknown): value is Record<string, unknown> =>
-    typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const requirePermittedChangesSchemaObject = (value: unknown): Record<string, unknown> => {
-    if (!isPermittedChangesSchemaObject(value)) {
-        throw new Error(`Invalid permittedChanges object, schema definitions must be objects: ${JSON.stringify(value)}`);
-    }
-    return value;
-};
-
-
-
 
 export namespace Services {
 
@@ -137,49 +123,17 @@ export namespace Services {
          * @param reusableFormDefs The reusable form definitions.
          * @return The merged record.
          */
-        public async mergeRecordClientFormConfig(
-            original: BasicRedboxRecord,
-            changed: BasicRedboxRecord,
-            clientFormConfig: FormConfigFrame,
-            formMode: FormModesConfig,
-            reusableFormDefs?: ReusableFormDefinitions
-        ): Promise<BasicRedboxRecord> {
-            const schemaFormConfig = this.stripModelValuesFromFormConfig(clientFormConfig);
-            const permittedChanges = await this.buildSchemaForFormConfig(schemaFormConfig, formMode, reusableFormDefs);
-            const originalMetadata = original?.metadata ?? {};
-            const changedMetadata = changed?.metadata ?? {};
-            const changes = this.compareRecords(original, changed);
-            return {
-                ...original,
-                redboxOid: original?.redboxOid ?? "",
-                metadata: this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, changes),
-            }
+        public mergeRecordClientFormConfig(...args: Parameters<FormProjection['mergeRecordClientFormConfig']>) {
+            // Keep the comparison receiver so hook overrides of nested projection methods still apply.
+            return Reflect.apply(FormProjection.prototype.mergeRecordClientFormConfig, this, args) as ReturnType<FormProjection['mergeRecordClientFormConfig']>;
         }
 
         /**
          * Project authoritative metadata to the fields in an already filtered client form.
          * This intentionally uses an empty original so server-only metadata is not retained.
          */
-        public async projectMetadataClientFormConfig(
-            metadata: Record<string, unknown>,
-            clientFormConfig: FormConfigFrame,
-            formMode: FormModesConfig,
-            reusableFormDefs?: ReusableFormDefinitions
-        ): Promise<Record<string, unknown>> {
-            const projected = await this.mergeRecordClientFormConfig(
-                {
-                    redboxOid: '',
-                    metadata: {},
-                },
-                {
-                    redboxOid: '',
-                    metadata,
-                },
-                clientFormConfig,
-                formMode,
-                reusableFormDefs
-            );
-            return projected.metadata;
+        public projectMetadataClientFormConfig(...args: Parameters<FormProjection['projectMetadataClientFormConfig']>) {
+            return Reflect.apply(FormProjection.prototype.projectMetadataClientFormConfig, this, args) as ReturnType<FormProjection['projectMetadataClientFormConfig']>;
         }
 
         /**
@@ -190,170 +144,8 @@ export namespace Services {
          * @param changes The differences between the original and the changed items.
          * @param currentPath The path to the current point in the structure.
          */
-        public mergeRecordMetadataPermitted(
-            original: object,
-            changed: object,
-            permittedChanges: Record<string, unknown> | unknown,
-            changes: FormRecordConsistencyChange[],
-            currentPath?: FormRecordConsistencyChangePath
-        ): Record<string, unknown> {
-            // ensure there is a current path
-            currentPath = currentPath ?? [];
-
-            // filter the changes to only those relevant to the current path
-            const relevantChanges = changes?.filter(i => {
-                return !currentPath || arrayStartsWithArray(currentPath, i?.path);
-            });
-
-            // check all keys in either the original or changes objects
-            const {keys: originalKeys} = this.toKeysEntries(original);
-            const {keys: changedKeys} = this.toKeysEntries(changed);
-            const allKeys = new Set<string | number>(originalKeys);
-            changedKeys.forEach(i => allKeys.add(i));
-
-            // permittedChanged is in JSON Type Def format
-            // permitted changes is always for an object (i.e. has property 'properties')
-            const originalRecord = original as Record<string | number, unknown>;
-            const changedRecord = changed as Record<string | number, unknown>;
-            const permittedChangesObj = permittedChanges as Record<string | number, unknown>;
-            if (permittedChangesObj?.type === 'object') {
-                return changedRecord;
-            }
-            // if (!('properties' in permittedChangesObj)) {
-            //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
-            // }
-            const permittedChangesProps = (('properties' in permittedChangesObj || 'optionalProperties' in permittedChangesObj)
-              ? {
-                  ...((permittedChangesObj['properties'] ?? {}) as Record<string | number, unknown>),
-                  ...((permittedChangesObj['optionalProperties'] ?? {}) as Record<string | number, unknown>),
-                }
-              : permittedChangesObj) as Record<string | number, unknown>;
-
-
-            // create a new record instance
-            const result: Record<string | number, unknown> = {
-                // for debugging:
-                // _meta: {keys:Array.from(allKeys),currentPath:currentPath},
-            };
-
-            // for each key, evaluate the value
-            for (const key of allKeys) {
-                // pre-calculate aspects of the original item
-                const isKeyInOriginal = key in originalRecord;
-                const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
-
-                // pre-calculate aspects of the changed item
-                const isKeyInChanged = key in changedRecord;
-                const changedValue = isKeyInChanged ? changedRecord[key] : undefined;
-                const changedValueType = guessType(changedValue);
-
-                // pre-calculate aspects of the permitted changes
-                const isKeyInPermittedChange = key in permittedChangesProps;
-                const permittedChangesValue = permittedChangesProps?.[key];
-                const permittedChangesValueObj = isKeyInPermittedChange
-                  ? requirePermittedChangesSchemaObject(permittedChangesValue)
-                  : undefined;
-                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValueObj
-                  && ('properties' in permittedChangesValueObj || 'optionalProperties' in permittedChangesValueObj);
-                const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValueObj && 'elements' in permittedChangesValueObj;
-                const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValueObj && 'type' in permittedChangesValueObj;
-                const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValueObj && Object.keys(permittedChangesValueObj).length === 0;
-                const originalValueForMerge = isKeyInOriginal
-                  ? originalValue
-                  : isPermittedChangeArray
-                    ? []
-                    : isPermittedChangeObject
-                      ? {}
-                      : undefined;
-                const originalValueForMergeType = guessType(originalValueForMerge);
-
-                // ensure the permitted changes item is valid
-                const isPermittedChangeMatches = {
-                    isPermittedChangeObject: isPermittedChangeObject,
-                    isPermittedChangeArray: isPermittedChangeArray,
-                    isPermittedChangeType: isPermittedChangeType,
-                    isPermittedChangeEmpty: isPermittedChangeEmpty,
-                };
-                if (isKeyInPermittedChange && Object.values(isPermittedChangeMatches).filter((i: boolean) => i === true).length !== 1) {
-                    throw new Error(`Invalid permittedChanges object, all definitions must have a property that is one of 'properties', 'elements', 'type', (none): ${JSON.stringify(isPermittedChangeMatches)} - ${JSON.stringify(permittedChangesValue)}`);
-                }
-
-                // evaluate the combinations of original and changed values
-                if (
-                    isPermittedChangeArray
-                    && isKeyInChanged
-                    && originalValueForMergeType === "array"
-                    && changedValueType === "array"
-                ) {
-                    // The change is permitted and an array, original and changed have the key and both are arrays.
-                    // For an array, the merge logic is to replace the original array with the changed array.
-                    // The whole array is replaced because there is no current way to distinguish what from the original should be kept.
-                    // TODO: Consider how to replace each element in the array instead of the whole array.
-                    //       Replacing the whole array prevents use of constraints in components in the array elements.
-                    const newPermittedChanges = requirePermittedChangesSchemaObject(permittedChangesValueObj?.['elements']);
-                    result[key] = (changedValue as unknown[]).map((changedElement: unknown, index: number) => {
-                        if (newPermittedChanges.type === 'object' || Object.keys(newPermittedChanges).length === 0) {
-                            return changedElement;
-                        }
-                        // Evaluate the element in the array.
-                        const guessedType = guessType(changedElement);
-                        if (guessedType === "object") {
-                            // For an object, evaluate it as a component value.
-                            // NOTE: The 'original' element does not include elementTemplate default values,
-                            //       because that default is for new entries, not existing entries.
-                            const originalElement = {};
-                            const newPath = [...currentPath, key, index];
-                            const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
-                            sails.log.verbose(`mergeRecordMetadataPermitted - array`, {
-                                originalElement: originalElement,
-                                changedElement: changedElement,
-                                newPermittedChanges: newPermittedChanges,
-                                keyChanges: keyChanges,
-                                newPath: newPath,
-                            });
-                            return this.mergeRecordMetadataPermitted(originalElement, changedElement as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
-                        } else {
-                            // For anything that's not an object, there's nothing else to do, return it.
-                            return changedElement;
-                        }
-                    });
-
-                } else if (
-                    isPermittedChangeObject
-                    && isKeyInChanged
-                    && originalValueForMergeType === "object"
-                    && changedValueType === "object"
-                ) {
-                    // The change is permitted and an object, original and changed have the key and both are objects.
-                    // Evaluate the properties of the object.
-                    const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
-                    const newPath = [...currentPath, key];
-                    const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
-                    result[key] = this.mergeRecordMetadataPermitted(originalValueForMerge as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
-
-                } else if (isKeyInPermittedChange && isKeyInChanged) {
-                    // The change is permitted and the key is in the changed.
-                    // Replace the original value with the changed value.
-                    result[key] = changedValue;
-
-                } else if (isKeyInOriginal && originalValue !== undefined) {
-                    // The key is in the original, so keep the key & value.
-                    // Keep the original value.
-                    result[key] = originalValue;
-                }
-            }
-
-            /*
-            sails.log.verbose(`mergeRecordPermitted currentPath ${currentPath}: ${JSON.stringify({
-                original: original,
-                changed: changed,
-                permittedChanges: permittedChanges,
-                changes: changes,
-                result: result,
-            })}`);
-             */
-
-            return result;
+        public mergeRecordMetadataPermitted(...args: Parameters<FormProjection['mergeRecordMetadataPermitted']>) {
+            return Reflect.apply(FormProjection.prototype.mergeRecordMetadataPermitted, this, args) as ReturnType<FormProjection['mergeRecordMetadataPermitted']>;
         }
 
         /**
@@ -362,14 +154,8 @@ export namespace Services {
          * @param formMode The form mode.
          * @param reusableFormDefs The reusable form definitions.
          */
-        public async buildDataModelDefaultForFormConfig(
-            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
-        ): Promise<Record<string, unknown>> {
-            const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = await constructor.start({data: item, formMode, reusableFormDefs});
-
-            const visitor = new DataValueFormConfigVisitor(this.logger);
-            return await visitor.start({form: constructed});
+        public buildDataModelDefaultForFormConfig(...args: Parameters<FormProjection['buildDataModelDefaultForFormConfig']>) {
+            return Reflect.apply(FormProjection.prototype.buildDataModelDefaultForFormConfig, this, args) as ReturnType<FormProjection['buildDataModelDefaultForFormConfig']>;
         }
 
         /**
@@ -378,14 +164,8 @@ export namespace Services {
          * @param formMode The form mode.
          * @param reusableFormDefs The reusable form definitions.
          */
-        public async buildSchemaForFormConfig(
-            item: FormConfigFrame, formMode: FormModesConfig, reusableFormDefs?: ReusableFormDefinitions
-        ): Promise<Record<string, unknown>> {
-            const constructor = new ConstructFormConfigVisitor(this.logger);
-            const constructed = await constructor.start({data: item, formMode, reusableFormDefs});
-
-            const visitor = new JsonTypeDefSchemaFormConfigVisitor(this.logger);
-            return await visitor.start({form: constructed});
+        public buildSchemaForFormConfig(...args: Parameters<FormProjection['buildSchemaForFormConfig']>) {
+            return Reflect.apply(FormProjection.prototype.buildSchemaForFormConfig, this, args) as ReturnType<FormProjection['buildSchemaForFormConfig']>;
         }
 
         /**
@@ -394,12 +174,8 @@ export namespace Services {
          * @param changed The second item, used as the 'changes' for the comparison.
          * @param path The current path of the original.
          */
-        public compareRecords(
-            original: unknown,
-            changed: unknown,
-            path?: FormRecordConsistencyChangePath
-        ): FormRecordConsistencyChange[] {
-            return diffRecordValues(original, changed, path);
+        public compareRecords(...args: Parameters<FormProjection['compareRecords']>) {
+            return Reflect.apply(FormProjection.prototype.compareRecords, this, args) as ReturnType<FormProjection['compareRecords']>;
         }
 
         // TODO: implement this
@@ -497,43 +273,8 @@ export namespace Services {
          * Client form config includes runtime `model.config.value`, but construct only accepts
          * author-time defaults in `model.config.defaultValue`.
          */
-        private stripModelValuesFromFormConfig(item: FormConfigFrame): FormConfigFrame {
-            const result = _.cloneDeep(item) as unknown as Record<string, unknown>;
-
-            const stripComponent = (component: Record<string, unknown>) => {
-                const model = component?.model as Record<string, unknown> | undefined;
-                const modelConfig = model?.config as Record<string, unknown> | undefined;
-                if (modelConfig && Object.prototype.hasOwnProperty.call(modelConfig, 'value')) {
-                    delete modelConfig.value;
-                }
-
-                const componentConfig = (component?.component as Record<string, unknown> | undefined)?.config as
-                  | Record<string, unknown>
-                  | undefined;
-                if (!componentConfig) {
-                    return;
-                }
-
-                const nestedArrays = ['componentDefinitions', 'tabs', 'panels'];
-                nestedArrays.forEach(key => {
-                    const nested = componentConfig[key];
-                    if (Array.isArray(nested)) {
-                        nested.forEach(item => stripComponent(item as Record<string, unknown>));
-                    }
-                });
-
-                const elementTemplate = componentConfig.elementTemplate;
-                if (_.isPlainObject(elementTemplate)) {
-                    stripComponent(elementTemplate as Record<string, unknown>);
-                }
-            };
-
-            const componentDefinitions = result.componentDefinitions;
-            if (Array.isArray(componentDefinitions)) {
-                componentDefinitions.forEach(item => stripComponent(item as Record<string, unknown>));
-            }
-
-            return result as unknown as FormConfigFrame;
+        private stripModelValuesFromFormConfig(...args: Parameters<FormProjection['stripModelValuesFromFormConfig']>) {
+            return Reflect.apply(FormProjection.prototype.stripModelValuesFromFormConfig, this, args) as ReturnType<FormProjection['stripModelValuesFromFormConfig']>;
         }
 
         /**
@@ -583,20 +324,8 @@ export namespace Services {
          * @param item Extract keys and values from this item.
          * @private
          */
-        private toKeysEntries(item: unknown): {
-            entries: [string | number, unknown][],
-            keys: (string | number)[]
-        } {
-            const guessedType = guessType(item);
-            if (guessedType === "object") {
-                const entries = Object.entries(item as Record<string, unknown>);
-                return {entries: entries, keys: entries.map(i => i[0])};
-            } else if (guessedType === "array") {
-                const entries: [string | number, unknown][] = (item as Array<unknown>).map((value, index) => [index, value]);
-                return {entries: entries, keys: entries.map(i => i[0])};
-            } else {
-                return {entries: [], keys: []};
-            }
+        private toKeysEntries(...args: Parameters<FormProjection['toKeysEntries']>) {
+            return Reflect.apply(FormProjection.prototype.toKeysEntries, this, args) as ReturnType<FormProjection['toKeysEntries']>;
         }
 
         /**

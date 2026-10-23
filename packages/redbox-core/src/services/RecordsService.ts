@@ -1,3 +1,4 @@
+import { DeletedRecordReader } from '../records/DeletedRecordReader';
 import { RecordAuditReader } from '../queries/RecordAuditReader';
 import { hasViewAccess, hasEditAccess, hasTransitionRoleAuthorization } from '../records/access';
 import { getStorageRepositories } from '../persistence/storage/runtime';
@@ -7587,30 +7588,8 @@ export namespace Services {
     }
 
     /** Metadata of a soft deleted record, or null when no deleted record exists for the oid. */
-    async getDeletedRecordMeta(oid: string, brand?: BrandingModel): Promise<RecordModel | null> {
-      if (_.isEmpty(oid)) return null;
-      if (typeof this.storageService.getTombstone === 'function') {
-        const tombstone = await this.storageService.getTombstone(brand, oid);
-        if (!tombstone?.deletedRecordMetadata) return null;
-        const operation = tombstone.lifecycleOperation;
-        return {
-          ..._.cloneDeep(tombstone.deletedRecordMetadata),
-          revision: tombstone.revision,
-          lifecycleState: tombstone.lifecycleState,
-          ...(operation
-            ? {
-                lifecycle: {
-                  kind: operation.kind,
-                  attempts: operation.attempts,
-                  startedAt: operation.startedAt,
-                  updatedAt: operation.updatedAt,
-                  ...(operation.errorCode ? { errorCode: operation.errorCode } : {}),
-                },
-              }
-            : {}),
-        } as RecordModel;
-      }
-      return await this.storageService.getDeletedRecordMeta(oid);
+    getDeletedRecordMeta(...args: Parameters<DeletedRecordReader['getDeletedRecordMeta']>) {
+      return new DeletedRecordReader(this.storageService).getDeletedRecordMeta(...args);
     }
 
     private lifecycleRecoveryContext(operation: DeletedRecordLifecycleOperation): RecordSaveContext {
