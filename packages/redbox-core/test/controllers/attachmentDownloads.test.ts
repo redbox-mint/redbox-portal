@@ -11,7 +11,7 @@ import { Controllers as ApiControllers } from '../../src/controllers/webservice/
 describe('Attachment download stream cleanup', () => {
   let originalGlobals: Record<string, PropertyDescriptor | undefined>;
   const attachment = { fileId: 'file-1', name: 'notes.txt', mimeType: 'text/plain' };
-  const record = { metaMetadata: { attachmentFields: ['files'] }, metadata: { files: [attachment] } };
+  const record = { metaMetadata: { brandId: 'brand-1', attachmentFields: ['files'] }, metadata: { files: [attachment] } };
 
   beforeEach(() => {
     originalGlobals = Object.fromEntries(
@@ -53,6 +53,7 @@ describe('Attachment download stream cleanup', () => {
           initTusServer: () => undefined,
           datastreamService: { getDatastream },
           DatastreamService: { getDatastream },
+          recordsService: { getMeta: async () => record, getAttachments: async () => [attachment] },
           RecordsService: { getAttachments: async () => [attachment] },
         });
         const sendResp = sinon.stub();
