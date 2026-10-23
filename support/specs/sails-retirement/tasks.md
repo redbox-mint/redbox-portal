@@ -71,7 +71,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   behavior; Sails-plus-Prisma is labeled an intermediate comparison. Sensitive
   institution data remains in approved institution-owned fixtures or is sanitized.
 
-- [ ] **SR-004 — Characterize configuration, hooks and the record-type dependency graph.**
+- [x] **SR-004 — Characterize configuration, hooks and the record-type dependency graph.**
+
+  **Status:** done; [precedence, merge/effect examples, lifecycle/cache owners and executed checks](evidence/p0-configuration.md).
 
   **Depends on:** SR-001.
 

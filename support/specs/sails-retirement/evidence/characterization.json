@@ -1,0 +1,6195 @@
+{
+  "sourceCommit": "2f5f5490ecda30114d8bb1a628bbced16d6c75a0",
+  "node": "v26.11.1",
+  "host": "No host: existing compiled loader/route and installed Sails config functions only",
+  "examples": {
+    "precedence": {
+      "loadedUserConfig": {
+        "base": true,
+        "winner": "local",
+        "folder": true,
+        "file": true,
+        "local": true
+      },
+      "afterExplicitOverrides": {
+        "base": true,
+        "winner": "explicit",
+        "folder": true,
+        "file": true,
+        "local": true,
+        "explicit": true
+      },
+      "note": "Actual Sails moduleloader/userconfig functions over disposable config files; no Sails application, persistence, business bootstrap or listener was constructed."
+    },
+    "ordinary": {
+      "items": [
+        "x",
+        "b"
+      ],
+      "nested": {
+        "left": 1,
+        "right": 2
+      },
+      "functionIdentityPreserved": true
+    },
+    "branded": {
+      "items": [
+        "x"
+      ]
+    },
+    "agenda": {
+      "names": [
+        "same",
+        "keep",
+        "added"
+      ],
+      "mergedSameOptions": {
+        "a": 1,
+        "b": 2
+      },
+      "functionIdentityPreserved": true
+    }
+  },
+  "hooksHighToLow": [
+    {
+      "name": "sails-hook-sockets",
+      "metadata": {
+        "isHook": true
+      },
+      "listedPriorityIndex": null,
+      "rootPath": "node_modules/sails-hook-sockets"
+    },
+    {
+      "name": "redbox-hook-dev",
+      "metadata": {
+        "isHook": true,
+        "hookName": "redbox-hook-dev",
+        "hasConfig": true,
+        "hasFormConfigs": true
+      },
+      "listedPriorityIndex": null,
+      "rootPath": "packages/redbox-hook-dev"
+    },
+    {
+      "name": "@researchdatabox/sails-hook-redbox-storage-mongo",
+      "metadata": {
+        "isHook": true,
+        "hasServices": true,
+        "hasConfig": true,
+        "hasMigrations": true
+      },
+      "listedPriorityIndex": null,
+      "rootPath": "packages/sails-hook-redbox-storage-mongo"
+    }
+  ],
+  "contractRouteCount": 152,
+  "coreRouteTableCount": 331,
+  "groups": [
+    {
+      "group": "admin",
+      "owner": "SR-036/SR-039",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/admin/refreshCachedResources",
+          "controller": "webservice/AdminController",
+          "action": "refreshCachedResources",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/admin/config/:configKey",
+          "controller": "webservice/AdminController",
+          "action": "setAppConfig",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/admin/config/:configKey",
+          "controller": "webservice/AdminController",
+          "action": "getAppConfig",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/admin/config",
+          "controller": "webservice/AdminController",
+          "action": "getAppConfig",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "appconfig",
+      "owner": "SR-032",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/appconfig/:appConfigId",
+          "controller": "webservice/AppConfigController",
+          "action": "getAppConfig",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/appconfig/:appConfigId",
+          "controller": "webservice/AppConfigController",
+          "action": "saveAppConfig",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/appconfig/:appConfigId",
+          "controller": "webservice/AppConfigController",
+          "action": "resetAppConfig",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "branding",
+      "owner": "SR-032/SR-040",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/branding/config",
+          "controller": "webservice/BrandingController",
+          "action": "config",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/draft",
+          "controller": "webservice/BrandingController",
+          "action": "draft",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/branding/draft/typeface/faces/:slot",
+          "controller": "webservice/BrandingController",
+          "action": "uploadFace",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/branding/draft/typeface/faces/:slot",
+          "controller": "webservice/BrandingController",
+          "action": "deleteFace",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/draft/typeface/use-default",
+          "controller": "webservice/BrandingController",
+          "action": "useDefault",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/draft/typeface/revert",
+          "controller": "webservice/BrandingController",
+          "action": "revert",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/preview",
+          "controller": "webservice/BrandingController",
+          "action": "preview",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/branding/versions",
+          "controller": "webservice/BrandingController",
+          "action": "versions",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/versions/:versionId/preview",
+          "controller": "webservice/BrandingController",
+          "action": "versionPreview",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/publish",
+          "controller": "webservice/BrandingController",
+          "action": "publish",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/restore/:versionId",
+          "controller": "webservice/BrandingController",
+          "action": "restore",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/rollback/:versionId",
+          "controller": "webservice/BrandingController",
+          "action": "rollback",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/logo",
+          "controller": "webservice/BrandingController",
+          "action": "logo",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/branding/favicon",
+          "controller": "webservice/BrandingController",
+          "action": "favicon",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/branding/history",
+          "controller": "webservice/BrandingController",
+          "action": "history",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "dashboard-config",
+      "owner": "SR-032",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/info",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/defaults",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/overrides",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/overrides",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/merged-type/:dashboardType",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/targets",
+          "controller": "webservice/DashboardConfigController",
+          "action": "listTargets",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
+          "controller": "webservice/DashboardConfigController",
+          "action": "getWorkflowTarget",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
+          "controller": "webservice/DashboardConfigController",
+          "action": "saveWorkflowTarget",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/views/:view/:step",
+          "controller": "webservice/DashboardConfigController",
+          "action": "getViewTarget",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/views/:view/:step",
+          "controller": "webservice/DashboardConfigController",
+          "action": "saveViewTarget",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/dashboard-config/validate",
+          "controller": "webservice/DashboardConfigController",
+          "action": "validateSettings",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/dashboard-config/copy/preview",
+          "controller": "webservice/DashboardConfigController",
+          "action": "previewCopy",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/dashboard-config/copy/apply",
+          "controller": "webservice/DashboardConfigController",
+          "action": "applyCopy",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields",
+          "controller": "webservice/DashboardConfigController",
+          "action": "getWorkflowFields",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/views/:view/:step/fields",
+          "controller": "webservice/DashboardConfigController",
+          "action": "getViewFields",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/migration/preflight",
+          "controller": "webservice/DashboardConfigController",
+          "action": "migrationPreflight",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/info",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/defaults",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/overrides",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/overrides",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/dashboard-config/merged-type/:dashboardType",
+          "controller": "webservice/DashboardConfigController",
+          "action": "retiredOperation",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "export",
+      "owner": "SR-034",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/export/record/download/:format",
+          "controller": "webservice/ExportController",
+          "action": "downloadRecs",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "figshare-crosswalks",
+      "owner": "SR-036",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-crosswalks",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "list",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/figshare-crosswalks",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "create",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-crosswalks/:id/usage",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "usage",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-crosswalks/:id/local-entries",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "listLocalEntries",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-crosswalks/:id/mappings",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "listMappings",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/figshare-crosswalks/:id/mappings",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "saveMappings",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/figshare-crosswalks/:id/approve",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "approve",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-crosswalks/:id",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "get",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/figshare-crosswalks/:id",
+          "controller": "webservice/FigshareCrosswalkController",
+          "action": "delete",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "figshare-vocabulary",
+      "owner": "SR-032/SR-036",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-vocabularies/catalogues",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "listCatalogues",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-vocabularies/sources",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "listSources",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-vocabularies/sources/:sourceId",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "getSource",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-vocabularies/sources/:sourceId/categories",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "listSourceCategories",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/figshare-vocabularies/sources/:sourceId/preview",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "createSourcePreview",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/figshare-vocabularies/sources/:sourceId/clone",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "cloneSource",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-vocabularies/sync-runs",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "listSyncRuns",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/figshare-vocabularies/previews",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "createPreview",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/figshare-vocabularies/previews/:runId",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "getPreview",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/figshare-vocabularies/previews/:runId/apply",
+          "controller": "webservice/FigshareVocabularyController",
+          "action": "applyPreview",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "forms",
+      "owner": "SR-032",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/forms/get",
+          "controller": "webservice/FormManagementController",
+          "action": "getForm",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/forms",
+          "controller": "webservice/FormManagementController",
+          "action": "listForms",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "harvest-runs",
+      "owner": "SR-033/SR-036",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/harvest-runs",
+          "controller": "webservice/HarvestRunController",
+          "action": "listRuns",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/harvest-runs/:id",
+          "controller": "webservice/HarvestRunController",
+          "action": "getRun",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/harvest-runs/:id/events",
+          "controller": "webservice/HarvestRunController",
+          "action": "listRunEvents",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "integration-audit",
+      "owner": "SR-033",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/integration-audit/:oid",
+          "controller": "webservice/IntegrationAuditController",
+          "action": "getAuditLog",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "named-query",
+      "owner": "SR-033",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/named-query",
+          "controller": "webservice/NamedQueryController",
+          "action": "listQueries",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/named-query/collections",
+          "controller": "webservice/NamedQueryController",
+          "action": "getCollections",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/named-query/:name",
+          "controller": "webservice/NamedQueryController",
+          "action": "getQuery",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/named-query",
+          "controller": "webservice/NamedQueryController",
+          "action": "createQuery",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/named-query/:name",
+          "controller": "webservice/NamedQueryController",
+          "action": "updateQuery",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/named-query/:name",
+          "controller": "webservice/NamedQueryController",
+          "action": "deleteQuery",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "notifications",
+      "owner": "SR-033/SR-036",
+      "routes": [
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/sendNotification",
+          "controller": "EmailController",
+          "action": "sendNotification",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "record-schemas",
+      "owner": "SR-035/SR-039",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/schemas/create/:recordType",
+          "controller": "webservice/RecordSchemaController",
+          "action": "create",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/schemas/update/:oid",
+          "controller": "webservice/RecordSchemaController",
+          "action": "update",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/schemas/:digest",
+          "controller": "webservice/RecordSchemaController",
+          "action": "immutable",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "records",
+      "owner": "SR-034/SR-035",
+      "routes": [
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/metadata/:recordType",
+          "controller": "webservice/RecordController",
+          "action": "create",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/records/metadata/:oid",
+          "controller": "webservice/RecordController",
+          "action": "updateMeta",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/harvest/:recordType",
+          "controller": "webservice/RecordController",
+          "action": "harvest",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/mint/harvest/:recordType",
+          "controller": "webservice/RecordController",
+          "action": "legacyHarvest",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/records/objectmetadata/:oid",
+          "controller": "webservice/RecordController",
+          "action": "updateObjectMeta",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/metadata/:oid",
+          "controller": "webservice/RecordController",
+          "action": "getMeta",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/audit/:oid",
+          "controller": "webservice/RecordController",
+          "action": "getRecordAudit",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/list",
+          "controller": "webservice/RecordController",
+          "action": "listRecords",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/deletedrecords/list",
+          "controller": "webservice/RecordController",
+          "action": "listDeletedRecords",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/deletedrecords/:oid",
+          "controller": "webservice/RecordController",
+          "action": "getDeletedRecord",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/deletedrecords/:oid",
+          "controller": "webservice/RecordController",
+          "action": "restoreRecord",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/deletedrecords/:oid",
+          "controller": "webservice/RecordController",
+          "action": "destroyDeletedRecord",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/objectmetadata/:oid",
+          "controller": "webservice/RecordController",
+          "action": "getObjectMeta",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/records/metadata/:oid",
+          "controller": "webservice/RecordController",
+          "action": "deleteRecord",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/permissions/edit/:oid",
+          "controller": "webservice/RecordController",
+          "action": "addUserEdit",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/records/permissions/edit/:oid",
+          "controller": "webservice/RecordController",
+          "action": "removeUserEdit",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/permissions/view/:oid",
+          "controller": "webservice/RecordController",
+          "action": "addUserView",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/records/permissions/view/:oid",
+          "controller": "webservice/RecordController",
+          "action": "removeUserView",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/permissions/editRole/:oid",
+          "controller": "webservice/RecordController",
+          "action": "addRoleEdit",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/records/permissions/editRole/:oid",
+          "controller": "webservice/RecordController",
+          "action": "removeRoleEdit",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/permissions/viewRole/:oid",
+          "controller": "webservice/RecordController",
+          "action": "addRoleView",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/records/permissions/viewRole/:oid",
+          "controller": "webservice/RecordController",
+          "action": "removeRoleView",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/permissions/:oid",
+          "controller": "webservice/RecordController",
+          "action": "getPermissions",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/datastreams/:oid",
+          "controller": "webservice/RecordController",
+          "action": "addDataStreams",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/datastreams/:oid/:datastreamId",
+          "controller": "webservice/RecordController",
+          "action": "getDataStream",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/records/datastreams/:oid",
+          "controller": "webservice/RecordController",
+          "action": "listDatastreams",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/records/workflow/step/:targetStep/:oid",
+          "controller": "webservice/RecordController",
+          "action": "transitionWorkflow",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "recordtypes",
+      "owner": "SR-029/SR-030",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/recordtypes/get",
+          "controller": "webservice/RecordTypeController",
+          "action": "getRecordType",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/recordtypes",
+          "controller": "webservice/RecordTypeController",
+          "action": "listRecordTypes",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "reports",
+      "owner": "SR-033",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/report/namedQuery",
+          "controller": "webservice/ReportController",
+          "action": "executeNamedQuery",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/report-config",
+          "controller": "webservice/ReportController",
+          "action": "listConfigs",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/report-config/preview",
+          "controller": "webservice/ReportController",
+          "action": "previewConfig",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/report-config/:name",
+          "controller": "webservice/ReportController",
+          "action": "getConfig",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/report-config",
+          "controller": "webservice/ReportController",
+          "action": "createConfig",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/report-config/:name",
+          "controller": "webservice/ReportController",
+          "action": "updateConfig",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/report-config/:name",
+          "controller": "webservice/ReportController",
+          "action": "deleteConfig",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "search-query",
+      "owner": "SR-033",
+      "routes": []
+    },
+    {
+      "group": "search",
+      "owner": "SR-033",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/search",
+          "controller": "webservice/SearchController",
+          "action": "search",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/search/index",
+          "controller": "webservice/SearchController",
+          "action": "index",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/search/indexAll",
+          "controller": "webservice/SearchController",
+          "action": "indexAll",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/search/removeAll",
+          "controller": "webservice/SearchController",
+          "action": "removeAll",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "siem",
+      "owner": "SR-033/SR-036",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/siem/config",
+          "controller": "webservice/SiemController",
+          "action": "getConfig",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/siem/config",
+          "controller": "webservice/SiemController",
+          "action": "saveConfig",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/siem/events",
+          "controller": "webservice/SiemController",
+          "action": "getEvents",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/siem/delivery-status",
+          "controller": "webservice/SiemController",
+          "action": "getDeliveryStatus",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/siem/test",
+          "controller": "webservice/SiemController",
+          "action": "testDestination",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "translation",
+      "owner": "SR-032",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/i18n/entries",
+          "controller": "webservice/TranslationController",
+          "action": "listEntries",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+          "controller": "webservice/TranslationController",
+          "action": "getEntry",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+          "controller": "webservice/TranslationController",
+          "action": "setEntry",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+          "controller": "webservice/TranslationController",
+          "action": "deleteEntry",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/i18n/bundles/:locale/:namespace",
+          "controller": "webservice/TranslationController",
+          "action": "getBundle",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/i18n/bundles/:locale/:namespace",
+          "controller": "webservice/TranslationController",
+          "action": "setBundle",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "users",
+      "owner": "SR-036/SR-038",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/users",
+          "controller": "webservice/UserManagementController",
+          "action": "listUsers",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/users/find",
+          "controller": "webservice/UserManagementController",
+          "action": "getUser",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/users/get",
+          "controller": "webservice/UserManagementController",
+          "action": "getUser",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/users/link/candidates",
+          "controller": "webservice/UserManagementController",
+          "action": "searchLinkCandidates",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/users/:id/links",
+          "controller": "webservice/UserManagementController",
+          "action": "getUserLinks",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/users/:id/audit",
+          "controller": "webservice/UserManagementController",
+          "action": "getUserAudit",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/users/link",
+          "controller": "webservice/UserManagementController",
+          "action": "linkAccounts",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/users",
+          "controller": "webservice/UserManagementController",
+          "action": "createUser",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/users",
+          "controller": "webservice/UserManagementController",
+          "action": "updateUser",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/users/:id/disable",
+          "controller": "webservice/UserManagementController",
+          "action": "disableUser",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/users/:id/enable",
+          "controller": "webservice/UserManagementController",
+          "action": "enableUser",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/users/token/generate",
+          "controller": "webservice/UserManagementController",
+          "action": "generateAPIToken",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/users/token/revoke",
+          "controller": "webservice/UserManagementController",
+          "action": "revokeAPIToken",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/roles",
+          "controller": "webservice/UserManagementController",
+          "action": "listSystemRoles",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/roles/:roleName",
+          "controller": "webservice/UserManagementController",
+          "action": "createSystemRole",
+          "registered": true
+        }
+      ]
+    },
+    {
+      "group": "vocabulary",
+      "owner": "SR-032",
+      "routes": [
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/vocabulary",
+          "controller": "webservice/VocabularyController",
+          "action": "list",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/vocabulary/import",
+          "controller": "webservice/VocabularyController",
+          "action": "import",
+          "registered": true
+        },
+        {
+          "method": "get",
+          "path": "/:branding/:portal/api/vocabulary/:id",
+          "controller": "webservice/VocabularyController",
+          "action": "get",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/vocabulary",
+          "controller": "webservice/VocabularyController",
+          "action": "create",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/vocabulary/:id",
+          "controller": "webservice/VocabularyController",
+          "action": "update",
+          "registered": true
+        },
+        {
+          "method": "put",
+          "path": "/:branding/:portal/api/vocabulary/:id/reorder",
+          "controller": "webservice/VocabularyController",
+          "action": "reorder",
+          "registered": true
+        },
+        {
+          "method": "delete",
+          "path": "/:branding/:portal/api/vocabulary/:id",
+          "controller": "webservice/VocabularyController",
+          "action": "delete",
+          "registered": true
+        },
+        {
+          "method": "post",
+          "path": "/:branding/:portal/api/vocabulary/:id/sync",
+          "controller": "webservice/VocabularyController",
+          "action": "sync",
+          "registered": true
+        }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "route": "GET /csrfToken",
+      "target": "[Function]",
+      "owner": "SR-039"
+    },
+    {
+      "route": "/:branding/:portal/home",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "homepage",
+          "pageTitleKey": "welcome-title"
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/researcher/home",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "researcher/home",
+          "pageTitleKey": "welcome-title"
+        }
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "/:branding/:portal/record/view/:oid",
+      "target": {
+        "controller": "RecordController",
+        "action": "view"
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "/:branding/:portal/record/search",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "record/search",
+          "pageTitleKey": "record-search-heading"
+        }
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "/:branding/:portal/record/view-orig/:oid",
+      "target": {
+        "controller": "RecordController",
+        "action": "view",
+        "locals": {
+          "view": "record/view-orig"
+        }
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/styles/theme.css",
+      "target": {
+        "controller": "BrandingController",
+        "action": "renderCss"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/preview/:token([a-z0-9]+).css",
+      "target": {
+        "controller": "BrandingController",
+        "action": "renderPreviewCss",
+        "skipAssets": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/preview/:token.css",
+      "target": {
+        "controller": "BrandingController",
+        "action": "renderPreviewCss",
+        "skipAssets": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/preview",
+      "target": {
+        "controller": "BrandingController",
+        "action": "createPreview"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/images/logo",
+      "target": {
+        "controller": "BrandingController",
+        "action": "renderImage"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/images/favicon",
+      "target": {
+        "controller": "BrandingController",
+        "action": "renderFavicon"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /fonts/branding/:branding/:sha256.woff2",
+      "target": {
+        "controller": "BrandingController",
+        "action": "renderFont",
+        "skipAssets": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/admin",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "admin/home"
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/admin/translation",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "admin/translation"
+        }
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "/:branding/:portal/admin/siem",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "admin/siem",
+          "pageTitleKey": "menu-siemconfiguration"
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/admin/harvest-runs",
+      "target": {
+        "controller": "AdminController",
+        "action": "harvestRunsIndex"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/dashboard-config",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "editor"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/dashboard-config/targets",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "listTargets"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "getWorkflowTarget"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "put /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "saveWorkflowTarget"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/admin/dashboard-config/views/:view/:step",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "getViewTarget"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/admin/dashboard-config/views/:view/:step",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "saveViewTarget"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/admin/dashboard-config/validate",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "validateSettings"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/admin/dashboard-config/copy/preview",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "previewCopy"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/admin/dashboard-config/copy/apply",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "applyCopy"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "getWorkflowFields"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/admin/dashboard-config/views/:view/:step/fields",
+      "target": {
+        "controller": "DashboardConfigController",
+        "action": "getViewFields"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/admin/roles",
+      "target": {
+        "controller": "AdminController",
+        "action": "rolesIndex",
+        "skipAssets": true
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/admin/users",
+      "target": {
+        "controller": "AdminController",
+        "action": "usersIndex",
+        "skipAssets": true
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/admin/vocabulary/manager",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "manager"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/integrations/figshare/vocabularies",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "admin/integrations/figshare/vocabularies",
+          "pageTitleKey": "figshare-vocab-title"
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/vocabulary",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "list"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/admin/vocabulary/import",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "import"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/vocabulary/:id",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "get"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/admin/vocabulary",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "create"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/admin/vocabulary/:id",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "update"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "delete /:branding/:portal/admin/vocabulary/:id",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "delete"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/admin/vocabulary/:id/sync",
+      "target": {
+        "controller": "VocabularyController",
+        "action": "sync"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/user/profile",
+      "target": {
+        "controller": "UserController",
+        "action": "profile",
+        "skipAssets": true
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "/:branding/:portal/availableServicesList",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "availableServicesList",
+          "pageTitle": "List of available services"
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "/:branding/:portal/workspaces/list",
+      "target": {
+        "controller": "RecordController",
+        "action": "listWorkspaces"
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "/:branding/:portal/getAdvice",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "getAdvice",
+          "pageTitle": "Get advice"
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /dynamic/:asset",
+      "target": "DynamicAssetController.get",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/dynamic/:asset",
+      "target": "DynamicAssetController.get",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/dynamicAsset/formCompiledItems/:recordType/:oid?",
+      "target": "DynamicAssetController.getFormCompiledItems",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName",
+      "target": "DynamicAssetController.getAdminReportTemplates",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage",
+      "target": "DynamicAssetController.getRecordDashboardTemplates",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/dynamicAsset/dashboardViewTemplates/:dashboardView/:stepName",
+      "target": "DynamicAssetController.getDashboardViewTemplates",
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /user/login_local",
+      "target": "UserController.localLogin",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /user/login_aaf",
+      "target": {
+        "controller": "UserController",
+        "action": "aafLogin",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /user/login_oidc",
+      "target": {
+        "controller": "UserController",
+        "action": "openIdConnectLogin",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "HEAD /user/begin_oidc",
+      "target": {
+        "policy": "disallowedHeadRequestHandler"
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /user/begin_oidc",
+      "target": {
+        "controller": "UserController",
+        "action": "beginOidc",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /user/info",
+      "target": "UserController.info",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/user/info",
+      "target": "UserController.info",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/user/login",
+      "target": "UserController.login",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/user/logout",
+      "target": "UserController.logout",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/user/find",
+      "target": "UserController.find",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/app/branding/config",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "config"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/draft",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "draft"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/app/branding/draft/typeface/faces/:slot",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "uploadFace"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "delete /:branding/:portal/app/branding/draft/typeface/faces/:slot",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "deleteFace"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/draft/typeface/use-default",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "useDefault"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/draft/typeface/revert",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "revert"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/preview",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "preview"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/app/branding/versions",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "versions"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/versions/:versionId/preview",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "versionPreview"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/publish",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "publish"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/restore/:versionId",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "restore"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/rollback/:versionId",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "rollback"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/logo",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "logo"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/app/branding/favicon",
+      "target": {
+        "controller": "BrandingAppController",
+        "action": "favicon"
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/users/get",
+      "target": "AdminController.getUsers",
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "post /:branding/:portal/admin/users/update",
+      "target": "AdminController.updateUserDetails",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/admin/users/genKey",
+      "target": "AdminController.generateUserKey",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/admin/users/revokeKey",
+      "target": "AdminController.revokeUserKey",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/admin/users/newUser",
+      "target": "AdminController.addLocalUser",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/admin/users/link/candidates",
+      "target": "AdminController.searchLinkCandidates",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/admin/users/:id/links",
+      "target": "AdminController.getUserLinks",
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/admin/users/:id/audit",
+      "target": "AdminController.getUserAudit",
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "post /:branding/:portal/admin/users/link",
+      "target": "AdminController.linkAccounts",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/admin/users/:id/disable",
+      "target": "AdminController.disableUser",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/admin/users/:id/enable",
+      "target": "AdminController.enableUser",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/admin/roles/get",
+      "target": "AdminController.getBrandRoles",
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/admin/roles/user",
+      "target": "AdminController.updateUserRoles",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/record/default/:name",
+      "target": "RecordController.getMetaDefault",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/metadata/:oid",
+      "target": "RecordController.getMeta",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/form/:name",
+      "target": "RecordController.getForm",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/record/form/:name/:oid",
+      "target": "RecordController.getForm",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/record/search/:type",
+      "target": "RecordController.search",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/record/type",
+      "target": "RecordController.getAllTypes",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard/type/:dashboardType",
+      "target": "RecordController.getDashboardType",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard/type",
+      "target": "RecordController.getAllDashboardTypes",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard/view/:dashboardView",
+      "target": "RecordController.getDashboardView",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard/settings/workflow/:recordType",
+      "target": "RecordController.getDashboardWorkflowSettings",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard/settings/view/:dashboardView",
+      "target": "RecordController.getDashboardViewSettings",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/type/:recordType",
+      "target": "RecordController.getType",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/record/:recordType/edit",
+      "target": "RecordController.edit",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/edit/:oid",
+      "target": "RecordController.edit",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/viewAudit/:oid",
+      "target": "RecordAuditController.render",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/record/viewAudit/:oid/audit",
+      "target": "RecordAuditController.getAuditData",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/record/viewAudit/:oid/permissions",
+      "target": "RecordAuditController.getPermissionsData",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/record/viewAudit/:oid/integration-audit",
+      "target": "RecordAuditController.getIntegrationAuditData",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/record/integrationStatus/:oid",
+      "target": "RecordAuditController.getIntegrationStatusData",
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/record/finalise/:recordType/edit/:oid",
+      "target": {
+        "controller": "RecordController",
+        "action": "edit",
+        "locals": {
+          "localFormName": "default-1.0-draft"
+        }
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "delete /:branding/:portal/record/delete/:oid",
+      "target": "RecordController.delete",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/delete/:oid",
+      "target": "RecordController.getDeletedRecord",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "put /:branding/:portal/record/delete/:oid",
+      "target": "RecordController.restoreRecord",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "delete /:branding/:portal/record/destroy/:oid",
+      "target": "RecordController.destroyDeletedRecord",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "/:branding/:portal/record/:oid/attach",
+      "target": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "csrf": true
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "/:branding/:portal/record/:oid/attach/:attachId",
+      "target": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "csrf": true
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "/:branding/:portal/companion/record/:oid/attach",
+      "target": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "policy": "companionAttachmentUploadAuth",
+        "csrf": false
+      },
+      "owner": "SR-042"
+    },
+    {
+      "route": "/:branding/:portal/companion/record/:oid/attach/:attachId",
+      "target": {
+        "controller": "RecordController",
+        "action": "doAttachment",
+        "policy": "companionAttachmentUploadAuth",
+        "csrf": false
+      },
+      "owner": "SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/record/:oid/datastream*",
+      "target": "RecordController.getDataStream",
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/record/:oid/attachments",
+      "target": "RecordController.getAttachments",
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/record/:oid/permissions",
+      "target": "RecordController.getPermissions",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/:oid/relatedRecords",
+      "target": "RecordController.getRelatedRecords",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/record/wfSteps/:recordType",
+      "target": "RecordController.getWorkflowSteps",
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/recordmeta/:recordType",
+      "target": "RecordController.create",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "put /:branding/:portal/recordmeta/:oid",
+      "target": "RecordController.update",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "post /:branding/:portal/record/workflow/step/:targetStep/:oid",
+      "target": "RecordController.stepTo",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard/consolidated",
+      "target": "RecordController.redirectLegacyConsolidatedDashboard",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard/:recordType",
+      "target": "RecordController.render",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/dashboard-view/:dashboardView",
+      "target": "RecordController.renderDashboardView",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/listRecords",
+      "target": "RecordController.getRecordList",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/listDeletedRecords",
+      "target": "RecordController.getDeletedRecordList",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/vocab/:vocabIdOrSlug",
+      "target": {
+        "controller": "FormVocabularyController",
+        "action": "get"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/vocab/:vocabIdOrSlug/expandPath",
+      "target": {
+        "controller": "FormVocabularyController",
+        "action": "expandPath"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/vocab/:vocabIdOrSlug/entries",
+      "target": {
+        "controller": "FormVocabularyController",
+        "action": "entries"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/vocab/:vocabIdOrSlug/children",
+      "target": {
+        "controller": "FormVocabularyController",
+        "action": "children"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/query/vocab/:queryId",
+      "target": {
+        "controller": "FormVocabularyController",
+        "action": "getRecords"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/service/vocab/:serviceId",
+      "target": {
+        "controller": "FormVocabularyController",
+        "action": "serviceEntries"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/external/vocab/:provider",
+      "target": {
+        "controller": "FormVocabularyController",
+        "action": "externalEntries"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/export",
+      "target": "ExportController.index",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/admin/export",
+      "target": "ExportController.index",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/export/record/download/:format",
+      "target": "ExportController.downloadRecs",
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/asynch",
+      "target": "AsynchController.start",
+      "owner": "SR-040"
+    },
+    {
+      "route": "delete /:branding/:portal/asynch",
+      "target": "AsynchController.stop",
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/asynch",
+      "target": "AsynchController.update",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/asynch",
+      "target": "AsynchController.progress",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/asynch/subscribe/:roomId",
+      "target": "AsynchController.subscribe",
+      "owner": "SR-043"
+    },
+    {
+      "route": "delete /:branding/:portal/asynch/subscribe/:roomId",
+      "target": "AsynchController.unsubscribe",
+      "owner": "SR-043"
+    },
+    {
+      "route": "get /:branding/:portal/admin/reports",
+      "target": "ReportsController.render",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/admin/report/:name",
+      "target": "ReportController.render",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/admin/getReport",
+      "target": "ReportController.get",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/admin/getReportResults",
+      "target": "ReportController.getResults",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/admin/downloadReportCSV",
+      "target": "ReportController.downloadCSV",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/admin/report-config",
+      "target": "ReportController.listConfigs",
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/admin/report-config/preview",
+      "target": "ReportController.previewConfig",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/admin/report-config/:name",
+      "target": "ReportController.getConfig",
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/admin/report-config",
+      "target": "ReportController.createConfig",
+      "owner": "SR-033"
+    },
+    {
+      "route": "put /:branding/:portal/admin/report-config/:name",
+      "target": "ReportController.updateConfig",
+      "owner": "SR-033"
+    },
+    {
+      "route": "delete /:branding/:portal/admin/report-config/:name",
+      "target": "ReportController.deleteConfig",
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api-docs.apib",
+      "target": "BrandingController.renderApiB",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api-docs.json",
+      "target": "BrandingController.renderSwaggerJSON",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api-docs.yaml",
+      "target": "BrandingController.renderSwaggerYAML",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/api-docs",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "admin/api-docs",
+          "layout": false
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/api-docs/openapi.json",
+      "target": "BrandingController.renderSwaggerJSON",
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/user/genKey",
+      "target": "UserController.generateUserKey",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/user/revokeKey",
+      "target": "UserController.revokeUserKey",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/user/update",
+      "target": "UserController.update",
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/action/:action",
+      "target": "ActionController.callService",
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/appconfig/form/:appConfigId",
+      "target": "AppConfigController.getAppConfigForm",
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/appconfig/form/:appConfigId",
+      "target": "AppConfigController.saveAppConfig",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/admin/appconfig/edit/:appConfigId",
+      "target": {
+        "controller": "AppConfigController",
+        "action": "editAppConfig"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/admin/deletedRecords",
+      "target": "RecordController.renderDeletedRecords",
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/admin/branding",
+      "target": {
+        "controller": "RenderViewController",
+        "action": "render",
+        "locals": {
+          "view": "admin/branding"
+        }
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/admin/named-query",
+      "target": {
+        "controller": "NamedQueryController",
+        "action": "editor"
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "delete /:branding/:portal/api/branding/draft/typeface/faces/:slot",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "deleteFace",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/branding/draft/typeface/faces/:slot",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "uploadFace",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/draft/typeface/revert",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "revert",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/draft/typeface/use-default",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "useDefault",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/workflow/step/:targetStep/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "transitionWorkflow",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "delete /:branding/:portal/api/records/permissions/edit/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "removeUserEdit",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "delete /:branding/:portal/api/records/permissions/editRole/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "removeRoleEdit",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "delete /:branding/:portal/api/records/permissions/view/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "removeUserView",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "delete /:branding/:portal/api/records/permissions/viewRole/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "removeRoleView",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/export/record/download/:format",
+      "target": {
+        "controller": "webservice/ExportController",
+        "action": "downloadRecs",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/schemas/create/:recordType",
+      "target": {
+        "controller": "webservice/RecordSchemaController",
+        "action": "create",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/schemas/update/:oid",
+      "target": {
+        "controller": "webservice/RecordSchemaController",
+        "action": "update",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/permissions/edit/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "addUserEdit",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/permissions/editRole/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "addRoleEdit",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/permissions/view/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "addUserView",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/permissions/viewRole/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "addRoleView",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/migration/preflight",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "migrationPreflight",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/users/link/candidates",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "searchLinkCandidates",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/dashboard-config/copy/apply",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "applyCopy",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/dashboard-config/copy/preview",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "previewCopy",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/users/token/generate",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "generateAPIToken",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/users/token/revoke",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "revokeAPIToken",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-vocabularies/sources/:sourceId/categories",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "listSourceCategories",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/versions/:versionId/preview",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "versionPreview",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/figshare-vocabularies/previews/:runId/apply",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "applyPreview",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/figshare-vocabularies/sources/:sourceId/clone",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "cloneSource",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/figshare-vocabularies/sources/:sourceId/preview",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "createSourcePreview",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/views/:view/:step/fields",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "getViewFields",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "getWorkflowFields",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/views/:view/:step",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "getViewTarget",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "getWorkflowTarget",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/i18n/bundles/:locale/:namespace",
+      "target": {
+        "controller": "webservice/TranslationController",
+        "action": "getBundle",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/datastreams/:oid/:datastreamId",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "getDataStream",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "post /:branding/:portal/api/i18n/bundles/:locale/:namespace",
+      "target": {
+        "controller": "webservice/TranslationController",
+        "action": "setBundle",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "put /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "put /:branding/:portal/api/dashboard-config/views/:view/:step",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "saveViewTarget",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "saveWorkflowTarget",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "delete /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+      "target": {
+        "controller": "webservice/TranslationController",
+        "action": "deleteEntry",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+      "target": {
+        "controller": "webservice/TranslationController",
+        "action": "getEntry",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+      "target": {
+        "controller": "webservice/TranslationController",
+        "action": "setEntry",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "delete /:branding/:portal/api/records/metadata/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "deleteRecord",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/admin/config/:configKey",
+      "target": {
+        "controller": "webservice/AdminController",
+        "action": "getAppConfig",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/merged-type/:dashboardType",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-vocabularies/previews/:runId",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "getPreview",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-vocabularies/sources/:sourceId",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "getSource",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/audit/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "getRecordAudit",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/datastreams/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "listDatastreams",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/metadata/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "getMeta",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/objectmetadata/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "getObjectMeta",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/permissions/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "getPermissions",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/schemas/:digest",
+      "target": {
+        "controller": "webservice/RecordSchemaController",
+        "action": "immutable",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/admin/config/:configKey",
+      "target": {
+        "controller": "webservice/AdminController",
+        "action": "setAppConfig",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/restore/:versionId",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "restore",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/rollback/:versionId",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "rollback",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/mint/harvest/:recordType",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "legacyHarvest",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/datastreams/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "addDataStreams",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/harvest/:recordType",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "harvest",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "post /:branding/:portal/api/records/metadata/:recordType",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "create",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "put /:branding/:portal/api/records/metadata/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "updateMeta",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "put /:branding/:portal/api/records/objectmetadata/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "updateObjectMeta",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/admin/config",
+      "target": {
+        "controller": "webservice/AdminController",
+        "action": "getAppConfig",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/admin/refreshCachedResources",
+      "target": {
+        "controller": "webservice/AdminController",
+        "action": "refreshCachedResources",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/branding/config",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "config",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/branding/history",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "history",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/branding/versions",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "versions",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/defaults",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/info",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/overrides",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/dashboard-config/targets",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "listTargets",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/deletedrecords/list",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "listDeletedRecords",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-vocabularies/catalogues",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "listCatalogues",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-vocabularies/sources",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "listSources",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-vocabularies/sync-runs",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "listSyncRuns",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/forms/get",
+      "target": {
+        "controller": "webservice/FormManagementController",
+        "action": "getForm",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/i18n/entries",
+      "target": {
+        "controller": "webservice/TranslationController",
+        "action": "listEntries",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/named-query/collections",
+      "target": {
+        "controller": "webservice/NamedQueryController",
+        "action": "getCollections",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/records/list",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "listRecords",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/recordtypes/get",
+      "target": {
+        "controller": "webservice/RecordTypeController",
+        "action": "getRecordType",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/report/namedQuery",
+      "target": {
+        "controller": "webservice/ReportController",
+        "action": "executeNamedQuery",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/siem/config",
+      "target": {
+        "controller": "webservice/SiemController",
+        "action": "getConfig",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/siem/delivery-status",
+      "target": {
+        "controller": "webservice/SiemController",
+        "action": "getDeliveryStatus",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/api/siem/events",
+      "target": {
+        "controller": "webservice/SiemController",
+        "action": "getEvents",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/users/find",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "getUser",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/api/users/get",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "getUser",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/draft",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "draft",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/favicon",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "favicon",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/logo",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "logo",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/preview",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "preview",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/branding/publish",
+      "target": {
+        "controller": "webservice/BrandingController",
+        "action": "publish",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/dashboard-config/validate",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "validateSettings",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/figshare-vocabularies/previews",
+      "target": {
+        "controller": "webservice/FigshareVocabularyController",
+        "action": "createPreview",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/report-config/preview",
+      "target": {
+        "controller": "webservice/ReportController",
+        "action": "previewConfig",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/api/search/index",
+      "target": {
+        "controller": "webservice/SearchController",
+        "action": "index",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/api/search/indexAll",
+      "target": {
+        "controller": "webservice/SearchController",
+        "action": "indexAll",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/api/search/removeAll",
+      "target": {
+        "controller": "webservice/SearchController",
+        "action": "removeAll",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/api/siem/test",
+      "target": {
+        "controller": "webservice/SiemController",
+        "action": "testDestination",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/users/link",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "linkAccounts",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/vocabulary/import",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "import",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/dashboard-config/overrides",
+      "target": {
+        "controller": "webservice/DashboardConfigController",
+        "action": "retiredOperation",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/siem/config",
+      "target": {
+        "controller": "webservice/SiemController",
+        "action": "saveConfig",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-crosswalks/:id/local-entries",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "listLocalEntries",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-crosswalks/:id/mappings",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "listMappings",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-crosswalks/:id/usage",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "usage",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/harvest-runs/:id/events",
+      "target": {
+        "controller": "webservice/HarvestRunController",
+        "action": "listRunEvents",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/users/:id/audit",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "getUserAudit",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/api/users/:id/links",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "getUserLinks",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "post /:branding/:portal/api/figshare-crosswalks/:id/approve",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "approve",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/users/:id/disable",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "disableUser",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/users/:id/enable",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "enableUser",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/vocabulary/:id/sync",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "sync",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/figshare-crosswalks/:id/mappings",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "saveMappings",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/vocabulary/:id/reorder",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "reorder",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "delete /:branding/:portal/api/appconfig/:appConfigId",
+      "target": {
+        "controller": "webservice/AppConfigController",
+        "action": "resetAppConfig",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "delete /:branding/:portal/api/deletedrecords/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "destroyDeletedRecord",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "delete /:branding/:portal/api/figshare-crosswalks/:id",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "delete",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "delete /:branding/:portal/api/named-query/:name",
+      "target": {
+        "controller": "webservice/NamedQueryController",
+        "action": "deleteQuery",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "delete /:branding/:portal/api/report-config/:name",
+      "target": {
+        "controller": "webservice/ReportController",
+        "action": "deleteConfig",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "delete /:branding/:portal/api/vocabulary/:id",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "delete",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/appconfig/:appConfigId",
+      "target": {
+        "controller": "webservice/AppConfigController",
+        "action": "getAppConfig",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/deletedrecords/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "getDeletedRecord",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-crosswalks/:id",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "get",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/harvest-runs/:id",
+      "target": {
+        "controller": "webservice/HarvestRunController",
+        "action": "getRun",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/integration-audit/:oid",
+      "target": {
+        "controller": "webservice/IntegrationAuditController",
+        "action": "getAuditLog",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/named-query/:name",
+      "target": {
+        "controller": "webservice/NamedQueryController",
+        "action": "getQuery",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/report-config/:name",
+      "target": {
+        "controller": "webservice/ReportController",
+        "action": "getConfig",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/vocabulary/:id",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "get",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/appconfig/:appConfigId",
+      "target": {
+        "controller": "webservice/AppConfigController",
+        "action": "saveAppConfig",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/api/roles/:roleName",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "createSystemRole",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "put /:branding/:portal/api/deletedrecords/:oid",
+      "target": {
+        "controller": "webservice/RecordController",
+        "action": "restoreRecord",
+        "csrf": false
+      },
+      "owner": "SR-034/SR-035"
+    },
+    {
+      "route": "put /:branding/:portal/api/named-query/:name",
+      "target": {
+        "controller": "webservice/NamedQueryController",
+        "action": "updateQuery",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "put /:branding/:portal/api/report-config/:name",
+      "target": {
+        "controller": "webservice/ReportController",
+        "action": "updateConfig",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "put /:branding/:portal/api/vocabulary/:id",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "update",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/figshare-crosswalks",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "list",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/forms",
+      "target": {
+        "controller": "webservice/FormManagementController",
+        "action": "listForms",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/harvest-runs",
+      "target": {
+        "controller": "webservice/HarvestRunController",
+        "action": "listRuns",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "get /:branding/:portal/api/named-query",
+      "target": {
+        "controller": "webservice/NamedQueryController",
+        "action": "listQueries",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/recordtypes",
+      "target": {
+        "controller": "webservice/RecordTypeController",
+        "action": "listRecordTypes",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/api/report-config",
+      "target": {
+        "controller": "webservice/ReportController",
+        "action": "listConfigs",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/roles",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "listSystemRoles",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/api/search",
+      "target": {
+        "controller": "webservice/SearchController",
+        "action": "search",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "get /:branding/:portal/api/users",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "listUsers",
+        "csrf": false
+      },
+      "owner": "SR-041/SR-042"
+    },
+    {
+      "route": "get /:branding/:portal/api/vocabulary",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "list",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/figshare-crosswalks",
+      "target": {
+        "controller": "webservice/FigshareCrosswalkController",
+        "action": "create",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/named-query",
+      "target": {
+        "controller": "webservice/NamedQueryController",
+        "action": "createQuery",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/api/report-config",
+      "target": {
+        "controller": "webservice/ReportController",
+        "action": "createConfig",
+        "csrf": false
+      },
+      "owner": "SR-033"
+    },
+    {
+      "route": "post /:branding/:portal/api/sendNotification",
+      "target": {
+        "controller": "EmailController",
+        "action": "sendNotification",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "post /:branding/:portal/api/users",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "updateUser",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "post /:branding/:portal/api/vocabulary",
+      "target": {
+        "controller": "webservice/VocabularyController",
+        "action": "create",
+        "csrf": false
+      },
+      "owner": "SR-040"
+    },
+    {
+      "route": "put /:branding/:portal/api/users",
+      "target": {
+        "controller": "webservice/UserManagementController",
+        "action": "createUser",
+        "csrf": false
+      },
+      "owner": "SR-036/SR-038"
+    },
+    {
+      "route": "get /:branding/:portal/locales/:lng/:ns.json",
+      "target": {
+        "controller": "TranslationController",
+        "action": "getNamespace",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/locales/:lng/translation.json",
+      "target": {
+        "controller": "TranslationController",
+        "action": "getNamespace",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/locales",
+      "target": {
+        "controller": "TranslationController",
+        "action": "getLanguages",
+        "csrf": false
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/workspaces/types/:name",
+      "target": "WorkspaceTypesController.getOne",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/workspaces/types",
+      "target": "WorkspaceTypesController.get",
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/app/i18n/entries",
+      "target": {
+        "controller": "TranslationController",
+        "action": "listEntriesApp"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/app/i18n/entries/:locale/:namespace/:key*",
+      "target": {
+        "controller": "TranslationController",
+        "action": "setEntryApp"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "get /:branding/:portal/app/i18n/bundles/:locale/:namespace",
+      "target": {
+        "controller": "TranslationController",
+        "action": "getBundleApp"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/app/i18n/bundles/:locale/:namespace",
+      "target": {
+        "controller": "TranslationController",
+        "action": "setBundleApp"
+      },
+      "owner": "SR-032"
+    },
+    {
+      "route": "post /:branding/:portal/app/i18n/bundles/:locale/:namespace/enabled",
+      "target": {
+        "controller": "webservice/TranslationController",
+        "action": "updateBundleEnabled"
+      },
+      "owner": "SR-032"
+    }
+  ],
+  "corePolicyChains": {
+    "UserController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "localLogin": [
+        "noCache",
+        "contentSecurityPolicy"
+      ],
+      "aafLogin": [
+        "noCache",
+        "contentSecurityPolicy"
+      ],
+      "openidConnectLogin": [
+        "noCache",
+        "contentSecurityPolicy"
+      ],
+      "beginOidc": [
+        "noCache",
+        "contentSecurityPolicy"
+      ],
+      "info": [
+        "noCache",
+        "isAuthenticated",
+        "contentSecurityPolicy"
+      ]
+    },
+    "RenderViewController": {
+      "render": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ]
+    },
+    "RecordController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "doAttachment": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "companionAttachmentUploadAuth",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ]
+    },
+    "webservice/RecordController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "create": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "updateMeta": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "harvest": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "legacyHarvest": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "updateObjectMeta": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getMeta": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getRecordAudit": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listRecords": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listDeletedRecords": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getDeletedRecord": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "restoreRecord": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "destroyDeletedRecord": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getObjectMeta": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "deleteRecord": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "addUserEdit": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "removeUserEdit": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "addUserView": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "removeUserView": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "addRoleEdit": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "removeRoleEdit": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "addRoleView": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "removeRoleView": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getPermissions": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "addDataStreams": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getDataStream": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listDatastreams": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "transitionWorkflow": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/BrandingController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "config": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "draft": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "uploadFace": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "deleteFace": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "useDefault": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "revert": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "preview": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "versions": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "versionPreview": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "publish": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "restore": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "rollback": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "logo": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "favicon": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "history": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "BrandingController": {
+      "renderFont": [
+        "contentSecurityPolicy"
+      ]
+    },
+    "webservice/RecordSchemaController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "create": [
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkRecordSchemaAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "update": [
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkRecordSchemaAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "immutable": [
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkRecordSchemaAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/UserManagementController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "listUsers": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getUser": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "searchLinkCandidates": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getUserLinks": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getUserAudit": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "linkAccounts": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "createUser": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "updateUser": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "disableUser": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "enableUser": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "generateAPIToken": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "revokeAPIToken": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listSystemRoles": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "createSystemRole": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/SearchController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "search": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "index": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "indexAll": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "removeAll": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/FormManagementController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "getForm": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listForms": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/HarvestRunController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "listRuns": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getRun": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listRunEvents": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/VocabularyController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "list": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "import": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "get": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "create": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "update": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "reorder": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "delete": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "sync": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/FigshareVocabularyController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "listCatalogues": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listSources": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getSource": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listSourceCategories": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "createSourcePreview": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "cloneSource": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listSyncRuns": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "createPreview": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getPreview": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "applyPreview": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/FigshareCrosswalkController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "list": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "create": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "usage": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listLocalEntries": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listMappings": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "saveMappings": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "approve": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "get": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "delete": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/RecordTypeController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "getRecordType": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listRecordTypes": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/AdminController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "refreshCachedResources": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "setAppConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getAppConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/AppConfigController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "getAppConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "saveAppConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "resetAppConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/DashboardConfigController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "listTargets": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getWorkflowTarget": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "saveWorkflowTarget": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getViewTarget": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "saveViewTarget": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "validateSettings": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "previewCopy": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "applyCopy": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getWorkflowFields": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getViewFields": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "migrationPreflight": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "retiredOperation": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/TranslationController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "listEntries": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getEntry": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "setEntry": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "deleteEntry": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getBundle": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "setBundle": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/ReportController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "executeNamedQuery": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "listConfigs": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "previewConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "createConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "updateConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "deleteConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/IntegrationAuditController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "getAuditLog": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/ExportController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "downloadRecs": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "EmailController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "sendNotification": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/NamedQueryController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "listQueries": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getCollections": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getQuery": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "createQuery": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "updateQuery": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "deleteQuery": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "webservice/SiemController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "getConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "saveConfig": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getEvents": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "getDeliveryStatus": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ],
+      "testDestination": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy",
+        "validateApiContractRequest"
+      ]
+    },
+    "DynamicAssetController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ]
+    },
+    "TranslationController": {
+      "*": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs",
+        "i18nLanguages",
+        "menuResolver",
+        "isWebServiceAuthenticated",
+        "checkAuth",
+        "contentSecurityPolicy"
+      ],
+      "getNamespace": [
+        "noCache",
+        "brandingAndPortal",
+        "checkBrandingValid",
+        "setLang",
+        "prepWs"
+      ]
+    },
+    "*": [
+      "brandingAndPortal",
+      "checkBrandingValid",
+      "setLang",
+      "prepWs",
+      "i18nLanguages",
+      "menuResolver",
+      "isWebServiceAuthenticated",
+      "checkAuth",
+      "contentSecurityPolicy"
+    ]
+  },
+  "limitation": "Core configured route table only; institution config and runtime hook overrides not executed. This is characterization, not standalone runtime or HTTP parity evidence."
+}
