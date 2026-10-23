@@ -1,3 +1,5 @@
+import { HarvestHistory } from '../queries/HarvestHistory';
+import { toRunModel, toChunkModel } from '../queries/harvestModels';
 import * as _ from 'lodash';
 import { createHash } from 'node:crypto';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -22,14 +24,6 @@ import {
   HarvestCounterSummary,
   HarvestOperation,
   HarvestOutcome,
-  HarvestRecordEventModel,
-  HarvestRunChunkModel,
-  HarvestRunDetailResult,
-  HarvestRunEventsQuery,
-  HarvestRunEventsResult,
-  HarvestRunListQuery,
-  HarvestRunListResult,
-  HarvestRunModel,
   HarvestRunStatus,
 } from '../model/storage/HarvestRunModel';
 import { HarvestRunsConfig } from '../config/harvestRuns.config';
@@ -45,8 +39,6 @@ import type {
   HarvestRunRow,
   HarvestChunkRow as HarvestRunChunkRow,
   HarvestEventRow as HarvestRecordEventRow,
-  HarvestRunFilter,
-  HarvestEventFilter,
 } from '../persistence/harvest/HarvestRepositories';
 import type { StorageService } from '../StorageService';
 
@@ -270,81 +262,6 @@ export namespace Services {
 
     private isMetadataEqual(meta1: AnyRecord, meta2: AnyRecord): boolean {
       return _.isEqual(meta1, meta2);
-    }
-
-    private toRunModel(row: HarvestRunRow): HarvestRunModel {
-      return new HarvestRunModel({
-        id: row.id,
-        sourceRunId: String(row.sourceRunId ?? ''),
-        brandId: String(row.brandId ?? ''),
-        recordType: String(row.recordType ?? ''),
-        sourceName: String(row.sourceName ?? ''),
-        sourceUri: row.sourceUri ? String(row.sourceUri) : undefined,
-        status: (row.status as HarvestRunStatus) ?? HarvestRunStatus.running,
-        startedAt: String(row.startedAt ?? ''),
-        completedAt: row.completedAt ? String(row.completedAt) : undefined,
-        startedBy: row.startedBy ? String(row.startedBy) : undefined,
-        lastChunkAt: row.lastChunkAt ? String(row.lastChunkAt) : undefined,
-        totalProcessed: Number(row.totalProcessed ?? 0),
-        created: Number(row.created ?? 0),
-        updated: Number(row.updated ?? 0),
-        deleted: Number(row.deleted ?? 0),
-        unchanged: Number(row.unchanged ?? 0),
-        failed: Number(row.failed ?? 0),
-        chunksProcessed: Number(row.chunksProcessed ?? 0),
-        duplicateChunks: Number(row.duplicateChunks ?? 0),
-        metadata: (row.metadata as Record<string, unknown> | undefined) ?? undefined,
-      });
-    }
-
-    private toChunkModel(row: HarvestRunChunkRow, duplicateOverride?: boolean): HarvestRunChunkModel {
-      return new HarvestRunChunkModel({
-        id: row.id,
-        runId: String(row.runId ?? ''),
-        brandId: String(row.brandId ?? ''),
-        recordType: String(row.recordType ?? ''),
-        sourceRunId: String(row.sourceRunId ?? ''),
-        contentHash: String(row.contentHash ?? ''),
-        attempt: Number(row.attempt ?? 1),
-        chunkIndex: row.chunkIndex == null ? undefined : Number(row.chunkIndex),
-        chunkLabel: row.chunkLabel ? String(row.chunkLabel) : undefined,
-        totalExpected: row.totalExpected == null ? undefined : Number(row.totalExpected),
-        status: (row.status as HarvestChunkStatus) ?? HarvestChunkStatus.processed,
-        recordCount: Number(row.recordCount ?? 0),
-        totalProcessed: Number(row.totalProcessed ?? 0),
-        created: Number(row.created ?? 0),
-        updated: Number(row.updated ?? 0),
-        deleted: Number(row.deleted ?? 0),
-        unchanged: Number(row.unchanged ?? 0),
-        failed: Number(row.failed ?? 0),
-        duplicate: duplicateOverride ?? Boolean(row.duplicate),
-        submittedAt: String(row.submittedAt ?? ''),
-        completedAt: row.completedAt ? String(row.completedAt) : undefined,
-        errorMessage: row.errorMessage ? String(row.errorMessage) : undefined,
-        responseSummary: (row.responseSummary as Record<string, unknown> | undefined) ?? undefined,
-      });
-    }
-
-    private toEventModel(row: HarvestRecordEventRow): HarvestRecordEventModel {
-      const outcome = (row.outcome as HarvestOutcome) ?? HarvestOutcome.failed;
-      return new HarvestRecordEventModel({
-        id: row.id,
-        runId: String(row.runId ?? ''),
-        chunkId: String(row.chunkId ?? ''),
-        brandId: String(row.brandId ?? ''),
-        recordType: String(row.recordType ?? ''),
-        sourceRunId: String(row.sourceRunId ?? ''),
-        harvestId: String(row.harvestId ?? ''),
-        oid: row.oid ? String(row.oid) : undefined,
-        operation: (row.operation as HarvestOperation) ?? HarvestOperation.upsert,
-        outcome,
-        status: row.status == null ? outcome !== HarvestOutcome.failed : Boolean(row.status),
-        message: row.message ? String(row.message) : undefined,
-        details: row.details ? String(row.details) : undefined,
-        errorCode: row.errorCode ? String(row.errorCode) : undefined,
-        recordSnapshot: (row.recordSnapshot as Record<string, unknown> | undefined) ?? undefined,
-        createdAt: String(row.createdAt ?? ''),
-      });
     }
 
     private harvestStorage(): StorageService {
@@ -1535,8 +1452,8 @@ export namespace Services {
       if (processedChunk) {
         const updatedRun = await this.bumpDuplicateChunkCount(run);
         return {
-          run: this.toRunModel(updatedRun),
-          chunk: this.toChunkModel(processedChunk, true),
+          run: toRunModel(updatedRun),
+          chunk: toChunkModel(processedChunk, true),
         };
       }
 
@@ -1655,8 +1572,8 @@ export namespace Services {
         )) as HarvestRunChunkRow | null;
         const updatedRun = await this.updateRunAfterChunk(run, counters, Boolean(request.finalChunk), completedAt);
         return {
-          run: this.toRunModel(updatedRun),
-          chunk: this.toChunkModel(updatedChunk ?? { ...createdChunk, ...chunkUpdates }),
+          run: toRunModel(updatedRun),
+          chunk: toChunkModel(updatedChunk ?? { ...createdChunk, ...chunkUpdates }),
         };
       } catch (error) {
         await getHarvestRepositories().chunks.reviseAttempt(createdChunk.id!, {
@@ -1676,104 +1593,20 @@ export namespace Services {
       }
     }
 
-    public async listRuns(brand: BrandingModel, params: Partial<HarvestRunListQuery>): Promise<HarvestRunListResult> {
-      const brandId = this.resolveBrandId(brand);
-      const page = this.parsePositiveInt(params.page, 1);
-      const pageSize = Math.min(100, this.parsePositiveInt(params.pageSize, 20));
-      const skip = (page - 1) * pageSize;
-      const where: HarvestRunFilter = { brandId };
-      if (!_.isEmpty(params.status)) {
-        where.status = String(params.status);
-      }
-      if (!_.isEmpty(params.recordType)) {
-        where.recordType = String(params.recordType);
-      }
-      if (!_.isEmpty(params.sourceName)) {
-        where.sourceName = String(params.sourceName);
-      }
-      const startedAtFilters: NonNullable<HarvestRunFilter['startedAt']> = {};
-      if (params.dateFrom instanceof Date && !Number.isNaN(params.dateFrom.getTime())) {
-        startedAtFilters['>='] = params.dateFrom.toISOString();
-      }
-      if (params.dateTo instanceof Date && !Number.isNaN(params.dateTo.getTime())) {
-        startedAtFilters['<='] = params.dateTo.toISOString();
-      }
-      if (!_.isEmpty(startedAtFilters)) {
-        where.startedAt = startedAtFilters;
-      }
-
-      const total = await getHarvestRepositories().runs.countRuns(where);
-      const rows = (await getHarvestRepositories().runs.listRuns(where, skip, pageSize)) as HarvestRunRow[];
-      return {
-        rows: rows.map(row => this.toRunModel(row)),
-        total: Number(total ?? 0),
-      };
+    private history(): HarvestHistory {
+      return new HarvestHistory(getHarvestRepositories());
     }
-
-    public async getRun(brand: BrandingModel, runId: string): Promise<HarvestRunDetailResult | null> {
-      const brandId = this.resolveBrandId(brand);
-      const run = (await getHarvestRepositories().runs.findRun({ id: runId, brandId })) as HarvestRunRow | null;
-      if (!run) {
-        return null;
-      }
-
-      const chunks = await getHarvestRepositories().chunks.listForRun(runId, brandId, 100);
-      const events = await getHarvestRepositories().events.listEvents({ runId, brandId }, 0, 20);
-      return {
-        run: this.toRunModel(run),
-        chunks: chunks.map(row => this.toChunkModel(row)),
-        events: events.map(row => this.toEventModel(row)),
-        aggregateCounts: {
-          totalProcessed: Number(run.totalProcessed ?? 0),
-          created: Number(run.created ?? 0),
-          updated: Number(run.updated ?? 0),
-          deleted: Number(run.deleted ?? 0),
-          unchanged: Number(run.unchanged ?? 0),
-          failed: Number(run.failed ?? 0),
-          chunksProcessed: Number(run.chunksProcessed ?? 0),
-          duplicateChunks: Number(run.duplicateChunks ?? 0),
-        },
-      };
+    public listRuns(...args: Parameters<HarvestHistory['listRuns']>) {
+      return this.history().listRuns(...args);
     }
-
-    public async runExists(brand: BrandingModel, runId: string): Promise<boolean> {
-      const brandId = this.resolveBrandId(brand);
-      const run = (await getHarvestRepositories().runs.findRun({ id: runId, brandId })) as HarvestRunRow | null;
-      return !_.isNil(run);
+    public getRun(...args: Parameters<HarvestHistory['getRun']>) {
+      return this.history().getRun(...args);
     }
-
-    public async listRunEvents(
-      brand: BrandingModel,
-      runId: string,
-      params: Partial<HarvestRunEventsQuery>
-    ): Promise<HarvestRunEventsResult> {
-      const brandId = this.resolveBrandId(brand);
-      const page = this.parsePositiveInt(params.page, 1);
-      const pageSize = Math.min(100, this.parsePositiveInt(params.pageSize, 20));
-      const skip = (page - 1) * pageSize;
-      const where: HarvestEventFilter = {
-        runId,
-        brandId,
-      };
-      if (!_.isEmpty(params.outcome)) {
-        where.outcome = String(params.outcome);
-      }
-      if (!_.isEmpty(params.operation)) {
-        where.operation = String(params.operation);
-      }
-      if (!_.isEmpty(params.harvestId)) {
-        where.harvestId = String(params.harvestId);
-      }
-      if (!_.isEmpty(params.oid)) {
-        where.oid = String(params.oid);
-      }
-
-      const total = await getHarvestRepositories().events.countEvents(where);
-      const rows = await getHarvestRepositories().events.listEvents(where, skip, pageSize);
-      return {
-        rows: rows.map(row => this.toEventModel(row)),
-        total: Number(total ?? 0),
-      };
+    public runExists(...args: Parameters<HarvestHistory['runExists']>) {
+      return this.history().runExists(...args);
+    }
+    public listRunEvents(...args: Parameters<HarvestHistory['listRunEvents']>) {
+      return this.history().listRunEvents(...args);
     }
   }
 }

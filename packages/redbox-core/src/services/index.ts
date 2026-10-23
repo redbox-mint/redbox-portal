@@ -1,3 +1,6 @@
+import { sailsIntegrationAuditExports } from '../compat/sails/integrationAudits';
+import { sailsNamedQueryServiceExports } from '../compat/sails/namedQueries';
+import { sailsReportsExports } from '../compat/sails/reports';
 import { sailsFormPayloadPrehydrateExports } from '../compat/sails/formPayloadPrehydrate';
 import { sailsVocabularyExports } from '../compat/sails/vocabulary';
 import { sailsDomSanitizerExports } from '../compat/sails/domSanitizer';
@@ -224,9 +227,7 @@ export const ServiceExports = {
     );
   },
   get IntegrationAuditService() {
-    return getOrCreateService('IntegrationAuditService', () =>
-      new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports()
-    );
+    return sailsIntegrationAuditExports();
   },
   get IntegrationNotificationService() {
     return getOrCreateService('IntegrationNotificationService', () =>
@@ -238,7 +239,9 @@ export const ServiceExports = {
       new FormRecordConsistencyServiceModule.Services.FormRecordConsistency().exports()
     );
   },
-  get FormPayloadPrehydrateService() { return sailsFormPayloadPrehydrateExports(); },
+  get FormPayloadPrehydrateService() {
+    return sailsFormPayloadPrehydrateExports();
+  },
   get FormsService() {
     return sailsFormsExports();
   },
@@ -251,9 +254,7 @@ export const ServiceExports = {
     return sailsTranslationEntriesExports();
   },
   get NamedQueryService() {
-    return getOrCreateService('NamedQueryService', () =>
-      new NamedQueryServiceModule.Services.NamedQueryService().exports()
-    );
+    return sailsNamedQueryServiceExports();
   },
   get NavigationService() {
     return getOrCreateService('NavigationService', () => new NavigationServiceModule.Services.Navigation().exports());
@@ -286,7 +287,7 @@ export const ServiceExports = {
     return sailsRecordValidationExports();
   },
   get ReportsService() {
-    return getOrCreateService('ReportsService', () => new ReportsServiceModule.Services.Reports().exports());
+    return sailsReportsExports();
   },
   get RolesService() {
     return getOrCreateService('RolesService', () => new RolesServiceModule.Services.Roles().exports());
@@ -301,7 +302,9 @@ export const ServiceExports = {
       new SolrSearchServiceModule.Services.SolrSearchService().exports()
     );
   },
-  get DomSanitizerService() { return sailsDomSanitizerExports(); },
+  get DomSanitizerService() {
+    return sailsDomSanitizerExports();
+  },
   get TemplateService() {
     return getOrCreateService('TemplateService', () => new TemplateServiceModule.Services.Template().exports());
   },
@@ -317,7 +320,9 @@ export const ServiceExports = {
   get ViewUtilsService() {
     return getOrCreateService('ViewUtilsService', () => new ViewUtilsServiceModule.Services.ViewUtils().exports());
   },
-  get VocabularyService() { return sailsVocabularyExports(); },
+  get VocabularyService() {
+    return sailsVocabularyExports();
+  },
   get RvaImportService() {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },

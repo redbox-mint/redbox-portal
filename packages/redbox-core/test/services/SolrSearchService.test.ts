@@ -281,11 +281,11 @@ describe('SolrSearchService', function () {
       const params: URLSearchParams = axiosGet.firstCall.args[1].params;
       expect(params).to.be.instanceOf(URLSearchParams);
       expect(params.getAll('facet.field')).to.deep.equal(['workflow_stage', 'metaMetadata_type']);
-      // Two exact searches, one facet value and the authorization filter.
-      expect(params.getAll('fq')).to.have.lengthOf(4);
-      expect(params.getAll('fq')[0]).to.equal('title:first');
-      expect(params.getAll('fq')[1]).to.equal('owner:second');
-      expect(params.getAll('fq')[3]).to.include('authorization_edit:testuser');
+      // Mandatory brand/type filters, two exact searches, one facet value and authorization.
+      expect(params.getAll('fq')).to.have.lengthOf(6);
+      expect(params.getAll('fq')[2]).to.equal('title:first');
+      expect(params.getAll('fq')[3]).to.equal('owner:second');
+      expect(params.getAll('fq')[5]).to.include('authorization_edit:testuser');
     });
 
     it('should build the q param from brand, type and search query', async function () {
@@ -307,9 +307,7 @@ describe('SolrSearchService', function () {
       );
 
       const params: URLSearchParams = axiosGet.firstCall.args[1].params;
-      expect(params.get('q')).to.equal(
-        'metaMetadata_brandId:brand-1 AND metaMetadata_type:rdmp AND workflow_stage:draft AND full_text:search terms'
-      );
+      expect(params.get('q')).to.equal('full_text:search terms');
     });
   });
 

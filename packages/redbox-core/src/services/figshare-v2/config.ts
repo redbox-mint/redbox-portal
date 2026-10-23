@@ -1,9 +1,10 @@
+import { resolveFigsharePublishingConfigData } from '../../queries/FigshareStatus';
 import _ from 'lodash';
 import {
   FigsharePublishing,
   resolveFigshareConnectionToken,
   type FigshareFixtureConfig,
-  type FigsharePublishingConfigData
+  type FigsharePublishingConfigData,
 } from '../../configmodels/FigsharePublishing';
 import type { FigshareDevConfig } from '../../config/figshareDev.config';
 import { FigshareSyncState, getRecordField, setRecordField, RecordModel } from './types';
@@ -29,9 +30,7 @@ type AppConfigResolver = {
  * the local export.
  */
 function getAppConfigResolver(): AppConfigResolver | undefined {
-  const liftedService = typeof AppConfigService === 'undefined'
-    ? undefined
-    : AppConfigService as AppConfigResolver;
+  const liftedService = typeof AppConfigService === 'undefined' ? undefined : (AppConfigService as AppConfigResolver);
   if (typeof liftedService?.getAppConfigurationForBrand === 'function') {
     return liftedService;
   }
@@ -50,7 +49,8 @@ export function getBrandName(record?: Record<string, unknown>): string {
   // per-brand admin-UI overrides are ignored.
   const brandingService = typeof BrandingService === 'undefined' ? undefined : BrandingService;
   if (brandingService == null) return rawBrand;
-  const brandById = typeof brandingService.getBrandById === 'function' ? brandingService.getBrandById(rawBrand) : undefined;
+  const brandById =
+    typeof brandingService.getBrandById === 'function' ? brandingService.getBrandById(rawBrand) : undefined;
   if (brandById?.name != null && String(brandById.name).trim() !== '') {
     return String(brandById.name);
   }
@@ -62,7 +62,9 @@ export function getBrandName(record?: Record<string, unknown>): string {
   // uploadFilesToFigshareArticle, ...). Returning the raw value preserves the previous
   // fallback semantics (AppConfigService serves the global brandingConfigurationDefaults
   // for unknown keys), now with a warning instead of silence.
-  sails.log.warn(`FigService - unable to resolve brand id or name '${rawBrand}'; global branding configuration defaults will apply`);
+  sails.log.warn(
+    `FigService - unable to resolve brand id or name '${rawBrand}'; global branding configuration defaults will apply`
+  );
   return rawBrand;
 }
 
@@ -83,59 +85,22 @@ function shouldUseFixtureRuntime(figshareDev: FigshareDevConfig): boolean {
 }
 
 /** Keep configured legacy relative delays when the new millisecond setting is absent. */
-export function legacyDelayMs(value: string): number {
-  const match = /^\s*(?:in\s+)?(\d+(?:\.\d+)?)\s*(milliseconds?|ms|seconds?|minutes?|hours?|days?|weeks?)\s*$/i.exec(value);
-  if (!match) throw new Error(`Unsupported Figshare delay '${value}'; configure processing observationMs/cleanupMs explicitly`);
-  const unit = match[2].toLowerCase();
-  const multiplier = unit === 'ms' || unit.startsWith('millisecond') ? 1 : unit.startsWith('second') ? 1000 : unit.startsWith('minute') ? 60000 : unit.startsWith('hour') ? 3600000 : unit.startsWith('day') ? 86400000 : 604800000;
-  const result = Number(match[1]) * multiplier;
-  if (!Number.isFinite(result) || result <= 0) throw new Error('Figshare delay must be positive');
-  return result;
-}
-
-export function resolveFigsharePublishingConfig(record?: Record<string, unknown>, options: { requireToken?: boolean } = {}): ResolvedFigsharePublishingConfigData | null {
+export { legacyDelayMs } from '../../queries/FigshareStatus';
+export function resolveFigsharePublishingConfig(
+  record?: Record<string, unknown>,
+  options: { requireToken?: boolean } = {}
+): ResolvedFigsharePublishingConfigData | null {
   const brandName = getBrandName(record);
   const appConfigService = getAppConfigResolver();
-  const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName) ?? appConfigService?.getAppConfigurationForBrand?.('default');
-  const brandConfigRecord = brandConfig != null && typeof brandConfig === 'object' ? brandConfig as Record<string, unknown> : undefined;
-  const figsharePublishing = brandConfigRecord?.figsharePublishing;
-  const figsharePublishingConfig = figsharePublishing != null && typeof figsharePublishing === 'object'
-    ? figsharePublishing as Partial<FigsharePublishingConfigData>
-    : undefined;
-  if (figsharePublishingConfig?.enabled === true) {
-    const resolvedConfig = _.merge(new FigsharePublishing(), _.cloneDeep(figsharePublishingConfig)) as unknown as ResolvedFigsharePublishingConfigData;
-    if (resolvedConfig.processing?.enabled) {
-      const errors: string[] = [];
-      for (const [setting, legacy] of [['observationMs', 'publishAfterUploadDelay'], ['cleanupMs', 'uploadedFilesCleanupDelay']] as const) {
-        if (figsharePublishingConfig.processing?.[setting] != null) continue;
-        try { resolvedConfig.processing[setting] = legacyDelayMs(resolvedConfig.queue[legacy]); }
-        catch { errors.push(`Cannot convert queue.${legacy} to milliseconds; configure processing.${setting} explicitly.`); }
-      }
-      if (errors.length) resolvedConfig.processingError = errors.join(' ');
-    }
-    const figshareDev = resolveFigshareDevConfig();
-    const useFixtureRuntime = shouldUseFixtureRuntime(figshareDev);
-    resolvedConfig.runtime = {
-      mode: useFixtureRuntime ? 'fixture' : 'live',
-      fixtures: useFixtureRuntime ? _.cloneDeep(figshareDev.fixtures) : undefined
-    };
-    const resolvedConnection = resolvedConfig.connection != null && typeof resolvedConfig.connection === 'object'
-      ? resolvedConfig.connection
-      : { ...new FigsharePublishing().connection };
-    resolvedConfig.connection = resolvedConnection;
-    const connectionToken = resolvedConfig.connection?.token;
-    const allowEmpty = resolvedConfig.runtime.mode === 'fixture' || options.requireToken === false;
-    if (typeof connectionToken === 'string' && connectionToken.trim() !== '') {
-      resolvedConfig.connection.token = resolveFigshareConnectionToken(connectionToken, { allowEmpty });
-    } else if (!allowEmpty) {
-      resolvedConfig.connection.token = resolveFigshareConnectionToken('', { allowEmpty: false });
-    } else if (resolvedConfig.connection != null) {
-      resolvedConfig.connection.token = '';
-    }
-
-    return resolvedConfig;
-  }
-  return null;
+  const brandConfig =
+    appConfigService?.getAppConfigurationForBrand?.(brandName) ??
+    appConfigService?.getAppConfigurationForBrand?.('default');
+  return resolveFigsharePublishingConfigData(
+    brandConfig,
+    resolveFigshareDevConfig(),
+    String(sails.config.environment ?? process.env.NODE_ENV ?? ''),
+    options
+  );
 }
 
 /**
@@ -149,31 +114,39 @@ export function resolveFigsharePublishingConfig(record?: Record<string, unknown>
  */
 export function resolveFigshareVocabularyConfig(brandName: string): ResolvedFigsharePublishingConfigData | null {
   const appConfigService = getAppConfigResolver();
-  const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName)
-    ?? appConfigService?.getAppConfigurationForBrand?.('default');
-  const brandConfigRecord = brandConfig != null && typeof brandConfig === 'object' ? brandConfig as Record<string, unknown> : undefined;
+  const brandConfig =
+    appConfigService?.getAppConfigurationForBrand?.(brandName) ??
+    appConfigService?.getAppConfigurationForBrand?.('default');
+  const brandConfigRecord =
+    brandConfig != null && typeof brandConfig === 'object' ? (brandConfig as Record<string, unknown>) : undefined;
   const figsharePublishing = brandConfigRecord?.figsharePublishing;
-  const figsharePublishingConfig = figsharePublishing != null && typeof figsharePublishing === 'object'
-    ? figsharePublishing as Partial<FigsharePublishingConfigData>
-    : undefined;
+  const figsharePublishingConfig =
+    figsharePublishing != null && typeof figsharePublishing === 'object'
+      ? (figsharePublishing as Partial<FigsharePublishingConfigData>)
+      : undefined;
   if (figsharePublishingConfig == null) {
     return null;
   }
 
-  const resolvedConfig = _.merge(new FigsharePublishing(), _.cloneDeep(figsharePublishingConfig)) as unknown as ResolvedFigsharePublishingConfigData;
+  const resolvedConfig = _.merge(
+    new FigsharePublishing(),
+    _.cloneDeep(figsharePublishingConfig)
+  ) as unknown as ResolvedFigsharePublishingConfigData;
   const figshareDev = resolveFigshareDevConfig();
   const useFixtureRuntime = shouldUseFixtureRuntime(figshareDev);
   resolvedConfig.runtime = {
     mode: useFixtureRuntime ? 'fixture' : 'live',
-    fixtures: useFixtureRuntime ? _.cloneDeep(figshareDev.fixtures) : undefined
+    fixtures: useFixtureRuntime ? _.cloneDeep(figshareDev.fixtures) : undefined,
   };
-  resolvedConfig.connection = resolvedConfig.connection != null && typeof resolvedConfig.connection === 'object'
-    ? resolvedConfig.connection
-    : { ...new FigsharePublishing().connection };
+  resolvedConfig.connection =
+    resolvedConfig.connection != null && typeof resolvedConfig.connection === 'object'
+      ? resolvedConfig.connection
+      : { ...new FigsharePublishing().connection };
   const connectionToken = resolvedConfig.connection.token;
-  resolvedConfig.connection.token = typeof connectionToken === 'string' && connectionToken.trim() !== ''
-    ? resolveFigshareConnectionToken(connectionToken, { allowEmpty: true })
-    : '';
+  resolvedConfig.connection.token =
+    typeof connectionToken === 'string' && connectionToken.trim() !== ''
+      ? resolveFigshareConnectionToken(connectionToken, { allowEmpty: true })
+      : '';
   return resolvedConfig;
 }
 
@@ -181,10 +154,14 @@ export function getSyncState(config: FigsharePublishingConfigData, record: Recor
   return (getRecordField(record, config.record.syncStatePath) as FigshareSyncState) ?? { status: 'idle' };
 }
 
-export function setSyncState(config: FigsharePublishingConfigData, record: RecordModel, syncState: FigshareSyncState): void {
+export function setSyncState(
+  config: FigsharePublishingConfigData,
+  record: RecordModel,
+  syncState: FigshareSyncState
+): void {
   setRecordField(record, config.record.syncStatePath, {
     ...syncState,
-    lastSyncAt: syncState.lastSyncAt ?? new Date().toISOString()
+    lastSyncAt: syncState.lastSyncAt ?? new Date().toISOString(),
   });
   setRecordField(record, config.record.statusPath, syncState.status);
   setRecordField(record, config.record.errorPath, syncState.lastError ?? '');

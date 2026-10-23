@@ -1,3 +1,4 @@
+import { SiemReads } from '../queries/SiemReads';
 import * as crypto from 'node:crypto';
 import { Services as services } from '../CoreService';
 import type { SiemConfigDto, SiemSeverity } from '../configmodels/SiemConfiguration';
@@ -12,8 +13,6 @@ type AgendaJobLike = { attrs?: { data?: unknown } };
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
-
 
 export namespace Services {
   export class SecurityEventService extends services.Core.Service {
@@ -34,23 +33,38 @@ export namespace Services {
       'queryEvents',
     ];
 
-    private draining=false;
-    private shutdownRegistered=false;
-    private readonly active=new Set<Promise<void>>();
-    public async init():Promise<void> {
-      if(this.shutdownRegistered)return;
-      this.shutdownRegistered=true;
-      const previous=sails.config.beforeShutdown;
-      sails.config.beforeShutdown=callback=>{
-        void this.drain().then(()=>{try{if(previous)previous(callback);else callback();}catch(error){callback(error);}},callback);
+    private draining = false;
+    private shutdownRegistered = false;
+    private readonly active = new Set<Promise<void>>();
+    public async init(): Promise<void> {
+      if (this.shutdownRegistered) return;
+      this.shutdownRegistered = true;
+      const previous = sails.config.beforeShutdown;
+      sails.config.beforeShutdown = callback => {
+        void this.drain().then(() => {
+          try {
+            if (previous) previous(callback);
+            else callback();
+          } catch (error) {
+            callback(error);
+          }
+        }, callback);
       };
     }
     /** Called before persistence cleanup so accepted work can persist its outcome. */
-    public async drain():Promise<void>{this.draining=true;await Promise.allSettled(this.active);}
-    private accept(operation:()=>Promise<void>):Promise<void>{
-      if(this.draining)return Promise.reject(new Error('SIEM workers are draining.'));
-      const pending=Promise.resolve().then(operation);this.active.add(pending);
-      void pending.then(()=>this.active.delete(pending),()=>this.active.delete(pending));return pending;
+    public async drain(): Promise<void> {
+      this.draining = true;
+      await Promise.allSettled(this.active);
+    }
+    private accept(operation: () => Promise<void>): Promise<void> {
+      if (this.draining) return Promise.reject(new Error('SIEM workers are draining.'));
+      const pending = Promise.resolve().then(operation);
+      this.active.add(pending);
+      void pending.then(
+        () => this.active.delete(pending),
+        () => this.active.delete(pending)
+      );
+      return pending;
     }
 
     constructor() {
@@ -106,9 +120,9 @@ export namespace Services {
       };
     }
 
-    public emitSecurityEvent(input:SecurityEventInput):Promise<void>{
-      if(this.draining)return Promise.resolve();
-      return this.accept(()=>this.emitAccepted(input));
+    public emitSecurityEvent(input: SecurityEventInput): Promise<void> {
+      if (this.draining) return Promise.resolve();
+      return this.accept(() => this.emitAccepted(input));
     }
     private async emitAccepted(input: SecurityEventInput): Promise<void> {
       try {
@@ -250,7 +264,9 @@ export namespace Services {
       });
     }
 
-    public storeSecurityEvent(job:AgendaJobLike):Promise<void>{return this.accept(()=>this.storeAccepted(job));}
+    public storeSecurityEvent(job: AgendaJobLike): Promise<void> {
+      return this.accept(() => this.storeAccepted(job));
+    }
     private async storeAccepted(job: AgendaJobLike): Promise<void> {
       const data = job.attrs?.data;
       if (!isRecord(data) || !isRecord(data.event)) return;
@@ -260,32 +276,8 @@ export namespace Services {
       await AgendaQueueService.now(this.forwardJobName, { brandId: event.brandId });
     }
 
-    public async queryEvents(
-      params: Record<string, unknown> = {}
-    ): Promise<{ rows: SecurityEventAttributes[]; total: number }> {
-      const requestedLimit = Number.parseInt(String(params.limit ?? 50), 10);
-      const requestedSkip = Number.parseInt(String(params.skip ?? params.offset ?? 0), 10);
-      const limit = Math.min(Number.isFinite(requestedLimit) ? Math.max(requestedLimit, 0) : 50, 500);
-      const skip = Math.max(Number.isFinite(requestedSkip) ? requestedSkip : 0, 0);
-      const where: Record<string, unknown> = {};
-      ['brandId', 'eventType', 'category', 'severity', 'deliveryState'].forEach(key => {
-        if (typeof params[key] === 'string' && params[key] !== '') {
-          where[key] = params[key];
-        }
-      });
-      const occurredAt: Record<string, string> = {};
-      if (typeof params.occurredAtStart === 'string' && params.occurredAtStart !== '') {
-        occurredAt['>='] = params.occurredAtStart;
-      }
-      if (typeof params.occurredAtEnd === 'string' && params.occurredAtEnd !== '') {
-        occurredAt['<='] = params.occurredAtEnd;
-      }
-      if (Object.keys(occurredAt).length > 0) {
-        where.occurredAt = occurredAt;
-      }
-      const rows = await getSiemRepository().listEvents(where, skip, limit);
-      const total = await getSiemRepository().countEvents(where);
-      return { rows, total };
+    public queryEvents(...args: Parameters<SiemReads['queryEvents']>) {
+      return new SiemReads(getSiemRepository()).queryEvents(...args);
     }
 
     private async resolveBrandId(payload: Record<string, unknown>): Promise<string | undefined> {

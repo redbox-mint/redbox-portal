@@ -1,3 +1,4 @@
+import { RecordAuditReader } from '../queries/RecordAuditReader';
 import { hasViewAccess, hasEditAccess, hasTransitionRoleAuthorization } from '../records/access';
 import { getStorageRepositories } from '../persistence/storage/runtime';
 import { prepareSourceIntent } from './figshare-v2/source-intent';
@@ -1729,9 +1730,7 @@ export namespace Services {
         return { status: 'unknown' };
       }
       const deletions = await Promise.allSettled(
-        datastreams.map(datastream =>
-          this.datastreamService.removeDatastream(oid, new Datastream(datastream), brandId)
-        )
+        datastreams.map(datastream => this.datastreamService.removeDatastream(oid, new Datastream(datastream), brandId))
       );
       let remaining: AnyRecord[];
       try {
@@ -1765,12 +1764,17 @@ export namespace Services {
       recordType: RecordTypeLike,
       sourceForm?: FormAttributes
     ): Promise<string | undefined> {
-      return resolveRecordFormFingerprint({
-        loadForm: (name, brand) => firstValueFrom(FormsService.getFormByName(name, true, brand)),
-        loadWorkflowSteps: type => firstValueFrom(WorkflowStepsService.getAllForRecordType(type)),
-        reusableFormDefinitions: sails.config.reusableFormDefinitions,
-        validatorDefinitions: sails.config.validators?.definitions,
-      }, record, recordType, sourceForm);
+      return resolveRecordFormFingerprint(
+        {
+          loadForm: (name, brand) => firstValueFrom(FormsService.getFormByName(name, true, brand)),
+          loadWorkflowSteps: type => firstValueFrom(WorkflowStepsService.getAllForRecordType(type)),
+          reusableFormDefinitions: sails.config.reusableFormDefinitions,
+          validatorDefinitions: sails.config.validators?.definitions,
+        },
+        record,
+        recordType,
+        sourceForm
+      );
     }
 
     private committedRevision(response: StorageMutationResponse): number | undefined {
@@ -6161,100 +6165,19 @@ export namespace Services {
       return summary;
     }
 
-    async getRecordAudit(params: RecordAuditParams): Promise<Record<string, unknown>[]> {
-      const audit = (await this.storageService.getRecordAudit(params)) as Record<string, unknown>[];
-      if (Array.isArray(audit) && audit.length === 0) {
-        const storageServiceAny = this.storageService as unknown as AnyRecord;
-        if (typeof storageServiceAny.createRecordAudit === 'function') {
-          try {
-            const data = new RecordAuditModel(params.oid, {}, {}, RecordAuditActionType.created);
-            await this.createRecordAudit({ ...data });
-            const refreshed = (await this.storageService.getRecordAudit(params)) as Record<string, unknown>[];
-            if (Array.isArray(refreshed) && refreshed.length > 0) {
-              return refreshed;
-            }
-          } catch (err) {
-            this.updateChronicle({ recordsOperation: 'getRecordAudit', recordsOperationOutcome: 'failed' }, [err]);
-          }
-        }
-        const fallbackDate = new Date();
-        const dateFrom = params.dateFrom instanceof Date ? params.dateFrom : null;
-        const dateTo = params.dateTo instanceof Date ? params.dateTo : null;
-        const inRange = (!dateFrom || fallbackDate >= dateFrom) && (!dateTo || fallbackDate <= dateTo);
-        if (!inRange) {
-          return [] as Record<string, unknown>[];
-        }
-        return [
-          {
-            redboxOid: params.oid,
-            action: RecordAuditActionType.created,
-            user: {},
-            record: {},
-            dateCreated: fallbackDate.toISOString(),
-          },
-        ] as Record<string, unknown>[];
-      }
-      const actionFilter = _.isString(params.action) ? params.action.trim().toLowerCase() : '';
-      const workflowStateFilter = _.isString(params.workflowState) ? params.workflowState.trim().toLowerCase() : '';
-
-      return audit.filter(auditRow => {
-        const action = String(auditRow['action'] ?? '')
-          .trim()
-          .toLowerCase();
-        const workflowStageLabel = String(_.get(auditRow, 'record.workflow.stageLabel', ''))
-          .trim()
-          .toLowerCase();
-        const actionMatches = _.isEmpty(actionFilter) || action === actionFilter;
-        const workflowMatches = _.isEmpty(workflowStateFilter) || workflowStageLabel.includes(workflowStateFilter);
-        return actionMatches && workflowMatches;
+    private auditReader(): RecordAuditReader {
+      return new RecordAuditReader({
+        storage: this.storageService,
+        log: this.logger,
+        createAudit: record => this.createRecordAudit(record),
+        resolveUser: username => firstValueFrom(UsersService.getUserWithUsername(username)),
       });
     }
-
-    public async getResolvedPermissionsSummary(oid: string) {
-      const record = await this.getMeta(oid);
-      if (_.isEmpty(record)) {
-        throw new Error(`Record not found: ${oid}`);
-      }
-
-      const authorization = ((record as unknown as RecordWithMeta).authorization ?? {}) as AnyRecord;
-      const resolveUsers = async (value: unknown) => {
-        const usernames = Array.isArray(value) ? value : [];
-        const resolvedUsers = [];
-        for (const usernameValue of usernames) {
-          const username = String(usernameValue ?? '');
-          if (_.isEmpty(username)) {
-            continue;
-          }
-          try {
-            const user = await firstValueFrom(UsersService.getUserWithUsername(username));
-            resolvedUsers.push({
-              username,
-              name: String(_.get(user, 'name', '')),
-              email: String(_.get(user, 'email', '')),
-            });
-          } catch (error) {
-            sails.log.warn(
-              `RecordsService.getResolvedPermissionsSummary could not resolve user '${username}' for record '${oid}'.`
-            );
-            sails.log.warn(error);
-            resolvedUsers.push({
-              username,
-              name: '',
-              email: '',
-            });
-          }
-        }
-        return resolvedUsers;
-      };
-
-      return {
-        edit: await resolveUsers(authorization.edit),
-        view: await resolveUsers(authorization.view),
-        editPending: _.castArray(authorization.editPending ?? []).map(value => String(value ?? '')),
-        viewPending: _.castArray(authorization.viewPending ?? []).map(value => String(value ?? '')),
-        editRoles: _.castArray(authorization.editRoles ?? []).map(value => String(value ?? '')),
-        viewRoles: _.castArray(authorization.viewRoles ?? []).map(value => String(value ?? '')),
-      };
+    public getRecordAudit(...args: Parameters<RecordAuditReader['getRecordAudit']>) {
+      return this.auditReader().getRecordAudit(...args);
+    }
+    public getResolvedPermissionsSummary(...args: Parameters<RecordAuditReader['getResolvedPermissionsSummary']>) {
+      return this.auditReader().getResolvedPermissionsSummary(...args);
     }
 
     /**
@@ -7142,7 +7065,9 @@ export namespace Services {
      *
      */
     public hasViewAccess(brand: unknown, user: AnyRecord, roles: object[], record: AnyRecord): boolean {
-      return hasViewAccess(brand, user, roles, record, (resolvedBrand, name) => RolesService.getRole(resolvedBrand, name));
+      return hasViewAccess(brand, user, roles, record, (resolvedBrand, name) =>
+        RolesService.getRole(resolvedBrand, name)
+      );
     }
 
     /**
@@ -7150,7 +7075,9 @@ export namespace Services {
      *
      */
     public hasEditAccess(brand: unknown, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
-      return hasEditAccess(brand, user, roles, record, (resolvedBrand, name) => RolesService.getRole(resolvedBrand, name));
+      return hasEditAccess(brand, user, roles, record, (resolvedBrand, name) =>
+        RolesService.getRole(resolvedBrand, name)
+      );
     }
 
     public searchFuzzy(
@@ -8044,11 +7971,16 @@ export namespace Services {
       // SIEM is optional and must never change an already persisted audit outcome.
       try {
         if (typeof SecurityEventService !== 'undefined') {
-          await retainHttpRequestFollowup(sails, SecurityEventService.emitFromRecordAudit({ ...record }).catch(() => {
-            sails.log.error('Failed to emit record audit security event');
-          }));
+          await retainHttpRequestFollowup(
+            sails,
+            SecurityEventService.emitFromRecordAudit({ ...record }).catch(() => {
+              sails.log.error('Failed to emit record audit security event');
+            })
+          );
         }
-      } catch { sails.log.error('Failed to emit record audit security event'); }
+      } catch {
+        sails.log.error('Failed to emit record audit security event');
+      }
       return response;
     }
 

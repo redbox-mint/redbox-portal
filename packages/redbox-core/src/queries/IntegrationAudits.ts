@@ -1,0 +1,1067 @@
+export interface IntegrationAuditsInput {
+  readonly storage: Pick<StorageService, 'getIntegrationAudit' | 'countIntegrationAudit' | 'createIntegrationAudit'>;
+  readonly log: ILogger;
+  readonly environment: string;
+  enqueue(name: string, entry: IntegrationAuditModel): unknown;
+  emitSecurityEvent?(entry: Record<string, unknown>): Promise<unknown>;
+}
+import * as crypto from 'node:crypto';
+import { trace } from '@opentelemetry/api';
+import _ from 'lodash';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
+import { IntegrationAuditParams } from '../IntegrationAuditParams';
+
+import {
+  IntegrationAuditAction,
+  IntegrationAuditModel,
+  IntegrationAuditName,
+  IntegrationAuditStatus,
+} from '../model/storage/IntegrationAuditModel';
+import { StorageServiceResponse } from '../StorageServiceResponse';
+import { redactObject } from '../utilities/RedactionUtils';
+import { StorageService } from '../StorageService';
+
+type AnyRecord = Record<string, unknown>;
+
+export type IntegrationAuditContext = {
+  redboxOid: string;
+  brandId?: string;
+  integrationName: IntegrationAuditName;
+  integrationAction: IntegrationAuditAction;
+  triggeredBy?: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  startedAt: string;
+  requestSummary?: Record<string, unknown>;
+};
+
+export type IntegrationAuditLogResult = {
+  rows: Record<string, unknown>[];
+  total: number;
+};
+
+export type IntegrationAuditTraceEvent = Record<string, unknown> & {
+  id: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  startedAt: string;
+  status: string;
+  depth: number;
+  hasChildren: boolean;
+};
+
+export type IntegrationAuditTraceRecord = {
+  id: string;
+  traceId: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  triggeredBy?: string;
+  integrationName?: string;
+  actions: string[];
+  eventCount: number;
+  rootSpanId?: string;
+  events: IntegrationAuditTraceEvent[];
+};
+
+export type IntegrationAuditTraceLogResult = {
+  rows: IntegrationAuditTraceRecord[];
+  total: number;
+};
+
+export type IntegrationOutcomeSeverity = 'none' | 'pending' | 'in-progress' | 'success' | 'warning' | 'error';
+
+export type IntegrationOutcome = {
+  state: string;
+  severity: IntegrationOutcomeSeverity;
+  labelKey: string;
+  helpKey?: string;
+};
+
+export type IntegrationStatusRecordContext = {
+  citationDoi?: string;
+  workflowStage?: string;
+};
+
+export type IntegrationStatusSummary = {
+  integrationName: string;
+  status: string;
+  integrationAction?: string;
+  startedAt: string;
+  completedAt?: string;
+  durationMs?: number;
+  message?: string;
+  keyResult?: Record<string, unknown>;
+  traceId: string;
+  outcome?: IntegrationOutcome;
+  synthesized?: boolean;
+};
+
+/**
+ * Maps an integration status summary to a user-facing outcome (badge/label).
+ * Hooks register a mapper for their custom integration name via
+ * {@link Services.IntegrationAuditService.registerOutcomeMapper}.
+ */
+export type IntegrationOutcomeMapper = (
+  summary: IntegrationStatusSummary,
+  ctx: IntegrationStatusRecordContext
+) => IntegrationOutcome | undefined;
+
+type IntegrationAuditOptions = {
+  brandId?: string;
+  integrationName?: IntegrationAuditName;
+  triggeredBy?: string;
+  requestSummary?: Record<string, unknown>;
+  message?: string;
+  httpStatusCode?: number;
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string;
+};
+
+const MAX_DEPTH = 1000;
+const MAX_BATCH = 500;
+
+export namespace Services {
+  export class IntegrationAuditService {
+    protected readonly storeJobName = 'IntegrationAuditService-StoreIntegrationAudit';
+
+    protected readonly logHeader = 'IntegrationAuditService::';
+    public constructor(private readonly input: IntegrationAuditsInput) {}
+    private getResolvedEnvironment(): string {
+      return this.input.environment;
+    }
+
+    private generateTraceId(): string {
+      return crypto.randomBytes(16).toString('hex');
+    }
+
+    private generateSpanId(): string {
+      return crypto.randomBytes(8).toString('hex');
+    }
+
+    private extractTraceContext(): { traceId: string; spanId: string; parentSpanId?: string } {
+      const activeSpan = trace.getActiveSpan();
+      const spanContext = activeSpan?.spanContext();
+      return {
+        traceId: spanContext?.traceId ?? this.generateTraceId(),
+        spanId: spanContext?.spanId ?? this.generateSpanId(),
+        // TODO: revisit extractTraceContext if trace.getActiveSpan exposes an official parent span id API.
+        parentSpanId: undefined,
+      };
+    }
+
+    private resolveTraceContext(opts: IntegrationAuditOptions): {
+      traceId: string;
+      spanId: string;
+      parentSpanId?: string;
+    } {
+      const activeTraceContext = this.extractTraceContext();
+      return {
+        traceId: this.getString(opts.traceId) ?? activeTraceContext.traceId,
+        spanId: this.getString(opts.spanId) ?? activeTraceContext.spanId,
+        parentSpanId: this.getString(opts.parentSpanId) ?? activeTraceContext.parentSpanId,
+      };
+    }
+
+    private sanitizeText(value: unknown, maxLength: number = 1000): string | undefined {
+      if (_.isNil(value)) {
+        return undefined;
+      }
+      if (value instanceof Error) {
+        return value.message.slice(0, maxLength);
+      }
+      const redacted = redactObject(value);
+      const text = typeof redacted === 'string' ? redacted : JSON.stringify(redacted);
+      if (_.isEmpty(text)) {
+        return undefined;
+      }
+      return String(text).slice(0, maxLength);
+    }
+
+    private sanitizeSummary(value: unknown): Record<string, unknown> | undefined {
+      if (_.isNil(value)) {
+        return undefined;
+      }
+      const redacted = redactObject(value);
+      if (_.isPlainObject(redacted)) {
+        return redacted as Record<string, unknown>;
+      }
+      if (Array.isArray(redacted)) {
+        return { items: redacted.slice(0, 20) };
+      }
+      if (typeof redacted === 'string' || typeof redacted === 'number' || typeof redacted === 'boolean') {
+        return { value: redacted };
+      }
+      return undefined;
+    }
+
+    private mergeSummaries(
+      baseSummary: Record<string, unknown> | undefined,
+      extraSummary: unknown
+    ): Record<string, unknown> | undefined {
+      const sanitizedExtra = this.sanitizeSummary(extraSummary);
+      if (baseSummary == null) {
+        return sanitizedExtra;
+      }
+      if (sanitizedExtra == null) {
+        return baseSummary;
+      }
+      return {
+        ...baseSummary,
+        ...sanitizedExtra,
+      };
+    }
+
+    private buildAuditEntry(
+      ctx: IntegrationAuditContext,
+      status: IntegrationAuditStatus,
+      details: {
+        message?: string;
+        errorDetail?: string;
+        httpStatusCode?: number;
+        requestSummary?: unknown;
+        responseSummary?: Record<string, unknown>;
+        completedAt?: string;
+        durationMs?: number;
+      } = {}
+    ): IntegrationAuditModel {
+      return new IntegrationAuditModel({
+        redboxOid: ctx.redboxOid,
+        brandId: ctx.brandId,
+        integrationName: ctx.integrationName,
+        integrationAction: ctx.integrationAction,
+        triggeredBy: ctx.triggeredBy,
+        status,
+        message: details.message,
+        errorDetail: details.errorDetail,
+        httpStatusCode: details.httpStatusCode,
+        traceId: ctx.traceId,
+        spanId: ctx.spanId,
+        parentSpanId: ctx.parentSpanId,
+        startedAt: ctx.startedAt,
+        completedAt: details.completedAt,
+        durationMs: details.durationMs,
+        requestSummary: this.mergeSummaries(ctx.requestSummary, details.requestSummary),
+        responseSummary: details.responseSummary,
+      });
+    }
+
+    private async persistEntry(entry: IntegrationAuditModel): Promise<void> {
+      try {
+        if (typeof this.input.storage?.createIntegrationAudit !== 'function') {
+          this.input.log.error(`${this.logHeader} Storage service does not expose createIntegrationAudit.`);
+          return;
+        }
+        const response = (await this.input.storage.createIntegrationAudit(entry)) as StorageServiceResponse;
+        const persisted =
+          response != null &&
+          (typeof response.isSuccessful === 'function' ? response.isSuccessful() === true : response.success === true);
+        if (!persisted) {
+          this.input.log.error(`${this.logHeader} Failed to persist integration audit.`);
+          if (!_.isEmpty(response?.message)) {
+            this.input.log.error(`${this.logHeader} Storage response message: ${response.message}`);
+          }
+          if (!_.isNil(response?.details)) {
+            this.input.log.error(`${this.logHeader} Storage response details: ${JSON.stringify(response.details)}`);
+          }
+          return;
+        }
+        this.enqueueNotification(entry);
+        if (this.input.emitSecurityEvent) {
+          await this.input.emitSecurityEvent({ ...entry }).catch(error => {
+            this.input.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
+            this.input.log.error(error);
+          });
+        }
+      } catch (error) {
+        this.input.log.error(`${this.logHeader} Failed to persist integration audit entry.`);
+        this.input.log.error(error);
+      }
+    }
+
+    /**
+     * Fire-and-forget enqueue that never lets a failure escape. AgendaQueueService.now
+     * is async and can throw synchronously (e.g. an unknown job) or reject later, so a
+     * plain try/catch around the call is not enough — the returned promise's rejection
+     * would surface as an unhandled rejection and crash the process. This swallows both.
+     */
+    private safeQueueNow(jobName: string, entry: IntegrationAuditModel, failureMessage: string): void {
+      const logFailure = (err: unknown) => {
+        this.input.log.error(`${this.logHeader} ${failureMessage}`);
+        this.input.log.error(err);
+      };
+      try {
+        const result = this.input.enqueue(jobName, entry) as unknown;
+        if (result != null && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<unknown>).catch(logFailure);
+        }
+      } catch (err) {
+        logFailure(err);
+      }
+    }
+
+    private enqueueNotification(entry: IntegrationAuditModel): void {
+      if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success) return;
+      this.safeQueueNow(
+        'IntegrationNotificationService-Dispatch',
+        entry,
+        'Failed to enqueue integration notification.'
+      );
+    }
+
+    private queueOrPersist(entry: IntegrationAuditModel): void {
+      if (this.getResolvedEnvironment() === 'integrationtest') {
+        void this.persistEntry(entry);
+        return;
+      }
+      this.safeQueueNow(this.storeJobName, entry, 'Failed to queue integration audit entry.');
+    }
+
+    public startAudit(
+      oid: string,
+      action: IntegrationAuditAction,
+      opts: IntegrationAuditOptions = {}
+    ): IntegrationAuditContext {
+      const startedAt = new Date().toISOString();
+      const traceContext = this.resolveTraceContext(opts);
+      const ctx: IntegrationAuditContext = {
+        redboxOid: oid,
+        brandId: opts.brandId,
+        integrationName: opts.integrationName ?? IntegrationAuditName.figshare,
+        integrationAction: action,
+        triggeredBy: opts.triggeredBy,
+        traceId: traceContext.traceId,
+        spanId: traceContext.spanId,
+        parentSpanId: traceContext.parentSpanId,
+        startedAt,
+        requestSummary: this.sanitizeSummary(opts.requestSummary),
+      };
+      const entry = this.buildAuditEntry(ctx, IntegrationAuditStatus.started, {
+        message: this.sanitizeText(opts.message),
+        httpStatusCode: opts.httpStatusCode,
+      });
+      this.queueOrPersist(entry);
+      return ctx;
+    }
+
+    public completeAudit(ctx: IntegrationAuditContext | null | undefined, result?: AnyRecord): void {
+      if (ctx == null) {
+        return;
+      }
+      const completedAt = new Date().toISOString();
+      const durationMs = Math.max(0, new Date(completedAt).getTime() - new Date(ctx.startedAt).getTime());
+      const entry = this.buildAuditEntry(ctx, IntegrationAuditStatus.success, {
+        message: this.sanitizeText(result?.message ?? 'Integration action completed successfully.'),
+        httpStatusCode: _.isNumber(result?.httpStatusCode) ? (result?.httpStatusCode as number) : undefined,
+        requestSummary: result?.requestSummary,
+        responseSummary: this.sanitizeSummary(result?.responseSummary ?? result),
+        completedAt,
+        durationMs,
+      });
+      this.queueOrPersist(entry);
+    }
+
+    public failAudit(ctx: IntegrationAuditContext | null | undefined, error: unknown, details: AnyRecord = {}): void {
+      if (ctx == null) {
+        return;
+      }
+      const completedAt = new Date().toISOString();
+      const durationMs = Math.max(0, new Date(completedAt).getTime() - new Date(ctx.startedAt).getTime());
+      const entry = this.buildAuditEntry(ctx, IntegrationAuditStatus.failed, {
+        message: this.sanitizeText(details.message ?? (error instanceof Error ? error.message : String(error))),
+        errorDetail: this.sanitizeText(details.errorDetail ?? error),
+        httpStatusCode: _.isNumber(details.httpStatusCode) ? (details.httpStatusCode as number) : undefined,
+        requestSummary: details.requestSummary,
+        responseSummary: this.sanitizeSummary(details.responseSummary),
+        completedAt,
+        durationMs,
+      });
+      this.queueOrPersist(entry);
+    }
+
+    public async getAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult> {
+      const rows = (await this.input.storage.getIntegrationAudit(params)) as Record<string, unknown>[];
+      const total =
+        typeof this.input.storage.countIntegrationAudit === 'function'
+          ? await this.input.storage.countIntegrationAudit(params)
+          : rows.length;
+      return { rows, total };
+    }
+
+    private getString(value: unknown): string | undefined {
+      const text = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+      return _.isEmpty(text) ? undefined : text;
+    }
+
+    private getTimestampValue(row: Record<string, unknown>, ...keys: string[]): number {
+      for (const key of keys) {
+        const value = this.getString(row[key]);
+        if (!_.isEmpty(value)) {
+          const parsed = new Date(value as string).getTime();
+          if (Number.isFinite(parsed)) {
+            return parsed;
+          }
+        }
+      }
+      return 0;
+    }
+
+    private getRowSortTimestamp(row: Record<string, unknown>): number {
+      return this.getTimestampValue(row, 'startedAt', 'completedAt', 'dateCreated', 'updatedAt', 'createdAt');
+    }
+
+    private getTraceFallbackIdentity(row: Record<string, unknown>, index: number): string {
+      const persistedId = this.getString(row['id']) ?? this.getString(row['_id']) ?? this.getString(row['auditId']);
+      if (typeof persistedId === 'string' && persistedId.trim().length > 0) {
+        return persistedId;
+      }
+      return `row-${index}`;
+    }
+
+    private getStatusRank(status: unknown): number {
+      switch (this.getString(status)?.toLowerCase()) {
+        case IntegrationAuditStatus.failed:
+          return 3;
+        case IntegrationAuditStatus.success:
+          return 2;
+        case IntegrationAuditStatus.started:
+          return 1;
+        default:
+          return 0;
+      }
+    }
+
+    private buildEventId(row: Record<string, unknown>, traceId: string, index: number): string {
+      const persistedId = this.getString(row['id']);
+      if (persistedId) {
+        return persistedId;
+      }
+      const spanId = this.getString(row['spanId']) ?? `event-${index}`;
+      return `${traceId}:${spanId}:${index}`;
+    }
+
+    private buildSpanEvents(rows: Record<string, unknown>[], traceId: string): Record<string, unknown>[] {
+      const spans = new Map<string, Array<{ row: Record<string, unknown>; index: number }>>();
+
+      rows.forEach((row, index) => {
+        const spanId = this.getString(row['spanId']) ?? `${traceId}:unknown-span:${index}`;
+        const existing = spans.get(spanId) ?? [];
+        existing.push({ row, index });
+        spans.set(spanId, existing);
+      });
+
+      return Array.from(spans.entries()).map(([spanId, spanRows]) => {
+        const sortedSpanRows = [...spanRows].sort(
+          (left, right) => this.getRowSortTimestamp(left.row) - this.getRowSortTimestamp(right.row)
+        );
+        const preferredEntry = [...sortedSpanRows].sort((left, right) => {
+          const statusDiff = this.getStatusRank(right.row['status']) - this.getStatusRank(left.row['status']);
+          if (statusDiff !== 0) {
+            return statusDiff;
+          }
+          const completedDiff =
+            this.getTimestampValue(right.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt') -
+            this.getTimestampValue(left.row, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt');
+          if (completedDiff !== 0) {
+            return completedDiff;
+          }
+          return right.index - left.index;
+        })[0];
+        const preferredRow = preferredEntry?.row ?? {};
+        const earliestRow = sortedSpanRows[0]?.row ?? {};
+        const parentSpanId = sortedSpanRows.map(entry => this.getString(entry.row['parentSpanId'])).find(Boolean);
+        const startedTimes = sortedSpanRows
+          .map(entry => this.getString(entry.row['startedAt']))
+          .filter(Boolean)
+          .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+          .filter(value => Number.isFinite(value.ts))
+          .sort((left, right) => left.ts - right.ts);
+        const completedTimes = sortedSpanRows
+          .map(entry => this.getString(entry.row['completedAt']))
+          .filter(Boolean)
+          .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+          .filter(value => Number.isFinite(value.ts))
+          .sort((left, right) => right.ts - left.ts);
+        const startedAt =
+          startedTimes[0]?.raw ??
+          this.getString(earliestRow['startedAt']) ??
+          this.getString(preferredRow['startedAt']) ??
+          '';
+        const completedAt = completedTimes[0]?.raw ?? this.getString(preferredRow['completedAt']);
+        const startedAtMs = startedTimes[0]?.ts;
+        const completedAtMs = completedTimes[0]?.ts;
+        const durationMs =
+          Number.isFinite(startedAtMs) &&
+          Number.isFinite(completedAtMs) &&
+          (completedAtMs as number) >= (startedAtMs as number)
+            ? (completedAtMs as number) - (startedAtMs as number)
+            : _.isNumber(preferredRow['durationMs'])
+              ? (preferredRow['durationMs'] as number)
+              : undefined;
+
+        return {
+          ...(earliestRow as Record<string, unknown>),
+          ...(preferredRow as Record<string, unknown>),
+          id: this.buildEventId(preferredRow as Record<string, unknown>, traceId, preferredEntry?.index ?? 0),
+          traceId,
+          spanId,
+          parentSpanId,
+          startedAt,
+          completedAt,
+          durationMs,
+          status: this.getString(preferredRow['status']) ?? '',
+        };
+      });
+    }
+
+    private buildOrderedTraceEvents(rows: Record<string, unknown>[], traceId: string): IntegrationAuditTraceEvent[] {
+      const sortedRows = this.buildSpanEvents(rows, traceId).sort(
+        (left, right) => this.getRowSortTimestamp(left) - this.getRowSortTimestamp(right)
+      );
+      const childrenByParent = new Map<string, Array<{ row: Record<string, unknown>; index: number }>>();
+      const roots: Array<{ row: Record<string, unknown>; index: number }> = [];
+      const spanIds = new Set(sortedRows.map(row => this.getString(row['spanId'])).filter(Boolean) as string[]);
+
+      sortedRows.forEach((row, index) => {
+        const parentSpanId = this.getString(row['parentSpanId']);
+        if (parentSpanId && spanIds.has(parentSpanId)) {
+          const siblings = childrenByParent.get(parentSpanId) ?? [];
+          siblings.push({ row, index });
+          childrenByParent.set(parentSpanId, siblings);
+        } else {
+          roots.push({ row, index });
+        }
+      });
+
+      const orderedEvents: IntegrationAuditTraceEvent[] = [];
+      const visited = new Set<string>();
+
+      const visitNode = (entry: { row: Record<string, unknown>; index: number }, depth: number) => {
+        const spanId = this.getString(entry.row['spanId']) ?? `${traceId}:unknown-span:${entry.index}`;
+        const visitKey = `${spanId}:${entry.index}`;
+        if (visited.has(visitKey)) {
+          return;
+        }
+        visited.add(visitKey);
+        const children = [...(childrenByParent.get(spanId) ?? [])].sort(
+          (left, right) => this.getRowSortTimestamp(left.row) - this.getRowSortTimestamp(right.row)
+        );
+        orderedEvents.push({
+          ...(entry.row as Record<string, unknown>),
+          id: this.buildEventId(entry.row, traceId, entry.index),
+          traceId,
+          spanId,
+          parentSpanId: this.getString(entry.row['parentSpanId']),
+          startedAt: this.getString(entry.row['startedAt']) ?? '',
+          status: this.getString(entry.row['status']) ?? '',
+          depth,
+          hasChildren: children.length > 0,
+        });
+        if (depth >= MAX_DEPTH) {
+          return;
+        }
+        children.forEach(child => visitNode(child, depth + 1));
+      };
+
+      roots.forEach(root => visitNode(root, 0));
+      sortedRows.forEach((row, index) => visitNode({ row, index }, 0));
+      return orderedEvents;
+    }
+
+    private deriveTraceStatus(events: IntegrationAuditTraceEvent[]): string {
+      const statuses = events.map(event => this.getString(event['status'])?.toLowerCase()).filter(Boolean);
+      if (statuses.some(status => status === IntegrationAuditStatus.failed)) {
+        return IntegrationAuditStatus.failed;
+      }
+      if (statuses.length === 0 || statuses.some(status => status === IntegrationAuditStatus.started)) {
+        return IntegrationAuditStatus.started;
+      }
+      return IntegrationAuditStatus.success;
+    }
+
+    private buildTraceRecord(traceId: string, rows: Record<string, unknown>[]): IntegrationAuditTraceRecord {
+      const events = this.buildOrderedTraceEvents(rows, traceId);
+      const status = this.deriveTraceStatus(events);
+      const startedTimes = rows
+        .map(row => this.getString(row['startedAt']))
+        .filter(Boolean)
+        .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+        .filter(value => Number.isFinite(value.ts))
+        .sort((left, right) => left.ts - right.ts);
+      const completedTimes = rows
+        .map(row => this.getString(row['completedAt']))
+        .filter(Boolean)
+        .map(value => ({ raw: value as string, ts: new Date(value as string).getTime() }))
+        .filter(value => Number.isFinite(value.ts))
+        .sort((left, right) => right.ts - left.ts);
+      const oldestStartedAt = startedTimes[0]?.raw ?? '';
+      const latestCompletedAt = completedTimes[0]?.raw;
+      const startedAtMs = startedTimes[0]?.ts;
+      const completedAtMs = completedTimes[0]?.ts;
+      const traceDuration =
+        Number.isFinite(startedAtMs) &&
+        Number.isFinite(completedAtMs) &&
+        (completedAtMs as number) >= (startedAtMs as number)
+          ? (completedAtMs as number) - (startedAtMs as number)
+          : undefined;
+      const actions = Array.from(
+        new Set(events.map(event => this.getString(event['integrationAction'])).filter(Boolean))
+      ) as string[];
+      const rootSpanId = events.find(event => _.isEmpty(event.parentSpanId))?.spanId;
+      const newestRow =
+        [...rows].sort((left, right) => this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left))[0] ?? {};
+
+      return {
+        id: traceId,
+        traceId,
+        status,
+        startedAt: oldestStartedAt,
+        completedAt: latestCompletedAt,
+        durationMs: traceDuration,
+        triggeredBy: this.getString(newestRow['triggeredBy']) ?? this.getString(rows[0]?.['triggeredBy']),
+        integrationName: this.getString(newestRow['integrationName']) ?? this.getString(rows[0]?.['integrationName']),
+        actions,
+        eventCount: events.length,
+        rootSpanId,
+        events,
+      };
+    }
+
+    private async getAllIntegrationAuditRows(params: IntegrationAuditParams): Promise<Record<string, unknown>[]> {
+      if (typeof this.input.storage.countIntegrationAudit === 'function') {
+        const totalRows = await this.input.storage.countIntegrationAudit(params);
+        if (totalRows === 0) {
+          return [];
+        }
+
+        const rows: Record<string, unknown>[] = [];
+        let page = 1;
+
+        while (rows.length < totalRows) {
+          const queryParams = new IntegrationAuditParams();
+          queryParams.oid = params.oid;
+          queryParams.dateFrom = params.dateFrom;
+          queryParams.dateTo = params.dateTo;
+          if (params.integrationName && !params.integrationName.includes(',')) {
+            queryParams.integrationName = params.integrationName;
+          }
+          queryParams.page = page;
+          queryParams.pageSize = Math.min(MAX_BATCH, totalRows - rows.length);
+
+          const pageRows = (await this.input.storage.getIntegrationAudit(queryParams)) as Record<string, unknown>[];
+          if (pageRows.length === 0) {
+            break;
+          }
+
+          rows.push(...pageRows);
+          if (pageRows.length < queryParams.pageSize) {
+            break;
+          }
+
+          page += 1;
+        }
+
+        return rows;
+      }
+
+      const rows: Record<string, unknown>[] = [];
+      let page = 1;
+
+      while (true) {
+        const queryParams = new IntegrationAuditParams();
+        queryParams.oid = params.oid;
+        queryParams.dateFrom = params.dateFrom;
+        queryParams.dateTo = params.dateTo;
+        if (params.integrationName && !params.integrationName.includes(',')) {
+          queryParams.integrationName = params.integrationName;
+        }
+        queryParams.page = page;
+        queryParams.pageSize = MAX_BATCH;
+
+        const pageRows = (await this.input.storage.getIntegrationAudit(queryParams)) as Record<string, unknown>[];
+        rows.push(...pageRows);
+        if (pageRows.length < MAX_BATCH) {
+          break;
+        }
+        page += 1;
+      }
+
+      return rows;
+    }
+
+    public async getTraceAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditTraceLogResult> {
+      const queryParams = new IntegrationAuditParams();
+      queryParams.oid = params.oid;
+      queryParams.dateFrom = params.dateFrom;
+      queryParams.dateTo = params.dateTo;
+
+      const allRows = await this.getAllIntegrationAuditRows(queryParams);
+      if (allRows.length === 0) {
+        return { rows: [], total: 0 };
+      }
+      const traceRows = new Map<string, Record<string, unknown>[]>();
+      allRows.forEach((row, index) => {
+        const traceId =
+          this.getString(row['traceId']) ?? `${params.oid}:missing-trace:${this.getTraceFallbackIdentity(row, index)}`;
+        const existing = traceRows.get(traceId) ?? [];
+        existing.push(row);
+        traceRows.set(traceId, existing);
+      });
+
+      let groupedRows = Array.from(traceRows.entries()).map(([traceId, rows]) => this.buildTraceRecord(traceId, rows));
+      if (!_.isEmpty(params.integrationName)) {
+        const integrationNameFilters = String(params.integrationName)
+          .split(',')
+          .map(name => name.trim().toLowerCase())
+          .filter(Boolean);
+        if (integrationNameFilters.length > 0) {
+          groupedRows = groupedRows.filter(row =>
+            integrationNameFilters.some(name => (row.integrationName ?? '').toLowerCase().includes(name))
+          );
+        }
+      }
+      if (!_.isEmpty(params.status)) {
+        groupedRows = groupedRows.filter(row => row.status === params.status);
+      }
+
+      groupedRows.sort((left, right) => {
+        const rightTs = Math.max(...right.events.map(event => this.getRowSortTimestamp(event)), 0);
+        const leftTs = Math.max(...left.events.map(event => this.getRowSortTimestamp(event)), 0);
+        return rightTs - leftTs;
+      });
+
+      const total = groupedRows.length;
+      const page = _.toInteger(params.page) > 0 ? _.toInteger(params.page) : 1;
+      const pageSize = _.toInteger(params.pageSize) > 0 ? _.toInteger(params.pageSize) : 20;
+      const skip = (page - 1) * pageSize;
+
+      return {
+        rows: groupedRows.slice(skip, skip + pageSize),
+        total,
+      };
+    }
+
+    private extractKeyResult(row: Record<string, unknown>): Record<string, unknown> | undefined {
+      const responseSummary = row['responseSummary'] as Record<string, unknown> | undefined;
+      const requestSummary = row['requestSummary'] as Record<string, unknown> | undefined;
+      const keyResult: Record<string, unknown> = {};
+
+      if (_.isPlainObject(requestSummary) && requestSummary != null) {
+        const event = (requestSummary as Record<string, unknown>)['event'];
+        if (event === 'draft' || event === 'publish' || event === 'register' || event === 'hide') {
+          keyResult['event'] = event;
+        }
+      }
+
+      if (_.isPlainObject(responseSummary) && responseSummary != null) {
+        const rs = responseSummary as Record<string, unknown>;
+        if (!_.isEmpty(rs['doi'])) {
+          keyResult['doi'] = rs['doi'];
+        }
+        if (!_.isEmpty(rs['data']) && _.isPlainObject(rs['data'])) {
+          const dataId = (rs['data'] as Record<string, unknown>)['id'];
+          if (!_.isEmpty(dataId) && /^10\.\d+\/\S+/i.test(String(dataId))) {
+            keyResult['doi'] = dataId;
+          }
+          // DataCite returns the DOI's resulting state, which is the only record of it when no event was sent.
+          const doiState = _.get(rs['data'], ['attributes', 'state']);
+          if (doiState === 'draft' || doiState === 'registered' || doiState === 'findable') {
+            keyResult['doiState'] = doiState;
+          }
+        }
+        if (!_.isEmpty(rs['articleId'])) {
+          keyResult['articleId'] = rs['articleId'];
+        }
+        const publishResult = rs['publishResult'] as Record<string, unknown> | undefined;
+        if (_.isPlainObject(publishResult) && !_.isEmpty(publishResult)) {
+          keyResult['figsharePublished'] = true;
+          const publishStatus = (publishResult as Record<string, unknown>)['status'];
+          if (typeof publishStatus === 'string' && !_.isEmpty(publishStatus)) {
+            keyResult['figsharePublishStatus'] = publishStatus;
+          }
+        }
+      }
+
+      if (!_.isEmpty(keyResult)) {
+        return keyResult;
+      }
+      return undefined;
+    }
+
+    public async getStatusSummary(params: IntegrationAuditParams): Promise<IntegrationStatusSummary[]> {
+      const queryParams = new IntegrationAuditParams();
+      queryParams.oid = params.oid;
+      queryParams.dateFrom = params.dateFrom;
+      queryParams.dateTo = params.dateTo;
+      if (params.integrationName && !params.integrationName.includes(',')) {
+        queryParams.integrationName = params.integrationName;
+      }
+
+      const allRows = await this.getAllIntegrationAuditRows(queryParams);
+      if (allRows.length === 0) {
+        return [];
+      }
+
+      const rowsByTrace = new Map<string, Record<string, unknown>[]>();
+      allRows.forEach((row, index) => {
+        const integrationName = this.getString(row['integrationName']) ?? 'unknown';
+        const fallbackTs = this.getTimestampValue(row as Record<string, unknown>, 'dateCreated', 'createdAt');
+        const traceId =
+          this.getString(row['traceId']) ??
+          `${params.oid}:${integrationName}:missing-trace:${fallbackTs}:${this.getTraceFallbackIdentity(row, index)}`;
+        const existing = rowsByTrace.get(traceId) ?? [];
+        existing.push(row);
+        rowsByTrace.set(traceId, existing);
+      });
+
+      const traces = Array.from(rowsByTrace.entries()).map(([traceId, rows]) => {
+        const built = this.buildTraceRecord(traceId, rows);
+        const newestRow =
+          [...rows].sort((left, right) => {
+            const tsDiff = this.getRowSortTimestamp(right) - this.getRowSortTimestamp(left);
+            if (tsDiff !== 0) return tsDiff;
+            const statusDiff = this.getStatusRank(right['status']) - this.getStatusRank(left['status']);
+            if (statusDiff !== 0) return statusDiff;
+            return (
+              this.getTimestampValue(right, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt') -
+              this.getTimestampValue(left, 'completedAt', 'updatedAt', 'dateCreated', 'createdAt')
+            );
+          })[0] ?? {};
+        return {
+          traceId,
+          integrationName: built.integrationName ?? this.getString(newestRow['integrationName']) ?? '',
+          status: built.status,
+          integrationAction: this.getString(newestRow['integrationAction']),
+          startedAt: built.startedAt,
+          completedAt: built.completedAt,
+          durationMs: built.durationMs,
+          message: this.getString(newestRow['message']),
+          keyResult: this.extractKeyResult(newestRow),
+        };
+      });
+
+      let filteredTraces = traces;
+      if (!_.isEmpty(params.integrationName)) {
+        const rawFilter = String(params.integrationName).trim();
+        const names = rawFilter
+          .split(',')
+          .map(n => n.trim().toLowerCase())
+          .filter(Boolean);
+        if (names.length > 0) {
+          filteredTraces = traces.filter(trace => names.includes((trace.integrationName ?? '').toLowerCase()));
+        }
+      }
+
+      const grouped = new Map<string, IntegrationStatusSummary>();
+      filteredTraces.forEach(trace => {
+        const name = trace.integrationName;
+        const existing = grouped.get(name);
+        if (
+          !existing ||
+          this.getRowSortTimestamp(trace as unknown as Record<string, unknown>) >
+            this.getRowSortTimestamp(existing as unknown as Record<string, unknown>)
+        ) {
+          grouped.set(name, trace);
+        }
+      });
+
+      return Array.from(grouped.values());
+    }
+
+    private makeOutcome(
+      name: string,
+      state: string,
+      severity: IntegrationOutcomeSeverity,
+      withHelp?: boolean
+    ): IntegrationOutcome {
+      return {
+        state,
+        severity,
+        labelKey: `@integration-status-outcome-${name}-${state}`,
+        helpKey: withHelp ? `@integration-status-outcome-${name}-${state}-help` : undefined,
+      };
+    }
+
+    private isPublishedStage(stage?: string): boolean {
+      const lower = (stage ?? '').toLowerCase();
+      return lower === 'published' || lower === 'embargoed';
+    }
+
+    private isDoiUpdateAction(action?: string): boolean {
+      return (
+        action === IntegrationAuditAction.updateDoi ||
+        action === IntegrationAuditAction.updateDoiRequest ||
+        action === IntegrationAuditAction.updateDoiTriggerSync
+      );
+    }
+
+    /**
+     * Maps a DOI audit summary to a user-facing outcome. The DOI state DataCite returned takes
+     * precedence over the requested event, which takes precedence over the record's workflow stage.
+     */
+    private mapDoiOutcome(
+      s: IntegrationStatusSummary,
+      ctx: IntegrationStatusRecordContext
+    ): IntegrationOutcome | undefined {
+      const status = s.status;
+      const kr = s.keyResult ?? {};
+      const event = kr['event'] as string | undefined;
+      const doiState = kr['doiState'] as string | undefined;
+      const doiKnown = Boolean(kr['doi']) || Boolean(ctx.citationDoi);
+
+      if (status === 'started') {
+        // Treat the run as an update when the audit action says so, or when the
+        // record already has a DOI (a create-style trigger re-running over an
+        // existing DOI is really an update).
+        return this.isDoiUpdateAction(s.integrationAction) || doiKnown
+          ? this.makeOutcome('doi', 'updating', 'in-progress')
+          : this.makeOutcome('doi', 'in-progress', 'in-progress');
+      }
+      if (status === 'failed') return this.makeOutcome('doi', 'error', 'error', true);
+
+      if (status === 'success') {
+        if (doiState === 'findable') return this.makeOutcome('doi', 'published', 'success');
+        if (doiState === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        if (doiState === 'registered') return this.makeOutcome('doi', 'registered', 'pending', true);
+        if (event === 'publish') return this.makeOutcome('doi', 'published', 'success');
+        if (event === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        // State change requests record only the event; both of these leave the DOI registered.
+        if (event === 'register' || event === 'hide') return this.makeOutcome('doi', 'registered', 'pending', true);
+        if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {
+          return this.makeOutcome('doi', 'published', 'success');
+        }
+        if (doiKnown) {
+          return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        }
+        return this.makeOutcome('doi', 'none', 'none');
+      }
+
+      if (status === 'none') {
+        if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {
+          return this.makeOutcome('doi', 'published', 'success');
+        }
+        if (doiKnown) {
+          return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        }
+        return this.makeOutcome('doi', 'none', 'none');
+      }
+
+      return undefined;
+    }
+
+    private mapFigshareOutcome(
+      s: IntegrationStatusSummary,
+      _ctx: IntegrationStatusRecordContext
+    ): IntegrationOutcome | undefined {
+      const status = s.status;
+      const kr = s.keyResult ?? {};
+
+      if (status === 'started') return this.makeOutcome('figshare', 'in-progress', 'in-progress');
+      if (status === 'failed') return this.makeOutcome('figshare', 'error', 'error', true);
+
+      if (status === 'success') {
+        if (kr['figsharePublished'] === true) {
+          return this.makeOutcome('figshare', 'published', 'success');
+        }
+        return this.makeOutcome('figshare', 'deposited', 'success');
+      }
+
+      if (status === 'none') return this.makeOutcome('figshare', 'none', 'none');
+
+      return undefined;
+    }
+
+    private readonly outcomeMappers: Record<string, IntegrationOutcomeMapper> = {
+      doi: (s, ctx) => this.mapDoiOutcome(s, ctx),
+      figshare: (s, ctx) => this.mapFigshareOutcome(s, ctx),
+    };
+
+    /**
+     * Registers an outcome mapper for a custom integration name so the
+     * integration-status component can render a badge/label for it. Hooks call
+     * this at lift time (e.g. on the 'ready' sails event). The integration name
+     * is matched case-insensitively; the last registration for a name wins.
+     */
+    public registerOutcomeMapper(integrationName: string, mapper: IntegrationOutcomeMapper): void {
+      const key = String(integrationName ?? '')
+        .trim()
+        .toLowerCase();
+      if (_.isEmpty(key) || typeof mapper !== 'function') {
+        this.input.log.warn(`${this.logHeader} Ignoring invalid outcome mapper registration for '${integrationName}'.`);
+        return;
+      }
+      this.outcomeMappers[key] = mapper;
+      this.input.log.verbose(`${this.logHeader} Registered outcome mapper for '${key}'.`);
+    }
+
+    public async getStatusSummaryWithOutcomes(
+      params: IntegrationAuditParams,
+      ctx: IntegrationStatusRecordContext
+    ): Promise<IntegrationStatusSummary[]> {
+      const summaries = await this.getStatusSummary(params);
+
+      const rawFilter = String(params.integrationName ?? '').trim();
+      const requestedNames = rawFilter
+        ? rawFilter
+            .split(',')
+            .map(n => n.trim().toLowerCase())
+            .filter(Boolean)
+        : [];
+
+      summaries.forEach(s => {
+        const mapper = this.outcomeMappers[s.integrationName.toLowerCase()];
+        if (mapper) {
+          s.outcome = mapper(s, ctx);
+        }
+        // Backfill doi from ctx.citationDoi for doi summaries in draft-assigned/registered/published states without a doi yet
+        if (s.integrationName.toLowerCase() === 'doi' && !s.keyResult?.['doi'] && ctx.citationDoi) {
+          const outcomeState = s.outcome?.state;
+          if (outcomeState === 'draft-assigned' || outcomeState === 'registered' || outcomeState === 'published') {
+            if (!s.keyResult) s.keyResult = {};
+            s.keyResult['doi'] = ctx.citationDoi;
+          }
+        }
+      });
+
+      // Synthesis: add rows for requested integration names with zero audit rows
+      if (requestedNames.length > 0) {
+        const existingNames = new Set(summaries.map(s => s.integrationName.toLowerCase()));
+        for (const name of requestedNames) {
+          if (!existingNames.has(name) && this.outcomeMappers[name]) {
+            const synthesized: IntegrationStatusSummary = {
+              integrationName: name,
+              status: 'none',
+              startedAt: '',
+              traceId: `synthetic:${name}`,
+              synthesized: true,
+            };
+            if (name === 'doi' && ctx.citationDoi) {
+              synthesized.keyResult = { doi: ctx.citationDoi };
+            }
+            synthesized.outcome = this.outcomeMappers[name](synthesized, ctx);
+            summaries.push(synthesized);
+          }
+        }
+      }
+
+      return summaries;
+    }
+
+    public async storeIntegrationAudit(job: AnyRecord): Promise<void> {
+      const jobObj = job as AnyRecord;
+      const jobAttrs = (jobObj.attrs ?? {}) as AnyRecord;
+      const data = ((jobAttrs.data ?? jobAttrs) as Partial<IntegrationAuditModel>) ?? {};
+      try {
+        const entry = new IntegrationAuditModel(data);
+        await this.persistEntry(entry);
+      } catch (error) {
+        this.input.log.error(`${this.logHeader} Failed to construct integration audit entry from queued payload.`);
+        this.input.log.error(error);
+      }
+    }
+  }
+}
