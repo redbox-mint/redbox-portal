@@ -1,6 +1,4 @@
 import { fixtureRemove } from '../../helpers/persistenceFixtures';
-import { fixtureRemove } from '../../helpers/persistenceFixtures';
-import { fixtureRemove } from '../../helpers/persistenceFixtures';
 import { firstValueFrom } from 'rxjs';
 import sinon from 'sinon';
 import { createRecordSaveContext, hasFullRecordStorageConcurrencyCapability } from '@researchdatabox/redbox-core';

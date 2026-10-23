@@ -231,6 +231,20 @@ describe('MongoStorageService', function () {
     });
   });
 
+  it('allows institution services to override a forwarded operation with an ordinary method', async () => {
+    const { Services } = require('../../src/services/MongoStorageService');
+    class InstitutionStorageService extends Services.MongoStorageService {
+      async getMeta(oid: string) {
+        return { redboxOid: oid, metadata: { institution: 'method' } };
+      }
+    }
+    const exported = new InstitutionStorageService().exports();
+    expect(await exported.getMeta('institution-oid')).to.deep.equal({
+      redboxOid: 'institution-oid',
+      metadata: { institution: 'method' },
+    });
+  });
+
   it('keeps harvest enrichment scoped by tracked brand and record type', async () => {
     const rows = [{ redboxOid: 'opaque', harvestId: 'item' }];
     recordCollection.list = sandbox.stub().resolves(rows);

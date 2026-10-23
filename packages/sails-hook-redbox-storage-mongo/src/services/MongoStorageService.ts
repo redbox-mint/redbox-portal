@@ -9,14 +9,14 @@ export namespace Services {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging -- See the operation binding in the constructor.
   export class MongoStorageService extends services.Core.Service implements StoragePersistence {
     protected _exportedMethods = [...storageOperations];
-    constructor() {
-      super();
+    // Forwarders live on the prototype so institution subclasses can override them with
+    // ordinary methods or class fields, and still reach the default through super.
+    static {
       for (const name of storageOperations.filter(name => name !== 'init'))
-        Object.defineProperty(this, name, {
+        Object.defineProperty(MongoStorageService.prototype, name, {
           configurable: true,
-          enumerable: true,
           writable: true,
-          value: (...args: unknown[]) => {
+          value(this: MongoStorageService, ...args: unknown[]) {
             const owner = this.owner(name);
             return Reflect.apply(owner[name], owner, args);
           },
