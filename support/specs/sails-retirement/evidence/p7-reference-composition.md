@@ -30,3 +30,56 @@ Node 24 and is not Node-26 evidence. No existing test/assertion changed and no
 dependency changed. This is migration algorithm regression, not a full portal
 upgrade/recovery result. Production composition qualification is recorded below
 when executed.
+
+## Actual reference plan on MongoDB and Solr
+
+`application/portal/reference.ts` binds **18** existing concrete domains behind
+selected named factories. It supplies their actual repositories, narrow ports,
+application configuration/model registry and bundled forms. The fixed lifecycle
+stages run the three real historical migrations, brand/role/administrator/path-rule
+bootstrap, record types, workflows/forms, vocabulary, reports/queries, translations,
+application settings and workspace/dashboard/schema readiness. No synthetic seed
+records or startup index DDL are added to production code. Factory cleanup retains
+the instance if cleanup fails, permits retry and forwards the absolute drain
+deadline. Reports explicitly require search and typefaces require storage disks.
+
+On Node **26.11.1**, Mongo **8.0.34** at the owned Docker server on `29511` and
+Solr **10.0.0** (digest
+`sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b`):
+
+```sh
+node packages/redbox-core/node_modules/typescript/bin/tsc -p packages/redbox-core/tsconfig.json
+SR_REFERENCE_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_reference \
+SR_REFERENCE_SOLR_PORT=8983 node --test packages/redbox-core/test/qualification/portal-reference.cjs
+```
+
+The compiled aggregate passed **1 / 0 failing / 0 skipped**, exit **0**,
+**15443.862301 ms** total. Results: **29** actual configured record types,
+**31** persisted forms, **3** migrations. Three fresh instances each selected
+the named branding override; the unselected core constructor ran **0** times.
+Fresh bootstrap and restart retain brand/form identity and counts. A post-bootstrap
+failure plus first-close failure leaves cleanup visible and the domain retained;
+retry closes it and clears the handle. Prepared index definitions remain identical
+before/after startup. The compiled graph contains no Sails/CoreBase/CoreService
+or legacy service-barrel import. The disposable core/storage databases and local
+disk directory are removed by the aggregate's finally block.
+
+Log: `.tmp/sails-retirement/p7/reference-second.log`; build:
+`reference-build.log`. Focused formatting/lint and diff checks pass. This new
+qualification exercises the newly introduced wiring; no existing regression suite
+or assertion was modified.
+
+The first attempt failed **0/1** because the qualifier had not initialized core
+storage repositories before constructing the actual Records collaborator. The
+qualifier now initializes that existing group explicitly. Its initial Solr setup
+also used an ineffective port setting/bridge mapping on this bridge-disabled test
+daemon. The successful Solr run uses host networking on **8983**, with a 1024 MiB
+limit and **65536** fd limit. No failed attempt counts as passing qualification.
+
+Scope: this is reference composition, not the complete portal executable. The
+qualification supplies real StorageManager, Mongo storage, Solr, Records,
+AuthenticationAccounts and Agenda objects; it does not initialize/activate the
+complete job registry or execute record writes. RVA imports are explicitly disabled
+in this qualifier while local vocabulary bootstrap runs; external RVA behavior is
+separately covered by the existing provider suites. Full selected provider/HTTP
+assembly, all broad suites, clean artifacts and complete v6 cutover remain open.
