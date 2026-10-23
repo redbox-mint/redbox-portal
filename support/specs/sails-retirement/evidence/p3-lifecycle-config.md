@@ -131,3 +131,73 @@ adapter move omitted the local `completion` declaration. Added the owned aggrega
 completion; the full focused command and strict checks pass. No assertion removed,
 no skip introduced, no dependency change. Mongo migration/bootstrap/drain proof
 follows SR-022–024; this unit run is not counted as that proof.
+
+## SR-022 — Ordered initialization, migrations and bootstrap
+
+SR-021 source `fe030dcc4`. `ApplicationRuntime` now awaits fixed persistence/index,
+module, migration, core, ordered-extension and post-bootstrap stages. Named work
+validates required module names offline and snapshots its operation declarations;
+contributor/storage/schema and dashboard dependencies are explicit composition
+inputs. The neutral composition binds selected extension work once, initializes
+the existing ledger, runs lexical migrations, then core/hook/post work. No generic
+DI/workflow engine or second migration implementation was added.
+
+The existing Umzug/Prisma executor moved to `application/migrations.ts`; legacy
+version/global/bypass discovery and generated-shim callbacks moved to
+`compat/sails`. Old loader module exports remain. Existing module-failure status
+objects are preserved; new non-module startup failures identify their stage.
+The orchestration covers the selected migrated module set; unconverted business
+operations remain assigned to P5/P6 rather than invoking Sails from the neutral
+composition. The host is still a partial development host, not a full portal.
+
+Actual real database: disposable `sr-p3-mongo8`, **MongoDB 8.0.34 / FCV 8.0**,
+unauthenticated standalone at **127.0.0.1:34902**, image
+`sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907`.
+No institution, replica-set, TLS/auth or newer-engine qualification is claimed.
+Tests check their disposable prefixes and drop created databases in teardown.
+
+```sh
+docker run -d --name sr-p3-mongo8 --memory=768m -p 127.0.0.1::27017 mongo:8.0.34 --bind_ip_all --wiredTigerCacheSizeGB 0.25
+docker port sr-p3-mongo8 27017/tcp
+docker exec sr-p3-mongo8 mongosh --quiet --eval 'print(JSON.stringify({version:db.version(),fcv:db.adminCommand({getParameter:1,featureCompatibilityVersion:1}).featureCompatibilityVersion,hello:db.hello()}))'
+# Qualified Node 26 PATH; from packages/redbox-core:
+./node_modules/.bin/tsc
+TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/application/Application.test.ts test/application/Initialization.test.ts test/loader/MigrationRunner.test.ts test/loader/bootstrapShimRuntime.test.ts 'test/extensions/*.test.ts'
+# Root:
+npm --prefix packages/redbox-core run typecheck:application
+LIFECYCLE_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p3_lifecycle npm --prefix packages/redbox-core run test:lifecycle:mongo
+EXTENSIONS_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p2_extensions node --test packages/redbox-core/test/extensions/storage-mongo.cjs
+npm run lint
+git diff --check
+```
+
+Focused stage/legacy migration/bootstrap/extension cases: **45 passing, 0 failing/
+pending** (694 ms). Real ledger/startup **3 passing, 0 failing/pending** (~3 s):
+lexical bodies precede bootstrap, hook priority is independent, fresh owners skip
+completed bodies, a failed second migration retains its partial record writes
+and only the first success ledger entry, acquired clients/pools close, activation
+is impossible after failure. Graph/signal checks deny Sails/compat ownership.
+The dedicated command requires Mongo input and cannot pass by skipping.
+
+Existing standalone storage fixture, adapted to bind its declared migration and
+prepare the ledger index explicitly, **3 passing, 0 failing/skipped** (~6 s),
+including real record/GridFS operations and held-upload stop timeout/retry. Its
+existing assertions remain; it now also runs the real revision backfill via the
+ledger. Production TypeScript compile passes; repo lint **881 files, 0 warnings/
+errors**. Final strict typecheck result is recorded at phase closeout.
+
+Intermediate failures: initial generic Umzug extraction needed its object context
+constraint and unknown-message logger input; corrected without casts. A root-cwd
+unit invocation failed the pre-existing compiled subprocess's relative dist path;
+the corrected package-cwd suite passes. Stage metadata initially changed three
+exact P1 status assertions; module failure status compatibility was preserved.
+First Mongo run **2 passing / 1 failing** queried a stored BSON branding ID as a
+string; corrected to ObjectId. A subsequent test-only import typo and string signal
+annotations failed typechecking/fixtures; corrected explicitly. No production
+assertion, skip condition, timeout or dependency pin was weakened. Failed body
+writes are evidence of the existing nontransactional contract, not rollback.
+
+Final SR-022 strict application typecheck, Node 26 production incremental compile,
+focused Prettier and diff checks **exit 0**. After the final compatibility-file
+move, the complete focused stage/loader/extension command again passed **45/45**,
+**0 failures/pending** (480 ms). No dependency changes.

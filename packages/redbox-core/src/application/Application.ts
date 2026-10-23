@@ -18,6 +18,21 @@ export interface ApplicationModuleFactory {
   create(): ApplicationModule;
 }
 
+export interface ApplicationWork {
+  readonly name: string;
+  readonly requires?: readonly string[];
+  run(): Promise<void>;
+}
+
+/** Fixed startup stages, not a configurable workflow engine. Operations are bound offline. */
+export interface ApplicationInitialization {
+  readonly preparePersistence?: () => Promise<void>;
+  readonly migrations?: () => Promise<void>;
+  readonly coreBootstrap?: readonly ApplicationWork[];
+  readonly extensionBootstrap?: readonly ApplicationWork[];
+  readonly postBootstrap?: readonly ApplicationWork[];
+}
+
 export type ApplicationState =
   | 'constructed'
   | 'initializing'
@@ -31,7 +46,7 @@ export type ApplicationState =
 export interface ApplicationStatus {
   readonly state: ApplicationState;
   readonly ready: boolean;
-  readonly failure?: { readonly phase: 'initialize' | 'activate'; readonly module?: string };
+  readonly failure?: { readonly phase: 'initialize' | 'activate'; readonly module?: string; readonly stage?: string };
   readonly stopFailed: boolean;
   readonly cleanupPending: boolean;
   readonly persistence: ReturnType<typeof persistenceStatus>;
@@ -63,7 +78,7 @@ const applicationKey = Symbol.for('@researchdatabox/redbox-core/application/v1')
  * Owns one already-resolved module set and the existing persistence resource registry.
  * Construction only wires dependencies. Factories are synchronous and must not acquire
  * resources; each returned module is registered before its awaited initialization.
- * No service locator, extension discovery, business bootstrap or signals live here.
+ * Bound operations run in fixed startup stages; no service locator, discovery or signals live here.
  */
 export class ApplicationRuntime implements Application {
   private state: ApplicationState = 'constructed';
@@ -77,10 +92,13 @@ export class ApplicationRuntime implements Application {
   private cleanedUp = false;
   private stopFailed = false;
   private failure?: ApplicationStatus['failure'];
+  private stage?: string;
+  private readonly initialization: ApplicationInitialization;
 
   public constructor(
     private readonly owner: PersistenceOwner,
-    factories: readonly ApplicationModuleFactory[] = []
+    factories: readonly ApplicationModuleFactory[] = [],
+    initialization: ApplicationInitialization = {}
   ) {
     if (Reflect.get(owner, applicationKey))
       throw new ApplicationLifecycleError(
@@ -93,6 +111,33 @@ export class ApplicationRuntime implements Application {
       names.add(factory.name);
       return { name: factory.name, create: factory.create.bind(factory) };
     });
+    for (const stage of [
+      initialization.coreBootstrap,
+      initialization.extensionBootstrap,
+      initialization.postBootstrap,
+    ]) {
+      const steps = new Set<string>();
+      for (const step of stage ?? []) {
+        if (!/^[A-Za-z0-9_:@./-]{1,200}$/.test(step.name) || steps.has(step.name))
+          throw new ApplicationLifecycleError('Bootstrap work needs unique bounded names within its stage.');
+        steps.add(step.name);
+        for (const dependency of step.requires ?? [])
+          if (!names.has(dependency))
+            throw new ApplicationLifecycleError('Bootstrap work requires an unavailable module.');
+      }
+    }
+    const snapshot = (work: readonly ApplicationWork[] | undefined) =>
+      work?.map(step => ({
+        name: step.name,
+        requires: step.requires && [...step.requires],
+        run: step.run.bind(step),
+      }));
+    this.initialization = {
+      ...initialization,
+      coreBootstrap: snapshot(initialization.coreBootstrap),
+      extensionBootstrap: snapshot(initialization.extensionBootstrap),
+      postBootstrap: snapshot(initialization.postBootstrap),
+    };
     Object.defineProperty(owner, applicationKey, { value: true });
   }
 
@@ -103,7 +148,11 @@ export class ApplicationRuntime implements Application {
     let currentModule: string | undefined;
     const work = Promise.resolve().then(async () => {
       this.assertRunning();
+      this.stage = 'persistence';
       await initializePersistence(this.owner);
+      this.assertRunning();
+      await this.initialization.preparePersistence?.();
+      this.stage = 'modules';
       for (const factory of this.factories) {
         this.assertRunning();
         currentModule = factory.name;
@@ -118,7 +167,23 @@ export class ApplicationRuntime implements Application {
         this.modules.set(factory.name, module);
         await module.initialize();
       }
+      currentModule = undefined;
       this.assertRunning();
+      this.stage = 'migrations';
+      await this.initialization.migrations?.();
+      for (const [name, steps] of [
+        ['coreBootstrap', this.initialization.coreBootstrap],
+        ['extensionBootstrap', this.initialization.extensionBootstrap],
+        ['postBootstrap', this.initialization.postBootstrap],
+      ] as const) {
+        for (const step of steps ?? []) {
+          this.assertRunning();
+          this.stage = name + ':' + step.name;
+          await step.run();
+        }
+      }
+      this.assertRunning();
+      this.stage = undefined;
       this.state = 'initialized';
     });
     this.inFlight = work;
@@ -196,7 +261,12 @@ export class ApplicationRuntime implements Application {
 
   private async failed(error: unknown, phase: 'initialize' | 'activate', module?: string): Promise<never> {
     const interrupted = error instanceof ApplicationStoppingError;
-    if (!interrupted) this.failure = { phase, module };
+    if (!interrupted)
+      this.failure = {
+        phase,
+        module,
+        ...(phase === 'initialize' && !module && this.stage ? { stage: this.stage } : {}),
+      };
     if (!this.stopRequested) {
       try {
         await this.stop();

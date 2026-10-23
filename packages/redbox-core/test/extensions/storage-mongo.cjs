@@ -4,7 +4,12 @@ const { MongoClient } = require('mongodb');
 const { firstValueFrom } = require('rxjs');
 const { ApplicationRuntime } = require('../../dist/application');
 const { RecordTypes } = require('../../dist/recordTypes');
-const { resolveExtensions, composeExtensionApplication, bindExtensionFactory } = require('../../dist/extensions');
+const {
+  resolveExtensions,
+  composeExtensionApplication,
+  bindExtensionFactory,
+  bindExtensionWork,
+} = require('../../dist/extensions');
 const runtime = require('../../dist/extensions/storage');
 const storageExtension = require('../../../sails-hook-redbox-storage-mongo/dist/extension');
 
@@ -79,6 +84,7 @@ test('storage declaration is offline and real index readiness fails closed', asy
     selectedOwner,
     resolveExtensions([{ name: 'storage-hook', root: '.', declaration }]),
     {
+      work: item => bindExtensionWork(item.declaration, { owner: selectedOwner }),
       module: item => () => {
         module = bindExtensionFactory(item.declaration, { owner: selectedOwner, collaborators: collaborators() })();
         return module;
@@ -96,6 +102,7 @@ test('storage declaration is offline and real index readiness fails closed', asy
 test('storage capability precedes strict record-type bootstrap; writes, GridFS, stale handles and fresh owners work', async () => {
   const selectedOwner = await owner();
   await runtime.initializePersistence(selectedOwner);
+  await runtime.ensureMigrationPersistenceIndex(selectedOwner);
   await storageExtension.ensurePrismaStagedStorageIndexes(selectedOwner);
   await runtime.ensureReferencePersistenceIndexes(selectedOwner);
   let storage, recordTypes;
@@ -136,6 +143,7 @@ test('storage capability precedes strict record-type bootstrap; writes, GridFS, 
     },
   ]);
   const composition = composeExtensionApplication(selectedOwner, resolved, {
+    work: item => bindExtensionWork(item.declaration, { owner: selectedOwner }),
     module: item => () => {
       const module =
         item.declaration.name === 'storage'
@@ -195,6 +203,7 @@ test('storage capability precedes strict record-type bootstrap; writes, GridFS, 
 test('accepted GridFS upload retains clients and pools through timed-out stop and retry', async () => {
   const selectedOwner = await owner();
   await runtime.initializePersistence(selectedOwner);
+  await runtime.ensureMigrationPersistenceIndex(selectedOwner);
   await storageExtension.ensurePrismaStagedStorageIndexes(selectedOwner);
   let storage;
   const app = new ApplicationRuntime(selectedOwner, [

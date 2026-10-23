@@ -1,8 +1,14 @@
 import type { Server } from 'node:http';
 import type { RequestHandler, Router } from 'express';
-import { ApplicationRuntime, type ApplicationModule } from '../application';
+import {
+  ApplicationRuntime,
+  runApplicationMigrations,
+  type ApplicationModule,
+  type ApplicationInitialization,
+} from '../application';
 import type { PersistenceOwner } from '../persistence/owner';
-import type { ExtensionFactory, ExtensionHostIntegration } from './contract';
+import { initializeMigrationPersistence, getMigrationLedgerRepository } from '../persistence/migration/runtime';
+import type { ExtensionFactory, ExtensionHostIntegration, ExtensionWork } from './contract';
 import { ExtensionError } from './loading';
 import type { ResolvedExtensions, ResolvedRegistration } from './resolution';
 
@@ -14,7 +20,15 @@ export function bindExtensionFactory<Input, Output>(
   return () => factory.create(input);
 }
 
+export function bindExtensionWork<Input>(
+  work: { run(input: Input): Promise<void> },
+  input: Input
+): () => Promise<void> {
+  return () => work.run(input);
+}
+
 export interface ExtensionBindings {
+  work?(registration: ResolvedRegistration<ExtensionWork>): () => Promise<void>;
   module(registration: ResolvedRegistration<ExtensionFactory>): () => ApplicationModule;
   handler?(registration: ResolvedRegistration<ExtensionFactory<never, RequestHandler>>): () => RequestHandler;
   integration?(
@@ -28,13 +42,29 @@ export interface ExtensionBindings {
 export function composeExtensionApplication(
   owner: PersistenceOwner,
   resolved: ResolvedExtensions,
-  bindings: ExtensionBindings
+  bindings: ExtensionBindings,
+  initialization: Omit<ApplicationInitialization, 'migrations' | 'extensionBootstrap'> & {
+    readonly appVersion?: string;
+  } = {}
 ) {
   if (resolved.handlers.length && !bindings.handler) throw new ExtensionError('host', 'bind HTTP handler factories');
   if (resolved.integrations.length && !bindings.integration)
     throw new ExtensionError('host', 'bind server integration factories');
   if (resolved.routes.some(item => item.declaration.access !== 'public') && !bindings.policies)
     throw new ExtensionError('host', 'bind route policy execution');
+  if ((resolved.migrations.length || resolved.bootstrap.length) && !bindings.work)
+    throw new ExtensionError('application', 'bind migration and bootstrap operations before acquisition');
+  const migrations = resolved.migrations.map(registration => ({
+    name: registration.declaration.name,
+    source: registration.provider,
+    up: bindings.work!(registration),
+  }));
+  const work = resolved.bootstrap.map(registration => ({
+    name: registration.declaration.name,
+    requires: registration.declaration.requires,
+    run: bindings.work!(registration),
+    provider: registration.provider,
+  }));
   const integrations = new Map<string, ExtensionHostIntegration>();
   const handlers = resolved.handlers.map(registration => ({
     name: registration.declaration.name,
@@ -64,7 +94,21 @@ export function composeExtensionApplication(
       },
     });
   }
-  const application = new ApplicationRuntime(owner, factories);
+  const application = new ApplicationRuntime(owner, factories, {
+    ...initialization,
+    migrations: async () => {
+      if (!migrations.length) return;
+      await initializeMigrationPersistence(owner);
+      await runApplicationMigrations(migrations, {
+        ledger: getMigrationLedgerRepository(owner),
+        appVersion: initialization.appVersion,
+        context: {},
+        log: { debug() {}, info() {}, warn: message => owner.log.warn(String(message)), error() {} },
+      });
+    },
+    coreBootstrap: [...(initialization.coreBootstrap ?? []), ...work.filter(item => item.provider === 'core')],
+    extensionBootstrap: work.filter(item => item.provider !== 'core'),
+  });
   let preparing: Promise<void> | undefined;
   return {
     application,

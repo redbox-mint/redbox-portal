@@ -52,3 +52,30 @@ remain in P3–P6. Bundled packages temporarily retain their explicit legacy ent
 alongside the neutral public extension subpath for the separate comparison host.
 
 See [the initial scaffold and before/after conversion examples](hook-migration-v6.md).
+
+## P3 startup orchestration
+
+`composeExtensionApplication` now requires a `work(registration)` binding when the
+resolved set declares migrations/bootstrap. Use `bindExtensionWork(declaration,
+concreteInput)` just as for selected factories; it binds only that operation's
+input. Bindings do not execute during resolution/composition.
+
+The application's fixed stages are root/selected persistence and index readiness,
+module initialization, lexical ledger migrations, core bootstrap, ordered extension
+bootstrap, and post-bootstrap prerequisites. The optional fourth composition
+argument supplies `preparePersistence`, named `coreBootstrap` and named
+`postBootstrap` operations, plus application version metadata. Work declares
+`requires` module names; missing prerequisites fail before acquisition. Put storage
+capability and contributor registration before schema checks, and dashboard target
+finalization after all hook bootstrap work. Normal consumers remain inactive until
+explicit activation and HTTP preparation succeeds.
+
+The runner is the existing Umzug/Prisma ledger implementation extracted into
+`application/migrations.ts`. Migration names/source/history retain their meaning;
+it records success only after the body. Failed bodies can leave partial writes;
+no transaction, distributed body lock or exactly-once guarantee is added. Fresh
+applications skip ledger-completed bodies. Keep one designated migration runner
+and stop other writers during upgrades. Startup inspects required indexes;
+explicit index ensure remains maintenance work. Comparison-only Sails callbacks,
+configuration-write waits, version/global discovery and the legacy migration skip
+flag live in `compat/sails`; neutral imports do not execute them.
