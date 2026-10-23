@@ -1,3 +1,4 @@
+import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { buildRedboxSessionOptions, redboxSession } from '../../src/middleware/redboxSession';
@@ -50,6 +51,7 @@ describe('Middleware: redboxSession', () => {
     const original = global.sails;
     const app = createMockSails();
     global.sails = app;
+    attachSailsPersistenceLifecycle(app);
     await initializePersistence(app);
     let release!: () => void, entered!: () => void;
     let written = false;

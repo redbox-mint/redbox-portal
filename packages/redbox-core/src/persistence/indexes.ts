@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from './owner';
 import type { JsonValue, LogicalDatastore } from './types';
 import { mongoDatabase, prismaDatabase, persistenceOperation } from './runtime';
 import { PersistenceError } from './errors';
@@ -48,7 +49,7 @@ function canonicalPredicates(value: unknown): unknown {
 
 /** Inspection never performs DDL or repairs data. Descriptor order defines compound keys. */
 export function inspectPersistenceIndex(
-  app: Sails.Application,
+  app: PersistenceOwner,
   descriptor: PersistenceIndex
 ): Promise<PersistenceIndexInspection> {
   return persistenceOperation(app, async () => {
@@ -157,7 +158,7 @@ export function requirePersistenceIndex(report: PersistenceIndexInspection): voi
 
 /** Explicit deployment action. Never drops indexes, deletes rows or runs at startup. */
 export async function ensurePersistenceIndex(
-  app: Sails.Application,
+  app: PersistenceOwner,
   descriptor: PersistenceIndex
 ): Promise<PersistenceIndexInspection> {
   const before = await inspectPersistenceIndex(app, descriptor);

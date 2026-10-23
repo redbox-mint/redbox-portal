@@ -294,6 +294,7 @@ export * from './RecordWriteOptions';
 export * from './model/storage/FigshareSyncModel';
 
 export type { PersistenceId, LogicalDatastore, PersistenceGroup, PersistenceResource } from './persistence/types';
+export type { PersistenceOwner, PersistenceConfiguration } from './persistence/owner';
 export { initializePersistence, cleanupPersistence, registerPersistenceResource } from './persistence/runtime';
 export {
   initializeReferencePersistence,

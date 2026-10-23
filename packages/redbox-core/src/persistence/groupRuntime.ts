@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from './owner';
 import { PersistenceError } from './errors';
 import {
   initializePersistence,
@@ -12,8 +13,8 @@ interface GroupState {
   starting?: Promise<void>;
 }
 const key: unique symbol = Symbol.for('@researchdatabox/redbox-core/persistence-groups/v1');
-type Application = Sails.Application & { [key]?: Map<string, GroupState> };
-function stateFor(app: Sails.Application, name: string): GroupState {
+type Application = PersistenceOwner & { [key]?: Map<string, GroupState> };
+function stateFor(app: PersistenceOwner, name: string): GroupState {
   const owner = app as Application;
   if (!owner[key]) Object.defineProperty(owner, key, { value: new Map() });
   if (!owner[key]!.has(name)) owner[key]!.set(name, {});
@@ -51,9 +52,9 @@ function guarded<T extends object>(
 /** One registry, readiness check and drain boundary for every repository group. Factories stay lazy. */
 export function definePersistenceGroup<T extends object>(
   name: string,
-  create: (app: Sails.Application) => Promise<T>,
+  create: (app: PersistenceOwner) => Promise<T>,
   failure?: (error: unknown, method: string) => never
-): { initialize(app: Sails.Application): Promise<void>; get(app?: Sails.Application): T } {
+): { initialize(app: PersistenceOwner): Promise<void>; get(app?: PersistenceOwner): T } {
   return {
     async initialize(app) {
       const state = stateFor(app, name);

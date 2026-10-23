@@ -1,3 +1,4 @@
+import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
@@ -40,6 +41,7 @@ describe('Audit security follow-ups during drain', () => {
           if (failure === 'lookup') throw new Error('Synthetic brand lookup failure.');
           return { metaMetadata: { brandId: 'brand' } };
         } },BrandingService: { getBrandById: () => ({ id: 'brand', name: 'brand' }), getBrand: () => undefined },AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) }}));
+      attachSailsPersistenceLifecycle(app);
       await runtime.initializePersistence(app);
       await capture.init();
       const web = express();
@@ -121,6 +123,7 @@ describe('Audit security follow-ups during drain', () => {
           if (lookupFailure) throw new Error('Fixture brand lookup failed.');
           return { metaMetadata: { brandId: 'brand' } };
         } },BrandingService: { getBrandById: () => ({ id: 'brand', name: 'brand' }), getBrand: () => undefined },AppConfigService: { getAppConfigurationForBrand: () => ({ siem: { enabled: true } }) }}));
+      attachSailsPersistenceLifecycle(app);
       await runtime.initializePersistence(app);
       await capture.init();
       let worker: Promise<void>;

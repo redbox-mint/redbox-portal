@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { createHash } from 'node:crypto';
 import ConnectionString from 'mongodb-connection-string-url';
 import { MongoClient } from 'mongodb';
@@ -132,7 +133,7 @@ export function resolveDatastore(config: Record<string, unknown>): ResolvedDatas
   }
 }
 
-export function resolveApplicationDatastore(app: Sails.Application, name: string): ResolvedDatastore {
+export function resolveApplicationDatastore(app: PersistenceOwner, name: string): ResolvedDatastore {
   const config: unknown = app.config.datastores?.[name];
   if (typeof config !== 'object' || config === null)
     throw new PersistenceError(

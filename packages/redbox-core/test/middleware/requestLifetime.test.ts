@@ -1,3 +1,4 @@
+import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 import { expect } from 'chai';
 import express from 'express';
 import session from 'express-session';
@@ -171,6 +172,7 @@ describe('HTTP controller lifetime during persistence shutdown', () => {
     original = Reflect.get(global, 'sails');
     app = createMockSails();
     Reflect.set(global, 'sails', app);
+    attachSailsPersistenceLifecycle(app);
     await initializePersistence(app);
   });
   afterEach(async () => {

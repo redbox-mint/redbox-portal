@@ -1,3 +1,4 @@
+import type { PersistenceOwner } from '../owner';
 import { projectNamedQueryRecords } from '../reference/projection';
 import type { NamedQueryRequest, NamedQueryPage } from '../reference/NamedQueryExecution';
 import { namedQueryCriteria, namedQueryFieldType, namedQueryScalar } from '../reference/NamedQueryExecution';
@@ -59,7 +60,7 @@ function counterCriteria(criteria: DefinitionValues): DefinitionValues {
  * which the model's root-only select/decoded optional fields cannot express.
  */
 export async function executeStorageQuery(
-  app: Sails.Application,
+  app: PersistenceOwner,
   request: NamedQueryRequest,
   count: boolean
 ): Promise<NamedQueryPage> {

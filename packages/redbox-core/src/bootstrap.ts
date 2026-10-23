@@ -1,3 +1,4 @@
+import { attachSailsPersistenceLifecycle } from './compat/sails/persistenceLifecycle';
 import {initializeIdentityPersistence} from './persistence/runtime';
 import {initializeBrandingPersistence} from './persistence/runtime';
 import {initializeVocabularyPersistence} from './persistence/runtime';
@@ -245,6 +246,7 @@ async function runPreLiftSetup(): Promise<void> {
   sails.log.debug('Starting bootstrap process with bootstrapAlways set to: ' + sails.config.appmode.bootstrapAlways);
   void getMergedApiRoutes();
 
+  attachSailsPersistenceLifecycle(sails);
   await initializePersistence(sails);
   await initializeMigrationPersistence(sails);
   await initializeCachePersistence(sails);

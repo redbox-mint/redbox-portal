@@ -1,3 +1,5 @@
+import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import assert from 'node:assert/strict';
 import { createSecureContext } from 'node:tls';
 import { definePersistenceGroup } from '../../src/persistence/groupRuntime';
@@ -13,8 +15,8 @@ import {
 } from '../../src/persistence/runtime';
 import { MongoClient } from 'mongodb';
 
-function app(config: object = {}): Sails.Application {
-  return { config, log: { warn() {} } } as unknown as Sails.Application;
+function app(config: PersistenceOwner['config'] = {}): PersistenceOwner {
+  return { config, log: { warn() {} } };
 }
 describe('driver persistence foundation', function () {
   afterEach(() => sinon.restore());
@@ -154,7 +156,8 @@ describe('driver persistence foundation', function () {
   });
   it('retains failed resources for retry and preserves prior shutdown errors', async () => {
     const original = new Error('prior');
-    const application = app({ beforeShutdown: (cb: (error: unknown) => void) => cb(original) });
+    const application = { config: { beforeShutdown: (cb: (error: unknown) => void) => cb(original) }, log: { warn() {} } } as unknown as Sails.Application;
+    attachSailsPersistenceLifecycle(application);
     await initializePersistence(application);
     let fail = true;
     let closes = 0;

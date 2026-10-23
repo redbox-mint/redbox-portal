@@ -1,3 +1,4 @@
+import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 import assert from 'node:assert/strict';
 import { initializePersistence, registerPersistenceResource } from '../../src/persistence/runtime';
 
@@ -9,6 +10,7 @@ describe('Sails persistence shutdown entrypoint', () => {
       lower(callback: (error?: unknown) => void): void;
     } = new Application();
     Reflect.set(application, 'config', {});
+    attachSailsPersistenceLifecycle(application);
     await initializePersistence(application);
     let refuse = true, closed = 0, lowered = 0, drains = 0;
     application.once('lower', () => { lowered++; });

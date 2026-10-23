@@ -1,3 +1,4 @@
+import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { assertPersistenceConfiguration } from '../../src/persistence/selection';
@@ -32,6 +33,7 @@ describe('cache persistence selection and lifecycle', function () {
   });
   const use = (previous?: (cb: (error?: unknown) => void) => void) => {
     const app = fixture(previous);
+    attachSailsPersistenceLifecycle(app);
     apps.push(app);
     Object.assign(globalThis, { sails: app });
     return app;

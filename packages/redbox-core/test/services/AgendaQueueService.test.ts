@@ -1,3 +1,4 @@
+import { attachSailsPersistenceLifecycle } from '../../src/compat/sails/persistenceLifecycle';
 import assert from 'node:assert/strict';
 import * as persistenceRuntime from '../../src/persistence/runtime';
 let expect: Chai.ExpectStatic;
@@ -79,6 +80,7 @@ describe('AgendaQueueService', function () {
   }
 
   async function realQueue(overrides: Partial<import('agenda').JobRepository> = {}, backendName: 'mongodb' | 'sqs' = 'mongodb') {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb', processEvery: '0.01 seconds' }, jobs: {} };
     const service = new Services.AgendaQueue();
@@ -166,6 +168,7 @@ describe('AgendaQueueService', function () {
       const endpoint = `http://127.0.0.1:${address.port}`;
       Object.assign(process.env, { AWS_ENDPOINT_URL_SQS: endpoint, AWS_ACCESS_KEY_ID: 'fixture', AWS_SECRET_ACCESS_KEY: 'fixture', AWS_REGION: 'us-east-1' });
       try {
+        attachSailsPersistenceLifecycle(sails);
         await persistenceRuntime.initializePersistence(sails);
         sails.config.agendaQueue = { options: { backend: 'sqs', sqs: { queueUrl: endpoint + '/000000000000/fixture', region: 'us-east-1', waitTimeSeconds: 0 } }, jobs: {} };
         const service = new Services.AgendaQueue();
@@ -231,6 +234,7 @@ describe('AgendaQueueService', function () {
       Object.assign(process.env, { AWS_ENDPOINT_URL_SQS: endpoint, AWS_ACCESS_KEY_ID: 'fixture', AWS_SECRET_ACCESS_KEY: 'fixture', AWS_REGION: 'us-east-1' });
       let running: Promise<unknown> | undefined;
       try {
+        attachSailsPersistenceLifecycle(sails);
         await persistenceRuntime.initializePersistence(sails);
         sails.config.agendaQueue = { options: { backend: 'sqs', sqs: { queueUrl: endpoint + '/000000000000/fixture', region: 'us-east-1', waitTimeSeconds: 0 } }, jobs: {} };
         const service = new Services.AgendaQueue();
@@ -305,6 +309,7 @@ describe('AgendaQueueService', function () {
       const endpoint = `http://127.0.0.1:${address.port}`;
       Object.assign(process.env, { AWS_ENDPOINT_URL_SQS: endpoint, AWS_ACCESS_KEY_ID: 'fixture', AWS_SECRET_ACCESS_KEY: 'fixture', AWS_REGION: 'us-east-1' });
       try {
+        attachSailsPersistenceLifecycle(sails);
         await persistenceRuntime.initializePersistence(sails);
         sails.config.agendaQueue = { options: { backend: 'sqs', sqs: { queueUrl: endpoint + '/000000000000/fixture', region: 'us-east-1', waitTimeSeconds: 0 } }, jobs: {} };
         const service = new Services.AgendaQueue();
@@ -613,6 +618,7 @@ describe('AgendaQueueService', function () {
 
   it('quiesces only its captured HTTP owner when the global application changes', async function () {
     const app = sails;
+    attachSailsPersistenceLifecycle(app);
     await persistenceRuntime.initializePersistence(app);
     app.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     const firstDrain = sinon.stub().resolves(), secondDrain = sinon.stub().resolves();
@@ -631,6 +637,7 @@ describe('AgendaQueueService', function () {
 
   it('refuses another application HTTP context as completion enqueue admission', async function () {
     const app = sails;
+    attachSailsPersistenceLifecycle(app);
     await persistenceRuntime.initializePersistence(app);
     app.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     let release!: () => void;
@@ -658,6 +665,7 @@ describe('AgendaQueueService', function () {
   });
 
   it('stops already-started processors while startup index writes are pending', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     let enter!: () => void, release!: () => void;
@@ -681,6 +689,7 @@ describe('AgendaQueueService', function () {
   });
 
   it('retains a pending backend start when another concurrent start fails', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {
       first: { fnName: 'fixture.noop' }, second: { fnName: 'fixture.noop', backend: 'sqs' },
@@ -714,6 +723,7 @@ describe('AgendaQueueService', function () {
   });
 
   it('allows an accepted worker completion after startup index failure while refusing outside callers', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue={options:{backend:'mongodb'},jobs:{first:{fnName:'fixture.work'},completion:{fnName:'fixture.noop'}}};
     const held=deferred(),entered=deferred();let active!:Promise<void>;
@@ -735,6 +745,7 @@ describe('AgendaQueueService', function () {
   });
 
   it('honours the drain deadline through prior producer hooks and calls shutdown back once', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     const previous = sails.config.beforeShutdown!;
     let resume!: () => void;
@@ -763,6 +774,7 @@ describe('AgendaQueueService', function () {
   });
 
   it('owns completion enqueues from accepted HTTP requests while refusing unrelated and detached callers', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     const web = express();
@@ -817,6 +829,7 @@ describe('AgendaQueueService', function () {
   });
 
   it('stops processors before waiting for held enqueue writes during drain', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     let release!: () => void;
@@ -843,6 +856,7 @@ describe('AgendaQueueService', function () {
 
   for (const processorState of ['waiting', 'watchdog-completed']) {
   it(`bounds worker drain with ${processorState} processor and retains actual handlers for cleanup retry`, async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     Reflect.set(sails.config.agendaQueue.options!, 'drainTimeoutMs', 25);
@@ -906,6 +920,7 @@ describe('AgendaQueueService', function () {
   }
 
   it('drains accepted Agenda completion writes before persistence refuses operations', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     let release!: () => void;
@@ -937,6 +952,7 @@ describe('AgendaQueueService', function () {
 
   for (const registration of ['configured', 'dynamic']) {
   it(`durably queues completion audits from accepted ${registration} jobs while refusing new and detached submissions`, async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     sails.config.environment = 'production';
@@ -1005,6 +1021,7 @@ describe('AgendaQueueService', function () {
   }
 
   it('drains the real audit storage handler through its notification enqueue', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     sails.config.environment = 'production';
@@ -1058,6 +1075,7 @@ describe('AgendaQueueService', function () {
   });
 
   it('persists delayed retries from accepted workers while refusing external and detached schedules', async function () {
+    attachSailsPersistenceLifecycle(sails);
     await persistenceRuntime.initializePersistence(sails);
     sails.config.agendaQueue = { options: { backend: 'mongodb' }, jobs: {} };
     let releaseWorker!: () => void, releaseSchedule!: () => void, releaseDetached!: () => void;

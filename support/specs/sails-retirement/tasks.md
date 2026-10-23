@@ -105,7 +105,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## P1 — Runtime, persisted-module proof and early standalone host
 
-- [ ] **SR-006 — Extract the persistence-owner interface and isolate Sails shutdown.**
+- [x] **SR-006 — Extract the persistence-owner interface and isolate Sails shutdown.**
+
+  **Status:** done; [structural owner, adapter and real-Mongo ownership checks](evidence/p1-runtime.md#sr-006--structural-persistence-ownership-and-explicit-sails-lifecycle).
 
   **Depends on:** SR-001, SR-004.
 

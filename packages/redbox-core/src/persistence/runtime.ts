@@ -1,7 +1,7 @@
+import type { PersistenceOwner } from './owner';
 import type { Db, MongoClient } from 'mongodb';
 import { PersistenceError, safePersistenceFailure } from './errors';
 import { assertPersistenceConfiguration } from './selection';
-import { guardSailsShutdown } from './shutdown';
 import type { PersistenceResource } from './types';
 import type { PersistenceIndexInspection } from './indexes';
 import type { CorePrismaClient, StoragePrismaClient } from './prisma/client';
@@ -15,20 +15,20 @@ export { initializeMigrationPersistence } from './migration/runtime';
 
 export { getMigrationLedgerRepository } from './migration/runtime';
 
-export function inspectMigrationPersistence(app: Sails.Application): Promise<PersistenceIndexInspection> {
+export function inspectMigrationPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection> {
   return (require('./migration/preflight') as typeof import('./migration/preflight')).inspectMigrationPersistence(app);
 }
 
-export function ensureMigrationPersistenceIndex(app: Sails.Application): Promise<PersistenceIndexInspection> {
+export function ensureMigrationPersistenceIndex(app: PersistenceOwner): Promise<PersistenceIndexInspection> {
   return (require('./migration/preflight') as typeof import('./migration/preflight')).ensureMigrationPersistenceIndex(
     app
   );
 }
 
-export function inspectReferencePersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectReferencePersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./reference/preflight') as typeof import('./reference/preflight')).inspectReferencePersistence(app);
 }
-export function ensureReferencePersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureReferencePersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./reference/preflight') as typeof import('./reference/preflight')).ensureReferencePersistenceIndexes(
     app
   );
@@ -37,12 +37,12 @@ export { registerNamedQueryTarget } from './reference/NamedQueryExecution';
 
 export { initializeConfigurationPersistence } from './configuration/runtime';
 export { getConfigurationRepositories } from './configuration/runtime';
-export function inspectConfigurationPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectConfigurationPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (
     require('./configuration/preflight') as typeof import('./configuration/preflight')
   ).inspectConfigurationPersistence(app);
 }
-export function ensureConfigurationPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureConfigurationPersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (
     require('./configuration/preflight') as typeof import('./configuration/preflight')
   ).ensureConfigurationPersistenceIndexes(app);
@@ -50,16 +50,16 @@ export function ensureConfigurationPersistenceIndexes(app: Sails.Application): P
 
 export { initializeProgressPersistence } from './progress/runtime';
 export { getProgressRepositories } from './progress/runtime';
-export function inspectProgressPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectProgressPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./progress/preflight') as typeof import('./progress/preflight')).inspectProgressPersistence(app);
 }
 
 export { initializeHarvestPersistence } from './harvest/runtime';
 export { getHarvestRepositories } from './harvest/runtime';
-export function inspectHarvestPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectHarvestPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./harvest/preflight') as typeof import('./harvest/preflight')).inspectHarvestPersistence(app);
 }
-export function ensureHarvestPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureHarvestPersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./harvest/preflight') as typeof import('./harvest/preflight')).ensureHarvestPersistenceIndexes(app);
 }
 
@@ -78,11 +78,10 @@ interface Runtime {
   prisma: Map<string, { datastore: string; client: Promise<CorePrismaClient | StoragePrismaClient> }>;
   resources: Map<string, PersistenceResource>;
   active: Set<Promise<unknown>>;
-  shutdownRegistered?: boolean;
 }
 const runtimeKey: unique symbol = Symbol.for('@researchdatabox/redbox-core/persistence/v1');
-type RuntimeApplication = Sails.Application & { [runtimeKey]?: Runtime };
-function stateFor(app: Sails.Application): Runtime {
+type RuntimeApplication = PersistenceOwner & { [runtimeKey]?: Runtime };
+function stateFor(app: PersistenceOwner): Runtime {
   const holder = app as RuntimeApplication;
   if (!holder[runtimeKey])
     Object.defineProperty(holder, runtimeKey, {
@@ -100,7 +99,7 @@ function stateFor(app: Sails.Application): Runtime {
 }
 
 /** Offline initialization; clients are acquired only by concrete operation owners. */
-export async function initializePersistence(app: Sails.Application): Promise<void> {
+export async function initializePersistence(app: PersistenceOwner): Promise<void> {
   const state = stateFor(app);
   if (state.closing)
     throw new PersistenceError('lifecycle', 'Persistence is shutting down. Await cleanup before initialization.');
@@ -108,34 +107,12 @@ export async function initializePersistence(app: Sails.Application): Promise<voi
     throw new PersistenceError('lifecycle', 'Finish failed persistence cleanup before reinitializing.');
   if (state.ready) return;
   assertPersistenceConfiguration(app.config);
-  guardSailsShutdown(app);
-  if (!state.shutdownRegistered) {
-    const previous = app.config.beforeShutdown;
-    app.config.beforeShutdown = cb => {
-      let called = false;
-      const finish = (error?: unknown): void => {
-        if (called) return;
-        called = true;
-        cleanupPersistence(app).then(
-          () => cb(error),
-          failure => cb(error ?? failure)
-        );
-      };
-      try {
-        if (previous) previous(finish);
-        else finish();
-      } catch (error) {
-        finish(error);
-      }
-    };
-    state.shutdownRegistered = true;
-  }
   state.ready = true;
   state.closed = false;
 }
 
 /** App-owned queue/session/blob resources; callbacks expose no driver types. */
-export function registerPersistenceResource(app: Sails.Application, name: string, resource: PersistenceResource): void {
+export function registerPersistenceResource(app: PersistenceOwner, name: string, resource: PersistenceResource): void {
   const state = stateFor(app);
   if (state.closing || state.needsCleanup || state.closed)
     throw new PersistenceError(
@@ -153,20 +130,20 @@ export function registerPersistenceResource(app: Sails.Application, name: string
  * @remarks Driver handles must stay inside concrete adapters. Hooks use domain
  * repositories; this seam does not authorize new pools or transactional units.
  */
-export async function mongoDatabase(app: Sails.Application, name: string): Promise<Db> {
+export async function mongoDatabase(app: PersistenceOwner, name: string): Promise<Db> {
   const { resolveApplicationDatastore } =
     require('./mongodb/configuration') as typeof import('./mongodb/configuration');
   return ownedDatabase(app, name, () => resolveApplicationDatastore(app, name));
 }
 
 /** Internal native session owner. The session URL keeps its existing configuration key. */
-export async function mongoSessionDatabase(app: Sails.Application, config: Record<string, unknown>): Promise<Db> {
+export async function mongoSessionDatabase(app: PersistenceOwner, config: Record<string, unknown>): Promise<Db> {
   return mongoResourceDatabase(app, 'sessions', config);
 }
 
 /** Shared transport for native URL-configured resources. Not a CRUD boundary. @internal */
 export async function mongoResourceDatabase(
-  app: Sails.Application,
+  app: PersistenceOwner,
   name: string,
   config: Record<string, unknown>
 ): Promise<Db> {
@@ -175,7 +152,7 @@ export async function mongoResourceDatabase(
 }
 
 async function ownedDatabase(
-  app: Sails.Application,
+  app: PersistenceOwner,
   name: string,
   resolve: () => import('./mongodb/configuration').ResolvedDatastore
 ): Promise<Db> {
@@ -232,14 +209,14 @@ async function ownedDatabase(
 /** One lazy Prisma client per logical datastore; all clients borrow runtime-owned pools.
  * @internal The schemas are separate even when MongoDB connection policies share a pool.
  */
-export function prismaDatabase(app: Sails.Application, name: 'mongodb', datastore?: string): Promise<CorePrismaClient>;
+export function prismaDatabase(app: PersistenceOwner, name: 'mongodb', datastore?: string): Promise<CorePrismaClient>;
 export function prismaDatabase(
-  app: Sails.Application,
+  app: PersistenceOwner,
   name: 'redboxStorage',
   datastore?: string
 ): Promise<StoragePrismaClient>;
 export function prismaDatabase(
-  app: Sails.Application,
+  app: PersistenceOwner,
   name: 'mongodb' | 'redboxStorage',
   datastore: string = name
 ): Promise<CorePrismaClient | StoragePrismaClient> {
@@ -271,7 +248,7 @@ export function prismaDatabase(
 }
 
 /** Internal readiness guard for repository getters; never acquires resources. */
-export function persistenceReady(app: Sails.Application): boolean {
+export function persistenceReady(app: PersistenceOwner): boolean {
   const state = stateFor(app);
   return state.ready && !state.closing;
 }
@@ -281,7 +258,7 @@ export function persistenceReady(app: Sails.Application): boolean {
  * @internal
  * @remarks Retained adapter references refuse work once shutdown begins.
  */
-export function persistenceOperation<T>(app: Sails.Application, operation: () => Promise<T>): Promise<T> {
+export function persistenceOperation<T>(app: PersistenceOwner, operation: () => Promise<T>): Promise<T> {
   const state = stateFor(app);
   if (!state.ready || state.closing)
     return Promise.reject(new PersistenceError('lifecycle', 'Persistence is unavailable or draining.'));
@@ -294,7 +271,7 @@ export function persistenceOperation<T>(app: Sails.Application, operation: () =>
   return pending;
 }
 
-export async function cleanupPersistence(app: Sails.Application): Promise<void> {
+export async function cleanupPersistence(app: PersistenceOwner): Promise<void> {
   const state = stateFor(app);
   if (state.closing) return state.closing;
   state.ready = false;
@@ -376,7 +353,7 @@ export async function cleanupPersistence(app: Sails.Application): Promise<void> 
 }
 
 /** Preserve the original bootstrap failure even if resource cleanup also fails. */
-export async function cleanupPersistenceAfterFailure(app: Sails.Application): Promise<void> {
+export async function cleanupPersistenceAfterFailure(app: PersistenceOwner): Promise<void> {
   try {
     await cleanupPersistence(app);
   } catch {
@@ -387,40 +364,40 @@ export async function cleanupPersistenceAfterFailure(app: Sails.Application): Pr
 export { initializeSiemPersistence } from './siem/runtime';
 export { getSiemRepository } from './siem/runtime';
 
-export function inspectSiemPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectSiemPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./siem/preflight') as typeof import('./siem/preflight')).inspectSiemPersistence(app);
 }
-export function ensureSiemPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureSiemPersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./siem/preflight') as typeof import('./siem/preflight')).ensureSiemPersistenceIndexes(app);
 }
 
 export { initializeFigsharePersistence } from './figshare/runtime';
 export { getFigshareSyncRepository } from './figshare/runtime';
 
-export function inspectFigsharePersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectFigsharePersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./figshare/preflight') as typeof import('./figshare/preflight')).inspectFigsharePersistence(app);
 }
-export function ensureFigsharePersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureFigsharePersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./figshare/preflight') as typeof import('./figshare/preflight')).ensureFigsharePersistenceIndexes(
     app
   );
 }
 
-export function inspectStoragePersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectStoragePersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./storage/preflight') as typeof import('./storage/preflight')).inspectStoragePersistence(app);
 }
-export function ensureStoragePersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureStoragePersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./storage/preflight') as typeof import('./storage/preflight')).ensureStoragePersistenceIndexes(app);
 }
 
 export { initializeVocabularyPersistence } from './vocabulary/runtime';
 export { getVocabularyRepositories } from './vocabulary/runtime';
-export function inspectVocabularyPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectVocabularyPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./vocabulary/preflight') as typeof import('./vocabulary/preflight')).inspectVocabularyPersistence(
     app
   );
 }
-export function ensureVocabularyPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureVocabularyPersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (
     require('./vocabulary/preflight') as typeof import('./vocabulary/preflight')
   ).ensureVocabularyPersistenceIndexes(app);
@@ -430,11 +407,11 @@ export { initializeBrandingPersistence } from './branding/runtime';
 
 export { getBrandingRepository } from './branding/runtime';
 
-export function inspectBrandingPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectBrandingPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./branding/preflight') as typeof import('./branding/preflight')).inspectBrandingPersistence(app);
 }
 
-export function ensureBrandingPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureBrandingPersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./branding/preflight') as typeof import('./branding/preflight')).ensureBrandingPersistenceIndexes(
     app
   );
@@ -442,10 +419,10 @@ export function ensureBrandingPersistenceIndexes(app: Sails.Application): Promis
 
 export { initializeIdentityPersistence } from './identity/runtime';
 export { getIdentityRepositories } from './identity/runtime';
-export function inspectIdentityPersistence(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function inspectIdentityPersistence(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./identity/preflight') as typeof import('./identity/preflight')).inspectIdentityPersistence(app);
 }
-export function ensureIdentityPersistenceIndexes(app: Sails.Application): Promise<PersistenceIndexInspection[]> {
+export function ensureIdentityPersistenceIndexes(app: PersistenceOwner): Promise<PersistenceIndexInspection[]> {
   return (require('./identity/preflight') as typeof import('./identity/preflight')).ensureIdentityPersistenceIndexes(
     app
   );
