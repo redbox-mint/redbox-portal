@@ -110,3 +110,22 @@ This uses the existing batched backfill and explicit options, not the applicatio
 migration runner. Review its statistics and existing revision-policy guidance before
 restarting hosts. Neither maintenance entrypoint implies transactional rollback,
 exactly-once execution or permission to run mixed-version writers.
+
+## Upload/progress cutover qualification
+
+Keep the same staging and primary byte stores across the authorized maintenance
+window and forced v6 login. The owned tus provider persists resume state with
+actor/brand/record bindings and issues root-relative locations. Drain unfinished
+v5 transfers before cutover when possible. Old staging metadata without trusted
+ownership bindings is retained and refused by v6; reconcile it using operator-
+verified ownership or let the user restart the upload. Never adopt it based on
+client-supplied IDs or delete it as part of session invalidation. Include the
+staging store in the existing consistent backup/recovery procedure.
+
+Current @uppy/companion 7.1.1 and inspected 7.2.0 lack the isolated app/transfer/
+socket lifetime contract required by SR-042. Do not enable remote-source uploads
+until a lifecycle-capable provider artifact passes the recorded resume, abort,
+shutdown and separate-socket checks. Direct portal Socket.IO and local tus/
+multipart are implemented and independently verified; that does not waive the
+joint Companion acceptance gate. Pages/static packaging remain SR-040 and full
+PDF/browser/provider lifetime combinations remain SR-044.

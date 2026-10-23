@@ -70,6 +70,38 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
 
 ### 1.3 Recorded HTTP compatibility breaks
 
+- Migrated record writes and harvest use explicit authentication, membership in
+  the requested brand, current object/create/workflow grants and owned CSRF or a
+  separately verified API bearer exemption. Duplicate harvest requests still
+  authorize existing objects before returning checkpoints. Identity linking scopes
+  memberships, disclosure and record ACL rewrites to the owning brand. Clients
+  must use that brand's URLs and authorized credentials; malformed input and
+  refused grants cannot trigger effects. The stored concurrency, schema and
+  partial-save contracts remain authoritative.
+- Remaining branding, vocabulary, Figshare, SIEM, notification and indexing
+  administration requires the owning brand's Admin role and action policies.
+  Single-record indexing verifies ownership; remove-all deletes only the requested
+  brand's Solr documents. Administrators needing a whole installation reindex must
+  submit authorized operations for each brand. Unsafe legacy GET cache refresh
+  requires browser CSRF (or verified bearer), and HEAD returns 405 without effects.
+- Configured actions resolve named `{ authorize, execute }` operations at
+  composition time. Sails service expressions are not evaluated by the standalone
+  host. Convert each configured action/hook to an explicitly selected operation;
+  unknown actions return 404 and unregistered record hooks fail validation.
+- Tus resumptions bind upload metadata to actor, brand and record and recheck the
+  current record edit grant. Callback secrets cannot replace authentication.
+  Browser tus clients send CSRF on raw requests including HEAD resume checks;
+  verified bearer clients use the API exemption. Locations are root-relative
+  rather than trusting forwarded hosts. Existing
+  unbound v5 staging objects are retained but cannot acquire an owner from client
+  input; drain unfinished v5 transfers before cutover or reconcile their ownership
+  from trusted operator records. The forced login must not delete staging state.
+- Portal progress uses direct Socket.IO grants/events. Virtual HTTP subscribe/
+  unsubscribe returns 410; consumers acquire a fresh one-use grant over CSRF-
+  protected HTTP and rejoin after reconnect. Companion's separate ws protocol has
+  no accepted lifecycle owner in current 7.1.1/7.2.0 artifacts; remote transfers and
+  joint socket shutdown remain gated by the recorded upstream prerequisite.
+
 - The migrated identity, query-definition and RVA writes exported by
   `identityAdministrationRoutes`, `queryWriteRoutes` and
   `vocabularyIntegrationRoutes` require authentication, membership in the requested

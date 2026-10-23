@@ -1,9 +1,10 @@
 # Sails retirement: v6 task list
 
-Status: SR-001–SR-034 are complete except SR-005, which awaits institution and
-production-source designation. SR-038 and SR-039 are complete. SR-035–SR-037
-remain partial; their completed slices and open dependencies are recorded below.
-SR-040 onward has not started.
+Status: SR-001–SR-039 are complete except SR-005, which awaits institution and
+production-source designation. SR-041 is complete. SR-042 and SR-043 have verified
+owned tus/progress slices but remain blocked on Companion lifecycle support.
+SR-040 and SR-044 onward have not started.
+
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
 
@@ -511,12 +512,17 @@ Read the [design](design.md) for behavior and the
   Full Mongo-backed core: 4408 passing, 68 existing pending, zero failures.
   SR-035 mutations, SR-041/042 uploads and SR-043 progress remain separate.
 
-- [ ] **SR-035 — Migrate record mutations and workflow operations.**
+- [x] **SR-035 — Migrate record mutations and workflow operations.**
 
-  **Status:** partial; [shared create/workflow authorization and actual verification](evidence/p5-record-mutations.md).
-  The owned save pipeline and SR-043/affected upload providers remain required.
+  **Status:** done; [owned pipeline, all 23 mutation/harvest declarations,
+  concurrency/schema/audit/compensation and actual verification](evidence/p5-record-mutations.md).
+  The required direct-progress and local multipart/tus slices are qualified.
+  Remote Companion transfer/coexistence remains the separate SR-042/SR-043 gate;
+  it is not invoked by these save operations.
 
-  **Depends on:** SR-034, SR-032, SR-039, SR-043; add affected provider tasks from SR-031.
+  **Depends on:** SR-034, SR-032, SR-039; the direct portal slice of SR-043
+  and local multipart/tus slices of SR-041/SR-042. The remaining Companion
+  transfer/coexistence criteria do not participate in these save operations.
 
   **Deliver:** create/update/delete/transition slices with validation, stored
   concurrency policy, revisions/incarnations, schema grants, audit and compensation.
@@ -525,11 +531,12 @@ Read the [design](design.md) for behavior and the
   retain documented behavior; ETag/precondition/schema contracts pass. No hidden
   Sails service/socket dependency remains in a completed slice.
 
-- [ ] **SR-036 — Migrate identity administration and external integration mutations.**
+- [x] **SR-036 — Migrate identity administration and external integration mutations.**
 
-  **Status:** partial; [32 protected identity/query/RVA mounts and owned operations](evidence/p5-identity-integration.md).
-  Linking depends on SR-035; remaining independent administration/integration
-  routes and provider qualification are recorded explicitly.
+  **Status:** done; [all 117 identity/administration/integration declarations,
+  tenant-qualified linking and real provider success/failure/retry](evidence/p5-identity-integration.md).
+  The original 84 independent declarations and linking are implemented; single-record
+  indexing was also found misclassified and migrated. No independent route is deferred.
 
   **Depends on:** SR-031, SR-038, SR-039; add actual domain/provider prerequisites.
 
@@ -540,12 +547,14 @@ Read the [design](design.md) for behavior and the
   fixtures cover success/failure/retry without adding new exactly-once claims;
   ordinary external work cannot activate during failed initialization.
 
-- [ ] **SR-037 — Close API-group overrides, dependency and route coverage.**
+- [x] **SR-037 — Close API-group overrides, dependency and route coverage.**
 
-  **Status:** partial; [route inventory, import/override closure and regression evidence](evidence/p5-api-closure.md).
-  All 333 declarations are accounted for; 153 are standalone. The 23 record
-  mutation and 84 remaining administration/integration declarations prevent API
-  closure. No unfinished route is presented as an intentional removal.
+  **Status:** done; [152/152 API contracts, overrides/import closure and full
+  qualification](evidence/p5-api-closure.md). Inventory: 282/333 standalone
+  declarations; the remaining 51 are SR-040 pages/static consumers. Remote Companion
+  and joint socket ownership remain explicitly unchecked in P6. Final HTTP: 146
+  passing; Bruno: 34 requests/53 assertions; full Mongo core: 4417 passing,
+  68 existing pending, zero failures.
 
   **Depends on:** SR-032, SR-033, SR-034, SR-035, SR-036.
 
@@ -598,7 +607,10 @@ Read the [design](design.md) for behavior and the
   lookup pass under institution root/proxy URLs; cache/content-type/dotfile behavior
   is intentional. No `res.view()` or source-tree-only path is required.
 
-- [ ] **SR-041 — Replace Skipper multipart handling with owned streaming uploads.**
+- [x] **SR-041 — Replace Skipper multipart handling with owned streaming uploads.**
+
+  **Status:** done; [exact parser selection, all 13 declarations, real bytes,
+  backpressure, cancellation and cleanup/failure/retry](evidence/p6-uploads.md#sr-041-owned-streaming-multipart).
 
   **Depends on:** SR-034, SR-035, SR-024.
 
@@ -611,6 +623,12 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-042 — Integrate tus and Companion with the standalone server.**
 
+  **Status:** blocked on the external Companion lifecycle contract;
+  [owned tus/resume/callback slice and actual 7.1.1/7.2.0 provider findings](evidence/p6-uploads.md).
+  Four real tus cases pass, including persisted reconstruction and draining audit.
+  Current Companion exposes shared app state and no supported socket/transfer
+  admission/drain/close owner; remote transfers are not claimed as implemented.
+
   **Depends on:** SR-041, SR-038, SR-034.
 
   **Deliver:** dedicated mounts/raw-parser exclusions, auth/callback paths,
@@ -621,6 +639,12 @@ Read the [design](design.md) for behavior and the
   overrides are changed only with consumer-specific compatibility evidence.
 
 - [ ] **SR-043 — Replace portal Sails sockets with direct Socket.IO.**
+
+  **Status:** blocked only on the explicit Companion coexistence acceptance;
+  [direct portal sockets, six progress declarations, client conversion and
+  four real session/record/progress/drain cases](evidence/p6-realtime.md) are implemented.
+  The completed direct-progress slice satisfies SR-035's concrete dependency.
+  Joint Companion attachment/transfer shutdown awaits the SR-042 provider artifact.
 
   **Depends on:** SR-028, SR-034, SR-023.
 

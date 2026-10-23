@@ -1,6 +1,6 @@
 {
   "additions": [],
-  "source": "1e7045a0f1fd3a168ce19e333eb60352d34d4afb",
+  "source": "54e20da556968857878d6b294a1651a162beaaa6",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
     "SR-040": 51,

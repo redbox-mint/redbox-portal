@@ -1,103 +1,89 @@
-# SR-035 — shared create/workflow authorization; mutation pipeline pending
+# SR-035 — owned record mutations and workflow operations
 
-## Status and source
+## Implementation and scope
 
-**Partial. SR-035 remains unchecked.** Implementation starts at `fca67fe15`
-(`stack/sails-retirement`, shared checkout). No record mutation URL is advertised
-as standalone by this slice. The exact 23 declarations remain in the route
-inventory. Final integrated execution is recorded in [API closure](p5-api-closure.md).
+All **23 declarations** are implemented: **21** record mutation declarations
+(API and browser aliases) plus **2** harvest declarations. The previous
+create-authorization-only status is superseded. Starting source: `a7d5ae36a`,
+shared `stack/sails-retirement` checkout on host **agentvm**. The owned pipeline
+is `9b5942aa6`; HTTP operations and account linking are `3ce52f834`.
+Providers are `1e7045a0f`; final API coverage is `54e20da55`.
 
-## Extracted operation
+`records/Records.ts` contains the existing save/lifecycle algorithms once.
+`services/RecordsService.ts` is a thin comparison export;
+`compat/sails/records.ts` supplies legacy-only configuration/event bindings.
+Converted comparison instances live on the application, outside the old global
+service cache. Standalone callers inject storage, datastreams, record types,
+workflows, forms, schema/validation, queue, indexing, branding and named hooks.
+There is no request-time Sails lookup, controller dispatch or `eval` in the owned
+pipeline. `RecordCreateAuthorization` and the previously extracted projections
+remain shared. `RBValidationError` now needs only a translation operation.
 
-`records/RecordCreateAuthorization.ts` owns the existing create ACL projection,
-stored starting/target workflow lookup and target diagnostics. The comparison
-`services/RecordsService.ts` delegates to it, retaining its overridable edit and
-transition checks. No second authorization algorithm, controller dispatcher,
-Sails global or socket client is imported by the owned module. The two historical
-RDMP hook names are configuration string comparisons, never evaluated code.
+The same extraction includes `HarvestRuns`, `FigshareSourceIntents`,
+`storage/StorageManager`, `storage/StandardDatastream` and `queries/Solr`.
+Existing Flydrive/GridFS repositories and native resource owners are reused.
+Figshare source intent is computed from injected configuration; actual delivery
+requires its selected provider and is never replaced by a successful no-op.
+Legacy service wrappers delegate rather than retaining another implementation.
 
-Actual Mongo tests read the stored record type and workflow definitions, require
-both edit and target transition roles, reject unknown/malformed/foreign targets,
-and prove submitted actor authorization cannot grant create access. This is
-shared authorization extraction, not proof of a successful HTTP mutation.
+## Security, concurrency and failure behavior
 
-## Outstanding acceptance and concrete dependencies
+`recordMutations.ts` binds all effective policies before mounting any route,
+then enforces owned browser CSRF or independently verified API bearer exemption,
+actor/brand membership, object ACL and operation-specific role authorization.
+The shared pipeline checks the **stored** concurrency policy, schema grants,
+validation, create/target workflow grants, revisions, permanent incarnation
+ownership, attachment references, audit/index work and compensation. It retains
+v1/v2 envelopes, browser save responses, public ETags/preconditions and schema
+links. It does not infer write authority from OpenAPI or submitted permissions.
 
-The existing `RecordsService` still owns the save orchestration: stored concurrency
-policy/If-Match checks, metadata/schema validation and grants, revisions and
-incarnations, hook effects and compensation, index/audit effects, attachments and
-progress. Moving only controller methods would hide these dependencies. Remaining
-work is to extract that orchestration once, bind selected hook operations without
-`eval`/globals, and supply the actual providers. Create/update/delete/restore,
-permission changes, harvest and transitions therefore remain unmounted.
+Real HTTP tests cover missing/stale/racing strict preconditions; one racing write
+wins. Observe and last-write-wins accept missing tags but still reject an explicit
+stale tag. Merge and replacement retain their existing distinction. Unknown and
+role-denied workflow targets have no persisted effect; an allowed target persists.
+Delete/restore/purge use the existing lifecycle/CAS owner. Existing reconciliation
+and action-execution tests remain authoritative for partial/unknown save effects;
+no transaction or new exactly-once guarantee is introduced.
 
-- **SR-043** is an explicit task prerequisite: replace `AsynchsService`/Sails socket
-  progress with the owned authorized progress integration. This round is explicitly
-  prohibited from starting SR-040 onward.
-- **SR-041/042** own affected attachment, staging, multipart/tus/Companion providers.
-  A no-op attachment collaborator would not establish compensation or partial effects.
-- Remaining SR-035 work must exercise real success/denied/stale writes, stored
-  concurrency modes, ETag/preconditions, schema grants, audit and partial failures
-  on the complete owned pipeline. This extraction does not satisfy those cases.
+Harvest now scopes legacy lookup to the authenticated brand and authorizes
+existing objects **before** duplicate/no-op shortcuts. The persisted checkpoint,
+event-failure rollback and retry cases execute on Mongo. Account linking uses the
+same writer for tenant-scoped ACL rewrites; a link cannot rewrite another brand's
+record. Pre-write link refusals are typed 400 errors; later failures disclose
+possible partial effects without leaking provider details.
 
-SR-036 account linking needs this writer for record ACL rewrites. Its extracted
-identity module rejects missing writer composition before creating links,
-changing memberships or disabling an alias; its HTTP linking routes stay absent.
+Audit jobs, retained optional security follow-ups and index work remain owned
+through request abort and shutdown. A compatibility regression caught a lost
+optional security diagnostic after extraction; the catch now runs inside the
+retained follow-up, preserving both lifetime and the original diagnostic.
 
-## Actual execution
+## Actual verification
 
-Host: local standalone Express test fixtures and real Docker MongoDB **8.0.34**,
-FCV **8.0**, container `sr-p5-mongo8`, loopback `127.0.0.1:34903`, image
-`sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907`.
-Fixtures use disposable `sr_p4_http_<pid>_<counter>` databases and drop only their
-own data after draining the application. No institution/topology qualification
-is implied. Node **26.11.1**, npm **11.20.0**, TypeScript **5.9.3**, Mocha
-**11.7.6**, ts-node **10.9.2**, Express **5.2.1**, Prisma ORM **8.0.0-rc.19** /
-CLI **8.0.0-rc.24**, Mongo driver **7.7.0**. No dependency or lockfile change.
+Use the exact environment/commands in [API closure](p5-api-closure.md#commands-and-results).
+The final integrated command executes **12 record/harvest/link HTTP tests**,
+including all **8 existing Bruno permission requests / 16 assertions**, with
+zero failures or pending cases. These run against actual MongoDB **8.0.34**,
+Solr **10.0.0**, GridFS, schema grants and the real queue. The complete HTTP
+matrix is **146 passing**, plus a separately executed **7/7** multipart probe.
 
-At the repository root:
+Focused original record/storage regression: **476 passing / 51 existing pending**
+(`record-owned-regression3.log`); identity/harvest: **141 passing**, no pending
+(`identity-harvest-regression6.log`); retained audit/progress/controller regression:
+**139 passing**, no pending (`compat-drain-regression2.log`). Final full Mongo
+core/build/typecheck/lint results and intermediate failures are recorded in API
+closure. Existing pending cases establish no new acceptance.
 
-```sh
-export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
-npm --prefix packages/redbox-core run build
-npm --prefix packages/redbox-core run typecheck:application
-npm run lint
-```
+The released-v5 artifact has representative read/form/auth observations, not a
+complete write replay. Preserve that limit: retained original mutation tests,
+current intermediate-source behavior and actual standalone writes are the write
+comparison evidence. Institution qualification remains SR-005.
 
-Core build (including both actual Prisma contract generation/copy steps) and
-strict application source/test typecheck exit **0**. Repository lint: **986 files,
-0 errors, 0 warnings** at this extraction point (`p5-round-lint2.log`).
-The two requested `prefer-const` warnings are fixed: the integration-audit
-comparison constructor defers its `const instance` reference in getters; CSV
-cancellation closes over the lazily initialized `const output` stream. Storage
-build and lint passed, with zero lint errors/warnings.
+## Provider boundary
 
-In `packages/redbox-core`, using the same absolute qualified Node PATH:
-
-```sh
-HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http \
-TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
-  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
-  --no-config --timeout 45000 test/http/RecordCreateAuthorizationMongo.test.ts
-
-TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
-  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
-  --no-config --require chai --require test/setup.ts --timeout 10000 \
-  test/services/RecordsService.test.ts test/services/UsersService.test.ts \
-  test/controllers/UserController.test.ts test/controllers/RecordController.test.ts \
-  test/controllers/webservice/UserManagementController.test.ts
-```
-
-Create authorization **4 passing, 0 failing/pending** (also executed with the
-identity HTTP suite). Existing service/controller regression **556 passing,
-0 failing/pending**, exit **0** (`p5-round-regression2.log`). Initial diagnostics
-found two fixture brand roles missing and one TypeScript callback-arity mismatch;
-these were corrected, followed by actual reruns. Identity extraction diagnostics
-and final closeout are recorded separately; no skipped test is counted here.
-
-Full regression exposed an eager comparison lookup in `createAuthorization()`:
-harvest's ACL-only projection does not need record-type/workflow services. Those
-bindings are now lazy getters, preserving existing harvest fixture/override
-behavior. The unchanged focused harvest suite passes **26/26**; combined audit,
-attachment-journal and harvest regression passes **59/59**, no pending/failures
-(`p5-round-correction-regression2.log`). Final full-core results are in API closure.
+Multipart and direct portal progress, plus actor-bound tus resume/callbacks, are
+implemented and exercised; see [uploads](p6-uploads.md) and
+[realtime](p6-realtime.md). They satisfy the concrete dependencies of these owned
+save operations. Remote-source Companion transfers and joint Companion/socket
+shutdown remain externally blocked in SR-042/SR-043. No record mutation calls an
+unowned Companion instance or reports a remote transfer as completed. Those
+provider gaps remain explicit and do not hide unfinished save-pipeline work.

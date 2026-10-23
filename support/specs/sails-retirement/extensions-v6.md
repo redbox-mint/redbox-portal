@@ -108,3 +108,28 @@ release explicitly tracked work. P4/P5 route adapters must retain returned actio
 work and session handoffs through this interface; the partial host does not yet
 adapt arbitrary legacy actions. Future upload/socket/native owners must use this
 resource contract and keep real work, including late completion writes, owned.
+
+## Selected mutation operations and native providers
+
+The migrated adapters accept their selected Records/Users/Branding/vocabulary/
+provider operations directly; resolve named factory overrides before construction.
+They never look up a Sails service or dispatch through a legacy controller when
+an operation is missing. Record hook names resolve through `RecordPipelineInput.
+resolveHook` to known callable operations. Preserve the existing hook arguments,
+ordering, response effects and save compensation; do not evaluate configuration
+as JavaScript. Configured HTTP actions use the smaller `ConfiguredAction` pair:
+`authorize(context)` and `execute(context)`, with explicit actor/brand/portal and
+plain input facts. The adapter awaits the action's audit.
+
+Register the actual StreamingMultipart, ResumableUploads and ProgressSockets
+owners with the application's existing resource owner. Resolve policies for the
+whole group before mounting any route. Use raw parser exclusions for tus and
+multipart, current record ACLs and independently verified bearer exemption or
+browser CSRF. ProgressSockets takes the same persistence owner so its draining
+completion permission belongs to an active admitted HTTP/job scope. A detached
+callback cannot acquire completion privileges from an old scope.
+
+Companion is not a permitted hidden construction-time singleton. Current upstream
+7.1.1 and inspected 7.2.0 expose neither isolated app/transfer ownership nor a
+returned socket close owner; see evidence/p6-uploads.md. Do not attach that provider
+through an untracked integration or copy its algorithms to claim acceptance.

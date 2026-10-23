@@ -166,3 +166,38 @@ format/precedence fixtures. Commands, artifacts and limits are in
 Institution designation remains SR-005. Full config orchestration, queues,
 authenticated/public portal coverage and final application packaging remain the
 later tasks; none is implied by a successful offline extension import.
+
+## Record hooks, configured actions and progress clients
+
+For record mutations, inject the existing `records/Records` pipeline with selected
+repositories, storage, schema/validation, workflow/forms, queue/index and provider
+operations. Convert each v5 hook expression into a known name in the selected
+composition's callable map. `resolveHook(name)` returns only a registered function
+and throws for unknown names. Keep the existing hook signature/phase semantics;
+a missing provider is a composition failure, never a successful no-op. The thin
+Sails comparison wrapper may still interpret old expressions while it has legacy
+consumers; the standalone graph cannot import that wrapper.
+
+Replace a generic v5 action service expression with a selected `ConfiguredAction`:
+
+```ts
+const actions = {
+  publish: {
+    authorize: context => publication.canPublish(context.actor, context.brand),
+    execute: context => publication.publish(context.brand.id, context.body),
+  },
+};
+```
+
+Pass this map to `mountConfiguredActionRoutes` with the application's bound
+policies, CSRF and awaited audit. The selected publication operation owns any
+external requests and partial-effect reporting. It receives no Express request
+or response and starts no transfer during registration.
+
+Replace virtual `io.socket.get(.../asynch/subscribe/...)` requests with direct
+Socket.IO subscribe/unsubscribe events. Use `assets/js/redbox-progress.js` with the
+configured portal socket path, token URL and current CSRF operation. Reconnect
+fetches a fresh grant and rejoins remembered rooms; both joins and emissions
+reauthorize current actor/record access. Legacy virtual routes return 410.
+Companion's separate provider/protocol remains gated by its upstream lifecycle
+contract, as recorded in evidence/p6-uploads.md and evidence/p6-realtime.md.
