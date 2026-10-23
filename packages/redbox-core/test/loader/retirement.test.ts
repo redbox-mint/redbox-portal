@@ -30,6 +30,34 @@ describe('retired persistence surfaces', () => {
     for (const name of ['models', 'orm', 'persistence'])
       await assert.rejects(access(join(directory, `config/${name}.js`)));
   });
+  it('removes exact zero-hook config shims on repeated starts', async () => {
+    for (const name of ['models', 'orm', 'persistence']) {
+      const source = generatedConfig(name)
+        .replace("const institution_config = require('institution').registerRedboxConfig();", '')
+        .replace(
+          `mergeRedboxConfig('${name}', Config.${name} || {}, institution_config['${name}'] || {})`,
+          `Config.${name}`
+        );
+      await writeFile(join(directory, `config/${name}.js`), source);
+    }
+    await assertRetiredModelSurfaces(directory);
+    await assertRetiredModelSurfaces(directory);
+    for (const name of ['models', 'orm', 'persistence'])
+      await assert.rejects(access(join(directory, `config/${name}.js`)));
+  });
+  it('preserves an edited zero-hook config shim and refuses startup', async () => {
+    const source =
+      generatedConfig('models')
+        .replace("const institution_config = require('institution').registerRedboxConfig();", '')
+        .replace(
+          "mergeRedboxConfig('models', Config.models || {}, institution_config['models'] || {})",
+          'Config.models'
+        ) + '// institution edit\n';
+    const filename = join(directory, 'config/models.js');
+    await writeFile(filename, source);
+    await assert.rejects(assertRetiredModelSurfaces(directory), /preserved.*obsolete/);
+    assert.equal(await readFile(filename, 'utf8'), source);
+  });
   for (const kind of ['custom-model', 'edited-model', 'edited-config']) {
     it(`preserves ${kind} and refuses startup with institution guidance`, async () => {
       const filename = join(directory, kind === 'edited-config' ? 'config/models.js' : 'api/models/Institution.js');

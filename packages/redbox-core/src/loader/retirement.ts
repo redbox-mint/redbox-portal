@@ -72,7 +72,8 @@ export async function assertRetiredModelSurfaces(appPath: string): Promise<void>
     const generated =
       content.startsWith(header) &&
       bindings.every(Boolean) &&
-      tail === `${imports}\n\nmodule.exports.${name} = ${merge};\n`;
+      (tail === `${imports}\n\nmodule.exports.${name} = ${merge};\n` ||
+        tail === `\n\nmodule.exports.${name} = Config.${name};\n`);
     if (generated) await fs.unlink(file);
     else
       throw new Error(
