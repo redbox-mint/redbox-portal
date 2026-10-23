@@ -1,3 +1,4 @@
+import type {} from '../waterline-models/types'; // Declares the Waterline Record model global.
 import { retainHttpRequestFollowup } from '../middleware/requestLifetime';
 import { prepareSourceIntent } from './figshare-v2/source-intent';
 import { assertRecordFieldPaths } from '../RecordWriteOptions';

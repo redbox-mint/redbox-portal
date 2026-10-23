@@ -1,3 +1,4 @@
+import type {} from '../waterline-models/types'; // Declares the Waterline Record model global.
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE

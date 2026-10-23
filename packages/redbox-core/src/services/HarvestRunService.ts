@@ -1,3 +1,4 @@
+import type {} from '../waterline-models/types'; // Declares the Waterline Record model global.
 import * as _ from 'lodash';
 import { createHash } from 'node:crypto';
 import { firstValueFrom, Observable } from 'rxjs';
