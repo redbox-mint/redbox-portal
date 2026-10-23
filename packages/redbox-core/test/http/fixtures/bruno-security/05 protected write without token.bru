@@ -1,0 +1,25 @@
+meta {
+  name: 05 protected write without token
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/default/rdmp/__test/protected
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status 403", () => expect(res.getStatus()).to.equal(403));
+
+}

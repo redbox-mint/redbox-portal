@@ -1,3 +1,5 @@
+import { createHttpCsrf, mountCsrfTokenRoute } from '../../src/http/express/csrf';
+import { createPilotPolicies, PathRules } from '../../src/http/express';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import type { Router, RequestHandler } from 'express';
 import {
@@ -26,9 +28,10 @@ export async function authenticationFixture(
     trustProxy?: boolean;
     config?: AuthBrandConfig;
     csrf?: RequestHandler;
+    protectCsrf?: boolean;
     hook?: AuthenticationAccountsInput['resolveHook'];
     audit?: () => Promise<void>;
-    prepare?(router: Router): void;
+    prepare?(router: Router, csrf?: ReturnType<typeof createHttpCsrf>): void;
   } = {}
 ) {
   const f = await mongoFixture();
@@ -101,6 +104,56 @@ export async function authenticationFixture(
           res.json(await auth.authenticate(req));
         })
       );
+      const csrf = options.protectCsrf
+        ? createHttpCsrf({
+            origins: [`http://127.0.0.1:${host.address()!.port}`],
+            authenticateBearer: token => f.identity.bearer(token),
+          })
+        : undefined;
+      if (csrf) {
+        mountCsrfTokenRoute(router, csrf);
+        const pathRules = new PathRules(() => f.identities.list('pathrule', {}, { populate: ['role', 'branding'] }));
+        await f.identities.create('pathrule', {
+          path: '/:branding/:portal/__test/schema',
+          role: f.role.id,
+          branding: f.brand.id,
+          can_update: true,
+        });
+        await pathRules.loadRules();
+        const policies = createPilotPolicies({
+          branding: f.branding,
+          pathRules,
+          portals: ['rdmp'],
+          defaultUnauthenticatedRole: () => undefined,
+          emitRequestFailure: async () => {},
+          authenticate: req => auth.authenticate(req),
+        });
+        const chain = [
+          policies.brandingandportal,
+          policies.iswebserviceauthenticated,
+          policies.brandactor,
+          policies.checkauth,
+        ];
+        router.post('/:branding/:portal/api/__test/protected', ...chain, csrf.apiProtect, (_req, res) =>
+          res.json({ saved: true })
+        );
+        router.post(
+          '/:branding/:portal/__test/protected',
+          ...chain,
+          csrf.protect,
+          httpAction(async (_req, res) => {
+            await f.native.db().collection('csrfProbeWrites').insertOne({ saved: true });
+            res.json({ saved: true });
+          })
+        );
+        router.post(
+          '/:branding/:portal/__test/schema',
+          ...chain.slice(0, -1),
+          policies.checkrecordschemaauth,
+          csrf.protect,
+          (_req, res) => res.json({ saved: true })
+        );
+      }
       mountAuthenticationRoutes(router, {
         passport: auth.passport,
         identity: f.identity,
@@ -122,9 +175,9 @@ export async function authenticationFixture(
           failures++;
         },
         // Auth-only fixture; SR-039 replaces this with the qualified CSRF middleware.
-        csrf: options.csrf ?? ((_req, _res, next) => next()),
+        csrf: options.csrf ?? csrf?.protect ?? ((_req, _res, next) => next()),
       });
-      options.prepare?.(router);
+      options.prepare?.(router, csrf);
       router.use(httpErrorHandler(nothingLogger));
     },
   });

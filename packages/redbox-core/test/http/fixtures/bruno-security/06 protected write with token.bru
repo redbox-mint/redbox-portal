@@ -1,0 +1,26 @@
+meta {
+  name: 06 protected write with token
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/default/rdmp/__test/protected
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+  Content-Type: application/json
+  X-CSRF-Token: {{csrf}}
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status 200", () => expect(res.getStatus()).to.equal(200));
+  test("Write accepted", () => expect(res.getBody().saved).to.equal(true));
+}

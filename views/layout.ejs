@@ -47,7 +47,10 @@
                 <li><a href="user/login"><i class="fa fa-user"></i>Login</a></li>
               <% } else { %>
                 <li><i class="fa fa-user"></i>&nbsp;Welcome <%= req.user.name %></li>
-                <li><a href="user/logout">Logout</a></li>
+                <li><form class="redbox-logout" method="post" action="<%= BrandingService.getBrandAndPortalPath(req) %>/user/logout">
+                  <input type="hidden" name="_csrf" value="<%= typeof _csrf !== 'undefined' ? _csrf : '' %>">
+                  <button type="submit" class="btn btn-link">Logout</button>
+                </form></li>
               <% } %>
             </ul>
           </div>

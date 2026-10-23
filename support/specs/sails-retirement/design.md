@@ -105,6 +105,18 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
   redirects and configure the trusted IdP logout origin. Session/transfer guidance:
   [SR-038 evidence](evidence/p6-auth-csrf.md#contract-and-upgrade-behavior).
 
+- Browser sessions using legacy `csrf: false` REST URLs must now send a valid
+  session token. Independent, verified bearer authentication retains the REST
+  exemption; merely adding an Authorization header never exempts a request.
+  Browser form tokens use `_csrf` or `X-CSRF-Token`; query tokens are rejected.
+  `/csrfToken` retains `{ _csrf }` and uses `Cache-Control: no-store`. Token and
+  browser write requests from unconfigured origins or sibling sites are denied.
+  Configure canonical browser origins explicitly; never infer them from forwarded
+  headers. Angular's existing token/header contract and full-page login redirect
+  need no change. Custom clients that continue after rotation must fetch a fresh
+  token. Page hosts supply `res.locals._csrf` from the application CSRF generator
+  for the coordinated POST logout forms.
+
 SR-031's matching/unruled, anonymous/default-role, redirect/JSON/schema and event
 tests supersede P4's provisional missing-rule denial and per-request rule-query
 behavior. Cached rules refresh at bootstrap or explicit `loadRules()`, as in the

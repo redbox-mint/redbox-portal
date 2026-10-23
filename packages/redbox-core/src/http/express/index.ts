@@ -40,3 +40,5 @@ export {
   installOidcAuthentication,
   type IdentityProvidersInput,
 } from './identityProviders';
+
+export { createHttpCsrf, mountCsrfTokenRoute, csrfTokenRoute, type HttpCsrfInput } from './csrf';

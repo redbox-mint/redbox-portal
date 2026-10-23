@@ -222,6 +222,7 @@ export const routes: RoutesConfig = {
   'get /user/info': 'UserController.info',
   'get /:branding/:portal/user/info': 'UserController.info',
   'get /:branding/:portal/user/login': 'UserController.login',
+  'post /:branding/:portal/user/logout': 'UserController.logout',
   'get /:branding/:portal/user/logout': 'UserController.logout',
   'get /:branding/:portal/user/find': 'UserController.find',
 

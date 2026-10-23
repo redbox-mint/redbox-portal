@@ -1,0 +1,30 @@
+meta {
+  name: 07 protected logout
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/default/rdmp/user/logout
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{cookie}}
+  Content-Type: application/json
+  X-CSRF-Token: {{csrf}}
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Status 302", () => expect(res.getStatus()).to.equal(302));
+
+}
+
+script:pre-request {
+  req.setMaxRedirects(0);
+}

@@ -48,7 +48,8 @@
     "test:http-pilot:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/http/IdentityMongo.test.ts test/http/MiddlewareMongo.test.ts test/http/RecordTypesMongo.test.ts test/http/PilotFailuresMongo.test.ts test/http/CompiledPilotMongo.test.ts",
     "test:http-bruno:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/BrunoPilotMongo.test.ts",
     "test:http-configuration:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/ConfigurationMongo.test.ts",
-    "test:http-auth:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/AuthenticationMongo.test.ts test/http/OidcMongo.test.ts"
+    "test:http-auth:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/AuthenticationMongo.test.ts test/http/OidcMongo.test.ts",
+    "test:http-csrf:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/CsrfMongo.test.ts"
   },
   "author": "",
   "license": "ISC",
@@ -143,7 +144,8 @@
     "yaml": "2.9.1",
     "zod": "4.6.7",
     "@prisma/orm-mongo": "8.0.0-rc.19",
-    "import-meta-resolve": "4.2.0"
+    "import-meta-resolve": "4.2.0",
+    "csrf-sync": "4.2.1"
   },
   "overrides": {
     "axios": "1.20.0",

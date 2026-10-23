@@ -73,7 +73,10 @@
                 <li><i class="fa fa-user"></i>&nbsp;<%= TranslationService.t('menu-welcome-text') %>
                   <%= req.user.name %>
                 </li>
-                <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/user/logout"><%= TranslationService.t('menu-logout') %></a></li>
+                <li><form class="redbox-logout" method="post" action="<%= BrandingService.getBrandAndPortalPath(req) %>/user/logout">
+                  <input type="hidden" name="_csrf" value="<%= typeof _csrf !== 'undefined' ? _csrf : '' %>">
+                  <button type="submit" class="btn btn-link"><%= TranslationService.t('menu-logout') %></button>
+                </form></li>
               <% } %>
 
             </ul>

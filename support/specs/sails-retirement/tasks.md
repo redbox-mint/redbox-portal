@@ -555,7 +555,10 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   require login safely; cookie changes and socket/client consequences are documented.
   Do not require preserving Sails serialization or lose upload state implicitly.
 
-- [ ] **SR-039 — Replace Sails CSRF and verify browser policy enforcement.**
+- [x] **SR-039 — Replace Sails CSRF and verify browser policy enforcement.**
+
+  **Status:** done; [exact-pinned synchronizer, real Mongo/Bruno and actual browser
+  token/origin/role/schema/logout enforcement](evidence/p6-auth-csrf.md#sr-039--csrf-and-browser-policy-enforcement).
 
   **Depends on:** SR-038, SR-028.
 

@@ -160,3 +160,137 @@ no assertions/casts mask a provider failure. Offline inventory generation/check
 pass: 332 legacy declarations, **51 standalone / 281 remaining**, plus the new
 POST logout successor in `additions`. All eight non-rendering SR-038 declarations
 are accounted for. The login page is deliberately reassigned to SR-040.
+
+SR-038 implementation commit: **`32d45c857`**.
+
+## SR-039 — Session-bound CSRF and browser policies
+
+Selected **`csrf-sync` 4.2.1**, exact production pin, ISC license, npm integrity
+`sha512-+q9tlUSCi/kbwr1NYwn5+MeuNhwxz3wSv1yl42BgIWfIuErZ3HajRwzvZTkfiyIqt1PZT8lQSlffhSYjCneN7g==`.
+It supplies the maintained synchronizer-token implementation for the existing
+server-side session store. The focused probe imports the installed package, uses
+its generator/state/verification, and runs through Express and real Mongo sessions.
+ReDBox supplies explicit origin checks, safe errors and route-specific exemption
+selection; it does not implement another token algorithm or add a CSRF datastore.
+Tokens have 256 bits of library-generated randomness and are discarded by Passport
+session regeneration. No global middleware cache or process listener is introduced.
+
+`createHttpCsrf()` requires configured canonical browser origins. It preserves
+`GET /csrfToken` → `{ _csrf }`, `X-CSRF-Token`, and form `_csrf` support. It rejects
+query tokens, array/object tokens, invalid header plus valid body, missing/invalid
+or another session's token, unconfigured Origin, null Origin, cross-site and
+sibling-site browser requests. Forwarded host/protocol cannot redefine authority.
+Token responses use `no-store` and save state before responding. New login/logout
+sessions require a fresh token. The existing Angular ConfigService/interceptor and
+LocalAuth full-page redirect already satisfy this contract; no Angular changes
+were necessary.
+
+Only explicitly selected REST mounts may call `apiProtect`, which independently
+verifies the supplied bearer credential before exempting the request. Browser
+mounts always use `protect`. A header alone, invalid token, cookie fallback or
+client-supplied user/role cannot exempt a request. Provider callback exemptions are
+fixed registrations: AAF requires a verified signed assertion; OIDC requires the
+library's state/PKCE session. No global exemption is inferred from arbitrary paths.
+Authentication/brand/policy checks still precede write operations. Schema denials
+retain Problem Details. This deliberate tightening of legacy cookie-authenticated
+`csrf: false` APIs is in design §1.3; machine bearer clients retain their contract.
+
+The three existing navbar templates now render POST logout forms with an escaped
+`_csrf` hidden field. The comparison route map also admits POST to its existing
+logout action so coordinated templates remain usable there. Standalone GET logout
+continues to return 405. A page host must supply `res.locals._csrf` from its
+application's CSRF generator; full page composition remains SR-040. No general
+page/static route was mounted by this task.
+
+### Commands and executed results
+
+Same Node/Mongo/HTTP tooling as SR-038. Installation and lock validation:
+
+```sh
+npm --prefix packages/redbox-core install --save-exact --ignore-scripts \
+  --strict-peer-deps --no-audit --no-fund csrf-sync@4.2.1
+npm --prefix packages/redbox-core ci --dry-run --ignore-scripts \
+  --strict-peer-deps --no-audit --no-fund
+npm ci --dry-run --ignore-scripts --strict-peer-deps --no-audit --no-fund
+./packages/redbox-core/node_modules/.bin/tsc -p packages/redbox-core/tsconfig.json
+npm --prefix packages/redbox-core run typecheck:application
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http \
+  npm --prefix packages/redbox-core run test:http-csrf:mongo
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http \
+  npm --prefix packages/redbox-core run test:http-pilot:mongo
+npm run lint
+node support/specs/sails-retirement/evidence/route-inventory.cjs
+node support/specs/sails-retirement/evidence/route-inventory.cjs --check
+```
+
+The npm install added one package. Unrelated npm optional/development lock churn
+was excluded; the new package's actual resolved receipt is retained in both locks.
+Root clean-install validation exposed a pre-existing missing lock receipt for the
+already selected **import-meta-resolve 4.2.0**. Root core metadata/receipt were
+reconciled from the existing core lock; no version was upgraded.
+
+Focused security suite: **6 passing, zero pending/failures**. Its Bruno execution
+runs **8/8 requests, 11/11 tests**, with no skipped requests. It uses actual token,
+login, logout and user-info URLs plus a fixture-only protected write to prove
+session/policy/CSRF ordering and persisted effects. Initial fixture routing used
+incorrect policy binding names and failed before admission; corrected to the
+existing effective bindings. One initial Bruno file had an empty headers block
+and was rejected; its final corrected execution has no invalid/skipped files.
+An inferred heterogeneous-header test type was made explicit; assertions were not
+weakened. Logs: `p6-csrf-{probe4,bruno2,build,typecheck-final,lint}.log`.
+Final pilot/lock/inventory results follow below.
+
+### Actual collaborative-browser probe
+
+Ran `test/http/fixtures/auth-browser.ts` using qualified Node 26, no legacy setup,
+real Mongo and the actual production navbar's EJS logout form. Only fixture pages
+were mounted. This is security/form verification, not SR-040 page acceptance:
+
+```sh
+# cwd packages/redbox-core; use the same absolute qualified Node PATH
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http \
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only test/http/fixtures/auth-browser.ts
+```
+
+T3 collaborative browser, observed UA **Chrome/154.0.0.0**, Linux x86_64, isolated
+incognito profile. Primary server `127.0.0.1:18639`, root `/portal`; different origin
+`127.0.0.1:18640`. Navigated/snapshotted the form, performed real browser fetches,
+and clicked the snapshot's Logout button. Actual results:
+
+- Anonymous info 403; login without/with invalid token 403; valid login 200.
+- Token changed after rotation; stale-token write 403; fresh-token write 200;
+  wrong-brand write 403; authenticated info 200.
+- Cross-origin token fetch was unreadable (browser CORS TypeError, no allow-origin
+  response). Same browser's cross-origin credentialed form-style POST received 403.
+  A separately isolated tab lacked the login cookie and received 401, not counted
+  as the authenticated origin-denial proof. Raw HTTP also verifies cross-origin
+  denial even with a valid token.
+- Clicked the real EJS logout form: **POST 302** to the configured home path;
+  subsequent info **403**. Home is deliberately unmounted and returns **404**.
+- Native Mongo inspection of the probe database after all attempts: **one** accepted
+  protected write, **one** login audit, **one** logout audit, **zero** authenticated
+  sessions. Thus failed attempts did not produce extra accepted writes.
+
+The fixture process was stopped with SIGINT and dropped its database during
+teardown. No full portal rendering, upload provider or institution TLS deployment
+is claimed by this probe.
+
+### SR-039 closeout
+
+At parent `32d45c857`, complete `npm --prefix packages/redbox-core run build`
+passed, including regeneration and copying both Prisma contracts. Two pilot runs
+had **23 passing / 1 failing** (compiled child startup timeout). Diagnostic-only
+logging located failure cleanup after persistence initialization, and inspection
+found missing compiled Prisma JSON artifacts left by a source-only emission.
+Restored the unmodified fixture and ran the complete build; the unchanged pilot
+then passed **24/24**, zero skips/failures, including the compiled import guard
+(**2.684 s** child scenario). No timeout was increased. Logs:
+`p6-csrf-full-build.log`, `p6-csrf-pilot{,2,3}.log`; diagnostic logs are local only.
+
+Application typecheck and source lint passed (952 files, zero warnings/errors).
+Core and root `npm ci --dry-run --ignore-scripts --strict-peer-deps --no-audit
+--no-fund` both passed after root lock receipt repair, without installed dependency
+mutation. Inventory regeneration passed: **333 declarations, 53 standalone,
+280 remaining**, SR-038 9/9 and SR-039 1/1. `git diff --check` passed.
+The full core suite will run after the remaining requested P5 groups.
