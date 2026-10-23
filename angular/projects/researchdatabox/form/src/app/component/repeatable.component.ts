@@ -228,12 +228,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     this.elemInitFieldEntry.layoutClass = layoutClass;
 
     // Loop through the elements of the model and insert into the container
-    const elemVals = this.model.initValue;
-    if (!Array.isArray(elemVals)) {
-      throw new Error(
-        `${this.logName}: model value is not an array. Cannot initialize the component for '${formComponentName}'.`
-      );
-    }
+    // Match replacement semantics for legacy null/non-array values. Copy the
+    // array so applying the minimum-row default never mutates caller metadata.
+    const elemVals = Array.isArray(this.model.initValue) ? [...this.model.initValue] : [];
 
     // By default a repeatable creates one row. Legacy configs can opt into zero-row behavior.
     if (elemVals.length === 0 && !this.allowZeroRows) {
@@ -249,7 +246,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
 
     for (const elementValue of elemVals) {
-      await this.appendNewElement(elementValue, false);
+      // Nested repeatables may still belong to a detached group row. Initial
+      // values are announced by form-ready or the completed parent append.
+      await this.appendNewElement(elementValue, false, {emitEvent: false});
     }
 
     this.setupSyncSourceSubscriptions();

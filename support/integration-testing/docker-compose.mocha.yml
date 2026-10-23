@@ -131,7 +131,7 @@ services:
       - start-dev
       - --import-realm
   email:
-    image: axllent/mailpit:latest@sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365
+    image: axllent/mailpit:latest@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
     pull_policy: 'always'
     expose:
       - '1025'

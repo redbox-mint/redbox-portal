@@ -45,7 +45,7 @@ module.exports = {
   appUrl:'http://localhost:1500',
   redboxSession: {
     cookie: {
-      secure: false
+      secure: 'auto'
     }
   },
   record:{

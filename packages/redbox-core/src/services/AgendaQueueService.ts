@@ -101,6 +101,9 @@ export namespace Services {
     private shutdownRegistered = false;
     private closing = false;
     private startupFailed = false;
+    private queueInitPromise?: Promise<void>;
+    private readySeen = false;
+    private completedStartupSchedules = new Set<string>();
     private pending = new Set<Promise<unknown>>();
     private backendResources = new Set<AgendaBackend>();
     private workerContext = new AsyncLocalStorage<{ active: boolean }>();
@@ -112,17 +115,23 @@ export namespace Services {
     private startedAgendas = new Set<Agenda>();
     private agendaDrains = new Map<Agenda, Promise<void>>();
     private agendaStarts = new Set<Promise<void>>();
+    private startingAgendas = new Map<Agenda, Promise<void>>();
     private application?: Sails.Application;
     private completionAdmission = true;
     private completionDeadline?: ReturnType<typeof setTimeout>;
     private drainTimeoutMs = 30_000;
 
-    private accepting(completion = false): void {
-      const scopedCompletion = completion && this.completionAdmission &&
-        (this.workerContext.getStore()?.active || (this.application && hasActiveHttpRequest(this.application)));
-      if (this.startupFailed && !scopedCompletion) throw new Error('AgendaQueue startup failed; finish cleanup before retrying.');
+    private hasCompletionAdmission(): boolean {
+      return this.completionAdmission && !!(this.workerContext.getStore()?.active ||
+        (this.application && hasActiveHttpRequest(this.application)));
+    }
+
+    private accepting(completion = false, recovery = false): void {
+      const scopedCompletion = completion && this.hasCompletionAdmission();
       if (this.closing && !scopedCompletion)
         throw new Error('AgendaQueue is draining; restart before queuing work.');
+      if (this.startupFailed && !scopedCompletion && !recovery)
+        throw new Error('AgendaQueue startup failed; recover with now() or finish cleanup before retrying.');
     }
 
     private acceptedJob(handler: AgendaJobHandler): AgendaJobHandler {
@@ -156,14 +165,15 @@ export namespace Services {
         const draining = (async () => {
           const requests = this.application ? drainHttpRequests(this.application) : Promise.resolve();
           const processors = (async () => {
-            const started = new Set(this.startedAgendas);
+            const started = new Set([...Object.values(this.agendas).filter((agenda): agenda is Agenda => !!agenda && !this.startingAgendas.has(agenda)), ...this.startedAgendas]);
             const early = Promise.all(Array.from(started, agenda => this.drainAgenda(agenda)));
             void early.catch(() => {});
+            try { await this.queueInitPromise; } catch { /* preserve initialization failure */ }
             try { await this.readyInitPromise; } catch { /* preserve startup failure */ }
             while (this.agendaStarts.size) await Promise.allSettled(this.agendaStarts);
             // A backend finishing start during shutdown quiesces itself below.
-            await Promise.all([early, ...Array.from(this.startedAgendas)
-              .filter(agenda => !started.has(agenda)).map(agenda => this.drainAgenda(agenda))]);
+            await Promise.all([early, ...Object.values(this.agendas)
+              .filter((agenda): agenda is Agenda => !!agenda && !started.has(agenda)).map(agenda => this.drainAgenda(agenda))]);
           })();
           await Promise.all([requests, processors]);
           do {
@@ -343,26 +353,57 @@ export namespace Services {
       this.completionAdmission = true;
       const that = this;
       this.registerSailsHook('on', 'ready', async function () {
-        await that.handleReady();
+        try {
+          await that.handleReady();
+        } catch (error) {
+          // Sails emits ready without awaiting async listeners.
+          sails.log.error('AgendaQueue:: Failed to initialize queue at Sails ready:', error);
+        }
       });
     }
 
     protected async handleReady() {
-      if (this.closing) throw new Error('AgendaQueue is draining; restart before queuing work.');
-      if (_.isNil(this.readyInitPromise)) {
-        // A partial start keeps every acquired backend owned until cleanup.
-        this.readyInitPromise = this.handleReadyInternal().catch(error => {
-          this.startupFailed = true;
-          if (this.resourceRegistered) void this.drainWorkers().catch(() => {});
-          throw error;
-        });
-      }
+      this.readySeen = true;
+      this.accepting(false, true);
+      this.readyInitPromise ??= this.handleReadyInternal().catch(error => {
+        // Keep successful backends/processors owned and retry only the failed work.
+        this.readyInitPromise = undefined;
+        this.startupFailed = true;
+        throw error;
+      });
       await this.readyInitPromise;
     }
 
     private async handleReadyInternal() {
       if (process.env.REDBOX_FIGSHARE_ADMIN === 'true') return;
-      this.queueInitialized = false;
+      await this.ensureQueueInitialized();
+      this.accepting(false, true);
+      const activeAgendas = Object.values(this.agendas).filter((agenda): agenda is Agenda => !!agenda);
+      // Reject promptly, but retain every concurrent start for the single drain owner.
+      await Promise.all(activeAgendas.map(agenda => {
+        if (this.startedAgendas.has(agenda)) return;
+        const pending = this.startingAgendas.get(agenda);
+        if (pending) return pending;
+        const starting = (async () => {
+          await agenda.start();
+          this.startedAgendas.add(agenda);
+          if (this.closing) {
+            await this.drainAgenda(agenda);
+            this.accepting(false, true);
+          }
+        })();
+        this.agendaStarts.add(starting);
+        this.startingAgendas.set(agenda, starting);
+        const settled = () => { this.agendaStarts.delete(starting); this.startingAgendas.delete(agenda); };
+        void starting.then(settled, settled);
+        return starting;
+      }));
+      this.accepting(false, true);
+      this.startupFailed = false;
+      await this.runConfiguredStartupSchedules(this.normalizeJobDefinitions(sails.config.agendaQueue.jobs));
+    }
+
+    private async initializeQueue() {
       const queueConfig = sails.config.agendaQueue;
       const queueOptions = queueConfig.options ?? {};
       this.drainTimeoutMs = queueOptions.drainTimeoutMs ?? 30_000;
@@ -384,6 +425,8 @@ export namespace Services {
             }
             this.queueInitialized = false;
             this.readyInitPromise = undefined;
+            this.queueInitPromise = undefined;
+            this.completedStartupSchedules.clear();
             this.resourceRegistered = false;
             this.agendas = {};
             this.agenda = undefined;
@@ -392,10 +435,13 @@ export namespace Services {
             this.startedAgendas.clear();
             this.agendaDrains.clear();
             this.agendaStarts.clear();
+            this.startingAgendas.clear();
             this.claimReleases.clear();
             this.application = undefined;
           }
         };
+        // This owner replaces the lower hook: drain initialization, processors and
+        // accepted completions before disconnecting backends or shared transports.
         registerPersistenceResource(app, 'agenda', resource);
         if (!this.shutdownRegistered) {
           const previous = app.config.beforeShutdown;
@@ -431,56 +477,39 @@ export namespace Services {
         requiredBackends.add(this.defaultBackend);
       }
       const dbManager = requiredBackends.has('mongodb') ? await mongoDatabase(sails, 'mongodb') : undefined;
-      this.agendas = {};
-
-      if (requiredBackends.has('mongodb')) {
+      // Preserve each successfully initialized backend when another needs a retry.
+      if (requiredBackends.has('mongodb') && !this.agendas.mongodb) {
         this.agendas.mongodb = await this.createAgendaForBackend('mongodb', queueOptions, dbManager);
-      }
-      if (requiredBackends.has('sqs')) {
-        this.agendas.sqs = await this.createAgendaForBackend('sqs', queueOptions, dbManager);
-      }
-      if (this.closing) return;
-
-      this.agenda = this.agendas.mongodb ?? this.agendas[this.defaultBackend] ?? this.agendas.sqs;
-      this.queueInitialized = true;
-      this.defineJobs(jobs, this);
-      sails.log.verbose('AgendaQueue:: All jobs defined.');
-
-      const activeAgendas = Object.values(this.agendas).filter((agenda): agenda is Agenda => !_.isNil(agenda));
-      if (this.agendas.mongodb) {
         this.registerAgendaEvents(this.agendas.mongodb, 'mongodb');
       }
-      if (this.agendas.sqs) {
+      if (requiredBackends.has('sqs') && !this.agendas.sqs) {
+        this.agendas.sqs = await this.createAgendaForBackend('sqs', queueOptions, dbManager);
         this.registerAgendaEvents(this.agendas.sqs, 'sqs');
       }
-      // A rejected start must not abandon the other in-flight starts. Those can
-      // still create live processors, so cleanup owns them until they settle.
-      await Promise.all(activeAgendas.map(agenda => {
-        const starting = (async () => {
-          await agenda.start();
-          this.startedAgendas.add(agenda);
-          if (this.closing) await this.drainAgenda(agenda);
-        })();
-        this.agendaStarts.add(starting);
-        void starting.then(() => this.agendaStarts.delete(starting), () => this.agendaStarts.delete(starting));
-        return starting;
-      }));
-
+      this.accepting(false, true);
+      this.agenda = this.agendas.mongodb ?? this.agendas[this.defaultBackend] ?? this.agendas.sqs;
+      this.defineJobs(jobs, this);
+      sails.log.verbose('AgendaQueue:: All jobs defined.');
       if (this.agendas.mongodb && dbManager) {
-        await this.createMongoIndexes(dbManager, queueOptions);
+        try {
+          await this.createMongoIndexes(dbManager, queueOptions);
+        } catch (error) {
+          sails.log.warn('AgendaQueue:: Auxiliary index setup failed; queue remains available:', error);
+        }
       }
-
-      if (!this.closing) this.runConfiguredStartupSchedules(jobs);
-    }
-
-    private hasQueueRuntimeState() {
-      return this.queueInitialized || this.jobBackendByName.size > 0 || Object.keys(this.agendas).length > 0;
+      this.accepting(false, true);
+      this.queueInitialized = true;
     }
 
     private async ensureQueueInitialized() {
-      if (!this.hasQueueRuntimeState()) {
-        await this.handleReady();
-      }
+      this.accepting(true, true);
+      if (this.queueInitialized) return;
+      // Routes alone are not readiness; all producers share backend preparation.
+      this.queueInitPromise ??= this.initializeQueue().catch(error => {
+        this.queueInitPromise = undefined;
+        throw error;
+      });
+      await this.queueInitPromise;
     }
 
     private normalizeJobDefinitions(jobs: AgendaJobsConfig | AgendaJobDefinition[] | undefined): AgendaJobDefinition[] {
@@ -670,7 +699,6 @@ export namespace Services {
     }
 
     private async createAgendaForBackend(backendName: AgendaQueueBackend, options: AgendaQueueOptions, dbManager: unknown): Promise<Agenda> {
-      const { Agenda: AgendaConstructor } = await import('agenda');
       const agendaOptions: {
         backend: unknown;
         name: string;
@@ -683,11 +711,7 @@ export namespace Services {
       this.applyCommonAgendaOptions(agendaOptions, options);
       const own = async (backend: AgendaBackend, release = (claim: JobParameters) => backend.repository.unlockJob(claim),
         claimKey?: (claim: JobParameters) => string, claimEnded?: (error: unknown) => boolean): Promise<Agenda> => {
-        this.backendResources.add(backend);
-        // Agenda's constructor starts connect() without handling rejection. Own
-        // and await it first, so partial failures reject startup and remain closable.
-        await backend.connect();
-        agendaOptions.backend = {
+        const ownedBackend = {
           name: backend.name,
           repository: this.ownAgendaRepository(backend.repository, release, claimKey, claimEnded),
           notificationChannel: backend.notificationChannel,
@@ -696,7 +720,7 @@ export namespace Services {
           connect: async () => {},
           disconnect: async () => {},
         } satisfies AgendaBackend;
-        return new AgendaConstructor(agendaOptions as ConstructorParameters<typeof AgendaConstructor>[0]);
+        return this.createConnectedAgenda(backend, { ...agendaOptions, backend: ownedBackend }, options);
       };
 
       if (backendName === 'mongodb') {
@@ -801,6 +825,64 @@ export namespace Services {
       }, receiptEnded);
     }
 
+    private getConnectionTimeoutMs(options: AgendaQueueOptions): number {
+      const configured = Number(options.connectionTimeoutMs);
+      return Number.isFinite(configured) && configured > 0 ? Math.ceil(configured) : 30000;
+    }
+
+    private async createConnectedAgenda(
+      backend: AgendaBackend,
+      agendaOptions: { backend: unknown; defaultLockLifetime?: number; processEvery?: string },
+      options: AgendaQueueOptions
+    ): Promise<Agenda> {
+      const { Agenda: AgendaConstructor } = await import('agenda');
+      this.backendResources.add(backend);
+      let discarded = false;
+      let connectionSettled = false;
+      let deadline: ReturnType<typeof setTimeout> | undefined;
+      const connecting = this.ownBackendOperation(Promise.resolve().then(async () => {
+        try {
+          await backend.connect();
+        } finally {
+          connectionSettled = true;
+          // A timed-out connection may open resources before failing later.
+          // Clean up both outcomes once the discarded attempt settles.
+          if (discarded) {
+            await backend.disconnect();
+            this.backendResources.delete(backend);
+          }
+        }
+      }));
+      try {
+        await Promise.race([
+          connecting,
+          new Promise<never>((_resolve, reject) => {
+            deadline = setTimeout(() => reject(new Error('AgendaQueue:: Backend connection timed out.')),
+              this.getConnectionTimeoutMs(options));
+          })
+        ]);
+        this.accepting(false, true);
+        // Agenda 6 starts connect() in its constructor without a rejection handler.
+        // Give it the already-successful connection, not another fallible attempt.
+        const agenda = new AgendaConstructor(agendaOptions as ConstructorParameters<typeof AgendaConstructor>[0]);
+        await agenda.ready;
+        this.accepting(false, true);
+        return agenda;
+      } catch (error) {
+        discarded = true;
+        void this.ownBackendOperation(Promise.resolve().then(async () => {
+          await backend.disconnect();
+          // Retain the backend until late connection cleanup has also succeeded.
+          if (connectionSettled) this.backendResources.delete(backend);
+        })).catch(cleanupError => {
+          sails.log.error('AgendaQueue:: Failed to close discarded backend:', cleanupError);
+        });
+        throw error;
+      } finally {
+        clearTimeout(deadline);
+      }
+    }
+
     private registerAgendaEvents(agenda: Agenda, backend: AgendaQueueBackend) {
       agenda.on('ready', () => {
         sails.log.verbose(`AgendaQueue:: Started ${backend} backend.`);
@@ -836,35 +918,26 @@ export namespace Services {
       await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
     }
 
-    private runConfiguredStartupSchedules(jobs: AgendaJobDefinition[]) {
-      _.each(jobs, (job: AgendaJobDefinition) => {
-        if (_.isEmpty(job.schedule)) {
-          return;
+    private async runConfiguredStartupSchedules(jobs: AgendaJobDefinition[]) {
+      for (const job of jobs) {
+        if (_.isEmpty(job.schedule) || this.completedStartupSchedules.has(job.name)) continue;
+        try {
+          const { method, intervalOrSchedule, data, opts } = job.schedule!;
+          if (method === 'now') {
+            // Startup is already inside handleReady; avoid recursively waiting on it.
+            await this.submitNow(job.name, data);
+          } else if (method === 'every' && intervalOrSchedule) {
+            await this.every(job.name, intervalOrSchedule, data, opts);
+          } else if (method === 'schedule' && intervalOrSchedule) {
+            await this.schedule(job.name, intervalOrSchedule, data);
+          } else {
+            throw new Error('Incorrect job schedule definition.');
+          }
+          this.completedStartupSchedules.add(job.name);
+        } catch (error) {
+          sails.log.error(`AgendaQueue:: Failed to configure startup schedule '${job.name}':`, error);
         }
-
-        const method = job.schedule?.method;
-        const intervalOrSchedule = job.schedule?.intervalOrSchedule;
-        const data = job.schedule?.data;
-        const opts = job.schedule?.opts;
-
-        if (method === 'now') {
-          this.now(job.name, data);
-          return;
-        }
-
-        if (method === 'every' && intervalOrSchedule) {
-          this.every(job.name, intervalOrSchedule, data, opts);
-          return;
-        }
-
-        if (method === 'schedule' && intervalOrSchedule) {
-          this.schedule(job.name, intervalOrSchedule, data);
-          return;
-        }
-
-        sails.log.error('AgendaQueue:: incorrect job schedule definition, method not found:');
-        sails.log.error(JSON.stringify(job));
-      });
+      }
     }
 
     private ensureScheduleSupported(jobName: string, schedule: string, data: unknown) {
@@ -935,9 +1008,7 @@ export namespace Services {
     public every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
       this.accepting();
       this.ensureRecurringScheduleSupported(jobName);
-      void this.track(this.getAgendaForJobName(jobName).every(interval, jobName, this.toSerializableJobData(data), options)).catch(() => {
-        sails.log.error('AgendaQueue:: Failed to persist recurring schedule.');
-      });
+      return this.track(this.getAgendaForJobName(jobName).every(interval, jobName, this.toSerializableJobData(data), options));
     }
 
     public schedule(jobName: string, schedule: string, data: unknown = undefined) {
@@ -947,10 +1018,16 @@ export namespace Services {
     }
 
     public async now(jobName: string, data: unknown = undefined) {
-      this.accepting(true);
-      if (!this.hasQueueRuntimeState()) {
+      this.accepting(true, true);
+      await this.ensureQueueInitialized();
+      if (this.readySeen && !this.closing && !(this.startupFailed && this.hasCompletionAdmission()) &&
+        process.env.REDBOX_FIGSHARE_ADMIN !== 'true') {
         await this.handleReady();
       }
+      return this.submitNow(jobName, data);
+    }
+
+    private async submitNow(jobName: string, data: unknown) {
       this.accepting(true);
       sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
       const queuedJob = this.track(this.getAgendaForJobName(jobName).now(jobName, this.toSerializableJobData(data)));

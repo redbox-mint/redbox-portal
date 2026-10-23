@@ -129,7 +129,7 @@ module.exports = {
   appUrl: 'http://redboxportal:1500',
   redboxSession: {
     cookie: {
-      secure: false,
+      secure: 'auto',
     },
   },
   record: {
