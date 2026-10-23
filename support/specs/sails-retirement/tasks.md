@@ -3,6 +3,7 @@
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
 complete; P3 SR-019–SR-025 and P4 SR-026–SR-030 are complete.
+P5 SR-031 is complete; SR-032 has a verified partial API read slice.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.

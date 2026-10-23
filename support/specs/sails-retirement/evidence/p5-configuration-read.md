@@ -135,3 +135,52 @@ vocabulary behavior coverage. Remaining browser/localization/dashboard routes
 must bind and exercise those owned collaborators before SR-032 is complete.
 Protected write adapters remain gated on SR-039. No SR-033/034 read group,
 SR-038 provider or SR-039 CSRF acceptance is claimed by this slice.
+
+
+## Verified read-slice closeout
+
+Tested domain source: **`68252600d58a46c05611133b4168a59be26d174e`**.
+Tested HTTP adapter/fixture source: **`a7a792614d61ab079d36759f967f320e9f2d4891`**.
+SR-031 policy/inventory foundation: **`f0c138a4dd632443d6cd8c408ad061aab9cc9206`**.
+Only this evidence/task-status closeout changes after the final checks.
+
+Sequential command on that source/test tree:
+
+```sh
+npm --prefix packages/redbox-core run typecheck:application
+npm run lint
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http npm --prefix packages/redbox-core run test:http-configuration:mongo
+PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:34903/redbox_prisma_p5 npm run test:core
+```
+
+All exit **0**. Strict typecheck passes; lint checks **917 files with zero errors/
+warnings**; standalone configuration Mongo/HTTP suite **11 passing / zero failing/
+pending**, including its existing Bruno **2 requests / 4 tests / zero failures/
+skips**. The form-discovery case also checks a persisted owned record and a
+persisted other-brand record, suppressing operation metadata for the latter.
+
+Final Mongo-backed full core: **4408 passing / 68 pending / zero failures**,
+approximately **2 minutes**, log `.tmp/sails-retirement/p5-core-final.log`.
+The original startup timeout/assertions pass unchanged in this sequential run.
+Pending totals match the prior core evidence: Figshare durable-worker/provider
+**51**, SIEM receiver/delivery **7**, isolated standalone driver foundation **3**,
+explicit Raid **2**, Trigger **2**, Workspace **3**. Those are still unqualified by
+this invocation; none counts toward the required standalone Mongo/HTTP proof.
+The separate required pilot suite passed **24/24** with zero pending/failing.
+
+Inventory: **332 declarations**, **8 standalone** (the original two plus these
+six), **324 remaining**. Group assignment correction puts the dashboard editor
+page in SR-040: SR-032 now owns **63 declarations**, of which **6 are standalone**.
+Inventory generation/check and `git diff --check` pass.
+
+After all test processes stopped, the owned disposable container was stopped and
+removed with `docker stop --time 30 sr-p5-mongo8` / `docker rm sr-p5-mongo8`.
+No shared databases, images or unrelated checkout files were removed.
+
+**Round boundary:** SR-031 is complete. SR-032 remains partial; its other reads
+and protected writes are not accepted. SR-033, SR-034, SR-038 and SR-039 were not
+started. There is no authentication-provider or CSRF acceptance claim. In
+particular, this round did not run OIDC/Keycloak, AAF or JWT browser/provider flows,
+or the SR-039 replacement probe. No SR-035/036/037 or SR-040+ implementation was
+started. The remaining work is implementation work, not an external blocker or a
+new decision requiring approval from the orchestrator.
