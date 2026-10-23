@@ -226,3 +226,186 @@ Final check counts/source IDs are recorded below.
 Final real-Mongo pilot **10 passing, zero failures/pending**. Production compile
 and strict application typecheck **exit 0**. Lint **896 files, zero errors/warnings**,
 exit 0. No dependency changes.
+
+## SR-030 — Authenticated parity, failures and final regression
+
+### Released reference versus intermediate source
+
+The SR-003 released fixture is retained unchanged. Its two REST requests labelled
+record types actually call forms; its real record-type requests are AJAX routes.
+To close that pilot-specific gap, this round also ran the exact REST URLs against
+the **same released v5.0.4 image**, in an isolated Sails/Waterline process/database,
+not the current Prisma comparison adapter. Synthetic-only local configuration and
+credentials were the existing SR-003 fixture inputs. No institution data was used.
+
+Commands actually executed (the probe is now committed beside this evidence):
+
+```sh
+docker network create sr-p4-reference
+docker run -d --name sr-p4-v5-mongo7 --network sr-p4-reference --network-alias mongodb --memory=768m mongo:7.0.43-jammy --bind_ip_all --wiredTigerCacheSizeGB 0.25
+docker run -d --name sr-p4-v5-solr --network sr-p4-reference --network-alias solr --memory=768m solr:10.0.0 solr-precreate redbox /opt/solr/server/solr/configsets/_default
+docker run -d --name sr-p4-v5 --network sr-p4-reference --memory=1536m -p 127.0.0.1:18544:1500 -v "$PWD/support/specs/sails-retirement/evidence/v5-local.cjs:/opt/redbox-portal/config/local.js:ro" -e NODE_ENV=integrationtest -e PORT=1500 -e LOAD_DEFAULT_FORMS=true -e sails_security__csrf=false -e sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9
+docker exec sr-p4-v5 node -p 'process.version'
+docker exec sr-p4-v5-mongo7 mongosh --quiet --eval 'db.version()'
+python3 .tmp/sails-retirement/p4-reference-probe.py
+# Same probe copied unchanged to evidence/probe-released-v5-p4.py.
+docker rm -f -v sr-p4-v5 sr-p4-v5-solr sr-p4-v5-mongo7
+docker network rm sr-p4-reference
+```
+
+Released artifact digest remains
+`sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9`,
+tag source `c1dda53999f3b026347008731f33dba834e06c27`, actual Node **24.16.0**,
+Mongo **7.0.43**, Solr **10.0.0**. `released-v5-p4-results.json` records **13 actual
+API responses** after successful local admin login: list/get v1/v2, ignored field
+selection, missing v1/v2, invalid v1/v2, repeated names, conflicting success and
+validation versions, unknown-version fallback. No cookies/credential hashes,
+physical row IDs or request authorization headers are in the result artifact.
+The initial readiness curl saw a connection reset before lift. The first login
+probe omitted the existing branding/portal and AJAX headers, followed an HTML
+redirect and failed JSON decoding; corrected to the released login contract.
+Startup logged existing unexecuted Waterline-query warnings. These are reference
+run limitations, not standalone regressions.
+
+The standalone replay seeds the five **logical name/packageType/searchable fields**
+from SR-003's sanitized record-type definitions with fresh physical IDs and the
+current authenticated fixture brand, then compares all 13 observed statuses,
+cache headers, list summaries/names, selected definition fields, version envelopes
+and complete error bodies. It does not claim byte-identical physical IDs,
+timestamps or storage serialization. The broader persisted-domain/legacy comparison
+from P1 remains `evidence/p1-runtime.md`; schema discovery is intermediate source
+behavior, introduced after the released artifact, and is tested separately.
+
+The released probe confirms two intentionally different existing negotiation paths:
+success responses fall back to v1 on conflicting header/query versions, while
+contract-validation failures prefer a nonempty header. SR-030 preserves the latter
+explicitly instead of normalizing it away. Missing definitions really return 500
+with the same generic errors/meta envelope in both released versions. This is
+retained, not inferred from the broken Bruno labels. Repository/authentication
+failures are deliberately sanitized rather than exposing legacy exception text.
+The SR-027 authentication/grant security changes remain explicit above.
+
+### Standalone failure and lifetime coverage
+
+`PilotFailuresMongo.test.ts` runs real HTTP over actual Prisma identity, branding,
+reference and native session repositories. It covers unauthenticated/invalid bearer,
+wrong brand/portal/role, spoofed query authority, malformed/missing/repeated/object
+names, current grants/memberships/disabled state, real session identity and explicit
+invalid bearer with a valid cookie. Same-named cross-brand definitions stay isolated
+and persisted definition changes are read immediately. Denials precede domain
+reads; auth/brand/grant/record repository failures produce sanitized 500s with
+versioned envelopes. Route policy order and action/global overrides are exercised,
+and unbound policies/unsupported dispatch targets fail during composition.
+
+Final-adapter cases repeat stop deadlines during late repository work and delayed
+or failed session saves after client abort. Pools/Prisma clients remain owned until
+work settles, retry closes them, and only successful saves persist. Ordinary GET
+responses do not mutate tenant authority into the session. Session readiness cases
+refuse a missing TTL index without creating a collection and preserve conflicting
+TTL definitions during ensure. HEAD/OPTIONS/trailing slash behavior, invalid encoded
+paths, malformed JSON and oversize bodies are exercised explicitly. Proxy testing
+proves spoofed forwarded HTTPS cannot produce a secure cookie without explicit
+host proxy trust; secure/HttpOnly/SameSite defaults remain covered by legacy tests.
+
+`CompiledPilotMongo.test.ts` forks the **built** public application/record-type/HTTP
+entrypoints, binds a real loopback server, serves both exact authenticated URLs on
+Mongo and denies unauthenticated calls. A module-load guard rejects core source,
+Sails, legacy controllers, compatibility adapters and the core barrel throughout
+startup/requests/stop. No source TypeScript loader is enabled in the child. Imports
+install no signal handlers; final native pools and Prisma clients are zero.
+This proves the compiled development artifact, not a clean production image or
+packed-package institution qualification (P7/P8).
+
+Broader checks found and corrected a real host/application deadline race: an
+immediate host retry could join the still-expiring application attempt. The host
+now waits for that attempt within the new deadline before retrying. It must not
+start cleanup later after the retry itself expires; deterministic regressions cover
+both edges. An existing connect-mongo fake lacked its real `collectionP` promise;
+wrapping readiness in `Promise.resolve` preserves that existing ownership test
+while still awaiting the real store. No existing assertions/timeouts were weakened.
+
+### Commands, counts and source manifest
+
+All final commands use the qualified Node **26.11.1**/npm **11.20.0** PATH described
+above. Express **5.2.1**, Passport **0.7.0**, express-session **1.19.0**,
+connect-mongo **6.0.0**, Mongo driver **7.7.0**, Prisma ORM **8.0.0-rc.19** and
+Prisma CLI **8.0.0-rc.24** are the existing exact package pins. No dependency or
+lockfile changes were made; `package.json` only gains the required pilot test script.
+The actual disposable standalone server/database are identified in SR-027.
+
+```sh
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+npm run lint
+# Focused changed-source formatting check (p4-final-format.log):
+./node_modules/.bin/prettier --check packages/redbox-core/src/http/express/{ExpressHost,authentication,identity,index,middleware,policies,recordTypes,responses,session}.ts packages/redbox-core/src/{api-routes/{types,validation,request-extraction,helpers,route-resolution,route-registry},maintenance/indexes,middleware/redboxSession,middleware/requestLifetime,persistence/maintenance,persistence/sessions/indexes}.ts packages/redbox-core/test/http/*.ts packages/redbox-core/test/http/fixtures/compiled-pilot.cjs
+npm --prefix packages/redbox-core test -- --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 10000 test/http/Middleware.test.ts test/http/ExpressHost.test.ts test/middleware/redboxSession.test.ts test/middleware/requestLifetime.test.ts test/http/Policies.test.ts test/http/Contracts.test.ts
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http npm --prefix packages/redbox-core run test:http-pilot:mongo
+PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:34903/redbox_prisma_p4 npm run test:core
+```
+
+Final **clean build** includes Prisma generation, TypeScript emission and copied
+Prisma contract inputs: **exit 0** (`p4-final-build.log`). The existing Prisma skill
+sync advisory is a warning, not a missing generated artifact. Strict application
+source/tests typecheck **exit 0**. Lint **896 files, zero errors/warnings**; changed
+source formatting and `git diff --check` **exit 0**. Focused HTTP/contracts/policy/
+session/lifetime/host regression **67 passing, zero failures/pending**
+(`p4-final-unit.log`). Real-Mongo/HTTP pilot **24 passing in 19s, zero failures/
+pending** (`p4-final-pilot.log`); its environment is mandatory, with no skip branch.
+The compiled child uses the same Mongo server with isolated fixture databases.
+
+Earlier combined pilot result: **18 passing / 4 failing**. Two failures revealed
+the real deadline race fixed above. A raw-GET test erroneously used `http.get`
+(which already ends a request) before sending its body; changed to `http.request`.
+The compiled fixture omitted BrandingRepository's required `redboxStorage`
+datastore, so it waited on an unintended default address; fixed to explicitly bind
+both fixture datastores, and bounded startup/request diagnostics ensure a failure
+cannot leave a child indefinitely running. Temporary stage diagnostics were removed.
+An initial fixture process was terminated (143) after the missing bound exposed a
+hung child. Final same cases pass without increased production/test deadlines.
+
+First broad core run: **4401 passing / 68 pending / 2 failing**. One exposed the
+existing store fake readiness issue corrected above. The unchanged 12-second
+startup-module subprocess test also timed out during overlapping compilation/
+other suites; isolated startup plus ownership/host regression passed **22/22**
+(startup 10.6s), with its timeout/assertions unchanged. Final broad result follows.
+
+Source manifest:
+
+| Slice | Commit |
+| --- | --- |
+| SR-026 contracts | `77171234936d763927d5fe6ceae5140c5bfd6111` |
+| SR-027 actor/policies | `ffe878b1dacdd2baa94e8118913a0ffe5ee9c184` |
+| SR-028 middleware/session lifetime | `6591c77123d7d1844c6ecddab3f033b3db867126` |
+| SR-029 record-type adapters | `0a5c3369a94ee565733b354efbc491b3c2144ebf` |
+| SR-030 deadline/fixture compatibility correction | `4cc297b2339db5143b0e7effbec2b3d616eb1200` |
+
+The SR-030 parity commit contains the final version-validation compatibility
+correction, test fixtures and results documented here; its SHA is in the final
+closeout below. Checks ran against those exact source/test contents before commit.
+No source, assertions or package pins change after the final checks.
+
+
+Final Mongo-backed full `npm run test:core`: **4406 passing / 68 pending / zero
+failures**, exit **0**, approximately **2 minutes** (`p4-core-final.log`). Pending
+counts are unchanged from P3: Figshare durable-worker/provider cases **51**,
+SIEM receiver/delivery **7**, isolated standalone driver foundation **3**, explicit
+Raid **2**, Trigger **2**, Workspace **3**. Those optional provider/foundation
+fixtures remain unqualified by this core invocation; none is relabelled as pilot
+coverage. The required new real-Mongo/HTTP suite separately ran all **24** cases
+without skips. Expected negative-fixture logs (for example a deliberately missing
+inline vocabulary) occur beside passing assertions; they are not hidden failures.
+
+All SR-026–SR-030 acceptance criteria for this partial authenticated HTTP pilot are
+met. No P5/P6 work or production entrypoint promotion was started. There are no
+new P4 decisions blocked on the orchestrator. Existing SR-005 institution/topology
+qualification and broader P5–P8 coverage remain outside this result. Browser/provider
+flows, production session invalidation/CSRF, missing groups and returned-but-unmounted
+schema resolver URLs remain explicitly outside the pilot, as described above.
+
+Cleanup: the final fixture databases were dropped by teardown. Two prefixed fixture
+databases from terminated early diagnostic processes remained on the owned disposable
+server; `docker rm -f -v sr-p4-mongo8` discarded that entire test-only container and
+its anonymous data volume. Released comparison containers/volumes and network were
+already removed with the commands above. No unrelated Docker resources or the
+untracked `support/specs/graphql-record-metadata/` directory were changed. No pushes.

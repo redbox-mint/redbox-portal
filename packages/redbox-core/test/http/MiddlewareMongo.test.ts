@@ -96,6 +96,36 @@ describe('standalone Mongo sessions and accepted HTTP ownership', function () {
     assert.deepEqual(await f.native.db().collection('pilotSessions').listIndexes().toArray(), indexes);
   });
 
+  it('refuses missing session TTL readiness without performing HTTP-startup DDL', async () => {
+    const options = config();
+    host = new ExpressHost(f.application, {
+      owner: f.owner,
+      hostname: '127.0.0.1',
+      port: 0,
+      prepare: async router => {
+        await prepareHttpMiddleware(router, {
+          owner: f.owner,
+          identity: f.identity,
+          session: options,
+          log: nothingLogger,
+        });
+      },
+    });
+    await assert.rejects(host.initialize(), /Session indexes are not ready/);
+    assert.equal(await f.native.db().listCollections({ name: 'pilotSessions' }).hasNext(), false);
+    assert.equal(persistenceStatus(f.owner).pools, 0);
+    assert.equal(persistenceStatus(f.owner).prismaClients, 0);
+  });
+
+  it('reports a conflicting TTL definition and never replaces it during explicit ensure', async () => {
+    const collection = f.native.db().collection('pilotSessions');
+    await collection.createIndex({ expires: 1 }, { name: 'expires_1', expireAfterSeconds: 60 });
+    const before = await collection.listIndexes().toArray();
+    assert.equal((await prepareSessionIndexes(f.owner, config(), 'inspect'))[0].index, 'conflicting');
+    assert.equal((await prepareSessionIndexes(f.owner, config(), 'ensure'))[0].index, 'conflicting');
+    assert.deepEqual(await collection.listIndexes().toArray(), before);
+  });
+
   for (const abort of [false, true])
     it(`retains a real delayed Mongo session write through ${abort ? 'abort' : 'response'} and failed stop/retry`, async () => {
       const entered = deferred(),

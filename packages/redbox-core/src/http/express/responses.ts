@@ -21,11 +21,12 @@ export function sendApiErrors(
   req: Request,
   res: Response,
   status: number,
-  errors: readonly { title?: string; detail?: string }[]
+  errors: readonly { title?: string; detail?: string }[],
+  version = apiVersion(req)
 ): void {
   const only = errors[0] ?? {};
   const body =
-    apiVersion(req) === '2.0'
+    version === '2.0'
       ? { errors, meta: {} }
       : {
           message:
@@ -35,4 +36,12 @@ export function sendApiErrors(
           details: errors.length === 1 && only.title && only.detail ? only.detail : '',
         };
   res.set(apiNoCacheHeaders).status(status).json(body);
+}
+
+/** The existing validation policy gives a nonempty header priority, even on conflict. */
+export function validationApiVersion(input: ApiRequestInput): '1.0' | '2.0' {
+  const text = (value: unknown) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+  return (text(input.headers?.['x-redbox-api-version']) || text(input.query?.apiVersion) || '1.0') === '2.0'
+    ? '2.0'
+    : '1.0';
 }

@@ -45,7 +45,7 @@
     "test:http-host": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 10000 test/http/ExpressHost.test.ts",
     "test:sails-record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/compat/SailsRecordTypesMongo.test.ts",
     "test:lifecycle:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/application/InitializationMongo.test.ts test/queues/QueueMongo.test.ts",
-    "test:http-pilot:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/http/IdentityMongo.test.ts test/http/MiddlewareMongo.test.ts test/http/RecordTypesMongo.test.ts"
+    "test:http-pilot:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/http/IdentityMongo.test.ts test/http/MiddlewareMongo.test.ts test/http/RecordTypesMongo.test.ts test/http/PilotFailuresMongo.test.ts test/http/CompiledPilotMongo.test.ts"
   },
   "author": "",
   "license": "ISC",

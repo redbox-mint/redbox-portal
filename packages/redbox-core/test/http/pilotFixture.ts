@@ -1,4 +1,5 @@
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
+import type { RequestHandler } from 'express';
 import {
   ExpressHost,
   createPilotPolicies,
@@ -15,6 +16,7 @@ import { mongoFixture } from './mongoFixture';
 export async function pilotFixture(
   options: Partial<Pick<RecordTypeHttpInput, 'routes' | 'policyConfiguration' | 'recordSchema'>> & {
     rootContext?: string;
+    policyBindings?: Readonly<Record<string, RequestHandler>>;
   } = {}
 ) {
   const f = await mongoFixture();
@@ -51,9 +53,10 @@ export async function pilotFixture(
         portals: ['rdmp'],
         authenticate: req => auth.authenticate(req),
       });
+      router.post('/__test/login', auth.local, (_req, res) => res.json({ success: true }));
       mountRecordTypeRoutes(router, {
         recordTypes: domain,
-        policies,
+        policies: { ...policies, ...options.policyBindings },
         policyConfiguration: options.policyConfiguration ?? { '*': [...pilotPolicyChain] },
         routes: options.routes,
         recordSchema: options.recordSchema,

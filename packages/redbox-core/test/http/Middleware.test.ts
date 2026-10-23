@@ -22,7 +22,7 @@ describe('per-application HTTP middleware and completion', function () {
     sinon.restore();
   });
 
-  async function fixture() {
+  async function fixture(options: { trustProxy?: boolean; secureCookie?: boolean } = {}) {
     const owner = { config: {}, log: { warn() {} } };
     const application = new ApplicationRuntime(owner);
     const identity = new HttpIdentity({
@@ -42,6 +42,7 @@ describe('per-application HTTP middleware and completion', function () {
       owner,
       hostname: '127.0.0.1',
       port: 0,
+      trustProxy: options.trustProxy,
       prepare: async router => {
         const auth = await prepareHttpMiddleware(router, {
           owner,
@@ -49,7 +50,7 @@ describe('per-application HTTP middleware and completion', function () {
           session: {
             name: 'redbox.v6.sid',
             secret: 'synthetic-secret-at-least-32-chars-long',
-            cookie: { secure: false },
+            cookie: { secure: options.secureCookie ?? false },
             store,
           },
           log,
@@ -152,5 +153,21 @@ describe('per-application HTTP middleware and completion', function () {
       ),
       /late/
     );
+  });
+
+  it('accepts forwarded HTTPS for secure cookies only with explicit proxy trust', async () => {
+    for (const trustProxy of [false, true]) {
+      const f = await fixture({ trustProxy, secureCookie: true });
+      const login = await fetch(f.url + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-Proto': 'https' },
+        body: JSON.stringify({ username: 'alice', password: 'valid' }),
+      });
+      assert.equal(login.status, 200);
+      await login.json();
+      const cookie = login.headers.get('set-cookie');
+      if (trustProxy) assert.match(cookie!, /; HttpOnly; Secure; SameSite=Lax/);
+      else assert.equal(cookie, null);
+    }
   });
 });

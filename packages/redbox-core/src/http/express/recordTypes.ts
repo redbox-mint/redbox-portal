@@ -10,7 +10,7 @@ import { isRecordSchemaEnabled } from '../../config/recordSchema.config';
 import type { PoliciesConfig } from '../../config/policies.config';
 import { bindHttpPolicies, requestContext, resolveEffectivePolicies } from './policies';
 import { httpAction, singleHttpResult } from './middleware';
-import { apiNoCacheHeaders, sendApiData, sendApiErrors } from './responses';
+import { apiNoCacheHeaders, sendApiData, sendApiErrors, validationApiVersion } from './responses';
 
 export interface RecordTypeHttpInput {
   readonly recordTypes: Pick<RecordTypes, 'get' | 'getAll'>;
@@ -66,7 +66,8 @@ export function mountRecordTypeRoutes(router: Router, input: RecordTypeHttpInput
             req,
             res,
             400,
-            validated.issues.map(issue => ({ title: issue.path, detail: issue.message }))
+            validated.issues.map(issue => ({ title: issue.path, detail: issue.message })),
+            validationApiVersion(req)
           );
           return;
         }

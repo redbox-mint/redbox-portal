@@ -2,7 +2,7 @@
 
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
-complete; P3 SR-019–SR-025 are complete.
+complete; P3 SR-019–SR-025 and P4 SR-026–SR-030 are complete.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -435,7 +435,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   brand context. No Sails controller is called and no Express object reaches the
   domain interface. Partial-host inventory identifies unimplemented groups.
 
-- [ ] **SR-030 — Record authenticated pilot parity and failure evidence.**
+- [x] **SR-030 — Record authenticated pilot parity and failure evidence.**
+
+  **Status:** done; [released-v5 replay, real Mongo HTTP failures, compiled graph and full regression](evidence/p4-http-pilot.md#sr-030--authenticated-parity-failures-and-final-regression).
 
   **Depends on:** SR-029, SR-009, SR-003, SR-020, SR-011.
 

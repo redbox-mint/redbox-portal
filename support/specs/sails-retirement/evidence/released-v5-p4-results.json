@@ -1,0 +1,386 @@
+{
+  "sourceTag": "v5.0.4",
+  "sourceCommit": "c1dda53999f3b026347008731f33dba834e06c27",
+  "artifact": "qcifengineering/redbox-portal@sha256:9bf944d09e370e3fc65612f2df40286431095d216c8a22bd4c34a939a12485f9",
+  "node": "24.16.0",
+  "mongo": "7.0.43",
+  "solr": "10.0.0",
+  "host": "released Sails/Waterline on 127.0.0.1:18544",
+  "cases": [
+    {
+      "label": "list-v1",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes",
+      "versionHeader": null,
+      "status": 200,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "records",
+        "summary"
+      ],
+      "summary": {
+        "numFound": 5,
+        "page": 1,
+        "start": 0
+      },
+      "names": [
+        "dataPublication",
+        "dataRecord",
+        "existing-locations",
+        "party",
+        "rdmp"
+      ]
+    },
+    {
+      "label": "get-v1",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=dataRecord",
+      "versionHeader": null,
+      "status": 200,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ],
+      "definition": {
+        "name": "dataRecord",
+        "packageType": "dataRecord",
+        "searchable": true
+      },
+      "definitionKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ]
+    },
+    {
+      "label": "get-fields",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=dataRecord&fields=name",
+      "versionHeader": null,
+      "status": 200,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ],
+      "definition": {
+        "name": "dataRecord",
+        "packageType": "dataRecord",
+        "searchable": true
+      },
+      "definitionKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ]
+    },
+    {
+      "label": "list-v2",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes",
+      "versionHeader": "2.0",
+      "status": 200,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "data",
+        "meta"
+      ],
+      "summary": {
+        "numFound": 5,
+        "page": 1,
+        "start": 0
+      },
+      "names": [
+        "dataPublication",
+        "dataRecord",
+        "existing-locations",
+        "party",
+        "rdmp"
+      ]
+    },
+    {
+      "label": "get-v2",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=dataRecord",
+      "versionHeader": "2.0",
+      "status": 200,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "data",
+        "meta"
+      ],
+      "definition": {
+        "name": "dataRecord",
+        "packageType": "dataRecord",
+        "searchable": true
+      },
+      "definitionKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ]
+    },
+    {
+      "label": "missing-v1",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=does-not-exist",
+      "versionHeader": null,
+      "status": 500,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "errors",
+        "meta"
+      ],
+      "error": {
+        "errors": [
+          {
+            "detail": "Check server logs."
+          }
+        ],
+        "meta": {}
+      }
+    },
+    {
+      "label": "missing-v2",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=does-not-exist",
+      "versionHeader": "2.0",
+      "status": 500,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "errors",
+        "meta"
+      ],
+      "error": {
+        "errors": [
+          {
+            "detail": "Check server logs."
+          }
+        ],
+        "meta": {}
+      }
+    },
+    {
+      "label": "invalid-v1",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get",
+      "versionHeader": null,
+      "status": 400,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "details",
+        "message"
+      ],
+      "error": {
+        "message": "query.name",
+        "details": "Invalid input: expected string, received undefined"
+      }
+    },
+    {
+      "label": "invalid-v2",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get",
+      "versionHeader": "2.0",
+      "status": 400,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "errors",
+        "meta"
+      ],
+      "error": {
+        "errors": [
+          {
+            "title": "query.name",
+            "detail": "Invalid input: expected string, received undefined"
+          }
+        ],
+        "meta": {}
+      }
+    },
+    {
+      "label": "repeated-name",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=a&name=b",
+      "versionHeader": null,
+      "status": 400,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "details",
+        "message"
+      ],
+      "error": {
+        "message": "query.name",
+        "details": "Invalid input: expected string, received array"
+      }
+    },
+    {
+      "label": "conflicting-success",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=dataRecord&apiVersion=1.0",
+      "versionHeader": "2.0",
+      "status": 200,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ],
+      "definition": {
+        "name": "dataRecord",
+        "packageType": "dataRecord",
+        "searchable": true
+      },
+      "definitionKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ]
+    },
+    {
+      "label": "conflicting-validation",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?apiVersion=1.0",
+      "versionHeader": "2.0",
+      "status": 400,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "errors",
+        "meta"
+      ],
+      "error": {
+        "errors": [
+          {
+            "title": "query.name",
+            "detail": "Invalid input: expected string, received undefined"
+          }
+        ],
+        "meta": {}
+      }
+    },
+    {
+      "label": "unknown-version",
+      "method": "GET",
+      "path": "/default/rdmp/api/recordtypes/get?name=dataRecord",
+      "versionHeader": "unknown",
+      "status": 200,
+      "cacheControl": "no-cache, private",
+      "bodyKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ],
+      "definition": {
+        "name": "dataRecord",
+        "packageType": "dataRecord",
+        "searchable": true
+      },
+      "definitionKeys": [
+        "branding",
+        "createdAt",
+        "dashboard",
+        "hooks",
+        "id",
+        "key",
+        "name",
+        "packageType",
+        "relatedTo",
+        "searchCore",
+        "searchFilters",
+        "searchable",
+        "transferResponsibility",
+        "updatedAt"
+      ]
+    }
+  ]
+}
