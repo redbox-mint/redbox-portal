@@ -19,6 +19,7 @@
     "./unit/progress-persistence.test.ts",
     "./unit/harvest-persistence.test.ts",
     "./unit/siem-persistence.test.ts",
-    "./unit/figshare-persistence.test.ts"
+    "./unit/figshare-persistence.test.ts",
+    "./unit/vocabulary-persistence.test.ts"
   ]
 }
