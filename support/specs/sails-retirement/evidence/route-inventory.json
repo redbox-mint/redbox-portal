@@ -1,6 +1,6 @@
 {
   "additions": [],
-  "source": "01144a6e47551a8bee8fed03d1786a45efab68e0",
+  "source": "5a35b6758c109b859e4a30856886aa954b5bb482",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
     "SR-040": 48,
@@ -544,7 +544,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/export",
@@ -560,7 +560,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/getReportResults",
@@ -568,7 +568,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/integrations/figshare/vocabularies",
@@ -592,7 +592,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/report-config/:name",
@@ -600,7 +600,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/report/:name",
@@ -1067,7 +1067,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/harvest-runs/:id",
@@ -1075,7 +1075,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/harvest-runs/:id/events",
@@ -1083,7 +1083,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/i18n/bundles/:locale/:namespace",
@@ -1115,7 +1115,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/named-query",
@@ -1123,7 +1123,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/named-query/:name",
@@ -1131,7 +1131,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/named-query/collections",
@@ -1139,7 +1139,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/audit/:oid",
@@ -1253,7 +1253,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/report-config/:name",
@@ -1261,7 +1261,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/report/namedQuery",
@@ -1269,7 +1269,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/roles",
@@ -1288,7 +1288,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/siem/config",
@@ -1296,7 +1296,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/siem/delivery-status",
@@ -1304,7 +1304,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/siem/events",
@@ -1312,7 +1312,7 @@
       "contract": true,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/users",
@@ -1761,7 +1761,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/metadata/:oid",
@@ -1809,7 +1809,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/viewAudit/:oid/integration-audit",
@@ -1817,7 +1817,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/viewAudit/:oid/permissions",
@@ -1825,7 +1825,7 @@
       "contract": false,
       "task": "SR-033",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/wfSteps/:recordType",
@@ -2059,7 +2059,7 @@
       "prerequisites": [
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/roles/user",
@@ -2582,7 +2582,7 @@
       "prerequisites": [
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/roles/:roleName",

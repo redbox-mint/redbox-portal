@@ -47,3 +47,5 @@ export {
   configurationWriteRoutes,
   type ConfigurationWriteHttpInput,
 } from './configurationWrites';
+
+export { mountQueryReadRoutes, queryReadRoutes, type QueryReadHttpInput } from './queryReads';

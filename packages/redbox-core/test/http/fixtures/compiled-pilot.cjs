@@ -20,6 +20,19 @@ require('@researchdatabox/redbox-core/dashboards');
 require('@researchdatabox/redbox-core/workflows');
 require('@researchdatabox/redbox-core/workspaces');
 require('@researchdatabox/redbox-core/record-schema');
+for (const module of [
+  'NamedQueries',
+  'Reports',
+  'HarvestHistory',
+  'SiemReads',
+  'IntegrationAudits',
+  'SolrReads',
+  'RecordAuditViews',
+  'RecordAuditReader',
+  'FigshareStatus',
+])
+  require('../../../dist/queries/' + module);
+require('@researchdatabox/sails-hook-redbox-storage-mongo/extension');
 const {
   ExpressHost,
   PathRules,

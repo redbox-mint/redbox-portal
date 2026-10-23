@@ -3,7 +3,7 @@
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
 complete; P3 SR-019–SR-025 and P4 SR-026–SR-030 are complete.
-P5 SR-031 and SR-032 are complete; P6 SR-038 and SR-039 are complete.
+P5 SR-031–SR-033 are complete; P6 SR-038 and SR-039 are complete.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -481,7 +481,7 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   invalidation and representative overrides pass. Record each intentional public
   break and remove the group's obsolete globals/registrations.
 
-- [ ] **SR-033 — Migrate reports, search, named queries and job/history reads.**
+- [x] **SR-033 — Migrate reports, search, named queries and job/history reads.**
 
   **Depends on:** SR-031.
 
@@ -491,6 +491,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   **Accept/evidence:** representative search/report/history requests, denials,
   malformed input and backend errors pass; relevant hooks work without Sails and
   accepted backend operations participate in shutdown ownership.
+
+  **Evidence:** [query reads](evidence/p5-query-reads.md). All 25 declarations are
+  mounted; Mongo/Solr HTTP and Bruno pass with no pending tests.
 
 - [ ] **SR-034 — Migrate record reads and exports.**
 

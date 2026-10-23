@@ -70,6 +70,19 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
 
 ### 1.3 Recorded HTTP compatibility breaks
 
+- Reporting/search/history routes in `queryReadRoutes` use the same explicit
+  authentication and brand membership gates as the pilot. Audit data and integration
+  logs additionally require the stored object to belong to that brand; integration
+  audit/permissions diagnostics require its brand's Admin role. This closes legacy
+  object-id reads that could cross tenant boundaries. Affected API and browser
+  clients must use the owning brand and an authorized role.
+- Solr fuzzy search now applies brand, type and workflow restrictions as independent
+  filter queries. User search syntax can no longer broaden those predicates with
+  `OR`. Clients relying on that behavior must use separate authorized searches.
+  Query-read pagination and search field names reject malformed/structured values
+  with 400 instead of accepting numeric prefixes or passing query syntax as a field.
+
+
 - The migrated authenticated API reads return **401** with a Bearer challenge
   for absent/invalid authentication, instead of legacy login redirects/path-rule
   denials. Affected consumers are unauthenticated callers of the two exact pilot
