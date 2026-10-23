@@ -1,3 +1,4 @@
+import { sailsRecordTypes } from '../compat/sails/recordTypes';
 /**
  * Services index - exports all service classes and creates ServiceExports object
  * for consumption by the redbox-core loader shim generation
@@ -305,9 +306,7 @@ export const ServiceExports = {
     return getOrCreateService('RecordsService', () => new RecordsServiceModule.Services.Records().exports());
   },
   get RecordTypesService() {
-    return getOrCreateService('RecordTypesService', () =>
-      new RecordTypesServiceModule.Services.RecordTypes().exports()
-    );
+    return sailsRecordTypes(sails).exports();
   },
   get RecordSchemaService() {
     return getOrCreateService('RecordSchemaService', () =>

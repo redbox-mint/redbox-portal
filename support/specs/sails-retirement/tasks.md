@@ -133,9 +133,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   failed cleanup remains observable/retryable; activation ordering is enforced;
   stopped instances are terminal and fresh instances restart without stale state.
 
-- [ ] **SR-008 — Extract the record-type module behind explicit dependencies.**
+- [x] **SR-008 — Extract the record-type module behind explicit dependencies.**
 
-  **Status:** not started in this round; see the [P1 handoff](evidence/p1-runtime.md#remaining-p1-handoff).
+  **Status:** done; [explicit RecordTypes dependencies and retained behavior](evidence/p1-runtime.md#sr-008--explicit-record-type-domain).
 
   **Depends on:** SR-007, SR-004.
 

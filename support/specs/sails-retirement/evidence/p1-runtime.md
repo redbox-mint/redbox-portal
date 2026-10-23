@@ -223,3 +223,48 @@ No P2 task was started, no dependency version was changed and no branch was push
   dropped; no institution or P0 fixture database was used.
 - Final `git diff --check`: **exit 0**. The unrelated pre-existing untracked
   `support/specs/graphql-record-metadata/` directory remains untouched.
+
+## SR-008 — Explicit record-type domain
+
+Continuation from accepted SR-006/SR-007 at `7e74945a7116808767c30ed2b41ad79b7b31c31d`.
+The earlier handoff describes that earlier round, and is superseded below.
+
+Moved the existing implementation to `src/recordTypes/RecordTypes.ts`, exported by
+its narrow index. Its synchronous constructor receives reference operations,
+configuration slices, logging and an explicit storage-capability operation.
+`initialize(brand)` joins startup; intentional `bootstrap(brand)` reloads remain
+available. Observable calls stay lazy and share one result/error per call.
+Schema checks, cache contents, stored-policy reads and synchronous create validation
+are retained. `close()` clears the instance cache. No CoreBase, inherited imports,
+Lodash globals, Sails lookup or framework types execute in the domain graph.
+
+The temporary legacy entrypoint delegates to this implementation; only
+`compat/sails/recordTypes.ts` discovers legacy dependencies. The RecordTypes getter
+now uses an application-owned symbol, outside `serviceCache`; unconverted getters
+remain legacy. Application lifecycle integration follows in SR-011.
+No dependencies changed.
+
+On Node 26.11.1 / npm 11.20.0 / TypeScript 5.9.3 / Mocha 11.7.6:
+
+```sh
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+npm run lint
+cd packages/redbox-core
+TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/RecordTypesService.test.ts test/recordTypes/RecordTypes.test.ts test/unit/prisma-runtime.test.ts test/unit/cache-persistence-runtime.test.ts test/services/AuditFollowupDrain.test.ts test/services/SecurityEventOwnership.test.ts test/services/AgendaQueueService.test.ts
+```
+
+Build, typecheck and lint exit **0** (846 files, no lint warnings/errors).
+Focused suite: **106 passing, 0 failing, 0 pending**, including all **17 existing
+RecordTypes cases** and two new explicit composition/Observable cases. A separate
+Node process requiring `dist/recordTypes` asserted no global Sails and no loaded
+Sails, CoreBase/CoreService, compat or services-barrel modules: exit **0**.
+Focused Prettier formatting and `git diff --check` pass.
+
+During implementation an automated import rewrite produced a syntax error, corrected
+before passing verification. The first build also exposed an existing difference
+between record-type config and model hook types; the input now uses the existing
+configuration contract with the historical extra fields, instead of casting config
+to a stored model. Two initial build invocations overlapped in error; the final
+single clean build above completed successfully. Prisma's existing module-type and
+skills notices remain unchanged. Real persisted domain proof follows in SR-009.
