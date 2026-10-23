@@ -401,6 +401,10 @@
       "types": "./dist/identity/index.d.ts",
       "default": "./dist/identity/index.js"
     },
+    "./record-triggers": {
+      "types": "./dist/records/RecordTriggers.d.ts",
+      "default": "./dist/records/RecordTriggers.js"
+    },
     "./authentication": {
       "types": "./dist/authentication/index.d.ts",
       "default": "./dist/authentication/index.js"
