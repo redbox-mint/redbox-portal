@@ -1,0 +1,675 @@
+// Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
+//
+// GNU GENERAL PUBLIC LICENSE
+//    Version 2, June 1991
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+import { Observable, of, from } from 'rxjs';
+import { concatMap, last } from 'rxjs/operators';
+import { RBValidationError } from '../model/RBValidationError';
+import { BrandingModel } from '../model/storage/BrandingModel';
+import { RecordModel } from '../model/storage/RecordModel';
+import _ from 'lodash';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
+import type { RecordsService } from '../RecordsService';
+import type { Services as Translation } from '../translations/Translation';
+import { metTriggerCondition } from '../utilities/metTriggerCondition';
+import { recordServiceChronicle } from '../utilities/serviceChronicle';
+import { momentShim as moment } from '../shims/momentShim';
+import numeral from 'numeral';
+import { createRecordMetadataDelta } from '../RecordsService';
+
+export interface WorkflowTriggersInput {
+  readonly log: ILogger;
+  readonly records: Pick<RecordsService, 'getMeta' | 'updateMetaInternal'>;
+  readonly translation: Pick<Translation.Translation, 't' | 'tInter'>;
+  brand(id: string): BrandingModel;
+  resolveHook(name: string): unknown;
+}
+
+export namespace Services {
+  type RecordLike = RecordModel | Record<string, unknown>;
+  type UserLike = { username?: string; roles?: Array<{ name: string }> } & Record<string, unknown>;
+  type HookConfig = { function?: string; options?: Record<string, unknown> };
+  type HookFn = (
+    oid: string,
+    record: RecordLike,
+    options: Record<string, unknown>,
+    user: UserLike
+  ) => Observable<unknown>;
+  /**
+   * Trigger related functions...
+   *
+   * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
+   *
+   */
+  export class Trigger {
+    constructor(protected readonly input: WorkflowTriggersInput) {}
+    protected metTriggerCondition = metTriggerCondition;
+    protected updateChronicle(
+      info: Record<string, unknown>,
+      errors: unknown[] = [],
+      level: 'debug' | 'info' | 'warn' = 'debug'
+    ): void {
+      recordServiceChronicle(this.input.log, info, errors, level);
+    }
+
+    /**
+     * Used in changing the workflow stages automatically based on configuration.
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  oid
+     * @param  record
+     * @param  options
+     * @return
+     */
+    public transitionWorkflow(oid: string, record: RecordLike, options: Record<string, unknown>) {
+      const triggerCondition = String(_.get(options, 'triggerCondition', ''));
+
+      const variables: Record<string, unknown> = {};
+      variables['imports'] = record;
+      const compiled = _.template(triggerCondition, variables);
+      const compileResult = compiled();
+      this.updateChronicle({ triggerRecordOid: oid, triggerTransitionConditionMet: compileResult === 'true' });
+
+      if (_.isEqual(compileResult, 'true')) {
+        const workflowStageTarget = _.get(
+          options,
+          'targetWorkflowStageName',
+          _.get(record, 'workflow.stage')
+        ) as string;
+        const workflowStageLabel = _.get(
+          options,
+          'targetWorkflowStageLabel',
+          _.get(record, 'workflow.stageLabel')
+        ) as string;
+
+        _.set(record, 'workflow.stage', workflowStageTarget);
+        _.set(record, 'workflow.stageLabel', workflowStageLabel);
+        // we need to update the form too!!!!
+        _.set(record, 'metaMetadata.form', _.get(options, 'targetForm', _.get(record, 'metaMetadata.form')) as string);
+      }
+
+      return of(record);
+    }
+
+    /**
+     *
+     * By default, hooks are launched asynch, this method allows for synch running of hooks while not blocking the save request thread.
+     * Will work as pre and post hooks.
+     *
+     *
+     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
+     * @param  oid
+     * @param  record
+     * @param  options
+     * map of:
+     *   "hooks" - array, same structure as that of hook option's "pre" and "post" fields
+     * @return
+     */
+    public runHooksSync(oid: string, record: RecordLike, options: Record<string, unknown>, user: UserLike) {
+      const hookFnArray = (_.get(options, 'hooks', []) ?? []) as Array<HookConfig>;
+      this.updateChronicle({ triggerRecordOid: oid, triggerHookCount: hookFnArray.length });
+      const hookFnDefArray: Array<{ hookFn: HookFn; hookOpt: Record<string, unknown> | undefined }> = [];
+      _.each(hookFnArray, hookFnDef => {
+        const hookFnStr = _.get(hookFnDef, 'function', null);
+        if (!_.isEmpty(hookFnStr) && _.isString(hookFnStr)) {
+          const hookFn = this.input.resolveHook(hookFnStr);
+          const hookOpt = _.get(hookFnDef, 'options');
+          if (_.isFunction(hookFn)) {
+            hookFnDefArray.push({ hookFn: hookFn, hookOpt: hookOpt });
+          } else {
+            this.updateChronicle({ triggerHookOutcome: 'invalid-function' }, [
+              new Error('Invalid synchronous record hook.'),
+            ]);
+          }
+        } else {
+          this.updateChronicle({ triggerHookOutcome: 'missing-function' }, [
+            new Error('Missing synchronous record hook name.'),
+          ]);
+        }
+      });
+      if (!_.isEmpty(hookFnDefArray)) {
+        return from(hookFnDefArray).pipe(
+          concatMap(hookDef => {
+            return hookDef.hookFn(oid, record, hookDef.hookOpt ?? {}, user);
+          }),
+          last()
+        );
+      } else {
+        return of(record);
+      }
+    }
+
+    public async applyFieldLevelPermissions(
+      oid: string,
+      record: RecordLike,
+      options: Record<string, unknown>,
+      user: UserLike
+    ) {
+      // mandatory
+      const fieldDBNames = _.get(options, 'fieldDBNames', []) as string[];
+      // Allow a certain user to edit
+      const userWithPermissionToEdit = _.get(options, 'userWithPermissionToEdit', '') as string;
+      const roleEditPermission = _.get(options, 'roleEditPermission', '') as string;
+
+      if (user.username != userWithPermissionToEdit && !this.userHasRoleEditPermission(user, roleEditPermission)) {
+        const previousRecord = await this.input.records.getMeta(oid);
+        for (const fieldDBName of fieldDBNames) {
+          const previousData = _.get(previousRecord, fieldDBName);
+
+          if (previousData != null && String(previousData).trim() != '') {
+            _.set(record, fieldDBName, previousData);
+            this.updateChronicle({ triggerRecordOid: oid, triggerRestoredField: fieldDBName });
+          }
+        }
+      }
+
+      return record;
+    }
+
+    private userHasRoleEditPermission(user: { roles?: Array<{ name: string }> }, roleEditPermission: string) {
+      for (const role of user.roles ?? []) {
+        if (role.name === roleEditPermission) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    public async validateFieldUsingRegex(oid: string, record: RecordLike, options: Record<string, unknown>) {
+      // mandatory
+      const fieldDBName = _.get(options, 'fieldDBName', '') as string;
+      const errorLanguageCode = _.get(options, 'errorLanguageCode', '') as string;
+      const regexPattern = _.get(options, 'regexPattern', '') as string;
+
+      // optional
+      const fieldLanguageCode = _.get(options, 'fieldLanguageCode', '') as string;
+      const arrayObjFieldDBName = _.get(options, 'arrayObjFieldDBName', '') as string;
+
+      // trimLeadingAndTrailingSpacesBeforeValidation:
+      // Set false by default if not present this option will remove leading and trailing spaces from a none array value
+      // then it will modify the value in the record if the regex validation is passed therefore handle with care
+      const trimLeadingAndTrailingSpacesBeforeValidation = Boolean(
+        _.get(options, 'trimLeadingAndTrailingSpacesBeforeValidation', false)
+      );
+
+      // default to true - is only false when set to bool false or string 'false'
+      const caseSensitive = String(_.get(options, 'caseSensitive', true)) !== 'false';
+      // default to true for backwards compatibility - is only false when set to bool false or string 'false'
+      const allowNulls = String(_.get(options, 'allowNulls', true)) !== 'false';
+
+      // re-usable functions
+      const textRegex = function (value: string) {
+        let flags = '';
+        if (!caseSensitive) {
+          flags += 'i';
+        }
+        const re = new RegExp(regexPattern, flags);
+        return re.test(value);
+      };
+      const getError = () => {
+        let displayErrorDetail = this.input.translation.t(errorLanguageCode);
+        const displayErrorMeta: Record<string, unknown> = { errorLanguageCode: errorLanguageCode };
+        if (fieldLanguageCode) {
+          displayErrorDetail = `${this.input.translation.t(fieldLanguageCode)} ${displayErrorDetail}`;
+          displayErrorMeta.fieldLanguageCode = fieldLanguageCode;
+        }
+        return new RBValidationError({
+          message: `Failed validating field using regex record ${record} options ${options}`,
+          displayErrors: [{ detail: displayErrorDetail, meta: displayErrorMeta }],
+        });
+      };
+      const hasValue = function (data: unknown) {
+        return data !== '' && data !== null && data !== undefined;
+      };
+      const evaluate = function (element: Record<string, unknown>, fieldName: string) {
+        let value = String(_.get(element, fieldName, ''));
+
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          value = _.trim(value);
+        }
+
+        if (!hasValue(value) && !allowNulls) {
+          return false;
+        } else if (!hasValue(value) && allowNulls) {
+          // this is ok
+        } else if (!textRegex(value)) {
+          return false;
+        }
+
+        if (trimLeadingAndTrailingSpacesBeforeValidation) {
+          _.set(element, fieldName, value);
+        }
+
+        return true;
+      };
+
+      // get the data
+      const data = _.get(record, fieldDBName);
+
+      // early checks
+      if (!hasValue(data) && !allowNulls) {
+        throw getError();
+      }
+      if (!hasValue(data) && allowNulls) {
+        return record;
+      }
+      if (!_.isArray(data) && arrayObjFieldDBName) {
+        throw getError();
+      }
+      if (_.isArray(data) && !arrayObjFieldDBName) {
+        throw getError();
+      }
+
+      // evaluate the record field against the regex
+      if (_.isArray(data)) {
+        for (const row of data as Array<Record<string, unknown>>) {
+          if (!evaluate(row, arrayObjFieldDBName)) {
+            throw getError();
+          }
+        }
+      } else {
+        if (!evaluate(record as Record<string, unknown>, fieldDBName)) {
+          throw getError();
+        }
+      }
+
+      return record;
+    }
+
+    /**
+     * Trigger function that will run a lodash template that can be used to validate a record.
+     * The trigger expects the template to return an array of error objects of the format:
+     *  {
+     *   name: 'the field name that is in validation error',
+     *   label: 'the human readable label for the field',
+     *   error: 'optional error message'
+     *  }
+     *
+     *  An empty array should be returned if no errors are found.
+     *
+     * @param oid
+     * @param record
+     * @param options
+     * @returns
+     */
+    public async validateFieldsUsingTemplate(oid: string, record: RecordLike, options: Record<string, unknown>) {
+      if (this.metTriggerCondition(oid, record as Record<string, unknown>, options) === 'true') {
+        const getErrorMessage = (errorLanguageCode: string) => {
+          const baseErrorMessage = this.input.translation.t(errorLanguageCode);
+          return baseErrorMessage;
+        };
+
+        const addError = function (
+          errorFieldList: Array<Record<string, unknown>>,
+          name: string,
+          label: string,
+          errorLabel: string
+        ) {
+          const errorField: Record<string, unknown> = {};
+          _.set(errorField, 'name', name);
+          _.set(errorField, 'label', getErrorMessage(label));
+          const error = getErrorMessage(errorLabel);
+          if (error != '') {
+            _.set(errorField, 'error', error);
+          }
+          errorFieldList.push(errorField);
+        };
+
+        let template = _.get(options, 'template', '<% return []; %>') as
+          | string
+          | ((data: Record<string, unknown>) => Array<Record<string, unknown>>);
+
+        const imports = {
+          moment: moment,
+          numeral: numeral,
+          _: _,
+          TranslationService: this.input.translation,
+        };
+
+        const altErrorMessage = _.get(options, 'altErrorMessage', []) as Array<Record<string, unknown>>;
+
+        if (_.isString(template)) {
+          const compiledTemplate = _.template(template, { imports });
+          template = compiledTemplate as unknown as (data: Record<string, unknown>) => Array<Record<string, unknown>>;
+        }
+        if (!_.isFunction(template)) {
+          throw new Error('Template is not a string or function');
+        }
+
+        const errorFieldList = template({
+          oid: oid,
+          record: record,
+          options: options,
+          addError: addError,
+          getErrorMessage: getErrorMessage,
+        }) as Array<Record<string, unknown>>;
+
+        const errorMap: {
+          altErrorMessage: Array<Record<string, unknown>>;
+          errorFieldList: Array<Record<string, unknown>>;
+        } = {
+          altErrorMessage: altErrorMessage,
+          errorFieldList: errorFieldList as Array<Record<string, unknown>>,
+        };
+
+        this.updateChronicle({ triggerRecordOid: oid, triggerValidationFailureCount: errorMap.errorFieldList.length });
+        if (!_.isEmpty(errorMap.errorFieldList)) {
+          throw new RBValidationError({
+            message: `Field validation using template failed: errorMap ${JSON.stringify(errorMap)}`,
+            displayErrors: [{ title: 'Validation failed', meta: errorMap }],
+          });
+        }
+      }
+      return record;
+    }
+
+    public async validateFieldMapUsingRegex(oid: string, record: RecordLike, options: Record<string, unknown>) {
+      if (this.metTriggerCondition(oid, record as Record<string, unknown>, options) === 'true') {
+        // re-usable functions
+        const textRegex = function (value: string, regexPattern: string, caseSensitive: boolean) {
+          if (regexPattern == '') {
+            return true;
+          } else {
+            let flags = '';
+            if (!caseSensitive) {
+              flags += 'i';
+            }
+            const re = new RegExp(regexPattern, flags);
+            return re.test(value);
+          }
+        };
+        const getError = (errorLanguageCode: string) => {
+          const baseErrorMessage = this.input.translation.t(errorLanguageCode);
+
+          return baseErrorMessage;
+        };
+        const hasValue = function (data: unknown) {
+          return data !== '' && data !== null && data !== undefined;
+        };
+        const evaluate = function (
+          element: unknown,
+          fieldName: string,
+          trim: boolean,
+          allowNulls: boolean,
+          regexPattern: string,
+          caseSensitive: boolean
+        ) {
+          let value = '';
+          if (_.isString(element) && fieldName == '') {
+            value = element;
+          } else if (fieldName != '') {
+            value = _.get(element, fieldName);
+          }
+
+          if (trim) {
+            value = _.trim(value);
+          }
+
+          if (!hasValue(value) && !allowNulls) {
+            return false;
+          } else if (!hasValue(value) && allowNulls) {
+            // this is ok
+          } else if (!textRegex(value, regexPattern, caseSensitive)) {
+            return false;
+          }
+
+          if (trim && _.isObject(element) && fieldName != '') {
+            _.set(element, fieldName, value);
+          }
+
+          return true;
+        };
+
+        const fieldObjectList = _.get(options, 'fieldObjectList', []) as Array<Record<string, unknown>>;
+        const altErrorMessage = _.get(options, 'altErrorMessage', []) as Array<Record<string, unknown>>;
+        const errorMap: {
+          altErrorMessage: Array<Record<string, unknown>>;
+          errorFieldList: Array<Record<string, unknown>>;
+        } = {
+          altErrorMessage: altErrorMessage,
+          errorFieldList: [],
+        };
+
+        for (const field of fieldObjectList) {
+          const fieldName = String(_.get(field, 'name', ''));
+          const fieldLabel = String(_.get(field, 'label', ''));
+          const fieldErrorLabel = String(_.get(field, 'errorLabel', ''));
+          // get the data
+          const data = _.get(record, 'metadata.' + fieldName);
+          // caseSensitive default is true - is only false when set to bool false or string 'false'
+          const caseSensitive = String(_.get(field, 'caseSensitive', true)) !== 'false';
+
+          const allowNulls = String(_.get(field, 'allowNulls', true)) !== 'false';
+
+          const trim = Boolean(_.get(field, 'trim', true));
+          const regexPattern = String(_.get(field, 'regexPattern', ''));
+
+          // early checks
+          if (!hasValue(data) && !allowNulls) {
+            const errorField: Record<string, unknown> = {};
+            _.set(errorField, 'name', fieldName);
+            _.set(errorField, 'label', getError(fieldLabel));
+            const error = getError(fieldErrorLabel);
+            if (error != '') {
+              _.set(errorField, 'error', error);
+            }
+            errorMap.errorFieldList.push(errorField);
+
+            continue;
+          }
+
+          // evaluate the record field against the regex
+          if (_.isArray(data)) {
+            for (const row of data) {
+              const innerFieldName = String(_.get(field, 'arrayObjFieldDBName', ''));
+              if (!evaluate(row, innerFieldName, trim, allowNulls, regexPattern, caseSensitive)) {
+                const errorField: Record<string, unknown> = {};
+                _.set(errorField, 'name', fieldName);
+                _.set(errorField, 'label', getError(fieldLabel));
+                const error = getError(fieldErrorLabel);
+                if (error != '') {
+                  _.set(errorField, 'error', error);
+                }
+                errorMap.errorFieldList.push(errorField);
+              }
+            }
+          } else {
+            if (!evaluate(data, '', trim, allowNulls, regexPattern, caseSensitive)) {
+              const errorField: Record<string, unknown> = {};
+              _.set(errorField, 'name', fieldName);
+              _.set(errorField, 'label', getError(fieldLabel));
+              const error = getError(fieldErrorLabel);
+              if (error != '') {
+                _.set(errorField, 'error', error);
+              }
+              errorMap.errorFieldList.push(errorField);
+            }
+          }
+        }
+
+        this.updateChronicle({ triggerRecordOid: oid, triggerValidationFailureCount: errorMap.errorFieldList.length });
+        if (!_.isEmpty(errorMap.errorFieldList)) {
+          throw new RBValidationError({
+            message: `Field map validation using regex failed: errorMap ${JSON.stringify(errorMap)}`,
+            displayErrors: [{ title: 'Validation failed', meta: errorMap }],
+          });
+        }
+      }
+      return record;
+    }
+
+    public async runTemplatesOnRelatedRecord(
+      relatedOid: string,
+      relatedRecord: RecordLike,
+      options: Record<string, unknown>,
+      user: UserLike
+    ) {
+      if (this.metTriggerCondition(relatedOid, relatedRecord as Record<string, unknown>, options) === 'true') {
+        const templates = (_.get(options, 'templates', []) ?? []) as Array<Record<string, unknown>>;
+        this.updateChronicle({ triggerRelatedRecordOid: relatedOid, triggerTemplateCount: templates.length });
+
+        const pathToRelatedOid = String(_.get(options, 'pathToRelatedOid', ''));
+        const innerPathToRelatedOid = String(_.get(options, 'innerPathToRelatedOid', ''));
+        const runPreSaveTriggers = Boolean(_.get(options, 'runPreSaveTriggers', false));
+        const runPostSaveTriggers = Boolean(_.get(options, 'runPostSaveTriggers', false));
+        const parseObject = Boolean(_.get(options, 'parseObject', false));
+        const oidStringOrArray = _.get(relatedRecord, pathToRelatedOid, '');
+        let record: RecordLike | null = null;
+        const oidList: string[] = [];
+
+        if (!_.isArray(oidStringOrArray) && _.isString(oidStringOrArray)) {
+          oidList.push(oidStringOrArray);
+        } else if (_.isArray(oidStringOrArray)) {
+          if (innerPathToRelatedOid != '') {
+            for (const oidObj of oidStringOrArray) {
+              const tmpOid = _.get(oidObj, innerPathToRelatedOid, '');
+              if (tmpOid != '' && _.isString(tmpOid)) {
+                oidList.push(tmpOid);
+              }
+            }
+          } else {
+            for (const oid of oidStringOrArray) {
+              if (_.isString(oid)) {
+                oidList.push(oid);
+              }
+            }
+          }
+        }
+
+        if (!_.isEmpty(oidList)) {
+          for (const oid of oidList) {
+            let templateIndex: number | undefined;
+            let phase: 'lookup' | 'template' | 'brand' | 'save' = 'lookup';
+            let saveOutcome: string | undefined;
+            try {
+              record = await this.input.records.getMeta(oid);
+              if (_.isObject(record)) {
+                const previousMetadata = _.cloneDeep(_.get(record, 'metadata', {}));
+                phase = 'template';
+                _.each(templates, (templateConfig: Record<string, unknown>, index: number) => {
+                  templateIndex = index;
+                  const imports = _.extend(
+                    {
+                      moment: moment,
+                      numeral: numeral,
+                    },
+                    this
+                  );
+                  const templateImportsData = {
+                    imports: imports,
+                  };
+                  const templateData = {
+                    oid: oid,
+                    record: record,
+                    user: user,
+                    options: options,
+                  };
+                  const templateValue = templateConfig.template;
+                  let templateFn: ((data: Record<string, unknown>) => string) | null = null;
+                  if (_.isString(templateValue)) {
+                    templateFn = _.template(templateValue, { imports: templateImportsData });
+                  } else if (_.isFunction(templateValue)) {
+                    templateFn = templateValue as (data: Record<string, unknown>) => string;
+                  }
+                  if (!templateFn) {
+                    throw new Error('Template is not a string or function');
+                  }
+                  const data = templateFn(templateData as Record<string, unknown>);
+                  const fieldPath = String(_.get(templateConfig, 'field', ''));
+                  if (parseObject) {
+                    const obj = JSON.parse(data);
+                    _.set(record as Record<string, unknown>, fieldPath, obj);
+                  } else {
+                    _.set(record as Record<string, unknown>, fieldPath, data);
+                  }
+                });
+                templateIndex = undefined;
+                phase = 'brand';
+                const brandId = _.get(record, 'metaMetadata.brandId', '') as string;
+                if (_.isEmpty(brandId)) {
+                  throw new RBValidationError({
+                    message: 'Brand id not found for related record',
+                    displayErrors: [{ title: 'Processing failed', meta: { oid: oid, relatedOid: relatedOid } }],
+                  });
+                }
+                const brand: BrandingModel = this.input.brand(brandId);
+
+                phase = 'save';
+                const response = await this.input.records.updateMetaInternal({
+                  actor: { kind: 'service', id: 'TriggerService.runTemplatesOnRelatedRecord' },
+                  authorization: { kind: 'service' },
+                  mutationClass: 'full-record',
+                  brand,
+                  oid,
+                  record,
+                  user,
+                  triggerPreSaveTriggers: runPreSaveTriggers,
+                  triggerPostSaveTriggers: runPostSaveTriggers,
+                  metadata: createRecordMetadataDelta(previousMetadata, _.get(record, 'metadata', {})),
+                  metadataMode: 'pre-applied',
+                });
+                saveOutcome = response.outcome;
+                if (!response.wasPersisted()) {
+                  throw new Error('Related record was not persisted');
+                }
+                if (response.outcome === 'saved-with-warnings') {
+                  this.updateChronicle(
+                    {
+                      triggerRelatedRecordOid: oid,
+                      triggerTemplateOutcome: 'saved-with-warnings',
+                      triggerSaveRequestId: response.requestId,
+                    },
+                    [],
+                    'warn'
+                  );
+                }
+              } else {
+                this.updateChronicle({ triggerTemplateOutcome: 'record-missing' });
+              }
+            } catch (cause) {
+              // Template source and exception excerpts can contain private record or user values.
+              const error = new RBValidationError({
+                message:
+                  phase === 'template'
+                    ? `Failed to run one of the string templates for oid ${oid} relatedOid ${relatedOid}`
+                    : `Failed to process related record for oid ${oid} relatedOid ${relatedOid} during ${phase}`,
+                displayErrors: [{ title: 'Processing failed', meta: { oid: oid, relatedOid: relatedOid } }],
+              });
+              this.updateChronicle(
+                {
+                  triggerRelatedRecordOid: oid,
+                  triggerTemplateSourceOid: relatedOid,
+                  triggerTemplateOutcome: 'failed',
+                  triggerTemplatePhase: phase,
+                  triggerTemplateIndex: templateIndex,
+                  triggerTemplateErrorType: cause instanceof Error ? cause.constructor.name : typeof cause,
+                  triggerTemplateSaveOutcome: saveOutcome,
+                },
+                [error]
+              );
+              throw error;
+            }
+          }
+        } else {
+          this.updateChronicle({ triggerTemplateOutcome: 'no-related-records' });
+        }
+      }
+      return relatedRecord;
+    }
+  }
+}
