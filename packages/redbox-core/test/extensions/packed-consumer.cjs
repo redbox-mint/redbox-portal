@@ -96,6 +96,12 @@ const {
   assert.throws(() => require('sr-esm-only'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
   const ownRequire = createRequire(require.resolve('@researchdatabox/redbox-core/package.json'));
   assert(ownRequire.resolve('import-meta-resolve').startsWith(__dirname));
+  const legacyRuntime = '@researchdatabox/redbox-core/dist/persistence/branding/runtime';
+  assert.equal(ownRequire.resolve(legacyRuntime), ownRequire.resolve(legacyRuntime + '.js'));
+  assert.equal(
+    ownRequire.resolve('@researchdatabox/redbox-core/dist/recordTypes'),
+    ownRequire.resolve('@researchdatabox/redbox-core/dist/recordTypes/index.js')
+  );
   for (const file of Object.keys(require.cache))
     assert(file.startsWith(__dirname), `source-tree or external module shortcut: ${file}`);
   assert.deepEqual(

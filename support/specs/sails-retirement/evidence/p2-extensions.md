@@ -322,3 +322,30 @@ format check caught the expanded CJS consumer's formatting; formatted and the
 subsequent focused check passes. No installed dependency pin changed in SR-018;
 generated TypeScript 5.9.3 / Node types 24.12.4 reuse repository pins and core's
 exact installed version. Complete generated-app packaging remains SR-047/SR-053.
+
+## Legacy package-export compatibility follow-up
+
+First phase-wide Mongo-backed core run: **4,351 passing, 68 pending, 4 failing**
+(~2 minutes). Two migration beforeEach hooks could not resolve the existing
+`@researchdatabox/redbox-core/dist/persistence/branding/runtime` path; their two
+afterEach restores consequently failed too. This was a P2 regression: a package
+exports wildcard does not perform CommonJS extension/directory fallback. The
+compiled runtime.js existed. A fresh Node process deterministically reproduced
+it, excluding missing build output and an old resolver cache. This small manifest
+failure needed no instrumentation or broader bisection.
+
+Minimal red/green loop actually run (Node 26):
+
+```sh
+node -e 'const assert = require("node:assert/strict"); const core = require("node:module").createRequire(require.resolve("@researchdatabox/redbox-core/package.json")); assert.equal(core.resolve("@researchdatabox/redbox-core/dist/persistence/branding/runtime"), core.resolve("@researchdatabox/redbox-core/dist/persistence/branding/runtime.js"));'
+npm --prefix packages/redbox-core test -- --grep 'Admin sidebar text colour migration|Branding typeface backfill migration'
+```
+
+The resolver command changed from **MODULE_NOT_FOUND / exit 1** to **exit 0**.
+Focused existing suites: **26 passing, 0 failing/pending** (85 ms test execution).
+No migration/test implementation changed. The manifest now maps extensionless
+compiled modules and each existing compiled index directory explicitly, preserving
+explicit .js/.json/.d.ts/.map and other package paths. Packed verification also
+asserts the extensionless runtime and recordTypes directory resolve to the same
+files as their explicit .js entries, without importing the legacy barrel. No new
+dependency, no runtime shim, and no debug instrumentation left behind.

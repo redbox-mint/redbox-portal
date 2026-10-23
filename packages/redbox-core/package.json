@@ -235,10 +235,114 @@
       "types": "./dist/http/express/index.d.ts",
       "default": "./dist/http/express/index.js"
     },
-    "./*": "./*",
     "./compat/sails": {
       "types": "./dist/compat/sails/index.d.ts",
       "default": "./dist/compat/sails/index.js"
-    }
+    },
+    "./dist": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./dist/action-execution": {
+      "types": "./dist/action-execution/index.d.ts",
+      "default": "./dist/action-execution/index.js"
+    },
+    "./dist/api-routes": {
+      "types": "./dist/api-routes/index.d.ts",
+      "default": "./dist/api-routes/index.js"
+    },
+    "./dist/application": {
+      "types": "./dist/application/index.d.ts",
+      "default": "./dist/application/index.js"
+    },
+    "./dist/compat/sails": {
+      "types": "./dist/compat/sails/index.d.ts",
+      "default": "./dist/compat/sails/index.js"
+    },
+    "./dist/config": {
+      "types": "./dist/config/index.d.ts",
+      "default": "./dist/config/index.js"
+    },
+    "./dist/controllers": {
+      "types": "./dist/controllers/index.d.ts",
+      "default": "./dist/controllers/index.js"
+    },
+    "./dist/decorator": {
+      "types": "./dist/decorator/index.d.ts",
+      "default": "./dist/decorator/index.js"
+    },
+    "./dist/extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "default": "./dist/extensions/index.js"
+    },
+    "./dist/form-config": {
+      "types": "./dist/form-config/index.d.ts",
+      "default": "./dist/form-config/index.js"
+    },
+    "./dist/hooks": {
+      "types": "./dist/hooks/index.d.ts",
+      "default": "./dist/hooks/index.js"
+    },
+    "./dist/http/express": {
+      "types": "./dist/http/express/index.d.ts",
+      "default": "./dist/http/express/index.js"
+    },
+    "./dist/loader": {
+      "types": "./dist/loader/index.d.ts",
+      "default": "./dist/loader/index.js"
+    },
+    "./dist/model/api": {
+      "types": "./dist/model/api/index.d.ts",
+      "default": "./dist/model/api/index.js"
+    },
+    "./dist/model/config": {
+      "types": "./dist/model/config/index.d.ts",
+      "default": "./dist/model/config/index.js"
+    },
+    "./dist/model": {
+      "types": "./dist/model/index.d.ts",
+      "default": "./dist/model/index.js"
+    },
+    "./dist/model/storage": {
+      "types": "./dist/model/storage/index.d.ts",
+      "default": "./dist/model/storage/index.js"
+    },
+    "./dist/persistence/rows": {
+      "types": "./dist/persistence/rows/index.d.ts",
+      "default": "./dist/persistence/rows/index.js"
+    },
+    "./dist/policies": {
+      "types": "./dist/policies/index.d.ts",
+      "default": "./dist/policies/index.js"
+    },
+    "./dist/record-contract": {
+      "types": "./dist/record-contract/index.d.ts",
+      "default": "./dist/record-contract/index.js"
+    },
+    "./dist/recordTypes": {
+      "types": "./dist/recordTypes/index.d.ts",
+      "default": "./dist/recordTypes/index.js"
+    },
+    "./dist/responses": {
+      "types": "./dist/responses/index.d.ts",
+      "default": "./dist/responses/index.js"
+    },
+    "./dist/services": {
+      "types": "./dist/services/index.d.ts",
+      "default": "./dist/services/index.js"
+    },
+    "./dist/shims": {
+      "types": "./dist/shims/index.d.ts",
+      "default": "./dist/shims/index.js"
+    },
+    "./dist/*.js": "./dist/*.js",
+    "./dist/*.json": "./dist/*.json",
+    "./dist/*.d.ts": "./dist/*.d.ts",
+    "./dist/*.map": "./dist/*.map",
+    "./dist/*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    },
+    "./*": "./*"
   }
 }
