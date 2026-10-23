@@ -1,11 +1,14 @@
+import { getVocabularyRepositories } from '../persistence/runtime';
 import { Services as services } from '../CoreService';
-import { VocabularyAttributes, VocabularyEntryAttributes } from '../waterline-models';
-import type { FigshareVocabularySourceAttributes } from '../waterline-models/FigshareVocabularySource';
-import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
+import type {
+  VocabularyRow as VocabularyAttributes,
+  EntryRow as VocabularyEntryAttributes,
+} from '../persistence/vocabulary/VocabularyRepositories';
+
 import { promiseWithTimeout } from '../utilities/PromiseUtils';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { toBoolean } from "@researchdatabox/sails-ng-common";
+import { toBoolean } from '@researchdatabox/sails-ng-common';
 
 export namespace Services {
   type VocabType = 'flat' | 'tree';
@@ -24,20 +27,34 @@ export namespace Services {
   const RVA_IMPORT_MAX_ATTEMPTS = 3;
   const RVA_IMPORT_RETRY_DELAY_MS = 1_000;
 
-  export type VocabularyEntryInput =
-    Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'> & {
-      parent?: string | null;
-      children?: VocabularyEntryInput[];
-    };
+  export type VocabularyEntryInput = Pick<
+    VocabularyEntryAttributes,
+    'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'
+  > & {
+    parent?: string | null;
+    children?: VocabularyEntryInput[];
+  };
 
-  export type VocabularyInput =
-    Omit<Partial<VocabularyAttributes>, 'entries' | 'branding' | 'type' | 'source'> & {
-      name: string;
-      branding: string;
-      type?: VocabType;
-      source?: VocabSource;
-      entries?: VocabularyEntryInput[];
-    };
+  export type VocabularyInput = Partial<
+    Pick<
+      VocabularyAttributes,
+      | 'id'
+      | 'slug'
+      | 'description'
+      | 'owner'
+      | 'sourceId'
+      | 'sourceVersionId'
+      | 'lastSyncedAt'
+      | 'figshareSourceKey'
+      | 'rvaSourceKey'
+    >
+  > & {
+    name: string;
+    branding: string;
+    type?: VocabType;
+    source?: VocabSource;
+    entries?: VocabularyEntryInput[];
+  };
 
   export interface VocabularyListOptions {
     q?: string;
@@ -145,14 +162,7 @@ export namespace Services {
     imports?: unknown;
   }
 
-  type VocabularyListWhere = {
-    type?: VocabularyAttributes['type'];
-    source?: VocabularyAttributes['source'];
-    or?: Array<
-      { name: { contains: string } } |
-      { slug: { contains: string } }
-    >;
-  };
+  type VocabularyListWhere = import('../persistence/vocabulary/VocabularyRepositories').VocabularyFilter;
 
   export class VocabularyService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
@@ -173,54 +183,30 @@ export namespace Services {
       'normalizeEntry',
       'validateParent',
       'upsertEntries',
-      'assertMutableVocabulary'
+      'assertMutableVocabulary',
     ];
 
     /**
      * Externally managed mirrors (a `source=external` vocabulary owned by a Figshare
      * source) are only mutable through FigshareVocabularyService.applyPreview. Local
      * clones created from a mirror are ordinary local vocabularies and stay editable.
+
      */
-    public async assertMutableVocabulary(vocabularyId: string, connection?: Sails.Connection): Promise<void> {
+    public async assertMutableVocabulary(vocabularyId: string): Promise<void> {
       const id = String(vocabularyId ?? '').trim();
       if (!id) {
         return;
       }
-      const vocabulary = await this.executeQuery(
-        Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>,
-        connection
-      );
+      const vocabulary = await getVocabularyRepositories().getVocabulary({ id });
       if (!vocabulary || vocabulary.source !== 'external') {
         return;
       }
-      const managedSource = await this.executeQuery(
-        FigshareVocabularySource.findOne({ vocabulary: id }) as Sails.WaterlinePromise<FigshareVocabularySourceAttributes | null>,
-        connection
-      );
+      const managedSource = await getVocabularyRepositories().getSource({ vocabulary: id });
       if (managedSource) {
         throw new ExternallyManagedVocabularyError(
           `Vocabulary '${vocabulary.name}' mirrors a Figshare catalogue and can only be changed through the Figshare vocabulary administration screen`
         );
       }
-    }
-
-    private async executeQuery<T>(query: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
-      if (connection) {
-        return query.usingConnection(connection);
-      }
-      return query;
-    }
-
-    private async executeFindQuery<T>(query: Sails.QueryBuilder, connection?: Sails.Connection): Promise<T> {
-      if (connection) {
-        return await query.usingConnection(connection) as T;
-      }
-      return await query as T;
-    }
-
-    private async createAndFetch<T>(createQuery: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
-      const fetchedQuery = createQuery.fetch();
-      return this.executeQuery(fetchedQuery, connection);
     }
 
     private resolveBrandingId(branding: unknown): string {
@@ -243,8 +229,9 @@ export namespace Services {
         return brandingString;
       }
 
-
-      const globals = globalThis as { BrandingService?: { getBrand?: (nameOrId: string) => { id?: string | number } | null } };
+      const globals = globalThis as {
+        BrandingService?: { getBrand?: (nameOrId: string) => { id?: string | number } | null };
+      };
       const brandingService = globals.BrandingService;
       const brand = brandingService?.getBrand?.(brandingString);
       if (brand?.id) {
@@ -254,7 +241,9 @@ export namespace Services {
       return brandingString;
     }
 
-    public async list(options: VocabularyListOptions): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
+    public async list(
+      options: VocabularyListOptions
+    ): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
       const parsedLimit = Number.parseInt(String(options.limit ?? 25), 10);
       const parsedOffset = Number.parseInt(String(options.offset ?? 0), 10);
       const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(200, parsedLimit) : 25;
@@ -271,19 +260,20 @@ export namespace Services {
       // Branding is single-tenant for this admin feature; avoid ObjectId/string mismatch
       // filtering at query time which can hide records in Mongo-backed environments.
       if (options.q) {
-        where.or = [
-          { name: { contains: options.q } },
-          { slug: { contains: options.q } }
-        ];
+        where.search = options.q;
       }
 
-      const total = await Vocabulary.count(where);
-      const data = await Vocabulary.find(where).sort(sort).skip(offset).limit(limit) as VocabularyAttributes[];
+      const total = await getVocabularyRepositories().countVocabularies(where);
+      const data = await getVocabularyRepositories().listVocabularies(where, {
+        sort: sort,
+        offset: offset,
+        limit: limit,
+      });
       return { data, meta: { total, limit, offset } };
     }
 
     public async getById(id: string): Promise<VocabularyAttributes | null> {
-      return await Vocabulary.findOne({ id });
+      return await getVocabularyRepositories().getVocabulary({ id });
     }
 
     public async getByIdOrSlug(branding: string, idOrSlug: string): Promise<VocabularyAttributes | null> {
@@ -293,11 +283,19 @@ export namespace Services {
         return null;
       }
 
-      const byId = await Vocabulary.findOne({ id: normalizedIdOrSlug, branding: normalizedBranding }) as VocabularyAttributes | null;
-      if (byId) {
-        return byId;
+      if (/^[a-f\d]{24}$/i.test(normalizedIdOrSlug)) {
+        const byId = await getVocabularyRepositories().getVocabulary({
+          id: normalizedIdOrSlug,
+          branding: normalizedBranding,
+        });
+        if (byId) {
+          return byId;
+        }
       }
-      return await Vocabulary.findOne({ slug: normalizedIdOrSlug, branding: normalizedBranding }) as VocabularyAttributes | null;
+      return await getVocabularyRepositories().getVocabulary({
+        slug: normalizedIdOrSlug,
+        branding: normalizedBranding,
+      });
     }
 
     public async getEntries(
@@ -314,23 +312,26 @@ export namespace Services {
       const parsedOffset = Number.parseInt(String(options?.offset ?? 0), 10);
       const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(1000, parsedLimit) : 200;
       const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
-      const search = String(options?.search ?? '').trim().toLowerCase();
+      const search = String(options?.search ?? '')
+        .trim()
+        .toLowerCase();
 
-      const where: { vocabulary: string; labelLower?: { contains: string }; historical?: boolean } = {
-        vocabulary: String(vocabulary.id)
+      const where: { vocabulary: string; search?: string; historical?: boolean } = {
+        vocabulary: String(vocabulary.id),
       };
       if (search) {
-        where.labelLower = { contains: search };
+        where.search = search;
       }
       if (options?.includeHistoricalValues !== true) {
         where.historical = false;
       }
 
-      const total = await VocabularyEntry.count(where);
-      const entries = await VocabularyEntry.find(where)
-        .sort([{ order: 'ASC' }, { label: 'ASC' }])
-        .skip(offset)
-        .limit(limit) as VocabularyEntryAttributes[];
+      const total = await getVocabularyRepositories().countEntries(where);
+      const entries = await getVocabularyRepositories().listEntries(where, {
+        sort: [{ order: 'ASC' }, { label: 'ASC' }],
+        offset: offset,
+        limit: limit,
+      });
 
       return {
         entries,
@@ -338,8 +339,8 @@ export namespace Services {
           total,
           limit,
           offset,
-          vocabularyId: String(vocabulary.id)
-        }
+          vocabularyId: String(vocabulary.id),
+        },
       };
     }
 
@@ -355,10 +356,10 @@ export namespace Services {
 
       const normalizedParentId = String(parentId ?? '').trim();
       if (normalizedParentId) {
-        const parentEntry = await VocabularyEntry.findOne({
+        const parentEntry = await getVocabularyRepositories().getEntry({
           id: normalizedParentId,
-          vocabulary: String(vocabulary.id)
-        }) as VocabularyEntryAttributes | null;
+          vocabulary: String(vocabulary.id),
+        });
         if (!parentEntry) {
           throw new InvalidParentIdError();
         }
@@ -369,17 +370,18 @@ export namespace Services {
       };
       where.parent = normalizedParentId || null;
 
-      const entries = await VocabularyEntry.find(where)
-        .sort([{ order: 'ASC' }, { label: 'ASC' }]) as VocabularyEntryAttributes[];
+      const entries = await getVocabularyRepositories().listEntries(where, {
+        sort: [{ order: 'ASC' }, { label: 'ASC' }],
+      });
 
-      const childParentIds = entries.map((entry) => String(entry.id));
+      const childParentIds = entries.map(entry => String(entry.id));
       const hasChildrenById = new Map<string, boolean>();
 
       if (childParentIds.length > 0) {
-        const descendants = await VocabularyEntry.find({
+        const descendants = await getVocabularyRepositories().listEntries({
           vocabulary: String(vocabulary.id),
-          parent: { in: childParentIds }
-        }) as VocabularyEntryAttributes[];
+          parent: childParentIds,
+        });
 
         for (const descendant of descendants) {
           const descendantParent = String(descendant.parent ?? '');
@@ -389,7 +391,7 @@ export namespace Services {
         }
       }
 
-      const responseEntries: VocabularyChildrenNode[] = entries.map((entry) =>
+      const responseEntries: VocabularyChildrenNode[] = entries.map(entry =>
         this.toVocabularyChildrenNode(entry, hasChildrenById.get(String(entry.id)) === true)
       );
 
@@ -398,8 +400,8 @@ export namespace Services {
         meta: {
           vocabularyId: String(vocabulary.id),
           parentId: normalizedParentId || null,
-          total: responseEntries.length
-        }
+          total: responseEntries.length,
+        },
       };
     }
 
@@ -415,9 +417,7 @@ export namespace Services {
 
       const normalizedNotations = Array.from(
         new Set(
-          (notations ?? [])
-            .map((notation) => String(notation ?? '').trim())
-            .filter((notation) => notation.length > 0)
+          (notations ?? []).map(notation => String(notation ?? '').trim()).filter(notation => notation.length > 0)
         )
       );
       if (normalizedNotations.length === 0) {
@@ -425,8 +425,8 @@ export namespace Services {
           paths: {},
           meta: {
             vocabularyId: String(vocabulary.id),
-            notations: []
-          }
+            notations: [],
+          },
         };
       }
 
@@ -445,10 +445,10 @@ export namespace Services {
         if (entryCache.has(normalizedEntryId)) {
           return entryCache.get(normalizedEntryId) ?? null;
         }
-        const entry = await VocabularyEntry.findOne({
+        const entry = await getVocabularyRepositories().getEntry({
           id: normalizedEntryId,
-          vocabulary: vocabularyId
-        }) as VocabularyEntryAttributes | null;
+          vocabulary: vocabularyId,
+        });
         entryCache.set(normalizedEntryId, entry);
         return entry;
       };
@@ -463,20 +463,20 @@ export namespace Services {
         }
 
         const normalizedNotationLower = normalizedNotation.toLowerCase();
-        const exactMatch = await VocabularyEntry.findOne({
+        const exactMatch = await getVocabularyRepositories().getEntry({
           vocabulary: vocabularyId,
-          identifier: normalizedNotation
-        }) as VocabularyEntryAttributes | null;
+          identifier: normalizedNotation,
+        });
         if (exactMatch) {
           notationCache.set(normalizedNotation, exactMatch);
           entryCache.set(String(exactMatch.id), exactMatch);
           return exactMatch;
         }
 
-        const lowerMatch = await VocabularyEntry.findOne({
+        const lowerMatch = await getVocabularyRepositories().getEntry({
           vocabulary: vocabularyId,
-          valueLower: normalizedNotationLower
-        }) as VocabularyEntryAttributes | null;
+          valueLower: normalizedNotationLower,
+        });
         notationCache.set(normalizedNotation, lowerMatch);
         if (lowerMatch) {
           entryCache.set(String(lowerMatch.id), lowerMatch);
@@ -512,10 +512,10 @@ export namespace Services {
       const hasChildrenById = new Map<string, boolean>();
       const childrenByParentId = new Map<string, VocabularyEntryAttributes[]>();
       if (chainIds.length > 0) {
-        const descendants = await VocabularyEntry.find({
+        const descendants = await getVocabularyRepositories().listEntries({
           vocabulary: vocabularyId,
-          parent: { in: chainIds }
-        }) as VocabularyEntryAttributes[];
+          parent: chainIds,
+        });
 
         for (const descendant of descendants) {
           const descendantParent = String(descendant.parent ?? '').trim();
@@ -548,14 +548,14 @@ export namespace Services {
 
         const directChildren = childrenByParentId.get(entryId) ?? [];
         if (directChildren.length > 0) {
-          node.children = directChildren.map((child) => {
+          node.children = directChildren.map(child => {
             const childNode = buildNode(child);
             if (chainEntries.has(String(child.id ?? '').trim())) {
               return childNode;
             }
             return {
               ...childNode,
-              children: childNode.children ?? []
+              children: childNode.children ?? [],
             };
           });
         }
@@ -564,15 +564,15 @@ export namespace Services {
       };
 
       for (const { notation, chain } of orderedChains) {
-        paths[notation] = chain.map((entry) => buildNode(entry));
+        paths[notation] = chain.map(entry => buildNode(entry));
       }
 
       return {
         paths,
         meta: {
           vocabularyId,
-          notations: normalizedNotations
-        }
+          notations: normalizedNotations,
+        },
       };
     }
 
@@ -583,18 +583,14 @@ export namespace Services {
     ): Promise<VocabularyEntryAttributes | null> {
       const vocabulary = await this.getByIdOrSlug(branding, vocabIdOrSlug);
       const normalizedNotation = String(notation ?? '').trim();
-      const normalizedNotationLower = normalizedNotation.toLowerCase();
       if (!vocabulary || !normalizedNotation) {
         return null;
       }
 
-      return await VocabularyEntry.findOne({
+      return await getVocabularyRepositories().getEntry({
         vocabulary: String(vocabulary.id),
-        or: [
-          { identifier: normalizedNotation },
-          { valueLower: normalizedNotationLower }
-        ]
-      }) as VocabularyEntryAttributes | null;
+        notation: normalizedNotation,
+      });
     }
 
     public async getAncestorChain(
@@ -623,19 +619,16 @@ export namespace Services {
         if (!parentId) {
           break;
         }
-        cursor = await VocabularyEntry.findOne({
+        cursor = await getVocabularyRepositories().getEntry({
           id: parentId,
-          vocabulary: String(cursor.vocabulary)
-        }) as VocabularyEntryAttributes | null;
+          vocabulary: String(cursor.vocabulary),
+        });
       }
 
       return chain;
     }
 
-    private toVocabularyChildrenNode(
-      entry: VocabularyEntryAttributes,
-      hasChildren: boolean
-    ): VocabularyChildrenNode {
+    private toVocabularyChildrenNode(entry: VocabularyEntryAttributes, hasChildren: boolean): VocabularyChildrenNode {
       const id = String(entry.id);
       const parent = entry.parent ? String(entry.parent) : null;
       const notation = String(entry.identifier ?? '').trim() || String(entry.value ?? '').trim();
@@ -645,7 +638,7 @@ export namespace Services {
         value: String(entry.value ?? ''),
         notation: notation || undefined,
         parent,
-        hasChildren
+        hasChildren,
       };
     }
 
@@ -653,7 +646,7 @@ export namespace Services {
       const payload: VocabularyInput = {
         ...input,
         type: input.type ?? 'flat',
-        source: input.source ?? 'local'
+        source: input.source ?? 'local',
       };
 
       const entries = payload.entries ?? [];
@@ -668,50 +661,38 @@ export namespace Services {
         sourceVersionId: payload.sourceVersionId,
         lastSyncedAt: payload.lastSyncedAt,
         owner: payload.owner,
-        branding: this.resolveBrandingId(payload.branding)
+        branding: this.resolveBrandingId(payload.branding),
       };
       if (payload.slug) {
         createPayload.slug = payload.slug;
       }
 
-      return runWithOptionalTransaction(
-        this.getDatastore(),
-        async (connection) => {
-          let created: VocabularyAttributes | null = null;
-          try {
-            created = await this.createAndFetch<VocabularyAttributes>(
-              Vocabulary.create(createPayload),
-              connection
-            );
-            if (!created) {
-              throw new Error('Vocabulary create failed');
-            }
-            if (entries.length > 0) {
-              await this.replaceEntries(created.id, created.type === 'flat', entries, connection);
-            }
-            const findQuery = Vocabulary.findOne({ id: created.id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
-            const saved = await this.executeQuery(findQuery, connection);
-            if (!saved) {
-              throw new Error('Vocabulary create failed');
-            }
-            return saved;
-          } catch (err) {
-            if (!connection && created?.id) {
-              try {
-                await VocabularyEntry.destroy({ vocabulary: created.id });
-                await Vocabulary.destroyOne({ id: created.id });
-              } catch (_cleanupErr) {
-                // Swallow cleanup errors to preserve the original failure.
-              }
-            }
-            throw err;
-          }
-        },
-        {
-          logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional create.'
+      let created: VocabularyAttributes | null = null;
+      try {
+        created = await getVocabularyRepositories().createVocabulary(createPayload);
+        if (!created) {
+          throw new Error('Vocabulary create failed');
         }
-      );
+        if (entries.length > 0) {
+          await this.replaceEntries(created.id, created.type === 'flat', entries);
+        }
+        const findQuery = getVocabularyRepositories().getVocabulary({ id: created.id });
+        const saved = await findQuery;
+        if (!saved) {
+          throw new Error('Vocabulary create failed');
+        }
+        return saved;
+      } catch (err) {
+        if (created?.id) {
+          try {
+            await getVocabularyRepositories().removeVocabularyEntries(created.id);
+            await getVocabularyRepositories().removeVocabulary(created.id);
+          } catch (_cleanupErr) {
+            // Swallow cleanup errors to preserve the original failure.
+          }
+        }
+        throw err;
+      }
     }
 
     public async bootstrapData(): Promise<void> {
@@ -722,8 +703,8 @@ export namespace Services {
       try {
         const fileEntries = await fileOps.readdir(bootstrapPath, { withFileTypes: true });
         fileNames = fileEntries
-          .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-          .map((entry) => entry.name)
+          .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
+          .map(entry => entry.name)
           .sort((a, b) => a.localeCompare(b));
       } catch (error) {
         const ioError = error as NodeJS.ErrnoException;
@@ -756,7 +737,7 @@ export namespace Services {
     }
 
     public async update(id: string, input: Partial<VocabularyInput>): Promise<VocabularyAttributes> {
-      const existing = await Vocabulary.findOne({ id });
+      const existing = await getVocabularyRepositories().getVocabulary({ id });
       if (!existing) {
         throw new Error('Vocabulary not found');
       }
@@ -774,7 +755,7 @@ export namespace Services {
         sourceId: updatePayload.sourceId,
         sourceVersionId: updatePayload.sourceVersionId,
         lastSyncedAt: updatePayload.lastSyncedAt,
-        owner: updatePayload.owner
+        owner: updatePayload.owner,
       };
       if (typeof updatePayload.branding !== 'undefined') {
         modelUpdate.branding = this.resolveBrandingId(updatePayload.branding);
@@ -783,90 +764,75 @@ export namespace Services {
         modelUpdate.slug = updatePayload.slug;
       }
 
-      return runWithOptionalTransaction(
-        this.getDatastore(),
-        async (connection) => {
-          const updateQuery = Vocabulary.updateOne({ id }).set(modelUpdate) as Sails.WaterlinePromise<VocabularyAttributes | null>;
-          await this.executeQuery(updateQuery, connection);
-          const updatedQuery = Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
-          const updated = await this.executeQuery(updatedQuery, connection);
-          if (!updated) {
-            throw new Error('Vocabulary not found');
-          }
+      const updateQuery = getVocabularyRepositories().reviseVocabulary(id, modelUpdate);
+      await updateQuery;
+      const updatedQuery = getVocabularyRepositories().getVocabulary({ id });
+      const updated = await updatedQuery;
+      if (!updated) {
+        throw new Error('Vocabulary not found');
+      }
 
-          if (entries) {
-            await this.replaceEntries(id, updated.type === 'flat', entries, connection);
-          }
+      if (entries) {
+        await this.replaceEntries(id, updated.type === 'flat', entries);
+      }
 
-          const refreshedQuery = Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
-          const refreshed = await this.executeQuery(refreshedQuery, connection);
-          if (!refreshed) {
-            throw new Error('Vocabulary not found');
-          }
-          return refreshed;
-        },
-        {
-          logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional update.'
-        }
-      );
+      const refreshedQuery = getVocabularyRepositories().getVocabulary({ id });
+      const refreshed = await refreshedQuery;
+      if (!refreshed) {
+        throw new Error('Vocabulary not found');
+      }
+      return refreshed;
     }
 
-    public async reorderEntries(vocabularyId: string, entryOrders: Array<{ id: string; order: number }>): Promise<number> {
+    public async reorderEntries(
+      vocabularyId: string,
+      entryOrders: Array<{ id: string; order: number }>
+    ): Promise<number> {
       if (!Array.isArray(entryOrders) || entryOrders.length === 0) {
         return 0;
       }
       await this.assertMutableVocabulary(vocabularyId);
 
-      return runWithOptionalTransaction(
-        this.getDatastore(),
-        async (connection) => {
-          const vocabularyQuery = Vocabulary.findOne({ id: vocabularyId }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
-          const vocabulary = await this.executeQuery(vocabularyQuery, connection);
-          if (!vocabulary) {
-            throw new Error('Vocabulary not found');
-          }
+      const vocabularyQuery = getVocabularyRepositories().getVocabulary({ id: vocabularyId });
+      const vocabulary = await vocabularyQuery;
+      if (!vocabulary) {
+        throw new Error('Vocabulary not found');
+      }
 
-          const requestedIds = entryOrders.map((entry) => String(entry.id));
-          const dedupedIds = new Set(requestedIds);
-          if (requestedIds.length !== dedupedIds.size) {
-            throw new Error('entryOrders contains duplicate ids');
-          }
+      const requestedIds = entryOrders.map(entry => String(entry.id));
+      const dedupedIds = new Set(requestedIds);
+      if (requestedIds.length !== dedupedIds.size) {
+        throw new Error('entryOrders contains duplicate ids');
+      }
 
-          const existingQuery = VocabularyEntry.find({ id: Array.from(dedupedIds) });
-          const existingEntries = await this.executeFindQuery<VocabularyEntryAttributes[]>(existingQuery, connection);
-          if (existingEntries.length !== dedupedIds.size) {
-            throw new Error('One or more entry ids were not found');
-          }
+      const existingQuery = getVocabularyRepositories().listEntries({ id: Array.from(dedupedIds) });
+      const existingEntries = await existingQuery;
+      if (existingEntries.length !== dedupedIds.size) {
+        throw new Error('One or more entry ids were not found');
+      }
 
-          for (const entry of existingEntries) {
-            if (String(entry.vocabulary) !== String(vocabularyId)) {
-              throw new Error('All entries must belong to the target vocabulary');
-            }
-          }
-
-          let updated = 0;
-          for (const entryOrder of entryOrders) {
-            const updateQuery = VocabularyEntry.updateOne({ id: entryOrder.id }).set({ order: entryOrder.order }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-            const updatedEntry = await this.executeQuery(updateQuery, connection);
-            if (updatedEntry) {
-              updated++;
-            }
-          }
-
-          return updated;
-        },
-        {
-          logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional reorder.'
+      for (const entry of existingEntries) {
+        if (String(entry.vocabulary) !== String(vocabularyId)) {
+          throw new Error('All entries must belong to the target vocabulary');
         }
-      );
+      }
+
+      let updated = 0;
+      for (const entryOrder of entryOrders) {
+        const updateQuery = getVocabularyRepositories().reviseEntry(entryOrder.id, { order: entryOrder.order });
+        const updatedEntry = await updateQuery;
+        if (updatedEntry) {
+          updated++;
+        }
+      }
+
+      return updated;
     }
 
     public async delete(id: string): Promise<void> {
       await this.assertMutableVocabulary(id);
-      await VocabularyEntry.destroy({ vocabulary: id });
-      await Vocabulary.destroyOne({ id });
+      await getVocabularyRepositories().removeVocabularyEntries(id);
+      await getVocabularyRepositories().removeVocabulary(id);
     }
 
     public normalizeEntry(entry: VocabularyEntryInput): VocabularyEntryInput {
@@ -874,11 +840,11 @@ export namespace Services {
         ...entry,
         label: String(entry.label ?? '').trim(),
         value: String(entry.value ?? '').trim(),
-        historical: toBoolean(entry.historical)
+        historical: toBoolean(entry.historical),
       };
     }
 
-    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null, connection?: Sails.Connection): Promise<void> {
+    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null): Promise<void> {
       if (!parentId) {
         return;
       }
@@ -886,8 +852,8 @@ export namespace Services {
         throw new Error('VocabularyEntry cannot parent itself');
       }
 
-      const parentQuery = VocabularyEntry.findOne({ id: parentId }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-      const parent = await this.executeQuery<VocabularyEntryAttributes | null>(parentQuery, connection);
+      const parentQuery = getVocabularyRepositories().getEntry({ id: parentId });
+      const parent = await parentQuery;
       if (!parent) {
         throw new Error('VocabularyEntry.parent not found');
       }
@@ -904,21 +870,23 @@ export namespace Services {
         if (String(cursor.parent) === entryId) {
           throw new Error('VocabularyEntry cycle detected');
         }
-        const cursorQuery = VocabularyEntry.findOne({ id: String(cursor.parent) }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-        cursor = await this.executeQuery(cursorQuery, connection);
+        const cursorQuery = getVocabularyRepositories().getEntry({ id: String(cursor.parent) });
+        cursor = await cursorQuery;
       }
     }
 
     public async getTree(vocabularyId: string): Promise<VocabularyTreeNode[]> {
-      const entries = await VocabularyEntry.find({ vocabulary: vocabularyId })
-        .sort([{ order: 'ASC' }, { label: 'ASC' }]) as VocabularyEntryAttributes[];
+      const entries = await getVocabularyRepositories().listEntries(
+        { vocabulary: vocabularyId },
+        { sort: [{ order: 'ASC' }, { label: 'ASC' }] }
+      );
       const nodes: Record<string, VocabularyTreeNode> = {};
       const roots: VocabularyTreeNode[] = [];
 
       for (const entry of entries) {
         const node: VocabularyTreeNode = {
           ...entry,
-          children: []
+          children: [],
         };
         nodes[String(entry.id)] = node;
       }
@@ -935,7 +903,10 @@ export namespace Services {
       return roots;
     }
 
-    public async upsertEntries(vocabularyId: string, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<{ created: number; updated: number; skipped: number }> {
+    public async upsertEntries(
+      vocabularyId: string,
+      entries: VocabularyEntryInput[]
+    ): Promise<{ created: number; updated: number; skipped: number }> {
       await this.assertMutableVocabulary(vocabularyId);
       let created = 0;
       let updated = 0;
@@ -952,24 +923,30 @@ export namespace Services {
 
         let existing: VocabularyEntryAttributes | null = null;
         if (entry.identifier) {
-          const byIdentifier = VocabularyEntry.findOne({ vocabulary: vocabularyId, identifier: entry.identifier }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-          existing = await this.executeQuery(byIdentifier, connection);
+          const byIdentifier = getVocabularyRepositories().getEntry({
+            vocabulary: vocabularyId,
+            identifier: entry.identifier,
+          });
+          existing = await byIdentifier;
         }
         if (!existing) {
-          const byValue = VocabularyEntry.findOne({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-          existing = await this.executeQuery(byValue, connection);
+          const byValue = getVocabularyRepositories().getEntry({
+            vocabulary: vocabularyId,
+            valueLower: entry.value.toLowerCase(),
+          });
+          existing = await byValue;
         }
 
         if (!existing) {
-          const createQuery = VocabularyEntry.create({
+          const createQuery = getVocabularyRepositories().createEntry({
             vocabulary: vocabularyId,
             label: entry.label,
             value: entry.value,
             identifier: entry.identifier,
             order: entry.order ?? 0,
-            historical: entry.historical ?? false
+            historical: entry.historical ?? false,
           });
-          const createdEntry = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+          const createdEntry = await createQuery;
           const createdEntryId = String(createdEntry.id);
           if (entry.id) {
             inputIdToEntryId[String(entry.id)] = createdEntryId;
@@ -984,24 +961,24 @@ export namespace Services {
           inputIdToEntryId[String(entry.id)] = existingEntryId;
         }
         parentAssignments.push({ entryId: existingEntryId, parent: entry.parent ?? null });
-        const updateQuery = VocabularyEntry.updateOne({ id: existing.id }).set({
+        const updateQuery = getVocabularyRepositories().reviseEntry(existing.id, {
           label: entry.label,
           value: entry.value,
           identifier: entry.identifier,
           order: entry.order ?? existing.order ?? 0,
-          historical: entry.historical ?? existing.historical ?? false
-        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-        await this.executeQuery(updateQuery, connection);
+          historical: entry.historical ?? existing.historical ?? false,
+        });
+        await updateQuery;
         updated++;
       }
 
       for (const assignment of parentAssignments) {
-        const parentCandidate = assignment.parent ? inputIdToEntryId[assignment.parent] ?? assignment.parent : null;
-        await this.validateParent(vocabularyId, assignment.entryId, parentCandidate, connection);
-        const parentUpdateQuery = VocabularyEntry.updateOne({ id: assignment.entryId }).set({
-          parent: parentCandidate ?? null
-        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-        await this.executeQuery(parentUpdateQuery, connection);
+        const parentCandidate = assignment.parent ? (inputIdToEntryId[assignment.parent] ?? assignment.parent) : null;
+        await this.validateParent(vocabularyId, assignment.entryId, parentCandidate);
+        const parentUpdateQuery = getVocabularyRepositories().reviseEntry(assignment.entryId, {
+          parent: parentCandidate ?? null,
+        });
+        await parentUpdateQuery;
       }
 
       return { created, updated, skipped };
@@ -1009,22 +986,21 @@ export namespace Services {
 
     /**
      * Replace vocabulary entries while preserving model validation and remapping parent IDs.
-     * Bulk creation requires distinct identifiers. Parent links stay serial for transactions
-     * and graphs that cannot be verified as internal forests.
+     * Bulk creation requires distinct identifiers. Parent links stay serial for graphs
+     * that cannot be verified as internal forests.
      */
     private async replaceEntries(
       vocabularyId: string,
       isFlat: boolean,
-      entries: VocabularyEntryInput[],
-      connection?: Sails.Connection
+      entries: VocabularyEntryInput[]
     ): Promise<void> {
       const flatEntries = this.flattenEntries(entries);
       if (isFlat && flatEntries.some(entry => entry.parent)) {
         throw new Error('Vocabulary.type = flat does not support parent entries');
       }
 
-      const destroyQuery = VocabularyEntry.destroy({ vocabulary: vocabularyId }) as Sails.WaterlinePromise<unknown[]>;
-      await this.executeQuery(destroyQuery, connection);
+      const destroyQuery = getVocabularyRepositories().removeVocabularyEntries(vocabularyId);
+      await destroyQuery;
 
       const oldToNewIds: Record<string, string> = {};
       const identifiers = flatEntries.map(entry => String(entry.identifier ?? '').trim());
@@ -1049,10 +1025,7 @@ export namespace Services {
         // Waterline runs a model callback per row concurrently. Bound each
         // batch so large vocabularies do not flood the database connection pool.
         for (let start = 0; start < records.length; start += 500) {
-          const created = await this.createAndFetch<VocabularyEntryAttributes[]>(
-            VocabularyEntry.createEach(records.slice(start, start + 500)),
-            connection
-          );
+          const created = await getVocabularyRepositories().createEntries(records.slice(start, start + 500));
           for (const entry of created) {
             idsByIdentifier.set(String(entry.identifier).trim(), String(entry.id));
           }
@@ -1071,7 +1044,7 @@ export namespace Services {
             throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
           }
 
-          const createQuery = VocabularyEntry.create({
+          const createQuery = getVocabularyRepositories().createEntry({
             vocabulary: vocabularyId,
             label: normalized.label,
             value: normalized.value,
@@ -1079,7 +1052,7 @@ export namespace Services {
             order: normalized.order ?? 0,
             historical: normalized.historical ?? false,
           });
-          const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+          const created = await createQuery;
 
           oldToNewIds[String(normalized.id)] = String(created.id);
         }
@@ -1089,7 +1062,7 @@ export namespace Services {
         Boolean(entry.parent)
       );
       const parentsById = new Map(flatEntries.map(entry => [String(entry.id), entry.parent]));
-      let canLinkInParallel = !connection && parentsById.size === flatEntries.length;
+      let canLinkInParallel = parentsById.size === flatEntries.length;
       const checked = new Set<string>();
       for (const entry of entriesWithParents) {
         if (!canLinkInParallel) break;
@@ -1112,11 +1085,11 @@ export namespace Services {
         if (!entryId) {
           return;
         }
-        await this.validateParent(vocabularyId, entryId, mappedParentId, connection);
-        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({
+        await this.validateParent(vocabularyId, entryId, mappedParentId);
+        const updateQuery = getVocabularyRepositories().reviseEntry(entryId, {
           parent: mappedParentId,
-        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
-        await this.executeQuery(updateQuery, connection);
+        });
+        await updateQuery;
       };
 
       if (canLinkInParallel) {
@@ -1136,12 +1109,6 @@ export namespace Services {
       }
     }
 
-    private getDatastore(): Sails.Datastore | null {
-      return Vocabulary.getDatastore?.()
-        ?? sails.getDatastore?.()
-        ?? null;
-    }
-
     private getBootstrapDataPath(): string {
       const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
       return path.resolve(String(configuredPath), 'vocabularies');
@@ -1151,7 +1118,11 @@ export namespace Services {
       return fs;
     }
 
-    private async processVocabularyBootstrapFile(basePath: string, fileName: string, defaultBranding: string): Promise<void> {
+    private async processVocabularyBootstrapFile(
+      basePath: string,
+      fileName: string,
+      defaultBranding: string
+    ): Promise<void> {
       const filePath = path.join(basePath, fileName);
       const parsed = await this.readJsonFile<BootstrapVocabularyFile>(filePath);
       if (!parsed) {
@@ -1165,7 +1136,7 @@ export namespace Services {
         return;
       }
 
-      const existing = await Vocabulary.findOne({ slug, branding: defaultBranding }) as VocabularyAttributes | null;
+      const existing = await getVocabularyRepositories().getVocabulary({ slug, branding: defaultBranding });
       if (existing) {
         sails.log.verbose(`Skipping existing vocabulary bootstrap data: ${slug}`);
         return;
@@ -1174,7 +1145,7 @@ export namespace Services {
       const createPayload: VocabularyInput = {
         name,
         slug,
-        branding: defaultBranding
+        branding: defaultBranding,
       };
 
       if (typeof parsed.description === 'string') {
@@ -1210,15 +1181,21 @@ export namespace Services {
         return;
       }
 
-      const imports = Array.isArray(parsed.imports) ? parsed.imports as BootstrapRvaImportItem[] : [];
+      const imports = Array.isArray(parsed.imports) ? (parsed.imports as BootstrapRvaImportItem[]) : [];
       if (!Array.isArray(parsed.imports)) {
         sails.log.error(`Invalid RVA imports format in bootstrap file: ${fileName}`);
         return;
       }
 
-      const rvaImportService = sails.services.rvaimportservice as {
-        importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<VocabularyAttributes>;
-      } | undefined;
+      const rvaImportService = sails.services.rvaimportservice as
+        | {
+            importRvaVocabulary: (
+              rvaId: string,
+              versionId?: string,
+              branding?: string
+            ) => Promise<VocabularyAttributes>;
+          }
+        | undefined;
       if (!rvaImportService?.importRvaVocabulary) {
         sails.log.error('RVA import service unavailable while processing vocabulary bootstrap data');
         return;
@@ -1232,7 +1209,7 @@ export namespace Services {
         }
 
         const sourceKey = `rva:${rvaId}`;
-        const existing = await Vocabulary.findOne({ rvaSourceKey: sourceKey }) as VocabularyAttributes | null;
+        const existing = await getVocabularyRepositories().getVocabulary({ rvaSourceKey: sourceKey });
         if (existing) {
           sails.log.verbose(`Skipping existing RVA bootstrap import: ${sourceKey}`);
           continue;
@@ -1250,7 +1227,9 @@ export namespace Services {
     }
 
     private async importRvaBootstrapVocabulary(
-      rvaImportService: { importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<VocabularyAttributes> },
+      rvaImportService: {
+        importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<VocabularyAttributes>;
+      },
       rvaId: string,
       versionId: string | undefined,
       branding: string,
@@ -1262,11 +1241,7 @@ export namespace Services {
         let importPromise: Promise<VocabularyAttributes> | undefined;
         try {
           importPromise = rvaImportService.importRvaVocabulary(rvaId, versionId, branding);
-          return await promiseWithTimeout(
-            importPromise,
-            RVA_IMPORT_TIMEOUT_MS,
-            `RVA import ${sourceKey}`
-          );
+          return await promiseWithTimeout(importPromise, RVA_IMPORT_TIMEOUT_MS, `RVA import ${sourceKey}`);
         } catch (error) {
           lastError = error;
           if (!this.isRetryableRvaImportError(error)) {
@@ -1278,9 +1253,9 @@ export namespace Services {
 
           // A timeout does not cancel the import. Wait for the in-flight operation to
           // settle before retrying, so it cannot overlap a second import.
-          await new Promise<void>((resolve) => setTimeout(resolve, RVA_IMPORT_RETRY_DELAY_MS));
+          await new Promise<void>(resolve => setTimeout(resolve, RVA_IMPORT_RETRY_DELAY_MS));
 
-          const imported = await Vocabulary.findOne({ rvaSourceKey: sourceKey }) as VocabularyAttributes | null;
+          const imported = await getVocabularyRepositories().getVocabulary({ rvaSourceKey: sourceKey });
           if (imported) {
             sails.log.verbose(`RVA bootstrap import completed after timeout: ${sourceKey}`);
             return imported;
@@ -1309,7 +1284,7 @@ export namespace Services {
 
           // The original operation has settled, so this reconciliation cannot race with
           // its database write before a retry is launched.
-          const settledImport = await Vocabulary.findOne({ rvaSourceKey: sourceKey }) as VocabularyAttributes | null;
+          const settledImport = await getVocabularyRepositories().getVocabulary({ rvaSourceKey: sourceKey });
           if (settledImport) {
             sails.log.verbose(`RVA bootstrap import completed after timeout: ${sourceKey}`);
             return settledImport;
@@ -1319,7 +1294,9 @@ export namespace Services {
             throw lastError;
           }
 
-          sails.log.verbose(`Retrying RVA bootstrap import ${sourceKey} (attempt ${attempt + 1}/${RVA_IMPORT_MAX_ATTEMPTS})`);
+          sails.log.verbose(
+            `Retrying RVA bootstrap import ${sourceKey} (attempt ${attempt + 1}/${RVA_IMPORT_MAX_ATTEMPTS})`
+          );
         }
       }
 
@@ -1350,9 +1327,7 @@ export namespace Services {
     }
 
     private toBootstrapEntry(rawEntry: unknown, index: number, branch: string): VocabularyEntryInput {
-      const entry = (rawEntry && typeof rawEntry === 'object')
-        ? rawEntry as BootstrapVocabularyEntryInput
-        : {};
+      const entry = rawEntry && typeof rawEntry === 'object' ? (rawEntry as BootstrapVocabularyEntryInput) : {};
 
       const generatedId = typeof entry.id !== 'undefined' ? String(entry.id) : `${branch}-${index}`;
       const normalized: VocabularyEntryInput = {
@@ -1360,7 +1335,7 @@ export namespace Services {
         label: String(entry.label ?? '').trim(),
         value: String(entry.value ?? '').trim(),
         order: typeof entry.order === 'number' ? entry.order : index,
-        historical: typeof entry.historical === 'undefined' ? false : toBoolean(entry.historical)
+        historical: typeof entry.historical === 'undefined' ? false : toBoolean(entry.historical),
       };
 
       if (typeof entry.identifier === 'string' && entry.identifier.trim()) {
@@ -1370,12 +1345,18 @@ export namespace Services {
         normalized.parent = String(entry.parent);
       }
       if (Array.isArray(entry.children)) {
-        normalized.children = entry.children.map((child, childIndex) => this.toBootstrapEntry(child, childIndex, generatedId));
+        normalized.children = entry.children.map((child, childIndex) =>
+          this.toBootstrapEntry(child, childIndex, generatedId)
+        );
       }
       return normalized;
     }
 
-    private flattenEntries(entries: VocabularyEntryInput[], parentId: string | null = null, branch: string = 'n'): VocabularyEntryInput[] {
+    private flattenEntries(
+      entries: VocabularyEntryInput[],
+      parentId: string | null = null,
+      branch: string = 'n'
+    ): VocabularyEntryInput[] {
       const flat: VocabularyEntryInput[] = [];
       entries.forEach((entry, index) => {
         const generatedId = entry.id ?? `${branch}-${index}`;
@@ -1383,7 +1364,7 @@ export namespace Services {
           ...entry,
           id: generatedId,
           order: entry.order ?? index,
-          parent: parentId ?? entry.parent
+          parent: parentId ?? entry.parent,
         };
         flat.push(normalized);
         if (entry.children && entry.children.length > 0) {
@@ -1393,7 +1374,6 @@ export namespace Services {
       return flat;
     }
   }
-
 }
 
 declare global {

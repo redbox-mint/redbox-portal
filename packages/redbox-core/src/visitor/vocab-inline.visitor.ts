@@ -25,7 +25,7 @@ import {
   TabFormComponentDefinitionOutline,
   ILogger
 } from '@researchdatabox/sails-ng-common';
-import { VocabularyEntryAttributes } from '../waterline-models';
+import type {EntryRow as VocabularyEntryAttributes} from '../persistence/vocabulary/VocabularyRepositories';
 
 type InlineCheckboxTreeNode = CheckboxTreeNode & { disabled?: boolean };
 

@@ -1,3 +1,6 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
+import assert from 'node:assert/strict';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -14,6 +17,7 @@ describe('RvaImportService', () => {
   let getVocabularyByIdStub: sinon.SinonStub;
 
   beforeEach(() => {
+    stubVocabularyPersistence();
     (global as any)._ = lodash;
     createStub = sinon.stub().resolves({ id: 'v1', name: 'Imported' });
     (global as any).sails = {
@@ -27,10 +31,9 @@ describe('RvaImportService', () => {
       log: createSinonStubLogger(sinon),
     };
 
-    (global as any).Vocabulary = {
+    repositoryFixtures.Vocabulary = {
       findOne: sinon.stub().resolves({ id: 'v1', source: 'rva', sourceId: '1', name: 'Existing' }),
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves() }),
-      getDatastore: sinon.stub().returns(null)
     };
     (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
 
@@ -58,7 +61,7 @@ describe('RvaImportService', () => {
 
   afterEach(() => {
     sinon.restore();
-    delete (global as any).Vocabulary;
+    delete repositoryFixtures.Vocabulary;
     delete (global as any).VocabularyService;
     delete (global as any).sails;
     delete (global as any)._;
@@ -103,6 +106,37 @@ describe('RvaImportService', () => {
     const result = await service.syncRvaVocabulary('v1');
     expect(result.updated).to.equal(2);
     expect(result.created).to.equal(1);
+  });
+
+  it('retains upserted entries and the existing error wrapper when metadata update fails', async () => {
+    const writes: string[] = [];
+    const failure = new Error('metadata write failed');
+    const upsert = sinon.stub().callsFake(async () => {
+      writes.push('entries');
+      return { created: 1, updated: 0, skipped: 0 };
+    });
+    const update = sinon.stub().callsFake(async () => { writes.push('metadata'); throw failure; });
+    const vocabularyService = Reflect.get(globalThis, 'VocabularyService');
+    Reflect.set(vocabularyService, 'upsertEntries', upsert);
+    const vocabulary = Reflect.get(repositoryFixtures, 'Vocabulary');
+    Reflect.set(vocabulary, 'updateOne', () => ({ set: update }));
+    await assert.rejects(service.syncRvaVocabulary('v1'), {
+      message: 'Sync failed after updating entries: Error: metadata write failed'
+    });
+    expect(writes).to.deep.equal(['entries', 'metadata']);
+    sinon.assert.calledOnce(upsert);
+    sinon.assert.calledWithExactly(Reflect.get(globalThis, 'sails').log.error,
+      'RVA sync failed after entry upsert; retry may be required.', failure);
+    sinon.assert.notCalled(Reflect.get(globalThis, 'sails').log.warn);
+  });
+
+  it('propagates an upsert failure before attempting the metadata write', async () => {
+    const failure = new Error('entry upsert failed');
+    const upsert = sinon.stub().rejects(failure);
+    Reflect.set(Reflect.get(globalThis, 'VocabularyService'), 'upsertEntries', upsert);
+    const vocabulary = Reflect.get(repositoryFixtures, 'Vocabulary');
+    await assert.rejects(service.syncRvaVocabulary('v1'), error => error === failure);
+    sinon.assert.notCalled(vocabulary.updateOne);
   });
 
   it('imports an RVA vocabulary from an RVA URL', async () => {

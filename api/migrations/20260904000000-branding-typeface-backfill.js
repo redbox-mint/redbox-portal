@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const {getBrandingRepository} = require('@researchdatabox/redbox-core');
 
 /**
  * Branding typeface backfill migration.
@@ -126,29 +127,12 @@ function isUniqueViolation(error) {
 }
 
 async function backfillBrandFields(BrandingConfig, brand) {
-  const patch = {};
-  if (brand.typeface === undefined) {
-    patch.typeface = null;
-  }
-  if (brand.draftTypeface === undefined) {
-    patch.draftTypeface = null;
-  }
-  if (isMissing(brand.draftRevision)) {
-    patch.draftRevision = 0;
-  }
-  if (Object.keys(patch).length === 0) {
-    return;
-  }
-  await BrandingConfig.updateOne({ id: brand.id }).set(patch);
-  Object.assign(brand, patch);
+  await BrandingConfig.backfillBrandTypeface(brand.id);
 }
 
 async function backfillHistoryTypeface(BrandingConfigHistory, histories) {
   for (const history of histories) {
-    if (history.typeface === undefined) {
-      await BrandingConfigHistory.updateOne({ id: history.id }).set({ typeface: null });
-      history.typeface = null;
-    }
+    await BrandingConfigHistory.backfillHistoryTypeface(history.id);
   }
 }
 
@@ -186,27 +170,27 @@ async function preserveActiveState(BrandingConfig, BrandingConfigHistory, sails,
     typeface: null,
   };
   try {
-    await BrandingConfigHistory.create(preserved);
+    await BrandingConfigHistory.insertHistory(preserved);
   } catch (error) {
     if (!isUniqueViolation(error)) {
       throw error;
     }
     // A concurrent migration runner may have won the same preservation.
     // Converge only when the existing row is the same preserved snapshot.
-    const existing = await BrandingConfigHistory.findOne({ branding: brand.id, version: nextVersion });
+    const existing = await BrandingConfigHistory.getHistory({ branding: brand.id, version: nextVersion });
     if (!existing || !activeMatchesHistory(brand, existing)) {
       throw error;
     }
     sails.log.verbose(`Branding typeface backfill: concurrent preservation of brand ${brand.id} converged.`);
   }
   // Conditional move so a concurrent winner is never overwritten blindly.
-  const updated = await BrandingConfig.updateOne({ id: brand.id, version: brand.version }).set({
+  const updated = await BrandingConfig.publishBrand(brand.id, brand.version, undefined, {
     version: nextVersion,
   });
   if (updated) {
     brand.version = nextVersion;
   } else {
-    const reread = await BrandingConfig.findOne({ id: brand.id });
+    const reread = await BrandingConfig.getBrand({ id: brand.id });
     if (!reread || reread.version !== nextVersion) {
       throw new Error(`Branding typeface backfill: concurrent brand update conflict for brand ${brand.id}`);
     }
@@ -216,17 +200,17 @@ async function preserveActiveState(BrandingConfig, BrandingConfigHistory, sails,
 }
 
 async function pruneHistories(BrandingConfigHistory, brandId, retain) {
-  const histories = await BrandingConfigHistory.find({ branding: brandId }).sort('version DESC');
+  const histories = await BrandingConfigHistory.listHistories(brandId,'DESC');
   const excess = histories.slice(retain);
   for (const history of excess) {
-    await BrandingConfigHistory.destroy({ id: history.id });
+    await BrandingConfigHistory.removeHistory(history.id);
   }
   return excess.length;
 }
 
 async function migrateBrand(sails, brand, retain) {
-  const BrandingConfig = sails.models.brandingconfig;
-  const BrandingConfigHistory = sails.models.brandingconfighistory;
+  const BrandingConfig = getBrandingRepository(sails);
+  const BrandingConfigHistory = getBrandingRepository(sails);
   const stats = { brandBackfilled: false, preservedVersion: null, pruned: 0 };
 
   const needsBackfill =
@@ -234,7 +218,7 @@ async function migrateBrand(sails, brand, retain) {
   await backfillBrandFields(BrandingConfig, brand);
   stats.brandBackfilled = needsBackfill;
 
-  let histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
+  let histories = await BrandingConfigHistory.listHistories(brand.id,'ASC');
   await backfillHistoryTypeface(BrandingConfigHistory, histories);
 
   const maxVersion = histories.reduce((max, history) => Math.max(max, history.version), 0);
@@ -256,7 +240,7 @@ async function migrateBrand(sails, brand, retain) {
       maxVersion,
       histories
     );
-    histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
+    histories = await BrandingConfigHistory.listHistories(brand.id,'ASC');
   }
 
   stats.pruned = await pruneHistories(BrandingConfigHistory, brand.id, retain);
@@ -265,11 +249,11 @@ async function migrateBrand(sails, brand, retain) {
 
 async function up(params) {
   const sails = params && params.context;
-  if (!sails || !sails.models || !sails.models.brandingconfig || !sails.models.brandingconfighistory) {
+  if (!sails) {
     throw new Error('branding-typeface-backfill-models-unavailable');
   }
   const retain = readHistoryMaxVersions(sails);
-  const brands = await sails.models.brandingconfig.find({});
+  const brands = await getBrandingRepository(sails).listBrands();
   let preserved = 0;
   let pruned = 0;
   for (const brand of brands) {

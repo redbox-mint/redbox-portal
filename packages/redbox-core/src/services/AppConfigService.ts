@@ -1,3 +1,4 @@
+import { getConfigurationRepositories } from '../persistence/runtime';
 import { siemSecretPaths, existingSiemSecretPath } from './siem/SiemConfigSecrets';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -19,7 +20,7 @@ import { siemSecretPaths, existingSiemSecretPath } from './siem/SiemConfigSecret
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { AppConfigAttributes } from '../waterline-models/AppConfig';
+import type { AppConfiguration as AppConfigAttributes } from '../persistence/configuration/ConfigurationRepositories';
 import { Services as services } from '../CoreService';
 import { ConfigModels, type ConfigModelInfo, type ConfigModelFormAdapter } from '../configmodels/ConfigModels';
 import type { BrandingConfigurationDefaultsConfig } from '../config/brandingConfigurationDefaults.config';
@@ -168,7 +169,7 @@ export namespace Services {
       return this.secretStore ??= new AppConfigSecrets({ ...appConfigSecrets, ...sails.config.appConfigSecrets });
     }
 
-    private async hydrateSecretFields(configKey: string, configData: AppConfigData | undefined): Promise<AppConfigData | undefined> {
+    private async hydrateSecretFields(configKey: string, configData: AppConfigData | null | undefined): Promise<AppConfigData | null | undefined> {
       if (configData == null) return configData;
       const hydrated = _.cloneDeep(configData);
       for (const field of this.getSecretPaths(configKey, hydrated)) {
@@ -350,7 +351,7 @@ export namespace Services {
     }
 
     public getAllConfigurationForBrand = (brandId: string): Promise<AppConfigAttributes[]> => {
-      return AppConfig.find({ branding: brandId }) as unknown as Promise<AppConfigAttributes[]>;
+      return getConfigurationRepositories().appConfigs.listForBrand(brandId) as unknown as Promise<AppConfigAttributes[]>;
     }
 
     private getConfigRecordTimestamp(record: AppConfigRecordLike | undefined): number {
@@ -395,7 +396,7 @@ export namespace Services {
     }
 
     private async findLatestConfigRecord(brandId: string, configKey: string): Promise<AppConfigAttributes | undefined> {
-      const records = await (AppConfig.find({ branding: brandId, configKey }) as unknown as Promise<AppConfigAttributes[]>);
+      const records = await (getConfigurationRepositories().appConfigs.listForBrand(brandId, configKey) as unknown as Promise<AppConfigAttributes[]>);
       if (records.length > 1) {
         sails.log.warn(`Multiple appconfig records found for branding '${brandId}' and key '${configKey}'. Using the most recently updated record.`);
       }
@@ -486,7 +487,7 @@ export namespace Services {
 
     /** Remove this brand's stored override and immediately reload its defaults. */
     public async resetConfigOverride(branding: BrandingModel, configKey: string): Promise<unknown> {
-      await AppConfig.destroy({ branding: branding.id, configKey });
+      await getConfigurationRepositories().appConfigs.removeForBrandAndKey(String(branding.id), configKey);
       this.brandingAppConfigMap[branding.name] = await this.loadAppConfigurationModel(String(branding.id));
       return this.getAppConfigByBrandAndKey(branding.id, configKey);
     }
@@ -559,9 +560,9 @@ export namespace Services {
         // Hydrate and prepare defaults before persistence; cache publication needs no AWS reads.
         let record;
         if (dbConfig == null) {
-          record = await AppConfig.create({ branding: branding.id, configKey: configKey, configData: mergedConfigData });
+          record = await getConfigurationRepositories().appConfigs.createConfiguration({ branding: branding.id, configKey: configKey, configData: mergedConfigData });
         } else {
-          record = await AppConfig.updateOne({ branding: branding.id, configKey }).set({ configData: mergedConfigData });
+          record = await getConfigurationRepositories().appConfigs.replaceForBrandAndKey(String(branding.id), configKey, mergedConfigData);
         }
 
         // Rebase on the current cache in case a different key was saved while the DB write awaited.
@@ -582,7 +583,7 @@ export namespace Services {
           const hydrated = await this.hydrateSecretFields(configKey, stored);
           const nextCache = this.prepareBrandingCache(branding, configKey, hydrated!);
           if (lease) await this.getSecretStore().checkBundleSave(lease);
-          const createdRecord = await AppConfig.create({ branding: branding.id, configKey, configData: stored });
+          const createdRecord = await getConfigurationRepositories().appConfigs.createConfiguration({ branding: branding.id, configKey, configData: stored });
           this.brandingAppConfigMap[branding.name] = this.prepareBrandingCache(branding, configKey, hydrated!, nextCache);
           return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);
         }

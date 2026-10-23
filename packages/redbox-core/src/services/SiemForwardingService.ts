@@ -2,12 +2,13 @@ import * as Effect from 'effect/Effect';
 import { Services as services } from '../CoreService';
 import type { SiemDeliveryConfig, SiemDestinationConfig, SiemRedactionConfig } from '../configmodels/SiemConfiguration';
 import { DEFAULT_SIEM_DELIVERY, DEFAULT_SIEM_REDACTION, SiemConfiguration, normalizeSiemConfiguration } from '../configmodels/SiemConfiguration';
-import type { SecurityEventAttributes } from '../waterline-models/SecurityEvent';
+import type { SecurityEventRow as SecurityEventAttributes } from '../persistence/siem/SiemRepository';
 import { buildSiemPayload, deliverSiemPayload, SiemHttpError, SiemAdapterError } from './siem/SiemAdapters';
 import { redactForSiem } from './siem/SiemPayloadRedactor';
 import type { SiemDeliveryResult, SiemTestInput } from './siem/SiemTypes';
 
-import { claimDelivery, deliveryCollection, ensureSiemDeliveryStorage, readProgress, readyEventsFilter, saveDelivery } from './siem/SiemDeliveryStore';
+import { readProgress } from './siem/SiemDeliveryStore';
+import { getSiemRepository } from '../persistence/runtime';
 import type { DestinationProgress } from './siem/SiemDeliveryStore';
 
 type AgendaJobLike = { attrs?: { data?: unknown } };
@@ -20,10 +21,31 @@ export namespace Services {
   export class SiemForwardingService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'forwardSecurityEvents',
+      'init',
+      'drain',
       'retryFailedDeliveries',
       'testDestination',
       'getDeliveryStatus',
     ];
+
+    private draining=false;
+    private shutdownRegistered=false;
+    private readonly active=new Set<Promise<void>>();
+    public async init():Promise<void> {
+      if(this.shutdownRegistered)return;
+      this.shutdownRegistered=true;
+      const previous=sails.config.beforeShutdown;
+      sails.config.beforeShutdown=callback=>{
+        void this.drain().then(()=>{try{if(previous)previous(callback);else callback();}catch(error){callback(error);}},callback);
+      };
+    }
+    /** Called before persistence cleanup so accepted work can persist its outcome. */
+    public async drain():Promise<void>{this.draining=true;await Promise.allSettled(this.active);}
+    private accept(operation:()=>Promise<void>):Promise<void>{
+      if(this.draining)return Promise.reject(new Error('SIEM workers are draining.'));
+      const pending=Promise.resolve().then(operation);this.active.add(pending);
+      void pending.then(()=>this.active.delete(pending),()=>this.active.delete(pending));return pending;
+    }
 
     constructor() {
       super();
@@ -31,7 +53,7 @@ export namespace Services {
     }
 
     public async bootstrap(): Promise<void> {
-      await ensureSiemDeliveryStorage();
+      getSiemRepository();
     }
 
     private getConfig(brandId: string): SiemConfiguration {
@@ -54,7 +76,7 @@ export namespace Services {
     }
 
     private async nextAttemptNumber(eventId: string, destinationId: string): Promise<number> {
-      const count = await SiemDeliveryAttempt.count({ eventId, destinationId });
+      const count = await getSiemRepository().countAttempts({ eventId, destinationId });
       return count + 1;
     }
 
@@ -70,7 +92,7 @@ export namespace Services {
       attemptNumber: number
     ): Promise<void> {
       const completedAt = new Date().toISOString();
-      await SiemDeliveryAttempt.create({
+      await getSiemRepository().appendAttempt({
         eventId: event.eventId,
         brandId: event.brandId,
         destinationId: destination.id,
@@ -120,24 +142,13 @@ export namespace Services {
 
     private async cleanupDeadLetters(brandId: string, delivery: SiemDeliveryConfig): Promise<void> {
       const cutoff = new Date(Date.now() - delivery.deadLetterRetentionDays * 86400000).toISOString();
-      const collection = deliveryCollection(SecurityEvent);
-      const filter = { brandId, deliveryState: 'deadLetter', $or: [
-        { terminalAt: { $lte: cutoff, $type: 'string' } },
-        { terminalAt: { $exists: false }, updatedAt: { $lte: cutoff } },
-      ] };
-      const expired = await collection.find(filter).sort({ occurredAt: 1 }).limit(delivery.batchSize).toArray();
-      for (const event of expired) {
-        // Delete attempts first: a crash leaves an event to clean up on the next poll.
-        await deliveryCollection(SiemDeliveryAttempt).deleteMany({ eventId: event.eventId, brandId });
-        await collection.deleteMany({ ...filter, eventId: event.eventId });
-      }
+      await getSiemRepository().cleanupDeadLetters(brandId, cutoff, delivery.batchSize);
     }
 
     private async findEventsForBrand(brandId: string): Promise<SecurityEventAttributes[]> {
       const delivery = this.deliveryConfig(this.getConfig(brandId));
       await this.cleanupDeadLetters(brandId, delivery);
-      return deliveryCollection(SecurityEvent).find(readyEventsFilter(brandId, new Date().toISOString()))
-        .sort({ occurredAt: 1 }).limit(delivery.batchSize).toArray();
+      return getSiemRepository().readyEvents(brandId, delivery.batchSize);
     }
 
     private async processEvent(candidate: SecurityEventAttributes): Promise<void> {
@@ -145,10 +156,10 @@ export namespace Services {
       const destinations = this.enabledDestinations(config);
       // Each HTTP operation is bounded; renew before each operation for its complete timeout plus margin.
       const leaseMs = Math.max(30000, ...destinations.map(destination => (destination.timeoutMs ?? 10000) + 30000));
-      const event = await claimDelivery(candidate, leaseMs);
+      const event = await getSiemRepository().claimDelivery(candidate, leaseMs);
       if (!event) return;
       if (config.enabled !== true || destinations.length === 0) {
-        await saveDelivery(event, { deliveryState: 'ignored', leaseToken: null, leaseExpiresAt: null });
+        await getSiemRepository().saveDelivery(event, { deliveryState: 'ignored', leaseToken: null, leaseExpiresAt: null });
         return;
       }
       const states: Record<string, DestinationProgress> = {};
@@ -162,7 +173,7 @@ export namespace Services {
         let progress = readProgress(event.destinationStates?.[destination.id]);
         if (!progress) {
           // Recover pre-upgrade attempts too: an acknowledged success is terminal forever.
-          const successes = await SiemDeliveryAttempt.count({ eventId: event.eventId, destinationId: destination.id, status: 'success' });
+          const successes = await getSiemRepository().countAttempts({ eventId: event.eventId, destinationId: destination.id, status: 'success' });
           progress = { status: successes > 0 ? 'success' : 'failed', attempts: (await this.nextAttemptNumber(event.eventId, destination.id)) - 1 };
         }
         states[destination.id] = progress;
@@ -180,25 +191,27 @@ export namespace Services {
         const delay = (destination.retry?.retryDelayMs ?? delivery.retryDelayMs) * Math.pow(destination.retry?.retryBackoffMultiplier ?? delivery.retryBackoffMultiplier, progress.attempts - 1);
         progress.nextEligibleAt = new Date(Date.now() + Math.min(delay, 2147483647)).toISOString();
         // Reserve the attempt before sending, so process death cannot reset retry budgets.
-        if (!(await saveDelivery(event, { destinationStates: states, leaseExpiresAt: new Date(Date.now() + leaseMs).toISOString() }))) return;
+        if (!(await getSiemRepository().saveDelivery(event, { destinationStates: states, leaseExpiresAt: new Date(Date.now() + leaseMs).toISOString() }))) return;
         const startedAt = new Date().toISOString();
         const result = await this.deliverEvent(event, destination, this.redactionConfig(config));
         progress.status = result.status === 'success' ? 'success' : progress.attempts >= this.maxAttemptsForDestination(destination, delivery) ? 'deadLetter' : 'failed';
-        progress.nextEligibleAt = progress.status === 'failed' ? new Date(Date.now() + Math.min(delay, 2147483647)).toISOString() : undefined;
+        if(progress.status==='failed') progress.nextEligibleAt=new Date(Date.now()+Math.min(delay,2147483647)).toISOString();
+        else delete progress.nextEligibleAt;
         // Save acknowledgement before auxiliary attempt history or another destination is processed.
-        if (!(await saveDelivery(event, { destinationStates: states }))) return;
+        if (!(await getSiemRepository().saveDelivery(event, { destinationStates: states }))) return;
         await this.recordAttempt(event, destination, startedAt, result, progress.attempts);
       }
       const activeStates = destinations.map(destination => states[destination.id]);
       const unfinished = activeStates.filter(state => state.status !== 'success' && state.status !== 'deadLetter');
       const deliveryState = unfinished.length ? 'failed' : activeStates.every(state => state.status === 'success') ? 'delivered' : 'deadLetter';
       const nextTimes = unfinished.map(state => state.nextEligibleAt ?? new Date().toISOString()).sort();
-      await saveDelivery(event, { destinationStates: states, deliveryState, nextEligibleAt: nextTimes[0] ?? null,
+      await getSiemRepository().saveDelivery(event, { destinationStates: states, deliveryState, nextEligibleAt: nextTimes[0] ?? null,
         terminalAt: unfinished.length ? null : new Date().toISOString(), leaseToken: null, leaseExpiresAt: null });
     }
 
-    public async forwardSecurityEvents(job: AgendaJobLike): Promise<void> {
-      await ensureSiemDeliveryStorage();
+    public forwardSecurityEvents(job:AgendaJobLike):Promise<void>{return this.accept(()=>this.forwardAccepted(job));}
+    private async forwardAccepted(job: AgendaJobLike): Promise<void> {
+      getSiemRepository();
       const data = job.attrs?.data;
       const brandId = isRecord(data) && typeof data.brandId === 'string' ? data.brandId : undefined;
       if (brandId) {
@@ -238,7 +251,7 @@ export namespace Services {
     }
 
     public async getDeliveryStatus(params: Record<string, unknown> = {}): Promise<{ rows: Record<string, unknown>[]; total: number }> {
-      await ensureSiemDeliveryStorage();
+      getSiemRepository();
       const requestedLimit = Number.parseInt(String(params.limit ?? 50), 10);
       const requestedSkip = Number.parseInt(String(params.skip ?? params.offset ?? 0), 10);
       const limit = Math.min(Number.isFinite(requestedLimit) ? Math.max(requestedLimit, 0) : 50, 500);
@@ -259,8 +272,8 @@ export namespace Services {
       if (Object.keys(startedAt).length > 0) {
         where.startedAt = startedAt;
       }
-      const rows = await SiemDeliveryAttempt.find(where).sort('startedAt DESC').skip(skip).limit(limit);
-      const total = await SiemDeliveryAttempt.count(where);
+      const rows = await getSiemRepository().listAttempts(where, skip, limit);
+      const total = await getSiemRepository().countAttempts(where);
       return { rows: Array.isArray(rows) ? rows.filter(isRecord) : [], total };
     }
   }

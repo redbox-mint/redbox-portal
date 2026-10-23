@@ -1,8 +1,11 @@
+import { getBrandingRepository } from '../persistence/runtime';
+import { getConfigurationRepositories } from '../persistence/runtime';
+import { getReferenceRepositories } from '../persistence/runtime';
 import { firstValueFrom } from 'rxjs';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import type { DashboardViewDefinition } from '../config/dashboardview.config';
-import type { DashboardConfigurationAttributes } from '../waterline-models/DashboardConfiguration';
+import type { DashboardAggregate as DashboardConfigurationAttributes } from '../persistence/configuration/ConfigurationRepositories';
 import {
   DASHBOARD_CONFIGURATION_SCHEMA_VERSION,
   DashboardConfigurationData,
@@ -51,6 +54,8 @@ import {
   summariseLegacyConversion
 } from './DashboardLegacyConversion';
 
+import { getMigrationLedgerRepository } from '../persistence/runtime';
+
 type AnyRecord = Record<string, unknown>;
 
 function isPlainObject(value: unknown): value is AnyRecord {
@@ -81,7 +86,6 @@ export const DASHBOARD_LEGACY_SNAPSHOT_KEY = 'dashboardConfigLegacySnapshot';
 export const DASHBOARD_LEGACY_OVERRIDE_KEY = 'dashboardTableConfig';
 /** AppConfig keys that generic configuration writes must not touch. */
 export const RESERVED_DASHBOARD_APP_CONFIG_KEYS = [DASHBOARD_LEGACY_OVERRIDE_KEY, DASHBOARD_LEGACY_SNAPSHOT_KEY];
-const COLLECTION_NAME = 'dashboardconfiguration';
 /** Headroom below MongoDB's 16MB document limit. */
 const MAX_DOCUMENT_BYTES = 15 * 1024 * 1024;
 /** Field catalogues are an authoring aid; a short cache avoids recompiling schemas for every validation. */
@@ -268,24 +272,6 @@ export namespace Services {
     // Storage
     // -----------------------------------------------------------------------
 
-    private getCollection(): { createIndex: (spec: object, options?: object) => Promise<unknown>; updateOne: (filter: object, update: object) => Promise<{ matchedCount?: number; modifiedCount?: number }> } | null {
-      const datastore = (DashboardConfiguration as unknown as { getDatastore?: () => { manager?: { collection?: (name: string) => unknown } } }).getDatastore?.();
-      const collection = datastore?.manager?.collection?.(COLLECTION_NAME);
-      return (collection as ReturnType<DashboardConfig['getCollection']>) ?? null;
-    }
-
-    /** The Mongo adapter ignores Waterline index declarations under `migrate: 'safe'`. */
-    private async ensureStorage(): Promise<void> {
-      const collection = this.getCollection();
-      if (collection?.createIndex) {
-        // Use Mongo's default name (`branding_1`) so this is idempotent with
-        // the identical index Waterline may already have created.
-        await collection.createIndex({ branding: 1 }, { unique: true });
-      } else {
-        sails.log.warn('DashboardConfigService: datastore does not expose a native collection; unique brand index not verified.');
-      }
-    }
-
     private toDocument(record: DashboardConfigurationAttributes | null | undefined): LoadedDocument | null {
       if (!record) {
         return null;
@@ -306,7 +292,7 @@ export namespace Services {
     }
 
     private async loadDocument(brandId: string): Promise<LoadedDocument | null> {
-      const record = await DashboardConfiguration.findOne({ branding: brandId });
+      const record = await getConfigurationRepositories().dashboards.findForBrand(brandId);
       return this.toDocument(record as DashboardConfigurationAttributes | undefined);
     }
 
@@ -337,14 +323,9 @@ export namespace Services {
         updatedAt: new Date().toISOString(),
         ...(provenance ? { provenance } : {})
       };
-      const collection = this.getCollection();
-      if (collection?.updateOne) {
-        const result = await collection.updateOne({ branding: doc.branding, revision: doc.revision }, { $set: set });
-        return (result?.matchedCount ?? 0) === 1;
-      }
-      // Non-Mongo adapters (unit tests): a criteria update including the revision.
-      const updated = await DashboardConfiguration.update({ branding: doc.branding, revision: doc.revision }).set(set as Partial<DashboardConfigurationAttributes>).fetch();
-      return Array.isArray(updated) && updated.length === 1;
+      return getConfigurationRepositories().dashboards.compareAndSwap(doc.branding, doc.revision, {
+        configData: nextData, revision: doc.revision + 1, updatedAt: String(set.updatedAt), ...(provenance ? { provenance } : {})
+      });
     }
 
     private isDuplicateKeyError(error: unknown): boolean {
@@ -356,7 +337,7 @@ export namespace Services {
     private async createDocument(brandId: string, data: DashboardConfigurationData, provenance: AnyRecord): Promise<LoadedDocument> {
       this.checkSize(data);
       try {
-        await DashboardConfiguration.create({ branding: brandId, revision: 1, configData: data, provenance });
+        await getConfigurationRepositories().dashboards.createAggregate({ branding: brandId, revision: 1, configData: data, provenance });
       } catch (error) {
         if (!this.isDuplicateKeyError(error)) {
           throw error;
@@ -784,11 +765,7 @@ export namespace Services {
     // -----------------------------------------------------------------------
 
     private async isLegacyMigrationLogged(): Promise<boolean> {
-      const migrationModel = sails.models?.migration as { findOne?: (criteria: AnyRecord) => Promise<unknown> } | undefined;
-      if (!migrationModel?.findOne) {
-        return false;
-      }
-      return !!(await migrationModel.findOne({ name: DASHBOARD_CONFIGURATION_MIGRATION_NAME }));
+      return getMigrationLedgerRepository().isExecuted(DASHBOARD_CONFIGURATION_MIGRATION_NAME);
     }
 
     /**
@@ -797,7 +774,6 @@ export namespace Services {
      * inserts settings for targets that have none.
      */
     public async initialiseAfterBootstrap(): Promise<void> {
-      await this.ensureStorage();
       const migrated = await this.isLegacyMigrationLogged();
       const problems: string[] = [];
       for (const brandName of BrandingService.getAvailable()) {
@@ -877,18 +853,18 @@ export namespace Services {
      */
     public async captureLegacyInput(brand: { id: string | number; name: string }, options: { includeOverrides?: boolean } = {}): Promise<{ input: LegacyCaptureInput; raw: AnyRecord }> {
       const brandId = String(brand.id);
-      const recordTypeRows = (await RecordType.find({ branding: brandId })) as unknown as Array<{ id: string; name: string }>;
+      const recordTypeRows = (await getReferenceRepositories().recordTypes.listForBrand(brandId)) as unknown as Array<{ id: string; name: string }>;
       const recordTypes: LegacyRecordTypeInput[] = [];
       const rawWorkflowSteps: AnyRecord[] = [];
       for (const recordType of recordTypeRows) {
-        const steps = (await WorkflowStep.find({ recordType: recordType.id })) as unknown as Array<{ name: string; hidden?: boolean; config?: AnyRecord }>;
+        const steps = (await getReferenceRepositories().workflows.listForRecordType(recordType.id)) as unknown as Array<{ name: string; hidden?: boolean; config?: AnyRecord }>;
         rawWorkflowSteps.push(...steps.map((s) => ({ recordType: recordType.name, name: s.name, hidden: s.hidden === true, config: s.config })));
         recordTypes.push({
           name: recordType.name,
           steps: steps.map((s) => ({ name: s.name, hidden: s.hidden === true, displayIndex: _.get(s, 'config.displayIndex') as number | undefined, table: _.get(s, 'config.dashboard.table') }))
         });
       }
-      const profileRows = (await DashboardType.find({ branding: brandId })) as unknown as LegacyDashboardTypeInput[];
+      const profileRows = (await getReferenceRepositories().dashboardTypes.listForBrand(brandId)) as unknown as LegacyDashboardTypeInput[];
       const configProfiles = Object.entries((sails.config.dashboardtype ?? {}) as unknown as Record<string, AnyRecord>).map(([name, def]) => ({ name, formatRules: def.formatRules, tableConfig: def.tableConfig, searchable: def.searchable as boolean | undefined }));
       const dashboardTypes = profileRows.length ? profileRows.map((p) => ({ name: p.name, formatRules: p.formatRules, tableConfig: p.tableConfig, searchable: p.searchable })) : configProfiles;
 
@@ -896,7 +872,7 @@ export namespace Services {
       let overrideRows: AnyRecord[] = [];
       let overrideSource = 'none';
       if (options.includeOverrides !== false) {
-        overrideRows = (await AppConfig.find({ branding: brandId, configKey: DASHBOARD_LEGACY_OVERRIDE_KEY })) as unknown as AnyRecord[];
+        overrideRows = (await getConfigurationRepositories().appConfigs.listForBrand(brandId, DASHBOARD_LEGACY_OVERRIDE_KEY)) as unknown as AnyRecord[];
         // The old service selected the most recently updated row.
         const timestamp = (row: AnyRecord) => {
           const updatedAt = Date.parse(String(row.updatedAt ?? ''));
@@ -938,7 +914,7 @@ export namespace Services {
     }
 
     private async listPersistedBrands(): Promise<Array<{ id: string; name: string }>> {
-      const rows = (await BrandingConfig.find({})) as unknown as Array<{ id: string; name: string }>;
+      const rows = (await getBrandingRepository().listBrands()) as unknown as Array<{ id: string; name: string }>;
       return rows.map((r) => ({ id: String(r.id), name: r.name }));
     }
 
@@ -1016,7 +992,6 @@ export namespace Services {
      * document. Already published documents are never recreated.
      */
     public async migrateLegacyConfiguration(): Promise<void> {
-      await this.ensureStorage();
       const resolutions = this.loadResolutions();
       const brands = await this.listPersistedBrands();
       if (brands.length === 0) {
@@ -1109,7 +1084,8 @@ export namespace Services {
             replacementResolvedFindingIds: resolutionFindings
               .filter(f => f.target && replacementTargets.has(targetKey(f.target)))
               .map(f => f.id),
-            findings: conversion.findings,
+            // Findings contain optional in-memory fields; persist their JSON shape.
+            findings: JSON.parse(JSON.stringify(conversion.findings)),
           },
         });
         sails.log.info(`Dashboard configuration migration: published independent settings for brand ${brand.name} (${conversion.targets.length} targets).`);
@@ -1121,14 +1097,15 @@ export namespace Services {
 
     /** First snapshot wins: a rerun never replaces it with post-migration data. */
     private async saveLegacySnapshot(brand: { id: string; name: string }, raw: AnyRecord, input: LegacyCaptureInput): Promise<void> {
-      const existing = await AppConfig.findOne({ branding: brand.id, configKey: DASHBOARD_LEGACY_SNAPSHOT_KEY });
+      const existing = await getConfigurationRepositories().appConfigs.findForBrandAndKey(String(brand.id), DASHBOARD_LEGACY_SNAPSHOT_KEY);
       if (existing) {
         return;
       }
-      await AppConfig.create({
+      await getConfigurationRepositories().appConfigs.createConfiguration({
         branding: brand.id,
         configKey: DASHBOARD_LEGACY_SNAPSHOT_KEY,
-        configData: { snapshotVersion: 1, inputFingerprint: fingerprint(input), ...raw }
+        // Match the historical JSON snapshot shape before strict repository validation.
+        configData: JSON.parse(JSON.stringify({ snapshotVersion: 1, inputFingerprint: fingerprint(input), ...raw }))
       });
     }
   }

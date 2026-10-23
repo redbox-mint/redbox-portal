@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/FormManagementController';
 import { Services as FormsServices } from '../../../src/services/FormsService';
-import type { FormAttributes } from '../../../src/waterline-models/Form';
+import type { FormAttributes } from '../../../src/persistence/rows';
 
 let expect: Chai.ExpectStatic;
 

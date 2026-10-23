@@ -7,7 +7,7 @@ import { mergeMap } from 'rxjs/operators';
 import * as _ from 'lodash';
 import { Readable } from 'node:stream';
 import type { Services as StorageManagerServices } from './StorageManagerService';
-import type { AttachmentMetadataAttributes } from '../waterline-models';
+import type { AttachmentMetadataAttributes } from '../persistence/rows';
 import type { Services as AttachmentMetadataServices } from './AttachmentMetadataService';
 import { normalizeAttachmentStagingFileId } from '../AttachmentStagingIdentity';
 

@@ -1,3 +1,6 @@
+import { getReferenceRepositories } from '../persistence/runtime';
+import { PersistenceError } from '../persistence/errors';
+import type { JsonValue } from '../persistence/types';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -22,7 +25,7 @@ import { mergeMap as flatMap, take, tap, map, catchError } from 'rxjs/operators'
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
-import { FormAttributes } from '../waterline-models/Form';
+import { FormAttributes } from '../persistence/rows';
 import { createSchema } from 'genson-js';
 import * as path from 'path';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
@@ -54,6 +57,62 @@ type WorkflowStepLike = {
   config: { form: string };
   starting?: boolean;
 };
+
+/** Snapshot the form-authoring dialect into its existing stored JSON representation. */
+function snapshotFormConfiguration(input: unknown): JsonValue {
+  const ancestors = new Set<object>();
+  const invalid = (): never => {
+    throw new PersistenceError(
+      'invalid-form-config',
+      'Form configuration requires plain data, optional properties, valid dates and legacy regular expressions.'
+    );
+  };
+  const visit = (value: unknown): JsonValue => {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    // An omitted array element historically has a JSON null representation.
+    if (value === undefined) return null;
+    if (typeof value !== 'object' || value === null) return invalid();
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype === Date.prototype) {
+      if (Reflect.ownKeys(value).length || !Number.isFinite(Date.prototype.getTime.call(value))) return invalid();
+      return Date.prototype.toISOString.call(value);
+    }
+    if (prototype === RegExp.prototype) {
+      // Preserve the legacy JSON representation; changing pattern semantics is separate work.
+      if (Reflect.ownKeys(value).some(key => key !== 'lastIndex')) return invalid();
+      return {};
+    }
+    const array = Array.isArray(value);
+    if (prototype !== (array ? Array.prototype : Object.prototype) && !(prototype === null && !array)) return invalid();
+    if (ancestors.has(value)) return invalid();
+    ancestors.add(value);
+    const keys = Reflect.ownKeys(value);
+    let result: JsonValue;
+    if (array) {
+      if (keys.length !== value.length + 1) return invalid();
+      const items: JsonValue[] = [];
+      for (let index = 0; index < value.length; index++) {
+        const property = Object.getOwnPropertyDescriptor(value, String(index));
+        if (!property?.enumerable || !('value' in property)) return invalid();
+        items.push(visit(property.value));
+      }
+      result = items;
+    } else {
+      const fields: Record<string, JsonValue> = {};
+      for (const key of keys) {
+        const property = Object.getOwnPropertyDescriptor(value, key)!;
+        if (typeof key !== 'string' || !property.enumerable || !('value' in property)) return invalid();
+        if (property.value !== undefined)
+          Object.defineProperty(fields, key, { value: visit(property.value), enumerable: true });
+      }
+      result = fields;
+    }
+    ancestors.delete(value);
+    return result;
+  };
+  return visit(input);
+}
 
 type RecordLike = {
   redboxOid?: string;
@@ -97,7 +156,7 @@ export interface FormRecordAccessRole {
   readonly name: string;
 }
 
-/** Required Waterline user facts used by record and form access checks. */
+/** Required persisted user facts used by record and form access checks. */
 export interface FormRecordAccessUser extends Record<string, unknown> {
   readonly id: string;
   readonly username: string;
@@ -163,16 +222,10 @@ export namespace Services {
       this.logger.verbose(
         `Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`
       );
-      let form = await Form.find({
-        name: workflowStep.config.form,
-        branding: brandingId,
-      });
+      let form: unknown = await getReferenceRepositories().forms.listByName(workflowStep.config.form, brandingId);
       if (sails.config.appmode.bootstrapAlways) {
         this.logger.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
-        await Form.destroyOne({
-          name: workflowStep.config.form,
-          branding: brandingId,
-        });
+        await getReferenceRepositories().forms.removeByName(workflowStep.config.form, brandingId);
         form = null;
       }
       let formDefs: string[] = [];
@@ -198,10 +251,7 @@ export namespace Services {
         this.logger.verbose('Not Bootstrapping form definitions... ');
       }
       // check now if the form already exists, if it does, ignore...
-      const existingFormDef = (await Form.find({
-        name: formName,
-        branding: brandingId,
-      })) as unknown as FormAttributes[];
+      const existingFormDef = (await getReferenceRepositories().forms.listByName(formName, brandingId)) as unknown as FormAttributes[];
       const existCheck: { formName: string | null; existingFormDef: FormAttributes[] } = {
         formName: formName,
         existingFormDef: existingFormDef,
@@ -260,10 +310,10 @@ export namespace Services {
         const formObj = {
           name: formName,
           branding: brandingId,
-          configuration: formConfig,
+          configuration: snapshotFormConfiguration(formConfig),
         };
 
-        result = (await Form.create(formObj)) as unknown as FormAttributes;
+        result = (await getReferenceRepositories().forms.createDefinition(formObj)) as unknown as FormAttributes;
         this.logger.verbose('Created form record: ');
         this.logger.verbose(result);
       }
@@ -271,11 +321,7 @@ export namespace Services {
       if (result) {
         this.logger.verbose(`Updating workflowstep ${workflowStep.id} to form: ${result.id}`);
         // update the workflow step to reference the form
-        return await WorkflowStep.update({
-          id: workflowStep.id,
-        }).set({
-          form: result.id,
-        });
+        return await getReferenceRepositories().workflows.attachForm(workflowStep.id, result.id);
       }
 
       return null;
@@ -315,11 +361,7 @@ export namespace Services {
     }
 
     public listForms = (brandingId?: string): Observable<FormAttributes[]> => {
-      const query: Record<string, unknown> = {};
-      if (brandingId) {
-        query.branding = brandingId;
-      }
-      return super.getObservable<FormAttributes[]>(Form.find(query));
+      return super.getObservable<FormAttributes[]>(() => getReferenceRepositories().forms.list(brandingId || undefined));
     };
 
     public getFormByName = (
@@ -327,12 +369,8 @@ export namespace Services {
       editMode: boolean,
       brandingId?: string
     ): Observable<FormAttributes | null> => {
-      const query: Record<string, unknown> = { name: formName };
       const resolvedBrandingId = brandingId?.trim() || BrandingService.getDefault()?.id?.toString().trim() || '';
-      if (resolvedBrandingId) {
-        query.branding = resolvedBrandingId;
-      }
-      return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(
+      return super.getObservable<FormAttributes | null>(() => getReferenceRepositories().forms.findByName(formName, resolvedBrandingId || undefined)).pipe(
         flatMap(form => {
           if (form) {
             return of(form);
@@ -523,31 +561,21 @@ export namespace Services {
       recordType: string,
       _editMode: boolean
     ): Observable<FormAttributes> {
-      const starting = true;
-
       return super
         .getObservable<Record<string, unknown> | null>(
-          RecordType.findOne({
-            key: branding.id + '_' + recordType,
-          })
+          () => getReferenceRepositories().recordTypes.findByKey(branding.id + '_' + recordType)
         )
         .pipe(
           flatMap(recordTypeRecord => {
             const recordTypeId = String((recordTypeRecord as Record<string, unknown>)?.id ?? '');
             return super.getObservable<WorkflowStepLike | null>(
-              WorkflowStep.findOne({
-                recordType: recordTypeId,
-                starting: starting,
-              })
+              () => getReferenceRepositories().workflows.findStarting(recordTypeId)
             );
           }),
           flatMap(workflowStep => {
             if (workflowStep?.starting == true) {
               return super.getObservable<FormAttributes | null>(
-                Form.findOne({
-                  name: workflowStep.config.form,
-                  branding: branding.id,
-                })
+                () => getReferenceRepositories().forms.findByName(workflowStep.config.form, branding.id)
               );
             }
             return of(null);

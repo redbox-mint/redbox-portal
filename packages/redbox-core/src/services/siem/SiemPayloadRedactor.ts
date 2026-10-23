@@ -1,4 +1,4 @@
-import type { SecurityEventAttributes } from '../../waterline-models/SecurityEvent';
+import type { SecurityEventRow as SecurityEventAttributes } from '../../persistence/siem/SiemRepository';
 import type { SiemRedactionConfig } from '../../configmodels/SiemConfiguration';
 
 const REDACTED = '[REDACTED]';
@@ -29,11 +29,12 @@ function matchesDenylist(path: string, key: string, denylist: string[]): boolean
 
 function redactValue(value: unknown, path: string, config: SiemRedactionConfig): unknown {
   const emailPattern = /^[^\s@<>()[\]{},;:"\\]+@[^\s@<>()[\]{},;:"\\]+\.[^\s@<>()[\]{},;:"\\]+$/;
-  if (Array.isArray(value)) return value.map((item, index) => redactValue(item, `${path}.${index}`, config));
+  if (Array.isArray(value)) return value.map((item, index) => item === undefined ? null : redactValue(item, `${path}.${index}`, config));
   if (!config.includeActorEmail && typeof value === 'string' && emailPattern.test(value)) return REDACTED;
   if (!isRecord(value)) return value;
   const result: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
+    if (item === undefined) continue;
     const childPath = path ? `${path}.${key}` : key;
     const normalizedKey = key.toLowerCase().replace(/[-_]/g, '');
     if (!config.includeActorEmail && typeof item === 'string' && emailPattern.test(item)) continue;

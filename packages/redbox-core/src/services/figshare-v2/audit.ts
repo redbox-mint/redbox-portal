@@ -12,14 +12,19 @@ export function startFigshareAudit(
   if (typeof IntegrationAuditService === 'undefined' || typeof IntegrationAuditService.startAudit !== 'function') {
     return null;
   }
-  return IntegrationAuditService.startAudit(oid, action, {
+  const context: IntegrationAuditContext = { ...IntegrationAuditService.startAudit(oid, action, {
     integrationName: IntegrationAuditName.figshare,
     brandId: runContext.brandId,
     triggeredBy: runContext.triggerSource,
     requestSummary,
     traceId: parentAuditContext?.traceId,
     parentSpanId: parentAuditContext?.spanId,
-  });
+  }) };
+  // These optional properties belong to the audit producer. Omit them before
+  // checkpointing its plain DTO rather than asking an adapter to serialize it.
+  for (const key of ['brandId','triggeredBy','parentSpanId','requestSummary'] as const)
+    if (context[key] === undefined) delete context[key];
+  return context;
 }
 
 export function completeFigshareAudit(ctx: IntegrationAuditContext | null | undefined, details: Record<string, unknown>): void {

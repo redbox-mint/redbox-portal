@@ -1,3 +1,5 @@
+import { migrateBrandingSidebar } from '../../src/persistence/branding/sidebarMigration';
+import type { CorePrismaClient, StoragePrismaClient } from '../../src/persistence/prisma/client';
 import * as sinon from 'sinon';
 
 let expect: Chai.ExpectStatic;
@@ -12,26 +14,21 @@ interface BrandingRow {
 }
 
 function modelFor(rows: BrandingRow[]) {
-  const updateOne = sinon.stub().callsFake(async ({ _id }, { $set }) => {
+  const updateOne = sinon.stub().callsFake(async ({ _id }, patch) => {
     const row = rows.find(candidate => candidate._id === _id);
     if (!row) throw new Error('missing fixture');
-    Object.assign(row, $set);
+    Object.assign(row, patch);
   });
-  const collection = {
-    find: () => (async function* () { yield* rows; })(),
-    updateOne,
-  };
-  const manager = { collection: sinon.stub().returns(collection) };
   return {
-    tableName: 'fixture',
-    getDatastore: () => ({ manager }),
+    select: () => ({ all: () => ({ toArray: async () => rows }) }),
+    where: (where: object) => ({ update: (patch: object) => updateOne(where, patch) }),
     updateOne,
   };
 }
 
 function contextFor(brands: BrandingRow[] = [], histories: BrandingRow[] = []) {
   return {
-    models: {
+    ormFixtures: {
       brandingconfig: modelFor(brands),
       brandingconfighistory: modelFor(histories),
     },
@@ -40,25 +37,45 @@ function contextFor(brands: BrandingRow[] = [], histories: BrandingRow[] = []) {
 }
 
 describe('Admin sidebar text colour migration', function () {
+  let repositoryStub: sinon.SinonStub;
+  beforeEach(() => {
+    const runtime = require('@researchdatabox/redbox-core/dist/persistence/branding/runtime');
+    repositoryStub = sinon.stub(runtime, 'getBrandingRepository').callsFake((...args: unknown[]) => {
+      const app = args[0] as ReturnType<typeof contextFor>;
+      return {
+        migrateAdminSidebarTextColor: () =>
+          migrateBrandingSidebar(
+            { orm: { brandingconfig: app.ormFixtures.brandingconfig } } as unknown as CorePrismaClient,
+            { orm: { brandingconfighistory: app.ormFixtures.brandingconfighistory } } as unknown as StoragePrismaClient
+          ),
+      };
+    });
+  });
+  afterEach(() => repositoryStub.restore());
+
   before(async function () {
     ({ expect } = await import('chai'));
   });
 
   it('preserves custom colours for drafts and each rollback snapshot without publishing drafts', async function () {
-    const brands: BrandingRow[] = [{
-      _id: 'brand',
-      variables: { 'panel-branding-background-color': '#123456', 'panel-branding-color': '#ffffff' },
-      css: ':root { --rb-panel-branding-background-color: #654321; }',
-      hash: 'published-hash',
-      version: 3,
-    }];
-    const histories: BrandingRow[] = [{
-      _id: 'history',
-      variables: { 'panel-branding-background-color': '#654321', 'panel-branding-color': '#ffffff' },
-      css: brands[0].css,
-      hash: brands[0].hash,
-      version: 3,
-    }];
+    const brands: BrandingRow[] = [
+      {
+        _id: 'brand',
+        variables: { 'panel-branding-background-color': '#123456', 'panel-branding-color': '#ffffff' },
+        css: ':root { --rb-panel-branding-background-color: #654321; }',
+        hash: 'published-hash',
+        version: 3,
+      },
+    ];
+    const histories: BrandingRow[] = [
+      {
+        _id: 'history',
+        variables: { 'panel-branding-background-color': '#654321', 'panel-branding-color': '#ffffff' },
+        css: brands[0].css,
+        hash: brands[0].hash,
+        version: 3,
+      },
+    ];
     const beforeBrand = structuredClone(brands[0]);
     const beforeHistory = structuredClone(histories[0]);
     const context = contextFor(brands, histories);
@@ -98,20 +115,28 @@ describe('Admin sidebar text colour migration', function () {
     const brands: BrandingRow[] = [
       { _id: 'alias', variables: { 'panel-branding-background-colour': ' #ABC ' } },
       { _id: 'sass', variables: { '$panel-branding-background-color': '#13579B' } },
-      { _id: 'both', variables: { 'panel-branding-background-color': '#123', '$panel-branding-background-colour': '#456' } },
+      {
+        _id: 'both',
+        variables: { 'panel-branding-background-color': '#123', '$panel-branding-background-colour': '#456' },
+      },
     ];
 
     await migration.up({ context: contextFor(brands) });
 
-    expect(brands.map(row => row.variables?.['admin-sidebar-text-color']))
-      .to.deep.equal(['#aabbcc', '#13579b', '#445566']);
+    expect(brands.map(row => row.variables?.['admin-sidebar-text-color'])).to.deep.equal([
+      '#aabbcc',
+      '#13579b',
+      '#445566',
+    ]);
   });
 
   it('retains legacy variables outside the current allowlist', async function () {
-    const brands: BrandingRow[] = [{
-      _id: 'legacy',
-      variables: { 'panel-branding-background-color': '#123456', 'branding-font-family': 'Arial' },
-    }];
+    const brands: BrandingRow[] = [
+      {
+        _id: 'legacy',
+        variables: { 'panel-branding-background-color': '#123456', 'branding-font-family': 'Arial' },
+      },
+    ];
 
     await migration.up({ context: contextFor(brands) });
 
@@ -131,7 +156,7 @@ describe('Admin sidebar text colour migration', function () {
     const context = contextFor(brands);
 
     await migration.up({ context });
-    expect(context.models.brandingconfig.updateOne.callCount).to.equal(1);
+    expect(context.ormFixtures.brandingconfig.updateOne.callCount).to.equal(1);
     expect(brands[0].variables).to.deep.equal({ 'admin-sidebar-text-color': '#112233' });
     expect(brands[1].variables).to.deep.equal({ '$admin-sidebar-text-colour': '#334455' });
     const after = structuredClone(brands);
@@ -139,7 +164,7 @@ describe('Admin sidebar text colour migration', function () {
     await migration.up({ context });
 
     expect(brands).to.deep.equal(after);
-    expect(context.models.brandingconfig.updateOne.callCount).to.equal(1);
+    expect(context.ormFixtures.brandingconfig.updateOne.callCount).to.equal(1);
     expect(context.log.info.calledWithMatch('migrated 0')).to.equal(true);
   });
 
@@ -147,7 +172,7 @@ describe('Admin sidebar text colour migration', function () {
     const brands: BrandingRow[] = [{ _id: 'brand', variables: { 'panel-branding-background-color': '#123456' } }];
     const histories: BrandingRow[] = [{ _id: 'history', variables: { 'panel-branding-background-color': '#654321' } }];
     const context = contextFor(brands, histories);
-    context.models.brandingconfighistory.updateOne.onFirstCall().rejects(new Error('database unavailable'));
+    context.ormFixtures.brandingconfighistory.updateOne.onFirstCall().rejects(new Error('database unavailable'));
 
     try {
       await migration.up({ context });
@@ -157,7 +182,7 @@ describe('Admin sidebar text colour migration', function () {
     }
     await migration.up({ context });
 
-    expect(context.models.brandingconfig.updateOne.callCount).to.equal(1);
+    expect(context.ormFixtures.brandingconfig.updateOne.callCount).to.equal(1);
     expect(histories[0].variables?.['admin-sidebar-text-color']).to.equal('#654321');
   });
 
@@ -166,7 +191,7 @@ describe('Admin sidebar text colour migration', function () {
 
     await migration.up({ context });
 
-    expect(context.models.brandingconfig.updateOne.called).to.equal(false);
-    expect(context.models.brandingconfighistory.updateOne.called).to.equal(false);
+    expect(context.ormFixtures.brandingconfig.updateOne.called).to.equal(false);
+    expect(context.ormFixtures.brandingconfighistory.updateOne.called).to.equal(false);
   });
 });

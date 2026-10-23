@@ -19,7 +19,7 @@
 
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { JsonMap } from '../waterline-models/types';
+import { JsonMap } from '../persistence/rows';
 import * as fs from 'fs-extra';
 import { resolve, basename } from 'path';
 import * as _ from 'lodash';

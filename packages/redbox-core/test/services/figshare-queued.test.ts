@@ -3,13 +3,16 @@ import { createRequire } from 'node:module';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Db, MongoClient as MongoClientType } from 'mongodb';
+import type {FigshareSyncRepository} from '../../src/persistence/figshare/FigshareSyncRepository';
+import * as sinon from 'sinon';
+import * as persistence from '../../src/persistence/runtime';
 import type { FigshareSyncModel, FigshareSourceIntent } from '../../src/model/storage/FigshareSyncModel';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
 const requireTest = createRequire(__filename);
 const { createMockSails } = requireTest('./testHelper');
 const { MongoClient } = requireTest('mongodb');
-const { FigshareSyncStore, FigshareLeaseLost } = requireTest('../../src/services/figshare-v2/sync-store');
+const { FigshareLeaseLost } = requireTest('../../src/services/figshare-v2/sync-store');
 const { FigsharePublishing } = requireTest('../../src/configmodels/FigsharePublishing');
 const { Services } = requireTest('../../src/services/FigshareService');
 const { runFigshareWorker, importRecordIntent, dispatchFigshare } = requireTest('../../src/services/figshare-v2/worker');
@@ -87,7 +90,9 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   this.timeout(20000);
   let connection: MongoClientType;
   let db: Db;
-  let store: InstanceType<typeof FigshareSyncStore>;
+  let store:FigshareSyncRepository;
+  let owner:Sails.Application|undefined;
+  let repositoryStub:sinon.SinonStub|undefined;
   let server: Server;
   let config: FigsharePublishingConfigData;
   let service: InstanceType<typeof Services.FigshareService>;
@@ -150,7 +155,16 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   });
   beforeEach(async () => {
-    await db.dropDatabase(); store = new FigshareSyncStore(db); await store.ensureIndexes();
+    await db.dropDatabase();
+    {
+      const uri=new URL(process.env.FIGSHARE_TEST_MONGO_URI!);uri.pathname='/'+db.databaseName;
+      owner=createMockSails({config:{datastores:{mongodb:{url:uri.toString()}}}});
+      await persistence.initializePersistence(owner!);
+      await persistence.ensureFigsharePersistenceIndexes(owner!);
+      await persistence.initializeFigsharePersistence(owner!);
+      store=persistence.getFigshareSyncRepository(owner!);
+    }
+    repositoryStub=sinon.stub(require('../../src/persistence/figshare/runtime'), 'getFigshareSyncRepository').returns(store);
     articles = []; requests = []; createFailure = undefined; publishFailure = undefined; articleReadFailure = undefined; published = false; hideArticles = false; mutateOnUpdate = undefined;
     traceStarts = 0; traceFailures = 0; traceCompletions = 0;
     config = new FigsharePublishing(); config.enabled = true;
@@ -181,10 +195,11 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
         startAudit: () => { traceStarts++; return { traceId: `trace-${traceStarts}`, spanId: 'span', startedAt: new Date().toISOString() }; },
         completeAudit: () => { traceCompletions++; }, failAudit: () => { traceFailures++; }
       },
-      FigshareSync: { getDatastore: () => ({ manager: db }) }
+
     });
     service = new Services.FigshareService(); await seed();
   });
+  afterEach(async()=>{repositoryStub?.restore();repositoryStub=undefined;if(owner){await persistence.cleanupPersistence(owner);owner=undefined;}});
   after(async () => {
     for (const [key, value] of savedGlobals) { if (value === undefined) Reflect.deleteProperty(globalThis, key); else Reflect.set(globalThis, key, value); }
     await db.dropDatabase(); await connection.close(); await new Promise<void>(resolve => server.close(() => resolve()));
@@ -211,7 +226,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     await run(); assert.equal(articles.length, 1);
   });
   it('stops after losing its lease during an HTTP call and lets the successor reconcile', async () => {
-    mutateOnUpdate = async () => { await store.collection.updateOne({ oid: 'record-1' }, { $set: { leaseOwner: 'successor', leaseUntil: Date.now() + 60000 }, $inc: { revision: 1 } }); };
+    mutateOnUpdate = async () => { await db.collection('figsharesync').updateOne({ oid: 'record-1' }, { $set: { leaseOwner: 'successor', leaseUntil: Date.now() + 60000 }, $inc: { revision: 1 } }); };
     await run();
     assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 0);
     assert.equal((await store.get('record-1')).leaseOwner, 'successor');
@@ -226,6 +241,42 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     await runFigshareWorker(service, { ...job, touch: async () => { touches++; } }, store);
     assert.ok(touches >= 3); assert.equal(articles.length, 1);
     assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 1);
+  });
+  it('drains an accepted HTTP worker through its final checkpoint and refuses new jobs', async () => {
+    let release!:()=>void;let reached!:()=>void;
+    const held=new Promise<void>(ok=>release=ok);const arrived=new Promise<void>(ok=>reached=ok);
+    mutateOnUpdate=async()=>{reached();await held;};
+    const active=run();await arrived;
+    let done=false;const draining=service.drain().then(()=>{done=true;});
+    try{
+      await new Promise(ok=>setTimeout(ok,20));assert.equal(done,false);
+      await assert.rejects(run(),/draining/);
+    }finally{release();}
+    await active;await draining;
+    const state=await store.get('record-1');assert.equal(state.leaseOwner,null);assert.equal(state.work.sync.processed,state.work.sync.requested);
+    assert.equal(requests.filter(r=>r.path.endsWith('/publish')).length,1);
+  });
+  it('awaits an applied heartbeat renewal before releasing the worker and touching final queue state', async () => {
+    config.processing!.heartbeatMs=10;config.processing!.leaseMs=200;
+    let release!:()=>void,reached!:()=>void;
+    const held=new Promise<void>(resolve=>release=resolve),entered=new Promise<void>(resolve=>reached=resolve);
+    const actualRenew=store.renew.bind(store),actualRelease=store.release.bind(store);
+    const renewal=sinon.stub(store,'renew').callsFake(async(...args)=>{await actualRenew(...args);reached();await held;});
+    const releasing=sinon.stub(store,'release').callsFake(actualRelease);
+    let touches=0,finished=false;
+    mutateOnUpdate=async()=>{await entered;};
+    const active=runFigshareWorker(service,{...job,touch:async()=>{touches++;}},store).then(()=>{finished=true;});
+    try {
+      await entered;
+      for(let i=0;i<200;i++){
+        const state=await store.get('record-1');
+        if(state?.work.sync.processed===state?.work.sync.requested)break;
+        await new Promise(resolve=>setTimeout(resolve,5));
+      }
+      await new Promise(resolve=>setTimeout(resolve,25));
+      assert.equal(finished,false);assert.equal(releasing.called,false);assert.equal(touches,0);
+    } finally {release();await active;renewal.restore();releasing.restore();}
+    assert.equal(touches,1);assert.equal((await store.get('record-1'))?.leaseOwner,null);
   });
   it('inspects and migrates read-only by default, and rejects wrong-context repairs', async () => {
     await run();
@@ -292,14 +343,14 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
       const oid = `slow-${String(i).padStart(3, '0')}`;
       await store.initialise(oid, 'brand-1'); await store.change(oid, (s: FigshareSyncModel) => { s.work.sync.dueAt = 1; });
     }
-    const claim = FigshareSyncStore.prototype.dispatchClaim;
+    const claim=store.dispatchClaim;
     // Simulate a cooldown that has already lapsed by the time the next page is read.
-    FigshareSyncStore.prototype.dispatchClaim = async function (this: typeof store, oid: string) {
-      await claim.call(this, oid); await this.collection.updateOne({ oid }, { $set: { dispatchUntil: 0 } }); return true;
+    store.dispatchClaim = async function (oid: string) {
+      await claim(oid);await db.collection('figsharesync').updateOne({oid},{$set:{dispatchUntil:0}}); return true;
     };
     const delivered: string[] = [];
     assignGlobals({ AgendaQueueService: { now: async (_name: string, data: { oid: string }) => { delivered.push(data.oid); } } });
-    try { await dispatchFigshare(); } finally { FigshareSyncStore.prototype.dispatchClaim = claim; }
+    try { await dispatchFigshare(); } finally { store.dispatchClaim=claim; }
     assert.equal(delivered.length, 121); assert.ok(delivered.includes('record-1'));
   });
   for (const [setting, legacy] of [['observationMs', 'publishAfterUploadDelay'], ['cleanupMs', 'uploadedFilesCleanupDelay']] as const) {

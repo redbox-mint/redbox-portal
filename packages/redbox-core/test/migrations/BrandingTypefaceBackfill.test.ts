@@ -1,3 +1,6 @@
+import * as sinon from 'sinon';
+import { brandingFixtures } from '../helpers/serviceRepositories';
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 
@@ -111,7 +114,7 @@ function buildSails() {
   const brandingconfighistory = new FakeCollection(row => `${String(row.branding)}:${String(row.version)}`);
   const infos: string[] = [];
   const sails = {
-    models: { brandingconfig, brandingconfighistory },
+    fixtures: { brandingconfig, brandingconfighistory },
     config: { branding: { historyMaxVersions: 3 } },
     log: {
       info: (message: string) => infos.push(message),
@@ -125,7 +128,7 @@ function buildSails() {
 const loadedMigration = require('../../../../api/migrations/20260904000000-branding-typeface-backfill.js') as
   | { name: string; up: (params: { context: unknown }) => Promise<void>; down?: unknown }
   | Array<{ name: string; up: (params: { context: unknown }) => Promise<void>; down?: unknown }>;
-const migration = (Array.isArray(loadedMigration) ? loadedMigration : [loadedMigration]) as Array<{
+let migration = (Array.isArray(loadedMigration) ? loadedMigration : [loadedMigration]) as Array<{
   name: string;
   up: (params: { context: unknown }) => Promise<void>;
 }>;
@@ -155,6 +158,22 @@ function history(brandId: string, version: number, overrides: Record<string, unk
 }
 
 describe('Branding typeface backfill migration', function () {
+  let repositoryStub:sinon.SinonStub;
+  beforeEach(()=>{
+    const runtime=require('@researchdatabox/redbox-core/dist/persistence/branding/runtime');
+    repositoryStub=sinon.stub(runtime,'getBrandingRepository').callsFake((...args:unknown[])=>{
+      const app=args[0] as Sails.Application;
+      repositoryFixtures.BrandingConfig = (app as any).fixtures.brandingconfig;
+      repositoryFixtures.BrandingConfigHistory = (app as any).fixtures.brandingconfighistory;
+      return brandingFixtures();
+    });
+    const file = require.resolve('../../../../api/migrations/20260904000000-branding-typeface-backfill.js');
+    delete require.cache[file];
+    const loaded = require(file) as typeof loadedMigration;
+    migration = Array.isArray(loaded) ? loaded : [loaded];
+  });
+  afterEach(()=>repositoryStub.restore());
+
   it('keeps an independent blue draft out of published red history', async function () {
     const { sails, brandingconfig, brandingconfighistory } = buildSails();
     brandingconfig.seed([brand({ version: 2, variables: { primary: '#0000ff' } })]);

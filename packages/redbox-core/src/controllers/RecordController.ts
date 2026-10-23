@@ -39,7 +39,7 @@ import { DateTime } from 'luxon';
 import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
 import { default as checkDiskSpace } from 'check-disk-space';
-import { FormAttributes } from '../waterline-models/Form';
+import { FormAttributes } from '../persistence/rows';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
@@ -900,6 +900,7 @@ export namespace Controllers {
         return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(existingRecord as AnyRecord, locals)));
       };
 
+      this.retainRequestCallback(req);
       if (recordType != '' && extFormName == '') {
         FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(form => {
           if (!form) {
@@ -1147,8 +1148,8 @@ export namespace Controllers {
       }
     }
 
-    public create(req: Sails.Req, res: Sails.Res) {
-      this.createInternal(req, res).then(() => {});
+    public async create(req: Sails.Req, res: Sails.Res) {
+      return this.createInternal(req, res).then(() => {});
     }
 
     private async createInternal(req: Sails.Req, res: Sails.Res) {
@@ -1391,8 +1392,8 @@ export namespace Controllers {
       return this.sendLifecycleResult(req, res, brand, oid, response, TranslationService.t('failed-destroy'));
     }
 
-    public update(req: Sails.Req, res: Sails.Res) {
-      void this.updateInternal(req, res).catch(error => {
+    public async update(req: Sails.Req, res: Sails.Res) {
+      return this.updateInternal(req, res).catch(error => {
         this.sendUnexpectedSaveFailure(req, res, 'update', error);
       });
     }

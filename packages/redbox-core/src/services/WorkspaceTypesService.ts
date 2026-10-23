@@ -1,3 +1,4 @@
+import { getReferenceRepositories } from '../persistence/runtime';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -49,7 +50,7 @@ export namespace Services {
     ];
 
     public bootstrap = (defBrand: BrandingLike) => {
-      return super.getObservable(WorkspaceType.destroy({ branding: defBrand.id })).pipe(flatMap(() => {
+      return super.getObservable(() => getReferenceRepositories().workspaceTypes.removeForBrand(defBrand.id)).pipe(flatMap(() => {
         const obsArr: Array<Observable<unknown>> = [];
         sails.log.debug('WorkspaceTypes::Bootstrap');
         sails.log.debug(sails.config.workspacetype);
@@ -79,7 +80,7 @@ export namespace Services {
 
     public create(brand: BrandingLike, workspaceType: WorkspaceTypeConfig): Observable<Record<string, unknown>> {
       return super.getObservable<Record<string, unknown>>(
-        WorkspaceType.create({
+        () => getReferenceRepositories().workspaceTypes.createDefinition({
           name: workspaceType['name'],
           label: workspaceType['label'],
           branding: brand.id,
@@ -92,11 +93,11 @@ export namespace Services {
     }
 
     public get(brand: BrandingLike): Observable<Record<string, unknown>[]> {
-      return super.getObservable<Record<string, unknown>[]>(WorkspaceType.find({ branding: brand.id }));
+      return super.getObservable<Record<string, unknown>[]>(() => getReferenceRepositories().workspaceTypes.listForBrand(brand.id));
     }
 
     public getOne(brand: BrandingLike, name: string): Observable<Record<string, unknown> | null> {
-      return super.getObservable<Record<string, unknown> | null>(WorkspaceType.findOne({ branding: brand.id, name: name }));
+      return super.getObservable<Record<string, unknown> | null>(() => getReferenceRepositories().workspaceTypes.findByName(brand.id, name));
     }
   }
 }

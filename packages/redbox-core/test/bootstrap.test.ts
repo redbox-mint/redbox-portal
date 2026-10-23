@@ -3,6 +3,7 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
+import * as persistenceRuntime from '../src/persistence/runtime';
 
 import { bootstrapRecordSchema, coreBootstrap, preLiftSetup } from '../src/bootstrap';
 import { ApiRouteDefinition, resetResolvedApiRouteCache, resolveApiRouteForRequest } from '../src/api-routes';
@@ -52,6 +53,19 @@ describe('bootstrap pre-lift setup', function () {
     originalSails = (global as Record<string, unknown>).sails;
     originalLodash = (global as Record<string, unknown>)._;
     resetResolvedApiRouteCache();
+    // These route/schema-order tests do not supply a database; adapter behavior
+    // is covered by the focused transition fixtures.
+    sinon.stub(persistenceRuntime, 'initializePersistence').resolves();
+sinon.stub(require('../src/persistence/cache/runtime'), 'initializeCachePersistence').resolves();
+sinon.stub(require('../src/persistence/migration/runtime'), 'initializeMigrationPersistence').resolves();
+sinon.stub(require('../src/persistence/reference/runtime'), 'initializeReferencePersistence').resolves();
+sinon.stub(require('../src/persistence/configuration/runtime'), 'initializeConfigurationPersistence').resolves();
+sinon.stub(require('../src/persistence/progress/runtime'), 'initializeProgressPersistence').resolves();
+sinon.stub(require('../src/persistence/harvest/runtime'), 'initializeHarvestPersistence').resolves();
+sinon.stub(require('../src/persistence/vocabulary/runtime'), 'initializeVocabularyPersistence').resolves();
+sinon.stub(require('../src/persistence/branding/runtime'), 'initializeBrandingPersistence').resolves();
+sinon.stub(require('../src/persistence/siem/runtime'), 'initializeSiemPersistence').resolves();
+    sinon.stub(require('../src/persistence/figshare/runtime'), 'initializeFigsharePersistence').resolves();
   });
 
   afterEach(function () {
@@ -72,6 +86,7 @@ describe('bootstrap pre-lift setup', function () {
     const lateHookReq = createReq();
 
     const sailsConfig: Record<string, unknown> = {
+
       security: { csrf: true },
       bootstrap: {},
       environment: 'development',
@@ -90,6 +105,7 @@ describe('bootstrap pre-lift setup', function () {
     (global as Record<string, unknown>).sails = {
       config: sailsConfig,
       log: createSinonStubLogger(sinon),
+
       services: {
         laterouteservice: { init },
       },
@@ -112,6 +128,7 @@ describe('bootstrap pre-lift setup', function () {
     const recordSchemaInit = sinon.stub().throws(new Error('record schema validation ran too early'));
     (global as Record<string, unknown>).sails = {
       config: {
+
         security: { csrf: true },
         bootstrap: {},
         environment: 'development',
@@ -121,6 +138,7 @@ describe('bootstrap pre-lift setup', function () {
         apiRoutesHooks: [],
       },
       log: createSinonStubLogger(sinon),
+
       services: {
         mongostorageservice: { init: storageInit },
         recordschemaservice: { init: recordSchemaInit },
@@ -140,7 +158,6 @@ describe('record schema bootstrap lifecycle', function () {
   let originalSails: unknown;
   let originalLodash: unknown;
   let originalAppConfigService: unknown;
-  const originalSiemModels = new Map<string, unknown>();
 
   before(async function () {
     const chai = await import('chai');
@@ -151,13 +168,7 @@ describe('record schema bootstrap lifecycle', function () {
     originalSails = (global as Record<string, unknown>).sails;
     originalLodash = (global as Record<string, unknown>)._;
     originalAppConfigService = (global as Record<string, unknown>).AppConfigService;
-    for (const key of ['SecurityEvent', 'SiemDeliveryAttempt']) {
-      originalSiemModels.set(key, Reflect.get(globalThis, key));
-      Reflect.set(globalThis, key, {
-        tableName: key.toLowerCase(),
-        getDatastore: () => ({ manager: { collection: () => ({ createIndex: async () => 'index' }) } }),
-      });
-    }
+
   });
 
   afterEach(function () {
@@ -165,10 +176,7 @@ describe('record schema bootstrap lifecycle', function () {
     (global as Record<string, unknown>).sails = originalSails;
     (global as Record<string, unknown>)._ = originalLodash;
     (global as Record<string, unknown>).AppConfigService = originalAppConfigService;
-    for (const [key, value] of originalSiemModels) {
-      if (value === undefined) Reflect.deleteProperty(globalThis, key);
-      else Reflect.set(globalThis, key, value);
-    }
+
   });
 
   function enabledRecordSchemaConfig(overrides: Record<string, unknown> = {}): Record<string, unknown> {

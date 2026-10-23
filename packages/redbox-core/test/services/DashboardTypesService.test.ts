@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -39,7 +40,7 @@ describe('DashboardTypesService', function () {
       return p;
     };
 
-    (global as any).DashboardType = {
+    repositoryFixtures.DashboardType = {
       find: sinon.stub().callsFake(() => mockDeferred([])),
       create: sinon.stub().callsFake((data: unknown) => mockDeferred(data)),
       destroy: sinon.stub().callsFake(() => mockDeferred([])),
@@ -47,7 +48,7 @@ describe('DashboardTypesService', function () {
       updateOne: sinon.stub().callsFake(() => ({ set: sinon.stub().callsFake((data: unknown) => mockDeferred(data)) }))
     };
 
-    (global as any).AppConfig = {
+    repositoryFixtures.AppConfig = {
       find: sinon.stub().resolves([])
     };
 
@@ -78,8 +79,8 @@ describe('DashboardTypesService', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
-    delete (global as any).DashboardType;
-    delete (global as any).AppConfig;
+    delete repositoryFixtures.DashboardType;
+    delete repositoryFixtures.AppConfig;
     delete (global as any).RecordTypesService;
     delete (global as any).WorkflowStepsService;
     delete (global as any).DashboardConfigService;
@@ -106,7 +107,7 @@ describe('DashboardTypesService', function () {
   });
 
   it('treats existing config-backed dashboard types as system types', async function () {
-    (global as any).DashboardType.find = sinon.stub().resolves([{ name: 'standard' }]);
+    repositoryFixtures.DashboardType.find = sinon.stub().resolves([{ name: 'standard' }]);
 
     const result = await service.bootstrap({ id: 'brand1' } as any);
 
@@ -114,7 +115,7 @@ describe('DashboardTypesService', function () {
   });
 
   it('rejects deleting assigned dashboard types', async function () {
-    (global as any).AppConfig.find = sinon.stub().resolves([
+    repositoryFixtures.AppConfig.find = sinon.stub().resolves([
       {
         updatedAt: '2026-02-01T00:00:00.000Z',
         configData: {
@@ -128,7 +129,7 @@ describe('DashboardTypesService', function () {
       },
       { updatedAt: '2026-01-01T00:00:00.000Z', configData: { recordTypes: {}, views: {} } }
     ]);
-    (global as any).DashboardType.findOne = sinon.stub().callsFake(() => ({
+    repositoryFixtures.DashboardType.findOne = sinon.stub().callsFake(() => ({
       exec: (cb: (err: any, result: any) => void) => cb(null, {
         branding: { id: 'brand1', name: 'default' },
         name: 'standard',
@@ -168,7 +169,7 @@ describe('DashboardTypesService', function () {
         }
       }
     };
-    (global as any).DashboardType.findOne = sinon.stub().callsFake(() => {
+    repositoryFixtures.DashboardType.findOne = sinon.stub().callsFake(() => {
       const result = {
         branding: { id: 'brand1', name: 'default' },
         name: 'standard',

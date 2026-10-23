@@ -1,142 +1,192 @@
-let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
+import { firstValueFrom, Observable } from 'rxjs';
 import { Services } from '../../src/services/WorkspaceAsyncService';
+import * as runtime from '../../src/persistence/runtime';
+import type { ProgressRepositories } from '../../src/persistence/progress/ProgressRepositories';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import { of } from 'rxjs';
 
-describe('WorkspaceAsyncService', function() {
+describe('WorkspaceAsyncService', () => {
+  const workspaces = {
+    registerWork: sinon.stub(),
+    reviseStatus: sinon.stub(),
+    listStatus: sinon.stub(),
+    removeWork: sinon.stub(),
+  };
   let service: Services.WorkspaceAsyncService;
-  let mockSails: any;
-
-  beforeEach(function() {
-    mockSails = createMockSails();
-    setupServiceTestGlobals(mockSails);
-    
-    const mockDeferred = (result: unknown) => ({
-      exec: sinon.stub().yields(null, result)
-    });
-
-    (global as any).WorkspaceAsync = {
-      find: sinon.stub().returns(mockDeferred([])),
-      create: sinon.stub().returns(mockDeferred({})),
-      update: sinon.stub().returns(mockDeferred([]))
+  beforeEach(() => {
+    setupServiceTestGlobals(createMockSails());
+    for (const method of Object.values(workspaces)) method.reset();
+    const repositories: ProgressRepositories = {
+      workspaces,
+      progress: {
+        startProgress: sinon.stub(),
+        reviseProgress: sinon.stub(),
+        listProgress: sinon.stub(),
+        removeProgress: sinon.stub(),
+      },
     };
-    
+    sinon.stub(require('../../src/persistence/progress/runtime'), 'getProgressRepositories').returns(repositories);
     service = new Services.WorkspaceAsyncService();
   });
-
-  afterEach(function() {
+  afterEach(() => {
     cleanupServiceTestGlobals();
-    delete (global as any).WorkspaceAsync;
     sinon.restore();
   });
-
-  describe('start', function() {
-    it('should create workspace async record', async function() {
-      const input = {
-        name: 'test',
-        recordType: 'rt',
-        username: 'user',
-        service: 'svc',
-        method: 'meth',
-        args: []
-      };
-      const expected = { id: 1, ...input, status: 'started' };
-      
-      const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkspaceAsync.create.returns({ exec: execStub });
-      
-      const result = await new Promise((resolve, reject) => {
-        service.start(input).subscribe(resolve, reject);
-      });
-      
-      expect(result).to.deep.equal(expected);
-      expect((global as any).WorkspaceAsync.create.calledWith(sinon.match({
-        name: 'test',
-        started_by: 'user',
-        status: 'started'
-      }))).to.be.true;
+  it('registers started work lazily through the existing Observable interface', async () => {
+    const row = { id: 'work' };
+    workspaces.registerWork.resolves(row);
+    const observable = service.start({
+      name: 'test',
+      recordType: 'workspace',
+      username: 'admin',
+      service: 'test',
+      method: 'run',
+      args: [],
     });
+    assert.equal(workspaces.registerWork.callCount, 0);
+    assert.deepEqual(await firstValueFrom(observable), row);
+    assert.equal(workspaces.registerWork.firstCall.args[0].started_by, 'admin');
+    assert.equal(workspaces.registerWork.firstCall.args[0].status, 'started');
   });
-
-  describe('update', function() {
-    it('should update record', async function() {
-      const id = '1';
-      const obj = { status: 'running' };
-      const expected = [{ id: 1, status: 'running' }];
-      
-      const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkspaceAsync.update.returns({ exec: execStub });
-      
-      const result = await new Promise((resolve, reject) => {
-        service.update(id, obj).subscribe(resolve, reject);
-      });
-      
-      expect(result).to.deep.equal(expected);
-    });
-
-    it('should set date_completed if finished', async function() {
-      const id = '1';
-      const obj = { status: 'finished' };
-      const expected = [{ id: 1, status: 'finished' }];
-      
-      const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkspaceAsync.update.returns({ exec: execStub });
-      
-      await new Promise((resolve, reject) => {
-        service.update(id, obj).subscribe(resolve, reject);
-      });
-      
-      expect((global as any).WorkspaceAsync.update.calledWith(
-        sinon.match({ id: '1' }),
-        sinon.match({ status: 'finished', date_completed: sinon.match.string })
-      )).to.be.true;
-    });
+  it('keeps revision arrays and adds completion time only for finished writes', async () => {
+    workspaces.reviseStatus.resolves([{ id: 'work' }]);
+    await firstValueFrom(service.update('work', { status: 'running' }));
+    assert.equal(workspaces.reviseStatus.firstCall.args[1].date_completed, undefined);
+    await firstValueFrom(service.update('work', { status: 'finished' }));
+    assert.equal(typeof workspaces.reviseStatus.secondCall.args[1].date_completed, 'string');
   });
-
-  describe('pending', function() {
-    it('should find pending records', async function() {
-      const expected = [{ id: 1, status: 'pending' }];
-      
-      const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkspaceAsync.find.returns({ exec: execStub });
-      
-      const result = await new Promise((resolve, reject) => {
-        service.pending().subscribe(resolve, reject);
-      });
-      
-      expect(result).to.deep.equal(expected);
-      expect((global as any).WorkspaceAsync.find.calledWith({ status: 'pending' })).to.be.true;
-    });
+  it('forwards pending and status/type reads', async () => {
+    workspaces.listStatus.resolves([]);
+    assert.deepEqual(await firstValueFrom(service.pending()), []);
+    assert.deepEqual(workspaces.listStatus.firstCall.args, ['pending']);
+    await firstValueFrom(service.status({ status: 'error', recordType: 'workspace' }));
+    assert.deepEqual(workspaces.listStatus.secondCall.args, ['error', 'workspace']);
   });
-
-  describe('status', function() {
-    it('should find records by status and recordType', async function() {
-      const status = 'error';
-      const recordType = 'rt';
-      const expected = [{ id: 1, status: 'error' }];
-      
-      const execStub = sinon.stub().yields(null, expected);
-      (global as any).WorkspaceAsync.find.returns({ exec: execStub });
-      
-      const result = await new Promise((resolve, reject) => {
-        service.status({ status, recordType }).subscribe(resolve, reject);
-      });
-      
-      expect(result).to.deep.equal(expected);
-      expect((global as any).WorkspaceAsync.find.calledWith({ status: 'error', recordType: 'rt' })).to.be.true;
-    });
+  it('drains jobs and completion writes before invoking the persistence shutdown hook', async () => {
+    let finish!: () => void;
+    let closed = false;
+    sails.config.beforeShutdown = callback => {
+      closed = true;
+      callback();
+    };
+    sails.services.test = {
+      run: () =>
+        new Observable(sub => {
+          finish = () => {
+            sub.next({ done: true });
+            sub.complete();
+          };
+        }),
+    };
+    workspaces.listStatus.resolves([{ id: 'work', service: 'test', method: 'run', args: [] }]);
+    workspaces.reviseStatus.resolves([{ id: 'work' }]);
+    await service.init();
+    service.loop();
+    await new Promise<void>(ok => setImmediate(ok));
+    const shutdown = new Promise<void>((ok, fail) => sails.config.beforeShutdown!(e => (e ? fail(e) : ok())));
+    assert.equal(closed, false);
+    finish();
+    await shutdown;
+    assert.equal(closed, true);
+    assert.equal(workspaces.reviseStatus.firstCall.args[1].status, 'finished');
+    service.loop();
+    assert.equal(workspaces.listStatus.callCount, 1);
   });
-
-  describe('exports', function() {
-    it('should export all public methods', function() {
-      const exported = service.exports();
-      expect(exported).to.have.property('start');
-      expect(exported).to.have.property('update');
-      expect(exported).to.have.property('pending');
-      expect(exported).to.have.property('status');
-      expect(exported).to.have.property('loop');
+  it('persists enumerable Error JSON and error status for failed jobs', async () => {
+    const failure = new Error('job failed');
+    workspaces.listStatus.resolves([{ id: 'work', service: 'test', method: 'run', args: [] }]);
+    workspaces.reviseStatus.resolves([]);
+    sails.services.test = {
+      run: () =>
+        new Observable(sub => {
+          sub.error(failure);
+        }),
+    };
+    service.loop();
+    await service.drain();
+    assert.deepEqual(workspaces.reviseStatus.firstCall.args, ['work', { status: 'error', message: {} }]);
+  });
+  it('drains every accepted job and status write when another write fails', async () => {
+    let finishJob!: () => void;
+    let finishWrite!: () => void;
+    let closed = false;
+    sails.config.beforeShutdown = callback => {
+      closed = true;
+      callback();
+    };
+    sails.services.test = {
+      immediate: () =>
+        new Observable(sub => {
+          sub.next('private payload');
+          sub.complete();
+        }),
+      delayed: () =>
+        new Observable(sub => {
+          finishJob = () => {
+            sub.next('done');
+            sub.complete();
+          };
+        }),
+    };
+    workspaces.listStatus.resolves([
+      { id: 'failed', service: 'test', method: 'immediate' },
+      { id: 'delayed', service: 'test', method: 'delayed' },
+    ]);
+    workspaces.reviseStatus.withArgs('failed').rejects(new Error('private payload'));
+    workspaces.reviseStatus.withArgs('delayed').returns(
+      new Promise(resolve => {
+        finishWrite = () => resolve([]);
+      })
+    );
+    await service.init();
+    service.loop();
+    await new Promise<void>(ok => setImmediate(ok));
+    const shutdown = new Promise<void>((ok, fail) => sails.config.beforeShutdown!(e => (e ? fail(e) : ok())));
+    await new Promise<void>(ok => setImmediate(ok));
+    assert.equal(closed, false, 'a failed sibling must not release the batch');
+    finishJob();
+    await new Promise<void>(ok => setImmediate(ok));
+    assert.equal(closed, false, 'the remaining completion write must finish');
+    finishWrite();
+    await shutdown;
+    assert.equal(closed, true);
+    assert(!JSON.stringify((sails.log.error as sinon.SinonStub).args).includes('private payload'));
+  });
+  it('owns early rejected writes and waits for later writes from the same job', async () => {
+    let finishJob!: () => void;
+    let finishWrite!: () => void;
+    sails.services.test = {
+      run: () =>
+        new Observable(sub => {
+          sub.next('first');
+          finishJob = () => {
+            sub.next('last');
+            sub.complete();
+          };
+        }),
+    };
+    workspaces.listStatus.resolves([{ id: 'work', service: 'test', method: 'run' }]);
+    workspaces.reviseStatus.onFirstCall().rejects(new Error('private failure'));
+    workspaces.reviseStatus.onSecondCall().returns(
+      new Promise(resolve => {
+        finishWrite = () => resolve([]);
+      })
+    );
+    service.loop();
+    await new Promise<void>(ok => setImmediate(ok));
+    finishJob();
+    let drained = false;
+    const drain = service.drain().then(() => {
+      drained = true;
     });
+    await new Promise<void>(ok => setImmediate(ok));
+    assert.equal(drained, false);
+    finishWrite();
+    await drain;
+  });
+  it('exports status and worker drain entry points', () => {
+    for (const name of ['start', 'update', 'pending', 'status', 'loop', 'init', 'drain'])
+      assert.equal(typeof Reflect.get(service.exports(), name), 'function');
   });
 });

@@ -320,8 +320,9 @@ export namespace Controllers {
           userLoginMessage: that.extractLoginMessage(info),
         }, err ? [err] : []);
         if ((err) || (!user)) {
-          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController',
-              typeof req.body?.username === 'string' ? { username: req.body.username } : undefined);
+          if (typeof SecurityEventService !== 'undefined') that.recordBackgroundOperation(req, 'loginFailureSecurityEvent',
+              SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController',
+                typeof req.body?.username === 'string' ? { username: req.body.username } : undefined));
           that.updateChronicle(req, {userLoginSuccess: false});
           return res.send({
             message: info.message,
@@ -336,8 +337,9 @@ export namespace Controllers {
 
         return req.logIn(user, function (err: unknown) {
           if (err) {
-            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController',
-              typeof req.body?.username === 'string' ? { username: req.body.username } : undefined);
+            if (typeof SecurityEventService !== 'undefined') that.recordBackgroundOperation(req, 'loginFailureSecurityEvent',
+              SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController',
+                typeof req.body?.username === 'string' ? { username: req.body.username } : undefined));
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
@@ -381,7 +383,7 @@ export namespace Controllers {
         }, err ? [err] : []);
 
         if (!_.isEmpty(err) || _.isUndefined(user) || _.isEmpty(user) || user == false) {
-          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+          if (typeof SecurityEventService !== 'undefined') that.recordBackgroundOperation(req, 'loginFailureSecurityEvent', SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController'));
           that.updateChronicle(req, {userLoginSuccess: false});
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
           if (!_.isEmpty(info) && !_.isString(info) && _.isObject(info)) {
@@ -446,7 +448,7 @@ export namespace Controllers {
 
         req.logIn(user, function (err: unknown) {
           if (err) {
-            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+            if (typeof SecurityEventService !== 'undefined') that.recordBackgroundOperation(req, 'loginFailureSecurityEvent', SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController'));
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
@@ -589,7 +591,7 @@ export namespace Controllers {
           userLoginMessage: that.extractLoginMessage(info),
         }, err ? [err] : []);
         if ((err) || (!user)) {
-          if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+          if (typeof SecurityEventService !== 'undefined') that.recordBackgroundOperation(req, 'loginFailureSecurityEvent', SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController'));
           that.updateChronicle(req, {userLoginSuccess: false});
           // means the provider has authenticated the user, but has been rejected, redirect to catch-all
 
@@ -622,7 +624,7 @@ export namespace Controllers {
 
         req.logIn(user, function (err: unknown) {
           if (err) {
-            if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
+            if (typeof SecurityEventService !== 'undefined') that.recordBackgroundOperation(req, 'loginFailureSecurityEvent', SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController'));
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }

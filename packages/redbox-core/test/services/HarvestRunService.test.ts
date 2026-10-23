@@ -1,3 +1,5 @@
+import { harvestFixtures } from '../helpers/serviceRepositories';
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import { createHash } from 'node:crypto';
@@ -87,6 +89,9 @@ function recordValidationResult(
   });
 }
 
+import * as persistence from '../../src/persistence/runtime';
+import { initializeHarvestPersistence, cleanupPersistence } from '../../src/persistence/runtime';
+
 describe('HarvestRunService', function () {
   let HarvestRunServiceClass: any;
   let service: any;
@@ -105,11 +110,11 @@ describe('HarvestRunService', function () {
     setWorkflowStepRelatedMetadata: sinon.SinonStub;
   };
 
-  beforeEach(function () {
-    originalRecord = (global as any).Record;
-    originalHarvestRun = (global as any).HarvestRun;
-    originalHarvestRunChunk = (global as any).HarvestRunChunk;
-    originalHarvestRecordEvent = (global as any).HarvestRecordEvent;
+  beforeEach(async function () {
+    originalRecord = repositoryFixtures.Record;
+    originalHarvestRun = repositoryFixtures.HarvestRun;
+    originalHarvestRunChunk = repositoryFixtures.HarvestRunChunk;
+    originalHarvestRecordEvent = repositoryFixtures.HarvestRecordEvent;
     originalRecordTypesService = (global as any).RecordTypesService;
 
     recordsService = {
@@ -129,32 +134,42 @@ describe('HarvestRunService', function () {
     setupServiceTestGlobals(mockSails);
     (global as any).RecordsService = recordsService;
 
-    (global as any).HarvestRun = {
-      findOne: sinon.stub(),
-      create: sinon.stub(),
-      updateOne: sinon.stub(),
-      find: sinon.stub(),
-      count: sinon.stub(),
-      getDatastore: sinon.stub().returns(null),
-    };
-    (global as any).HarvestRunChunk = {
+    repositoryFixtures.HarvestRun = {
       findOne: sinon.stub(),
       create: sinon.stub(),
       updateOne: sinon.stub(),
       find: sinon.stub(),
       count: sinon.stub(),
     };
-    (global as any).HarvestRecordEvent = {
+    repositoryFixtures.HarvestRunChunk = {
+      findOne: sinon.stub(),
+      create: sinon.stub(),
+      updateOne: sinon.stub(),
+      find: sinon.stub(),
+      count: sinon.stub(),
+    };
+    repositoryFixtures.HarvestRecordEvent = {
       create: sinon.stub(),
       createEach: sinon.stub(),
       find: sinon.stub(),
       count: sinon.stub(),
     };
-    (global as any).Record = {
+    repositoryFixtures.Record = {
       find: sinon.stub(),
     };
     (global as any).WorkflowStepsService = {
       get: sinon.stub(),
+    };
+
+    sinon.stub(require('../../src/persistence/harvest/runtime'), 'getHarvestRepositories').callsFake(harvestFixtures);
+    mockSails.config.storage = { serviceName: 'harveststorage' };
+    mockSails.services.harveststorage = {
+      findHarvestRecords: async (harvestIds: string[], recordType: string, brandId?: string) =>
+        repositoryFixtures.Record.find({
+          harvestId: brandId === undefined && harvestIds.length === 1 ? harvestIds[0] : { in: harvestIds },
+          'metaMetadata.type': recordType,
+          ...(brandId === undefined ? {} : { 'metaMetadata.brandId': brandId }),
+        }).meta({ enableExperimentalDeepTargets: true }),
     };
 
     const module = require('../../src/services/HarvestRunService');
@@ -162,13 +177,14 @@ describe('HarvestRunService', function () {
     service = new HarvestRunServiceClass();
   });
 
-  afterEach(function () {
+  afterEach(async function () {
+    await cleanupPersistence(mockSails);
     cleanupServiceTestGlobals();
     delete (global as any).RecordsService;
-    (global as any).Record = originalRecord;
-    (global as any).HarvestRun = originalHarvestRun;
-    (global as any).HarvestRunChunk = originalHarvestRunChunk;
-    (global as any).HarvestRecordEvent = originalHarvestRecordEvent;
+    repositoryFixtures.Record = originalRecord;
+    repositoryFixtures.HarvestRun = originalHarvestRun;
+    repositoryFixtures.HarvestRunChunk = originalHarvestRunChunk;
+    repositoryFixtures.HarvestRecordEvent = originalHarvestRecordEvent;
     if (originalRecordTypesService === undefined) {
       delete (global as any).RecordTypesService;
     } else {
@@ -330,17 +346,17 @@ describe('HarvestRunService', function () {
       submittedAt: '2026-05-25T00:00:00.000Z',
     };
 
-    (global as any).HarvestRun.findOne.resolves(null);
-    (global as any).HarvestRun.create.returns({ fetch: sinon.stub().resolves(run) });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
-    (global as any).HarvestRunChunk.create.returns({ fetch: sinon.stub().resolves(chunk) });
-    (global as any).HarvestRunChunk.updateOne.callsFake(() => ({
+    repositoryFixtures.HarvestRun.findOne.resolves(null);
+    repositoryFixtures.HarvestRun.create.returns({ fetch: sinon.stub().resolves(run) });
+    repositoryFixtures.HarvestRunChunk.find.returns(createChainableQuery([]));
+    repositoryFixtures.HarvestRunChunk.create.returns({ fetch: sinon.stub().resolves(chunk) });
+    repositoryFixtures.HarvestRunChunk.updateOne.callsFake(() => ({
       set: sinon.stub().callsFake(async (updates: any) => ({ ...chunk, ...updates })),
     }));
-    (global as any).HarvestRun.updateOne.callsFake(() => ({
+    repositoryFixtures.HarvestRun.updateOne.callsFake(() => ({
       set: sinon.stub().callsFake(async (updates: any) => ({ ...run, ...updates })),
     }));
-    (global as any).HarvestRecordEvent.createEach.callsFake(async (events: any[]) => events);
+    repositoryFixtures.HarvestRecordEvent.createEach.callsFake(async (events: any[]) => events);
   }
 
   function rejectNonArrayTagUpdates(schemaResolver: {
@@ -391,7 +407,7 @@ describe('HarvestRunService', function () {
 
   it('threads authoritative contexts through compatibility and legacy creates in shadow and enforce', async function () {
     mockSails.config.recordSchema = { enabled: true };
-    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
     recordsService.create.resolves({
       oid: 'record-1',
       message: 'Created',
@@ -440,7 +456,7 @@ describe('HarvestRunService', function () {
 
   it('supports legacy harvest arities while schemas are disabled and supplies operation-only save contexts', async function () {
     mockSails.config.recordSchema = { enabled: false };
-    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
     recordsService.create.resolves({
       oid: 'record-1',
       message: 'Created',
@@ -492,7 +508,7 @@ describe('HarvestRunService', function () {
   });
 
   it('strips allowlisted request and runtime facts only from schema-disabled harvest saves', async function () {
-    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
     recordsService.create.resolves({
       oid: 'record-1',
       message: 'Created',
@@ -540,13 +556,68 @@ describe('HarvestRunService', function () {
     expect(enabledContext.validationRuntimeContext).to.deep.equal({ transport: 'harvest' });
   });
 
+  it('drains accepted harvest submissions and rejects new work before persistence shutdown', async function () {
+    configureTrackedCreateChunk();
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
+    let release!: () => void;
+    const eventWrite = new Promise<void>(ok => {
+      release = ok;
+    });
+    repositoryFixtures.HarvestRecordEvent.createEach.callsFake(async () => {
+      await eventWrite;
+    });
+    const body = {
+      sourceRunId: 'drain',
+      sourceName: 'source',
+      finalChunk: true,
+      chunk: { index: 1 },
+      records: [{ harvestId: 'item', operation: 'invalid' }],
+    };
+    const pending = service.submitChunk(
+      { id: 'brand-1' },
+      { name: 'dataset' },
+      body,
+      { username: 'admin' },
+      harvestSaveContext()
+    );
+    await new Promise<void>(ok => setImmediate(ok));
+    let closed = false;
+    mockSails.config.beforeShutdown = (callback: () => void) => {
+      closed = true;
+      callback();
+    };
+    await service.init();
+    const shutdown = new Promise<void>((ok, fail) =>
+      mockSails.config.beforeShutdown((error?: unknown) => (error ? fail(error) : ok()))
+    );
+    expect(closed).to.equal(false);
+    let rejected = false;
+    try {
+      await service.submitChunk(
+        { id: 'brand-1' },
+        { name: 'dataset' },
+        body,
+        { username: 'admin' },
+        harvestSaveContext()
+      );
+    } catch (error) {
+      rejected = (error as Error).message.includes('draining');
+    }
+    expect(rejected).to.equal(true);
+    release();
+    await pending;
+    await shutdown;
+    expect(closed).to.equal(true);
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.calledOnce).to.equal(true);
+  });
+
   it('preserves disabled compatibility and legacy harvest create ACL semantics through real RecordsService', async function () {
     const { realRecordsService, schemaResolver, storageService } = useRealRecordsService(false);
     const hasEditAccess = sinon.spy(realRecordsService, 'hasEditAccess');
     const user = { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] };
     const brand = { id: 'brand-1', name: 'default' };
     const recordType = { name: 'dataset', hooks: {}, searchable: false };
-    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
 
     const compatibility = await service.submitCompatibilityRecords(
       brand,
@@ -580,7 +651,7 @@ describe('HarvestRunService', function () {
     const { realRecordsService, schemaResolver, storageService } = useRealRecordsService(false);
     const hasEditAccess = sinon.spy(realRecordsService, 'hasEditAccess');
     configureTrackedCreateChunk();
-    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
 
     const response = await service.submitChunk(
       { id: 'brand-1', name: 'default' },
@@ -612,7 +683,7 @@ describe('HarvestRunService', function () {
     const user = { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] };
     const brand = { id: 'brand-1', name: 'default' };
     const recordType = { name: 'dataset', hooks: {}, searchable: false };
-    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
 
     const compatibility = await service.submitCompatibilityRecords(
       brand,
@@ -662,8 +733,8 @@ describe('HarvestRunService', function () {
 
   it('creates a tracked harvest run, chunk, and events', async function () {
     mockSails.config.recordSchema = { enabled: true };
-    (global as any).HarvestRun.findOne.resolves(null);
-    (global as any).HarvestRun.create.returns({
+    repositoryFixtures.HarvestRun.findOne.resolves(null);
+    repositoryFixtures.HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -682,8 +753,8 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       }),
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
-    (global as any).HarvestRunChunk.create.returns({
+    repositoryFixtures.HarvestRunChunk.find.returns(createChainableQuery([]));
+    repositoryFixtures.HarvestRunChunk.create.returns({
       fetch: sinon.stub().resolves({
         id: 'chunk-1',
         runId: 'run-1',
@@ -704,7 +775,7 @@ describe('HarvestRunService', function () {
         submittedAt: '2026-05-25T00:00:00.000Z',
       }),
     });
-    (global as any).HarvestRunChunk.updateOne.returns({
+    repositoryFixtures.HarvestRunChunk.updateOne.returns({
       set: sinon.stub().resolves({
         id: 'chunk-1',
         runId: 'run-1',
@@ -725,7 +796,7 @@ describe('HarvestRunService', function () {
         responseSummary: { totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0 },
       }),
     });
-    (global as any).HarvestRun.updateOne.returns({
+    repositoryFixtures.HarvestRun.updateOne.returns({
       set: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -745,8 +816,8 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       }),
     });
-    (global as any).HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
-    (global as any).Record.find.callsFake(() => ({ meta: sinon.stub().resolves([]) }));
+    repositoryFixtures.HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
+    repositoryFixtures.Record.find.callsFake(() => ({ meta: sinon.stub().resolves([]) }));
     recordsService.create.resolves({
       oid: 'record-1',
       message: 'Created',
@@ -774,15 +845,54 @@ describe('HarvestRunService', function () {
     const createContext = recordsService.create.firstCall.args[7];
     expect(isRecordSaveContext(createContext)).to.equal(true);
     expect(createContext).to.include({ operation: 'create', portal: 'tenant-portal' });
-    expect((global as any).HarvestRecordEvent.createEach.calledOnce).to.equal(true);
-    expect((global as any).Record.find.calledOnce).to.equal(true);
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.calledOnce).to.equal(true);
+    expect(repositoryFixtures.Record.find.calledOnce).to.equal(true);
     expect(response.run.sourceRunId).to.equal('source-run-1');
     expect(response.chunk.status).to.equal('processed');
     expect(response.records).to.equal(undefined);
   });
 
+  it('persists failed snapshots as plain JSON with nested optional properties omitted', async function () {
+    configureTrackedCreateChunk();
+    repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
+    const response = await service.submitChunk(
+      { id: 'brand-1', name: 'default' },
+      { name: 'dataset' },
+      {
+        sourceRunId: 'source-run-1',
+        sourceName: 'source-a',
+        finalChunk: true,
+        chunk: { index: 1 },
+        records: [
+          { harvestId: 'failed-1', operation: 'invalid' },
+          {
+            harvestId: 'failed-2',
+            operation: 'invalid',
+            recordRequest: { metadata: { title: 'keep', absent: undefined } },
+          },
+        ],
+      },
+      { username: 'tester' },
+      harvestSaveContext()
+    );
+    expect(response.run.failed).to.equal(2);
+    const events = repositoryFixtures.HarvestRecordEvent.createEach
+      .getCalls()
+      .flatMap((call: sinon.SinonSpyCall) => call.args[0]);
+    expect(events.map((event: any) => event.recordSnapshot)).to.deep.equal([
+      { harvestId: 'failed-1', operation: 'invalid', updateStrategy: 'replace' },
+      {
+        harvestId: 'failed-2',
+        operation: 'invalid',
+        updateStrategy: 'replace',
+        recordRequest: { metadata: { title: 'keep' } },
+      },
+    ]);
+    expect(recordsService.create.called).to.equal(false);
+  });
+
   it('returns a duplicate chunk response without reprocessing records', async function () {
-    (global as any).HarvestRun.findOne.resolves({
+    repositoryFixtures.HarvestRun.findOne.resolves({
       id: 'run-1',
       brandId: 'brand-1',
       recordType: 'dataset',
@@ -799,7 +909,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 1,
       duplicateChunks: 0,
     });
-    (global as any).HarvestRunChunk.find.returns(
+    repositoryFixtures.HarvestRunChunk.find.returns(
       createChainableQuery([
         {
           id: 'chunk-1',
@@ -823,7 +933,7 @@ describe('HarvestRunService', function () {
         },
       ])
     );
-    (global as any).HarvestRun.updateOne.returns({
+    repositoryFixtures.HarvestRun.updateOne.returns({
       set: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -863,7 +973,7 @@ describe('HarvestRunService', function () {
   });
 
   it('returns run counters as aggregate counts to avoid stale-read races', async function () {
-    (global as any).HarvestRun.findOne.resolves({
+    repositoryFixtures.HarvestRun.findOne.resolves({
       id: 'run-1',
       brandId: 'brand-1',
       recordType: 'dataset',
@@ -880,7 +990,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 2,
       duplicateChunks: 1,
     });
-    (global as any).HarvestRunChunk.find.returns(
+    repositoryFixtures.HarvestRunChunk.find.returns(
       createChainableQuery([
         {
           id: 'chunk-1',
@@ -922,7 +1032,7 @@ describe('HarvestRunService', function () {
         },
       ])
     );
-    (global as any).HarvestRecordEvent.find.returns(createChainableQuery([]));
+    repositoryFixtures.HarvestRecordEvent.find.returns(createChainableQuery([]));
 
     const result = await service.getRun({ id: 'brand-1', name: 'default' }, 'run-1');
 
@@ -937,7 +1047,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 2,
       duplicateChunks: 1,
     });
-    expect((global as any).HarvestRunChunk.find.firstCall.returnValue.limit.calledWith(100)).to.equal(true);
+    expect(repositoryFixtures.HarvestRunChunk.find.firstCall.returnValue.limit.calledWith(100)).to.equal(true);
   });
 
   it('rejects tracked chunks over the configured record limit before processing', async function () {
@@ -962,12 +1072,12 @@ describe('HarvestRunService', function () {
       throw new Error('Expected submitChunk to reject oversized chunk');
     } catch (error) {
       expect((error as { statusCode?: number }).statusCode).to.equal(413);
-      expect((global as any).HarvestRun.findOne.called).to.equal(false);
+      expect(repositoryFixtures.HarvestRun.findOne.called).to.equal(false);
     }
   });
 
   it('returns 409 for a fresh duplicate processing chunk', async function () {
-    (global as any).HarvestRun.findOne.resolves({
+    repositoryFixtures.HarvestRun.findOne.resolves({
       id: 'run-1',
       brandId: 'brand-1',
       recordType: 'dataset',
@@ -984,7 +1094,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 0,
       duplicateChunks: 0,
     });
-    (global as any).HarvestRunChunk.find.returns(
+    repositoryFixtures.HarvestRunChunk.find.returns(
       createChainableQuery([
         {
           id: 'chunk-1',
@@ -1018,12 +1128,12 @@ describe('HarvestRunService', function () {
       throw new Error('Expected submitChunk to reject duplicate processing chunk');
     } catch (error) {
       expect((error as { statusCode?: number }).statusCode).to.equal(409);
-      expect((global as any).HarvestRunChunk.create.called).to.equal(false);
+      expect(repositoryFixtures.HarvestRunChunk.create.called).to.equal(false);
     }
   });
 
   it('resumes a failed chunk retry from previously persisted events', async function () {
-    (global as any).HarvestRun.findOne.resolves({
+    repositoryFixtures.HarvestRun.findOne.resolves({
       id: 'run-1',
       brandId: 'brand-1',
       recordType: 'dataset',
@@ -1040,7 +1150,7 @@ describe('HarvestRunService', function () {
       chunksProcessed: 0,
       duplicateChunks: 0,
     });
-    (global as any).HarvestRunChunk.find.returns(
+    repositoryFixtures.HarvestRunChunk.find.returns(
       createChainableQuery([
         {
           id: 'chunk-1',
@@ -1066,7 +1176,7 @@ describe('HarvestRunService', function () {
         },
       ])
     );
-    (global as any).HarvestRecordEvent.find.callsFake((criteria: any) => {
+    repositoryFixtures.HarvestRecordEvent.find.callsFake((criteria: any) => {
       if (criteria?.chunkId?.in?.includes('chunk-1')) {
         return createChainableQuery([
           {
@@ -1087,7 +1197,7 @@ describe('HarvestRunService', function () {
       }
       return createChainableQuery([]);
     });
-    (global as any).HarvestRunChunk.create.returns({
+    repositoryFixtures.HarvestRunChunk.create.returns({
       fetch: sinon.stub().resolves({
         id: 'chunk-2',
         runId: 'run-1',
@@ -1108,8 +1218,8 @@ describe('HarvestRunService', function () {
         submittedAt: '2026-05-25T00:02:00.000Z',
       }),
     });
-    (global as any).HarvestRunChunk.updateOne.callsFake(() => ({ set: sinon.stub().resolves(null) }));
-    (global as any).HarvestRun.updateOne.returns({
+    repositoryFixtures.HarvestRunChunk.updateOne.callsFake(() => ({ set: sinon.stub().resolves(null) }));
+    repositoryFixtures.HarvestRun.updateOne.returns({
       set: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -1129,8 +1239,8 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       }),
     });
-    (global as any).HarvestRecordEvent.createEach.resolves([{ id: 'event-2' }]);
-    (global as any).Record.find.callsFake(() => ({
+    repositoryFixtures.HarvestRecordEvent.createEach.resolves([{ id: 'event-2' }]);
+    repositoryFixtures.Record.find.callsFake(() => ({
       meta: sinon.stub().resolves([
         {
           harvestId: 'harvest-1',
@@ -1169,18 +1279,18 @@ describe('HarvestRunService', function () {
 
     expect(recordsService.create.calledOnce).to.equal(true);
     expect(recordsService.create.firstCall.args[1]).to.deep.include({ harvestId: 'harvest-2' });
-    expect((global as any).HarvestRecordEvent.createEach.calledOnce).to.equal(true);
-    expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0]).to.have.length(1);
-    expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0][0].harvestId).to.equal('harvest-2');
-    expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0][0].oid).to.equal('record-2');
-    expect((global as any).HarvestRecordEvent.createEach.firstCall.args[0][0].message).to.equal('saved-with-warnings');
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.calledOnce).to.equal(true);
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0]).to.have.length(1);
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0][0].harvestId).to.equal('harvest-2');
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0][0].oid).to.equal('record-2');
+    expect(repositoryFixtures.HarvestRecordEvent.createEach.firstCall.args[0][0].message).to.equal('saved-with-warnings');
     expect(response.chunk.status).to.equal('processed');
     expect(response.chunk.responseSummary).to.deep.include({ totalProcessed: 2, created: 2, failed: 0 });
   });
 
   it('soft deletes tracked records when delete is requested', async function () {
-    (global as any).HarvestRun.findOne.resolves(null);
-    (global as any).HarvestRun.create.returns({
+    repositoryFixtures.HarvestRun.findOne.resolves(null);
+    repositoryFixtures.HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -1199,8 +1309,8 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       }),
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
-    (global as any).HarvestRunChunk.create.returns({
+    repositoryFixtures.HarvestRunChunk.find.returns(createChainableQuery([]));
+    repositoryFixtures.HarvestRunChunk.create.returns({
       fetch: sinon.stub().resolves({
         id: 'chunk-1',
         runId: 'run-1',
@@ -1215,10 +1325,10 @@ describe('HarvestRunService', function () {
         submittedAt: '2026-05-25T00:00:00.000Z',
       }),
     });
-    (global as any).HarvestRunChunk.updateOne.returns({ set: sinon.stub().resolves(null) });
-    (global as any).HarvestRun.updateOne.returns({ set: sinon.stub().resolves(null) });
-    (global as any).HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
-    (global as any).Record.find.callsFake(() => ({
+    repositoryFixtures.HarvestRunChunk.updateOne.returns({ set: sinon.stub().resolves(null) });
+    repositoryFixtures.HarvestRun.updateOne.returns({ set: sinon.stub().resolves(null) });
+    repositoryFixtures.HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
+    repositoryFixtures.Record.find.callsFake(() => ({
       meta: sinon.stub().resolves([
         {
           harvestId: 'harvest-1',
@@ -1253,8 +1363,8 @@ describe('HarvestRunService', function () {
 
   it('updates tracked records when incoming metadata removes an existing field', async function () {
     mockSails.config.recordSchema = { enabled: true };
-    (global as any).HarvestRun.findOne.resolves(null);
-    (global as any).HarvestRun.create.returns({
+    repositoryFixtures.HarvestRun.findOne.resolves(null);
+    repositoryFixtures.HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -1273,8 +1383,8 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       }),
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
-    (global as any).HarvestRunChunk.create.returns({
+    repositoryFixtures.HarvestRunChunk.find.returns(createChainableQuery([]));
+    repositoryFixtures.HarvestRunChunk.create.returns({
       fetch: sinon.stub().resolves({
         id: 'chunk-1',
         runId: 'run-1',
@@ -1289,7 +1399,7 @@ describe('HarvestRunService', function () {
         submittedAt: '2026-05-25T00:00:00.000Z',
       }),
     });
-    (global as any).HarvestRunChunk.updateOne.returns({
+    repositoryFixtures.HarvestRunChunk.updateOne.returns({
       set: sinon.stub().resolves({
         id: 'chunk-1',
         runId: 'run-1',
@@ -1310,7 +1420,7 @@ describe('HarvestRunService', function () {
         responseSummary: { totalProcessed: 1, created: 0, updated: 1, deleted: 0, unchanged: 0, failed: 0 },
       }),
     });
-    (global as any).HarvestRun.updateOne.returns({
+    repositoryFixtures.HarvestRun.updateOne.returns({
       set: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -1329,8 +1439,8 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       }),
     });
-    (global as any).HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
-    (global as any).Record.find.callsFake(() => ({
+    repositoryFixtures.HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
+    repositoryFixtures.Record.find.callsFake(() => ({
       meta: sinon.stub().resolves([
         {
           harvestId: 'harvest-1',
@@ -1401,7 +1511,7 @@ describe('HarvestRunService', function () {
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of(recordType)),
     };
-    (global as any).Record.find.returns({
+    repositoryFixtures.Record.find.returns({
       meta: sinon.stub().resolves([structuredClone(originalRecord)]),
     });
     const applySubmittedMetadata = sinon.spy(realRecordsService, 'applySubmittedMetadata');
@@ -1571,7 +1681,7 @@ describe('HarvestRunService', function () {
 
     for (const testCase of cases) {
       persistedRecords.set('record-1', structuredClone(original));
-      (global as any).Record.find.returns({
+      repositoryFixtures.Record.find.returns({
         meta: sinon.stub().resolves([structuredClone(original)]),
       });
       if (testCase.tracked) configureTrackedCreateChunk();
@@ -1730,8 +1840,8 @@ describe('HarvestRunService', function () {
   });
 
   it('rolls back created records when event persistence fails before checkpointing', async function () {
-    (global as any).HarvestRun.findOne.resolves(null);
-    (global as any).HarvestRun.create.returns({
+    repositoryFixtures.HarvestRun.findOne.resolves(null);
+    repositoryFixtures.HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
         id: 'run-1',
         brandId: 'brand-1',
@@ -1750,8 +1860,8 @@ describe('HarvestRunService', function () {
         duplicateChunks: 0,
       }),
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
-    (global as any).HarvestRunChunk.create.returns({
+    repositoryFixtures.HarvestRunChunk.find.returns(createChainableQuery([]));
+    repositoryFixtures.HarvestRunChunk.create.returns({
       fetch: sinon.stub().resolves({
         id: 'chunk-1',
         runId: 'run-1',
@@ -1766,10 +1876,10 @@ describe('HarvestRunService', function () {
         submittedAt: '2026-05-25T00:00:00.000Z',
       }),
     });
-    (global as any).HarvestRunChunk.updateOne.returns({ set: sinon.stub().resolves(null) });
-    (global as any).HarvestRun.updateOne.returns({ set: sinon.stub().resolves(null) });
-    (global as any).HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
-    (global as any).Record.find.callsFake(() => ({ meta: sinon.stub().resolves([]) }));
+    repositoryFixtures.HarvestRunChunk.updateOne.returns({ set: sinon.stub().resolves(null) });
+    repositoryFixtures.HarvestRun.updateOne.returns({ set: sinon.stub().resolves(null) });
+    repositoryFixtures.HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
+    repositoryFixtures.Record.find.callsFake(() => ({ meta: sinon.stub().resolves([]) }));
     recordsService.create.resolves({
       oid: 'record-1',
       message: 'Created',
@@ -1809,7 +1919,7 @@ describe('HarvestRunService', function () {
 
     expect(recordsService.create.calledOnce).to.equal(true);
     expect(recordsService.delete.calledOnce).to.equal(true);
-    expect((global as any).HarvestRun.updateOne.called).to.equal(false);
+    expect(repositoryFixtures.HarvestRun.updateOne.called).to.equal(false);
   });
 
   for (const [operation, recordSchemaEnabled] of [
@@ -1858,8 +1968,8 @@ describe('HarvestRunService', function () {
         get: sinon.stub().returns(of(recordType)),
       };
       configureTrackedCreateChunk();
-      (global as any).HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
-      (global as any).Record.find.returns({
+      repositoryFixtures.HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
+      repositoryFixtures.Record.find.returns({
         meta: sinon.stub().resolves([structuredClone(originalRecord)]),
       });
 
@@ -1928,8 +2038,8 @@ describe('HarvestRunService', function () {
       get: sinon.stub().returns(of(recordType)),
     };
     configureTrackedCreateChunk();
-    (global as any).HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
-    (global as any).Record.find.returns({
+    repositoryFixtures.HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
+    repositoryFixtures.Record.find.returns({
       meta: sinon.stub().resolves([structuredClone(originalRecord)]),
     });
 
@@ -1964,106 +2074,6 @@ describe('HarvestRunService', function () {
     expect(restoredRecord.metadata).to.deep.equal(originalRecord.metadata);
   });
 
-  it('retries non-atomic run counter updates when the row changes concurrently', async function () {
-    const firstSet = sinon.stub().resolves(null);
-    const secondSet = sinon.stub().resolves({
-      id: 'run-1',
-      brandId: 'brand-1',
-      recordType: 'dataset',
-      sourceName: 'source-a',
-      sourceRunId: 'source-run-1',
-      status: 'running',
-      startedAt: '2026-05-25T00:00:00.000Z',
-      totalProcessed: 7,
-      created: 5,
-      updated: 2,
-      deleted: 0,
-      unchanged: 0,
-      failed: 0,
-      chunksProcessed: 4,
-      duplicateChunks: 0,
-      lastChunkAt: '2026-05-25T00:05:00.000Z',
-    });
-    (global as any).HarvestRun.updateOne
-      .onFirstCall()
-      .returns({ set: firstSet })
-      .onSecondCall()
-      .returns({ set: secondSet });
-    (global as any).HarvestRun.findOne.onFirstCall().resolves({
-      id: 'run-1',
-      brandId: 'brand-1',
-      recordType: 'dataset',
-      sourceName: 'source-a',
-      sourceRunId: 'source-run-1',
-      status: 'running',
-      startedAt: '2026-05-25T00:00:00.000Z',
-      totalProcessed: 5,
-      created: 4,
-      updated: 1,
-      deleted: 0,
-      unchanged: 0,
-      failed: 0,
-      chunksProcessed: 3,
-      duplicateChunks: 0,
-    });
-
-    const updatedRun = await service.updateRunAfterChunk(
-      {
-        id: 'run-1',
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceName: 'source-a',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        startedAt: '2026-05-25T00:00:00.000Z',
-        totalProcessed: 0,
-        created: 0,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        chunksProcessed: 0,
-        duplicateChunks: 0,
-      },
-      { totalProcessed: 2, created: 1, updated: 1, deleted: 0, unchanged: 0, failed: 0 },
-      false,
-      '2026-05-25T00:05:00.000Z'
-    );
-
-    expect((global as any).HarvestRun.updateOne.calledTwice).to.equal(true);
-    expect((global as any).HarvestRun.findOne.calledOnce).to.equal(true);
-    expect((global as any).HarvestRun.updateOne.firstCall.args[0]).to.deep.include({
-      id: 'run-1',
-      totalProcessed: 0,
-      created: 0,
-      updated: 0,
-      deleted: 0,
-      unchanged: 0,
-      failed: 0,
-      chunksProcessed: 0,
-      status: 'running',
-    });
-    expect((global as any).HarvestRun.updateOne.secondCall.args[0]).to.deep.include({
-      id: 'run-1',
-      totalProcessed: 5,
-      created: 4,
-      updated: 1,
-      deleted: 0,
-      unchanged: 0,
-      failed: 0,
-      chunksProcessed: 3,
-      status: 'running',
-    });
-    expect(secondSet.firstCall.args[0]).to.deep.include({
-      totalProcessed: 7,
-      created: 5,
-      updated: 2,
-      chunksProcessed: 4,
-      lastChunkAt: '2026-05-25T00:05:00.000Z',
-    });
-    expect(updatedRun.totalProcessed).to.equal(7);
-  });
-
   it('treats asymmetric metadata field removal as a real change', function () {
     expect(service.isMetadataEqual({ title: 'Existing' }, { title: 'Existing', description: 'To remove' })).to.equal(
       false
@@ -2073,171 +2083,9 @@ describe('HarvestRunService', function () {
     );
   });
 
-  it('atomically increments run counters when a datastore manager is available', async function () {
-    const runId = '507f1f77bcf86cd799439011';
-    const findOneAndUpdate = sinon.stub().resolves({
-      value: {
-        _id: new ObjectId(runId),
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceName: 'source-a',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        startedAt: '2026-05-25T00:00:00.000Z',
-        lastChunkAt: '2026-05-25T00:05:00.000Z',
-        totalProcessed: 3,
-        created: 2,
-        updated: 1,
-        deleted: 0,
-        unchanged: 0,
-        failed: 1,
-        chunksProcessed: 2,
-        duplicateChunks: 0,
-      },
-    });
-    const collection = {
-      findOneAndUpdate,
-      s: {
-        pkFactory: {
-          createPk: () => new ObjectId(),
-        },
-      },
-    };
-    (global as any).HarvestRun.getDatastore.returns({
-      manager: {
-        collection: sinon.stub().withArgs('harvestrun').returns(collection),
-      },
-    });
-
-    const updatedRun = await service.updateRunAfterChunk(
-      {
-        id: runId,
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceName: 'source-a',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        startedAt: '2026-05-25T00:00:00.000Z',
-        totalProcessed: 0,
-        created: 0,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        chunksProcessed: 0,
-        duplicateChunks: 0,
-      },
-      { totalProcessed: 2, created: 1, updated: 1, deleted: 0, unchanged: 0, failed: 1 },
-      false,
-      '2026-05-25T00:05:00.000Z'
-    );
-
-    expect(findOneAndUpdate.calledOnce).to.equal(true);
-    expect(findOneAndUpdate.firstCall.args[0]._id).to.be.instanceOf(ObjectId);
-    expect(findOneAndUpdate.firstCall.args[0]._id.toHexString()).to.equal(runId);
-    expect(findOneAndUpdate.firstCall.args[1]).to.deep.equal([
-      {
-        $set: {
-          lastChunkAt: '2026-05-25T00:05:00.000Z',
-          totalProcessed: { $add: [{ $ifNull: ['$totalProcessed', 0] }, 2] },
-          created: { $add: [{ $ifNull: ['$created', 0] }, 1] },
-          updated: { $add: [{ $ifNull: ['$updated', 0] }, 1] },
-          deleted: { $add: [{ $ifNull: ['$deleted', 0] }, 0] },
-          unchanged: { $add: [{ $ifNull: ['$unchanged', 0] }, 0] },
-          failed: { $add: [{ $ifNull: ['$failed', 0] }, 1] },
-          chunksProcessed: { $add: [{ $ifNull: ['$chunksProcessed', 0] }, 1] },
-          status: {
-            $cond: [{ $eq: ['$status', 'completed'] }, 'completed_with_errors', '$status'],
-          },
-        },
-      },
-    ]);
-    expect((global as any).HarvestRun.updateOne.called).to.equal(false);
-    expect(updatedRun.id).to.equal(runId);
-    expect(updatedRun.totalProcessed).to.equal(3);
-    expect(updatedRun.failed).to.equal(1);
-  });
-
-  it('atomically increments duplicate chunk counts when a datastore manager is available', async function () {
-    const runId = '507f1f77bcf86cd799439012';
-    const findOneAndUpdate = sinon.stub().resolves({
-      value: {
-        _id: new ObjectId(runId),
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceName: 'source-a',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        startedAt: '2026-05-25T00:00:00.000Z',
-        lastChunkAt: '2026-05-25T00:05:00.000Z',
-        totalProcessed: 3,
-        created: 2,
-        updated: 1,
-        deleted: 0,
-        unchanged: 0,
-        failed: 1,
-        chunksProcessed: 2,
-        duplicateChunks: 1,
-      },
-    });
-    (global as any).HarvestRun.getDatastore.returns({
-      manager: {
-        collection: sinon
-          .stub()
-          .withArgs('harvestrun')
-          .returns({
-            findOneAndUpdate,
-            s: {
-              pkFactory: {
-                createPk: () => new ObjectId(),
-              },
-            },
-          }),
-      },
-    });
-
-    const clock = sinon.useFakeTimers(new Date('2026-05-25T00:05:00.000Z'));
-    try {
-      const updatedRun = await service.bumpDuplicateChunkCount({
-        id: runId,
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceName: 'source-a',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        startedAt: '2026-05-25T00:00:00.000Z',
-        totalProcessed: 0,
-        created: 0,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        chunksProcessed: 0,
-        duplicateChunks: 0,
-      });
-
-      expect(findOneAndUpdate.calledOnce).to.equal(true);
-      expect(findOneAndUpdate.firstCall.args[0]._id).to.be.instanceOf(ObjectId);
-      expect(findOneAndUpdate.firstCall.args[0]._id.toHexString()).to.equal(runId);
-      expect(findOneAndUpdate.firstCall.args[1]).to.deep.equal([
-        {
-          $set: {
-            duplicateChunks: { $add: [{ $ifNull: ['$duplicateChunks', 0] }, 1] },
-            lastChunkAt: '2026-05-25T00:05:00.000Z',
-          },
-        },
-      ]);
-      expect((global as any).HarvestRun.updateOne.called).to.equal(false);
-      expect(updatedRun.id).to.equal(runId);
-      expect(updatedRun.duplicateChunks).to.equal(1);
-    } finally {
-      clock.restore();
-    }
-  });
-
   it('lists runs and events with brand-scoped filters', async function () {
-    (global as any).HarvestRun.count.resolves(2);
-    (global as any).HarvestRun.find.returns(
+    repositoryFixtures.HarvestRun.count.resolves(2);
+    repositoryFixtures.HarvestRun.find.returns(
       createChainableQuery([
         {
           id: 'run-1',
@@ -2258,8 +2106,8 @@ describe('HarvestRunService', function () {
         },
       ])
     );
-    (global as any).HarvestRecordEvent.count.resolves(1);
-    (global as any).HarvestRecordEvent.find.returns(
+    repositoryFixtures.HarvestRecordEvent.count.resolves(1);
+    repositoryFixtures.HarvestRecordEvent.find.returns(
       createChainableQuery([
         {
           id: 'event-1',
@@ -2291,8 +2139,8 @@ describe('HarvestRunService', function () {
       pageSize: 20,
     });
 
-    expect((global as any).HarvestRun.find.firstCall.args[0]).to.deep.equal({ brandId: 'brand-1' });
-    expect((global as any).HarvestRecordEvent.find.firstCall.args[0]).to.deep.equal({
+    expect(repositoryFixtures.HarvestRun.find.firstCall.args[0]).to.deep.equal({ brandId: 'brand-1' });
+    expect(repositoryFixtures.HarvestRecordEvent.find.firstCall.args[0]).to.deep.equal({
       runId: 'run-1',
       brandId: 'brand-1',
     });

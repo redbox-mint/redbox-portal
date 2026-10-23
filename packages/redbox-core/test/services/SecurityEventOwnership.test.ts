@@ -1,3 +1,6 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
+import { installSiemRepositoryStub } from './siemRepositoryStub';
+import { ObjectId } from 'mongodb';
 import { expect } from 'chai';
 import * as lodash from 'lodash';
 import * as sinon from 'sinon';
@@ -6,7 +9,7 @@ import { Services as Capture } from '../../src/services/SecurityEventService';
 import { Services as Forwarding } from '../../src/services/SiemForwardingService';
 import { DEFAULT_SIEM_REDACTION } from '../../src/configmodels/SiemConfiguration';
 import { redactForSiem } from '../../src/services/siem/SiemPayloadRedactor';
-import type { SecurityEventAttributes } from '../../src/waterline-models/SecurityEvent';
+import type { SecurityEventAttributes } from '../../src/persistence/rows';
 import { createMockSails } from './testHelper';
 
 describe('SIEM ownership and primitive privacy boundaries', () => {
@@ -17,14 +20,13 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
     'BrandingService',
     'AppConfigService',
     'AgendaQueueService',
-    'Record',
-    'SecurityEvent',
-    'SiemDeliveryAttempt',
+    'RecordsService',
   ];
   let capture: Capture.SecurityEventService;
   let queued: Array<{ event: SecurityEventAttributes }>;
   let lookup: sinon.SinonStub;
   beforeEach(() => {
+    installSiemRepositoryStub();
     keys.forEach(key => originals.set(key, Reflect.get(globalThis, key)));
     queued = [];
     capture = new Capture.SecurityEventService();
@@ -42,13 +44,14 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
           queued.push(data);
         },
       },
-      Record: { findOne: async () => undefined },
+      RecordsService: { getMeta: async () => undefined },
     });
   });
   afterEach(() => {
     originals.forEach((value, key) =>
       value === undefined ? Reflect.deleteProperty(globalThis, key) : Reflect.set(globalThis, key, value)
     );
+    delete repositoryFixtures.siem;
     sinon.restore();
   });
   it('rejects unresolved ownership at every public capture entry before default config lookup', async () => {
@@ -99,6 +102,13 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
     });
     expect(redactForSiem(value, { ...DEFAULT_SIEM_REDACTION, includeActorEmail: true })).to.deep.equal(value);
   });
+  it('resolves record ownership through the configured record service seam',async()=>{
+    const getMeta=sinon.stub().resolves({metaMetadata:{brandId:'other-id'}});
+    Reflect.set(globalThis,'RecordsService',{getMeta});
+    await capture.emitFromAttachmentAudit({redboxOid:'stored-record',action:'download',status:'success'});
+    expect(getMeta.calledOnceWithExactly('stored-record')).to.equal(true);
+    expect(queued).to.have.length(1);expect(queued[0].event.brandId).to.equal('other-id');
+  });
   it('never sends a stored unknown-brand event to the inherited default collector', async () => {
     let requests = 0;
     const server = createServer((_req, res) => {
@@ -123,7 +133,9 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
           ],
         },
       });
-      const stored: SecurityEventAttributes = {
+      const physicalId=new ObjectId();
+      const stored: SecurityEventAttributes & {_id:ObjectId} = {
+        _id:physicalId,
         id: 'stored',
         eventId: 'event-unknown',
         brandId: 'unknown',
@@ -134,28 +146,12 @@ describe('SIEM ownership and primitive privacy boundaries', () => {
         source: 'RecordsService',
         deliveryState: 'pending',
       };
-      const collection = {
-        createIndex: async () => 'index',
-        find: (filter: { deliveryState?: string }) => ({
-          sort: () => ({
-            limit: () => ({ toArray: async () => (filter.deliveryState === 'deadLetter' ? [] : [stored]) }),
-          }),
-        }),
-        updateOne: async (_filter: object, update: { $set: Partial<SecurityEventAttributes> }) => {
-          Object.assign(stored, update.$set);
-          return { matchedCount: 1 };
-        },
-        findOne: async () => stored,
-        deleteMany: async () => ({}),
+      repositoryFixtures.siem = {
+        readyEvents: async () => [stored],
+        claimDelivery: async () => stored,
+        saveDelivery: async (_event: unknown, values: object) => { Object.assign(stored, values); return true; },
+        cleanupDeadLetters: async () => {},
       };
-      Reflect.set(globalThis, 'SecurityEvent', {
-        tableName: 'securityevent',
-        getDatastore: () => ({ manager: { collection: () => collection } }),
-      });
-      Reflect.set(globalThis, 'SiemDeliveryAttempt', {
-        tableName: 'siemdeliveryattempt',
-        getDatastore: () => ({ manager: { collection: () => ({ createIndex: async () => 'index' }) } }),
-      });
       await new Forwarding.SiemForwardingService().forwardSecurityEvents({ attrs: { data: { brandId: 'unknown' } } });
       expect(lookup.called).to.equal(false);
       expect(requests).to.equal(0);

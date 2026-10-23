@@ -1,15 +1,7 @@
+import { getVocabularyRepositories } from '../persistence/runtime';
 import { Services as services } from '../CoreService';
-import {
-  FigshareVocabularyCategoryAttributes,
-  FigshareVocabularyCrosswalkAttributes,
-  FigshareVocabularyCrosswalkMappingAttributes,
-  FigshareVocabularySourceAttributes,
-  FigshareVocabularySyncRunAttributes,
-  VocabularyAttributes,
-  VocabularyEntryAttributes
-} from '../waterline-models';
-import { isAllowedSyncRunTransition } from '../waterline-models/FigshareVocabularySyncRun';
-import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
+import type { CategoryRow as FigshareVocabularyCategoryAttributes, CrosswalkRow as FigshareVocabularyCrosswalkAttributes, MappingRow as FigshareVocabularyCrosswalkMappingAttributes, SourceRow as FigshareVocabularySourceAttributes, SyncRunRow as FigshareVocabularySyncRunAttributes, VocabularyRow as VocabularyAttributes, EntryRow as VocabularyEntryAttributes } from '../persistence/vocabulary/VocabularyRepositories';
+import { isAllowedSyncRunTransition } from '../persistence/vocabulary/normalization';
 import { promiseWithTimeout } from '../utilities/PromiseUtils';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -285,20 +277,6 @@ export namespace Services {
       'bootstrapData'
     ];
 
-    // ── Infrastructure helpers ────────────────────────────────────────
-
-    private getDatastore(): Sails.Datastore | null {
-      return Vocabulary.getDatastore?.() ?? sails.getDatastore?.() ?? null;
-    }
-
-    private async runQuery<T>(query: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
-      return connection ? query.usingConnection(connection) : query;
-    }
-
-    private async createOne<T>(query: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
-      return this.runQuery(query.fetch(), connection);
-    }
-
     private nowIso(): string {
       return new Date().toISOString();
     }
@@ -378,10 +356,10 @@ export namespace Services {
     // ── Brand-scoped resolution ───────────────────────────────────────
 
     private async requireSource(sourceId: string, brandId: string): Promise<FigshareVocabularySourceAttributes> {
-      const source = await FigshareVocabularySource.findOne({
+      const source = await getVocabularyRepositories().getSource({
         id: String(sourceId ?? '').trim(),
         branding: brandId
-      }) as FigshareVocabularySourceAttributes | null;
+      });
       if (!source) {
         throw new RelationshipBoundaryError('Figshare source not found');
       }
@@ -389,10 +367,10 @@ export namespace Services {
     }
 
     private async requireCrosswalk(crosswalkId: string, brandId: string): Promise<FigshareVocabularyCrosswalkAttributes> {
-      const crosswalk = await FigshareVocabularyCrosswalk.findOne({
+      const crosswalk = await getVocabularyRepositories().getCrosswalk({
         id: String(crosswalkId ?? '').trim(),
         branding: brandId
-      }) as FigshareVocabularyCrosswalkAttributes | null;
+      });
       if (!crosswalk) {
         throw new RelationshipBoundaryError('Figshare crosswalk not found');
       }
@@ -400,10 +378,10 @@ export namespace Services {
     }
 
     private async requireLocalVocabulary(vocabularyId: string, brandId: string): Promise<VocabularyAttributes> {
-      const vocabulary = await Vocabulary.findOne({
+      const vocabulary = await getVocabularyRepositories().getVocabulary({
         id: String(vocabularyId ?? '').trim(),
         branding: brandId
-      }) as VocabularyAttributes | null;
+      });
       if (!vocabulary) {
         throw new RelationshipBoundaryError('Local vocabulary not found');
       }
@@ -414,10 +392,10 @@ export namespace Services {
     }
 
     private async requireRun(runId: string, brandId: string): Promise<FigshareVocabularySyncRunAttributes> {
-      const run = await FigshareVocabularySyncRun.findOne({
+      const run = await getVocabularyRepositories().getRun({
         id: String(runId ?? '').trim(),
         branding: brandId
-      }) as FigshareVocabularySyncRunAttributes | null;
+      });
       if (!run) {
         throw new RelationshipBoundaryError('Synchronisation preview not found');
       }
@@ -427,27 +405,19 @@ export namespace Services {
     /** Expiry is enforced synchronously; no scheduled job is introduced. */
     private async pruneExpiredRuns(brandId: string): Promise<void> {
       const now = this.nowIso();
-      await FigshareVocabularySyncRun.update({
-        branding: brandId,
-        state: ['fetching', 'previewed'],
-        expiresAt: { '<': now }
-      }).set({ state: 'expired' });
+      await getVocabularyRepositories().expirePreviews(brandId, now);
     }
 
     private async transitionRun(
       runId: string,
       from: string,
       to: string,
-      patch: Partial<FigshareVocabularySyncRunAttributes> = {},
-      connection?: Sails.Connection
+      patch: Partial<FigshareVocabularySyncRunAttributes> = {}
     ): Promise<void> {
       if (!isAllowedSyncRunTransition(from, to)) {
         throw new StalePreviewError(`Synchronisation run cannot move from '${from}' to '${to}'`);
       }
-      const updated = await this.runQuery(
-        FigshareVocabularySyncRun.updateOne({ id: runId, state: from }).set({ ...patch, state: to }) as Sails.WaterlinePromise<unknown>,
-        connection
-      );
+      const updated = await getVocabularyRepositories().changeRunState(runId, from, { ...patch, state: to });
       if (!updated) {
         throw new StalePreviewError(`Synchronisation run is no longer '${from}'`);
       }
@@ -482,7 +452,7 @@ export namespace Services {
     }
 
     private async loadExistingCategories(sourceId: string): Promise<ExistingMirrorCategory[]> {
-      const categories = await FigshareVocabularyCategory.find({ source: sourceId }) as FigshareVocabularyCategoryAttributes[];
+      const categories = await getVocabularyRepositories().listCategories({ source: sourceId });
       return categories.map((category) => ({
         sourceId: category.sourceId,
         categoryId: category.categoryId,
@@ -493,7 +463,7 @@ export namespace Services {
     }
 
     private async loadLocalEntries(vocabularyId: string): Promise<LocalEntryCandidate[]> {
-      const entries = await VocabularyEntry.find({ vocabulary: vocabularyId }) as VocabularyEntryAttributes[];
+      const entries = await getVocabularyRepositories().listEntries({ vocabulary: vocabularyId });
       return entries.map((entry) => ({
         id: String(entry.id),
         label: String(entry.label ?? ''),
@@ -513,11 +483,11 @@ export namespace Services {
       scope: FigshareCategoryScope,
       taxonomyId: string
     ): Promise<FigshareVocabularySourceAttributes | null> {
-      return await FigshareVocabularySource.findOne({
+      return await getVocabularyRepositories().getSource({
         branding: brandId,
         scope,
         taxonomyId
-      }) as FigshareVocabularySourceAttributes | null;
+      });
     }
 
     /**
@@ -529,11 +499,11 @@ export namespace Services {
       localVocabularyId: string,
       sourceId: string
     ): Promise<FigshareVocabularyCrosswalkAttributes | null> {
-      return await FigshareVocabularyCrosswalk.findOne({
+      return await getVocabularyRepositories().getCrosswalk({
         branding: brandId,
         localVocabulary: localVocabularyId,
         figshareSource: sourceId
-      }) as FigshareVocabularyCrosswalkAttributes | null;
+      });
     }
 
     /**
@@ -621,7 +591,7 @@ export namespace Services {
       let unresolvedLocalEntryIds: string[] = [];
       if (mode.createLocalClone) {
         // Clone entries do not exist yet; propose identity by remote sourceId and let
-        // apply bind them to the entry ids created inside the same transaction.
+        // apply bind them to the entry ids created during the same operation.
         proposals = snapshot.rows.map((row) => ({
           proposalId: `clone:${row.sourceId}`,
           localEntryId: '',
@@ -651,7 +621,7 @@ export namespace Services {
       };
 
       const expiresAt = new Date(Date.now() + PREVIEW_TTL_MS).toISOString();
-      const run = await FigshareVocabularySyncRun.create({
+      const run = await getVocabularyRepositories().createRun({
         branding: ctx.brandId,
         source: mode.source ? String(mode.source.id) : null,
         scope,
@@ -672,7 +642,7 @@ export namespace Services {
         warnings: [...snapshot.warnings, ...unresolvedLocalEntryIds.map((id) => ({ code: 'unresolved-local-entry', localEntryId: id }))],
         expiresAt,
         requestedBy: ctx.userId
-      }).fetch() as FigshareVocabularySyncRunAttributes;
+      });
 
       return this.toSyncPreview(run);
     }
@@ -746,7 +716,7 @@ export namespace Services {
         .map((warning) => String(warning.localEntryId));
       const unresolvedEntries = unresolvedIds.length === 0
         ? []
-        : (await VocabularyEntry.find({ id: unresolvedIds }) as VocabularyEntryAttributes[]).map((entry) => ({
+        : (await getVocabularyRepositories().listEntries({ id: unresolvedIds })).map((entry) => ({
           localEntryId: String(entry.id),
           localLabel: String(entry.label ?? ''),
           localValue: String(entry.value ?? '')
@@ -826,15 +796,7 @@ export namespace Services {
       };
 
       try {
-        const result = await runWithOptionalTransaction(
-          this.getDatastore(),
-          async (connection) => this.applyPreviewWork(run, decisions, ctx, existingSource, existingCrosswalk, createdIds, connection),
-          {
-            logger: sails.log,
-            unsupportedAdapterWarning:
-              'Transactions are not supported by this datastore adapter. Falling back to compensating cleanup for Figshare vocabulary apply.'
-          }
-        );
+        const result = await this.applyPreviewWork(run, decisions, ctx, existingSource, existingCrosswalk, createdIds);
         await this.transitionRun(String(run.id), 'applying', 'applied', {
           appliedBy: ctx.userId,
           appliedAt: result.appliedAt,
@@ -854,20 +816,20 @@ export namespace Services {
       }
     }
 
-    /** Best-effort cleanup for datastores without transaction support. */
+    /** Best-effort cleanup after a failed sequential apply or clone. */
     private async compensate(created: { vocabularies: string[]; sources: string[]; crosswalks: string[] }): Promise<void> {
       try {
         for (const crosswalkId of created.crosswalks) {
-          await FigshareVocabularyCrosswalkMapping.destroy({ crosswalk: crosswalkId });
-          await FigshareVocabularyCrosswalk.destroyOne({ id: crosswalkId });
+          await getVocabularyRepositories().removeMappings({ crosswalk: crosswalkId });
+          await getVocabularyRepositories().removeCrosswalk(crosswalkId);
         }
         for (const sourceId of created.sources) {
-          await FigshareVocabularyCategory.destroy({ source: sourceId });
-          await FigshareVocabularySource.destroyOne({ id: sourceId });
+          await getVocabularyRepositories().removeSourceCategories(sourceId);
+          await getVocabularyRepositories().removeSource(sourceId);
         }
         for (const vocabularyId of created.vocabularies) {
-          await VocabularyEntry.destroy({ vocabulary: vocabularyId });
-          await Vocabulary.destroyOne({ id: vocabularyId });
+          await getVocabularyRepositories().removeVocabularyEntries(vocabularyId);
+          await getVocabularyRepositories().removeVocabulary(vocabularyId);
         }
       } catch (cleanupError) {
         sails.log.error('Figshare vocabulary apply compensation failed', cleanupError);
@@ -880,8 +842,7 @@ export namespace Services {
       ctx: ActorContext,
       existingSource: FigshareVocabularySourceAttributes | null,
       existingCrosswalk: FigshareVocabularyCrosswalkAttributes | null,
-      createdIds: { vocabularies: string[]; sources: string[]; crosswalks: string[] },
-      connection?: Sails.Connection
+      createdIds: { vocabularies: string[]; sources: string[]; crosswalks: string[] }
     ): Promise<ApplyResult> {
       const snapshot = (run.normalizedSnapshot ?? []) as NormalizedFigshareCategory[];
       const appliedAt = this.nowIso();
@@ -893,8 +854,7 @@ export namespace Services {
         mirrorVocabularyId = String(source.vocabulary);
       } else {
         const mirrorName = `Figshare ${run.scope} taxonomy ${run.taxonomyId}`;
-        const mirror = await this.createOne<VocabularyAttributes>(
-          Vocabulary.create({
+        const mirror = await getVocabularyRepositories().createVocabulary({
             name: mirrorName,
             description: `Read-only mirror of the Figshare ${run.scope} category catalogue for taxonomy ${run.taxonomyId}`,
             type: 'tree',
@@ -902,14 +862,11 @@ export namespace Services {
             sourceId: `${run.scope}:${run.taxonomyId}`,
             figshareSourceKey: `${ctx.brandId}:${run.scope}:${run.taxonomyId}`,
             branding: ctx.brandId
-          }) as Sails.WaterlinePromise<VocabularyAttributes>,
-          connection
-        );
+          });
         mirrorVocabularyId = String(mirror.id);
         createdIds.vocabularies.push(mirrorVocabularyId);
 
-        source = await this.createOne<FigshareVocabularySourceAttributes>(
-          FigshareVocabularySource.create({
+        source = await getVocabularyRepositories().createSource({
             branding: ctx.brandId,
             vocabulary: mirrorVocabularyId,
             scope: run.scope,
@@ -917,15 +874,13 @@ export namespace Services {
             displayName: mirrorName,
             createdBy: ctx.userId,
             updatedBy: ctx.userId
-          }) as Sails.WaterlinePromise<FigshareVocabularySourceAttributes>,
-          connection
-        );
+          });
         createdIds.sources.push(String(source.id));
       }
       const sourceId = String(source.id);
 
       // 2/3. Upsert category relationships and mirrored entries, then mark omissions historical.
-      const mirrorStats = await this.syncMirror(sourceId, mirrorVocabularyId, snapshot, appliedAt, connection);
+      const mirrorStats = await this.syncMirror(sourceId, mirrorVocabularyId, snapshot, appliedAt);
 
       // 4. Optional independent local clone.
       let localVocabularyId = run.localVocabulary == null ? null : String(run.localVocabulary);
@@ -936,8 +891,7 @@ export namespace Services {
           String(run.localCloneName ?? '').trim(),
           String(run.localCloneSlug ?? '').trim(),
           snapshot,
-          ctx,
-          connection
+          ctx
         );
         localVocabularyId = clone.vocabularyId;
         cloneEntryBySourceId = clone.entryBySourceId;
@@ -956,19 +910,14 @@ export namespace Services {
           // read back so the crosswalk is labelled after it rather than a generic stand-in.
           let localLabel = String(run.localCloneName ?? '').trim();
           if (!localLabel) {
-            const localVocabulary = await this.runQuery(
-              Vocabulary.findOne({ id: localVocabularyId }) as Sails.WaterlinePromise<VocabularyAttributes | null>,
-              connection
-            );
+            const localVocabulary = await getVocabularyRepositories().getVocabulary({ id: localVocabularyId });
             localLabel = String(localVocabulary?.name ?? '').trim();
           }
           const crosswalkName = await this.uniqueCrosswalkName(
             `${localLabel || 'Crosswalk'} → Figshare taxonomy ${run.taxonomyId}`,
-            ctx.brandId,
-            connection
+            ctx.brandId
           );
-          const crosswalk = await this.createOne<FigshareVocabularyCrosswalkAttributes>(
-            FigshareVocabularyCrosswalk.create({
+          const crosswalk = await getVocabularyRepositories().createCrosswalk({
               branding: ctx.brandId,
               name: crosswalkName,
               localVocabulary: localVocabularyId,
@@ -976,9 +925,7 @@ export namespace Services {
               status: 'draft',
               workingRevision: 1,
               updatedBy: ctx.userId
-            }) as Sails.WaterlinePromise<FigshareVocabularyCrosswalkAttributes>,
-            connection
-          );
+            });
           crosswalkId = String(crosswalk.id);
           crosswalkRevision = 1;
           createdIds.crosswalks.push(crosswalkId);
@@ -992,21 +939,17 @@ export namespace Services {
           sourceId,
           localVocabularyId,
           cloneEntryBySourceId,
-          ctx,
-          connection
+          ctx
         );
       }
 
       // 6. Source cursor.
-      await this.runQuery(
-        FigshareVocabularySource.updateOne({ id: sourceId }).set({
+      await getVocabularyRepositories().reviseSource(sourceId, {
           remoteHash: String(run.remoteHash ?? ''),
           lastSyncedAt: appliedAt,
           lastSyncRun: String(run.id),
           updatedBy: ctx.userId
-        }) as Sails.WaterlinePromise<unknown>,
-        connection
-      );
+        });
 
       return {
         runId: String(run.id),
@@ -1027,19 +970,12 @@ export namespace Services {
       sourceId: string,
       mirrorVocabularyId: string,
       snapshot: readonly NormalizedFigshareCategory[],
-      appliedAt: string,
-      connection?: Sails.Connection
+      appliedAt: string
     ): Promise<{ created: number; updated: number; historical: number; reappeared: number }> {
-      const existingCategories = await this.runQuery(
-        FigshareVocabularyCategory.find({ source: sourceId }) as unknown as Sails.WaterlinePromise<FigshareVocabularyCategoryAttributes[]>,
-        connection
-      );
+      const existingCategories = await getVocabularyRepositories().listCategories({ source: sourceId });
       const existingBySourceId = new Map(existingCategories.map((category) => [category.sourceId, category]));
 
-      const existingEntries = await this.runQuery(
-        VocabularyEntry.find({ vocabulary: mirrorVocabularyId }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes[]>,
-        connection
-      );
+      const existingEntries = await getVocabularyRepositories().listEntries({ vocabulary: mirrorVocabularyId });
       const usedLabels = new Set(existingEntries.map((entry) => String(entry.labelLower ?? '')));
       const entryIdByCategoryId = new Map(existingCategories.map((category) => [category.sourceId, String(category.entry)]));
 
@@ -1050,20 +986,16 @@ export namespace Services {
         const existing = existingBySourceId.get(row.sourceId);
         if (!existing) {
           const label = this.dedupeLabel(row.title, row.sourceId, usedLabels);
-          const entry = await this.createOne<VocabularyEntryAttributes>(
-            VocabularyEntry.create({
+          const entry = await getVocabularyRepositories().createEntry({
               vocabulary: mirrorVocabularyId,
               label,
               value: row.sourceId,
               identifier: row.sourceId,
               order: 0,
               historical: false
-            }) as Sails.WaterlinePromise<VocabularyEntryAttributes>,
-            connection
-          );
+            });
           entryIdBySourceId.set(row.sourceId, String(entry.id));
-          await this.createOne<FigshareVocabularyCategoryAttributes>(
-            FigshareVocabularyCategory.create({
+          await getVocabularyRepositories().createCategory({
               source: sourceId,
               entry: String(entry.id),
               sourceId: row.sourceId,
@@ -1076,9 +1008,7 @@ export namespace Services {
               firstSeenAt: appliedAt,
               lastSeenAt: appliedAt,
               contentHash: row.contentHash
-            }) as Sails.WaterlinePromise<FigshareVocabularyCategoryAttributes>,
-            connection
-          );
+            });
           stats.created += 1;
           continue;
         }
@@ -1093,16 +1023,12 @@ export namespace Services {
         }
 
         if (wasHistorical || existing.contentHash !== row.contentHash) {
-          await this.runQuery(
-            VocabularyEntry.updateOne({ id: entryId }).set({
+          await getVocabularyRepositories().reviseEntry(entryId, {
               label: this.relabelExisting(row, existingEntries, entryId, usedLabels),
               historical: false
-            }) as Sails.WaterlinePromise<unknown>,
-            connection
-          );
+            });
         }
-        await this.runQuery(
-          FigshareVocabularyCategory.updateOne({ id: String(existing.id) }).set({
+        await getVocabularyRepositories().reviseCategory(String(existing.id), {
             categoryId: row.categoryId,
             taxonomyId: row.taxonomyId,
             parentSourceId: row.parentSourceId ?? undefined,
@@ -1111,9 +1037,7 @@ export namespace Services {
             historical: false,
             lastSeenAt: appliedAt,
             contentHash: row.contentHash
-          }) as Sails.WaterlinePromise<unknown>,
-          connection
-        );
+          });
       }
 
       // Remote omission never hard-deletes: retain identity and audit evidence.
@@ -1122,14 +1046,8 @@ export namespace Services {
         if (remoteSourceIds.has(existing.sourceId) || existing.historical === true) {
           continue;
         }
-        await this.runQuery(
-          FigshareVocabularyCategory.updateOne({ id: String(existing.id) }).set({ historical: true }) as Sails.WaterlinePromise<unknown>,
-          connection
-        );
-        await this.runQuery(
-          VocabularyEntry.updateOne({ id: String(existing.entry) }).set({ historical: true }) as Sails.WaterlinePromise<unknown>,
-          connection
-        );
+        await getVocabularyRepositories().reviseCategory(String(existing.id), { historical: true });
+        await getVocabularyRepositories().reviseEntry(String(existing.entry), { historical: true });
         stats.historical += 1;
       }
 
@@ -1142,10 +1060,7 @@ export namespace Services {
         const parentEntryId = row.parentSourceId == null
           ? null
           : entryIdBySourceId.get(row.parentSourceId) ?? entryIdByCategoryId.get(row.parentSourceId) ?? null;
-        await this.runQuery(
-          VocabularyEntry.updateOne({ id: entryId }).set({ parent: parentEntryId }) as Sails.WaterlinePromise<unknown>,
-          connection
-        );
+        await getVocabularyRepositories().reviseEntry(entryId, { parent: parentEntryId });
       }
 
       return stats;
@@ -1170,39 +1085,32 @@ export namespace Services {
       name: string,
       slug: string,
       snapshot: readonly NormalizedFigshareCategory[],
-      ctx: ActorContext,
-      connection?: Sails.Connection
+      ctx: ActorContext
     ): Promise<{ vocabularyId: string; entryBySourceId: Map<string, string> }> {
       if (!name) {
         throw new CatalogueInvalidError('A clone name is required to create an editable local vocabulary');
       }
-      const clone = await this.createOne<VocabularyAttributes>(
-        Vocabulary.create({
+      const clone = await getVocabularyRepositories().createVocabulary({
           name,
           ...(slug ? { slug } : {}),
           description: 'Editable local copy of a Figshare category catalogue',
           type: 'tree',
           source: 'local',
           branding: ctx.brandId
-        }) as Sails.WaterlinePromise<VocabularyAttributes>,
-        connection
-      );
+        });
       const vocabularyId = String(clone.id);
 
       const usedLabels = new Set<string>();
       const entryBySourceId = new Map<string, string>();
       for (const row of snapshot) {
-        const entry = await this.createOne<VocabularyEntryAttributes>(
-          VocabularyEntry.create({
+        const entry = await getVocabularyRepositories().createEntry({
             vocabulary: vocabularyId,
             label: this.dedupeLabel(row.title, row.sourceId, usedLabels),
             value: row.sourceId,
             identifier: row.sourceId,
             order: 0,
             historical: false
-          }) as Sails.WaterlinePromise<VocabularyEntryAttributes>,
-          connection
-        );
+          });
         entryBySourceId.set(row.sourceId, String(entry.id));
       }
 
@@ -1213,23 +1121,17 @@ export namespace Services {
         if (!entryId || parentId == null) {
           continue;
         }
-        await this.runQuery(
-          VocabularyEntry.updateOne({ id: entryId }).set({ parent: parentId }) as Sails.WaterlinePromise<unknown>,
-          connection
-        );
+        await getVocabularyRepositories().reviseEntry(entryId, { parent: parentId });
       }
 
       return { vocabularyId, entryBySourceId };
     }
 
-    private async uniqueCrosswalkName(base: string, brandId: string, connection?: Sails.Connection): Promise<string> {
+    private async uniqueCrosswalkName(base: string, brandId: string): Promise<string> {
       let candidate = base;
       let suffix = 2;
       // The unique { branding, name } index makes collisions a hard failure, so probe first.
-      while (await this.runQuery(
-        FigshareVocabularyCrosswalk.findOne({ branding: brandId, name: candidate }) as Sails.WaterlinePromise<unknown>,
-        connection
-      )) {
+      while (await getVocabularyRepositories().getCrosswalk({ branding: brandId, name: candidate })) {
         candidate = `${base} (${suffix})`;
         suffix += 1;
       }
@@ -1244,13 +1146,9 @@ export namespace Services {
       sourceId: string,
       localVocabularyId: string,
       cloneEntryBySourceId: Map<string, string>,
-      ctx: ActorContext,
-      connection?: Sails.Connection
+      ctx: ActorContext
     ): Promise<{ created: number; removed: number }> {
-      const categories = await this.runQuery(
-        FigshareVocabularyCategory.find({ source: sourceId }) as unknown as Sails.WaterlinePromise<FigshareVocabularyCategoryAttributes[]>,
-        connection
-      );
+      const categories = await getVocabularyRepositories().listCategories({ source: sourceId });
       const categoryBySourceId = new Map(categories.map((category) => [category.sourceId, category]));
 
       const approvedProposalIds = new Set((decisions?.approvedProposalIds ?? []).map((id) => String(id)));
@@ -1294,10 +1192,7 @@ export namespace Services {
 
       if (desiredEdges.size > 0) {
         const localEntryIds = Array.from(new Set(Array.from(desiredEdges.values()).map((edge) => edge.localEntryId)));
-        const localEntries = await this.runQuery(
-          VocabularyEntry.find({ id: localEntryIds, vocabulary: localVocabularyId }) as unknown as Sails.WaterlinePromise<VocabularyEntryAttributes[]>,
-          connection
-        );
+        const localEntries = await getVocabularyRepositories().listEntries({ id: localEntryIds, vocabulary: localVocabularyId });
         const validLocalEntryIds = new Set(localEntries.map((entry) => String(entry.id)));
         for (const edge of desiredEdges.values()) {
           if (!validLocalEntryIds.has(edge.localEntryId)) {
@@ -1306,10 +1201,7 @@ export namespace Services {
         }
       }
 
-      const existingEdges = await this.runQuery(
-        FigshareVocabularyCrosswalkMapping.find({ crosswalk: crosswalkId, revision }) as unknown as Sails.WaterlinePromise<FigshareVocabularyCrosswalkMappingAttributes[]>,
-        connection
-      );
+      const existingEdges = await getVocabularyRepositories().listMappings({ crosswalk: crosswalkId, revision });
       const existingKeys = new Set(existingEdges.map((edge) => `${String(edge.localEntry)}::${String(edge.figshareCategory)}`));
 
       let created = 0;
@@ -1317,24 +1209,18 @@ export namespace Services {
         if (existingKeys.has(key)) {
           continue;
         }
-        await this.createOne<FigshareVocabularyCrosswalkMappingAttributes>(
-          FigshareVocabularyCrosswalkMapping.create({
+        await getVocabularyRepositories().createMapping({
             crosswalk: crosswalkId,
             revision,
             localEntry: edge.localEntryId,
             figshareCategory: edge.categoryId,
             status: 'proposed',
             matchType: edge.matchType
-          }) as Sails.WaterlinePromise<FigshareVocabularyCrosswalkMappingAttributes>,
-          connection
-        );
+          });
         created += 1;
       }
 
-      await this.runQuery(
-        FigshareVocabularyCrosswalk.updateOne({ id: crosswalkId }).set({ updatedBy: ctx.userId }) as Sails.WaterlinePromise<unknown>,
-        connection
-      );
+      await getVocabularyRepositories().reviseCrosswalk(crosswalkId, { updatedBy: ctx.userId });
 
       return { created, removed: 0 };
     }
@@ -1346,19 +1232,16 @@ export namespace Services {
       ctx: ActorContext
     ): Promise<{ data: unknown[]; meta: { total: number; limit: number; offset: number } }> {
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
-      const where: Record<string, unknown> = { branding: ctx.brandId };
+      const where: import('../persistence/vocabulary/VocabularyRepositories').SourceFilter = { branding: ctx.brandId };
       if (query?.scope === 'public' || query?.scope === 'account') {
         where.scope = query.scope;
       }
       const search = String(query?.q ?? '').trim();
       if (search) {
-        where.displayName = { contains: search };
+        where.search = search;
       }
-      const total = await FigshareVocabularySource.count(where);
-      const sources = await FigshareVocabularySource.find(where)
-        .sort('displayName ASC')
-        .skip(offset)
-        .limit(limit) as FigshareVocabularySourceAttributes[];
+      const total = await getVocabularyRepositories().countSources(where);
+      const sources = await getVocabularyRepositories().listSources(where, { sort: 'displayName ASC', offset: offset, limit: limit });
       const data = await Promise.all(sources.map((source) => this.describeSource(source)));
       return { data, meta: { total, limit, offset } };
     }
@@ -1380,14 +1263,14 @@ export namespace Services {
       const source = await this.requireSource(sourceId, ctx.brandId);
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
 
-      const where: Record<string, unknown> = { source: String(source.id) };
+      const where: import('../persistence/vocabulary/VocabularyRepositories').CategoryFilter = { source: String(source.id) };
       if (query?.includeHistorical !== true) {
         where.historical = false;
       }
       if (query?.selectableOnly === true) {
         where.selectable = true;
       }
-      const categories = await FigshareVocabularyCategory.find(where) as FigshareVocabularyCategoryAttributes[];
+      const categories = await getVocabularyRepositories().listCategories(where);
       const titleByEntryId = await this.loadCategoryTitles(categories);
 
       const search = String(query?.q ?? '').trim().toLowerCase();
@@ -1419,18 +1302,18 @@ export namespace Services {
         return new Map();
       }
       const entryIds = Array.from(new Set(categories.map((category) => String(category.entry))));
-      const entries = await VocabularyEntry.find({ id: entryIds }) as VocabularyEntryAttributes[];
+      const entries = await getVocabularyRepositories().listEntries({ id: entryIds });
       return new Map(entries.map((entry) => [String(entry.id), String(entry.label ?? '')]));
     }
 
     private async describeSource(source: FigshareVocabularySourceAttributes): Promise<Record<string, unknown>> {
       const sourceId = String(source.id);
       const [mirroredCount, historicalCount, crosswalkCount] = await Promise.all([
-        FigshareVocabularyCategory.count({ source: sourceId, historical: false }),
-        FigshareVocabularyCategory.count({ source: sourceId, historical: true }),
-        FigshareVocabularyCrosswalk.count({ figshareSource: sourceId })
+        getVocabularyRepositories().countCategories({ source: sourceId, historical: false }),
+        getVocabularyRepositories().countCategories({ source: sourceId, historical: true }),
+        getVocabularyRepositories().countCrosswalks({ figshareSource: sourceId })
       ]);
-      const vocabulary = await Vocabulary.findOne({ id: String(source.vocabulary) }) as VocabularyAttributes | null;
+      const vocabulary = await getVocabularyRepositories().getVocabulary({ id: String(source.vocabulary) });
       return {
         id: sourceId,
         displayName: source.displayName,
@@ -1451,16 +1334,13 @@ export namespace Services {
       ctx: ActorContext
     ): Promise<{ data: unknown[]; meta: { total: number; limit: number; offset: number } }> {
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
-      const where: Record<string, unknown> = { branding: ctx.brandId };
+      const where: import('../persistence/vocabulary/VocabularyRepositories').RunFilter = { branding: ctx.brandId };
       const sourceId = String(query?.sourceId ?? '').trim();
       if (sourceId) {
         where.source = sourceId;
       }
-      const total = await FigshareVocabularySyncRun.count(where);
-      const runs = await FigshareVocabularySyncRun.find(where)
-        .sort('createdAt DESC')
-        .skip(offset)
-        .limit(limit) as FigshareVocabularySyncRunAttributes[];
+      const total = await getVocabularyRepositories().countRuns(where);
+      const runs = await getVocabularyRepositories().listRuns(where, { sort: 'createdAt DESC', offset: offset, limit: limit });
       return {
         data: runs.map((run) => ({
           id: String(run.id),
@@ -1489,10 +1369,10 @@ export namespace Services {
       ctx: ActorContext
     ): Promise<{ localVocabularyId: string; crosswalkId: string; entries: number }> {
       const source = await this.requireSource(sourceId, ctx.brandId);
-      const categories = await FigshareVocabularyCategory.find({
+      const categories = await getVocabularyRepositories().listCategories({
         source: String(source.id),
         historical: false
-      }) as FigshareVocabularyCategoryAttributes[];
+      });
       if (categories.length === 0) {
         throw new CatalogueInvalidError('The Figshare mirror has no current categories to clone');
       }
@@ -1507,9 +1387,9 @@ export namespace Services {
         hasChildren: false,
         contentHash: category.contentHash
       }));
-      const entries = await VocabularyEntry.find({
+      const entries = await getVocabularyRepositories().listEntries({
         id: categories.map((category) => String(category.entry))
-      }) as VocabularyEntryAttributes[];
+      });
       const labelByEntryId = new Map(entries.map((entry) => [String(entry.id), String(entry.label ?? '')]));
       for (const [index, category] of categories.entries()) {
         snapshot[index].title = labelByEntryId.get(String(category.entry)) ?? category.sourceId;
@@ -1522,77 +1402,59 @@ export namespace Services {
       };
 
       try {
-        return await runWithOptionalTransaction(
-          this.getDatastore(),
-          async (connection) => {
-            const clone = await this.createCloneVocabulary(
-              String(cloneInput?.name ?? '').trim(),
-              String(cloneInput?.slug ?? '').trim(),
-              snapshot,
-              ctx,
-              connection
-            );
-            createdIds.vocabularies.push(clone.vocabularyId);
-
-            const crosswalkName = await this.uniqueCrosswalkName(
-              `${String(cloneInput.name).trim()} → ${source.displayName}`,
-              ctx.brandId,
-              connection
-            );
-            const crosswalk = await this.createOne<FigshareVocabularyCrosswalkAttributes>(
-              FigshareVocabularyCrosswalk.create({
-                branding: ctx.brandId,
-                name: crosswalkName,
-                localVocabulary: clone.vocabularyId,
-                figshareSource: String(source.id),
-                status: 'draft',
-                workingRevision: 1,
-                updatedBy: ctx.userId
-              }) as Sails.WaterlinePromise<FigshareVocabularyCrosswalkAttributes>,
-              connection
-            );
-            createdIds.crosswalks.push(String(crosswalk.id));
-
-            const cloneEntries = Array.from(clone.entryBySourceId.entries()).map(([entrySourceId, entryId]) => ({
-              id: entryId,
-              label: '',
-              labelLower: '',
-              value: entrySourceId,
-              valueLower: entrySourceId.toLowerCase(),
-              sourceId: entrySourceId
-            }));
-            const identity = buildIdentityProposals(cloneEntries, snapshot);
-            const categoryBySourceId = new Map(categories.map((category) => [category.sourceId, category]));
-            for (const proposal of identity.proposals) {
-              const category = categoryBySourceId.get(proposal.targetSourceId);
-              if (!category) {
-                continue;
-              }
-              await this.createOne(
-                FigshareVocabularyCrosswalkMapping.create({
-                  crosswalk: String(crosswalk.id),
-                  revision: 1,
-                  localEntry: proposal.localEntryId,
-                  figshareCategory: String(category.id),
-                  status: 'proposed',
-                  matchType: 'identity'
-                }) as Sails.WaterlinePromise<unknown>,
-                connection
-              );
-            }
-
-            return {
-              localVocabularyId: clone.vocabularyId,
-              crosswalkId: String(crosswalk.id),
-              entries: clone.entryBySourceId.size
-            };
-          },
-          {
-            logger: sails.log,
-            unsupportedAdapterWarning:
-              'Transactions are not supported by this datastore adapter. Falling back to compensating cleanup for Figshare clone.'
-          }
+        const clone = await this.createCloneVocabulary(
+          String(cloneInput?.name ?? '').trim(),
+          String(cloneInput?.slug ?? '').trim(),
+          snapshot,
+          ctx
         );
+        createdIds.vocabularies.push(clone.vocabularyId);
+
+        const crosswalkName = await this.uniqueCrosswalkName(
+          `${String(cloneInput.name).trim()} → ${source.displayName}`,
+          ctx.brandId
+        );
+        const crosswalk = await getVocabularyRepositories().createCrosswalk({
+            branding: ctx.brandId,
+            name: crosswalkName,
+            localVocabulary: clone.vocabularyId,
+            figshareSource: String(source.id),
+            status: 'draft',
+            workingRevision: 1,
+            updatedBy: ctx.userId
+          });
+        createdIds.crosswalks.push(String(crosswalk.id));
+
+        const cloneEntries = Array.from(clone.entryBySourceId.entries()).map(([entrySourceId, entryId]) => ({
+          id: entryId,
+          label: '',
+          labelLower: '',
+          value: entrySourceId,
+          valueLower: entrySourceId.toLowerCase(),
+          sourceId: entrySourceId
+        }));
+        const identity = buildIdentityProposals(cloneEntries, snapshot);
+        const categoryBySourceId = new Map(categories.map((category) => [category.sourceId, category]));
+        for (const proposal of identity.proposals) {
+          const category = categoryBySourceId.get(proposal.targetSourceId);
+          if (!category) {
+            continue;
+          }
+          await getVocabularyRepositories().createMapping({
+              crosswalk: String(crosswalk.id),
+              revision: 1,
+              localEntry: proposal.localEntryId,
+              figshareCategory: String(category.id),
+              status: 'proposed',
+              matchType: 'identity'
+            });
+        }
+
+        return {
+          localVocabularyId: clone.vocabularyId,
+          crosswalkId: String(crosswalk.id),
+          entries: clone.entryBySourceId.size
+        };
       } catch (error) {
         await this.compensate(createdIds);
         throw error;
@@ -1606,7 +1468,7 @@ export namespace Services {
       ctx: ActorContext
     ): Promise<{ data: CrosswalkSummary[]; meta: { total: number; limit: number; offset: number } }> {
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset, 25);
-      const where: Record<string, unknown> = { branding: ctx.brandId };
+      const where: import('../persistence/vocabulary/VocabularyRepositories').CrosswalkFilter = { branding: ctx.brandId };
       if (query?.status) {
         where.status = String(query.status);
       }
@@ -1618,13 +1480,10 @@ export namespace Services {
       }
       const search = String(query?.q ?? '').trim();
       if (search) {
-        where.name = { contains: search };
+        where.search = search;
       }
-      const total = await FigshareVocabularyCrosswalk.count(where);
-      const crosswalks = await FigshareVocabularyCrosswalk.find(where)
-        .sort('name ASC')
-        .skip(offset)
-        .limit(limit) as FigshareVocabularyCrosswalkAttributes[];
+      const total = await getVocabularyRepositories().countCrosswalks(where);
+      const crosswalks = await getVocabularyRepositories().listCrosswalks(where, { sort: 'name ASC', offset: offset, limit: limit });
       const data = await Promise.all(crosswalks.map((crosswalk) => this.describeCrosswalk(crosswalk)));
       return { data, meta: { total, limit, offset } };
     }
@@ -1636,18 +1495,18 @@ export namespace Services {
     private async describeCrosswalk(crosswalk: FigshareVocabularyCrosswalkAttributes): Promise<CrosswalkSummary> {
       const crosswalkId = String(crosswalk.id);
       const [localVocabulary, source] = await Promise.all([
-        Vocabulary.findOne({ id: String(crosswalk.localVocabulary) }) as Promise<VocabularyAttributes | null>,
-        FigshareVocabularySource.findOne({ id: String(crosswalk.figshareSource) }) as Promise<FigshareVocabularySourceAttributes | null>
+        getVocabularyRepositories().getVocabulary({ id: String(crosswalk.localVocabulary) }),
+        getVocabularyRepositories().getSource({ id: String(crosswalk.figshareSource) })
       ]);
       const [approvedMappingCount, workingMappingCount] = await Promise.all([
         crosswalk.approvedRevision == null
           ? Promise.resolve(0)
-          : FigshareVocabularyCrosswalkMapping.count({
+          : getVocabularyRepositories().countMappings({
             crosswalk: crosswalkId,
             revision: Number(crosswalk.approvedRevision),
             status: 'approved'
           }),
-        FigshareVocabularyCrosswalkMapping.count({ crosswalk: crosswalkId, revision: Number(crosswalk.workingRevision) })
+        getVocabularyRepositories().countMappings({ crosswalk: crosswalkId, revision: Number(crosswalk.workingRevision) })
       ]);
 
       const historicalTargetCount = await this.countHistoricalTargets(crosswalkId, crosswalk);
@@ -1677,15 +1536,15 @@ export namespace Services {
       crosswalk: FigshareVocabularyCrosswalkAttributes
     ): Promise<number> {
       const revision = Number(crosswalk.approvedRevision ?? crosswalk.workingRevision);
-      const mappings = await FigshareVocabularyCrosswalkMapping.find({
+      const mappings = await getVocabularyRepositories().listMappings({
         crosswalk: crosswalkId,
         revision
-      }) as FigshareVocabularyCrosswalkMappingAttributes[];
+      });
       if (mappings.length === 0) {
         return 0;
       }
       const categoryIds = Array.from(new Set(mappings.map((mapping) => String(mapping.figshareCategory))));
-      return FigshareVocabularyCategory.count({ id: categoryIds, historical: true });
+      return getVocabularyRepositories().countCategories({ id: categoryIds, historical: true });
     }
 
     public async createCrosswalk(
@@ -1698,11 +1557,11 @@ export namespace Services {
       }
       const localVocabulary = await this.requireLocalVocabulary(String(input?.localVocabularyId ?? ''), ctx.brandId);
       const source = await this.requireSource(String(input?.sourceId ?? ''), ctx.brandId);
-      const existing = await FigshareVocabularyCrosswalk.findOne({ branding: ctx.brandId, name });
+      const existing = await getVocabularyRepositories().getCrosswalk({ branding: ctx.brandId, name });
       if (existing) {
         throw new RelationshipBoundaryError(`A crosswalk named '${name}' already exists for this brand`);
       }
-      const crosswalk = await FigshareVocabularyCrosswalk.create({
+      const crosswalk = await getVocabularyRepositories().createCrosswalk({
         branding: ctx.brandId,
         name,
         localVocabulary: String(localVocabulary.id),
@@ -1710,7 +1569,7 @@ export namespace Services {
         status: 'draft',
         workingRevision: 1,
         updatedBy: ctx.userId
-      }).fetch() as FigshareVocabularyCrosswalkAttributes;
+      });
       return this.describeCrosswalk(crosswalk);
     }
 
@@ -1729,11 +1588,11 @@ export namespace Services {
       const revision = Number(query?.revision ?? crosswalk.workingRevision);
 
       const [entries, mappings] = await Promise.all([
-        VocabularyEntry.find({ vocabulary: String(crosswalk.localVocabulary) }) as Promise<VocabularyEntryAttributes[]>,
-        FigshareVocabularyCrosswalkMapping.find({
+        getVocabularyRepositories().listEntries({ vocabulary: String(crosswalk.localVocabulary) }),
+        getVocabularyRepositories().listMappings({
           crosswalk: String(crosswalk.id),
           revision
-        }) as Promise<FigshareVocabularyCrosswalkMappingAttributes[]>
+        })
       ]);
 
       const targetCountByEntryId = new Map<string, number>();
@@ -1780,19 +1639,19 @@ export namespace Services {
       const { limit, offset } = this.parsePaging(query?.limit, query?.offset);
       const revision = Number(query?.revision ?? crosswalk.workingRevision);
 
-      const where: Record<string, unknown> = { crosswalk: String(crosswalk.id), revision };
+      const where: import('../persistence/vocabulary/VocabularyRepositories').MappingFilter = { crosswalk: String(crosswalk.id), revision };
       if (query?.status) {
         where.status = String(query.status);
       }
-      const mappings = await FigshareVocabularyCrosswalkMapping.find(where) as FigshareVocabularyCrosswalkMappingAttributes[];
+      const mappings = await getVocabularyRepositories().listMappings(where);
 
       const [entries, categories] = await Promise.all([
         mappings.length === 0
           ? Promise.resolve([] as VocabularyEntryAttributes[])
-          : VocabularyEntry.find({ id: Array.from(new Set(mappings.map((mapping) => String(mapping.localEntry)))) }) as Promise<VocabularyEntryAttributes[]>,
+          : getVocabularyRepositories().listEntries({ id: Array.from(new Set(mappings.map((mapping) => String(mapping.localEntry)))) }),
         mappings.length === 0
           ? Promise.resolve([] as FigshareVocabularyCategoryAttributes[])
-          : FigshareVocabularyCategory.find({ id: Array.from(new Set(mappings.map((mapping) => String(mapping.figshareCategory)))) }) as Promise<FigshareVocabularyCategoryAttributes[]>
+          : getVocabularyRepositories().listCategories({ id: Array.from(new Set(mappings.map((mapping) => String(mapping.figshareCategory)))) })
       ]);
       const entryById = new Map(entries.map((entry) => [String(entry.id), entry]));
       const categoryById = new Map(categories.map((category) => [String(category.id), category]));
@@ -1846,136 +1705,92 @@ export namespace Services {
         throw new CrosswalkRevisionError();
       }
 
-      return runWithOptionalTransaction(
-        this.getDatastore(),
-        async (connection) => {
-          let workingRevision = Number(crosswalk.workingRevision);
-          if (crosswalk.approvedRevision != null && Number(crosswalk.approvedRevision) === workingRevision) {
-            workingRevision += 1;
-            const approvedRows = await this.runQuery(
-              FigshareVocabularyCrosswalkMapping.find({
-                crosswalk: String(crosswalk.id),
-                revision: Number(crosswalk.approvedRevision)
-              }) as unknown as Sails.WaterlinePromise<FigshareVocabularyCrosswalkMappingAttributes[]>,
-              connection
-            );
-            for (const row of approvedRows) {
-              await this.createOne(
-                FigshareVocabularyCrosswalkMapping.create({
-                  crosswalk: String(crosswalk.id),
-                  revision: workingRevision,
-                  localEntry: String(row.localEntry),
-                  figshareCategory: String(row.figshareCategory),
-                  status: row.status,
-                  matchType: row.matchType,
-                  evidence: row.evidence,
-                  approvedAt: row.approvedAt,
-                  approvedBy: row.approvedBy
-                }) as Sails.WaterlinePromise<unknown>,
-                connection
-              );
-            }
-            await this.runQuery(
-              FigshareVocabularyCrosswalk.updateOne({ id: String(crosswalk.id) }).set({ workingRevision }) as Sails.WaterlinePromise<unknown>,
-              connection
-            );
-          }
-
-          for (const change of changes) {
-            const localEntryId = String(change?.localEntryId ?? '').trim();
-            const figshareCategoryId = String(change?.figshareCategoryId ?? '').trim();
-            if (!localEntryId || !figshareCategoryId) {
-              throw new CatalogueInvalidError('Each change requires localEntryId and figshareCategoryId');
-            }
-            await this.assertMappingOwnership(crosswalk, localEntryId, figshareCategoryId, connection);
-
-            if (change.op === 'remove') {
-              await this.runQuery(
-                FigshareVocabularyCrosswalkMapping.destroy({
-                  crosswalk: String(crosswalk.id),
-                  revision: workingRevision,
-                  localEntry: localEntryId,
-                  figshareCategory: figshareCategoryId
-                }) as unknown as Sails.WaterlinePromise<unknown>,
-                connection
-              );
-              continue;
-            }
-
-            const existing = await this.runQuery(
-              FigshareVocabularyCrosswalkMapping.findOne({
-                crosswalk: String(crosswalk.id),
-                revision: workingRevision,
-                localEntry: localEntryId,
-                figshareCategory: figshareCategoryId
-              }) as Sails.WaterlinePromise<FigshareVocabularyCrosswalkMappingAttributes | null>,
-              connection
-            );
-            const status = change.status ?? 'proposed';
-            const approvalPatch = status === 'approved'
-              ? { approvedAt: this.nowIso(), approvedBy: ctx.userId }
-              : { approvedAt: undefined, approvedBy: undefined };
-            if (existing) {
-              await this.runQuery(
-                FigshareVocabularyCrosswalkMapping.updateOne({ id: String(existing.id) }).set({
-                  status,
-                  matchType: change.matchType ?? existing.matchType,
-                  ...approvalPatch
-                }) as Sails.WaterlinePromise<unknown>,
-                connection
-              );
-              continue;
-            }
-            await this.createOne(
-              FigshareVocabularyCrosswalkMapping.create({
-                crosswalk: String(crosswalk.id),
-                revision: workingRevision,
-                localEntry: localEntryId,
-                figshareCategory: figshareCategoryId,
-                status,
-                matchType: change.matchType ?? 'manual',
-                ...approvalPatch
-              }) as Sails.WaterlinePromise<unknown>,
-              connection
-            );
-          }
-
-          await this.runQuery(
-            FigshareVocabularyCrosswalk.updateOne({ id: String(crosswalk.id) }).set({ updatedBy: ctx.userId }) as Sails.WaterlinePromise<unknown>,
-            connection
-          );
-
-          const refreshed = await this.runQuery(
-            FigshareVocabularyCrosswalk.findOne({ id: String(crosswalk.id) }) as Sails.WaterlinePromise<FigshareVocabularyCrosswalkAttributes | null>,
-            connection
-          );
-          return this.describeCrosswalk(refreshed ?? crosswalk);
-        },
-        {
-          logger: sails.log,
-          unsupportedAdapterWarning:
-            'Transactions are not supported by this datastore adapter. Falling back to non-transactional crosswalk mapping save.'
+      let workingRevision = Number(crosswalk.workingRevision);
+      if (crosswalk.approvedRevision != null && Number(crosswalk.approvedRevision) === workingRevision) {
+        workingRevision += 1;
+        const approvedRows = await getVocabularyRepositories().listMappings({
+            crosswalk: String(crosswalk.id),
+            revision: Number(crosswalk.approvedRevision)
+          });
+        for (const row of approvedRows) {
+          await getVocabularyRepositories().createMapping({
+              crosswalk: String(crosswalk.id),
+              revision: workingRevision,
+              localEntry: String(row.localEntry),
+              figshareCategory: String(row.figshareCategory),
+              status: row.status,
+              matchType: row.matchType,
+              evidence: row.evidence,
+              approvedAt: row.approvedAt,
+              approvedBy: row.approvedBy
+            });
         }
-      );
+        await getVocabularyRepositories().reviseCrosswalk(String(crosswalk.id), { workingRevision });
+      }
+
+      for (const change of changes) {
+        const localEntryId = String(change?.localEntryId ?? '').trim();
+        const figshareCategoryId = String(change?.figshareCategoryId ?? '').trim();
+        if (!localEntryId || !figshareCategoryId) {
+          throw new CatalogueInvalidError('Each change requires localEntryId and figshareCategoryId');
+        }
+        await this.assertMappingOwnership(crosswalk, localEntryId, figshareCategoryId);
+
+        if (change.op === 'remove') {
+          await getVocabularyRepositories().removeMappings({
+              crosswalk: String(crosswalk.id),
+              revision: workingRevision,
+              localEntry: localEntryId,
+              figshareCategory: figshareCategoryId
+            });
+          continue;
+        }
+
+        const existing = await getVocabularyRepositories().getMapping({
+            crosswalk: String(crosswalk.id),
+            revision: workingRevision,
+            localEntry: localEntryId,
+            figshareCategory: figshareCategoryId
+          });
+        const status = change.status ?? 'proposed';
+        const approvalPatch = status === 'approved'
+          ? { approvedAt: this.nowIso(), approvedBy: ctx.userId }
+          : { approvedAt: undefined, approvedBy: undefined };
+        if (existing) {
+          await getVocabularyRepositories().reviseMapping(String(existing.id), {
+              status,
+              matchType: change.matchType ?? existing.matchType,
+              ...approvalPatch
+            });
+          continue;
+        }
+        await getVocabularyRepositories().createMapping({
+            crosswalk: String(crosswalk.id),
+            revision: workingRevision,
+            localEntry: localEntryId,
+            figshareCategory: figshareCategoryId,
+            status,
+            matchType: change.matchType ?? 'manual',
+            ...approvalPatch
+          });
+      }
+
+      await getVocabularyRepositories().reviseCrosswalk(String(crosswalk.id), { updatedBy: ctx.userId });
+
+      const refreshed = await getVocabularyRepositories().getCrosswalk({ id: String(crosswalk.id) });
+      return this.describeCrosswalk(refreshed ?? crosswalk);
     }
 
     private async assertMappingOwnership(
       crosswalk: FigshareVocabularyCrosswalkAttributes,
       localEntryId: string,
-      figshareCategoryId: string,
-      connection?: Sails.Connection
+      figshareCategoryId: string
     ): Promise<void> {
-      const entry = await this.runQuery(
-        VocabularyEntry.findOne({ id: localEntryId, vocabulary: String(crosswalk.localVocabulary) }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>,
-        connection
-      );
+      const entry = await getVocabularyRepositories().getEntry({ id: localEntryId, vocabulary: String(crosswalk.localVocabulary) });
       if (!entry) {
         throw new RelationshipBoundaryError('The local entry does not belong to the crosswalk local vocabulary');
       }
-      const category = await this.runQuery(
-        FigshareVocabularyCategory.findOne({ id: figshareCategoryId, source: String(crosswalk.figshareSource) }) as Sails.WaterlinePromise<FigshareVocabularyCategoryAttributes | null>,
-        connection
-      );
+      const category = await getVocabularyRepositories().getCategory({ id: figshareCategoryId, source: String(crosswalk.figshareSource) });
       if (!category) {
         throw new RelationshipBoundaryError('The Figshare category does not belong to the crosswalk source');
       }
@@ -1991,55 +1806,36 @@ export namespace Services {
         throw new CrosswalkRevisionError();
       }
 
-      const mappings = await FigshareVocabularyCrosswalkMapping.find({
+      const mappings = await getVocabularyRepositories().listMappings({
         crosswalk: String(crosswalk.id),
         revision: Number(crosswalk.workingRevision)
-      }) as FigshareVocabularyCrosswalkMappingAttributes[];
+      });
       const approvable = mappings.filter((mapping) => mapping.status !== 'rejected');
       if (approvable.length === 0) {
         throw new CatalogueInvalidError('A crosswalk revision must contain at least one mapping before it can be approved');
       }
 
       const approvedAt = this.nowIso();
-      return runWithOptionalTransaction(
-        this.getDatastore(),
-        async (connection) => {
-          for (const mapping of approvable) {
-            await this.assertMappingOwnership(crosswalk, String(mapping.localEntry), String(mapping.figshareCategory), connection);
-            if (mapping.status === 'approved') {
-              continue;
-            }
-            await this.runQuery(
-              FigshareVocabularyCrosswalkMapping.updateOne({ id: String(mapping.id) }).set({
-                status: 'approved',
-                approvedAt,
-                approvedBy: ctx.userId
-              }) as Sails.WaterlinePromise<unknown>,
-              connection
-            );
-          }
-          await this.runQuery(
-            FigshareVocabularyCrosswalk.updateOne({ id: String(crosswalk.id) }).set({
-              status: 'approved',
-              approvedRevision: Number(crosswalk.workingRevision),
-              approvedAt,
-              approvedBy: ctx.userId,
-              updatedBy: ctx.userId
-            }) as Sails.WaterlinePromise<unknown>,
-            connection
-          );
-          const refreshed = await this.runQuery(
-            FigshareVocabularyCrosswalk.findOne({ id: String(crosswalk.id) }) as Sails.WaterlinePromise<FigshareVocabularyCrosswalkAttributes | null>,
-            connection
-          );
-          return this.describeCrosswalk(refreshed ?? crosswalk);
-        },
-        {
-          logger: sails.log,
-          unsupportedAdapterWarning:
-            'Transactions are not supported by this datastore adapter. Falling back to non-transactional crosswalk approval.'
+      for (const mapping of approvable) {
+        await this.assertMappingOwnership(crosswalk, String(mapping.localEntry), String(mapping.figshareCategory));
+        if (mapping.status === 'approved') {
+          continue;
         }
-      );
+        await getVocabularyRepositories().reviseMapping(String(mapping.id), {
+            status: 'approved',
+            approvedAt,
+            approvedBy: ctx.userId
+          });
+      }
+      await getVocabularyRepositories().reviseCrosswalk(String(crosswalk.id), {
+          status: 'approved',
+          approvedRevision: Number(crosswalk.workingRevision),
+          approvedAt,
+          approvedBy: ctx.userId,
+          updatedBy: ctx.userId
+        });
+      const refreshed = await getVocabularyRepositories().getCrosswalk({ id: String(crosswalk.id) });
+      return this.describeCrosswalk(refreshed ?? crosswalk);
     }
 
     /**
@@ -2103,14 +1899,14 @@ export namespace Services {
         );
       }
       if (crosswalk.status === 'approved') {
-        await FigshareVocabularyCrosswalk.updateOne({ id: String(crosswalk.id) }).set({
+        await getVocabularyRepositories().reviseCrosswalk(String(crosswalk.id), {
           status: 'archived',
           updatedBy: ctx.userId
         });
         return;
       }
-      await FigshareVocabularyCrosswalkMapping.destroy({ crosswalk: String(crosswalk.id) });
-      await FigshareVocabularyCrosswalk.destroyOne({ id: String(crosswalk.id) });
+      await getVocabularyRepositories().removeMappings({ crosswalk: String(crosswalk.id) });
+      await getVocabularyRepositories().removeCrosswalk(String(crosswalk.id));
     }
 
     // ── Publishing resolution ─────────────────────────────────────────
@@ -2131,10 +1927,10 @@ export namespace Services {
       if (!sourceVocabularyId || String(crosswalk.localVocabulary) !== sourceVocabularyId) {
         throw new RelationshipBoundaryError('The configured Figshare crosswalk maps a different local vocabulary');
       }
-      const source = await FigshareVocabularySource.findOne({
+      const source = await getVocabularyRepositories().getSource({
         id: String(crosswalk.figshareSource),
         branding: String(input.brandId)
-      }) as FigshareVocabularySourceAttributes | null;
+      });
       if (!source || source.archived === true) {
         throw new RelationshipBoundaryError('The Figshare source behind the configured crosswalk is unavailable');
       }
@@ -2144,7 +1940,7 @@ export namespace Services {
         return { normalizedCodes: [], matches: [], unresolvedCodes: [], historicalTargets: [] };
       }
 
-      const entries = await VocabularyEntry.find({ vocabulary: sourceVocabularyId }) as VocabularyEntryAttributes[];
+      const entries = await getVocabularyRepositories().listEntries({ vocabulary: sourceVocabularyId });
       const entryByCode = new Map<string, VocabularyEntryAttributes>();
       for (const entry of entries) {
         const valueCode = normalizeCategoryCode(entry.valueLower ?? entry.value);
@@ -2171,12 +1967,12 @@ export namespace Services {
         return { normalizedCodes: codes, matches: [], unresolvedCodes, historicalTargets: [] };
       }
 
-      const mappings = await FigshareVocabularyCrosswalkMapping.find({
+      const mappings = await getVocabularyRepositories().listMappings({
         crosswalk: String(crosswalk.id),
         revision: Number(crosswalk.approvedRevision),
         status: 'approved',
         localEntry: Array.from(new Set(matchedEntryIdsByCode.values()))
-      }) as FigshareVocabularyCrosswalkMappingAttributes[];
+      });
       if (mappings.length === 0) {
         return {
           normalizedCodes: codes,
@@ -2186,9 +1982,9 @@ export namespace Services {
         };
       }
 
-      const categories = await FigshareVocabularyCategory.find({
+      const categories = await getVocabularyRepositories().listCategories({
         id: Array.from(new Set(mappings.map((mapping) => String(mapping.figshareCategory))))
-      }) as FigshareVocabularyCategoryAttributes[];
+      });
       const categoryById = new Map(categories.map((category) => [String(category.id), category]));
 
       const mappingsByEntryId = new Map<string, FigshareVocabularyCrosswalkMappingAttributes[]>();
@@ -2269,7 +2065,7 @@ export namespace Services {
       const entryIds = Array.from(new Set(resolution.matches.map((match) => String(match.category.entry))));
       const entries = entryIds.length === 0
         ? []
-        : await VocabularyEntry.find({ id: entryIds }) as VocabularyEntryAttributes[];
+        : await getVocabularyRepositories().listEntries({ id: entryIds });
       const labelByEntryId = new Map(entries.map((entry) => [String(entry.id), entry.label]));
 
       const labels = new Set<string>();
@@ -2394,11 +2190,11 @@ export namespace Services {
         return;
       }
 
-      const existing = await FigshareVocabularySource.findOne({
+      const existing = await getVocabularyRepositories().getSource({
         branding: ctx.brandId,
         scope,
         taxonomyId
-      }) as FigshareVocabularySourceAttributes | null;
+      });
       if (existing) {
         sails.log.verbose(`Skipping existing Figshare bootstrap import: ${label}`);
         return;
@@ -2432,7 +2228,7 @@ export namespace Services {
       // Read the run row directly rather than paging getPreview(), which caps at
       // MAX_PAGE_SIZE per page - a real taxonomy has thousands of categories. In clone
       // mode every proposal is an identity match and preselected.
-      const run = await FigshareVocabularySyncRun.findOne({ id: preview.runId }) as FigshareVocabularySyncRunAttributes | null;
+      const run = await getVocabularyRepositories().getRun({ id: preview.runId });
       const proposals = ((run?.proposals ?? []) as FigshareProposal[]);
       const approvedProposalIds = proposals
         .filter((proposal) => proposal.preselected)
@@ -2452,7 +2248,7 @@ export namespace Services {
       if (requestedName) {
         // { branding, name } is a unique index, so probe before renaming.
         const name = await this.uniqueCrosswalkName(requestedName, ctx.brandId);
-        await FigshareVocabularyCrosswalk.updateOne({ id: crosswalkId }).set({
+        await getVocabularyRepositories().reviseCrosswalk(crosswalkId, {
           name,
           updatedBy: ctx.userId
         });

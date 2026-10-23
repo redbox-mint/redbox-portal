@@ -4,7 +4,7 @@ import {
   type FormConfigOutline,
   type ValidationMode,
 } from '@researchdatabox/sails-ng-common';
-import type { FormAttributes } from '../../src/waterline-models/Form';
+import type { FormAttributes } from '../../src/persistence/rows';
 import type {
   RecordValidationCandidate,
   RecordValidationRequest,

@@ -33,14 +33,12 @@ describe('ConfigService', function() {
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: '1', name: 'default' })
     };
-    (global as any).CacheEntry = {};
   });
 
   afterEach(function() {
     cleanupServiceTestGlobals();
     delete (global as any).AppConfigService;
     delete (global as any).BrandingService;
-    delete (global as any).CacheEntry;
     sinon.restore();
   });
 

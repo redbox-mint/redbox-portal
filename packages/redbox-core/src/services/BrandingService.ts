@@ -21,8 +21,8 @@ import { Observable, of, throwError } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { BrandingConfigAttributes } from '../waterline-models/BrandingConfig';
-import { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
+import type { BrandRow as BrandingConfigAttributes, BrandingHistoryRow as BrandingConfigHistoryAttributes } from '../persistence/branding/BrandingRepository';
+import { getBrandingRepository } from '../persistence/runtime';
 import * as crypto from 'crypto';
 import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
 import * as BrandingTypefaceServiceModule from './BrandingTypefaceService';
@@ -38,7 +38,8 @@ import {
   type BrandingTypefaceSlot,
   type BrandingTypefaceState,
 } from '../model/BrandingTypeface';
-import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
+import type { CacheEntryRepository } from '../persistence/cache/CacheEntryRepository';
+import { getCacheEntryRepository } from '../persistence/cache/runtime';
 
 declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
 declare const BrandingTypefaceService: BrandingTypefaceServiceModule.Services.BrandingTypeface;
@@ -90,6 +91,10 @@ export namespace Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class Branding extends services.Core.Service {
+    constructor(private readonly cacheEntries: () => CacheEntryRepository = () => getCacheEntryRepository()) {
+      super();
+    }
+
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'loadAvailableBrands',
@@ -128,12 +133,12 @@ export namespace Services {
     protected dBrand = { name: 'default' };
 
     public bootstrap = (): Observable<BrandingModel> => {
-      return super.getObservable(BrandingConfig.findOne(this.dBrand)).pipe(
+      return super.getObservable(() => getBrandingRepository().getBrand(this.dBrand)).pipe(
         flatMap(defaultBrand => {
           if (_.isEmpty(defaultBrand)) {
             // create default brand
             sails.log.verbose("Default brand doesn't exist, creating...");
-            return super.getObservable(BrandingConfig.create(this.dBrand));
+            return super.getObservable(() => getBrandingRepository().createBrand(this.dBrand));
           }
           sails.log.verbose('Default brand already exists...');
           return of(defaultBrand);
@@ -146,7 +151,7 @@ export namespace Services {
       sails.log.verbose('Loading available brands......');
       // Find all the BrandingConfig we have and add them to the availableBrandings array.
       // A policy is configured to reject any branding values not present in this array.
-      return super.getObservable(BrandingConfig.find({}).populate('roles')).pipe(
+      return super.getObservable(() => getBrandingRepository().listBrands(true)).pipe(
         flatMap(brands => {
           this.brandings = brands as BrandingModel[];
           this.availableBrandings = _.map(this.brandings, 'name');
@@ -179,7 +184,7 @@ export namespace Services {
     };
 
     public async getBrandingFromDB(name: string): Promise<BrandingModel> {
-      return (await BrandingConfig.findOne({ name: name })) as BrandingModel;
+      return (await getBrandingRepository().getBrand({ name: name })) as BrandingModel;
     }
 
     public getAvailable = (): string[] => {
@@ -337,7 +342,7 @@ export namespace Services {
     }
 
     private async loadBrandOrThrow(branding: string): Promise<BrandingConfigAttributes> {
-      const brand = await BrandingConfig.findOne({ name: branding });
+      const brand = await getBrandingRepository().getBrand({ name: branding });
       if (!brand) {
         throw this.codedError('branding-not-found', `Brand not found: ${branding}`);
       }
@@ -349,9 +354,7 @@ export namespace Services {
     }
 
     private async listHistoriesAsc(brandingId: string): Promise<BrandingConfigHistoryAttributes[]> {
-      return (await BrandingConfigHistory.find({ branding: brandingId }).sort(
-        'version ASC'
-      )) as BrandingConfigHistoryAttributes[];
+      return (await getBrandingRepository().listHistories(brandingId, 'ASC')) as BrandingConfigHistoryAttributes[];
     }
 
     private activeHistoryRow(
@@ -503,7 +506,7 @@ export namespace Services {
       patch: Record<string, unknown>
     ): Promise<BrandingConfigAttributes> {
       const current = typeof brand.draftRevision === 'number' ? brand.draftRevision : 0;
-      const updated = await BrandingConfig.updateOne({ id: brand.id, draftRevision: current }).set({
+      const updated = await getBrandingRepository().reviseDraft(brand.id, current, {
         ...patch,
         draftRevision: current + 1,
       });
@@ -635,7 +638,11 @@ export namespace Services {
       const token = crypto.randomBytes(16).toString('hex');
       const name = `branding-preview:${token}`;
       const ts = Math.floor(Date.now() / 1000);
-      await CacheEntry.create({ name, data: { css, branding, portal, hash, revision: current }, ts_added: ts });
+      await this.cacheEntries().create({
+        name,
+        data: { css, branding, portal, hash, revision: current },
+        ts_added: ts,
+      });
       return { token, url: this.previewUrl(branding, portal, token), hash, revision: current };
     }
 
@@ -658,7 +665,7 @@ export namespace Services {
       const { css, hash } = BrandingThemeCssService.generate(variables, { typeface, brandName: String(brand.name) });
       const token = crypto.randomBytes(16).toString('hex');
       const ts = Math.floor(Date.now() / 1000);
-      await CacheEntry.create({
+      await this.cacheEntries().create({
         name: `branding-preview:${token}`,
         data: { css, branding: input.branding, portal: input.portal, hash, versionId: String(row.id) },
         ts_added: ts,
@@ -672,15 +679,15 @@ export namespace Services {
     ): Promise<{ css: string; branding: string; portal: string; hash: string; revision?: number; versionId?: string }> {
       const ttl = _.get(sails, 'config.branding.previewTtlSeconds', 300);
       const name = `branding-preview:${token}`;
-      const entry = await CacheEntry.findOne({ name });
+      const entry = await this.cacheEntries().findByName(name);
       if (!entry) throw new Error('preview-not-found');
       const age = Math.floor(Date.now() / 1000) - entry.ts_added;
       if (age > ttl) {
-        await CacheEntry.destroy({ id: entry.id });
+        await this.cacheEntries().deleteById(entry.id);
         throw new Error('preview-expired');
       }
-      // Single-use: destroy after first successful fetch
-      await CacheEntry.destroy({ id: entry.id });
+      // Delete after lookup; concurrent readers can both observe the preview.
+      await this.cacheEntries().deleteById(entry.id);
       return entry.data as {
         css: string;
         branding: string;
@@ -714,67 +721,51 @@ export namespace Services {
       nextVersion: number
     ): Promise<void> {
       const { version: activeVersion, draftRevision } = this.brandCounters(brand);
-      const datastore = typeof BrandingConfig.getDatastore === 'function' ? BrandingConfig.getDatastore() : undefined;
-      await runWithOptionalTransaction(
-        datastore,
-        async connection => {
-          const createQuery = BrandingConfigHistory.create(historyValues);
-          let created: BrandingConfigHistoryAttributes | null = null;
-          try {
-            created = await (connection && typeof createQuery.usingConnection === 'function'
-              ? createQuery.usingConnection(connection)
-              : createQuery);
-          } catch (error) {
-            if (!this.isUniqueViolation(error)) {
-              throw error;
-            }
-            const reread = await this.loadBrandOrThrow(String(brand.name));
-            throw this.conflictError(reread);
-          }
-          let updated: BrandingConfigAttributes | null | undefined;
-          try {
-            const updateQuery = BrandingConfig.updateOne({
-              id: brand.id,
-              version: activeVersion,
-              draftRevision,
-            }).set({
-              variables: snapshot.variables,
-              css: snapshot.css,
-              hash: snapshot.hash,
-              version: nextVersion,
-              typeface: snapshot.typeface,
-              draftTypeface: snapshot.typeface,
-              draftRevision: draftRevision + 1,
-            });
-            updated = await (connection && typeof updateQuery.usingConnection === 'function'
-              ? updateQuery.usingConnection(connection)
-              : updateQuery);
-          } catch (error) {
-            // Only adapter/Waterline validation failures certify non-application.
-            // A transport timeout may occur after commit: retain its history.
-            const code = (error as { code?: string }).code;
-            if (
-              !connection &&
-              created?.id !== undefined &&
-              ['E_INVALID_NEW_RECORD', 'E_INVALID_VALUES_TO_SET', 'E_USAGE', 'E_UNIQUE'].includes(code ?? '')
-            ) {
-              await BrandingConfigHistory.destroy({ id: created.id });
-            }
-            throw error;
-          }
-          if (!updated) {
-            if (!connection && created && created.id !== undefined) {
-              await BrandingConfigHistory.destroy({ id: created.id }).catch(() => undefined);
-            }
-            const reread = await this.loadBrandOrThrow(String(brand.name));
-            throw this.conflictError(reread);
-          }
-        },
-        { logger: sails.log }
-      );
+      const createQuery = getBrandingRepository().insertHistory(historyValues);
+      let created: BrandingConfigHistoryAttributes | null = null;
+      try {
+        created = await createQuery;
+      } catch (error) {
+        if (!this.isUniqueViolation(error)) {
+          throw error;
+        }
+        const reread = await this.loadBrandOrThrow(String(brand.name));
+        throw this.conflictError(reread);
+      }
+      let updated: BrandingConfigAttributes | null | undefined;
+      try {
+        const updateQuery = getBrandingRepository().publishBrand(brand.id, activeVersion, draftRevision, {
+          variables: snapshot.variables,
+          css: snapshot.css,
+          hash: snapshot.hash,
+          version: nextVersion,
+          typeface: snapshot.typeface,
+          draftTypeface: snapshot.typeface,
+          draftRevision: draftRevision + 1,
+        });
+        updated = await updateQuery;
+      } catch (error) {
+        // Only adapter/Waterline validation failures certify non-application.
+        // A transport timeout may occur after commit: retain its history.
+        const code = (error as { code?: string }).code;
+        if (
+          created?.id !== undefined &&
+          ['E_INVALID_NEW_RECORD', 'E_INVALID_VALUES_TO_SET', 'E_USAGE', 'E_UNIQUE'].includes(code ?? '')
+        ) {
+          await getBrandingRepository().removeHistory(created.id);
+        }
+        throw error;
+      }
+      if (!updated) {
+        if (created && created.id !== undefined) {
+          await getBrandingRepository().removeHistory(created.id).catch(() => undefined);
+        }
+        const reread = await this.loadBrandOrThrow(String(brand.name));
+        throw this.conflictError(reread);
+      }
     }
 
-    /** Publish the draft atomically; unchanged publishes are idempotent. */
+    /** Publish history then the active draft; unchanged publishes are idempotent. */
     public async publish(
       branding: string,
       portal: string,
@@ -885,26 +876,15 @@ export namespace Services {
     ): Promise<{ state: BrandingAdminState; version: number; hash: string }> {
       let branding = opts?.branding;
       if (!branding) {
-        const row = await BrandingConfigHistory.findOne({
+        const row = await getBrandingRepository().getHistory({
           id: versionId,
         });
         if (!row) {
           throw this.codedError('history-not-found', `Version not found: ${versionId}`);
         }
-        const populated = row.branding;
-        if (typeof populated === 'object' && populated !== null && populated.id !== undefined) {
-          const brand = await BrandingConfig.findOne({ id: populated.id });
-          if (!brand) {
-            throw this.codedError('branding-not-found', `Brand not found for version: ${versionId}`);
-          }
-          branding = String(brand.name);
-        } else {
-          const brand = await BrandingConfig.findOne({ id: String(populated) });
-          if (!brand) {
-            throw this.codedError('branding-not-found', `Brand not found for version: ${versionId}`);
-          }
-          branding = String(brand.name);
-        }
+        const brand = await getBrandingRepository().getBrand({id:row.branding});
+        if (!brand) throw this.codedError('branding-not-found', `Brand not found for version: ${versionId}`);
+        branding=String(brand.name);
       }
       return this.restore({
         branding,
@@ -918,11 +898,9 @@ export namespace Services {
     /** Retain only the newest configured history rows after a durable transition. */
     private async pruneHistories(brandingId: string): Promise<void> {
       const retain = this.readHistoryMaxVersions();
-      const histories = (await BrandingConfigHistory.find({ branding: brandingId }).sort(
-        'version DESC'
-      )) as BrandingConfigHistoryAttributes[];
+      const histories = (await getBrandingRepository().listHistories(brandingId, 'DESC')) as BrandingConfigHistoryAttributes[];
       for (const history of histories.slice(retain)) {
-        await BrandingConfigHistory.destroy({ id: history.id });
+        await getBrandingRepository().removeHistory(history.id);
         sails.log.verbose(`BrandingService pruned branding ${brandingId} version ${history.version}`);
       }
     }
@@ -950,7 +928,7 @@ export namespace Services {
         ) {
           continue;
         }
-        await BrandingConfigHistory.destroy({ id: history.id });
+        await getBrandingRepository().removeHistory(history.id);
         sails.log.verbose(
           `BrandingService removed superseded ambiguous publication for brand ${brandingId} version ${history.version}`
         );
@@ -984,7 +962,7 @@ export namespace Services {
 
     /** Refresh a single branding record in the in-memory cache (this.brandings & availableBrandings) */
     public async refreshBrandingCache(id: string): Promise<BrandingModel | null> {
-      const updated = (await BrandingConfig.findOne({ id }).populate('roles')) as BrandingModel | null;
+      const updated = (await getBrandingRepository().getBrand({ id }, true)) as BrandingModel | null;
       if (updated) {
         const idx = this.brandings.findIndex((b: BrandingModel) => b.id === id);
         if (idx >= 0) {

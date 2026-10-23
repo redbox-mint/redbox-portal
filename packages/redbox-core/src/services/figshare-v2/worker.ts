@@ -1,7 +1,5 @@
-import { figshareWork } from './worker-lifecycle';
 import _ from 'lodash';
 import { createHash, randomUUID } from 'node:crypto';
-import type { Db } from 'mongodb';
 import type { FigshareSyncModel, FigshareIntentKind, FigshareBinding } from '../../model/storage/FigshareSyncModel';
 import type {
   RecordModel,
@@ -13,7 +11,9 @@ import type {
 import { getRecordField, setRecordField } from './types';
 import { DEFAULT_FIGSHARE_PROCESSING, type FigshareOperation } from '../../configmodels/FigsharePublishing';
 import { resolveFigsharePublishingConfig, type ResolvedFigsharePublishingConfigData } from './config';
-import { FigshareSyncStore, FigshareLeaseLost } from './sync-store';
+import { FigshareLeaseLost, type FigshareSyncStore } from './sync-store';
+import { getFigshareSyncRepository } from '../../persistence/runtime';
+import {figshareWork} from './worker-lifecycle';
 import {
   figshareExecution,
   workerClient,
@@ -63,10 +63,7 @@ export const contentHash = (value: unknown): string => {
     .update(JSON.stringify(canonical(value)))
     .digest('hex');
 };
-export function getSyncStore(): FigshareSyncStore {
-  const manager: Db = FigshareSync.getDatastore().manager;
-  return new FigshareSyncStore(manager);
-}
+export function getSyncStore():FigshareSyncStore{return getFigshareSyncRepository();}
 export function projectionPaths(config: ResolvedFigsharePublishingConfigData): string[] {
   return [
     ...new Set(
@@ -92,6 +89,11 @@ export async function importRecordIntent(store: FigshareSyncStore, record: Recor
   const storage = RecordsService.getFigshareIntentStorage();
   if (!storage.acknowledgeFigshareIntent) throw new Error('Storage adapter cannot acknowledge Figshare intent');
   await store.importSource(record.redboxOid, record.metaMetadata.brandId, intent);
+  const persisted=await store.get(record.redboxOid);
+  const kinds=[...new Set(intent.intents.map(policy=>policy.kind))];
+  if(!persisted || persisted.brandId!==record.metaMetadata.brandId || persisted.importedGeneration<intent.generation ||
+     kinds.some(kind=>persisted.work[kind].sourceGeneration<intent.generation || persisted.work[kind].requested<1))
+    throw new Error('Figshare source intent is not durably verified; storage acknowledgment withheld');
   await storage.acknowledgeFigshareIntent(record.redboxOid, intent.generation);
 }
 
@@ -100,12 +102,12 @@ const PAUSED_DISPATCH_BACKOFF_MS = 5 * 60 * 1000;
 // threshold. It is set well beyond any synchronous post-save hook, so live saves are never promoted early.
 const STALE_INITIALISING_MS = 60 * 60 * 1000;
 
-export function dispatchFigshare(): Promise<void> { return figshareWork(sails, dispatchAccepted); }
-async function dispatchAccepted(): Promise<void> {
+export function dispatchFigshare():Promise<void>{return figshareWork(sails,dispatchAccepted);}
+async function dispatchAccepted():Promise<void>{
   const storage = RecordsService.getFigshareIntentStorage();
   if (!storage.pendingFigshareIntents) return;
   const store = getSyncStore();
-  await store.ensureIndexes();
+  await store.assertReady();
   if (storage.recoverStaleFigshareIntents) {
     const recovered = await storage.recoverStaleFigshareIntents(
       new Date(Date.now() - STALE_INITIALISING_MS).toISOString()
@@ -151,7 +153,7 @@ async function dispatchAccepted(): Promise<void> {
   }
 }
 
-export function runFigshareWorker(service: QueuedFigshareService, job: FigshareJob, store = getSyncStore()): Promise<void> { return figshareWork(sails, () => runAccepted(service, job, store)); }
+export function runFigshareWorker(service:QueuedFigshareService,job:FigshareJob,store=getSyncStore()):Promise<void>{return figshareWork(sails,()=>runAccepted(service,job,store));}
 async function runAccepted(
   service: QueuedFigshareService,
   job: FigshareJob,
@@ -176,7 +178,7 @@ async function runAccepted(
   const settings = { ...DEFAULT_FIGSHARE_PROCESSING, ...config.processing };
   if (settings.heartbeatMs <= 0 || settings.leaseMs < settings.heartbeatMs * 3)
     throw new Error('Figshare lease must cover at least three heartbeat intervals');
-  await store.ensureIndexes();
+  await store.assertReady();
   await importRecordIntent(store, record);
   const owner = randomUUID();
   const claimed = await store.claim(oid, brandId, owner, settings.leaseMs);
@@ -626,11 +628,8 @@ async function runAccepted(
         await checkpoint(s => {
           s.status = observedPublished(article!) ? 'synced' : 'waiting';
           delete s.error;
-          s.waitingReason = observedPublished(article!)
-            ? undefined
-            : config.article.publishMode === 'manual'
-              ? 'manual_publication'
-              : 'review';
+          if(observedPublished(article!)) delete s.waitingReason;
+          else s.waitingReason=config.article.publishMode==='manual'?'manual_publication':'review';
           s.work.observe.requested++;
           s.work.observe.dueAt = Date.now() + settings.observationMs;
           if (s.receipts.some(r => r.kind === 'hosted' && r.desired)) {

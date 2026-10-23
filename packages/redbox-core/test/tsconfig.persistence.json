@@ -11,8 +11,15 @@
   },
   "include": [
     "../src/**/*.ts",
-    "./unit/prisma-runtime.test.ts",
     "./unit/persistence-shutdown.test.ts",
-    "./unit/persistence-foundation.test.ts"
+    "./unit/prisma-runtime.test.ts",
+    "./unit/migration-persistence.test.ts",
+    "./unit/reference-persistence.test.ts",
+    "./unit/configuration-persistence.test.ts",
+    "./unit/progress-persistence.test.ts",
+    "./unit/harvest-persistence.test.ts",
+    "./unit/siem-persistence.test.ts",
+    "./unit/figshare-persistence.test.ts",
+    "./unit/vocabulary-persistence.test.ts"
   ]
 }

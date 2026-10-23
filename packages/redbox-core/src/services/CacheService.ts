@@ -17,10 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of } from 'rxjs';
+import { defer, Observable, of } from 'rxjs';
+import type { CacheEntryRepository } from '../persistence/cache/CacheEntryRepository';
+import { getCacheEntryRepository } from '../persistence/cache/runtime';
+import { assertCacheEntryWrite } from '../persistence/cache/validation';
+import { cacheOperationFailureForLog } from '../persistence/cache/errors';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
-import { default as NodeCache } from "node-cache";
+import { default as NodeCache } from 'node-cache';
 import { DateTime } from 'luxon';
 import { readdir, access } from 'node:fs/promises';
 
@@ -32,19 +36,20 @@ export namespace Services {
    *
    */
   export class Cache extends services.Core.Service {
+    protected override _exportedMethods: string[] = ['bootstrap', 'get', 'set', 'getNgAppFileHash'];
 
-    protected override _exportedMethods: string[] = [
-      'bootstrap',
-      'get',
-      'set',
-      'getNgAppFileHash'
-    ];
+    constructor(private readonly cacheEntries: () => CacheEntryRepository = () => getCacheEntryRepository()) {
+      super();
+    }
 
     protected cache!: NodeCache;
     protected ngFileAppHash: Record<string, string> = {};
 
     public async bootstrap() {
-      const cacheOpts = {stdTTL: sails.config.custom_cache.cacheExpiry, checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600};
+      const cacheOpts = {
+        stdTTL: sails.config.custom_cache.cacheExpiry,
+        checkperiod: sails.config.custom_cache.checkPeriod ? sails.config.custom_cache.checkPeriod : 600,
+      };
       sails.log.verbose(`Using node cache options: `);
       sails.log.verbose(cacheOpts);
       this.cache = new NodeCache(cacheOpts);
@@ -53,56 +58,72 @@ export namespace Services {
 
     public get(name: string): Observable<unknown | null> {
       const cacheGet = of(this.cache.get(name));
-      return cacheGet.pipe(flatMap(data => {
-        if (data) {
-          return of(data);
-        } else {
-          sails.log.verbose(`Getting DB cache entry for name: ${name}`);
-          return super.getObservable<Record<string, unknown> | null>(CacheEntry.findOne({name: name})).pipe(flatMap(dbData => {
-            if (!_.isEmpty(dbData)) {
-              sails.log.verbose(`Got DB cache entry`);
-              // check if entry is expired...
-              const dbDataObj = dbData as { ts_added?: number; data?: unknown };
-              if (Math.floor(DateTime.local().toSeconds()) - (dbDataObj.ts_added ?? 0) > sails.config.custom_cache.cacheExpiry) {
-                sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
+      return cacheGet.pipe(
+        flatMap(data => {
+          if (data) {
+            return of(data);
+          } else {
+            sails.log.verbose(`Getting DB cache entry for name: ${name}`);
+            return defer(() => this.cacheEntries().findByName(name)).pipe(
+              flatMap(dbData => {
+                if (dbData) {
+                  sails.log.verbose(`Got DB cache entry`);
+                  // check if entry is expired...
+                  if (
+                    Math.floor(DateTime.local().toSeconds()) - (dbData.ts_added ?? 0) >
+                    sails.config.custom_cache.cacheExpiry
+                  ) {
+                    sails.log.verbose(`Cache entry for ${name} has expired while on the DB, returning null...`);
+                    return of(null);
+                  } else {
+                    this.cache.set(name, dbData.data);
+                    return of(dbData.data ?? null);
+                  }
+                }
+                sails.log.verbose(`No DB cache entry for: ${name}`);
                 return of(null);
-              } else {
-                this.cache.set(name, dbDataObj.data);
-                return of(dbDataObj.data ?? null);
-              }
-            }
-            sails.log.verbose(`No DB cache entry for: ${name}`);
-            return of(null);
-          }));
-        }
-      }));
-      
-      
+              })
+            );
+          }
+        })
+      );
     }
 
     public set(name: string, data: unknown, expiry = sails.config.custom_cache.cacheExpiry): void {
       // update local cache then persist to DB...
       sails.log.verbose(`Setting cache for entry: ${name}...`);
       this.cache.set(name, data, expiry);
-      super.getObservable(CacheEntry.findOne({name: name}))
-      .pipe(flatMap(dbData => {
-        if (!_.isEmpty(dbData)) {
-          sails.log.verbose(`Updating entry name: ${name}`)
-          return super.getObservable(CacheEntry.update({name: name}, {name: name, data:data, ts_added: Math.floor(DateTime.local().toSeconds())}));
-        } else {
-          sails.log.verbose(`Creating entry name: ${name}`);
-          return super.getObservable(CacheEntry.create({name: name, data:data, ts_added: Math.floor(DateTime.local().toSeconds())}));
-        }
-      })
-      ,flatMap(dbData => {
-        return of(dbData);
-      }))
-      .subscribe(_data => {
-        sails.log.verbose(`Saved local and remote cache for entry:${name}`);
-      }, error => {
-        sails.log.error(`Error updating cache for entry ${name}:`);
-        sails.log.error(error);
-      });
+      defer(() => this.cacheEntries().findByName(name))
+        .pipe(
+          flatMap(dbData => {
+            const entry = {
+              name,
+              ...(data === undefined ? {} : { data }),
+              ts_added: Math.floor(DateTime.local().toSeconds()),
+            };
+            // Validation stays in the asynchronous error path, after the local write.
+            assertCacheEntryWrite(entry);
+            if (dbData) {
+              sails.log.verbose(`Updating entry name: ${name}`);
+              return defer(() => this.cacheEntries().updateByName(name, entry));
+            } else {
+              sails.log.verbose(`Creating entry name: ${name}`);
+              return defer(() => this.cacheEntries().create(entry));
+            }
+          }),
+          flatMap(dbData => {
+            return of(dbData);
+          })
+        )
+        .subscribe(
+          _data => {
+            sails.log.verbose(`Saved local and remote cache for entry:${name}`);
+          },
+          error => {
+            sails.log.error(`Error updating cache for entry ${name}:`);
+            sails.log.error(cacheOperationFailureForLog(error));
+          }
+        );
     }
 
     public async buildNgAppFileHash() {
@@ -149,14 +170,19 @@ export namespace Services {
       sails.log.verbose(JSON.stringify(this.ngFileAppHash));
     }
 
-    public getNgAppFileHash(appName: string, fileNamePrefix: string, namePrefix: string = '', nameSuffix: string = '', insertEvenOnEmpty:boolean = false): string {
+    public getNgAppFileHash(
+      appName: string,
+      fileNamePrefix: string,
+      namePrefix: string = '',
+      nameSuffix: string = '',
+      insertEvenOnEmpty: boolean = false
+    ): string {
       let appHash = _.get(this.ngFileAppHash, `${appName}.${fileNamePrefix}`);
       if (!_.isEmpty(appHash) || insertEvenOnEmpty) {
         appHash = `${namePrefix}${appHash}${nameSuffix}`;
       }
       return appHash;
     }
-
   }
 }
 

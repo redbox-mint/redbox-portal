@@ -1,5 +1,8 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
+import sinon from 'sinon';
+import { stubCacheEntryRepository } from '../helpers/cacheRepository';
 import * as fs from 'fs';
 import { createHash } from 'crypto';
 const path = require('path');
@@ -131,7 +134,7 @@ describe('Branding public font delivery and layouts', function () {
     const brandingService = require('../../src/services/BrandingService');
     (global as unknown as Record<string, unknown>).BrandingService = new brandingService.Services.Branding();
     updateCalls = [];
-    (global as unknown as Record<string, unknown>).BrandingConfig = {
+    repositoryFixtures.BrandingConfig = {
       findOne: async (criteria: Record<string, unknown>) => (criteria.name === 'default' ? { ...brandRow } : null),
       update: async (criteria: unknown, values: unknown) => {
         updateCalls.push({ criteria, values } as Record<string, unknown>);
@@ -153,12 +156,13 @@ describe('Branding public font delivery and layouts', function () {
   });
 
   afterEach(function () {
+    sinon.restore();
     cleanupServiceTestGlobals();
     delete (global as unknown as Record<string, unknown>).StorageManagerService;
     delete (global as unknown as Record<string, unknown>).BrandingThemeCssService;
     delete (global as unknown as Record<string, unknown>).BrandingTypefaceService;
     delete (global as unknown as Record<string, unknown>).BrandingService;
-    delete (global as unknown as Record<string, unknown>).BrandingConfig;
+    delete repositoryFixtures.BrandingConfig;
   });
 
   it('serves public font bytes with immutable same-origin headers', async function () {
@@ -294,12 +298,9 @@ describe('Branding public font delivery and layouts', function () {
     (global as unknown as Record<string, unknown>).BrandingThemeCssService =
       new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
     const cacheEntries: Array<Record<string, unknown>> = [];
-    (global as unknown as Record<string, unknown>).CacheEntry = {
-      create: async (values: Record<string, unknown>) => {
-        cacheEntries.push(values);
-        return values;
-      },
-    };
+    stubCacheEntryRepository().create.callsFake(async values => {
+      cacheEntries.push({ ...values });
+    });
     const req = fakeReq({ branding: 'default', portal: 'rdmp' }, {}, 'GET', { expectedDraftRevision: 0 });
     const captured = fakeRes();
     const jsonBody: Array<unknown> = [];
@@ -320,12 +321,9 @@ describe('Branding public font delivery and layouts', function () {
     (global as unknown as Record<string, unknown>).BrandingThemeCssService =
       new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
     const cacheEntries: Array<Record<string, unknown>> = [];
-    (global as unknown as Record<string, unknown>).CacheEntry = {
-      create: async (values: Record<string, unknown>) => {
-        cacheEntries.push(values);
-        return values;
-      },
-    };
+    stubCacheEntryRepository().create.callsFake(async values => {
+      cacheEntries.push({ ...values });
+    });
     const req = fakeReq({ branding: 'default', portal: 'rdmp' });
     const captured = fakeRes();
     const jsonBody: Array<unknown> = [];
@@ -346,9 +344,7 @@ describe('Branding public font delivery and layouts', function () {
     (global as unknown as Record<string, unknown>).BrandingService = new branding.Services.Branding();
     (global as unknown as Record<string, unknown>).BrandingThemeCssService =
       new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
-    (global as unknown as Record<string, unknown>).CacheEntry = {
-      create: async (values: Record<string, unknown>) => values,
-    };
+    const repository = stubCacheEntryRepository();
     const req = fakeReq({ branding: 'default', portal: 'rdmp' }, {}, 'GET', { expectedDraftRevision: 99 });
     const captured = fakeRes();
     const jsonBody: Array<unknown> = [];
@@ -360,6 +356,7 @@ describe('Branding public font delivery and layouts', function () {
     expect(captured.statusCode).to.equal(409);
     expect(jsonBody).to.have.lengthOf(1);
     expect(JSON.stringify(jsonBody[0])).to.contain('branding-conflict');
+    expect(repository.create.called).to.equal(false);
   });
 
   it('exposes active custom state and Regular preload URLs from the brand cache', function () {

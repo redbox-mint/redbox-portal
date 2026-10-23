@@ -1,4 +1,12 @@
 export type { ILogger } from '@researchdatabox/sails-ng-common';
+export type {
+  JsonValue,
+  CacheEntryRecord,
+  CacheEntryWrite,
+  CacheEntryRepository,
+} from './persistence/cache/CacheEntryRepository';
+export { assertJsonValue, assertCacheEntryWrite, InvalidCacheEntryError } from './persistence/cache/validation';
+export { getCacheEntryRepository } from './persistence/cache/runtime';
 import './sails';
 
 export { Attachment } from './Attachment';
@@ -151,7 +159,8 @@ export * from './model/storage/HarvestRunModel';
 export * from './model';
 export * from './record-contract';
 export * from './decorator';
-export * from './decorators';
+export { buildInvalidNewRecordError, buildInvalidUpdateRecordError } from './persistence/validationErrors';
+export type * from './persistence/rows';
 
 export {
   compareHookPrecedence,
@@ -174,7 +183,6 @@ export {
 } from './hooks/hookResources';
 export type { RedboxHookResource, ResolvedHookFile } from './hooks/hookResources';
 
-export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
 
 export * from './configmodels/ConfigModels';
@@ -238,6 +246,10 @@ export { Config, SailsConfig } from './config';
 
 // Bootstrap functions
 export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
+export { initializeCachePersistence, cleanupCachePersistence } from './persistence/cache/runtime';
+export { inspectCachePersistence, ensureCachePersistenceIndex } from './persistence/cache/preflight';
+export type { CacheIndexInspection } from './persistence/cache/preflight';
+export { CachePersistenceError, DuplicateCacheEntryError } from './persistence/cache/errors';
 export { discoverRecordContractContributorRegistry, generateAllShims, mergeRedboxConfig } from './loader/index';
 export type { LoaderOptions, GenerateAllShimsResult, RedboxMigration } from './loader/index';
 export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
@@ -281,12 +293,157 @@ export * from './api-routes';
 export * from './RecordWriteOptions';
 export * from './model/storage/FigshareSyncModel';
 
-export type { PersistenceId, LogicalDatastore, PersistenceBackend, PersistenceGroup, PersistenceResource } from './persistence/types';
-export { initializePersistence, cleanupPersistence, registerPersistenceResource, mongoDatabase, mongoSessionDatabase, prismaDatabase, persistenceOperation } from './persistence/runtime';
-export { PersistenceError } from './persistence/errors';
+export type { PersistenceId, LogicalDatastore, PersistenceGroup, PersistenceResource } from './persistence/types';
+export { initializePersistence, cleanupPersistence, registerPersistenceResource } from './persistence/runtime';
+export {
+  initializeReferencePersistence,
+  getReferenceRepositories,
+  inspectReferencePersistence,
+  ensureReferencePersistenceIndexes,
+  registerNamedQueryTarget,
+} from './persistence/runtime';
+export type {
+  ReferenceRepositories,
+  Definition,
+  BrandedDefinition,
+  FormDefinition,
+  WorkflowDefinition,
+  WorkflowWithForm,
+} from './persistence/reference/ReferenceRepositories';
+export { assertPersistenceConfiguration } from './persistence/selection';
 export type { PersistenceIndex, PersistenceIndexInspection } from './persistence/indexes';
 export { inspectPersistenceIndex, ensurePersistenceIndex, requirePersistenceIndex } from './persistence/indexes';
+
+export { PersistenceError } from './persistence/errors';
+export type { MigrationExecution, MigrationLedgerRepository } from './persistence/migration/MigrationLedgerRepository';
+export {
+  initializeMigrationPersistence,
+  getMigrationLedgerRepository,
+  inspectMigrationPersistence,
+  ensureMigrationPersistenceIndex,
+} from './persistence/runtime';
+
+export type {
+  NamedQueryTargetMetadata,
+  NamedQueryRequest,
+  NamedQueryPage,
+  InstitutionNamedQueryTarget,
+} from './persistence/reference/NamedQueryExecution';
+
+export type {
+  ConfigurationRepositories,
+  AppConfiguration,
+  DashboardAggregate,
+  TranslationBundle,
+  TranslationEntry,
+  SecretLeaseRepository,
+  SecretLock,
+} from './persistence/configuration/ConfigurationRepositories';
+export {
+  initializeConfigurationPersistence,
+  getConfigurationRepositories,
+  inspectConfigurationPersistence,
+  ensureConfigurationPersistenceIndexes,
+} from './persistence/runtime';
+
+export type {
+  ProgressRepositories,
+  ProgressRow,
+  WorkspaceStatus,
+  ProgressQuery,
+} from './persistence/progress/ProgressRepositories';
+export {
+  initializeProgressPersistence,
+  getProgressRepositories,
+  inspectProgressPersistence,
+} from './persistence/runtime';
+
+export type {
+  HarvestRepositories,
+  HarvestRunRow,
+  HarvestChunkRow,
+  HarvestEventRow,
+  HarvestRunLookup,
+  HarvestRunFilter,
+  HarvestEventFilter,
+} from './persistence/harvest/HarvestRepositories';
+export {
+  initializeHarvestPersistence,
+  getHarvestRepositories,
+  inspectHarvestPersistence,
+  ensureHarvestPersistenceIndexes,
+} from './persistence/runtime';
+
+export type {
+  SiemRepository,
+  SecurityEventRow,
+  DeliveryAttemptRow,
+  SiemEventFilter,
+  SiemAttemptFilter,
+} from './persistence/siem/SiemRepository';
+export {
+  initializeSiemPersistence,
+  getSiemRepository,
+  inspectSiemPersistence,
+  ensureSiemPersistenceIndexes,
+} from './persistence/runtime';
+
+export type { FigshareSyncRepository } from './persistence/figshare/FigshareSyncRepository';
+export {
+  initializeFigsharePersistence,
+  getFigshareSyncRepository,
+  inspectFigsharePersistence,
+  ensureFigsharePersistenceIndexes,
+} from './persistence/runtime';
+
+
+
+
+
+// First-party concrete adapter seams; excluded from the hook extension catalogue.
+export { mongoDatabase, mongoSessionDatabase, prismaDatabase, persistenceOperation } from './persistence/runtime';
+
 export { writeGridFSStream } from './storage/writeGridFSStream';
 export { ownGridFSDownload } from './storage/ownGridFSDownload';
 
+export { coercePersistenceScalar, normalizePersistenceField } from './persistence/scalars';
+
+// Shared model clock for first-party storage audit codecs.
+export { persistenceStringTimestamps } from './persistence/timestamps';
+
+export {
+  initializeVocabularyPersistence,
+  getVocabularyRepositories,
+  inspectVocabularyPersistence,
+  ensureVocabularyPersistenceIndexes,
+} from './persistence/runtime';
+export type {
+  VocabularyRepositories,
+  VocabularyRow,
+  EntryRow,
+  SourceRow,
+  CategoryRow,
+  CrosswalkRow,
+  MappingRow,
+  SyncRunRow,
+} from './persistence/vocabulary/VocabularyRepositories';
+
+export {
+  initializeBrandingPersistence,
+  getBrandingRepository,
+  inspectBrandingPersistence,
+  ensureBrandingPersistenceIndexes,
+} from './persistence/runtime';
+export type { BrandingRepository, BrandRow, BrandingHistoryRow } from './persistence/branding/BrandingRepository';
+
+// First-party concrete S adapters; no query handles enter storage capability contracts.
+export type { StoragePrismaClient } from './persistence/prisma/client';
+
+
+
+
+
 export { prismaModelRow } from './persistence/prisma/modelRow';
+
+export * from './decorators';
+export { WaterlineModels } from './waterline-models';

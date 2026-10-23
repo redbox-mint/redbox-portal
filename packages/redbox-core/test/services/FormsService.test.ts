@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
@@ -6,6 +7,8 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
+import { assertJsonValue } from '../../src/persistence/cache/validation';
+import assert from 'node:assert/strict';
 import type { AvailableFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
 import { formConfigExample1 } from '../unit/example-data';
 import { reusableFormDefinitions, TemplateFormConfigVisitor } from '../../src';
@@ -87,9 +90,9 @@ describe('FormsService', function () {
       getBrand: sinon.stub().returns({ id: 'default-brand' }),
       getBrandFromReq: sinon.stub().returns('default'),
     };
-    (global as any).Form = mockForm;
-    (global as any).WorkflowStep = mockWorkflowStep;
-    (global as any).RecordType = mockRecordType;
+    repositoryFixtures.Form = mockForm;
+    repositoryFixtures.WorkflowStep = mockWorkflowStep;
+    repositoryFixtures.RecordType = mockRecordType;
 
     const { Services } = require('../../src/services/FormsService');
     FormsService = new Services.Forms();
@@ -98,9 +101,9 @@ describe('FormsService', function () {
   afterEach(function () {
     cleanupServiceTestGlobals();
     delete (global as any).BrandingService;
-    delete (global as any).Form;
-    delete (global as any).WorkflowStep;
-    delete (global as any).RecordType;
+    delete repositoryFixtures.Form;
+    delete repositoryFixtures.WorkflowStep;
+    delete repositoryFixtures.RecordType;
     delete (global as any).RecordTypesService;
     delete (global as any).WorkflowStepsService;
     sinon.restore();
@@ -469,6 +472,7 @@ describe('FormsService', function () {
       await FormsService.bootstrap(workflowStep, 'brand-1');
 
       expect(mockForm.create.called).to.be.true;
+      assertJsonValue(mockForm.create.firstCall.args[0].configuration);
       expect(mockWorkflowStep.update.calledWith({ id: 'step-1' })).to.be.true;
     });
 
@@ -525,6 +529,35 @@ describe('FormsService', function () {
           ],
         },
       ]);
+    });
+
+    it('snapshots optional and native authoring defaults into the existing JSON form shape', async function () {
+      const defaults = { omitted: undefined, at: new Date(0), pattern: /legacy/i, values: [undefined, null, false, 0, ''] };
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', componentDefinitions: [], defaultComponentConfig: defaults },
+      });
+      mockForm.find.resolves([]);
+      mockForm.create.resolves({ id: 'form-1' });
+      await FormsService.bootstrap({ id: 'step-1', config: { form: 'default-form' } }, 'brand-1');
+      const configuration = mockForm.create.firstCall.args[0].configuration;
+      assertJsonValue(configuration);
+      assert.deepEqual(configuration.defaultComponentConfig, {
+        at: '1970-01-01T00:00:00.000Z', pattern: {}, values: [null, null, false, 0, ''],
+      });
+      assert.equal(Object.hasOwn(configuration, 'domId'), false);
+      assert(defaults.at instanceof Date);
+      assert(defaults.pattern instanceof RegExp);
+      assert.equal(Object.hasOwn(defaults, 'omitted'), true);
+    });
+
+    it('refuses nonfinite form defaults before creating a persisted form', async function () {
+      sinon.stub(FormsService, 'getFormConfigRegistry').returns({
+        'default-form': { type: 'rdmp', defaultComponentConfig: { invalid: NaN } },
+      });
+      mockForm.find.resolves([]);
+      await assert.rejects(FormsService.bootstrap({ id: 'step-1', config: { form: 'default-form' } }, 'brand-1'),
+        (error: unknown) => error instanceof Error && error.message.includes('Form configuration requires plain data'));
+      assert.equal(mockForm.create.called, false);
     });
 
     it('should preserve validation operations when bootstrapping form config from the registry', async function () {

@@ -1,5 +1,5 @@
 import type { SiemDestinationConfig, SiemEventCategory, SiemRedactionConfig, SiemSeverity } from '../../configmodels/SiemConfiguration';
-import type { SecurityEventAttributes } from '../../waterline-models/SecurityEvent';
+import type { SecurityEventRow as SecurityEventAttributes } from '../../persistence/siem/SiemRepository';
 
 export interface SecurityEventInput {
   brandId: string;

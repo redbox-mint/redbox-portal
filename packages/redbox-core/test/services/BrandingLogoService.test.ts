@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import crypto from 'crypto';
@@ -24,7 +25,7 @@ describe('BrandingLogoService', function() {
       primaryDisk: sinon.stub().returns(mockPrimaryDisk),
     };
 
-    (global as any).BrandingConfig = {
+    repositoryFixtures.BrandingConfig = {
       findOne: sinon.stub(),
       update: sinon.stub()
     };
@@ -38,7 +39,7 @@ describe('BrandingLogoService', function() {
 
   afterEach(function() {
     cleanupServiceTestGlobals();
-    delete (global as any).BrandingConfig;
+    delete repositoryFixtures.BrandingConfig;
     delete (global as any).DomSanitizerService;
     delete (global as any).StorageManagerService;
     sinon.restore();
@@ -73,7 +74,7 @@ describe('BrandingLogoService', function() {
 
   describe('putLogo', function() {
     it('should throw if brand not found', async function() {
-      (global as any).BrandingConfig.findOne.resolves(null);
+      repositoryFixtures.BrandingConfig.findOne.resolves(null);
       try {
         await service.putLogo({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
         expect.fail('Should have thrown');
@@ -84,23 +85,23 @@ describe('BrandingLogoService', function() {
 
     it('should store logo and update config', async function() {
       const brand = { id: 'brand1' };
-      (global as any).BrandingConfig.findOne.resolves(brand);
-      (global as any).BrandingConfig.update.resolves([]);
-      
+      repositoryFixtures.BrandingConfig.findOne.resolves(brand);
+      repositoryFixtures.BrandingConfig.update.resolves([]);
+
       const result = await service.putLogo({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
-      
+
       expect(result.contentType).to.equal('image/png');
       expect(result.storageKey).to.equal('brand/portal/images/logo.png');
       expect(mockPrimaryDisk.put.calledOnce).to.be.true;
       expect(mockPrimaryDisk.put.firstCall.args[0]).to.equal('brand/portal/images/logo.png');
       expect(mockPrimaryDisk.put.firstCall.args[2]).to.deep.equal({ contentType: 'image/png' });
-      expect((global as any).BrandingConfig.update.calledOnce).to.be.true;
-      expect((global as any).BrandingConfig.update.firstCall.args[1].logo).to.include({
+      expect(repositoryFixtures.BrandingConfig.update.calledOnce).to.be.true;
+      expect(repositoryFixtures.BrandingConfig.update.firstCall.args[1].logo).to.include({
         gridFsId: 'brand/portal/images/logo.png',
         storageKey: 'brand/portal/images/logo.png',
         contentType: 'image/png',
       });
-      
+
       // Should be cached
       const cached = service.getBinary(result.gridFsId);
       expect(cached).to.not.be.null;
@@ -148,10 +149,10 @@ describe('BrandingLogoService', function() {
       const currentBuffer = Buffer.from('current-binary');
       const oldHash = crypto.createHash('sha256').update(oldBuffer).digest('hex');
       const currentHash = crypto.createHash('sha256').update(currentBuffer).digest('hex');
-      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+      repositoryFixtures.BrandingConfig.findOne.onFirstCall().resolves({
         favicon: { storageKey: 'favicon-old.png', sha256: oldHash },
       });
-      (global as any).BrandingConfig.findOne.onSecondCall().resolves({
+      repositoryFixtures.BrandingConfig.findOne.onSecondCall().resolves({
         favicon: { storageKey: 'favicon-current.png', sha256: currentHash, contentType: 'image/png' },
       });
       mockPrimaryDisk.getBytes.onFirstCall().rejects({ code: 'ENOENT' });
@@ -161,13 +162,13 @@ describe('BrandingLogoService', function() {
 
       expect(result?.buffer.toString()).to.equal('current-binary');
       expect(result?.favicon.storageKey).to.equal('favicon-current.png');
-      expect((global as any).BrandingConfig.findOne.calledTwice).to.be.true;
+      expect(repositoryFixtures.BrandingConfig.findOne.calledTwice).to.be.true;
     });
   });
 
   describe('putFavicon', function() {
     it('should throw if brand not found', async function() {
-      (global as any).BrandingConfig.findOne.resolves(null);
+      repositoryFixtures.BrandingConfig.findOne.resolves(null);
       try {
         await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
         expect.fail('Should have thrown');
@@ -178,8 +179,8 @@ describe('BrandingLogoService', function() {
 
     it('should store a PNG favicon and update config', async function() {
       const brand = { id: 'brand1' };
-      (global as any).BrandingConfig.findOne.resolves(brand);
-      (global as any).BrandingConfig.update.resolves([]);
+      repositoryFixtures.BrandingConfig.findOne.resolves(brand);
+      repositoryFixtures.BrandingConfig.update.resolves([]);
 
       const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/png' });
       const expectedHash = crypto.createHash('sha256').update('data').digest('hex');
@@ -189,15 +190,15 @@ describe('BrandingLogoService', function() {
         new RegExp(`^brand/portal/images/favicon-${expectedHash}-[0-9a-f-]{36}\\.png$`)
       );
       expect(mockPrimaryDisk.put.firstCall.args[0]).to.equal(result.storageKey);
-      expect((global as any).BrandingConfig.update.firstCall.args[1].favicon).to.include({
+      expect(repositoryFixtures.BrandingConfig.update.firstCall.args[1].favicon).to.include({
         storageKey: result.storageKey,
         contentType: 'image/png',
       });
     });
 
     it('should use distinct storage keys when identical favicon bytes are uploaded again', async function() {
-      (global as any).BrandingConfig.findOne.resolves({ id: 'brand1' });
-      (global as any).BrandingConfig.update.resolves([]);
+      repositoryFixtures.BrandingConfig.findOne.resolves({ id: 'brand1' });
+      repositoryFixtures.BrandingConfig.update.resolves([]);
 
       const first = await service.putFavicon({
         branding: 'brand',
@@ -219,15 +220,15 @@ describe('BrandingLogoService', function() {
     it('should clean up a superseded favicon after the reader cache TTL', async function() {
       const clock = sinon.useFakeTimers();
       const previousStorageKey = 'brand/portal/images/favicon-previous.png';
-      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+      repositoryFixtures.BrandingConfig.findOne.onFirstCall().resolves({
         id: 'brand1',
         favicon: { storageKey: previousStorageKey },
       });
-      (global as any).BrandingConfig.findOne.onSecondCall().resolves({
+      repositoryFixtures.BrandingConfig.findOne.onSecondCall().resolves({
         id: 'brand1',
         favicon: { storageKey: 'brand/portal/images/favicon-current.png' },
       });
-      (global as any).BrandingConfig.update.resolves([]);
+      repositoryFixtures.BrandingConfig.update.resolves([]);
 
       await service.putFavicon({
         branding: 'brand',
@@ -236,7 +237,7 @@ describe('BrandingLogoService', function() {
         contentType: 'image/png',
       });
 
-      expect((global as any).BrandingConfig.update.calledOnce).to.be.true;
+      expect(repositoryFixtures.BrandingConfig.update.calledOnce).to.be.true;
       expect(mockPrimaryDisk.delete.called).to.be.false;
 
       await clock.tickAsync(24 * 60 * 60 * 1000);
@@ -247,11 +248,11 @@ describe('BrandingLogoService', function() {
     it('should not delete a superseded favicon that becomes active again before cleanup', async function() {
       const clock = sinon.useFakeTimers();
       const previousStorageKey = 'brand/portal/images/favicon-previous.png';
-      (global as any).BrandingConfig.findOne.resolves({
+      repositoryFixtures.BrandingConfig.findOne.resolves({
         id: 'brand1',
         favicon: { storageKey: previousStorageKey },
       });
-      (global as any).BrandingConfig.update.resolves([]);
+      repositoryFixtures.BrandingConfig.update.resolves([]);
 
       await service.putFavicon({
         branding: 'brand',
@@ -261,19 +262,19 @@ describe('BrandingLogoService', function() {
       });
       await clock.tickAsync(24 * 60 * 60 * 1000);
 
-      expect((global as any).BrandingConfig.findOne.calledTwice).to.be.true;
+      expect(repositoryFixtures.BrandingConfig.findOne.calledTwice).to.be.true;
       expect(mockPrimaryDisk.delete.called).to.be.false;
     });
 
     it('should log deferred cleanup failures without failing the completed upload', async function() {
       const clock = sinon.useFakeTimers();
       const previousStorageKey = 'brand/portal/images/favicon-previous.png';
-      (global as any).BrandingConfig.findOne.onFirstCall().resolves({
+      repositoryFixtures.BrandingConfig.findOne.onFirstCall().resolves({
         id: 'brand1',
         favicon: { storageKey: previousStorageKey },
       });
-      (global as any).BrandingConfig.findOne.onSecondCall().rejects(new Error('database unavailable'));
-      (global as any).BrandingConfig.update.resolves([]);
+      repositoryFixtures.BrandingConfig.findOne.onSecondCall().rejects(new Error('database unavailable'));
+      repositoryFixtures.BrandingConfig.update.resolves([]);
 
       await service.putFavicon({
         branding: 'brand',
@@ -291,8 +292,8 @@ describe('BrandingLogoService', function() {
 
     it('should accept an ICO favicon', async function() {
       const brand = { id: 'brand1' };
-      (global as any).BrandingConfig.findOne.resolves(brand);
-      (global as any).BrandingConfig.update.resolves([]);
+      repositoryFixtures.BrandingConfig.findOne.resolves(brand);
+      repositoryFixtures.BrandingConfig.update.resolves([]);
 
       const result = await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('icodata'), contentType: 'image/x-icon' });
       const expectedHash = crypto.createHash('sha256').update('icodata').digest('hex');
@@ -305,11 +306,11 @@ describe('BrandingLogoService', function() {
 
     it('should remove the unreferenced object when its metadata update fails', async function() {
       const previousStorageKey = 'brand/portal/images/favicon-previous.png';
-      (global as any).BrandingConfig.findOne.resolves({
+      repositoryFixtures.BrandingConfig.findOne.resolves({
         id: 'brand1',
         favicon: { storageKey: previousStorageKey, sha256: 'previous' }
       });
-      (global as any).BrandingConfig.update.rejects(new Error('database unavailable'));
+      repositoryFixtures.BrandingConfig.update.rejects(new Error('database unavailable'));
 
       try {
         await service.putFavicon({
@@ -329,8 +330,8 @@ describe('BrandingLogoService', function() {
     });
 
     it('should preserve the metadata error when unreferenced object cleanup also fails', async function() {
-      (global as any).BrandingConfig.findOne.resolves({ id: 'brand1' });
-      (global as any).BrandingConfig.update.rejects(new Error('database unavailable'));
+      repositoryFixtures.BrandingConfig.findOne.resolves({ id: 'brand1' });
+      repositoryFixtures.BrandingConfig.update.rejects(new Error('database unavailable'));
       mockPrimaryDisk.delete.rejects(new Error('storage unavailable'));
 
       try {
@@ -353,7 +354,7 @@ describe('BrandingLogoService', function() {
 
     it('should reject an unsupported favicon content type', async function() {
       const brand = { id: 'brand1' };
-      (global as any).BrandingConfig.findOne.resolves(brand);
+      repositoryFixtures.BrandingConfig.findOne.resolves(brand);
       try {
         await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.from('data'), contentType: 'image/jpeg' });
         expect.fail('Should have thrown');
@@ -364,7 +365,7 @@ describe('BrandingLogoService', function() {
 
     it('should reject an oversized favicon', async function() {
       const brand = { id: 'brand1' };
-      (global as any).BrandingConfig.findOne.resolves(brand);
+      repositoryFixtures.BrandingConfig.findOne.resolves(brand);
       mockSails.config.branding = { faviconMaxBytes: 10 };
       try {
         await service.putFavicon({ branding: 'brand', portal: 'portal', fileBuffer: Buffer.alloc(20, 0), contentType: 'image/png' });

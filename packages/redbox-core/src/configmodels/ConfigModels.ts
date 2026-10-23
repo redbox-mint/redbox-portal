@@ -116,7 +116,19 @@ export class ConfigModels {
             title: 'SIEM Configuration',
             class: SiemConfiguration,
             schema: SIEM_CONFIGURATION_SCHEMA,
-            formAdapter: { fromForm: normalizeSiemConfiguration },
+            formAdapter: {
+                fromForm: (model: unknown) => {
+                    const config = normalizeSiemConfiguration(model);
+                    // Preserve Waterline's physical omission of absent optional credentials.
+                    // The repository boundary continues to require plain JSON.
+                    for (const destination of config.destinations) {
+                        if (destination.token === undefined) delete destination.token;
+                        if (destination.username === undefined) delete destination.username;
+                        if (destination.password === undefined) delete destination.password;
+                    }
+                    return config;
+                }
+            },
             tsGlob: path.join(__dirname, '../../src/configmodels/SiemConfiguration.ts'),
             secretFields: [
                 'destinations[].token',

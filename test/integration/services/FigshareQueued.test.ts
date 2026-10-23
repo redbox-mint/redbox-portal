@@ -1,20 +1,21 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { type RecordWriteOptions } from '@researchdatabox/redbox-core';
-import { FigshareSyncStore } from '@researchdatabox/redbox-core/dist/services/figshare-v2/sync-store';
+import {getFigshareSyncRepository,prismaDatabase,type FigshareSyncRepository} from '@researchdatabox/redbox-core';
+import { prismaModelFilter } from '../../../packages/redbox-core/src/persistence/prisma/modelFilter';
 
 /** Runs with the lifted application and real configured core/record datastores. */
 describe('Figshare durable intent integration', function () {
   this.timeout(30000);
   const created: string[] = [];
-  let store: FigshareSyncStore;
+  let store:FigshareSyncRepository;
   before(async () => {
-    store = new FigshareSyncStore(FigshareSync.getDatastore().manager);
-    await store.ensureIndexes();
+    store=getFigshareSyncRepository();
+    await store.assertReady();
   });
   after(async () => {
     const storage = RecordsService.getFigshareIntentStorage();
-    for (const oid of created) { await store.collection.deleteOne({ oid }); await storage.delete(oid, true); }
+    for (const oid of created) { await (await prismaDatabase(sails, 'mongodb')).orm.figsharesync.where(prismaModelFilter({ oid })).delete(); await storage.delete(oid, true); }
   });
   it('persists an intent before queue submission, imports it once, and protects partial writes', async () => {
     const storage = RecordsService.getFigshareIntentStorage();

@@ -1,3 +1,4 @@
+import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
@@ -17,8 +18,9 @@ describe('AppConfigSecrets', function () {
     setupServiceTestGlobals(createMockSails());
     secrets = new Map();
     locks = createBundleLockCollection();
-    (globalThis as unknown as Record<string, unknown>).AppConfig = {
-      getDatastore: () => ({ manager: { collection: () => locks } })
+    repositoryFixtures.secretLocks = locks;
+    repositoryFixtures.AppConfig = {
+
     };
     awsSend = async command => {
       if (command instanceof CreateSecretCommand) {
@@ -47,7 +49,7 @@ describe('AppConfigSecrets', function () {
   afterEach(function () {
     sinon.restore();
     cleanupServiceTestGlobals();
-    delete (globalThis as unknown as Record<string, unknown>).AppConfig;
+    delete repositoryFixtures.AppConfig;
   });
 
   function calls(type: typeof CreateSecretCommand | typeof GetSecretValueCommand | typeof PutSecretValueCommand): number {
@@ -186,8 +188,7 @@ describe('AppConfigSecrets', function () {
   });
 
   it('fails closed without MongoDB write coordination', async function () {
-    delete (globalThis as unknown as Record<string, unknown>).AppConfig;
-    (globalThis as unknown as Record<string, unknown>).AppConfig = {};
+    delete repositoryFixtures.secretLocks;
     try { await store.storeBundle('brand1', new Map([['token', 'value']])); expect.fail('Expected rejection'); }
     catch (error) { expect(String(error)).to.contain('MongoDB write coordination'); }
     expect(send.called).to.equal(false);
