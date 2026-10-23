@@ -437,3 +437,71 @@ code and must obey the side-effect-free contract. DDL and revision backfill reta
 existing nontransactional/partial-write behavior; stopped writers and verified
 backup remain operator prerequisites. This is standalone maintenance proof, not
 institution, authenticated topology, newer-major or mixed-version qualification.
+
+## P3 closeout — Integrated verification and source manifest
+
+Implementation snapshot: **`5ab36cc30c589a8e5ba5bbfe551138ae663de25e`**.
+All P3 acceptance criteria above passed; SR-019–SR-025 are checked. No P4 task was
+started, no branch/worktree was created or switched, and nothing was pushed.
+Every implementation commit has the requested GPT-6.1-sol co-author trailer:
+
+| Task   | Commit      | Main source                                                                                          |
+| ------ | ----------- | ---------------------------------------------------------------------------------------------------- |
+| SR-019 | `504b83ea3` | `src/configuration/resolution.ts`, `loading.ts`                                                      |
+| SR-020 | `365cd7fc6` | `src/configuration/deployment.ts`, `configuration-v6.md`                                             |
+| SR-021 | `fe030dcc4` | `src/configuration/brand.ts`, `src/compat/sails/configuration.ts`                                    |
+| SR-022 | `eb56d9811` | `src/application/Application.ts`, `migrations.ts`, extension composition and Sails bootstrap adapter |
+| SR-023 | `a9f53a126` | `src/queues/AgendaQueue.ts`, `ScheduledWork.ts`, Sails queue/schedule adapters                       |
+| SR-024 | `c7258c1b7` | persistence/runtime, request lifetime/host, native GridFS/storage/PDF owners                         |
+| SR-025 | `5ab36cc30` | `src/maintenance/indexes.ts`, existing persistence maintenance, CLI and public storage exports       |
+
+Final commands (qualified **Node 26.11.1 / npm 11.20.0**, same real
+**MongoDB 8.0.34 / FCV 8.0**, Linux `agentvm` as SR-025):
+
+```sh
+PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:34902/redbox_prisma_p3 npm run test:core
+LIFECYCLE_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p3_lifecycle npm --prefix packages/redbox-core run test:lifecycle:mongo
+EXTENSIONS_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p2_extensions node --test packages/redbox-core/test/extensions/storage-mongo.cjs
+node --test packages/redbox-core/test/extensions/pdf-lifecycle.cjs
+```
+
+**All exit 0.** Full core **4,394 passing / 68 pending / 0 failures** (~2 min),
+including the real Prisma persistence regression suite (record/GridFS/cache/index,
+ledger, identity, leases and sessions). All **17** additional P3 unit cases execute
+relative to P2's 4,377 passing baseline. The existing startup subprocess passed in
+**11,145 ms**, within its unchanged 12-second deadline. This final full run did not
+overlap a clean build or packed installation. No failed phase-wide run preceded it.
+
+The **68 pending** cases are unchanged: **51 Figshare** controlled-HTTP/Mongo,
+**7 SIEM** receiver/delivery (separate fixture inputs absent), **3 older standalone
+foundation** (separate newer/authenticated Mongo input), and existing explicit
+**2 RaidService / 2 TriggerService / 3 WorkspaceService** skips. They remain pending,
+not release evidence. No required P3 real-Mongo test is skipped. Standalone runtime
+fixtures remain deliberately isolated from core's global legacy test setup.
+
+Final isolated lifecycle **11 passing / 0 failures/pending** (~4 s), standalone
+storage/GridFS **3 passing / 0 failures/skips** (~3.5 s), PDF lifecycle **5 passing /
+0 failures/skips** (~1.1 s). These repeat on the final snapshot after SR-025's
+public storage declaration/export change. All owned clients/pools reach zero;
+held-handler, late GridFS write, transport finish/abort and failed-stop retry
+assertions remain enabled. Final build/strict checks, packed proof, focused tests,
+complete **304-case real-Mongo storage** and **75-case PDF unit** results are
+recorded in their task sections above. Logs remain local under ignored
+`.tmp/sails-retirement/p3-*.log`; only summaries/hashes are committed.
+
+No dependency versions or lockfiles changed during P3. No provider usage/quota
+limit occurred. Remaining release qualifications (institution designation SR-005,
+authenticated/topology/newer-major rehearsal and later full HTTP/upload/socket
+composition) retain their existing task ownership; no new P3 blocker or decision
+is outstanding. Custom replacement storage preflight and production stop/watchdog
+grace limits are explicitly documented rather than claimed as qualified here.
+The unrelated untracked `support/specs/graphql-record-metadata/` remains untouched.
+
+Disposable-host cleanup: `docker stop --time 45 sr-p3-mongo8` and
+`docker rm -v sr-p3-mongo8` succeeded. Docker warned that `--time` is deprecated
+in favor of `--timeout`. A filtered container listing is empty; subsequent inspect
+of both recorded anonymous volumes reports **no such volume** (expected exit 1),
+confirming removal. No other container, volume or institution backup was touched.
+The successful packed sandbox was removed by its runner. Final focused formatting,
+`git diff --check` and commit-trailer audit pass; only this evidence closeout remains
+after the implementation snapshot above.
