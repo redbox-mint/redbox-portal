@@ -2,7 +2,7 @@
 
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
-complete; P3 SR-019–SR-022 are complete; SR-023–SR-025 are in progress.
+complete; P3 SR-019–SR-023 are complete; SR-024–SR-025 are in progress.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -341,7 +341,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   once and partial acquisition is cleaned up. Migration failure/partial-write
   behavior is preserved without inventing transactional or exactly-once guarantees.
 
-- [ ] **SR-023 — Gate queue consumers, schedules and normal submissions.**
+- [x] **SR-023 — Gate queue consumers, schedules and normal submissions.**
+
+  **Status:** done; [real Agenda gating/failure, owned cron and PDF checks](evidence/p3-lifecycle-config.md#sr-023--queue-pdf-and-cron-activation).
 
   **Depends on:** SR-022, SR-016.
 

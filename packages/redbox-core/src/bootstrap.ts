@@ -1,3 +1,4 @@
+import { prepareSailsSchedules } from './compat/sails/schedules';
 import { attachSailsPersistenceLifecycle } from './compat/sails/persistenceLifecycle';
 import {initializeIdentityPersistence} from './persistence/runtime';
 import {initializeBrandingPersistence} from './persistence/runtime';
@@ -51,8 +52,6 @@ export async function bootstrapRecordSchema(): Promise<void> {
  * in the correct order. Hook bootstraps run after this completes.
  */
 export async function coreBootstrap(): Promise<void> {
-  const schedule = require('node-schedule');
-
   const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
   sails.log.verbose('Branding service, bootstrapped.');
 
@@ -117,15 +116,7 @@ export async function coreBootstrap(): Promise<void> {
   await sails.services.recordsservice.bootstrapData();
   sails.log.verbose('Records bootstrap data, loaded.');
 
-  // Schedule cronjobs
-  if (sails.config.crontab.enabled) {
-    sails.config.crontab.crons().forEach((item: { interval: string; service: string; method: string }) => {
-      schedule.scheduleJob(item.interval, () => {
-        sails.services[item.service][item.method]();
-      });
-    });
-    sails.log.debug('cronjobs scheduled...');
-  }
+  await prepareSailsSchedules(sails);
 
   // Seed default i18n data into DB if missing
   await sails.services.i18nentriesservice.bootstrap();

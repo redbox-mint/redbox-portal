@@ -12,6 +12,7 @@
     "./http/**/*.ts",
     "./compat/**/*.ts",
     "./extensions/**/*.ts",
-    "./configuration/**/*.ts"
+    "./configuration/**/*.ts",
+    "./queues/**/*.ts"
   ]
 }

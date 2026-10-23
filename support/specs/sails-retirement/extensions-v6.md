@@ -79,3 +79,15 @@ and stop other writers during upgrades. Startup inspects required indexes;
 explicit index ensure remains maintenance work. Comparison-only Sails callbacks,
 configuration-write waits, version/global discovery and the legacy migration skip
 flag live in `compat/sails`; neutral imports do not execute them.
+
+Queue and cron owners are available at `redbox-core/queues`. Bind each configured
+Agenda `fnName` to a concrete handler; missing bindings fail initialization. Queue
+initialization borrows the application pool, inspects required indexes, connects
+and defines jobs. It neither claims jobs nor persists startup schedules. Activation
+starts each backend once and awaits every configured schedule write; normal
+submissions require activation. SQS recurring work still requires an external
+scheduler. Cron receives named, bound async operations and owns both timers and
+accepted callback promises. Required remote imports belong in named bootstrap
+work rather than recurring work. PDF retains its existing explicit activation and
+owned retry/browser lifecycle. The temporary Sails adapters alone translate ready
+callbacks, global lookup, legacy lazy queue initialization and shutdown hooks.

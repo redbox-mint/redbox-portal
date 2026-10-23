@@ -201,3 +201,66 @@ Final SR-022 strict application typecheck, Node 26 production incremental compil
 focused Prettier and diff checks **exit 0**. After the final compatibility-file
 move, the complete focused stage/loader/extension command again passed **45/45**,
 **0 failures/pending** (480 ms). No dependency changes.
+
+## SR-023 — Queue, PDF and cron activation
+
+SR-022 commit `eb56d9811`. Extracted the existing Agenda implementation into
+`queues/AgendaQueue.ts`; Mongo/SQS claim fencing, accepted-handler/backend-operation
+tracking, queue/history APIs and serialization remain one implementation. Only
+`compat/sails/agenda.ts` translates globals, ready/lazy startup, legacy index DDL
+and beforeShutdown. Its public shim/export and existing private test seams remain.
+Standalone initialization connects/defines/inspects; activation starts once and
+awaits configured schedule writes before admitting normal submissions. Missing
+handlers fail startup. SQS recurring/delay limitations remain unchanged.
+
+Pinned MongoBackend.connect creates logger indexes even with logging disabled.
+The neutral path uses the same pinned MongoJobRepository with `ensureIndex:false`,
+borrowed transport and no persistent logger; explicit queue index maintenance uses
+its actual ordered index keys plus the two historical indexes. No alternate job
+repository or dependency patch/version change. Tests compare indexes/absence of
+logger collections before and after startup. The selected deployment must prepare
+these indexes explicitly. Full standalone maintenance composition is SR-025.
+
+`queues/ScheduledWork.ts` owns node-schedule jobs before schedule acquisition,
+activates once and tracks actual async callback completion. Invalid schedule
+failure cleans already registered jobs. Comparison cron now prepares during
+bootstrap and activates at ready instead of firing during bootstrap. Remote
+vocabulary imports remain their existing awaited bootstrap operations; neutral
+compositions bind them as named work, never as ordinary recurring producers.
+PDF reuses P2's implementation and adds required-bootstrap-failure proof.
+
+Commands (Node **26.11.1**, npm **11.20.0**, same Mongo **8.0.34 / FCV 8.0**):
+
+```sh
+LIFECYCLE_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p3_lifecycle npm --prefix packages/redbox-core run test:lifecycle:mongo
+# From packages/redbox-core with absolute qualified PATH:
+TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 15000 test/services/AgendaQueueService.test.ts test/queues/ScheduledWork.test.ts
+./node_modules/.bin/tsc
+node --test test/extensions/pdf-lifecycle.cjs
+# Root:
+npm --prefix packages/redbox-core run typecheck:application
+npm run lint
+```
+
+Results **8 Mongo passing / 0 failing/pending** (~3 s), **61 queue/cron passing /
+0 failing/pending** (~2 s), **5 PDF passing / 0 failing/skipped** (~1.7 s).
+Production compile and strict application typecheck **exit 0**; lint **887 files,
+0 errors/warnings**; focused Prettier/diff checks pass. Real Agenda tests exercise
+a seeded due job, no inactive claims/submissions/schedule writes, once-only starts,
+migration/bootstrap failure, missing handler and cleanup after later activation
+failure; persisted completed effects remain (no rollback claim). No skip accepted.
+
+Intermediate checks: initial legacy suite **55 pass / 4 fail** exposed captured
+HTTP-owner lookup, preserved legacy start-before-index behavior and diagnostic
+text; corrected solely at the comparison boundary; unchanged suite passes **59**.
+First Mongo run **3 pass / 5 fail** used the wrong diagnostic property `poolCount`
+in new tests; corrected to existing `pools`. The first cron run **60 pass / 1 fail**
+found node-schedule retains a failed Job; ownership now begins before scheduling.
+An initial typecheck caught extraction-specific visibility/types and the diagnostic
+property; fixed. Early successful Mongo processes stayed alive on pinned Agenda's
+passive lock-watchdog delay (`lockLifetime/2`), despite closed clients/pools. The
+fixture now explicitly configures a **200 ms lock lifetime**; it is not force-exited.
+The upstream watchdog's passive delay remains a process-exit consideration for
+long-lived production job lock settings; it performs no I/O once the handler has
+settled. It is not evidence of a retained connection or a running handler.
+No existing assertion, configured timeout, skip or dependency pin was weakened.

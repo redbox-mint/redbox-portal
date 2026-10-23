@@ -96,16 +96,21 @@ function fixture(overrides = {}) {
     ['test', 'pdf']
   );
   let pdf;
-  const composition = composeExtensionApplication({ config: {}, log: console }, resolved, {
-    module: item => () => {
-      const instance = bindExtensionFactory(
-        item.declaration,
-        item.declaration.name === 'pdf' ? dependencies : undefined
-      )();
-      if (item.declaration.name === 'pdf') pdf = instance;
-      return instance;
+  const composition = composeExtensionApplication(
+    { config: {}, log: console },
+    resolved,
+    {
+      module: item => () => {
+        const instance = bindExtensionFactory(
+          item.declaration,
+          item.declaration.name === 'pdf' ? dependencies : undefined
+        )();
+        if (item.declaration.name === 'pdf') pdf = instance;
+        return instance;
+      },
     },
-  });
+    overrides.initialization
+  );
   return {
     app: composition.application,
     events,
@@ -200,5 +205,25 @@ test('failed browser cleanup stays owned and application stop retries it observa
   instance.failClose(false);
   await instance.app.stop();
   assert(instance.events.filter(event => event === 'browser-close').length >= 3);
+  graph();
+});
+
+test('required bootstrap failure leaves PDF generation and retries inactive', async () => {
+  const instance = fixture({
+    initialization: {
+      coreBootstrap: [
+        {
+          name: 'required-import',
+          run: async () => {
+            throw new Error('Required initialization failed');
+          },
+        },
+      ],
+    },
+  });
+  await assert.rejects(instance.app.initialize(), /Required initialization failed/);
+  assert.throws(() => instance.pdf.createPDF('oid', {}, {}, {}), /active/);
+  assert.deepEqual(instance.events, ['storage-close']);
+  assert.equal(instance.app.status().cleanupPending, false);
   graph();
 });
