@@ -1,3 +1,4 @@
+import type { ApiRequestInput } from './types';
 import { ZodType } from 'zod';
 
 import { ApiRequestDefinition, ApiRequestSource } from './types';
@@ -19,7 +20,7 @@ export interface ApiRequestExtraction {
 }
 
 function getRequestSourceValue(
-  req: Sails.Req,
+  req: ApiRequestInput,
   request: ApiRequestDefinition | undefined,
   source: ApiRequestSource
 ): unknown {
@@ -53,14 +54,14 @@ function getLegacyFallbackSources(request: ApiRequestDefinition | undefined, key
   return Array.isArray(sources) ? sources : [];
 }
 
-function getHeaderValue(req: Sails.Req, name: string): string | string[] | undefined {
+function getHeaderValue(req: ApiRequestInput, name: string): string | string[] | undefined {
   const headers = req.headers as Record<string, string | string[] | undefined> | undefined;
   return headers == null
     ? undefined
     : Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
 }
 
-function getBodyContentTypeForExtraction(req: Sails.Req, contentTypes: string[]): string | undefined {
+function getBodyContentTypeForExtraction(req: ApiRequestInput, contentTypes: string[]): string | undefined {
   const contentTypeHeader = getHeaderValue(req, 'content-type');
   const requestContentType =
     typeof contentTypeHeader === 'string' ? contentTypeHeader.split(';')[0]?.trim().toLowerCase() : undefined;
@@ -72,7 +73,7 @@ function getBodyContentTypeForExtraction(req: Sails.Req, contentTypes: string[])
 }
 
 export function getRequestValue(
-  req: Sails.Req,
+  req: ApiRequestInput,
   request: ApiRequestDefinition | undefined,
   source: ApiRequestSource,
   key: string
@@ -101,7 +102,7 @@ export function getRequestValue(
 }
 
 export function buildRequestSourceInput(
-  req: Sails.Req,
+  req: ApiRequestInput,
   request: ApiRequestDefinition | undefined,
   source: ApiRequestSource,
   schema?: ZodType
@@ -127,7 +128,7 @@ export function buildRequestSourceInput(
   return coerceValueForSchema(projected, schema);
 }
 
-export function extractApiRequest(req: Sails.Req, request?: ApiRequestDefinition): ApiRequestExtraction {
+export function extractApiRequest(req: ApiRequestInput, request?: ApiRequestDefinition): ApiRequestExtraction {
   const bodyContent = request?.body?.content;
   const bodyContentTypes = bodyContent ? Object.keys(bodyContent) : [];
   const bodyContentType = bodyContent ? getBodyContentTypeForExtraction(req, bodyContentTypes) : undefined;

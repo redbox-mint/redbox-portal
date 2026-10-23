@@ -1,3 +1,4 @@
+import type { ApiRequestInput } from './types';
 import {
   ZodArray,
   ZodBoolean,
@@ -85,7 +86,7 @@ export function isApiRoutePath(path: string): boolean {
   return path.split('/').some(segment => segment === 'api');
 }
 
-type AuthRuleLike = {
+export type AuthRuleLike = {
   path: string;
   role: string;
   can_read?: boolean;
@@ -141,12 +142,15 @@ function getRoutePathVariants(path: string): string[] {
   return variants.map(variant => `/${variant.join('/')}`);
 }
 
-export function getRedboxRoleExtension(path: string): Record<string, unknown> | undefined {
+export function getRedboxRoleExtension(
+  path: string,
+  rules: readonly AuthRuleLike[] = getAuthRules()
+): Record<string, unknown> | undefined {
   const roles: string[] = [];
   const seenRoles = new Set<string>();
   const routePathVariants = getRoutePathVariants(path);
 
-  for (const rule of getAuthRules()) {
+  for (const rule of rules) {
     const pattern = new UrlPattern(rule.path);
     if (!routePathVariants.some(routePathVariant => pattern.match(routePathVariant) != null)) {
       continue;
@@ -373,7 +377,7 @@ function normalizeMatchedRoutePath(routeValue: unknown): string | undefined {
   return undefined;
 }
 
-export function getMatchedRoutePath(req: Sails.Req): string | undefined {
+export function getMatchedRoutePath(req: ApiRequestInput): string | undefined {
   const matched = normalizeMatchedRoutePath(req.route);
   if (matched) {
     return matched;
@@ -422,7 +426,7 @@ function getHeaderValue(headers: unknown, key: string): unknown {
   return undefined;
 }
 
-export function extractFromSource(req: Sails.Req, source: RequestSource, key: string): unknown {
+export function extractFromSource(req: ApiRequestInput, source: RequestSource, key: string): unknown {
   const request = req as unknown as Record<string, unknown>;
   switch (source) {
     case 'params':
@@ -438,7 +442,7 @@ export function extractFromSource(req: Sails.Req, source: RequestSource, key: st
   }
 }
 
-export function getRequestFiles(req: Sails.Req): Record<string, unknown[]> {
+export function getRequestFiles(req: ApiRequestInput): Record<string, unknown[]> {
   const request = req as unknown as Record<string, unknown>;
   const files = request.files;
   if (Array.isArray(files)) {
@@ -479,7 +483,7 @@ export function ensureSchemaObject(field: ApiSchemaField | undefined): ApiSchema
   return z.object({}).passthrough();
 }
 
-export function routeExtractor(route: ApiRequestDefinition | undefined, req: Sails.Req): unknown {
+export function routeExtractor(route: ApiRequestDefinition | undefined, req: ApiRequestInput): unknown {
   if (!route?.extractor) {
     return undefined;
   }
@@ -498,7 +502,11 @@ export function isZodObjectSchema(schema: ApiSchemaField | undefined): schema is
 }
 
 export function isPassthroughObjectSchema(schema: ZodType): schema is ZodObject<ZodRawShape> {
-  return schema instanceof ZodObject && 'catchall' in schema._zod.def && (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown';
+  return (
+    schema instanceof ZodObject &&
+    'catchall' in schema._zod.def &&
+    (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown'
+  );
 }
 
 export function isOptionalSchema(schema: ZodType): boolean {
@@ -508,7 +516,8 @@ export function isOptionalSchema(schema: ZodType): boolean {
 function isIntegerSchema(schema: ZodType): boolean {
   return (
     schema instanceof ZodNumber &&
-    (schema._zod.def as { checks?: Array<{ format?: string }> }).checks?.some((check) => check.format === 'safeint') === true
+    (schema._zod.def as { checks?: Array<{ format?: string }> }).checks?.some(check => check.format === 'safeint') ===
+      true
   );
 }
 

@@ -383,7 +383,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## P4 — Authenticated standalone HTTP pilot
 
-- [ ] **SR-026 — Adapt route contracts and validation inputs.**
+- [x] **SR-026 — Adapt route contracts and validation inputs.**
+
+  **Status:** done; [minimal inputs, injected resolution and contract/document checks](evidence/p4-http-pilot.md#sr-026--contract-inputs-and-injected-resolution).
 
   **Depends on:** SR-013, SR-019.
 

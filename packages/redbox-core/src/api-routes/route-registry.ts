@@ -1,6 +1,12 @@
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
-import { buildSailsRouteConfig, ensureUniqueApiRoutes, isRecord, toRouteMap, validateApiRouteConsistency } from './helpers';
+import {
+  buildSailsRouteConfig,
+  ensureUniqueApiRoutes,
+  isRecord,
+  toRouteMap,
+  validateApiRouteConsistency,
+} from './helpers';
 import { ApiRouteDefinition, type ApiRouteProvider } from './types';
 import { appConfigApiRoutes } from './groups/appconfig';
 import { adminApiRoutes } from './groups/admin';
@@ -58,10 +64,17 @@ export function registerCoreApiRoutes(): ApiRouteDefinition[] {
   return [...ensureUniqueApiRoutes(coreApiRouteGroups.flat(), 'core API routes')];
 }
 
-export function registerHookApiRoutes(): ApiRouteDefinition[] {
+export interface ApiRouteConfiguration {
+  readonly apiRoutesHooks?: readonly ApiRouteProvider[];
+  readonly routes?: Record<string, unknown>;
+}
+
+export function registerHookApiRoutes(configuration?: ApiRouteConfiguration): ApiRouteDefinition[] {
   const sailsConfig =
     typeof sails === 'undefined' ? {} : ((sails as unknown as { config?: Record<string, unknown> }).config ?? {});
-  const hookProviders = sailsConfig['apiRoutesHooks'] as ApiRouteProvider[] | undefined;
+  const hookProviders = configuration
+    ? configuration.apiRoutesHooks
+    : (sailsConfig['apiRoutesHooks'] as ApiRouteProvider[] | undefined);
   if (!Array.isArray(hookProviders)) {
     return [];
   }
@@ -84,9 +97,14 @@ function getRuntimeRouteTable(): Record<string, unknown> | undefined {
   return isRecord(runtimeRoutes) ? runtimeRoutes : undefined;
 }
 
-export function getMergedApiRoutes(): ApiRouteDefinition[] {
-  const routes = [...ensureUniqueApiRoutes([...registerCoreApiRoutes(), ...registerHookApiRoutes()], 'merged API routes')];
-  const runtimeRoutes = getRuntimeRouteTable();
+export function getMergedApiRoutes(configuration?: ApiRouteConfiguration): ApiRouteDefinition[] {
+  const routes = [
+    ...ensureUniqueApiRoutes(
+      [...registerCoreApiRoutes(), ...registerHookApiRoutes(configuration)],
+      'merged API routes'
+    ),
+  ];
+  const runtimeRoutes = configuration ? configuration.routes : getRuntimeRouteTable();
   if (runtimeRoutes) {
     validateApiRouteConsistency(routes, runtimeRoutes, 'merged runtime route table');
   }

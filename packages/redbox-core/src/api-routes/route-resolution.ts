@@ -1,10 +1,10 @@
+import type { ApiRequestInput } from './types';
 import UrlPattern from 'url-pattern';
 
 import { getMatchedRoutePath, normalizeMethod, routeKey } from './helpers';
 import { getMergedApiRoutes } from './route-registry';
 import { ApiRouteDefinition } from './types';
 
-let cachedRouteMap: Map<string, ApiRouteDefinition> | null = null;
 let cachedRoutes: readonly ApiRouteDefinition[] | null = null;
 
 function getCachedRoutes(): readonly ApiRouteDefinition[] {
@@ -12,13 +12,6 @@ function getCachedRoutes(): readonly ApiRouteDefinition[] {
     cachedRoutes = getMergedApiRoutes();
   }
   return cachedRoutes;
-}
-
-function getCachedRouteMap(): Map<string, ApiRouteDefinition> {
-  if (cachedRouteMap == null) {
-    cachedRouteMap = new Map(getCachedRoutes().map(route => [routeKey(route.method, route.path), route]));
-  }
-  return cachedRouteMap;
 }
 
 function matchRoutePath(routePath: string, requestPath: string): boolean {
@@ -34,46 +27,56 @@ function getContractAliasPath(routePath: string): string | undefined {
 }
 
 export function resetResolvedApiRouteCache(): void {
-  cachedRouteMap = null;
   cachedRoutes = null;
 }
 
-export function resolveApiRouteForRequest(req: Sails.Req): ApiRouteDefinition | undefined {
-  const method = normalizeMethod(req.method);
-  const matchedRoutePath = getMatchedRoutePath(req);
+/** Per-composition resolution; no process cache or implicit runtime configuration. */
+export function createApiRouteResolver(routes: readonly ApiRouteDefinition[]) {
+  const snapshot = [...routes];
+  const routeMap = new Map(snapshot.map(route => [routeKey(route.method, route.path), route]));
+  return (req: ApiRequestInput): ApiRouteDefinition | undefined => {
+    const method = normalizeMethod(req.method ?? '');
+    const matchedRoutePath = getMatchedRoutePath(req);
 
-  if (matchedRoutePath) {
-    const matchedRoute = getCachedRouteMap().get(routeKey(method, matchedRoutePath));
-    if (matchedRoute) {
-      return matchedRoute;
-    }
-    const aliasPath = getContractAliasPath(matchedRoutePath);
-    if (aliasPath) {
-      const aliasedRoute = getCachedRouteMap().get(routeKey(method, aliasPath));
-      if (aliasedRoute) {
-        return aliasedRoute;
+    if (matchedRoutePath) {
+      const matchedRoute = routeMap.get(routeKey(method, matchedRoutePath));
+      if (matchedRoute) {
+        return matchedRoute;
+      }
+      const aliasPath = getContractAliasPath(matchedRoutePath);
+      if (aliasPath) {
+        const aliasedRoute = routeMap.get(routeKey(method, aliasPath));
+        if (aliasedRoute) {
+          return aliasedRoute;
+        }
       }
     }
-  }
 
-  const requestPath = typeof req.path === 'string' && req.path.trim() !== ''
-    ? req.path.trim()
-    : typeof req.originalUrl === 'string'
-      ? req.originalUrl.split('?')[0]
-      : '';
-  const matchingRoutes = getCachedRoutes().filter(route => route.method === method && matchRoutePath(route.path, requestPath));
+    const requestPath =
+      typeof req.path === 'string' && req.path.trim() !== ''
+        ? req.path.trim()
+        : typeof req.originalUrl === 'string'
+          ? req.originalUrl.split('?')[0]
+          : '';
+    const matchingRoutes = snapshot.filter(route => route.method === method && matchRoutePath(route.path, requestPath));
 
-  if (matchingRoutes.length === 1) {
-    return matchingRoutes[0];
-  }
+    if (matchingRoutes.length === 1) {
+      return matchingRoutes[0];
+    }
 
-  if (matchingRoutes.length > 1) {
-    throw new Error(
-      `Ambiguous contract-first API route match for ${String(req.method).toUpperCase()} ${requestPath}: ${matchingRoutes
-        .map(route => `${route.controller}#${route.action} ${route.path}`)
-        .join(', ')}`
-    );
-  }
+    if (matchingRoutes.length > 1) {
+      throw new Error(
+        `Ambiguous contract-first API route match for ${String(req.method).toUpperCase()} ${requestPath}: ${matchingRoutes
+          .map(route => `${route.controller}#${route.action} ${route.path}`)
+          .join(', ')}`
+      );
+    }
 
-  return undefined;
+    return undefined;
+  };
+}
+
+/** Temporary legacy host convenience; standalone compositions use createApiRouteResolver. */
+export function resolveApiRouteForRequest(req: ApiRequestInput): ApiRouteDefinition | undefined {
+  return createApiRouteResolver(getCachedRoutes())(req);
 }

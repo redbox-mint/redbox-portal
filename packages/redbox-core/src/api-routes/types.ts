@@ -1,5 +1,20 @@
 import type { ZodType } from 'zod';
 
+/** Transport data consumed by contracts; no Sails helpers or mutable Express query required. */
+export interface ApiRequestInput {
+  readonly params?: Record<string, unknown>;
+  readonly query?: Record<string, unknown>;
+  readonly headers?: Record<string, string | string[] | undefined>;
+  readonly body?: unknown;
+  readonly files?: unknown;
+  readonly method?: string;
+  readonly path?: string;
+  readonly originalUrl?: string;
+  readonly route?: unknown;
+  readonly options?: Record<string, unknown>;
+  readonly apiRequest?: import('./validation').ValidatedApiRouteRequest;
+}
+
 export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch' | 'head';
 export type ApiRequestSource = 'params' | 'query' | 'headers' | 'body';
 
@@ -30,8 +45,8 @@ export interface ApiRequestDefinition {
   headers?: ApiSchemaField;
   body?: ApiRequestBodyDefinition;
   files?: Record<string, ApiFileConstraint>;
-  extractor?: (req: Sails.Req) => unknown;
-  queryExtractor?: (req: Sails.Req) => unknown;
+  extractor?: (req: ApiRequestInput) => unknown;
+  queryExtractor?: (req: ApiRequestInput) => unknown;
   legacyParamFallbacks?: Partial<Record<string, readonly ApiRequestSource[]>>;
 }
 
