@@ -1,9 +1,9 @@
 # Sails retirement: v6 task list
 
-Status: SR-001–SR-039 are complete except SR-005, which awaits institution and
-production-source designation. SR-041–SR-043 are complete, including the accepted
-single-instance Companion adapter and real transfer/socket qualification.
-SR-040 and SR-044 onward have not started.
+Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
+production-source designation. P6 includes owned pages/installed artifacts and
+real browser/provider lifetime qualification, under the accepted single-instance
+Companion adapter limits. SR-045 onward have not started.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -596,7 +596,12 @@ Read the [design](design.md) for behavior and the
   cross-origin and admin/schema authorization pass. Protected P5 write groups
   cannot be completed before this behavior is available.
 
-- [ ] **SR-040 — Port EJS pages, helpers, themes and static artifacts.**
+- [x] **SR-040 — Port EJS pages, helpers, themes and static artifacts.**
+
+  **Status:** done; [owned page operations, installed artifact lookup, policies,
+  root/proxy delivery, visible persisted Angular workflows and baseline artifact
+  limitations](evidence/p6-pages.md). All 10 page cases pass in the 171-case HTTP
+  matrix; three real Docker browser runs pass 4/4 with zero skips/failures.
 
   **Depends on:** SR-032, SR-018, SR-038.
 
@@ -655,7 +660,13 @@ Read the [design](design.md) for behavior and the
   work pass; portal and Companion sockets remain distinct and attach once each.
   Document coordinated client/protocol changes where compatibility is not retained.
 
-- [ ] **SR-044 — Verify integrated browser/provider lifetime behavior.**
+- [x] **SR-044 — Verify integrated browser/provider lifetime behavior.**
+
+  **Status:** done; [real auth/upload/PDF/progress/browser combinations,
+  abort/deadline/persistence/retry proof and accepted provider limits](evidence/p6-browser-lifetime.md).
+  Three fresh browser processes pass 4/4; final HTTP is 171 passing, Bruno 34
+  requests/53 checks, full Mongo core 4420 passing/68 existing pending/zero failures.
+  Accepted work persists before pools/clients close; final owned upgrade count is 0.
 
   **Depends on:** SR-038, SR-039, SR-040, SR-041, SR-042, SR-043, SR-024, SR-016.
 
