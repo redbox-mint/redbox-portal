@@ -471,8 +471,8 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   translation-entry, form and validation-discovery implementations are extracted.
   [Executed read-slice evidence and remaining routes](evidence/p5-configuration-read.md).
   [Browser/dashboard/localization/workspace and AppConfig form reads](evidence/p5-metadata-read.md)
-  bring the verified inventory to 39/63. Two record-form browser GETs and protected
-  writes remain; this task is not accepted as a completed group.
+  plus both browser record-form GETs bring the verified inventory to 41/63.
+  Its 22 protected writes/previews remain; this task is not accepted as a completed group.
 
   **Depends on:** SR-031, SR-021; SR-039 before completing protected writes.
 

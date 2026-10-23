@@ -383,6 +383,10 @@
     "./record-schema": {
       "types": "./dist/recordSchema/index.d.ts",
       "default": "./dist/recordSchema/index.js"
+    },
+    "./vocabulary": {
+      "types": "./dist/vocabulary/index.d.ts",
+      "default": "./dist/vocabulary/index.js"
     }
   }
 }

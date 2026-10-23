@@ -86,3 +86,66 @@ The compiled guard rejects Sails, compatibility, controllers and the core barrel
 Inventory generation/check reports **332 total, 41 standalone, 291 remaining**;
 SR-032 has **39/63** declarations verified. This is the prior six API reads plus
 32 metadata GETs and the AppConfig form GET. The source inventory is offline.
+
+## Browser record-form GETs
+
+Continuation after `9d7ad06c5`: the two `RecordController.getForm` declarations
+share the HTTP-independent `forms/FormDelivery.ts` operation with the comparison
+controller. The fingerprint composition moved once to `RecordFormFingerprint.ts`;
+the existing authoritative save routine delegates to it. Vocabulary operations,
+prehydration and context-variable evaluation now take explicit inputs. The owned
+sanitizer lazily creates/closes its own JSDOM window and purifier; only the
+comparison adapter supplies the legacy global `DOMPurify` getter. Converted
+service facades no longer use the process-wide instance cache. This extracts
+vocabulary support; it does not mount vocabulary administration mutations.
+
+Same exact host/tool versions and Mongo container as above. Executed:
+
+```sh
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+npm --prefix packages/redbox-core test -- --no-config \
+  --node-option no-experimental-strip-types --require ts-node/register/transpile-only \
+  --require chai --require test/setup.ts --timeout 10000 \
+  test/services/DomSanitizerService.test.ts test/services/VocabularyService.test.ts \
+  test/services/FormPayloadPrehydrateService.test.ts test/utilities/ContextVariableUtils.test.ts
+npm --prefix packages/redbox-core test -- --no-config \
+  --node-option no-experimental-strip-types --require ts-node/register/transpile-only \
+  --require chai --require test/setup.ts --timeout 10000 \
+  test/controllers/RecordController.test.ts test/services/RecordsService.test.ts
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http \
+  npm --prefix packages/redbox-core run test:http-configuration:mongo
+HTTP_PILOT_TEST_MONGO_URL=mongodb://127.0.0.1:34903/sr_p4_http \
+  npm --prefix packages/redbox-core run test:http-pilot:mongo
+npm run lint
+node support/specs/sails-retirement/evidence/route-inventory.cjs
+node support/specs/sails-retirement/evidence/route-inventory.cjs --check
+```
+
+Results: build/typecheck pass; collaborator regressions **85 passing**, existing
+record controller/service regressions **437 passing**, Mongo HTTP **19 passing**
+(including four Bruno requests, **8/8 tests**), compiled pilot **24 passing**.
+All these suites have **zero failures/pending/skips**. Lint **946 files**, zero
+errors/warnings. Logs: `p5-form-collaborators-tests.log`,
+`p5-form-delivery-{build,typecheck4,regression3,qualified-http,qualified-pilot,qualified-lint}.log`.
+No dependency versions changed; the vocabulary public export was added.
+
+The HTTP tests use persisted vocabulary entries for inline options and selected
+checkbox-tree prehydration, actual HTML sanitization, authoritative saved form
+selection, create/edit/view, context variables, operation discovery, matching
+create/edit fingerprints, record revision/ETag, v1 raw/v2 metadata envelopes,
+missing objects, conflicting form confirmation, malformed parameters and
+unauthenticated/wrong-brand/wrong-role denial. The loader remains the named
+persisted metadata fixture collection; storage/provider qualification is SR-034.
+
+Intermediate regression runs failed because composition eagerly accessed an
+unused legacy collaborator before missing/error results. Making that comparison
+lookup lazy restored the error ordering. Two lint imports became obsolete after
+extraction and were removed. A storage-error fixture now supplies its real
+required brand ID, so the intended storage failure remains reachable after the
+explicit form brand check; its error assertions remain intact. The design names
+this tenant-isolation tightening and affected record-form clients.
+
+Inventory: **43/332 standalone**, **41/63 SR-032**. All SR-032 reads are now
+verified; its **22 protected writes/previews remain unmounted** pending SR-039.
+The task checkbox remains unchecked.

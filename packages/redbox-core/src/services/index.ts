@@ -1,3 +1,6 @@
+import { sailsFormPayloadPrehydrateExports } from '../compat/sails/formPayloadPrehydrate';
+import { sailsVocabularyExports } from '../compat/sails/vocabulary';
+import { sailsDomSanitizerExports } from '../compat/sails/domSanitizer';
 import { sailsRecordSchemaExports } from '../compat/sails/recordSchema';
 import { sailsTranslationExports } from '../compat/sails/translation';
 import { sailsDashboardTypesExports } from '../compat/sails/dashboardTypes';
@@ -235,11 +238,7 @@ export const ServiceExports = {
       new FormRecordConsistencyServiceModule.Services.FormRecordConsistency().exports()
     );
   },
-  get FormPayloadPrehydrateService() {
-    return getOrCreateService('FormPayloadPrehydrateService', () =>
-      new FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService().exports()
-    );
-  },
+  get FormPayloadPrehydrateService() { return sailsFormPayloadPrehydrateExports(); },
   get FormsService() {
     return sailsFormsExports();
   },
@@ -302,11 +301,7 @@ export const ServiceExports = {
       new SolrSearchServiceModule.Services.SolrSearchService().exports()
     );
   },
-  get DomSanitizerService() {
-    return getOrCreateService('DomSanitizerService', () =>
-      new DomSanitizerServiceModule.Services.DomSanitizer().exports()
-    );
-  },
+  get DomSanitizerService() { return sailsDomSanitizerExports(); },
   get TemplateService() {
     return getOrCreateService('TemplateService', () => new TemplateServiceModule.Services.Template().exports());
   },
@@ -322,11 +317,7 @@ export const ServiceExports = {
   get ViewUtilsService() {
     return getOrCreateService('ViewUtilsService', () => new ViewUtilsServiceModule.Services.ViewUtils().exports());
   },
-  get VocabularyService() {
-    return getOrCreateService('VocabularyService', () =>
-      new VocabularyServiceModule.Services.VocabularyService().exports()
-    );
-  },
+  get VocabularyService() { return sailsVocabularyExports(); },
   get RvaImportService() {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },

@@ -30,3 +30,5 @@ export {
 export { PathRules, type PathRule, type RuleRole } from '../../authorization/PathRules';
 
 export { mountMetadataReadRoutes, metadataReadRoutes, type MetadataReadHttpInput } from './metadata';
+
+export { mountFormDeliveryRoutes, formDeliveryRoutes, type FormDeliveryHttpInput } from './formDelivery';

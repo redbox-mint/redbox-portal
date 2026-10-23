@@ -749,7 +749,7 @@ describe('RecordController getWorkflowSteps', () => {
           } else {
             (controller.recordsService.getMeta as sinon.SinonStub).resolves({
               redboxOid: 'oid-1',
-              metaMetadata: { form: 'auto' },
+              metaMetadata: { form: 'auto', brandId: 'brand-1' },
             });
             (FormsService.getForm as sinon.SinonStub).rejects(lookupError);
           }

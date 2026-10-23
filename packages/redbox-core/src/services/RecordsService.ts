@@ -124,7 +124,7 @@ import {
   type RecordConcurrencyResolution,
 } from '@researchdatabox/sails-ng-common';
 import { formatRecordEntityTag } from '../RecordEntityTag';
-import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
+import { resolveRecordFormFingerprint } from '../RecordFormFingerprint';
 import { normalizeAttachmentStagingFileId } from '../AttachmentStagingIdentity';
 import {
   INITIAL_RECORD_REVISION,
@@ -1765,46 +1765,12 @@ export namespace Services {
       recordType: RecordTypeLike,
       sourceForm?: FormAttributes
     ): Promise<string | undefined> {
-      const metaMetadata = this.recordObject(record.metaMetadata);
-      const formName = String(metaMetadata.form ?? '').trim();
-      const brandId = String(metaMetadata.brandId ?? '').trim();
-      if (!formName || !brandId) return undefined;
-      const suppliedFormName = String(sourceForm?.name ?? '').trim();
-      const suppliedBrandId = String(sourceForm?.branding ?? '').trim();
-      if (sourceForm && (suppliedFormName !== formName || (!!suppliedBrandId && suppliedBrandId !== brandId))) {
-        return undefined;
-      }
-      const form = sourceForm ?? (await firstValueFrom(FormsService.getFormByName(formName, true, brandId)));
-      if (!form) return undefined;
-      const workflowSteps = (await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType))) ?? [];
-      const workflowFormContract = workflowSteps
-        .map(step => {
-          const workflowStep = step as unknown as WorkflowStepLike;
-          return {
-            name: String(workflowStep.name ?? '').trim(),
-            starting: workflowStep['starting'] === true,
-            hidden: workflowStep['hidden'] === true,
-            config: workflowStep.config ?? {},
-          };
-        })
-        .sort((first, second) => first.name.localeCompare(second.name));
-      return formatRecordFormFingerprint({
-        recordType: String(recordType.name ?? '').trim(),
-        recordValidation: recordType.recordValidation,
-        currentWorkflow: {
-          stage: this.candidateWorkflowStep(record),
-          form: String(metaMetadata.form ?? '').trim(),
-        },
-        workflowFormContract,
-        form: {
-          id: form.id,
-          name: form.name,
-          branding: form.branding,
-          configuration: form.configuration,
-        },
-        reusableFormDefinitions: sails.config.reusableFormDefinitions ?? {},
-        validatorDefinitions: sails.config.validators?.definitions ?? [],
-      });
+      return resolveRecordFormFingerprint({
+        loadForm: (name, brand) => firstValueFrom(FormsService.getFormByName(name, true, brand)),
+        loadWorkflowSteps: type => firstValueFrom(WorkflowStepsService.getAllForRecordType(type)),
+        reusableFormDefinitions: sails.config.reusableFormDefinitions,
+        validatorDefinitions: sails.config.validators?.definitions,
+      }, record, recordType, sourceForm);
     }
 
     private committedRevision(response: StorageMutationResponse): number | undefined {

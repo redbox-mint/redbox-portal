@@ -1,3 +1,13 @@
+import { formatRecordEntityTag } from '../../src/RecordEntityTag';
+import { Services as VocabularyDomain } from '../../src/vocabulary/Vocabulary';
+import { Services as SanitizerDomain } from '../../src/forms/DomSanitizer';
+import { Services as PrehydrateDomain } from '../../src/forms/FormPayloadPrehydrate';
+import { ContextVariables } from '../../src/forms/ContextVariables';
+import { resolveRecordFormFingerprint } from '../../src/RecordFormFingerprint';
+import { mountFormDeliveryRoutes } from '../../src/http/express/formDelivery';
+import { ensureVocabularyPersistenceIndexes } from '../../src/persistence/vocabulary/preflight';
+import { initializeVocabularyPersistence, getVocabularyRepositories } from '../../src/persistence/vocabulary/runtime';
+import { dompurify } from '../../src/config/dompurify.config';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -134,6 +144,30 @@ async function configurationFixture() {
         log: nothingLogger,
         initialiseDashboardSettings: async () => {},
       });
+      await ensureVocabularyPersistenceIndexes(f.owner);
+      await initializeVocabularyPersistence(f.owner);
+      const vocabulary = new VocabularyDomain.VocabularyService({
+        repository: getVocabularyRepositories(f.owner),
+        config: {},
+        log: nothingLogger,
+        getBrand: name => brands.find(brand => brand.name === name || brand.id === name) ?? null,
+        defaultBrand: () => 'default',
+      });
+      await vocabulary.create({
+        name: 'Fixture tree',
+        slug: 'fixture-tree',
+        branding: f.brand.id,
+        type: 'tree',
+        entries: [{ label: 'Alpha', value: 'A', identifier: 'A' }],
+      });
+      const sanitizer = new SanitizerDomain.DomSanitizer({ config: { dompurify }, log: nothingLogger });
+      registerPersistenceResource(f.owner, 'form-sanitizer', { close: () => sanitizer.close() });
+      assert(!sanitizer.sanitizeWithProfile('<p>Safe</p><script>alert(1)</script>', 'html').includes('<script'));
+      const prehydrate = new PrehydrateDomain.FormPayloadPrehydrateService({
+        config: {},
+        log: nothingLogger,
+        vocabulary,
+      });
       const readers: RecordValidationServiceDependencies = {
         loadRecord,
         loadRecordType: (brand, name) => references.recordTypes.findByName(brand, name),
@@ -163,9 +197,7 @@ async function configurationFixture() {
         config: { recordSchema },
         log: nothingLogger,
         html: {
-          sanitizeWithProfile: () => {
-            throw new Error('Fixture has no HTML fields');
-          },
+          sanitizeWithProfile: (value, profile) => sanitizer.sanitizeWithProfile(value, profile),
           htmlSanitizationMode: () => 'sanitize',
         },
       });
@@ -190,9 +222,7 @@ async function configurationFixture() {
         },
         vocabulary: {
           defaultBrand: () => 'default',
-          getEntries: async () => {
-            throw new Error('Fixture has no vocabulary fields');
-          },
+          getEntries: (...args) => vocabulary.getEntries(...args),
         },
       });
       await references.forms.createDefinition({
@@ -206,6 +236,16 @@ async function configurationFixture() {
               name: 'title',
               component: { class: 'SimpleInputComponent', config: { type: 'text' } },
               model: { class: 'SimpleInputModel', config: {} },
+            },
+            {
+              name: 'choice',
+              component: { class: 'DropdownInputComponent', config: { vocabRef: 'fixture-tree', inlineVocab: true } },
+              model: { class: 'DropdownInputModel', config: {} },
+            },
+            {
+              name: 'codes',
+              component: { class: 'CheckboxTreeComponent', config: { vocabRef: 'fixture-tree' } },
+              model: { class: 'CheckboxTreeModel', config: {} },
             },
           ],
           enabledValidationGroups: ['base'],
@@ -241,7 +281,8 @@ async function configurationFixture() {
             id: oid,
             redboxOid: oid,
             harvestId: '',
-            metadata: {},
+            metadata: { title: 'Stored title', codes: [{ notation: 'A' }] },
+            revision: 3,
             metaMetadata: {
               brandId,
               createdBy: 'pilot-admin',
@@ -361,6 +402,38 @@ async function configurationFixture() {
           '*': [...pilotPolicyChain],
           TranslationController: { getNamespace: ['noCache', 'brandingAndPortal'] },
         },
+      });
+      mountFormDeliveryRoutes(router, {
+        delivery: {
+          forms,
+          recordTypes,
+          workflowSteps,
+          prehydrate,
+          loadRecord,
+          canView: async (brand, user, record) =>
+            !!user && hasViewAccess(brand, user, user.roles, record as unknown as Record<string, unknown>),
+          canEdit: async (brand, user, record) =>
+            !!user &&
+            hasEditAccess(
+              brand,
+              user,
+              user.roles.map(role => ({ ...role })),
+              record as unknown as Record<string, unknown>
+            ),
+          fingerprint: (record, type, form) =>
+            resolveRecordFormFingerprint(
+              {
+                loadForm: (name, brand) => firstValueFrom(forms.getFormByName(name, true, brand)),
+                loadWorkflowSteps: type => references.workflows.listForRecordType(String(type.id), false),
+              },
+              record,
+              type,
+              form
+            ),
+        },
+        contextVariables: new ContextVariables({ title: { source: 'metadata', field: 'title' } }, nothingLogger),
+        policies,
+        policyConfiguration: { '*': [...pilotPolicyChain] },
       });
       mountConfigurationReadRoutes(router, {
         appConfigs,
@@ -640,6 +713,38 @@ describe('configuration, translations and forms on standalone Mongo HTTP', funct
     assert.equal((await read('/default/rdmp/app/i18n/entries?locale=en&namespace[a]=x')).response.status, 400);
     assert.equal((await read('/default/rdmp/record/type?apiVersion=2.0')).response.status, 200);
   });
+  it('delivers authoritative browser forms with fingerprints, metadata, versions and object access', async () => {
+    const created = await read('/default/rdmp/record/form/dataRecord?edit=true&apiVersion=2.0');
+    assert.equal(created.response.status, 200, JSON.stringify(created.body));
+    const payload = created.body as {
+      data: { name: string };
+      meta: { oid: unknown; formName: string; formFingerprint: string };
+    };
+    assert.equal(payload.meta.oid, null);
+    assert.equal(payload.meta.formName, 'default-1.0-draft');
+    assert.equal(typeof payload.meta.formFingerprint, 'string');
+    assert(payload.meta.formFingerprint.length > 16);
+    const edit = await read('/default/rdmp/record/form/dataRecord/owned-record?edit=true&apiVersion=2.0');
+    assert.equal(edit.response.status, 200, JSON.stringify(edit.body));
+    assert.equal((edit.body as typeof payload).meta.formFingerprint, payload.meta.formFingerprint);
+    assert.equal(edit.response.headers.get('etag'), formatRecordEntityTag('owned-record', 3));
+    assert(JSON.stringify(edit.body).includes('Stored title'));
+    assert(JSON.stringify(created.body).includes('Alpha'));
+    const hydrated = edit.body as { prehydrate?: { vocabTrees: Record<string, { selectedNotations: string[] }> } };
+    assert.deepEqual(hydrated.prehydrate?.vocabTrees['fixture-tree'].selectedNotations, ['A']);
+    assert.equal((await read('/default/rdmp/record/form/dataRecord/owned-record?edit=false')).response.status, 200);
+    const stale = await read('/default/rdmp/record/form/dataRecord/owned-record?formName=private-other&apiVersion=2.0');
+    assert.equal(stale.response.status, 409);
+    assert(JSON.stringify(stale.body).includes('form-definition-changed'));
+    assert.equal((await read('/default/rdmp/record/form/dataRecord/missing')).response.status, 404);
+    assert.equal((await read('/default/rdmp/record/form/dataRecord/other-record')).response.status, 500);
+    assert.equal((await read('/default/rdmp/record/form/dataRecord?edit[a]=true')).response.status, 400);
+    assert.equal((await read('/default/rdmp/record/form/dataRecord', {} as typeof f.headers)).response.status, 401);
+    const v1 = await read('/default/rdmp/record/form/dataRecord');
+    assert.equal(v1.response.status, 200);
+    assert(!Object.hasOwn(v1.body as object, 'data'));
+    assert.equal((await read('/other/rdmp/record/form/dataRecord')).response.status, 403);
+  });
   it('serves the AppConfig form contract with masked secrets and rejects unknown definitions safely', async () => {
     const form = await read('/default/rdmp/appconfig/form/doiPublishing');
     assert.equal(form.response.status, 200);
@@ -663,6 +768,7 @@ describe('configuration, translations and forms on standalone Mongo HTTP', funct
   it('requires authentication, brand membership and applicable role for the added protected metadata routes', async () => {
     const routes = [
       '/record/type',
+      '/record/form/dataRecord',
       '/workspaces/types',
       '/api/dashboard-config/targets',
       '/api/dashboard-config/workflows/dataRecord/draft/fields',

@@ -77,7 +77,10 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
   exported as `configurationReadRoutes`, the AppConfig form GET and protected
   metadata GETs exported as `metadataReadRoutes` (record/workflow/dashboard and
   workspace types, dashboard settings/configuration, languages and app translation
-  reads). The i18next namespace GETs remain public. Supply a valid bearer credential
+  reads), and the two browser record-form GETs exported as `formDeliveryRoutes`.
+  Record-form delivery also requires the stored object to belong to the requested
+  brand; administrators must repair objects missing a brand, and cross-tenant
+  clients must use the owning brand. The i18next namespace GETs remain public. Supply a valid bearer credential
   or a new authenticated browser session.
   This keeps the API authentication requirement explicit and avoids HTML redirects
   being mistaken for successful API responses.

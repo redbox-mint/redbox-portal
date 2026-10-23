@@ -1,3 +1,4 @@
+import { deliverForm, FormDeliveryError } from '../forms/FormDelivery';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -30,7 +31,6 @@ import {
   SearchService,
   BrandingModel,
   RecordTypeModel,
-  ErrorResponseItemV2,
   RecordModel,
   UserModel,
   RoleModel,
@@ -39,9 +39,7 @@ import { DateTime } from 'luxon';
 import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
 import { default as checkDiskSpace } from 'check-disk-space';
-import { FormAttributes } from '../persistence/rows';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
-import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
@@ -241,43 +239,6 @@ export namespace Controllers {
      * target transition is a save intent and does not change the form that
      * was delivered to the browser.
      */
-    private async generatedFormFingerprint(
-      brand: BrandingModel,
-      currentRec: RecordModel | null,
-      requestedRecordType: string | undefined,
-      sourceForm: FormAttributes
-    ): Promise<string> {
-      const formConfig = sourceForm.configuration;
-      if (!formConfig) {
-        throw new Error('The current form configuration is unavailable.');
-      }
-      const recordTypeName = String(
-        currentRec?.metaMetadata?.type ?? requestedRecordType ?? formConfig.type ?? ''
-      ).trim();
-      const recordType = (await firstValueFrom(RecordTypesService.get(brand, recordTypeName))) as unknown as AnyRecord;
-
-      let fingerprintRecord: AnyRecord;
-      if (currentRec) {
-        fingerprintRecord = currentRec as unknown as AnyRecord;
-      } else {
-        const effectiveStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as unknown as AnyRecord;
-        fingerprintRecord = {
-          metaMetadata: {
-            brandId: String(brand?.id ?? ''),
-            type: String(recordType?.['name'] ?? recordTypeName),
-            form: String(_.get(effectiveStep, 'config.form', '')),
-          },
-          workflow: { stage: String(_.get(effectiveStep, 'name', '')) },
-        };
-      }
-
-      const fingerprint = await this.recordsService.getRecordFormFingerprint(fingerprintRecord, recordType, sourceForm);
-      if (!fingerprint) {
-        throw new Error('The current form concurrency fingerprint could not be generated.');
-      }
-      return fingerprint;
-    }
-
     /** Read routing intent only from the explicit server-owned source. */
     private requestString(
       source: Readonly<globalThis.Record<string, unknown>> | undefined,
@@ -977,174 +938,31 @@ export namespace Controllers {
     }
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = this.getReqBrand(req);
-      const recordType = req.param('name');
-      const oid = req.param('oid')?.toString()?.trim() || null;
-      const editMode = req.query.edit == 'true';
-      const formParam = req.param('formName');
-
       try {
-        let form: FormAttributes | null = null;
-        let currentRec: RecordModel | null = null;
-        if (!oid) {
-          //find form to create a record
-          form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
-          if (_.isEmpty(form)) {
-            const msg = `Error, getting form for record type: ${recordType}`;
-            return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ detail: msg }],
-              v1: { message: msg },
-            });
-          }
-        } else {
-          // defaults to retrieve the form of the current workflow state...
-          currentRec = await this.recordsService.getMeta(oid);
-          if (_.isEmpty(currentRec)) {
-            return this.sendResp(req, res, {
-              status: 404,
-              displayErrors: [{ code: 'missing-record' }],
-            });
-          }
-
-          // Get current user's access to record
-          let hasAccess: boolean;
-          if (editMode) {
-            //find form to edit a record
-            hasAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
-          } else {
-            //find form to view a record
-            hasAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
-          }
-
-          // Check user's record access
-          if (!hasAccess) {
-            return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ code: 'view-error-no-permissions' }],
-              v1: { message: TranslationService.t('view-error-no-permissions') },
-            });
-          }
-
-          const authoritativeFormName = String(currentRec.metaMetadata?.form ?? '').trim();
-          const requestedFormName = typeof formParam === 'string' ? formParam.trim() : '';
-          if (!authoritativeFormName) {
-            return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ detail: `The authoritative form is unavailable for OID: ${oid}` }],
-              v1: { message: `The authoritative form is unavailable for OID: ${oid}` },
-            });
-          }
-          if (requestedFormName && requestedFormName !== authoritativeFormName) {
-            return this.sendResp(req, res, {
-              status: 409,
-              displayErrors: [{ code: 'form-definition-changed' }],
-              v1: { message: TranslationService.t('form-definition-changed') },
-            });
-          }
-
-          // The stored workflow/form reference owns the delivered contract.
-          // A route parameter may confirm that identity but cannot select a
-          // different form for an existing record.
-          form = (await FormsService.getForm(
-            brand,
-            authoritativeFormName,
-            editMode,
-            '',
-            currentRec as RecordModel
-          )) as FormAttributes | null;
-          if (_.isEmpty(form)) {
-            const msg = `Error, getting form ${formParam} for OID: ${oid}`;
-            return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ detail: msg }],
-              v1: { message: msg },
-            });
-          }
-          // let hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
-          // FormsService.filterFieldsHasEditAccess(form.fields, hasEditAccess);
-        }
-
-        // process the form config to provide only the fields accessible by the current user
-        const formMode = editMode ? 'edit' : 'view';
-        const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[])
-          .map((role: AnyRecord) => String(role['name'] ?? ''))
-          .filter((name: string) => !!name);
-        const recordData = currentRec;
-        const reusableFormDefs = sails.config.reusableFormDefinitions;
-        const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, currentRec);
-        const formConfig = form?.configuration;
-        if (!form || !formConfig) {
-          const msg = `Form configuration not found for form ${formParam}, record type ${recordType}, oid ${oid}`;
-          return this.sendResp(req, res, {
-            status: 500,
-            displayErrors: [{ detail: msg }],
-            v1: { message: msg },
-          });
-        }
-        const mergedForm = await FormsService.buildClientFormConfig(
-          formConfig,
-          formMode,
-          userRoles,
-          recordData?.metadata ?? null,
-          reusableFormDefs,
-          String(brand?.name ?? ''),
-          contextVariablesMap,
-          { user: req.user as UserModel, brand }
-        );
-        const validationOperations = await FormsService.discoverValidationOperations({
-          brand,
-          form,
-          recordType: String(currentRec?.metaMetadata?.type ?? recordType ?? formConfig.type ?? ''),
-          record: currentRec,
-          user: req.user,
-          editable: editMode,
-          targetStep: typeof req.query?.targetStep === 'string' ? req.query.targetStep : undefined,
+        const result = await deliverForm({
+          forms: FormsService, recordTypes: RecordTypesService, workflowSteps: WorkflowStepsService,
+          get prehydrate() { return sails.services.formpayloadprehydrateservice as unknown as import('../forms/FormDelivery').FormDeliveryInput['prehydrate']; },
+          reusableFormDefinitions: sails.config.reusableFormDefinitions,
+          loadRecord: oid => this.recordsService.getMeta(oid),
+          canView: (brand, user, record) => firstValueFrom(this.hasViewAccess(brand, user, record)),
+          canEdit: (brand, user, record) => firstValueFrom(this.hasEditAccess(brand, user, record)),
+          fingerprint: (record, type, form) => this.recordsService.getRecordFormFingerprint(record, type, form),
+        }, {
+          brand: this.getReqBrand(req), user: req.user as UserModel | undefined,
+          recordType: req.param('name'), oid: req.param('oid')?.toString()?.trim() || null,
+          edit: req.query.edit == 'true', formName: req.param('formName'),
+          targetStep: typeof req.query.targetStep === 'string' ? req.query.targetStep : undefined,
+          contextVariables: record => ContextVariableUtils.evaluateContextVariables(req, record),
         });
-        const prehydrateService = sails.services
-          .formpayloadprehydrateservice as unknown as FormPayloadPrehydrateServiceModule.Services.FormPayloadPrehydrateService;
-        const prehydrate = await prehydrateService.build({
-          branding: brand,
-          formConfig: mergedForm,
-        });
-
-        const formFingerprint = await this.generatedFormFingerprint(brand, currentRec, recordType, form);
-        const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
-
-        // return the form config
-        if (!_.isEmpty(mergedForm)) {
-          return this.sendResp(req, res, {
-            data: mergedForm,
-            meta: {
-              formName: String(form.name ?? currentRec?.metaMetadata?.form ?? formParam ?? ''),
-              recordType: recordType,
-              oid: oid,
-              workflow: recordData?.workflow,
-              contextVariables: contextVariablesMap,
-              validationOperations,
-              formFingerprint,
-              ...(representation?.metadata ?? {}),
-            },
-            prehydrate,
-            headers: representation?.headers,
-          });
-        } else {
-          const msg = `Failed to get form with name ${formParam} and record type ${recordType} and oid ${oid}`;
-          return this.sendResp(req, res, {
-            status: 500,
-            displayErrors: [{ detail: msg }],
-            v1: { message: msg },
-          });
-        }
+        return this.sendResp(req, res, result);
       } catch (error) {
-        const msg = (error as { message?: string }).message;
-        const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition', detail: msg };
-        return this.sendResp(req, res, {
-          status: 500,
-          errors: [this.asError(error)],
-          displayErrors: [displayError],
-          v1: msg,
+        if (error instanceof FormDeliveryError) return this.sendResp(req, res, {
+          status: error.status, displayErrors: [error.code ? { code: error.code } : { detail: error.message }],
+          v1: { message: error.code ? TranslationService.t(error.code) : error.message },
         });
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)],
+          displayErrors: [{ title: 'Error getting form definition', detail: (error as Error).message }],
+          v1: (error as Error).message });
       }
     }
 
