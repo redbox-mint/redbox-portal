@@ -8,6 +8,7 @@ import {
   mongoResourceDatabase,
   mongoSessionDatabase,
   cleanupPersistence,
+  persistenceOperation,
 } from '../../src/persistence/runtime';
 
 // Exercise real Prisma client construction; only network acquisition is stubbed.
@@ -57,6 +58,37 @@ describe('app-owned Prisma datastore clients', function () {
       await cleanupPersistence(app);
     }
     assert.equal(close.callCount, 2);
+  });
+
+  it('permits lazy Prisma acquisition only within unsettled accepted work during cleanup', async function () {
+    const app = {
+      config: { datastores: { mongodb: { url: 'mongodb://fixture/accepted' } } },
+      log: { warn() {} },
+    } as unknown as Sails.Application;
+    sinon.stub(MongoClient.prototype, 'connect').resolvesThis();
+    const poolClose = sinon.stub(MongoClient.prototype, 'close').resolves();
+    await initializePersistence(app);
+    let release!: () => void;
+    const held = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    let detached!: () => Promise<unknown>;
+    const accepted = persistenceOperation(app, async () => {
+      // Bind an untracked callback to the admission context; it must expire.
+      const { AsyncResource } = await import('node:async_hooks');
+      detached = AsyncResource.bind(() => prismaDatabase(app, 'mongodb'));
+      await held;
+      const client = await prismaDatabase(app, 'mongodb');
+      assert.equal(poolClose.callCount, 0);
+      return client;
+    });
+    const cleanup = cleanupPersistence(app);
+    await assert.rejects(prismaDatabase(app, 'mongodb'), /draining/);
+    release();
+    await accepted;
+    await assert.rejects(detached(), /draining/);
+    await cleanup;
+    assert.equal(poolClose.callCount, 1);
   });
 
   it('retains failed acquisition clients until close succeeds, independently of recovery', async function () {

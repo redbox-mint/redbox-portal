@@ -288,6 +288,54 @@ describe('app-scoped non-model resource ownership', function () {
     await cleanupPersistence(b);
     assert.equal(close.getCalls().filter(call => call.thisValue === connect.secondCall.thisValue).length, 1);
   });
+  it('finishes an accepted first GridFS read during shutdown and rejects new work', async () => {
+    const { GridFSDriver } =
+      require('../../src/storage/GridFSDriver') as typeof import('../../src/storage/GridFSDriver');
+    const application = app({ datastores: { mongodb: { url: 'mongodb://fixture/accepted' } } });
+    await initializePersistence(application);
+    sinon.stub(MongoClient.prototype, 'connect').resolvesThis();
+    const close = sinon.stub(MongoClient.prototype, 'close').resolves();
+    let release!: () => void;
+    let reading!: () => void;
+    const held = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const started = new Promise<void>(resolve => {
+      reading = resolve;
+    });
+    const driver = new GridFSDriver(
+      {},
+      () => ({
+        find: () => ({
+          toArray: async () => {
+            reading();
+            await held;
+            return [];
+          },
+        }),
+        openUploadStream: sinon.stub(),
+        openDownloadStreamByName: sinon.stub(),
+        delete: async () => {},
+      }),
+      undefined,
+      application
+    );
+    // No microtask between admission and cleanup: the lazy database is still unopened.
+    const accepted = driver.exists('missing');
+    const cleanup = cleanupPersistence(application);
+    try {
+      await assert.rejects(driver.exists('late'), /draining/);
+      await assert.rejects(mongoDatabase(application, 'mongodb'), /shutdown/);
+      await started;
+      assert.equal(close.callCount, 0);
+    } finally {
+      release();
+      assert.equal(await accepted, false);
+      await cleanup;
+    }
+    assert.equal(close.callCount, 1);
+  });
+
   it('retains an errored GridFS client and a failed close for app cleanup retry', async () => {
     const { GridFSDriver }: typeof import('../../src/storage/GridFSDriver') = require('../../src/storage/GridFSDriver');
     const application = app({ datastores: { mongodb: { url: 'mongodb://fixture/error' } } });

@@ -95,13 +95,15 @@ describe('GridFSDriver', function () {
     ({ expect } = await import('chai'));
   });
 
-  beforeEach(function () {
+  beforeEach(async function () {
     files = [];
     mockSails = createMockSails();
     setupServiceTestGlobals(mockSails);
+    await runtime.initializePersistence(mockSails);
   });
 
-  afterEach(function () {
+  afterEach(async function () {
+    await runtime.cleanupPersistence(mockSails);
     cleanupServiceTestGlobals();
     sinon.restore();
   });
