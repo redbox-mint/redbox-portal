@@ -36,6 +36,7 @@ export class CompanionUploads {
   private provider?: Provider;
   private closing = false;
   private closed = false;
+  private terminated = false;
   private readonly requests = new Map<Promise<void>, Duplex>();
   private readonly sockets = new Map<Duplex, Promise<void>>();
   private readonly transfers = new Map<string, { finish(): void; start(): void }>();
@@ -165,7 +166,9 @@ export class CompanionUploads {
   }
 
   private retainTransfer(req: Request, token: string): void {
-    if (this.transfers.has(token)) return;
+    // A provider callback can return after its transport was destroyed at the
+    // deadline. It must not acquire another completion scope or timer then.
+    if (this.terminated || this.transfers.has(token)) return;
     const { promise, resolve } = Promise.withResolvers<void>();
     // awaitReady times out without a terminal upload event when no client connects.
     const connectTimeout = setTimeout(() => finish(), this.input.options.clientSocketConnectTimeout ?? 60_000);
@@ -219,6 +222,7 @@ export class CompanionUploads {
   }
 
   private terminate(): void {
+    this.terminated = true;
     for (const socket of this.sockets.keys()) socket.destroy();
     for (const socket of this.requests.values()) socket.destroy();
     for (const transfer of this.transfers.values()) transfer.finish();

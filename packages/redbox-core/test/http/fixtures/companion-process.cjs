@@ -37,7 +37,11 @@ const { CompanionUploads } = require('../../../dist/http/express/companion');
   await uploads.close();
   await uploads.close();
   assert.equal(server.listenerCount('upgrade'), 0);
-  assert.equal(Object.keys(schedule.scheduledJobs).length, before + 1, 'Cleanup cron retains process lifetime after stop');
+  assert.equal(
+    Object.keys(schedule.scheduledJobs).length,
+    before + 1,
+    'Cleanup cron retains process lifetime after stop'
+  );
   const afterStop = new CompanionUploads({ ...input, owner: { config: {}, log: console } });
   await assert.rejects(afterStop.initialize(createServer()), /Only one Companion app\(\).*per process/);
   await afterStop.close();
