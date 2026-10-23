@@ -1,20 +1,20 @@
 <!-- Default home page -->
 <% /* Brand Typeface: keep Google fonts for Default Typography only. */ %>
-<% if (!BrandingService.hasActiveCustomTypeface(BrandingService.getBrandNameFromReq(req))) { %>
+<% if (!page.typeface) { %>
 <link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>
 <% } %>
 
 
 <div class="default-page">
   <div class="header">
-    <h1 id="main-title" class="container"><%= TranslationService.t('workspaces') %></h1>
+    <h1 id="main-title" class="container"><%= page.t('workspaces') %></h1>
     <br/>
   </div>
   <div class="row" id="loading">
     <div class="col-xs-1">
     </div>
     <div class="col-xs-10">
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+      <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
     </div>
     <div class="col-xs-1">
     </div>
@@ -22,17 +22,17 @@
   <div class="main container clearfix">
     <workspace-list branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" packageType="workspace" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>></workspace-list>
 
-    <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/inline.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/polyfills.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/scripts.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/vendor.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+    <script type="text/javascript" src="<%= page.root %>/angular/workspace_list/inline.bundle.js?ts=<%= page.config.startupMinute %>"></script>
+<script type="text/javascript" src="<%= page.root %>/angular/workspace_list/polyfills.bundle.js?ts=<%= page.config.startupMinute %>"></script>
+<script type="text/javascript" src="<%= page.root %>/angular/workspace_list/scripts.bundle.js?ts=<%= page.config.startupMinute %>"></script>
+<% if (page.config.angularDev) { %>
+<script type="text/javascript" src="<%= page.root %>/angular/workspace_list/vendor.bundle.js?ts=<%= page.config.startupMinute %>"></script>
 <% } %>
-<script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/main.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
-<% if (sails.config.angularDev) { %>
-  <script type="text/javascript" src="<%= BrandingService.getRootContext() %>/angular/workspace_list/styles.bundle.js?ts=<%= sails.config.startupMinute %>"></script>
+<script type="text/javascript" src="<%= page.root %>/angular/workspace_list/main.bundle.js?ts=<%= page.config.startupMinute %>"></script>
+<% if (page.config.angularDev) { %>
+  <script type="text/javascript" src="<%= page.root %>/angular/workspace_list/styles.bundle.js?ts=<%= page.config.startupMinute %>"></script>
 <% } else { %>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/workspace_list/styles.bundle.css?ts=<%= sails.config.startupMinute %>">
+  <link rel="stylesheet" href="<%= page.root %>/angular/workspace_list/styles.bundle.css?ts=<%= page.config.startupMinute %>">
 <% } %>
 
   </div>

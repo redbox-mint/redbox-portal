@@ -49,7 +49,8 @@
     "test:http-bruno:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/BrunoPilotMongo.test.ts",
     "test:http-configuration:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/ConfigurationMongo.test.ts",
     "test:http-auth:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/AuthenticationMongo.test.ts test/http/OidcMongo.test.ts",
-    "test:http-csrf:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/CsrfMongo.test.ts"
+    "test:http-csrf:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/CsrfMongo.test.ts",
+    "test:http-pages:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/PagesMongo.test.ts"
   },
   "author": "",
   "license": "ISC",

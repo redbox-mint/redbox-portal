@@ -87,3 +87,8 @@ export * from './resumableUploads';
 export * from './companion';
 
 export { apiHttpDeclarations } from './apiManifest';
+
+export * from './pages';
+export * from './pageAssets';
+export { PageArtifacts } from '../../pages/Artifacts';
+export { Services as PageTemplates } from '../../pages/Templates';

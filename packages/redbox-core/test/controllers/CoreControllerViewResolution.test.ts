@@ -84,6 +84,7 @@ describe('CoreController hook view resolution', function () {
       log: createSinonStubLogger(sinon),
     };
     (global as { _?: unknown })._ = testRequire('lodash');
+    sinon.stub(testRequire('../../src/compat/sails/pageLocals'), 'comparisonPageLocals').returns({});
     controller = new TestController();
   });
 
@@ -194,14 +195,16 @@ describe('CoreController hook view resolution', function () {
     const layout = fs.readFileSync(path.join(viewsRoot, 'default/default/layout.ejs'), 'utf8');
     const functions = fs.readFileSync(path.join(viewsRoot, 'functions.ejs'), 'utf8');
 
-    expect(layout).to.include(
-      "typeof branding !== 'undefined' && branding != null ? branding : BrandingService.getBrandNameFromReq(req)"
-    );
-    expect(layout).to.include(
-      "typeof portal !== 'undefined' && portal != null ? portal : BrandingService.getPortalFromReq(req)"
-    );
-    expect(functions).to.include("typeof templateDirectoryLocation !== 'undefined'");
-    expect(functions).to.include('sails.config.appPath + "/views/default/default"');
+    expect(layout).to.include("typeof branding !== 'undefined' && branding != null ? branding : page.brand.name");
+    expect(layout).to.include("typeof portal !== 'undefined' && portal != null ? portal : page.portal");
+    expect(functions).not.to.include('sails.');
+    const extension = layout.match(/<%- superPartial\("\/layout\/head-extra.ejs",[\s\S]*?%>/)![0];
+    const partial = sinon.spy(() => '');
+    testRequire('ejs').render(extension, {
+      page: { brand: { name: 'brand' }, portal: 'portal' },
+      superPartial: partial,
+    });
+    sinon.assert.calledWithExactly(partial, '/layout/head-extra.ejs', 'brand', 'portal', true);
   });
 
   it('renders a root error view with the hook layout', function () {

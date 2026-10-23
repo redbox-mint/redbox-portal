@@ -10,6 +10,13 @@ import "../../../styles/style.scss";
 // only consumer and already awaits this getter.
 import type { FormValidatorDefinition } from "@researchdatabox/sails-ng-common";
 
+// The page owns the deployment prefix; keep lazy chunks under that prefix.
+declare let __webpack_public_path__: string;
+const pageScript = document.currentScript as HTMLScriptElement | null;
+if (pageScript?.dataset.redboxRoot !== undefined) {
+  __webpack_public_path__ = `${pageScript.dataset.redboxRoot}/`;
+}
+
 let formValidatorDefinitionsPromise: Promise<FormValidatorDefinition[]> | undefined;
 
 /**

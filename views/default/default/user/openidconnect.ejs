@@ -2,10 +2,10 @@
     <div class="col-md-offset-5 col-md-3">
       <div class="panel panel-default">
         <div class="panel-heading">
-          <span class="panel-title"><%= TranslationService.t('openidconnect-title') %></span>
+          <span class="panel-title"><%= page.t('openidconnect-title') %></span>
         </div>
         <div class="panel-body">
-          <a href='/user/begin_oidc'><img src='/images/Openid_connect_logo.png' alt="<%= TranslationService.t('openidconnect-logo-alt-text') %>"/></a>
+          <a href='<%= page.root %>/user/begin_oidc'><img src='<%= page.root %>/images/Openid_connect_logo.png' alt="<%= page.t('openidconnect-logo-alt-text') %>"/></a>
         </div>
       </div>
     </div>

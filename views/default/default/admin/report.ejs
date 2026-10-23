@@ -4,13 +4,13 @@
     <%- include('layout/sidebar.ejs') %>
   </div>
   <div class="col-md-9 col-lg-10 admin-main-content">
-    <a class="btn btn-large btn-primary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><i class="fa fa-arrow-left"></i> <%= TranslationService.t('report-return-to-reports-list') %></a>
-    <report branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" reportName="<%= req.param('name') %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <a class="btn btn-large btn-primary" href="<%= page.base %>/admin/reports"><i class="fa fa-arrow-left"></i> <%= page.t('report-return-to-reports-list') %></a>
+    <report branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" reportName="<%= page.param('name') %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
     </report>
   </div>
 </div>
 
-<script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+<script src="<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
    type="module"></script>
-<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
+<link rel="stylesheet" href="<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css">

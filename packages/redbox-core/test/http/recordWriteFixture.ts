@@ -60,6 +60,9 @@ export async function recordWriteFixture(
     router: Router,
     fixture: Parameters<NonNullable<NonNullable<Parameters<typeof pilotFixture>[0]>['prepareRoutes']>>[1],
     input: {
+      accounts: AuthenticationAccounts;
+      domains: Awaited<ReturnType<typeof prepareRecordReads>>;
+      types: RecordTypes;
       writer: Records.Records;
       users: Users.Users;
       storage: StorageService;
@@ -72,7 +75,7 @@ export async function recordWriteFixture(
       realtime: Parameters<NonNullable<NonNullable<Parameters<typeof pilotFixture>[0]>['prepareRoutes']>>[4];
     }
   ) => Promise<void>,
-  httpOptions: { parserExclusions?: readonly string[] } = {}
+  httpOptions: { parserExclusions?: readonly string[]; port?: number; trustProxy?: boolean } = {}
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'sr-record-writes-'));
   let writer!: Records.Records;
@@ -223,7 +226,10 @@ export async function recordWriteFixture(
           close: async () => writer.close(),
         });
         const csrf = createHttpCsrf({
-          origins: ['http://127.0.0.1'],
+          origins: [
+            'http://127.0.0.1',
+            'http://127.0.0.1:' + (realtime.server.address() as import('node:net').AddressInfo).port,
+          ],
           authenticateBearer: token => f.identity.bearer(token),
         });
         const policyConfiguration = { '*': [...pilotPolicyChain] };
@@ -279,6 +285,9 @@ export async function recordWriteFixture(
         });
         mountIdentityLinkRoutes(router, { users, csrf, policies, policyConfiguration, log: nothingLogger });
         await prepareAdditional?.(router, f, {
+          accounts,
+          domains,
+          types,
           writer,
           users,
           storage,

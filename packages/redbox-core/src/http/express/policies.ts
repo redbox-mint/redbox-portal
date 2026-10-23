@@ -162,6 +162,23 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
       Reflect.set(req, contextKey, Object.freeze({ brand, portal }));
       next();
     },
+    browseractor: async (req, res, next) => {
+      const context = requestContext(req);
+      const actor = await input.authenticate(req);
+      if (actor) Reflect.set(req, contextKey, Object.freeze({ ...context, actor }));
+      next();
+    },
+    browserauthenticated: (req, res, next) => {
+      const { actor, brand, portal } = requestContext(req);
+      if (actor) {
+        next();
+        return;
+      }
+      req.session.redirUrl = req.originalUrl;
+      res.redirect(
+        (input.rootContext ?? '') + '/' + brand.name + '/' + portal + '/' + (input.loginPath ?? 'user/login')
+      );
+    },
     iswebserviceauthenticated: async (req, res, next) => {
       const context = requestContext(req);
       const actor = await input.authenticate(req);

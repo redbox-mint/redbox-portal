@@ -88,7 +88,7 @@ export const webpack: WebpackConfig = {
                         // Compile scss files referenced in entry file to css files.
                         test: /\.(sa|sc|c)ss$/,
                         exclude: /\.\.\/angular/,
-                        use: [MiniCssExtractPlugin.loader, "css-loader", "sass-loader"],
+                        use: [{ loader: MiniCssExtractPlugin.loader, options: { publicPath: '../../../' } }, "css-loader", "sass-loader"],
                         include: [path.resolve(topDir, './assets/styles'), path.resolve(topDir, './assets/default/default/styles')]
                     },
                     {

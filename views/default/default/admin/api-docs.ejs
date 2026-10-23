@@ -1,10 +1,10 @@
 <%
-  const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
-  const rootContext = BrandingService.getRootContext();
+  const brandPortalPath = page.base;
+  const rootContext = page.root;
   const headingKey = 'admin-api-docs-heading';
   const loadingKey = 'admin-api-docs-loading';
-  const headingText = TranslationService.t(headingKey) === headingKey ? 'API Documentation' : TranslationService.t(headingKey);
-  const loadingText = TranslationService.t(loadingKey) === loadingKey ? 'Loading API documentation' : TranslationService.t(loadingKey);
+  const headingText = page.t(headingKey) === headingKey ? 'API Documentation' : page.t(headingKey);
+  const loadingText = page.t(loadingKey) === loadingKey ? 'Loading API documentation' : page.t(loadingKey);
 %>
 <!doctype html>
 <html lang="en">

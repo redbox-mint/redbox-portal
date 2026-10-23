@@ -18,6 +18,8 @@ import { mongoFixture } from './mongoFixture';
 export async function pilotFixture(
   options: Partial<Pick<RecordTypeHttpInput, 'routes' | 'policyConfiguration' | 'recordSchema'>> & {
     rootContext?: string;
+    port?: number;
+    trustProxy?: boolean;
     parserExclusions?: readonly string[];
     policyBindings?: Readonly<Record<string, RequestHandler>>;
     prepareRoutes?(
@@ -27,6 +29,7 @@ export async function pilotFixture(
       recordTypes: RecordTypes,
       realtime: {
         server: Server;
+        auth: Awaited<ReturnType<typeof prepareHttpMiddleware>>;
         authenticateCredential: Awaited<ReturnType<typeof prepareHttpMiddleware>>['authenticateCredential'];
       }
     ): Promise<void>;
@@ -51,7 +54,8 @@ export async function pilotFixture(
   const host = new ExpressHost(f.application, {
     owner: f.owner,
     hostname: '127.0.0.1',
-    port: 0,
+    port: options.port ?? 0,
+    trustProxy: options.trustProxy,
     rootContext: options.rootContext,
     prepare: async (router, server) => {
       await domain.initialize(f.brand);
@@ -65,6 +69,7 @@ export async function pilotFixture(
       await pathRules.loadRules();
       const policies = createPilotPolicies({
         branding: f.branding,
+        rootContext: options.rootContext,
         pathRules,
         defaultUnauthenticatedRole: () => undefined,
         emitRequestFailure: async () => {},
@@ -82,6 +87,7 @@ export async function pilotFixture(
       });
       await options.prepareRoutes?.(router, f, policies, domain, {
         server,
+        auth,
         authenticateCredential: auth.authenticateCredential,
       });
       router.use(httpErrorHandler(nothingLogger));

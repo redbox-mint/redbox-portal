@@ -19,7 +19,7 @@
       <div class="rb-form-loading">
         <img
           class="center-block rb-form-loading__spinner"
-          src="/images/loading.svg"
+          [src]="configService.rootContext + '/images/loading.svg'"
           [attr.alt]="'loading-alt-text' | i18next"
         />
       </div>

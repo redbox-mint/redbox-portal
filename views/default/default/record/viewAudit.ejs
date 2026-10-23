@@ -6,9 +6,9 @@
   is-admin="<%= isAdmin ? 'true' : 'false' %>"
   <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
   <div class="col-xs-12">
-    <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+    <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
   </div>
 </record-audit>
 
-<script src="<%= BrandingService.getRootContext() %>/angular/<%= resolvedAppName %>/browser/main<%= CacheService.getNgAppFileHash(resolvedAppName, 'main', '-') %>.js" type="module"></script>
-<link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= resolvedAppName %>/browser/styles<%= CacheService.getNgAppFileHash(resolvedAppName, 'styles', '-') %>.css">
+<script src="<%= page.root %>/angular/<%= resolvedAppName %>/browser/main<%= page.bundleHash(resolvedAppName, 'main', '-') %>.js" type="module"></script>
+<link rel="stylesheet" href="<%= page.root %>/angular/<%= resolvedAppName %>/browser/styles<%= page.bundleHash(resolvedAppName, 'styles', '-') %>.css">

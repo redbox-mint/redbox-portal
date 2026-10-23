@@ -10,13 +10,13 @@
                  branding="<%= typeof branding == 'undefined'? data.branding : branding %>"
                  portal="<%= typeof portal == 'undefined'? data.portal : portal %>" formName="<%= formName %>"
                  <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-      <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+      <img class="center-block" src="<%= page.root %>/images/loading.svg" alt="<%= page.t('loading-alt-text') %>">
     </redbox-form>
     </div>
     <div class="col-xs-1"></div>
   </div>
   <!-- app js bundle provides redboxClientScript before the Angular form app boots -->
-  <script src="<%= BrandingService.getBrandAndPortalPath(req) %>/js/index.bundle.js"></script>
-  <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
+  <script src="<%= page.base %>/js/index.bundle.js" data-redbox-root="<%= page.root %>"></script>
+  <script src="<%= page.root %>/angular/<%=appName%>/browser/main<%=page.bundleHash(appName, 'main', '-') %>.js"
     type="module"></script>
-  <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">
+  <link rel="stylesheet" href="<%= page.root %>/angular/<%= appName %>/browser/styles<%=page.bundleHash(appName, 'styles', '-')%>.css">

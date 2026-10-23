@@ -52,6 +52,10 @@ const { progressOperationRoutes } = require(
   resolve(root, 'packages/redbox-core/dist/http/express/progressOperations.js')
 );
 const { resumableUploadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/resumableUploads.js'));
+const { pageRoutes, pageRootRoute } = require(resolve(root, 'packages/redbox-core/dist/http/express/pages.js'));
+const { brandingDeliveryRoutes, dynamicAssetRoutes, fontDeliveryRoute } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/pageAssets.js')
+);
 if (global.sails || Object.keys(require.cache).some(p => /node_modules\/sails\//.test(p)))
   throw Error('Inventory must remain offline without Sails.');
 
@@ -105,8 +109,15 @@ function owner(pattern, controller, action) {
 }
 
 const contracts = new Set(registerCoreApiRoutes().map(r => r.method.toUpperCase() + ' ' + r.path));
+// Express 5 uses brace optional groups; the released declaration uses ':oid?'.
+const normalize = pattern => pattern.replace('{/:oid}', '/:oid?').replace(':token([a-z0-9]+).css', ':token.css');
 const migratedRoutes = new Set(
   [
+    ...pageRoutes,
+    ...brandingDeliveryRoutes,
+    ...dynamicAssetRoutes,
+    fontDeliveryRoute,
+    pageRootRoute,
     ...recordMutationRoutes,
     ...harvestMutationRoutes,
     ...identityLinkRoutes,
@@ -135,7 +146,7 @@ const migratedRoutes = new Set(
     ...formDeliveryRoutes,
     ...authenticationRoutes,
     csrfTokenRoute,
-  ].map(route => route.method.toUpperCase() + ' ' + route.path)
+  ].map(route => normalize(route.method.toUpperCase() + ' ' + route.path))
 );
 const entries = Object.entries(routes)
   .map(([pattern, target]) => {
@@ -179,7 +190,7 @@ const entries = Object.entries(routes)
       contract: contracts.has(normalized),
       task,
       prerequisites,
-      standalone: task === 'SR-029' || migratedRoutes.has(normalized),
+      standalone: task === 'SR-029' || migratedRoutes.has(normalize(normalized)),
     };
   })
   .sort((a, b) => a.route.localeCompare(b.route));
@@ -190,7 +201,7 @@ entries.push({
   provider: 'redbox-hook-dev',
   task: 'SR-040',
   prerequisites: [],
-  standalone: false,
+  standalone: migratedRoutes.has('ALL /'),
 });
 const additions = authenticationRoutes
   .filter(route => !entries.some(entry => entry.route === route.method.toUpperCase() + ' ' + route.path))

@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import { comparisonPageLocals } from './compat/sails/pageLocals';
 import { retainHttpCallback, runHttpRequestHandler, trackHttpRequestWork } from './middleware/requestLifetime';
 import * as _ from 'lodash';
 import path from 'path';
@@ -352,6 +353,12 @@ export namespace Controllers.Core {
       // The merged locals are too large to record; the view path identifies what was rendered.
       this.updateChronicle(req, { view: sailsViewPath });
 
+      Object.assign(mergedLocal, comparisonPageLocals(req, mergedLocal));
+      mergedLocal.superPartial = (value: string, brand: string, portal: string) => {
+        const partial = this.resolveViewFile(brand, portal, value.replace(/^\/+/, ''));
+        if (!partial) throw new Error('Page partial missing.');
+        return require('ejs').render(require('node:fs').readFileSync(partial.absolutePath, 'utf8'), mergedLocal, { filename: partial.absolutePath });
+      };
       res.view(this.getRenderViewPath(resolvedView), mergedLocal);
     }
 
