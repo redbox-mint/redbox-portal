@@ -2,7 +2,7 @@ networks:
   main:
 
 x-bruno-service: &bruno-service
-  image: node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+  image: node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
   pull_policy: 'missing'
   volumes:
     - '../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno'

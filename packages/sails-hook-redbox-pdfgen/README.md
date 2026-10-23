@@ -232,7 +232,7 @@ Audit calls degrade gracefully: when the global `IntegrationAuditService` is una
 ## Development
 
 ```bash
-nvm use          # Node 24.14.1
+nvm use          # Node 26.11.1
 npm install
 npm run compile
 npm run test:unit
@@ -281,7 +281,7 @@ The dev stack sets `NODE_TLS_REJECT_UNAUTHORIZED=0` and seeds a fixed `pdfgen.to
 
 ### CI
 
-CircleCI (`.circleci/config.yml`) runs compile, unit tests and the Bruno suite on Node 24.14.1. Beta/next/alpha releases to npm are published through the `npm_publish_mode` pipeline parameters.
+CircleCI (`.circleci/config.yml`) runs compile, unit tests and the Bruno suite on Node 26.11.1. Beta/next/alpha releases to npm are published through the `npm_publish_mode` pipeline parameters.
 
 ## Project structure
 

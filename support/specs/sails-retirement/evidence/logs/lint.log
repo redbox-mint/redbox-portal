@@ -1,0 +1,7 @@
+
+> redbox-portal@2.1.0 lint
+> node scripts/verify-core-imports.cjs && oxlint api config typescript packages/*/src
+
+PASS cross-package core imports use the package entry
+Found 0 warnings and 0 errors.
+Finished in 133ms on 840 files with 1 rules using 4 threads.

@@ -1,0 +1,15 @@
+
+> @researchdatabox/sails-ng-common@0.2.1 compile:clean
+> rm -rf dist/ || true
+
+
+> @researchdatabox/sails-ng-common@0.2.1 compile
+> npm run compile:node && npm run compile:browser
+
+
+> @researchdatabox/sails-ng-common@0.2.1 compile:node
+> tsc -p tsconfig.prod.json && node scripts/build-node-markdown.mjs
+
+
+> @researchdatabox/sails-ng-common@0.2.1 compile:browser
+> tsc -p tsconfig.browser.json && node scripts/finalize-browser-build.mjs

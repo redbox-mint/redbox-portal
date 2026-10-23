@@ -1,0 +1,209 @@
+
+> @researchdatabox/redbox-core@0.0.1-beta.9022 test
+> TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 10000 test/loader/loader.test.ts test/loader/bootstrapShimRuntime.test.ts test/loader/MigrationRunner.test.ts test/hooks/hookDiscovery.test.ts test/hooks/hookResources.test.ts test/config/agendaQueue.test.ts test/config/brandingConfigurationDefaults.test.ts test/config/companionAuthorization.test.ts test/services/ConfigService.test.ts test/services/RecordTypesService.test.ts test/unit/persistence-foundation.test.ts test/unit/persistence-shutdown.test.ts
+
+
+
+  redbox-loader
+    writeFileIfChanged
+      ✔ should write file if it does not exist
+      ✔ should write file if content is different
+      ✔ should NOT write file if content is identical
+    mergeRedboxConfig
+      ✔ replaces brandingConfigurationDefaults arrays from hook config
+    shouldRegenerateShims
+      ✔ should return true if NODE_ENV is not production
+      ✔ should return true if .regenerate-shims exists
+      ✔ should return true if forceRegenerate is true
+      ✔ should return true if any directory is empty
+      ✔ should return false via existing files and production env
+    generateAllShims
+[redbox-loader] Skipping shim generation (shims already exist)
+      ✔ should skip generation if not needed
+[redbox-loader] Starting shim generation (REGENERATE_SHIMS=true)...
+      1) should generate shims when forced
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+[redbox-loader] Shim generation complete in 26897.09ms
+[redbox-loader] Starting shim generation (.regenerate-shims marker file exists)...
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+[redbox-loader] Shim generation complete in 126.57ms
+      ✔ should delete marker file after regeneration (129ms)
+[redbox-loader] Starting shim generation (NODE_ENV !== production)...
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+[redbox-loader] Shim generation complete in 60.72ms
+      ✔ should include bootstrapStats in result (62ms)
+[redbox-loader] Starting shim generation (NODE_ENV !== production)...
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 0 (core 0, hook 0)
+[redbox-loader:warn] Form-config registry is empty after applying LOAD_DEFAULT_FORMS.
+[redbox-loader] Shim generation complete in 47.96ms
+      ✔ should include migrationStats in result (48ms)
+    generateFormConfigShims
+[redbox-loader] Form-config shim mode: core+hook (LOAD_DEFAULT_FORMS=true)
+[redbox-loader] Form-config registry entries: 1 (core 1, hook 0)
+      ✔ should include core forms when LOAD_DEFAULT_FORMS=true
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=false)
+[redbox-loader] Form-config registry entries: 1 (core 0, hook 1)
+      ✔ should use hook-only registry when LOAD_DEFAULT_FORMS=false
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=unset)
+[redbox-loader] Form-config registry entries: 1 (core 0, hook 1)
+      ✔ should treat missing LOAD_DEFAULT_FORMS as hook-only
+[redbox-loader] Form-config shim mode: hook-only (LOAD_DEFAULT_FORMS=maybe)
+[redbox-loader] Form-config registry entries: 1 (core 0, hook 1)
+      ✔ should treat invalid LOAD_DEFAULT_FORMS as hook-only
+    generateConfigShims
+      ✔ should sanitize package names with dots when generating config shims
+      ✔ should merge agenda queue jobs as a map keyed by name
+    generateBootstrapShim
+      ✔ should generate bootstrap.js with no hook bootstraps
+      ✔ should generate bootstrap.js with hook bootstraps
+      ✔ should not rewrite if content unchanged
+      ✔ should tolerate a missing config/migrations.js and default to no migrations
+      ✔ should rethrow MODULE_NOT_FOUND raised inside config/migrations.js
+    findAndRegisterHooks
+      ✔ should return empty arrays for hooks when no dependencies have sails config
+      ✔ should handle dependencies that do not have sails config gracefully
+      ✔ should discover hook migrations exported by a hook dependency
+      ✔ should discover hook API routes exported by a hook dependency
+      ✔ should resolve hook registry collisions using root hookLoadPriority
+      ✔ should preserve alphabetically-later-wins registry behavior without hookLoadPriority
+      ✔ should return hook config registrations in processing order
+      ✔ should return bootstrap, api route, and migration registrations in processing order
+    generateApiRouteHookConfig
+      ✔ should generate apiRoutesHooks.js from discovered hook api routes
+    discoverLocalMigrationFiles
+      ✔ should list local migration JavaScript files in sorted order
+      ✔ should return an empty list when api/migrations does not exist
+    generateMigrationConfigShim
+      ✔ should generate a migrations.js shim aggregating hook and app-local migrations in name order
+      ✔ should warn about duplicate migration names in development
+      ✔ should throw on duplicate migration names in production
+      ✔ should name the offending source when a migration export is invalid
+      ✔ should reject a hook whose registerRedboxMigrations is async
+      ✔ should name both sources for duplicate migration names
+
+  bootstrapShimRuntime
+    ✔ should run preLift, migrations, core bootstrap, and hook bootstraps in order
+    ✔ should export a post-bootstrap snapshot when enabled
+    ✔ should warn and continue when exporting a post-bootstrap snapshot fails
+    ✔ should pass errors to the callback and log bootstrap failure
+    ✔ should pass synchronous preLift errors to the callback
+    ✔ should await preLift setup and propagate its asynchronous failure before migrations
+
+  MigrationRunner
+    ✔ should no-op for an empty migration list
+    ✔ should execute pending migrations in lexical name order and log each success
+    ✔ should send Umzug progress logs to the configured sails logger
+    ✔ should log the pending migration names before executing
+    ✔ should skip all migrations when REDBOX_SKIP_MIGRATIONS=true
+    ✔ should skip already executed migrations
+    ✔ should halt on first migration failure
+    ✔ should forward an optional down handler to Umzug for manual rollbacks
+    ✔ should leave down undefined when a migration omits it
+    ✔ should tolerate executed migration names missing from the current migration list
+
+  hookDiscovery
+    ✔ preserves existing precedence when hookLoadPriority is missing
+    ✔ returns listed hooks first and keeps unlisted hooks after them
+    ✔ warns for invalid, duplicate, and unknown hookLoadPriority entries
+    ✔ warns and behaves as empty when hookLoadPriority is not an array
+
+  hookResources
+    ✔ discovers hook roots from dependencies and devDependencies
+    ✔ returns view and asset roots in runtime override order
+    ✔ resolves later hooks ahead of earlier hooks for the same path
+    ✔ resolves hookLoadPriority entries ahead of unlisted hooks
+    ✔ resolves assets and rejects traversal paths
+
+  Agenda queue branding typeface reconciliation
+    ✔ registers the daily orphan reconciliation job exactly once
+    ✔ invokes the tested reconciliation service method
+    ✔ has no in-process timeout cleanup in the service
+
+  brandingConfigurationDefaults
+    ✔ keeps the core menu to home and admin only
+    ✔ does not provide core home panels
+    ✔ exposes a canonical doiPublishing default for runtime use
+    ✔ exposes a canonical oniPublishing default for runtime use
+
+  authorizeCompanionRequest
+    ✔ should allow non-companion requests without applying auth checks
+    ✔ should reject unauthenticated companion requests with 401
+    ✔ should reject authenticated companion requests with missing branding context
+    ✔ should allow authenticated companion requests when no companion path rules match
+    ✔ should reject authenticated companion requests when matching companion path rule denies access
+    ✔ should allow authenticated companion requests when matching companion path rule grants access
+
+  ConfigService
+    getBrand
+      ✔ should return config from brandingAware function when available
+      ✔ should fallback to default brand when specific brand config not found
+      ✔ should fallback to brandingConfigurationDefaults when no brand-specific config
+      ✔ should return undefined when no config found anywhere
+      ✔ should handle legacy config structure
+      ✔ should fallback to default brand in legacy config
+    exports
+      ✔ should export getBrand and mergeHookConfig methods
+
+  RecordTypesService
+    bootstrap
+      ✔ should load existing record types
+      ✔ should create default record types if missing
+      ✔ should destroy and recreate if bootstrapAlways is true
+      ✔ rejects an unsupported configured record-schema override before persistence when enabled
+      ✔ rejects an unsupported persisted record-schema override during enabled startup
+    create
+      ✔ should create record type
+      ✔ should reject a malformed explicit concurrency mode
+    get
+      ✔ should find one record type
+    concurrent modification policy
+      ✔ normalizes discovery responses with the compatibility default
+      ✔ reports the default rather than failing discovery for corrupt stored policy
+      ✔ resolves each request from the current persisted record type
+      ✔ fails closed when persisted policy is malformed
+      ✔ fails closed at runtime when a strict policy uses an unsupported adapter
+    storage capability startup gate
+      ✔ rejects an existing strict type when the adapter declaration is absent
+      ✔ accepts an existing strict type with the complete adapter declaration
+    getAll
+      ✔ should find all record types
+    exports
+      ✔ should export all public methods
+
+  driver persistence foundation
+    ✔ defaults migrated groups to Prisma and refuses unsupported/stale selectors without fallback
+    ✔ resolves legacy protocol/split/escaping/credential precedence without models or managers (98ms)
+    ✔ shares only equivalent effective connection policies, including authSource and options
+    ✔ initializes offline, survives reload, waits for active operations and drains before closing (107ms)
+    ✔ retains failed resources for retry and preserves prior shutdown errors
+    ✔ starts bounded resource drains before waiting for a pending database acquisition
+    ✔ reports a failed drain before waiting for live operations, retaining both for retry
+
+  app-scoped non-model resource ownership
+    ✔ disposes only the captured application GridFS clients and survives module reload (111ms)
+    ✔ retains an errored GridFS client and a failed close for app cleanup retry
+    ✔ closes the connect-mongo store created by middleware exactly once
+
+  shared repository groups
+    ✔ waits for startup, drains compound calls on the concrete owner and rejects stale handles after restart
+
+  Sails persistence shutdown entrypoint
+    ✔ returns a failed drain without emitting lower, then permits a safe retry (1761ms)
+
+
+  115 passing (31s)
+  1 failing
+
+  1) redbox-loader
+       generateAllShims
+         should generate shims when forced:
+     Error: Timeout of 10000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves. (/home/andrew/src/github/redbox-portal/packages/redbox-core/test/loader/loader.test.ts)
+      at listOnTimeout (node:internal/timers:685:17)
+      at processTimers (node:internal/timers:618:7)

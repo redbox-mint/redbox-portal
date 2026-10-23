@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
-FROM node:26.11.1-bookworm AS base
+FROM node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -79,7 +79,7 @@ RUN rm -rf \
     support/build/api-descriptors/node_modules \
  && npm ci --omit=dev --no-audit
 
-FROM node:26.11.1-bookworm-slim AS runtime
+FROM node:26.11.1-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane

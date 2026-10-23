@@ -1,0 +1,59 @@
+
+> redbox-portal@2.1.0 validate:api-routes
+> cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register --require test/setup.ts test/unit/api-routes.test.ts
+
+
+
+  API routes contract layer
+    ✔ should specialize the OpenAPI paths for the requested branding and portal (2677ms)
+    ✔ should include x-redbox-roles from the default auth rules in OpenAPI (1469ms)
+    ✔ should derive x-redbox-roles from runtime auth rules (38ms)
+    ✔ should document bearer auth only in OpenAPI (1877ms)
+    ✔ should include hook-contributed routes in merged docs (2485ms)
+    ✔ should fail when the merged runtime route table includes an uncontracted legacy API route (474ms)
+    ✔ should fail fast when duplicate method/path routes are built
+    ✔ should order Sails routes by specificity
+    ✔ should leave contract-first route auth to controller policies (180ms)
+    ✔ should resolve admin report config routes against the API contract
+    ✔ should include the legacy integration audit endpoint in generated routes
+    ✔ should register the three record-schema GET routes with unique method/path keys
+    ✔ should publish all three typed record-schema operations in generated OpenAPI (1530ms)
+    ✔ should omit no-store caching only from the exact record-schema action policy chains
+    ✔ should keep every non-schema contract API action on the exact no-store validation policy chain
+    ✔ should build and merge contract validation policies for hook API routes
+    ✔ should fail fast when a hook duplicates a core route
+    ✔ should keep OpenAPI output standards-safe and exclude app-only translation routes (1260ms)
+    ✔ should validate generated OpenAPI documents with swagger-parser (4659ms)
+    ✔ should not emit empty required arrays in OpenAPI schemas (856ms)
+    ✔ should document wildcard translation keys as reserved path tails (969ms)
+    ✔ should document record creation as a 201 response with a Location header (810ms)
+    ✔ validates and documents the optional operation query on every record save route (1435ms)
+    ✔ validates and documents the conflict-aware record HTTP contract (745ms)
+    ✔ validates, extracts, and documents schema digest headers separately from revision If-Match (751ms)
+    ✔ keeps the schema precondition optional on update metadata requests
+    ✔ rejects repeated schema If-Match header values without selecting the first value
+    ✔ publishes bounded dynamic record-schema resolver metadata for create and update writes (727ms)
+    ✔ keeps OpenAPI 3.0.3 bounded and form-independent without embedding generated schemas (2029ms)
+    ✔ should model the legacy response envelopes
+    ✔ should document the shared response schemas in OpenAPI (867ms)
+    ✔ should include shared 400 and 500 error envelopes in OpenAPI (791ms)
+    ✔ should document multipart file constraints in OpenAPI (885ms)
+    ✔ should emit binary multipart file fields with constraints for upload routes
+    ✔ should document explicit responses for the routes flagged by finding 4 (874ms)
+    ✔ should declare explicit shared error responses on the leaf route groups
+    ✔ documents optional typed getForm discovery query parameters (1735ms)
+    ✔ accepts malformed-v1 request envelopes in record save failure contracts
+    ✔ accepts both legacy and v2 record-save wire envelopes
+    ✔ should document vocabulary creation as a 201 response (666ms)
+    ✔ should document file-download response media types for export and datastream routes (819ms)
+    ✔ should document bracket-style search query maps as deepObject parameters (764ms)
+    ✔ should document update metadata and user audit response bodies (705ms)
+    ✔ should validate each request source independently
+    ✔ should normalize legacy search query filters into named maps
+    ✔ should prefer canonical query values and fall back to body values when configured
+    ✔ should select request body schema from the request content type
+    ✔ should hydrate list query fields from body fallbacks when query values are absent
+    ✔ should enforce multipart upload constraints through the shared route validator
+
+
+  49 passing (33s)

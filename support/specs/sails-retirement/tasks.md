@@ -1,7 +1,8 @@
 # Sails retirement: v6 task list
 
-Status: all tasks pending. Planning documents were prepared on 2026-10-23; their
-existence is not implementation or release evidence. Read the [design](design.md)
+Status: P0 baseline work in progress; task evidence is linked below. Planning
+documents were prepared on 2026-10-23; their existence is not implementation or
+release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## Working rules
@@ -30,7 +31,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## P0 — Baseline and qualification scope
 
-- [ ] **SR-001 — Record the integrated baseline and executable Sails inventory.**
+- [x] **SR-001 — Record the integrated baseline and executable Sails inventory.**
+
+  **Status:** done; [source, surface/resource owners and generated-file evidence](evidence/p0-baseline.md#sr-001--integrated-source-and-executable-inventory).
 
   **Depends on:** integrated Prisma source.
 
@@ -42,7 +45,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   explicit classification; source commit and reproducible inventory method are
   recorded. Historical documentation/package names are not treated as executable use.
 
-- [ ] **SR-002 — Align execution on Node 26 and audit dependency resolution.**
+- [x] **SR-002 — Align execution on Node 26 and audit dependency resolution.**
+
+  **Status:** done; [exact selections, commands/results and consumer override risk](evidence/p0-execution.md).
 
   **Depends on:** SR-001.
 

@@ -1,0 +1,21 @@
+npm error code EACCES
+npm error syscall rmdir
+npm error path /home/andrew/src/github/redbox-portal/node_modules/.cache/nyc
+npm error errno -13
+npm error [Error: EACCES: permission denied, rmdir '/home/andrew/src/github/redbox-portal/node_modules/.cache/nyc'] {
+npm error   errno: -13,
+npm error   code: 'EACCES',
+npm error   syscall: 'rmdir',
+npm error   path: '/home/andrew/src/github/redbox-portal/node_modules/.cache/nyc'
+npm error }
+npm error
+npm error The operation was rejected by your operating system.
+npm error It is likely you do not have the permissions to access this file as the current user
+npm error
+npm error If you believe this might be a permissions issue, please double-check the permissions of the file and its containing directories, or try running the command again as root/Administrator.
+npm notice
+npm notice New major version of npm available! 11.20.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+npm error A complete log of this run can be found in: /tmp/npm-cache/_logs/2026-10-23T08_50_16_612Z-debug-0.log

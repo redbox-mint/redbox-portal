@@ -1,0 +1,43 @@
+
+> redbox-portal@2.1.0 validate:api-routes
+> cd packages/redbox-core && TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --require ts-node/register --require test/setup.ts test/unit/api-routes.test.ts
+
+
+ Exception during run: Error: Directory import '/home/andrew/src/github/redbox-portal/packages/redbox-core/src/api-routes' is not supported resolving ES modules imported from /home/andrew/src/github/redbox-portal/packages/redbox-core/test/unit/api-routes.test.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:229:11)
+    at moduleResolve (node:internal/modules/esm/resolve:846:10)
+    at defaultResolve (node:internal/modules/esm/resolve:973:11)
+    at ModuleLoader.#cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+    at ModuleLoader.#resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+    at ModuleLoader.#resolve (node:internal/modules/esm/loader:690:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:389:17)
+    at new ModuleJob (node:internal/modules/esm/module_job:368:26)
+    at ModuleLoader.#getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:579:11)
+    at afterResolve (node:internal/modules/esm/loader:614:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:12)
+    at node:internal/modules/esm/loader:639:32
+    at TracingChannel.tracePromise (node:diagnostics_channel:582:22)
+    at ModuleLoader.import (node:internal/modules/esm/loader:635:21)
+    at defaultImportModuleDynamicallyForScript (node:internal/modules/esm/utils:229:31)
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:275:12)
+    at Object.exports.doImport (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/nodejs/esm-utils.js:36:43)
+    at formattedImport (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/nodejs/esm-utils.js:10:28)
+    at Object.requireModule [as requireOrImport] (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/nodejs/esm-utils.js:102:36)
+    at Object.exports.loadFilesAsync (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/nodejs/esm-utils.js:155:34)
+    at Mocha.loadFilesAsync (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/mocha.js:429:19)
+    at singleRun (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/cli/run-helpers.js:174:15)
+    at exports.runMocha (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/cli/run-helpers.js:247:10)
+    at Object.exports.handler (/home/andrew/src/github/redbox-portal/node_modules/mocha/lib/cli/run.js:384:11)
+    at /home/andrew/src/github/redbox-portal/node_modules/yargs/build/index.cjs:1:8993
+    at /home/andrew/src/github/redbox-portal/node_modules/yargs/build/index.cjs:1:4949 {
+  code: 'ERR_UNSUPPORTED_DIR_IMPORT',
+  url: 'file:///home/andrew/src/github/redbox-portal/packages/redbox-core/src/api-routes'
+}
+npm notice
+npm notice New major version of npm available! 11.20.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

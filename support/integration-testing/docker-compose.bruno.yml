@@ -4,7 +4,7 @@ networks:
 
 services:
   bruno:
-    image: node:26.11.1-bookworm
+    image: node:26.11.1-bookworm@sha256:f1233c415b41ffcf237c717b3dea92e9d4ea006e0e4c71edcb790605d74f5404
     pull_policy: 'missing'
     volumes:
       - "../../.tmp/junit/backend-bruno:/opt/junit/backend-bruno"
@@ -26,7 +26,7 @@ services:
       --output /opt/junit/backend-bruno/backend-bruno.xml
       --bail"
   redboxportal:
-    image: qcifengineering/redbox-portal:feature-node24
+    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     pull_policy: 'missing'
     user: root
       # Debugging port (publish only when debugging locally)

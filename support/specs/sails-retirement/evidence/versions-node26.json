@@ -1,0 +1,323 @@
+{
+  "sourceCommit": "9b1538075a5274a49816f62c157e052753130611",
+  "node": "v26.11.1",
+  "npm": "11.20.0",
+  "platform": "linux/x64",
+  "note": "Installed tree resolution; different from declared/locked versions if a local install is stale. No application or framework was imported.",
+  "probes": [
+    {
+      "context": "root",
+      "name": "sails",
+      "version": "1.5.17",
+      "manifest": "node_modules/sails/package.json",
+      "entry": "node_modules/sails/package.json",
+      "engines": {
+        "node": ">= 0.10.0",
+        "npm": ">= 1.4.0"
+      }
+    },
+    {
+      "context": "root",
+      "name": "@uppy/companion",
+      "version": "7.0.2",
+      "manifest": "node_modules/@uppy/companion/package.json",
+      "entry": "node_modules/@uppy/companion/package.json",
+      "engines": {
+        "node": ">=22.0.0"
+      },
+      "requests": {
+        "express": "^5.2.1",
+        "session": "1.19.0"
+      }
+    },
+    {
+      "context": "root",
+      "name": "express",
+      "version": "4.22.2",
+      "manifest": "node_modules/express/package.json",
+      "entry": "node_modules/express/package.json",
+      "engines": {
+        "node": ">= 0.10.0"
+      }
+    },
+    {
+      "context": "root",
+      "name": "typescript",
+      "version": "5.9.3",
+      "manifest": "node_modules/typescript/package.json",
+      "entry": "node_modules/typescript/package.json",
+      "engines": {
+        "node": ">=14.17"
+      }
+    },
+    {
+      "context": "root",
+      "name": "ts-node",
+      "version": "10.9.2",
+      "manifest": "node_modules/ts-node/package.json",
+      "entry": "node_modules/ts-node/package.json",
+      "engines": null
+    },
+    {
+      "context": "root",
+      "name": "mocha",
+      "version": "11.7.6",
+      "manifest": "node_modules/mocha/package.json",
+      "entry": "node_modules/mocha/package.json",
+      "engines": {
+        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+      }
+    },
+    {
+      "context": "root",
+      "name": "@prisma/orm-mongo",
+      "version": "8.0.0-rc.19",
+      "manifest": "node_modules/@prisma/orm-mongo/package.json",
+      "entry": "node_modules/@prisma/orm-mongo/package.json",
+      "engines": null
+    },
+    {
+      "context": "root",
+      "name": "prisma",
+      "version": "8.0.0-rc.24",
+      "manifest": "node_modules/prisma/package.json",
+      "entry": "node_modules/prisma/package.json",
+      "engines": {
+        "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+      }
+    },
+    {
+      "context": "core",
+      "name": "sails",
+      "version": "1.5.18",
+      "manifest": "packages/redbox-core/node_modules/sails/package.json",
+      "entry": "packages/redbox-core/node_modules/sails/package.json",
+      "engines": {
+        "node": ">= 0.10.0",
+        "npm": ">= 1.4.0"
+      }
+    },
+    {
+      "context": "core",
+      "name": "@uppy/companion",
+      "version": "7.1.1",
+      "manifest": "packages/redbox-core/node_modules/@uppy/companion/package.json",
+      "entry": "packages/redbox-core/node_modules/@uppy/companion/package.json",
+      "engines": {
+        "node": ">=22.0.0"
+      },
+      "requests": {
+        "express": "^5.2.1",
+        "session": "^1.19.0"
+      }
+    },
+    {
+      "context": "core",
+      "name": "express",
+      "version": "5.2.1",
+      "manifest": "packages/redbox-core/node_modules/express/package.json",
+      "entry": "packages/redbox-core/node_modules/express/package.json",
+      "engines": {
+        "node": ">= 18"
+      }
+    },
+    {
+      "context": "core",
+      "name": "typescript",
+      "version": "5.9.3",
+      "manifest": "packages/redbox-core/node_modules/typescript/package.json",
+      "entry": "packages/redbox-core/node_modules/typescript/package.json",
+      "engines": {
+        "node": ">=14.17"
+      }
+    },
+    {
+      "context": "core",
+      "name": "ts-node",
+      "version": "10.9.2",
+      "manifest": "packages/redbox-core/node_modules/ts-node/package.json",
+      "entry": "packages/redbox-core/node_modules/ts-node/package.json",
+      "engines": null
+    },
+    {
+      "context": "core",
+      "name": "mocha",
+      "version": "11.7.6",
+      "manifest": "packages/redbox-core/node_modules/mocha/package.json",
+      "entry": "packages/redbox-core/node_modules/mocha/package.json",
+      "engines": {
+        "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+      }
+    },
+    {
+      "context": "core",
+      "name": "@prisma/orm-mongo",
+      "version": "8.0.0-rc.19",
+      "manifest": "packages/redbox-core/node_modules/@prisma/orm-mongo/package.json",
+      "entry": "packages/redbox-core/node_modules/@prisma/orm-mongo/package.json",
+      "engines": null
+    },
+    {
+      "context": "core",
+      "name": "prisma",
+      "version": "8.0.0-rc.24",
+      "manifest": "packages/redbox-core/node_modules/prisma/package.json",
+      "entry": "packages/redbox-core/node_modules/prisma/package.json",
+      "engines": {
+        "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+      }
+    },
+    {
+      "context": "root/sails",
+      "name": "express",
+      "version": "4.22.0",
+      "manifest": "node_modules/sails/node_modules/express/package.json",
+      "entry": "node_modules/sails/node_modules/express/package.json",
+      "engines": {
+        "node": ">= 0.10.0"
+      }
+    },
+    {
+      "context": "root/sails",
+      "name": "express-session",
+      "version": "1.18.2",
+      "manifest": "node_modules/sails/node_modules/express-session/package.json",
+      "entry": "node_modules/sails/node_modules/express-session/package.json",
+      "engines": {
+        "node": ">= 0.8.0"
+      }
+    },
+    {
+      "context": "root/sails",
+      "name": "socket.io",
+      "version": "4.8.1",
+      "manifest": "node_modules/socket.io/package.json",
+      "entry": "node_modules/socket.io/dist/index.js",
+      "engines": {
+        "node": ">=10.2.0"
+      }
+    },
+    {
+      "context": "root/sails",
+      "name": "path-to-regexp",
+      "version": "1.9.0",
+      "manifest": "node_modules/sails/node_modules/path-to-regexp/package.json",
+      "entry": "node_modules/sails/node_modules/path-to-regexp/package.json",
+      "engines": null
+    },
+    {
+      "context": "root/@uppy/companion",
+      "name": "express",
+      "version": "4.22.2",
+      "manifest": "node_modules/express/package.json",
+      "entry": "node_modules/express/package.json",
+      "engines": {
+        "node": ">= 0.10.0"
+      }
+    },
+    {
+      "context": "root/@uppy/companion",
+      "name": "express-session",
+      "version": "1.18.2",
+      "manifest": "node_modules/@uppy/companion/node_modules/express-session/package.json",
+      "entry": "node_modules/@uppy/companion/node_modules/express-session/package.json",
+      "engines": {
+        "node": ">= 0.8.0"
+      }
+    },
+    {
+      "context": "root/@uppy/companion",
+      "name": "socket.io",
+      "version": "4.8.1",
+      "manifest": "node_modules/socket.io/package.json",
+      "entry": "node_modules/socket.io/dist/index.js",
+      "engines": {
+        "node": ">=10.2.0"
+      }
+    },
+    {
+      "context": "root/@uppy/companion",
+      "name": "path-to-regexp",
+      "version": "0.1.13",
+      "manifest": "node_modules/path-to-regexp/package.json",
+      "entry": "node_modules/path-to-regexp/package.json",
+      "engines": null
+    },
+    {
+      "context": "core/sails",
+      "name": "express",
+      "version": "4.22.2",
+      "manifest": "packages/redbox-core/node_modules/sails/node_modules/express/package.json",
+      "entry": "packages/redbox-core/node_modules/sails/node_modules/express/package.json",
+      "engines": {
+        "node": ">= 0.10.0"
+      }
+    },
+    {
+      "context": "core/sails",
+      "name": "express-session",
+      "version": "1.18.2",
+      "manifest": "packages/redbox-core/node_modules/sails/node_modules/express-session/package.json",
+      "entry": "packages/redbox-core/node_modules/sails/node_modules/express-session/package.json",
+      "engines": {
+        "node": ">= 0.8.0"
+      }
+    },
+    {
+      "context": "core/sails",
+      "name": "socket.io",
+      "version": "4.8.1",
+      "manifest": "node_modules/socket.io/package.json",
+      "entry": "node_modules/socket.io/dist/index.js",
+      "engines": {
+        "node": ">=10.2.0"
+      }
+    },
+    {
+      "context": "core/sails",
+      "name": "path-to-regexp",
+      "version": "1.9.0",
+      "manifest": "packages/redbox-core/node_modules/sails/node_modules/path-to-regexp/package.json",
+      "entry": "packages/redbox-core/node_modules/sails/node_modules/path-to-regexp/package.json",
+      "engines": null
+    },
+    {
+      "context": "core/@uppy/companion",
+      "name": "express",
+      "version": "5.2.1",
+      "manifest": "packages/redbox-core/node_modules/express/package.json",
+      "entry": "packages/redbox-core/node_modules/express/package.json",
+      "engines": {
+        "node": ">= 18"
+      }
+    },
+    {
+      "context": "core/@uppy/companion",
+      "name": "express-session",
+      "version": "1.19.0",
+      "manifest": "packages/redbox-core/node_modules/express-session/package.json",
+      "entry": "packages/redbox-core/node_modules/express-session/package.json",
+      "engines": {
+        "node": ">= 0.8.0"
+      }
+    },
+    {
+      "context": "core/@uppy/companion",
+      "name": "socket.io",
+      "version": "4.8.1",
+      "manifest": "node_modules/socket.io/package.json",
+      "entry": "node_modules/socket.io/dist/index.js",
+      "engines": {
+        "node": ">=10.2.0"
+      }
+    },
+    {
+      "context": "core/@uppy/companion",
+      "name": "path-to-regexp",
+      "version": "0.1.13",
+      "manifest": "packages/redbox-core/node_modules/path-to-regexp/package.json",
+      "entry": "packages/redbox-core/node_modules/path-to-regexp/package.json",
+      "engines": null
+    }
+  ]
+}

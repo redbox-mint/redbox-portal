@@ -33,7 +33,7 @@ function resolvePackage(context, name) {
   }
 }
 for (const context of ['root', 'core']) {
-  for (const name of ['sails', '@uppy/companion', 'express', 'typescript', 'ts-node', 'mocha', '@prisma/client', 'prisma']) {
+  for (const name of ['sails', '@uppy/companion', 'express', 'typescript', 'ts-node', 'mocha', '@prisma/orm-mongo', 'prisma']) {
     const manifest = resolvePackage(context, name);
     if (manifest && ['sails', '@uppy/companion'].includes(name)) contexts.set(`${context}/${name}`, manifest);
   }

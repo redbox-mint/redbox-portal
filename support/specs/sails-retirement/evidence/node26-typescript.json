@@ -1,0 +1,18 @@
+{
+  "node": "v26.11.1",
+  "cases": [
+    {
+      "name": "erasable",
+      "exit": 0,
+      "stdout": "1",
+      "expectedNativeLimitation": null
+    },
+    {
+      "name": "enum",
+      "exit": 1,
+      "stdout": "",
+      "expectedNativeLimitation": "ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX"
+    }
+  ],
+  "note": "Native strip-only loading cannot replace the transpiling ts-node loader used for namespaces, enums and decorators. Mocha checks are recorded separately."
+}

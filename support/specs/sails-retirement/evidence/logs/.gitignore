@@ -1,0 +1,2 @@
+# Retain reviewed command output used by this specification's evidence records.
+!*.log
