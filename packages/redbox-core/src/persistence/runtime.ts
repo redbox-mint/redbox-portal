@@ -1,4 +1,5 @@
 import type { Db, MongoClient } from 'mongodb';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { PersistenceError, safePersistenceFailure } from './errors';
 import { assertPersistenceConfiguration } from './selection';
 import { guardSailsShutdown } from './shutdown';
@@ -20,6 +21,7 @@ interface Runtime {
   prisma: Map<string, { datastore: string; client: Promise<CorePrismaClient | StoragePrismaClient> }>;
   resources: Map<string, PersistenceResource>;
   active: Set<Promise<unknown>>;
+  operationContext: AsyncLocalStorage<{ active: boolean }>;
   shutdownRegistered?: boolean;
 }
 const runtimeKey: unique symbol = Symbol.for('@researchdatabox/redbox-core/persistence/v1');
@@ -36,6 +38,7 @@ function stateFor(app: Sails.Application): Runtime {
         prisma: new Map(),
         resources: new Map(),
         active: new Set(),
+        operationContext: new AsyncLocalStorage(),
       },
     });
   return holder[runtimeKey]!;
@@ -122,7 +125,7 @@ async function ownedDatabase(
   resolve: () => import('./mongodb/configuration').ResolvedDatastore
 ): Promise<Db> {
   const state = stateFor(app);
-  if (!state.ready || state.closing)
+  if ((!state.ready || state.closing) && !state.operationContext.getStore()?.active)
     throw new PersistenceError(
       'not-initialized',
       'Await persistence initialization before acquiring a datastore; shutdown refuses new work.'
@@ -186,7 +189,7 @@ export function prismaDatabase(
   datastore: string = name
 ): Promise<CorePrismaClient | StoragePrismaClient> {
   const state = stateFor(app);
-  if (!state.ready || state.closing)
+  if ((!state.ready || state.closing) && !state.operationContext.getStore()?.active)
     return Promise.reject(new PersistenceError('not-initialized', 'Persistence is unavailable or draining.'));
   let entry = state.prisma.get(name);
   if (entry && entry.datastore !== datastore)
@@ -227,11 +230,20 @@ export function persistenceOperation<T>(app: Sails.Application, operation: () =>
   const state = stateFor(app);
   if (!state.ready || state.closing)
     return Promise.reject(new PersistenceError('lifecycle', 'Persistence is unavailable or draining.'));
-  const pending = Promise.resolve().then(operation);
+  // Admission and lazy acquisition are separate: accepted work retains access
+  // while draining, but its detached callbacks lose access once it settles.
+  const context = { active: true };
+  const pending = state.operationContext.run(context, () => Promise.resolve().then(operation));
   state.active.add(pending);
   void pending.then(
-    () => state.active.delete(pending),
-    () => state.active.delete(pending)
+    () => {
+      context.active = false;
+      state.active.delete(pending);
+    },
+    () => {
+      context.active = false;
+      state.active.delete(pending);
+    }
   );
   return pending;
 }
@@ -325,4 +337,3 @@ export async function cleanupPersistenceAfterFailure(app: Sails.Application): Pr
     app.log.warn('Persistence cleanup failed after startup failure.');
   }
 }
-
