@@ -1,12 +1,10 @@
 # Sails retirement: v6 task list
 
-Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
-pending institution cohort and production-source designation. P2 SR-012–SR-018 is
-complete; P3 SR-019–SR-025 and P4 SR-026–SR-030 are complete.
-P5 SR-031–SR-033 are complete; P6 SR-038 and SR-039 are complete.
-Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
-release evidence. Read the [design](design.md)
-for behavior and the [implementation plan](implementation_plan.md) for stages.
+Status: SR-001–SR-034 are complete except SR-005, which awaits institution and
+production-source designation. SR-038 and SR-039 are complete. SR-035–SR-037
+are in progress; SR-040 onward has not started. Task evidence is linked below.
+Read the [design](design.md) for behavior and the
+[implementation plan](implementation_plan.md) for delivery stages.
 
 ## Working rules
 
@@ -513,6 +511,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   SR-035 mutations, SR-041/042 uploads and SR-043 progress remain separate.
 
 - [ ] **SR-035 — Migrate record mutations and workflow operations.**
+
+  **Status:** partial; [shared create/workflow authorization and actual verification](evidence/p5-record-mutations.md).
+  The owned save pipeline and SR-043/affected upload providers remain required.
 
   **Depends on:** SR-034, SR-032, SR-039, SR-043; add affected provider tasks from SR-031.
 

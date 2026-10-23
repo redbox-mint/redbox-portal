@@ -1,3 +1,4 @@
+import { RecordCreateAuthorization, resolvedWorkflowTargetDiagnostic } from '../records/RecordCreateAuthorization';
 import { DeletedRecordReader } from '../records/DeletedRecordReader';
 import { RecordAuditReader } from '../queries/RecordAuditReader';
 import { hasViewAccess, hasEditAccess, hasTransitionRoleAuthorization } from '../records/access';
@@ -2105,88 +2106,21 @@ export namespace Services {
       return Boolean(record && this.hasEditAccess(brand, user, roles, record));
     }
 
-    private hasConfiguredRecordCreatorEditPermission(recordType: RecordTypeLike): boolean {
-      const declarations = _.get(recordType, 'hooks.onCreate.pre');
-      if (!Array.isArray(declarations)) return false;
-
-      return declarations.some(declaration => {
-        const hook = this.recordObject(declaration);
-        const hookFunction = String(hook.function ?? '').trim();
-        if (
-          hookFunction !== 'sails.services.rdmpservice.assignPermissions' &&
-          hookFunction !== 'sails.services.rdmpservice.complexAssignPermissions'
-        ) {
-          return false;
-        }
-
-        const options = this.recordObject(hook.options);
-        // A conditional hook cannot be treated as an unconditional create
-        // capability before the candidate exists and the hook has run.
-        if (String(options.triggerCondition ?? '').trim()) return false;
-        const creatorPermissions = String(options.recordCreatorPermissions ?? '').trim();
-        return creatorPermissions === 'edit' || creatorPermissions === 'view&edit';
+    private createAuthorizationProjection(
+      ...args: Parameters<RecordCreateAuthorization['createAuthorizationProjection']>
+    ) {
+      return this.createAuthorization().createAuthorizationProjection(...args);
+    }
+    private createAuthorization(): RecordCreateAuthorization {
+      return new RecordCreateAuthorization({
+        recordTypes: RecordTypesService,
+        workflows: WorkflowStepsService,
+        hasEditAccess: (brand, user, roles, record) => this.hasEditAccess(brand, user, roles, record),
+        hasTransitionRoleAuthorization: (...args) => this.hasTransitionRoleAuthorization(...args),
       });
     }
-
-    /**
-     * Project create authorization only from authoritative workflow ACLs and
-     * explicit built-in creator permissions. Submitted record authorization is
-     * persistence data and must never grant the capability that permits schema
-     * compilation or grant persistence.
-     */
-    private createAuthorizationProjection(
-      workflowSteps: readonly WorkflowStepLike[],
-      recordType?: RecordTypeLike,
-      user?: AnyRecord
-    ): AnyRecord {
-      const projection = { authorization: {} } as AnyRecord;
-      const authorization = projection.authorization as AnyRecord;
-      for (const workflowStep of workflowSteps) {
-        const configured = this.recordObject(_.get(workflowStep, 'config.authorization'));
-        authorization.viewRoles = authorization.viewRoles ?? _.cloneDeep(configured.viewRoles);
-        authorization.editRoles = authorization.editRoles ?? _.cloneDeep(configured.editRoles);
-      }
-      if (recordType && user && this.hasConfiguredRecordCreatorEditPermission(recordType)) {
-        const username = String(user.username ?? '').trim();
-        if (username) authorization.edit = [username];
-      }
-      return projection;
-    }
-
-    /** Authorize schema-only create discovery against the same workflow ACL projection as a normal create. */
-    public async hasCreateAccess(
-      brand: unknown,
-      user: AnyRecord,
-      roles: AnyRecord[],
-      recordTypeName: string,
-      workflowStepName: string
-    ): Promise<boolean> {
-      const brandObj = brand as BrandingModel;
-      const normalizedRecordType = String(recordTypeName ?? '').trim();
-      const normalizedWorkflowStep = String(workflowStepName ?? '').trim();
-      if (!String(brandObj?.id ?? '').trim() || !normalizedRecordType || !normalizedWorkflowStep) return false;
-
-      const recordType = (await firstValueFrom(
-        RecordTypesService.get(brandObj, normalizedRecordType)
-      )) as RecordTypeLike | null;
-      if (!recordType) return false;
-      const startingStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as WorkflowStepLike | null;
-      if (!startingStep) return false;
-      const workflowSteps: WorkflowStepLike[] = [startingStep];
-      if (normalizedWorkflowStep !== String(startingStep.name ?? '').trim()) {
-        const targetStep = (await firstValueFrom(
-          WorkflowStepsService.get(recordType, normalizedWorkflowStep)
-        )) as WorkflowStepLike | null;
-        if (this.resolvedWorkflowTargetDiagnostic(targetStep, normalizedWorkflowStep)) return false;
-        if (!this.hasTransitionRoleAuthorization(targetStep, user)) return false;
-        workflowSteps.push(targetStep as WorkflowStepLike);
-      }
-      return this.hasEditAccess(
-        brandObj,
-        user,
-        roles,
-        this.createAuthorizationProjection(workflowSteps, recordType, user)
-      );
+    public hasCreateAccess(...args: Parameters<RecordCreateAuthorization['hasCreateAccess']>): Promise<boolean> {
+      return this.createAuthorization().hasCreateAccess(...args);
     }
 
     public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
@@ -2243,25 +2177,7 @@ export namespace Services {
       step: unknown,
       expectedName: string
     ): WorkflowTargetDiagnosticCode | undefined {
-      if (!step || typeof step !== 'object' || Array.isArray(step)) {
-        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound;
-      }
-      const candidate = step as WorkflowStepLike;
-      const stepName = typeof candidate.name === 'string' ? candidate.name.trim() : '';
-      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(stepName) || stepName !== expectedName) {
-        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepNotFound;
-      }
-      if (!candidate.config || typeof candidate.config !== 'object' || Array.isArray(candidate.config)) {
-        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed;
-      }
-      const form = candidate.config.form;
-      if (typeof form !== 'string' || !form.trim()) {
-        return RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepFormMissing;
-      }
-      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(form.trim())) {
-        return RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceMalformed;
-      }
-      return undefined;
+      return resolvedWorkflowTargetDiagnostic(step, expectedName);
     }
 
     private workflowTargetProblem(

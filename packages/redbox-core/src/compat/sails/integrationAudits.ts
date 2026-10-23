@@ -3,7 +3,6 @@ import type { StorageService } from '../../StorageService';
 export class LegacyIntegrationAuditService extends Domain.IntegrationAuditService {
   storageService!: StorageService;
   public constructor() {
-    let instance: LegacyIntegrationAuditService;
     super({
       get storage() {
         return instance.storageService;
@@ -20,7 +19,7 @@ export class LegacyIntegrationAuditService extends Domain.IntegrationAuditServic
           ? SecurityEventService.emitFromIntegrationAudit(entry)
           : Promise.resolve(),
     });
-    instance = this;
+    const instance = this;
   }
   protected _exportedMethods: string[] = [
     'init',

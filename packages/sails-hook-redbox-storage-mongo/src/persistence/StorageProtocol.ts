@@ -2590,7 +2590,6 @@ export class PrismaStorage implements StorageService, DatastreamService {
       // that full field set so every record's columns are represented.
       // Readable.from owns the generator's pending page even when the consumer
       // disconnects during column discovery. Do not detach that first pass.
-      let output: stream.Readable;
       const csv = async function* (storage: PrismaStorage) {
         const isCancelled = () => output.destroyed;
         const fields = await storage.collectCsvFields(query, options, isCancelled);
@@ -2607,7 +2606,7 @@ export class PrismaStorage implements StorageService, DatastreamService {
           .compose(sanitize)
           .compose(new Transform({ fields, transforms: [flatten()] }, { objectMode: true }));
       };
-      output = stream.Readable.from(csv(this));
+      const output = stream.Readable.from(csv(this));
       return output;
     }
 

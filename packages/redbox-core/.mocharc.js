@@ -6,6 +6,7 @@ module.exports = {
   // These real-Mongo fixtures use isolated commands with required URLs; see test:*:mongo.
   // Standalone tests and the compiled legacy host cannot share the global legacy setup.
   ignore: [
+    'test/http/RecordCreateAuthorizationMongo.test.ts',
     'test/http/RecordReadsMongo.test.ts',
     'test/http/QueryReadsMongo.test.ts',
     'test/http/AuthenticationMongo.test.ts',
