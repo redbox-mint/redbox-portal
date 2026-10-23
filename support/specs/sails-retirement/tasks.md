@@ -396,7 +396,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   import without Sails; public paths and relevant missing/query/body cases match
   expected results. Runtime policy execution stays separate from OpenAPI metadata.
 
-- [ ] **SR-027 — Implement actor/brand context and effective policy ordering.**
+- [x] **SR-027 — Implement actor/brand context and effective policy ordering.**
+
+  **Status:** done; [standalone actor, ordering and real identity/denial checks](evidence/p4-http-pilot.md#sr-027--authenticated-actor-brand-and-effective-policies).
 
   **Depends on:** SR-026, SR-022.
 
