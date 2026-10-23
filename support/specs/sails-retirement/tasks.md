@@ -466,6 +466,12 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 - [ ] **SR-032 — Migrate configuration, forms metadata and translations.**
 
+  **Status:** partial; six API read contracts and their shared AppConfig,
+  translation-entry, form and validation-discovery implementations are extracted.
+  [Executed read-slice evidence and remaining routes](evidence/p5-configuration-read.md).
+  Dashboard/browser/localization/workspace reads and protected writes remain;
+  this task is not accepted as a completed group.
+
   **Depends on:** SR-031, SR-021; SR-039 before completing protected writes.
 
   **Deliver:** read then write slices, converted collaborators and dynamic-setting

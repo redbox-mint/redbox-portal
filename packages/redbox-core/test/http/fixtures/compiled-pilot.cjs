@@ -12,6 +12,10 @@ Module._load = function (name, ...args) {
 const before = ['SIGINT', 'SIGTERM'].map(name => process.listenerCount(name));
 const { ApplicationRuntime } = require('@researchdatabox/redbox-core/application');
 const { RecordTypes } = require('@researchdatabox/redbox-core/record-types');
+// Every newly extracted metadata entrypoint must remain safe in the compiled graph.
+require('@researchdatabox/redbox-core/configuration');
+require('@researchdatabox/redbox-core/forms');
+require('@researchdatabox/redbox-core/translations');
 const {
   ExpressHost,
   PathRules,

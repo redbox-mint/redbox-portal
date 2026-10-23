@@ -1,13 +1,13 @@
 {
-  "source": "dcf931ea2858b92f67e748b7585713a0a3614686",
+  "source": "68252600d58a46c05611133b4168a59be26d174e",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
-    "SR-040": 46,
+    "SR-040": 47,
     "SR-036": 124,
     "SR-042": 2,
     "SR-041": 9,
     "SR-034": 21,
-    "SR-032": 64,
+    "SR-032": 63,
     "SR-035": 23,
     "SR-043": 6,
     "SR-033": 25,
@@ -485,7 +485,7 @@
       "route": "GET /:branding/:portal/admin/dashboard-config",
       "target": "DashboardConfigController.editor",
       "contract": false,
-      "task": "SR-032",
+      "task": "SR-040",
       "prerequisites": [],
       "standalone": false
     },
@@ -768,7 +768,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/branding/config",
@@ -1050,7 +1050,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/forms/get",
@@ -1058,7 +1058,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/harvest-runs",
@@ -1090,7 +1090,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/i18n/entries",
@@ -1098,7 +1098,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
@@ -1106,7 +1106,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/integration-audit/:oid",

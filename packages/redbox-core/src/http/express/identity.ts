@@ -4,7 +4,7 @@ import type { IdentityRepositories, IdentityRows } from '../../persistence/ident
 export interface AuthenticatedActor {
   readonly id: string;
   readonly username: string;
-  readonly roles: readonly { readonly id: string; readonly brandId: string }[];
+  readonly roles: readonly { readonly id: string; readonly brandId: string; readonly name?: string }[];
 }
 
 type User = IdentityRows['user'];
@@ -56,7 +56,10 @@ export class HttpIdentity {
       if (!role || typeof role !== 'object') return [];
       const roleId = id(role);
       const brandId = id(Reflect.get(role, 'branding'));
-      return roleId && brandId ? [Object.freeze({ id: roleId, brandId })] : [];
+      const name = Reflect.get(role, 'name');
+      return roleId && brandId
+        ? [Object.freeze({ id: roleId, brandId, ...(typeof name === 'string' ? { name } : {}) })]
+        : [];
     });
     return Object.freeze({ id: String(user.id), username: user.username, roles: Object.freeze(roles) });
   }

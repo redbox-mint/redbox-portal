@@ -20,5 +20,10 @@ export {
 } from './middleware';
 export { apiVersion, sendApiData, sendApiErrors } from './responses';
 export { mountRecordTypeRoutes, type RecordTypeHttpInput } from './recordTypes';
+export {
+  mountConfigurationReadRoutes,
+  configurationReadRoutes,
+  type ConfigurationReadHttpInput,
+} from './configuration';
 
 export { PathRules, type PathRule, type RuleRole } from '../../authorization/PathRules';

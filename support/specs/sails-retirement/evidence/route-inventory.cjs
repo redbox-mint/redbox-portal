@@ -5,6 +5,7 @@ const { resolve } = require('node:path');
 const root = resolve(__dirname, '../../../..');
 const { routes } = require(resolve(root, 'packages/redbox-core/dist/config/routes.config.js'));
 const { registerCoreApiRoutes } = require(resolve(root, 'packages/redbox-core/dist/api-routes/route-registry.js'));
+const { configurationReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/configuration.js'));
 if (global.sails || Object.keys(require.cache).some(p => /node_modules\/sails\//.test(p)))
   throw Error('Inventory must remain offline without Sails.');
 
@@ -24,7 +25,7 @@ function owner(pattern, controller, action) {
     return 'SR-032';
   if (target === 'Record' && /^(edit|view|redirectLegacyConsolidatedDashboard)$/.test(action)) return 'SR-040';
   if (target === 'DynamicAsset') return 'SR-040';
-  if (target === 'DashboardConfig') return 'SR-032';
+  if (target === 'DashboardConfig') return action === 'editor' ? 'SR-040' : 'SR-032';
   if (/companion|\/tus/.test(path)) return 'SR-042';
   if (/subscribe|unsubscribe/.test(action) || target === 'Asynch') return 'SR-043';
   if (/upload|attachment|datastream/i.test(action)) return 'SR-041';
@@ -52,6 +53,7 @@ function owner(pattern, controller, action) {
 }
 
 const contracts = new Set(registerCoreApiRoutes().map(r => r.method.toUpperCase() + ' ' + r.path));
+const migratedReads = new Set(configurationReadRoutes.map(route => route.method.toUpperCase() + ' ' + route.path));
 const entries = Object.entries(routes)
   .map(([pattern, target]) => {
     const controller =
@@ -91,7 +93,7 @@ const entries = Object.entries(routes)
       contract: contracts.has(normalized),
       task,
       prerequisites,
-      standalone: task === 'SR-029',
+      standalone: task === 'SR-029' || migratedReads.has(normalized),
     };
   })
   .sort((a, b) => a.route.localeCompare(b.route));

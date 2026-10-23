@@ -1,5 +1,5 @@
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
-import type { RequestHandler } from 'express';
+import type { RequestHandler, Router } from 'express';
 import {
   ExpressHost,
   PathRules,
@@ -18,6 +18,12 @@ export async function pilotFixture(
   options: Partial<Pick<RecordTypeHttpInput, 'routes' | 'policyConfiguration' | 'recordSchema'>> & {
     rootContext?: string;
     policyBindings?: Readonly<Record<string, RequestHandler>>;
+    prepareRoutes?(
+      router: Router,
+      fixture: Awaited<ReturnType<typeof mongoFixture>>,
+      policies: Readonly<Record<string, RequestHandler>>,
+      recordTypes: RecordTypes
+    ): Promise<void>;
   } = {}
 ) {
   const f = await mongoFixture();
@@ -67,6 +73,7 @@ export async function pilotFixture(
         recordSchema: options.recordSchema,
         rootContext: options.rootContext,
       });
+      await options.prepareRoutes?.(router, f, policies, domain);
       router.use(httpErrorHandler(nothingLogger));
     },
   });

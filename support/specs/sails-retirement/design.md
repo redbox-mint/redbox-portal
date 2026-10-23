@@ -70,13 +70,14 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
 
 ### 1.3 Recorded HTTP compatibility breaks
 
-- The authenticated record-type API pilot returns **401** with a Bearer challenge
+- The migrated authenticated API reads return **401** with a Bearer challenge
   for absent/invalid authentication, instead of legacy login redirects/path-rule
   denials. Affected consumers are unauthenticated callers of the two exact pilot
-  URLs. Supply a valid bearer credential or a new authenticated browser session.
+  URLs, and callers of the six configuration/form/translation API read contracts
+  exported as `configurationReadRoutes`. Supply a valid bearer credential or a new authenticated browser session.
   This keeps the API authentication requirement explicit and avoids HTML redirects
   being mistaken for successful API responses.
-- Those pilot routes also require membership in the requested brand through the
+- Those migrated authenticated API reads also require membership in the requested brand through the
   explicit `brandActor` policy, including on paths without a matching rule. Clients
   previously using another tenant's credential must receive an approved membership
   for the target brand. This prevents a missing path rule granting cross-tenant API

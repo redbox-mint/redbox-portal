@@ -153,7 +153,7 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
         res.status(404).end();
         return;
       }
-      const brand = await input.branding.getBrand({ name: branding });
+      const brand = await input.branding.getBrand({ name: branding }, true);
       if (!brand) {
         res.status(404).end();
         return;

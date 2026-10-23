@@ -17,7 +17,7 @@ describe('standalone pilot identity on real MongoDB', function () {
     const actor = await identity.bearer('pilot-api-token');
     assert(actor);
     assert.equal(actor.id, user.id);
-    assert.deepEqual(actor.roles, [{ id: role.id, brandId: brand.id }]);
+    assert.deepEqual(actor.roles, [{ id: role.id, brandId: brand.id, name: 'Admin' }]);
     assert.deepEqual(await identity.local('pilot-admin', 'pilot-password'), actor);
     assert.deepEqual(await identity.session(String(user.id)), actor);
     assert.equal(await identity.bearer('invalid'), false);
