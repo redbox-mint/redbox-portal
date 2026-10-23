@@ -1,0 +1,116 @@
+{
+  "node": "v26.11.1",
+  "npm": "11.20.0",
+  "sourceCommit": "4249667dcec90f49cf4302c77f0d568e2c1b4948",
+  "runnerExit": 0,
+  "rows": [
+    {
+      "mongo": "8.0.34",
+      "fcv": "8.0",
+      "topology": "standalone",
+      "placement": "separate physical core/storage servers",
+      "aggregate": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "existing": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 11,
+        "failed": 0,
+        "pending": 0
+      },
+      "elections": [],
+      "durationMs": 22311.271573
+    },
+    {
+      "mongo": "8.0.34",
+      "fcv": "8.0",
+      "topology": "replica",
+      "placement": "separate physical core/storage servers",
+      "aggregate": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "existing": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 11,
+        "failed": 0,
+        "pending": 0
+      },
+      "elections": [
+        {
+          "set": "sr-core",
+          "before": "127.0.0.1:29211",
+          "after": "127.0.0.1:29212"
+        },
+        {
+          "set": "sr-storage",
+          "before": "127.0.0.1:29221",
+          "after": "127.0.0.1:29222"
+        }
+      ],
+      "durationMs": 58010.379178
+    },
+    {
+      "mongo": "9.0.4",
+      "fcv": "9.0",
+      "topology": "standalone",
+      "placement": "separate physical core/storage servers",
+      "aggregate": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "existing": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 11,
+        "failed": 0,
+        "pending": 0
+      },
+      "elections": [],
+      "durationMs": 7418.078771
+    },
+    {
+      "mongo": "9.0.4",
+      "fcv": "9.0",
+      "topology": "replica",
+      "placement": "separate physical core/storage servers",
+      "aggregate": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "existing": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 11,
+        "failed": 0,
+        "pending": 0
+      },
+      "elections": [
+        {
+          "set": "sr-core",
+          "before": "127.0.0.1:29411",
+          "after": "127.0.0.1:29412"
+        },
+        {
+          "set": "sr-storage",
+          "before": "127.0.0.1:29421",
+          "after": "127.0.0.1:29422"
+        }
+      ],
+      "durationMs": 52845.089948
+    }
+  ],
+  "containersStoppedAndRemoved": 16,
+  "limitations": [
+    "No designated institution topology/source",
+    "Unauthenticated local Docker topology; TLS and institution credentials unqualified",
+    "Component HTTP qualification, not full portal regression"
+  ]
+}
