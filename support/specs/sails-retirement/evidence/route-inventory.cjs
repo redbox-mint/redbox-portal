@@ -5,17 +5,53 @@ const { resolve } = require('node:path');
 const root = resolve(__dirname, '../../../..');
 const { routes } = require(resolve(root, 'packages/redbox-core/dist/config/routes.config.js'));
 const { registerCoreApiRoutes } = require(resolve(root, 'packages/redbox-core/dist/api-routes/route-registry.js'));
-const { identityAdministrationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/identityAdministration.js'));
+const { identityAdministrationRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/identityAdministration.js')
+);
 const { queryWriteRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/queryWrites.js'));
-const { vocabularyIntegrationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/vocabularyIntegrations.js'));
-const { configurationReadRoutes, appConfigFormReadRoute } = require(resolve(root, 'packages/redbox-core/dist/http/express/configuration.js'));
+const { vocabularyIntegrationRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/vocabularyIntegrations.js')
+);
+const { configurationReadRoutes, appConfigFormReadRoute } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/configuration.js')
+);
 const { recordReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/recordReads.js'));
 const { queryReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/queryReads.js'));
-const { configurationWriteRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/configurationWrites.js'));
+const { configurationWriteRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/configurationWrites.js')
+);
 const { formDeliveryRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/formDelivery.js'));
 const { csrfTokenRoute } = require(resolve(root, 'packages/redbox-core/dist/http/express/csrf.js'));
 const { authenticationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/login.js'));
 const { metadataReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/metadata.js'));
+const { recordMutationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/recordMutations.js'));
+const { harvestMutationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/harvestMutations.js'));
+const { identityLinkRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/identityLinks.js'));
+const { vocabularyAdministrationRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/vocabularyAdministration.js')
+);
+const { formVocabularyRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/formVocabulary.js'));
+const { siemWriteRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/siemWrites.js'));
+const { adminOperationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/adminOperations.js'));
+const { brandingOperationRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/brandingOperations.js')
+);
+const { figshareAdministrationRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/figshareAdministration.js')
+);
+const { integrationOperationRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/integrationOperations.js')
+);
+const { configuredActionRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/configuredActions.js')
+);
+const { brandingUploadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/brandingUploads.js'));
+const { datastreamWriteRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/datastreamWrites.js'));
+const { datastreamReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/datastreamReads.js'));
+const { progressOperationRoutes } = require(
+  resolve(root, 'packages/redbox-core/dist/http/express/progressOperations.js')
+);
+const { resumableUploadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/resumableUploads.js'));
 if (global.sails || Object.keys(require.cache).some(p => /node_modules\/sails\//.test(p)))
   throw Error('Inventory must remain offline without Sails.');
 
@@ -46,6 +82,7 @@ function owner(pattern, controller, action) {
   if (target === 'User' && action === 'login') return 'SR-040';
   if (target === 'User' && /login|logout|authenticate|oidc|aaf|jwt|callback/i.test(action)) return 'SR-038';
   if (target === 'RecordType') return 'SR-029';
+  if (target === 'Search' && action === 'index') return 'SR-036';
   if (page || target === 'RenderView' || /render|theme|typeface|font|asset/i.test(action)) return 'SR-040';
   if (/^(FormManagement|Forms|Translation|AppConfig|Config|WorkflowSteps|WorkspaceTypes)$/.test(target))
     return 'SR-032';
@@ -68,7 +105,38 @@ function owner(pattern, controller, action) {
 }
 
 const contracts = new Set(registerCoreApiRoutes().map(r => r.method.toUpperCase() + ' ' + r.path));
-const migratedRoutes = new Set([...recordReadRoutes, ...queryReadRoutes, ...identityAdministrationRoutes, ...queryWriteRoutes, ...vocabularyIntegrationRoutes, ...configurationReadRoutes, ...configurationWriteRoutes, appConfigFormReadRoute, ...metadataReadRoutes, ...formDeliveryRoutes, ...authenticationRoutes, csrfTokenRoute].map(route => route.method.toUpperCase() + ' ' + route.path));
+const migratedRoutes = new Set(
+  [
+    ...recordMutationRoutes,
+    ...harvestMutationRoutes,
+    ...identityLinkRoutes,
+    ...vocabularyAdministrationRoutes,
+    ...formVocabularyRoutes,
+    ...siemWriteRoutes,
+    ...adminOperationRoutes,
+    ...brandingOperationRoutes,
+    ...figshareAdministrationRoutes,
+    ...integrationOperationRoutes,
+    ...configuredActionRoutes,
+    ...brandingUploadRoutes,
+    ...datastreamWriteRoutes,
+    ...datastreamReadRoutes,
+    ...progressOperationRoutes,
+    ...resumableUploadRoutes,
+    ...recordReadRoutes,
+    ...queryReadRoutes,
+    ...identityAdministrationRoutes,
+    ...queryWriteRoutes,
+    ...vocabularyIntegrationRoutes,
+    ...configurationReadRoutes,
+    ...configurationWriteRoutes,
+    appConfigFormReadRoute,
+    ...metadataReadRoutes,
+    ...formDeliveryRoutes,
+    ...authenticationRoutes,
+    csrfTokenRoute,
+  ].map(route => route.method.toUpperCase() + ' ' + route.path)
+);
 const entries = Object.entries(routes)
   .map(([pattern, target]) => {
     const controller =
@@ -124,7 +192,15 @@ entries.push({
   prerequisites: [],
   standalone: false,
 });
-const additions = authenticationRoutes.filter(route => !entries.some(entry => entry.route === route.method.toUpperCase() + ' ' + route.path)).map(route => ({ route: route.method.toUpperCase() + ' ' + route.path, target: route.controller + '.' + route.action, task: 'SR-038', prerequisites: ['SR-039'], standalone: true }));
+const additions = authenticationRoutes
+  .filter(route => !entries.some(entry => entry.route === route.method.toUpperCase() + ' ' + route.path))
+  .map(route => ({
+    route: route.method.toUpperCase() + ' ' + route.path,
+    target: route.controller + '.' + route.action,
+    task: 'SR-038',
+    prerequisites: ['SR-039'],
+    standalone: true,
+  }));
 const result = {
   additions,
   source: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
@@ -139,7 +215,10 @@ const result = {
 const path = resolve(__dirname, 'route-inventory.json');
 if (process.argv.includes('--check')) {
   const recorded = JSON.parse(readFileSync(path, 'utf8'));
-  if (JSON.stringify(recorded.entries) !== JSON.stringify(entries) || JSON.stringify(recorded.additions ?? []) !== JSON.stringify(additions))
+  if (
+    JSON.stringify(recorded.entries) !== JSON.stringify(entries) ||
+    JSON.stringify(recorded.additions ?? []) !== JSON.stringify(additions)
+  )
     throw Error('Route inventory is stale; rebuild and regenerate.');
 } else writeFileSync(path, JSON.stringify(result, null, 2) + '\n');
 console.log(JSON.stringify({ routes: entries.length, counts: result.counts, check: process.argv.includes('--check') }));

@@ -22,8 +22,26 @@ require('@researchdatabox/redbox-core/dashboards');
 require('@researchdatabox/redbox-core/workflows');
 require('@researchdatabox/redbox-core/workspaces');
 require('@researchdatabox/redbox-core/record-schema');
-for (const module of ['RecordLists', 'DeletedRecordReader', 'relationships', 'RecordCreateAuthorization'])
+for (const module of [
+  'RecordLists',
+  'DeletedRecordReader',
+  'relationships',
+  'RecordCreateAuthorization',
+  'Records',
+  'HarvestRuns',
+  'FigshareSourceIntents',
+])
   require('../../../dist/records/' + module);
+for (const module of ['StorageManager', 'StandardDatastream']) require('../../../dist/storage/' + module);
+for (const module of ['Branding', 'BrandingLogo', 'BrandingThemeCss', 'BrandingTypeface'])
+  require('../../../dist/branding/' + module);
+for (const module of ['Email', 'SiemForwarding', 'SiemDestinationTests', 'FigshareObservability'])
+  require('../../../dist/integrations/' + module);
+for (const module of ['FormVocabulary', 'FigshareVocabulary', 'FigshareConfiguration'])
+  require('../../../dist/vocabulary/' + module);
+require('../../../dist/progress/Asynchs');
+require('../../../dist/progress/authorization');
+require('../../../dist/storage/TusStorageManagerDataStore');
 require('../../../dist/forms/FormProjection');
 require('../../../dist/api-routes/schemaDelivery');
 for (const module of [
@@ -33,6 +51,7 @@ for (const module of [
   'SiemReads',
   'IntegrationAudits',
   'SolrReads',
+  'Solr',
   'RecordAuditViews',
   'RecordAuditReader',
   'FigshareStatus',

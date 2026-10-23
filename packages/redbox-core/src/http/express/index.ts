@@ -85,3 +85,4 @@ export * from './progressSockets';
 
 export * from './resumableUploads';
 
+export { apiHttpDeclarations } from './apiManifest';
