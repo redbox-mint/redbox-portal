@@ -105,7 +105,7 @@ COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/bootstr
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages ./packages
 RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen \
-    packages/redbox-core/src packages/redbox-core/scripts packages/redbox-core/prisma.config.ts packages/redbox-core/prisma.storage.config.ts
+    packages/redbox-core/scripts packages/redbox-core/prisma.config.ts packages/redbox-core/prisma.storage.config.ts
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
