@@ -97,6 +97,12 @@ test('portal rejects invalid pipeline data, URI rules, legacy lifecycle and unde
     { bootstrap: { bootstrap: () => {} } },
     { recordtype: { example: { execute: () => {} } } },
     { brandingConfigurationDefaults: { arbitrary: new Date() } },
+    { recordtype: { example: { searchable: 'untrusted-secret-value' } } },
+    { workflow: { example: { draft: { config: { form: 42 } } } } },
+    { i18n: { next: { init: { supportedLngs: ['en', 42] } } } },
+    { solr: { cores: { default: { options: { port: { invalid: 'untrusted-secret-value' } } } } } },
+    { dashboardtype: { example: { formatRules: 'untrusted-secret-value' } } },
+    { recordSchema: { integrationPins: [{ owner: 'missing-required-fields' }] } },
   ]) {
     await assert.rejects(
       loadPortalConfiguration({

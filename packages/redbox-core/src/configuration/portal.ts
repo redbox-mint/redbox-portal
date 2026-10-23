@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import Ajv from 'ajv';
+import { DateTime } from 'luxon';
+import domainSchema from './portal-domains.schema.json';
+import type { PortalDomainConfiguration } from './PortalDomainConfiguration';
 import { appmode } from '../config/appmode.config';
 import { record } from '../config/record.config';
 import { recordValidation } from '../config/recordValidation.config';
@@ -40,7 +44,12 @@ import {
   deploymentCommandLineInputs,
 } from './deployment';
 import { loadStartupConfiguration } from './loading';
-import { resolveStartupConfiguration, type ConfigurationLayer, type ConfigurationInput } from './resolution';
+import {
+  ConfigurationError,
+  resolveStartupConfiguration,
+  type ConfigurationLayer,
+  type ConfigurationInput,
+} from './resolution';
 import type { ResolvedExtensions } from '../extensions/resolution';
 
 const positive = z.number().int().positive();
@@ -206,7 +215,23 @@ export const portalSchema = deploymentSchema
           })
           .strict(),
         retention: z.object({ minimumAgeDays: nonnegative }).strict(),
-        integrationPins: z.array(data).optional(),
+        integrationPins: z
+          .array(
+            z
+              .object({
+                digest: z.string().min(1),
+                brand: z.string().min(1),
+                portal: z.string().min(1),
+                schemaKind: z.enum(['create', 'update']),
+                recordType: z.string().min(1),
+                operation: z.string().min(1),
+                owner: z.string().min(1),
+                purpose: z.string().min(1),
+                expiresAt: z.string().optional(),
+              })
+              .strict()
+          )
+          .optional(),
       })
       .strict(),
     recordtype: definitions,
@@ -301,7 +326,16 @@ export const portalSchema = deploymentSchema
   })
   .strict();
 const completePortalSchema = portalSchema.extend({ redboxSession: sessionSchema });
-export type PortalConfiguration = z.infer<typeof completePortalSchema>;
+export type PortalConfiguration = z.infer<typeof completePortalSchema> & PortalDomainConfiguration;
+const validateDomains = new Ajv({
+  strict: false,
+  allErrors: false,
+  formats: {
+    'date-time': (value: string) =>
+      /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/.test(value) &&
+      DateTime.fromISO(value, { setZone: true }).isValid,
+  },
+}).compile<PortalDomainConfiguration>(domainSchema);
 
 /** Only known executable sanitizer hooks survive startup resolution. Validators are owned code, not configuration. */
 const executablePaths = [
@@ -417,9 +451,18 @@ export async function loadPortalConfiguration(
   });
   // Inputs can fill a session section across layers. Complete validation is still
   // offline, before any client, logger worker, listener or domain construction.
-  return resolveStartupConfiguration({
+  const configuration = resolveStartupConfiguration({
     schema: completePortalSchema,
     core: { source: 'final portal configuration', values: snapshot },
     executablePaths,
   });
+  if (!validateDomains(configuration)) {
+    const error = validateDomains.errors?.[0];
+    throw new ConfigurationError(
+      'final portal domain configuration',
+      error?.instancePath || '/',
+      'invalid domain data'
+    );
+  }
+  return configuration;
 }

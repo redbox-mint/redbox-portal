@@ -134,3 +134,40 @@ portal setting. Their original loader/precedence assertions remain. This test
 extension covers newly introduced public surface and the real bundled graph;
 it does not weaken existing coverage. A fresh packed run is recorded separately
 once it completes.
+
+## Typed domain data before acquisition
+
+The next configuration slice intersects the final startup type with
+`PortalDomainConfiguration` and validates it against the shipped generated JSON
+Schema. The schema comes from the existing record/workflow/dashboard/workspace,
+i18n/vocabulary/Solr/search/query/action/email/branding/CSP/reusable-form interfaces;
+it does not introduce a second handwritten domain model. AJV performs no coercion
+or default mutation. The existing Luxon dependency validates `date-time` values.
+Schema diagnostics retain paths without including private input values. Integration
+pins now require their real identifying fields and create/update schema kind.
+
+`generate:portal-config` writes the schema; `check:portal-config` rejects drift and
+is part of core build. `resolveJsonModule` copies it to the installed `dist` tree;
+installed startup does not need TypeScript or the schema generator. No dependency
+or version changed. The source JSON is a generated runtime contract, not a log.
+
+With the absolute Node **26.11.1** toolchain on PATH, these commands exited **0**:
+
+```sh
+node packages/redbox-core/scripts/portal-configuration-schema.cjs
+node packages/redbox-core/scripts/portal-configuration-schema.cjs --check
+node packages/redbox-core/node_modules/typescript/bin/tsc -p packages/redbox-core/tsconfig.json
+node --test packages/redbox-core/test/qualification/portal-configuration.cjs
+```
+
+The final aggregate reports **7 passing / 0 failing / 0 skipped**. Logs:
+`.tmp/sails-retirement/p7/portal-schema-format.log`,
+`portal-schema-build-final.log`, and `portal-schema-qualification-final.log`.
+Additional malformed domain inputs extend the new qualification; no existing test
+was removed or relaxed. Earlier attempts exposed the schema generator API's
+compiler-option conversion and unknown date format handling. The script now uses
+TypeScript's parsed compiler options directly, and supplies a real date-time
+validator. A new negative Solr case initially used a string port, which the existing
+interface explicitly permits; its input now uses an invalid object. The earlier
+6/1 results are not counted as successful qualification. Generated output is
+formatted deterministically with the existing core Prettier dependency.
