@@ -1,6 +1,6 @@
 import { PassThrough } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { PersistenceError, persistenceOperation } from '@researchdatabox/redbox-core';
+import { PersistenceError, persistenceOperation, RBValidationError } from '@researchdatabox/redbox-core';
 import { RecordSchemaPersistenceError } from './recordSchemaCodec';
 import { storageOperations } from './StoragePersistence';
 import { PrismaStorage } from './StorageProtocol';
@@ -55,7 +55,12 @@ export function guardPrismaStorage(app: Sails.Application, repository: PrismaSto
     if (name !== 'getCapabilities' && name !== 'updateDatastream')
       Reflect.set(guarded, name, (...args: unknown[]) =>
         persistenceOperation(app, () => Reflect.apply(method, repository, args)).catch((error: unknown) => {
-          if (error instanceof PersistenceError || error instanceof RecordSchemaPersistenceError) throw error;
+          if (
+            error instanceof PersistenceError ||
+            error instanceof RecordSchemaPersistenceError ||
+            error instanceof RBValidationError
+          )
+            throw error;
           if (reads.has(name))
             throw new PersistenceError(
               'storage-read',
