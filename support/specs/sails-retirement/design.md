@@ -68,6 +68,30 @@ It does not block retirement when the required async loading works. Do not flip
 the root package to `type: module` merely to introduce the first dynamic import.
 Keep CommonJS tooling explicit where needed; avoid dual builds without a consumer.
 
+### 1.3 Recorded HTTP compatibility breaks
+
+- The authenticated record-type API pilot returns **401** with a Bearer challenge
+  for absent/invalid authentication, instead of legacy login redirects/path-rule
+  denials. Affected consumers are unauthenticated callers of the two exact pilot
+  URLs. Supply a valid bearer credential or a new authenticated browser session.
+  This keeps the API authentication requirement explicit and avoids HTML redirects
+  being mistaken for successful API responses.
+- Those pilot routes also require membership in the requested brand through the
+  explicit `brandActor` policy, including on paths without a matching rule. Clients
+  previously using another tenant's credential must receive an approved membership
+  for the target brand. This prevents a missing path rule granting cross-tenant API
+  access. `checkAuth` itself preserves legacy unruled-path access and anonymous
+  default roles; public routes do not inherit the pilot's membership policy.
+- Operational authentication/repository failures return sanitized errors; clients
+  must not depend on datastore/provider exception text. Orphan/cyclic linked aliases
+  fail authentication; administrators must repair their primary-account linkage.
+
+SR-031's matching/unruled, anonymous/default-role, redirect/JSON/schema and event
+tests supersede P4's provisional missing-rule denial and per-request rule-query
+behavior. Cached rules refresh at bootstrap or explicit `loadRules()`, as in the
+legacy service. Evidence: [route-group acceptance](route-group-acceptance.md) and
+[SR-031 results](evidence/p5-route-groups.md).
+
 ## 2. Observed starting point
 
 These observations identify seams, not completed migration evidence.

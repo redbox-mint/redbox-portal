@@ -2,12 +2,14 @@ export { ExpressHost, type ExpressHostOptions } from './ExpressHost';
 export { HttpIdentity, type AuthenticatedActor } from './identity';
 export {
   createPilotPolicies,
+  createHttpPolicies,
   resolveEffectivePolicies,
   bindHttpPolicies,
   requestContext,
   pilotPolicyChain,
   type HttpRequestContext,
   type PilotPolicyInput,
+  type HttpPolicyInput,
 } from './policies';
 export {
   prepareHttpMiddleware,
@@ -18,3 +20,5 @@ export {
 } from './middleware';
 export { apiVersion, sendApiData, sendApiErrors } from './responses';
 export { mountRecordTypeRoutes, type RecordTypeHttpInput } from './recordTypes';
+
+export { PathRules, type PathRule, type RuleRole } from '../../authorization/PathRules';

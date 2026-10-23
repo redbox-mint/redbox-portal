@@ -1,11 +1,16 @@
 import type { Request, RequestHandler } from 'express';
 import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { BrandingRepository, BrandRow } from '../../persistence/branding/BrandingRepository';
-import type { IdentityRepositories } from '../../persistence/identity/IdentityRepositories';
+import type { PathRules, RuleRole } from '../../authorization/PathRules';
 import type { PoliciesConfig, PolicyChain } from '../../config/policies.config';
 import type { AuthenticatedActor } from './identity';
-import UrlPattern from 'url-pattern';
 import { httpAction } from './middleware';
+import {
+  buildRecordSchemaForbiddenProblem,
+  RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+  RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+  RECORD_SCHEMA_RESPONSE_VARY,
+} from '../../api-routes/record-schema-response';
 
 export interface HttpRequestContext {
   readonly brand: BrandRow;
@@ -78,17 +83,55 @@ export function bindHttpPolicies(
   });
 }
 
-export interface PilotPolicyInput {
+export interface HttpPolicyInput {
   readonly branding: Pick<BrandingRepository, 'getBrand'>;
-  readonly identity: Pick<IdentityRepositories, 'list'>;
+  readonly pathRules: Pick<PathRules, 'getRulesFromPath' | 'canRead'>;
   readonly portals: readonly string[];
+  defaultUnauthenticatedRole(brand: BrandRow): Promise<RuleRole | undefined> | RuleRole | undefined;
+  /** Bind the selected SecurityEventService; returned work remains in the request lifetime. */
+  emitRequestFailure(req: Request, event: 'authorization.failure', source: 'AuthorizationPolicy'): Promise<void>;
+  readonly loginPath?: string;
+  readonly rootContext?: string;
   /** Returns only the server-authenticated actor, never a request body/session.user snapshot. */
   authenticate(req: Request): Promise<AuthenticatedActor | false>;
 }
-function normalizePath(path: string): string {
-  return path.replace(/\/$/, '').toLowerCase();
-}
-export function createPilotPolicies(input: PilotPolicyInput): Readonly<Record<string, RequestHandler>> {
+export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<string, RequestHandler>> {
+  const checkAuth =
+    (schema: boolean): RequestHandler =>
+    async (req, res, next) => {
+      const context = requestContext(req);
+      const actor = context.actor ?? (await input.authenticate(req));
+      if (actor && !context.actor) Reflect.set(req, contextKey, Object.freeze({ ...context, actor }));
+      const { brand, portal } = context;
+      const guest = actor ? undefined : await input.defaultUnauthenticatedRole(brand);
+      const roles = actor ? actor.roles.filter(role => role.brandId === brand.id) : guest ? [guest] : [];
+      const rules = input.pathRules.getRulesFromPath(req.path, brand);
+      // Legacy paths without a rule proceed. Authentication and object/brand policies
+      // remain independent requirements of their route's effective chain.
+      if (!rules || input.pathRules.canRead(rules, roles, brand.name ?? '')) {
+        next();
+        return;
+      }
+      const json = req.get('content-type')?.includes('application/json') === true;
+      if (schema || actor || json) await input.emitRequestFailure(req, 'authorization.failure', 'AuthorizationPolicy');
+      if (schema) {
+        res
+          .set({
+            'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+            Vary: RECORD_SCHEMA_RESPONSE_VARY,
+            'Content-Type': RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+          })
+          .status(403)
+          .json(buildRecordSchemaForbiddenProblem(req.path));
+      } else if (actor) res.status(403).end();
+      else if (json) res.status(403).json({ message: 'Access Denied' });
+      else {
+        if (req.session) req.session.redirUrl = req.originalUrl;
+        res.redirect(
+          (input.rootContext ?? '') + '/' + brand.name + '/' + portal + '/' + (input.loginPath ?? 'user/login')
+        );
+      }
+    };
   return {
     nocache: (_req, res, next) => {
       res.set({
@@ -129,34 +172,24 @@ export function createPilotPolicies(input: PilotPolicyInput): Readonly<Record<st
       Reflect.set(req, contextKey, Object.freeze({ ...context, actor }));
       next();
     },
-    checkauth: async (req, res, next) => {
+    brandactor: (req, res, next) => {
       const { actor, brand } = requestContext(req);
-      if (!actor) {
-        res.status(403).end();
-        return;
-      }
-      const roles = actor.roles.filter(role => role.brandId === brand.id);
-      if (!roles.length) {
-        res.status(403).end();
-        return;
-      }
-      const rules = await input.identity.list('pathrule', { branding: brand.id });
-      const allowed = rules.some(rule => {
-        const role = rule.role;
-        const roleId = typeof role === 'object' ? String(role.id) : String(role);
-        return (
-          (rule.can_read === true || rule.can_update === true) &&
-          roles.some(role => role.id === roleId) &&
-          new UrlPattern(normalizePath(rule.path)).match(normalizePath(req.path)) !== null
-        );
-      });
-      if (!allowed) {
-        res.status(403).end();
-        return;
-      }
-      next();
+      if (!actor?.roles.some(role => role.brandId === brand.id)) res.status(403).end();
+      else next();
     },
+    checkauth: checkAuth(false),
+    checkrecordschemaauth: checkAuth(true),
   };
 }
 
-export const pilotPolicyChain = ['noCache', 'brandingAndPortal', 'isWebServiceAuthenticated', 'checkAuth'] as const;
+export const pilotPolicyChain = [
+  'noCache',
+  'brandingAndPortal',
+  'isWebServiceAuthenticated',
+  'brandActor',
+  'checkAuth',
+] as const;
+
+/** Retained pilot entry names; both hosts bind the same policy implementation. */
+export const createPilotPolicies = createHttpPolicies;
+export type PilotPolicyInput = HttpPolicyInput;

@@ -5,7 +5,7 @@ module.exports = {
     spec: ['test/**/*.test.ts'],
     // These real-Mongo fixtures use isolated commands with required URLs; see test:*:mongo.
     // Standalone tests and the compiled legacy host cannot share the global legacy setup.
-    ignore: ['test/http/CompiledPilotMongo.test.ts', 'test/http/PilotFailuresMongo.test.ts', 'test/http/RecordTypesMongo.test.ts', 'test/http/MiddlewareMongo.test.ts', 'test/http/IdentityMongo.test.ts', 'test/queues/QueueMongo.test.ts', 'test/application/InitializationMongo.test.ts', 'test/application/ApplicationMongo.test.ts', 'test/recordTypes/RecordTypesMongo.test.ts', 'test/compat/SailsRecordTypesMongo.test.ts'],
+    ignore: ['test/http/BrunoPilotMongo.test.ts', 'test/http/CompiledPilotMongo.test.ts', 'test/http/PilotFailuresMongo.test.ts', 'test/http/RecordTypesMongo.test.ts', 'test/http/MiddlewareMongo.test.ts', 'test/http/IdentityMongo.test.ts', 'test/queues/QueueMongo.test.ts', 'test/application/InitializationMongo.test.ts', 'test/application/ApplicationMongo.test.ts', 'test/recordTypes/RecordTypesMongo.test.ts', 'test/compat/SailsRecordTypesMongo.test.ts'],
     // Native TypeScript stripping (including Node 26) conflicts with ts-node's CommonJS
     // loader. Preload Chai as well so legacy fire-and-forget dynamic imports do
     // not race the suite's static Chai imports while Mocha loads test files.

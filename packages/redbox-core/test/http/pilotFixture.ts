@@ -2,6 +2,7 @@ import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import type { RequestHandler } from 'express';
 import {
   ExpressHost,
+  PathRules,
   createPilotPolicies,
   pilotPolicyChain,
   prepareHttpMiddleware,
@@ -34,6 +35,7 @@ export async function pilotFixture(
     collection: 'pilotSessions',
     cookie: { secure: false },
   };
+  const pathRules = new PathRules(() => f.identities.list('pathrule', {}, { populate: ['role', 'branding'] }));
   const host = new ExpressHost(f.application, {
     owner: f.owner,
     hostname: '127.0.0.1',
@@ -47,9 +49,12 @@ export async function pilotFixture(
         session,
         log: nothingLogger,
       });
+      await pathRules.loadRules();
       const policies = createPilotPolicies({
         branding: f.branding,
-        identity: f.identities,
+        pathRules,
+        defaultUnauthenticatedRole: () => undefined,
+        emitRequestFailure: async () => {},
         portals: ['rdmp'],
         authenticate: req => auth.authenticate(req),
       });
@@ -77,6 +82,7 @@ export async function pilotFixture(
     return {
       ...f,
       domain,
+      pathRules,
       host,
       url: 'http://127.0.0.1:' + host.address()!.port + (options.rootContext ?? ''),
       headers: { Authorization: 'Bearer pilot-api-token' },

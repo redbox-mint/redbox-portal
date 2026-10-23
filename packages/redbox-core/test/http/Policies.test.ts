@@ -3,6 +3,7 @@ import express from 'express';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import sinon from 'sinon';
+import { PathRules } from '../../src/authorization/PathRules';
 import { HttpIdentity } from '../../src/http/express/identity';
 import {
   bindHttpPolicies,
@@ -13,6 +14,98 @@ import {
 } from '../../src/http/express/policies';
 
 describe('standalone actor and policy context', () => {
+  it('owns and atomically refreshes path rules without per-request repository queries', async () => {
+    const brand = { id: 'brand', name: 'default' };
+    const read = sinon.stub().resolves([{ path: '/private(/*)', branding: brand, role: 'admin', can_read: true }]);
+    const rules = new PathRules(read);
+    assert.throws(() => rules.getRulesFromPath('/private/a', brand), /Initialize/);
+    await Promise.all([rules.loadRules(), rules.loadRules()]);
+    assert.equal(read.callCount, 1);
+    for (const path of ['/private/a', '/PRIVATE/a/']) {
+      const matched = rules.getRulesFromPath(path, brand);
+      assert(matched);
+      assert.equal(rules.canRead(matched, [{ id: 'admin' }], brand.name), true);
+      assert.equal(rules.canRead(matched, [{ id: 'reader' }], brand.name), false);
+    }
+    assert.equal(rules.getRulesFromPath('/unruled', brand), null);
+    assert.equal(rules.getRulesFromPath('/private/a', { id: 'other' }), null);
+    assert.equal(read.callCount, 1);
+    read.rejects(new Error('refresh failed'));
+    await assert.rejects(rules.loadRules(), /refresh failed/);
+    assert(rules.getRulesFromPath('/private/a', brand));
+    read.resolves([]);
+    await rules.loadRules();
+    assert.equal(rules.getRulesFromPath('/private/a', brand), null);
+    const second = new PathRules(async () => []);
+    await second.loadRules();
+    assert.equal(second.getRulesFromPath('/private/a', brand), null);
+  });
+
+  it('preserves unruled paths, anonymous default roles, denial formats and security events on HTTP', async () => {
+    const brand = { id: 'brand', name: 'default' };
+    const rules = new PathRules(async () => [
+      { path: '/:branding/:portal/private(/*)', branding: brand, role: 'admin', can_read: true },
+      { path: '/:branding/:portal/home', branding: brand, role: 'guest', can_read: true },
+    ]);
+    await rules.loadRules();
+    const events: string[] = [];
+    const policies = createPilotPolicies({
+      branding: { getBrand: async () => brand },
+      pathRules: rules,
+      portals: ['rdmp'],
+      defaultUnauthenticatedRole: () => ({ id: 'guest' }),
+      authenticate: async req =>
+        req.get('authorization')
+          ? {
+              id: 'reader',
+              username: 'reader',
+              roles: [{ id: 'reader', brandId: brand.id }],
+            }
+          : false,
+      emitRequestFailure: async (_req, type, source) => {
+        events.push(type + ':' + source);
+      },
+      rootContext: '/institution',
+    });
+    const app = express();
+    const context = bindHttpPolicies(['brandingandportal'], policies);
+    app.get(
+      '/:branding/:portal/private/schema',
+      ...context,
+      ...bindHttpPolicies(['checkrecordschemaauth'], policies),
+      (_req, res) => res.send('allowed')
+    );
+    app.get('/:branding/:portal/{*path}', ...context, ...bindHttpPolicies(['checkauth'], policies), (_req, res) =>
+      res.send('allowed')
+    );
+    const server = createServer(app);
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const url = 'http://127.0.0.1:' + (server.address() as AddressInfo).port + '/default/rdmp';
+    try {
+      for (const headers of [new Headers(), new Headers({ Authorization: 'Bearer reader' })]) {
+        assert.equal((await fetch(url + '/unruled', { headers })).status, 200);
+      }
+      assert.equal((await fetch(url + '/home')).status, 200);
+      const redirect = await fetch(url + '/private/a', { redirect: 'manual' });
+      assert.equal(redirect.status, 302);
+      assert.equal(redirect.headers.get('location'), '/institution/default/rdmp/user/login');
+      assert.equal(events.length, 0, 'ordinary login redirect is not an authorization failure');
+      const json = await fetch(url + '/private/a', { headers: { 'Content-Type': 'application/json' } });
+      assert.equal(json.status, 403);
+      assert.deepEqual(await json.json(), { message: 'Access Denied' });
+      const authenticated = await fetch(url + '/private/a', { headers: { Authorization: 'Bearer reader' } });
+      assert.equal(authenticated.status, 403);
+      assert.equal(await authenticated.text(), '');
+      const schema = await fetch(url + '/private/schema');
+      assert.equal(schema.status, 403);
+      assert.match(schema.headers.get('content-type')!, /application\/problem\+json/);
+      assert.equal(Reflect.get((await schema.json()) as object, 'status'), 403);
+      assert.deepEqual(events, Array(3).fill('authorization.failure:AuthorizationPolicy'));
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+    }
+  });
+
   it('resolves boolean/action/controller/global overrides and ordered route policies offline', () => {
     const route = { controller: 'webservice/RecordTypeController', action: 'listRecordTypes', policy: 'RouteFirst' };
     assert.deepEqual(resolveEffectivePolicies(route, { '*': 'Global' }), ['routefirst', 'global']);
@@ -74,11 +167,17 @@ describe('standalone actor and policy context', () => {
   it('executes brand then authentication then authorization on real HTTP, rejecting spoofed authority', async () => {
     const brand = { id: 'brand', name: 'default' };
     const getBrand = sinon.stub().resolves(brand);
-    const list = sinon.stub().resolves([{ path: '/:branding/:portal/api(/*)', role: 'admin', can_update: true }]);
+    const list = sinon
+      .stub()
+      .resolves([{ path: '/:branding/:portal/api(/*)', role: { id: 'admin' }, branding: brand, can_update: true }]);
+    const pathRules = new PathRules(list);
+    await pathRules.loadRules();
     const order: string[] = [];
     const policies = createPilotPolicies({
       branding: { getBrand },
-      identity: { list },
+      pathRules,
+      defaultUnauthenticatedRole: () => undefined,
+      emitRequestFailure: async () => {},
       portals: ['rdmp'],
       authenticate: async req => {
         order.push('authenticate');

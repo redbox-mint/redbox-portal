@@ -1,0 +1,3308 @@
+{
+  "source": "dcf931ea2858b92f67e748b7585713a0a3614686",
+  "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
+  "counts": {
+    "SR-040": 46,
+    "SR-036": 124,
+    "SR-042": 2,
+    "SR-041": 9,
+    "SR-034": 21,
+    "SR-032": 64,
+    "SR-035": 23,
+    "SR-043": 6,
+    "SR-033": 25,
+    "SR-029": 2,
+    "SR-038": 9,
+    "SR-039": 1
+  },
+  "entries": [
+    {
+      "route": "ALL /:branding/:portal/admin",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/admin/harvest-runs",
+      "target": "AdminController.harvestRunsIndex",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/admin/roles",
+      "target": "AdminController.rolesIndex",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/admin/siem",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/admin/translation",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/admin/users",
+      "target": "AdminController.usersIndex",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/availableServicesList",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/companion/record/:oid/attach",
+      "target": "RecordController.doAttachment",
+      "contract": false,
+      "task": "SR-042",
+      "prerequisites": [
+        "SR-034",
+        "SR-038",
+        "SR-041"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/companion/record/:oid/attach/:attachId",
+      "target": "RecordController.doAttachment",
+      "contract": false,
+      "task": "SR-042",
+      "prerequisites": [
+        "SR-034",
+        "SR-038",
+        "SR-041"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/getAdvice",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/home",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/images/favicon",
+      "target": "BrandingController.renderFavicon",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/images/logo",
+      "target": "BrandingController.renderImage",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/record/:oid/attach",
+      "target": "RecordController.doAttachment",
+      "contract": false,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/record/:oid/attach/:attachId",
+      "target": "RecordController.doAttachment",
+      "contract": false,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/record/search",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/record/view-orig/:oid",
+      "target": "RecordController.view",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/record/view/:oid",
+      "target": "RecordController.view",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/researcher/home",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/user/profile",
+      "target": "UserController.profile",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "ALL /:branding/:portal/workspaces/list",
+      "target": "RecordController.listWorkspaces",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/admin/report-config/:name",
+      "target": "ReportController.deleteConfig",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/admin/vocabulary/:id",
+      "target": "VocabularyController.delete",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/appconfig/:appConfigId",
+      "target": "webservice/AppConfigController.resetAppConfig",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/branding/draft/typeface/faces/:slot",
+      "target": "webservice/BrandingController.deleteFace",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/deletedrecords/:oid",
+      "target": "webservice/RecordController.destroyDeletedRecord",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/figshare-crosswalks/:id",
+      "target": "webservice/FigshareCrosswalkController.delete",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+      "target": "webservice/TranslationController.deleteEntry",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/named-query/:name",
+      "target": "webservice/NamedQueryController.deleteQuery",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/records/metadata/:oid",
+      "target": "webservice/RecordController.deleteRecord",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/records/permissions/edit/:oid",
+      "target": "webservice/RecordController.removeUserEdit",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/records/permissions/editRole/:oid",
+      "target": "webservice/RecordController.removeRoleEdit",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/records/permissions/view/:oid",
+      "target": "webservice/RecordController.removeUserView",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/records/permissions/viewRole/:oid",
+      "target": "webservice/RecordController.removeRoleView",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/report-config/:name",
+      "target": "webservice/ReportController.deleteConfig",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/api/vocabulary/:id",
+      "target": "webservice/VocabularyController.delete",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/app/branding/draft/typeface/faces/:slot",
+      "target": "BrandingAppController.deleteFace",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/asynch",
+      "target": "AsynchController.stop",
+      "contract": false,
+      "task": "SR-043",
+      "prerequisites": [
+        "SR-034",
+        "SR-038"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/asynch/subscribe/:roomId",
+      "target": "AsynchController.unsubscribe",
+      "contract": false,
+      "task": "SR-043",
+      "prerequisites": [
+        "SR-034",
+        "SR-038"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/record/delete/:oid",
+      "target": "RecordController.delete",
+      "contract": false,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "DELETE /:branding/:portal/record/destroy/:oid",
+      "target": "RecordController.destroyDeletedRecord",
+      "contract": false,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/api-docs",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/api-docs/openapi.json",
+      "target": "BrandingController.renderSwaggerJSON",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/appconfig/edit/:appConfigId",
+      "target": "AppConfigController.editAppConfig",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/branding",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/dashboard-config",
+      "target": "DashboardConfigController.editor",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/dashboard-config/targets",
+      "target": "DashboardConfigController.listTargets",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/dashboard-config/views/:view/:step",
+      "target": "DashboardConfigController.getViewTarget",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/dashboard-config/views/:view/:step/fields",
+      "target": "DashboardConfigController.getViewFields",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage",
+      "target": "DashboardConfigController.getWorkflowTarget",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields",
+      "target": "DashboardConfigController.getWorkflowFields",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/deletedRecords",
+      "target": "RecordController.renderDeletedRecords",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/downloadReportCSV",
+      "target": "ReportController.downloadCSV",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/export",
+      "target": "ExportController.index",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/getReport",
+      "target": "ReportController.get",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/getReportResults",
+      "target": "ReportController.getResults",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/integrations/figshare/vocabularies",
+      "target": "RenderViewController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/named-query",
+      "target": "NamedQueryController.editor",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/report-config",
+      "target": "ReportController.listConfigs",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/report-config/:name",
+      "target": "ReportController.getConfig",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/report/:name",
+      "target": "ReportController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/reports",
+      "target": "ReportsController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/roles/get",
+      "target": "AdminController.getBrandRoles",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/users/:id/audit",
+      "target": "AdminController.getUserAudit",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/users/:id/links",
+      "target": "AdminController.getUserLinks",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/users/get",
+      "target": "AdminController.getUsers",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/users/link/candidates",
+      "target": "AdminController.searchLinkCandidates",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/vocabulary",
+      "target": "VocabularyController.list",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/vocabulary/:id",
+      "target": "VocabularyController.get",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/admin/vocabulary/manager",
+      "target": "VocabularyController.manager",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api-docs.apib",
+      "target": "BrandingController.renderApiB",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api-docs.json",
+      "target": "BrandingController.renderSwaggerJSON",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api-docs.yaml",
+      "target": "BrandingController.renderSwaggerYAML",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/admin/config",
+      "target": "webservice/AdminController.getAppConfig",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/admin/config/:configKey",
+      "target": "webservice/AdminController.getAppConfig",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/admin/refreshCachedResources",
+      "target": "webservice/AdminController.refreshCachedResources",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/appconfig/:appConfigId",
+      "target": "webservice/AppConfigController.getAppConfig",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/branding/config",
+      "target": "webservice/BrandingController.config",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/branding/history",
+      "target": "webservice/BrandingController.history",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/branding/versions",
+      "target": "webservice/BrandingController.versions",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/defaults",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/info",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/migration/preflight",
+      "target": "webservice/DashboardConfigController.migrationPreflight",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/overrides",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/targets",
+      "target": "webservice/DashboardConfigController.listTargets",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/views/:view/:step",
+      "target": "webservice/DashboardConfigController.getViewTarget",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/views/:view/:step/fields",
+      "target": "webservice/DashboardConfigController.getViewFields",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
+      "target": "webservice/DashboardConfigController.getWorkflowTarget",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields",
+      "target": "webservice/DashboardConfigController.getWorkflowFields",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/deletedrecords/:oid",
+      "target": "webservice/RecordController.getDeletedRecord",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/deletedrecords/list",
+      "target": "webservice/RecordController.listDeletedRecords",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/export/record/download/:format",
+      "target": "webservice/ExportController.downloadRecs",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-crosswalks",
+      "target": "webservice/FigshareCrosswalkController.list",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-crosswalks/:id",
+      "target": "webservice/FigshareCrosswalkController.get",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-crosswalks/:id/local-entries",
+      "target": "webservice/FigshareCrosswalkController.listLocalEntries",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-crosswalks/:id/mappings",
+      "target": "webservice/FigshareCrosswalkController.listMappings",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-crosswalks/:id/usage",
+      "target": "webservice/FigshareCrosswalkController.usage",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-vocabularies/catalogues",
+      "target": "webservice/FigshareVocabularyController.listCatalogues",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-vocabularies/previews/:runId",
+      "target": "webservice/FigshareVocabularyController.getPreview",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-vocabularies/sources",
+      "target": "webservice/FigshareVocabularyController.listSources",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-vocabularies/sources/:sourceId",
+      "target": "webservice/FigshareVocabularyController.getSource",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-vocabularies/sources/:sourceId/categories",
+      "target": "webservice/FigshareVocabularyController.listSourceCategories",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/figshare-vocabularies/sync-runs",
+      "target": "webservice/FigshareVocabularyController.listSyncRuns",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/forms",
+      "target": "webservice/FormManagementController.listForms",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/forms/get",
+      "target": "webservice/FormManagementController.getForm",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/harvest-runs",
+      "target": "webservice/HarvestRunController.listRuns",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/harvest-runs/:id",
+      "target": "webservice/HarvestRunController.getRun",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/harvest-runs/:id/events",
+      "target": "webservice/HarvestRunController.listRunEvents",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/i18n/bundles/:locale/:namespace",
+      "target": "webservice/TranslationController.getBundle",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/i18n/entries",
+      "target": "webservice/TranslationController.listEntries",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+      "target": "webservice/TranslationController.getEntry",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/integration-audit/:oid",
+      "target": "webservice/IntegrationAuditController.getAuditLog",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/named-query",
+      "target": "webservice/NamedQueryController.listQueries",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/named-query/:name",
+      "target": "webservice/NamedQueryController.getQuery",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/named-query/collections",
+      "target": "webservice/NamedQueryController.getCollections",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/audit/:oid",
+      "target": "webservice/RecordController.getRecordAudit",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/datastreams/:oid",
+      "target": "webservice/RecordController.listDatastreams",
+      "contract": true,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/datastreams/:oid/:datastreamId",
+      "target": "webservice/RecordController.getDataStream",
+      "contract": true,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/list",
+      "target": "webservice/RecordController.listRecords",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/metadata/:oid",
+      "target": "webservice/RecordController.getMeta",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/objectmetadata/:oid",
+      "target": "webservice/RecordController.getObjectMeta",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/permissions/:oid",
+      "target": "webservice/RecordController.getPermissions",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/schemas/:digest",
+      "target": "webservice/RecordSchemaController.immutable",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/schemas/create/:recordType",
+      "target": "webservice/RecordSchemaController.create",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/records/schemas/update/:oid",
+      "target": "webservice/RecordSchemaController.update",
+      "contract": true,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/recordtypes",
+      "target": "webservice/RecordTypeController.listRecordTypes",
+      "contract": true,
+      "task": "SR-029",
+      "prerequisites": [],
+      "standalone": true
+    },
+    {
+      "route": "GET /:branding/:portal/api/recordtypes/get",
+      "target": "webservice/RecordTypeController.getRecordType",
+      "contract": true,
+      "task": "SR-029",
+      "prerequisites": [],
+      "standalone": true
+    },
+    {
+      "route": "GET /:branding/:portal/api/report-config",
+      "target": "webservice/ReportController.listConfigs",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/report-config/:name",
+      "target": "webservice/ReportController.getConfig",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/report/namedQuery",
+      "target": "webservice/ReportController.executeNamedQuery",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/roles",
+      "target": "webservice/UserManagementController.listSystemRoles",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/search",
+      "target": "webservice/SearchController.search",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/siem/config",
+      "target": "webservice/SiemController.getConfig",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/siem/delivery-status",
+      "target": "webservice/SiemController.getDeliveryStatus",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/siem/events",
+      "target": "webservice/SiemController.getEvents",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/users",
+      "target": "webservice/UserManagementController.listUsers",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/users/:id/audit",
+      "target": "webservice/UserManagementController.getUserAudit",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/users/:id/links",
+      "target": "webservice/UserManagementController.getUserLinks",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/users/find",
+      "target": "webservice/UserManagementController.getUser",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/users/get",
+      "target": "webservice/UserManagementController.getUser",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/users/link/candidates",
+      "target": "webservice/UserManagementController.searchLinkCandidates",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/vocabulary",
+      "target": "webservice/VocabularyController.list",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/api/vocabulary/:id",
+      "target": "webservice/VocabularyController.get",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/app/branding/config",
+      "target": "BrandingAppController.config",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/app/branding/versions",
+      "target": "BrandingAppController.versions",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/app/i18n/bundles/:locale/:namespace",
+      "target": "TranslationController.getBundleApp",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/app/i18n/entries",
+      "target": "TranslationController.listEntriesApp",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/appconfig/form/:appConfigId",
+      "target": "AppConfigController.getAppConfigForm",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/asynch",
+      "target": "AsynchController.progress",
+      "contract": false,
+      "task": "SR-043",
+      "prerequisites": [
+        "SR-034",
+        "SR-038"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/asynch/subscribe/:roomId",
+      "target": "AsynchController.subscribe",
+      "contract": false,
+      "task": "SR-043",
+      "prerequisites": [
+        "SR-034",
+        "SR-038"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard-view/:dashboardView",
+      "target": "RecordController.renderDashboardView",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard/:recordType",
+      "target": "RecordController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard/consolidated",
+      "target": "RecordController.redirectLegacyConsolidatedDashboard",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard/settings/view/:dashboardView",
+      "target": "RecordController.getDashboardViewSettings",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard/settings/workflow/:recordType",
+      "target": "RecordController.getDashboardWorkflowSettings",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard/type",
+      "target": "RecordController.getAllDashboardTypes",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard/type/:dashboardType",
+      "target": "RecordController.getDashboardType",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dashboard/view/:dashboardView",
+      "target": "RecordController.getDashboardView",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dynamic/:asset",
+      "target": "DynamicAssetController.get",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dynamicAsset/adminReportTemplates/:reportName",
+      "target": "DynamicAssetController.getAdminReportTemplates",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dynamicAsset/dashboardViewTemplates/:dashboardView/:stepName",
+      "target": "DynamicAssetController.getDashboardViewTemplates",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dynamicAsset/formCompiledItems/:recordType/:oid?",
+      "target": "DynamicAssetController.getFormCompiledItems",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/dynamicAsset/recordDashboardTemplates/:recordType/:workflowStage",
+      "target": "DynamicAssetController.getRecordDashboardTemplates",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/export",
+      "target": "ExportController.index",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/export/record/download/:format",
+      "target": "ExportController.downloadRecs",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/listDeletedRecords",
+      "target": "RecordController.getDeletedRecordList",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/listRecords",
+      "target": "RecordController.getRecordList",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/locales",
+      "target": "TranslationController.getLanguages",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/locales/:lng/:ns.json",
+      "target": "TranslationController.getNamespace",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/locales/:lng/translation.json",
+      "target": "TranslationController.getNamespace",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/preview/:token.css",
+      "target": "BrandingController.renderPreviewCss",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/preview/:token([a-z0-9]+).css",
+      "target": "BrandingController.renderPreviewCss",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/query/vocab/:queryId",
+      "target": "FormVocabularyController.getRecords",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/:oid/attachments",
+      "target": "RecordController.getAttachments",
+      "contract": false,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/:oid/datastream*",
+      "target": "RecordController.getDataStream",
+      "contract": false,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/:oid/permissions",
+      "target": "RecordController.getPermissions",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/:oid/relatedRecords",
+      "target": "RecordController.getRelatedRecords",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/:recordType/edit",
+      "target": "RecordController.edit",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/default/:name",
+      "target": "RecordController.getMetaDefault",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/delete/:oid",
+      "target": "RecordController.getDeletedRecord",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/edit/:oid",
+      "target": "RecordController.edit",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/finalise/:recordType/edit/:oid",
+      "target": "RecordController.edit",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/form/:name",
+      "target": "RecordController.getForm",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/form/:name/:oid",
+      "target": "RecordController.getForm",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/integrationStatus/:oid",
+      "target": "RecordAuditController.getIntegrationStatusData",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/metadata/:oid",
+      "target": "RecordController.getMeta",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/search/:type",
+      "target": "RecordController.search",
+      "contract": false,
+      "task": "SR-034",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/type",
+      "target": "RecordController.getAllTypes",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/type/:recordType",
+      "target": "RecordController.getType",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/viewAudit/:oid",
+      "target": "RecordAuditController.render",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/viewAudit/:oid/audit",
+      "target": "RecordAuditController.getAuditData",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/viewAudit/:oid/integration-audit",
+      "target": "RecordAuditController.getIntegrationAuditData",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/viewAudit/:oid/permissions",
+      "target": "RecordAuditController.getPermissionsData",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/record/wfSteps/:recordType",
+      "target": "RecordController.getWorkflowSteps",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/styles/theme.css",
+      "target": "BrandingController.renderCss",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/user/find",
+      "target": "UserController.find",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/user/info",
+      "target": "UserController.info",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/user/login",
+      "target": "UserController.login",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/user/logout",
+      "target": "UserController.logout",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/vocab/:vocabIdOrSlug",
+      "target": "FormVocabularyController.get",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/vocab/:vocabIdOrSlug/children",
+      "target": "FormVocabularyController.children",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/vocab/:vocabIdOrSlug/entries",
+      "target": "FormVocabularyController.entries",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/vocab/:vocabIdOrSlug/expandPath",
+      "target": "FormVocabularyController.expandPath",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/workspaces/types",
+      "target": "WorkspaceTypesController.get",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /:branding/:portal/workspaces/types/:name",
+      "target": "WorkspaceTypesController.getOne",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /csrfToken",
+      "target": "inline CSRF token handler",
+      "contract": false,
+      "task": "SR-039",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /dynamic/:asset",
+      "target": "DynamicAssetController.get",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /fonts/branding/:branding/:sha256.woff2",
+      "target": "BrandingController.renderFont",
+      "contract": false,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /user/begin_oidc",
+      "target": "UserController.beginOidc",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /user/info",
+      "target": "UserController.info",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "GET /user/login_oidc",
+      "target": "UserController.openIdConnectLogin",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "HEAD /user/begin_oidc",
+      "target": {
+        "policy": "disallowedHeadRequestHandler"
+      },
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/action/:action",
+      "target": "ActionController.callService",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/dashboard-config/copy/apply",
+      "target": "DashboardConfigController.applyCopy",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/dashboard-config/copy/preview",
+      "target": "DashboardConfigController.previewCopy",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/dashboard-config/validate",
+      "target": "DashboardConfigController.validateSettings",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/report-config",
+      "target": "ReportController.createConfig",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/report-config/preview",
+      "target": "ReportController.previewConfig",
+      "contract": false,
+      "task": "SR-033",
+      "prerequisites": [
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/roles/user",
+      "target": "AdminController.updateUserRoles",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/users/:id/disable",
+      "target": "AdminController.disableUser",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/users/:id/enable",
+      "target": "AdminController.enableUser",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/users/genKey",
+      "target": "AdminController.generateUserKey",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/users/link",
+      "target": "AdminController.linkAccounts",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/users/newUser",
+      "target": "AdminController.addLocalUser",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/users/revokeKey",
+      "target": "AdminController.revokeUserKey",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/users/update",
+      "target": "AdminController.updateUserDetails",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/vocabulary",
+      "target": "VocabularyController.create",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/vocabulary/:id/sync",
+      "target": "VocabularyController.sync",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/admin/vocabulary/import",
+      "target": "VocabularyController.import",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/admin/config/:configKey",
+      "target": "webservice/AdminController.setAppConfig",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/appconfig/:appConfigId",
+      "target": "webservice/AppConfigController.saveAppConfig",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/draft",
+      "target": "webservice/BrandingController.draft",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/draft/typeface/revert",
+      "target": "webservice/BrandingController.revert",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/draft/typeface/use-default",
+      "target": "webservice/BrandingController.useDefault",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/favicon",
+      "target": "webservice/BrandingController.favicon",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/logo",
+      "target": "webservice/BrandingController.logo",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/preview",
+      "target": "webservice/BrandingController.preview",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/publish",
+      "target": "webservice/BrandingController.publish",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/restore/:versionId",
+      "target": "webservice/BrandingController.restore",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/rollback/:versionId",
+      "target": "webservice/BrandingController.rollback",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/branding/versions/:versionId/preview",
+      "target": "webservice/BrandingController.versionPreview",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/dashboard-config/copy/apply",
+      "target": "webservice/DashboardConfigController.applyCopy",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/dashboard-config/copy/preview",
+      "target": "webservice/DashboardConfigController.previewCopy",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/dashboard-config/validate",
+      "target": "webservice/DashboardConfigController.validateSettings",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/figshare-crosswalks",
+      "target": "webservice/FigshareCrosswalkController.create",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/figshare-crosswalks/:id/approve",
+      "target": "webservice/FigshareCrosswalkController.approve",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/figshare-vocabularies/previews",
+      "target": "webservice/FigshareVocabularyController.createPreview",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/figshare-vocabularies/previews/:runId/apply",
+      "target": "webservice/FigshareVocabularyController.applyPreview",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/figshare-vocabularies/sources/:sourceId/clone",
+      "target": "webservice/FigshareVocabularyController.cloneSource",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/figshare-vocabularies/sources/:sourceId/preview",
+      "target": "webservice/FigshareVocabularyController.createSourcePreview",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/i18n/bundles/:locale/:namespace",
+      "target": "webservice/TranslationController.setBundle",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
+      "target": "webservice/TranslationController.setEntry",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/mint/harvest/:recordType",
+      "target": "webservice/RecordController.legacyHarvest",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/named-query",
+      "target": "webservice/NamedQueryController.createQuery",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/datastreams/:oid",
+      "target": "webservice/RecordController.addDataStreams",
+      "contract": true,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/harvest/:recordType",
+      "target": "webservice/RecordController.harvest",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/metadata/:recordType",
+      "target": "webservice/RecordController.create",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/permissions/edit/:oid",
+      "target": "webservice/RecordController.addUserEdit",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/permissions/editRole/:oid",
+      "target": "webservice/RecordController.addRoleEdit",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/permissions/view/:oid",
+      "target": "webservice/RecordController.addUserView",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/permissions/viewRole/:oid",
+      "target": "webservice/RecordController.addRoleView",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/records/workflow/step/:targetStep/:oid",
+      "target": "webservice/RecordController.transitionWorkflow",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/report-config",
+      "target": "webservice/ReportController.createConfig",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/report-config/preview",
+      "target": "webservice/ReportController.previewConfig",
+      "contract": true,
+      "task": "SR-033",
+      "prerequisites": [
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/roles/:roleName",
+      "target": "webservice/UserManagementController.createSystemRole",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/search/index",
+      "target": "webservice/SearchController.index",
+      "contract": true,
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/search/indexAll",
+      "target": "webservice/SearchController.indexAll",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/search/removeAll",
+      "target": "webservice/SearchController.removeAll",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/sendNotification",
+      "target": "EmailController.sendNotification",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/siem/test",
+      "target": "webservice/SiemController.testDestination",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/users",
+      "target": "webservice/UserManagementController.updateUser",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/users/:id/disable",
+      "target": "webservice/UserManagementController.disableUser",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/users/:id/enable",
+      "target": "webservice/UserManagementController.enableUser",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/users/link",
+      "target": "webservice/UserManagementController.linkAccounts",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/users/token/generate",
+      "target": "webservice/UserManagementController.generateAPIToken",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/users/token/revoke",
+      "target": "webservice/UserManagementController.revokeAPIToken",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/vocabulary",
+      "target": "webservice/VocabularyController.create",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/vocabulary/:id/sync",
+      "target": "webservice/VocabularyController.sync",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/api/vocabulary/import",
+      "target": "webservice/VocabularyController.import",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/draft",
+      "target": "BrandingAppController.draft",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/draft/typeface/revert",
+      "target": "BrandingAppController.revert",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/draft/typeface/use-default",
+      "target": "BrandingAppController.useDefault",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/favicon",
+      "target": "BrandingAppController.favicon",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/logo",
+      "target": "BrandingAppController.logo",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/preview",
+      "target": "BrandingAppController.preview",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/publish",
+      "target": "BrandingAppController.publish",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/restore/:versionId",
+      "target": "BrandingAppController.restore",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/rollback/:versionId",
+      "target": "BrandingAppController.rollback",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/branding/versions/:versionId/preview",
+      "target": "BrandingAppController.versionPreview",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/i18n/bundles/:locale/:namespace",
+      "target": "TranslationController.setBundleApp",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/i18n/bundles/:locale/:namespace/enabled",
+      "target": "webservice/TranslationController.updateBundleEnabled",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/app/i18n/entries/:locale/:namespace/:key*",
+      "target": "TranslationController.setEntryApp",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/appconfig/form/:appConfigId",
+      "target": "AppConfigController.saveAppConfig",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/asynch",
+      "target": "AsynchController.start",
+      "contract": false,
+      "task": "SR-043",
+      "prerequisites": [
+        "SR-034",
+        "SR-038"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/external/vocab/:provider",
+      "target": "FormVocabularyController.externalEntries",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/preview",
+      "target": "BrandingController.createPreview",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/record/workflow/step/:targetStep/:oid",
+      "target": "RecordController.stepTo",
+      "contract": false,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/recordmeta/:recordType",
+      "target": "RecordController.create",
+      "contract": false,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/service/vocab/:serviceId",
+      "target": "FormVocabularyController.serviceEntries",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/user/genKey",
+      "target": "UserController.generateUserKey",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/user/revokeKey",
+      "target": "UserController.revokeUserKey",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /:branding/:portal/user/update",
+      "target": "UserController.update",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "POST /user/login_aaf",
+      "target": "UserController.aafLogin",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "POST /user/login_local",
+      "target": "UserController.localLogin",
+      "contract": false,
+      "task": "SR-038",
+      "prerequisites": [],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/admin/dashboard-config/views/:view/:step",
+      "target": "DashboardConfigController.saveViewTarget",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage",
+      "target": "DashboardConfigController.saveWorkflowTarget",
+      "contract": false,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/admin/report-config/:name",
+      "target": "ReportController.updateConfig",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/admin/vocabulary/:id",
+      "target": "VocabularyController.update",
+      "contract": false,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/branding/draft/typeface/faces/:slot",
+      "target": "webservice/BrandingController.uploadFace",
+      "contract": true,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/dashboard-config/overrides",
+      "target": "webservice/DashboardConfigController.retiredOperation",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/dashboard-config/views/:view/:step",
+      "target": "webservice/DashboardConfigController.saveViewTarget",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
+      "target": "webservice/DashboardConfigController.saveWorkflowTarget",
+      "contract": true,
+      "task": "SR-032",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/deletedrecords/:oid",
+      "target": "webservice/RecordController.restoreRecord",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/figshare-crosswalks/:id/mappings",
+      "target": "webservice/FigshareCrosswalkController.saveMappings",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/named-query/:name",
+      "target": "webservice/NamedQueryController.updateQuery",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/records/metadata/:oid",
+      "target": "webservice/RecordController.updateMeta",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/records/objectmetadata/:oid",
+      "target": "webservice/RecordController.updateObjectMeta",
+      "contract": true,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/report-config/:name",
+      "target": "webservice/ReportController.updateConfig",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/siem/config",
+      "target": "webservice/SiemController.saveConfig",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/users",
+      "target": "webservice/UserManagementController.createUser",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/vocabulary/:id",
+      "target": "webservice/VocabularyController.update",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/api/vocabulary/:id/reorder",
+      "target": "webservice/VocabularyController.reorder",
+      "contract": true,
+      "task": "SR-036",
+      "prerequisites": [
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/app/branding/draft/typeface/faces/:slot",
+      "target": "BrandingAppController.uploadFace",
+      "contract": false,
+      "task": "SR-041",
+      "prerequisites": [
+        "SR-034",
+        "SR-035",
+        "SR-038",
+        "SR-039"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/asynch",
+      "target": "AsynchController.update",
+      "contract": false,
+      "task": "SR-043",
+      "prerequisites": [
+        "SR-034",
+        "SR-038"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/record/delete/:oid",
+      "target": "RecordController.restoreRecord",
+      "contract": false,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "PUT /:branding/:portal/recordmeta/:oid",
+      "target": "RecordController.update",
+      "contract": false,
+      "task": "SR-035",
+      "prerequisites": [
+        "SR-038",
+        "SR-039",
+        "SR-041",
+        "SR-043"
+      ],
+      "standalone": false
+    },
+    {
+      "route": "ALL /",
+      "target": "/default/rdmp/home",
+      "provider": "redbox-hook-dev",
+      "task": "SR-040",
+      "prerequisites": [],
+      "standalone": false
+    }
+  ]
+}

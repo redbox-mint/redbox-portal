@@ -118,7 +118,7 @@ describe('authenticated standalone pilot parity and failures on real MongoDB', f
     assert.equal((await fetch(f.url + '/default/rdmp/api/recordtypes/get?name=', { headers: f.headers })).status, 500);
   });
 
-  it('runs authentication and brand authorization before validation/domain reads, rereading grants and memberships', async () => {
+  it('runs authentication and brand authorization before validation/domain reads, refreshing cached grants and rereading memberships', async () => {
     f = await pilotFixture();
     const read = sinon.spy(f.recordTypes, 'findByName');
     const list = sinon.spy(f.recordTypes, 'listForBrand');
@@ -140,6 +140,7 @@ describe('authenticated standalone pilot parity and failures on real MongoDB', f
       role: f.reader.id,
       can_read: true,
     });
+    await f.pathRules.loadRules();
     assert.equal((await fetch(f.url + '/default/rdmp/api/recordtypes', { headers: f.headers })).status, 200);
     assert.equal(
       (await fetch(f.url + '/default/rdmp/api/recordtypes/get?name=dataRecord', { headers: f.headers })).status,
@@ -223,6 +224,7 @@ describe('authenticated standalone pilot parity and failures on real MongoDB', f
       role: otherRole.id,
       can_read: true,
     });
+    await f.pathRules.loadRules();
     await firstValueFrom(f.domain.create(f.otherBrand, 'dataRecord', { packageType: 'private' }));
     for (const [brand, packageType] of [
       ['default', 'dataRecord'],
@@ -246,7 +248,7 @@ describe('authenticated standalone pilot parity and failures on real MongoDB', f
     const failures = [
       () => sinon.stub(f.identity, 'bearer').rejects(new Error('secret-identity-error')),
       () => sinon.stub(f.branding, 'getBrand').rejects(new Error('secret-brand-error')),
-      () => sinon.stub(f.identities, 'list').rejects(new Error('secret-grants-error')),
+      () => sinon.stub(f.pathRules, 'getRulesFromPath').throws(new Error('secret-grants-error')),
       () => sinon.stub(f.recordTypes, 'findByName').rejects(new Error('secret-db-connection-string')),
     ];
     for (const fail of failures) {
@@ -284,6 +286,7 @@ describe('authenticated standalone pilot parity and failures on real MongoDB', f
         'webservice/RecordTypeController': { '*': [...pilotPolicyChain], getRecordType: false },
       },
     });
+    await f.pathRules.loadRules();
     assert.equal((await fetch(f.url + '/default/rdmp/api/recordtypes', { headers: f.headers })).status, 200);
     assert.equal(
       (await fetch(f.url + '/default/rdmp/api/recordtypes/get?name=dataRecord', { headers: f.headers })).status,

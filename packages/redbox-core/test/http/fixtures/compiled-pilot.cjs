@@ -14,6 +14,7 @@ const { ApplicationRuntime } = require('@researchdatabox/redbox-core/application
 const { RecordTypes } = require('@researchdatabox/redbox-core/record-types');
 const {
   ExpressHost,
+  PathRules,
   HttpIdentity,
   createPilotPolicies,
   pilotPolicyChain,
@@ -96,12 +97,16 @@ assert.equal(global.sails, undefined);
           cookie: { secure: false },
         },
       });
+      const pathRules = new PathRules(() => identity.list('pathrule', {}, { populate: ['role', 'branding'] }));
+      await pathRules.loadRules();
       mountRecordTypeRoutes(router, {
         recordTypes: domain,
         policyConfiguration: { '*': [...pilotPolicyChain] },
         policies: createPilotPolicies({
           branding: getBrandingRepository(owner),
-          identity,
+          pathRules,
+          defaultUnauthenticatedRole: () => undefined,
+          emitRequestFailure: async () => {},
           portals: ['rdmp'],
           authenticate: req => auth.authenticate(req),
         }),

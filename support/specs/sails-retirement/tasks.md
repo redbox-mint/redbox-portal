@@ -450,7 +450,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## P5 — Domain and API groups
 
-- [ ] **SR-031 — Establish repeatable route-group acceptance and inventory updates.**
+- [x] **SR-031 — Establish repeatable route-group acceptance and inventory updates.**
+
+  **Status:** done; [checklist, complete route assignment, policy parity/cache and executed Mongo/HTTP/Bruno evidence](evidence/p5-route-groups.md).
 
   **Depends on:** SR-030.
 
