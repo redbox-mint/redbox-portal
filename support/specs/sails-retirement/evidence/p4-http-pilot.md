@@ -409,3 +409,22 @@ server; `docker rm -f -v sr-p4-mongo8` discarded that entire test-only container
 its anonymous data volume. Released comparison containers/volumes and network were
 already removed with the commands above. No unrelated Docker resources or the
 untracked `support/specs/graphql-record-metadata/` directory were changed. No pushes.
+
+## P4 closeout
+
+Final parity/source/test commit: **`f5b81071e23901892925111b3a82ebb34f63e73e`**.
+Together with `4cc297b2339db5143b0e7effbec2b3d616eb1200`, this completes SR-030.
+The subsequent closeout commit changes only this evidence. All P4 implementation
+commits carry the requested `GPT-6.1-sol <noreply@openai.com>` co-author trailer.
+
+SHA-256 of the actually tested generated development artifacts/results:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `packages/redbox-core/dist/http/express/ExpressHost.js` | `9a2fde1fc5f232d56ac3da800ac8e5f281818c990e71667f9dbd60d4c1d092f3` |
+| `packages/redbox-core/dist/http/express/recordTypes.js` | `75fb24b6709dbbf26c7db95ea0cd6d2f1f7f4f63f7df792efbfc6b63746018f2` |
+| `released-v5-p4-results.json` | `e02c5a04036f35d5259db6dd0b8ecb32b13b3053e22592079107d3ec3aea6033` |
+
+Final checkout remains `stack/sails-retirement`. All P4 work is committed locally;
+only the pre-existing unrelated untracked GraphQL specification directory remains.
+No provider usage/quota limit was encountered.
