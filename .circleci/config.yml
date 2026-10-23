@@ -184,7 +184,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run: &installCodecov # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-codecov-cli
           name: Install codecov
@@ -267,7 +267,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
@@ -325,7 +325,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
@@ -383,7 +383,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
@@ -463,7 +463,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
@@ -514,7 +514,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Compile shared Angular packages
@@ -1094,7 +1094,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run:
           name: Build redbox-core assets
