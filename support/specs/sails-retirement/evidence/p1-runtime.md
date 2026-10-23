@@ -478,3 +478,24 @@ compiler options. A version probe incorrectly looked for npm as a root dependenc
 `npm --version` correctly verified the selected toolchain. Synthetic hook failure
 logs are expected passing negative tests, not suppressed failures. No provider
 quota/usage limit occurred. No P2 task was started and no branch was pushed.
+
+## P1 continuation completion and source commits
+
+- SR-008: `ed228e53a39fda12d87d0379eba957281e39dcc3`.
+- SR-009: `5fdfc33cfade8516a08d18b96073baf9eda9aa0e`.
+- SR-010: `3f20628143118cbc0548a1c71d380798cc887258`.
+- SR-011: `4e2c2df65421243390244b524bb093a800e4c67b`.
+
+All four tasks are complete and checked in dependency order. The final integrated
+checks above apply to SR-011's source tree (only explanatory cache/test-setup
+comments and evidence changed after the build). Each implementation commit has
+the requested GPT-6.1-sol Co-Authored-By trailer. No dependencies changed, no P2
+work was started, no push occurred and no P1 decision needs the orchestrator.
+SR-005's institution designation remains unchanged and outside this round.
+
+`docker rm -fv sr-p1-domain-mongo8`: **exit 0**, after all test processes completed.
+Only this round's disposable Mongo container was removed; test-owned fixture
+databases were dropped by teardown. Final `git diff --check`: **exit 0**. The
+unrelated existing untracked `support/specs/graphql-record-metadata/` remains
+untouched. This following documentation commit records the exact implementation
+SHAs/cleanup; it makes no runtime change.
