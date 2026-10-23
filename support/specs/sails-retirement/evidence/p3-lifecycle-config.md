@@ -49,3 +49,42 @@ Strict application typecheck and Node 26 incremental core TypeScript compile
 relative PATH from the package directory and thus Node 24; it passed, but is not
 target qualification. It was repeated with the absolute Node 26 PATH and passed.
 The clean build, strict typecheck, focused tests and lint all used Node 26.11.1.
+
+## SR-020 — Deployment conversion and diagnostics
+
+SR-019 source: `504b83ea3`. `configuration/deployment.ts` adds an explicit typed
+operational schema, shared pure defaults, exact canonical environment/CLI bindings,
+and deterministic data/legacy-environment conversion helpers. It reuses the existing
+Mongo connection/session resolvers offline. It does not load `rc`, arbitrary Sails
+files, hooks, sessions or workers. The legacy Agenda module and new resolver share
+pure default options; only the comparison module retains import-time env behavior.
+
+[Implemented mapping and examples](../configuration-v6.md) classify connections,
+sessions, local/OIDC/AAF bootstrap data, proxy/root paths, disks, both characterized
+Agenda spellings, custom environment files and unsupported keys. A composition
+extends the deployment schema with its actual typed domain sections; this is not
+full auth/provider parity or a promise to load every old Sails key. Conversion
+fixtures are synthetic and credential-free; institution designation remains
+SR-005 and is not invented to complete this implementation task.
+
+Additional commands, qualified Node 26 PATH as above:
+
+```sh
+# In packages/redbox-core, with the ABSOLUTE Node 26 toolchain PATH:
+./node_modules/.bin/tsc
+# From repository root:
+npm --prefix packages/redbox-core run typecheck:application
+TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require ./packages/redbox-core/test/setup.ts 'packages/redbox-core/test/configuration/*.test.ts' packages/redbox-core/test/config/agendaQueue.test.ts
+npm run lint
+git diff --check
+```
+
+Results: incremental production build and strict application typecheck **exit 0**;
+focused config/legacy Agenda **11 passing, 0 failing/pending** (699 ms); repository
+lint **875 files, 0 warnings/errors**, diff check **exit 0**. The compiled offline
+import guard runs against the deployment surface too. Initial expanded run:
+**10 passing / 1 failing** because an over-broad test regexp matched MongoDB's
+`@mongodb-js/saslprep/dist/index.js`. A direct loaded-module probe identified that
+exact dependency; the assertion now targets core's barrel/compat/CoreBase paths.
+The same complete focused command then passes; no acquisition assertion removed.
+No dependency version, lockfile or runtime-module-format change.

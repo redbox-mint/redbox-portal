@@ -168,7 +168,7 @@ describe('offline awaited configuration loading', () => {
       const before = process.listenerCount('SIGTERM');
       require('./dist/configuration');
       assert.equal(process.listenerCount('SIGTERM'), before);
-      assert(!Object.keys(require.cache).some(p => /\/compat\/|\/CoreBase\.js$|\/dist\/index\.js$/.test(p)));
+      assert(!Object.keys(require.cache).some(p => /\/redbox-core\/(?:dist\/)?(?:compat\/|CoreBase\.js$|dist\/index\.js$)/.test(p)));
     `,
       ],
       { cwd: __dirname + '/../..', stdio: 'pipe' }
