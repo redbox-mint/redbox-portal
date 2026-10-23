@@ -2,6 +2,8 @@ import type { CorePrismaClient } from '../prisma/client';
 import type { MongoFilterExpr } from '@prisma/orm-mongo/query-ast';
 import { prismaModelValues } from '../prisma/modelValues';
 import { prismaModelFilter } from '../prisma/modelFilter';
+import { prismaCommand } from '../prisma/documents';
+import { vocabularyFields } from './fields';
 import type { VocabularyPage } from './VocabularyRepositories';
 import type {
   VocabularyRepositories,
@@ -66,8 +68,26 @@ export function prismaVocabularyRepositories(
   };
   const one = async <T extends { id: string }>(collection: Collection, lookup: object): Promise<T | null> =>
     decodeVocabulary<T>(collection, await client.orm[collection].where(where(collection, lookup)).first(), true);
-  const count = async (collection: Collection, lookup: object): Promise<number> =>
-    (await client.orm[collection].where(where(collection, lookup)).select('_id').all().toArray()).length;
+  const count = async (collection: Collection, lookup: object): Promise<number> => {
+    const objectIdFields = [
+      '_id',
+      ...Object.entries(vocabularyFields[collection])
+        .filter(([, field]) => field.type === 'id')
+        .map(([name]) => name),
+    ];
+    return (
+      (
+        await prismaCommand<{ total: number } | undefined>(
+          client,
+          client.query
+            .from(collection)
+            .match(prismaModelFilter(vocabularyCriteria(collection, lookup), objectIdFields))
+            .count('total')
+            .build()
+        )
+      )?.total ?? 0
+    );
+  };
   const findEntry: VocabularyRepositories['getEntry'] = lookup =>
     vocabularyOperation(() => one<EntryRow>('vocabularyentry', entryLookup(lookup)));
   const create = async <T>(collection: Collection, values: Record<string, unknown>): Promise<T> =>
