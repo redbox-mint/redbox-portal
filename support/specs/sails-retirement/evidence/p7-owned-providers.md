@@ -173,3 +173,59 @@ dev build exposed an unnecessarily erased registration return type; the producer
 now retains its actual ScenarioRegistration type. No assertions were weakened.
 Production operation bindings and migration of persisted v5 definitions remain
 required; these checks do not claim a v6 record write or upgrade.
+
+## DOI HTTP, configuration and retained audit completion
+
+`integrations/Doi.ts` now uses explicit translation/log, branded configuration,
+records, audit and HTTP program inputs. `integrations/doi/` holds the shared
+configuration and audited Effect runtime. Comparison globals and optional legacy
+audit lookup live in `compat/sails/doi*.ts`; the existing service/helper paths are
+delegates. There is one payload/HTTP/trigger algorithm. Config resolution clones
+the branded data and receives the credential environment explicitly. DOI trigger
+writeback still calls the existing record mutation protocol; that writeback is
+not exercised by the new provider aggregate.
+
+`queries/IntegrationAudits.ts` now retains asynchronous enqueue/persistence work,
+exposes awaited completion/failure and drain/close, and awaits notification
+submission. Synchronous `startAudit` remains synchronous and retains its work.
+The caller/application owns admission; queue workers continue owning their jobs.
+Best-effort audit failures remain logged rather than changing the provider result.
+
+Node **26.11.1**, qualified toolchain bin on PATH:
+
+```sh
+# From packages/redbox-core
+node node_modules/typescript/bin/tsc -p tsconfig.json
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
+  --no-config --require chai --require test/setup.ts --timeout 5000 \
+  test/services/IntegrationAuditService.test.ts test/services/DoiService.test.ts \
+  test/services/doi-v2/*.test.ts test/configmodels/DoiPublishing.test.ts
+SR_DOI_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_doi \
+node --test test/qualification/doi.cjs
+```
+
+Core build and unchanged existing suites pass: **91 passing / 0 failing /
+0 pending**, exit **0**. The compiled aggregate uses actual Mongo **8.0.34**,
+the actual bundled Prisma storage/audit implementation and a local DataCite HTTP
+receiver: **1 passing / 0 failing / 0 skipped**, exit **0**. It sends a successful
+create and rejected create (**2 HTTP requests**); success persists **4** nested
+audit rows sharing one trace/two spans, failure persists **2 failed** rows plus
+its start rows. **4** notification submissions are awaited. A held provider
+response and held notification submission keep the DOI operation pending;
+audit drain also waits. Credential references remain unchanged in frozen-source
+configuration and the resolved password does not enter persisted audit data.
+No Sails/CoreService/comparison module enters the compiled graph. The qualifier
+uses direct integration-test audit persistence and deliberately does not exercise
+Agenda or record writeback; those still require full portal qualification.
+
+Final logs: `doi-qualified-build.log`, `doi-qualified-existing.log`,
+`doi-qualified-mongo-http.log` in `.tmp/sails-retirement/p7/`. Formatting, focused
+lint and diff checks pass. No dependency or existing test/assertion/timeout changed.
+The initial extraction had **33 passing / 14 failing** because re-export getters
+prevented the existing comparison runtime stubs from taking effect. Concrete
+comparison delegates restore that seam; the unchanged tests then pass. TypeScript
+also rejected insufficient method narrowing and the previous assumption that
+plain branded DOI data was a config-model instance; both are corrected. A
+premature compiled invocation before emission failed module loading and is not
+counted as a passing run. Production provider binding remains open.

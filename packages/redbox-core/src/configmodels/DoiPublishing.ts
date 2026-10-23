@@ -251,12 +251,12 @@ export function createDefaultBinding(path: string, defaultValue?: unknown): Valu
 
 export function resolveDoiConnectionPassword(
   password: string,
-  options: { allowEmpty?: boolean; fallbackEnvVarNames?: string[] } = {}
+  options: { allowEmpty?: boolean; fallbackEnvVarNames?: string[]; env?: Readonly<NodeJS.ProcessEnv> } = {}
 ): string {
   const value = typeof password === 'string' ? password.trim() : '';
   if (value.startsWith('$')) {
     const envVarName = value.slice(1);
-    const resolved = process.env[envVarName]?.trim() ?? '';
+    const resolved = (options.env ?? process.env)[envVarName]?.trim() ?? '';
     if (!resolved && !options.allowEmpty) {
       throw new Error(`DOI connection password environment variable '${envVarName}' is not set or is empty`);
     }
@@ -264,7 +264,7 @@ export function resolveDoiConnectionPassword(
   }
   if (!value) {
     for (const envVarName of options.fallbackEnvVarNames ?? []) {
-      const resolved = process.env[envVarName]?.trim() ?? '';
+      const resolved = (options.env ?? process.env)[envVarName]?.trim() ?? '';
       if (resolved) {
         return resolved;
       }

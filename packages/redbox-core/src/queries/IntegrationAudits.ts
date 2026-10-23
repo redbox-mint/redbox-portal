@@ -127,6 +127,22 @@ const MAX_BATCH = 500;
 
 export namespace Services {
   export class IntegrationAuditService {
+    private readonly pending = new Set<Promise<void>>();
+    /** Callers own admission; accepted audit submissions remain owned through completion. */
+    public async drain(): Promise<void> {
+      while (this.pending.size) await Promise.allSettled([...this.pending]);
+    }
+    public close(): Promise<void> {
+      return this.drain();
+    }
+    private retain(work: Promise<void>): Promise<void> {
+      this.pending.add(work);
+      void work.then(
+        () => this.pending.delete(work),
+        () => this.pending.delete(work)
+      );
+      return work;
+    }
     protected readonly storeJobName = 'IntegrationAuditService-StoreIntegrationAudit';
 
     protected readonly logHeader = 'IntegrationAuditService::';
@@ -270,7 +286,7 @@ export namespace Services {
           }
           return;
         }
-        this.enqueueNotification(entry);
+        await this.enqueueNotification(entry);
         if (this.input.emitSecurityEvent) {
           await this.input.emitSecurityEvent({ ...entry }).catch(error => {
             this.input.log.error(`${this.logHeader} Failed to emit integration audit security event.`);
@@ -284,41 +300,40 @@ export namespace Services {
     }
 
     /**
-     * Fire-and-forget enqueue that never lets a failure escape. AgendaQueueService.now
+     * Owned enqueue that never lets a failure escape. AgendaQueueService.now
      * is async and can throw synchronously (e.g. an unknown job) or reject later, so a
      * plain try/catch around the call is not enough — the returned promise's rejection
      * would surface as an unhandled rejection and crash the process. This swallows both.
      */
-    private safeQueueNow(jobName: string, entry: IntegrationAuditModel, failureMessage: string): void {
+    private safeQueueNow(jobName: string, entry: IntegrationAuditModel, failureMessage: string): Promise<void> {
       const logFailure = (err: unknown) => {
         this.input.log.error(`${this.logHeader} ${failureMessage}`);
         this.input.log.error(err);
       };
       try {
-        const result = this.input.enqueue(jobName, entry) as unknown;
-        if (result != null && typeof (result as Promise<unknown>).then === 'function') {
-          (result as Promise<unknown>).catch(logFailure);
-        }
+        const result = this.input.enqueue(jobName, entry);
+        return this.retain(Promise.resolve(result).then(() => {}, logFailure));
       } catch (err) {
         logFailure(err);
+        return Promise.resolve();
       }
     }
 
-    private enqueueNotification(entry: IntegrationAuditModel): void {
-      if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success) return;
-      this.safeQueueNow(
+    private enqueueNotification(entry: IntegrationAuditModel): Promise<void> {
+      if (entry.status !== IntegrationAuditStatus.failed && entry.status !== IntegrationAuditStatus.success)
+        return Promise.resolve();
+      return this.safeQueueNow(
         'IntegrationNotificationService-Dispatch',
         entry,
         'Failed to enqueue integration notification.'
       );
     }
 
-    private queueOrPersist(entry: IntegrationAuditModel): void {
+    private queueOrPersist(entry: IntegrationAuditModel): Promise<void> {
       if (this.getResolvedEnvironment() === 'integrationtest') {
-        void this.persistEntry(entry);
-        return;
+        return this.retain(this.persistEntry(entry));
       }
-      this.safeQueueNow(this.storeJobName, entry, 'Failed to queue integration audit entry.');
+      return this.safeQueueNow(this.storeJobName, entry, 'Failed to queue integration audit entry.');
     }
 
     public startAudit(
@@ -344,13 +359,13 @@ export namespace Services {
         message: this.sanitizeText(opts.message),
         httpStatusCode: opts.httpStatusCode,
       });
-      this.queueOrPersist(entry);
+      void this.queueOrPersist(entry);
       return ctx;
     }
 
-    public completeAudit(ctx: IntegrationAuditContext | null | undefined, result?: AnyRecord): void {
+    public completeAudit(ctx: IntegrationAuditContext | null | undefined, result?: AnyRecord): Promise<void> {
       if (ctx == null) {
-        return;
+        return Promise.resolve();
       }
       const completedAt = new Date().toISOString();
       const durationMs = Math.max(0, new Date(completedAt).getTime() - new Date(ctx.startedAt).getTime());
@@ -362,12 +377,16 @@ export namespace Services {
         completedAt,
         durationMs,
       });
-      this.queueOrPersist(entry);
+      return this.queueOrPersist(entry);
     }
 
-    public failAudit(ctx: IntegrationAuditContext | null | undefined, error: unknown, details: AnyRecord = {}): void {
+    public failAudit(
+      ctx: IntegrationAuditContext | null | undefined,
+      error: unknown,
+      details: AnyRecord = {}
+    ): Promise<void> {
       if (ctx == null) {
-        return;
+        return Promise.resolve();
       }
       const completedAt = new Date().toISOString();
       const durationMs = Math.max(0, new Date(completedAt).getTime() - new Date(ctx.startedAt).getTime());
@@ -380,7 +399,7 @@ export namespace Services {
         completedAt,
         durationMs,
       });
-      this.queueOrPersist(entry);
+      return this.queueOrPersist(entry);
     }
 
     public async getAuditLog(params: IntegrationAuditParams): Promise<IntegrationAuditLogResult> {
@@ -1057,7 +1076,7 @@ export namespace Services {
       const data = ((jobAttrs.data ?? jobAttrs) as Partial<IntegrationAuditModel>) ?? {};
       try {
         const entry = new IntegrationAuditModel(data);
-        await this.persistEntry(entry);
+        await this.retain(this.persistEntry(entry));
       } catch (error) {
         this.input.log.error(`${this.logHeader} Failed to construct integration audit entry from queued payload.`);
         this.input.log.error(error);
