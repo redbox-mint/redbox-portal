@@ -13,7 +13,7 @@ import { DEFAULT_FIGSHARE_PROCESSING, type FigshareOperation } from '../../confi
 import { resolveFigsharePublishingConfig, type ResolvedFigsharePublishingConfigData } from './config';
 import { FigshareLeaseLost, type FigshareSyncStore } from './sync-store';
 import { getFigshareSyncRepository } from '../../persistence/runtime';
-import {figshareWork} from './worker-lifecycle';
+import { figshareWork } from './worker-lifecycle';
 import {
   figshareExecution,
   workerClient,
@@ -63,7 +63,9 @@ export const contentHash = (value: unknown): string => {
     .update(JSON.stringify(canonical(value)))
     .digest('hex');
 };
-export function getSyncStore():FigshareSyncStore{return getFigshareSyncRepository();}
+export function getSyncStore(): FigshareSyncStore {
+  return getFigshareSyncRepository();
+}
 export function projectionPaths(config: ResolvedFigsharePublishingConfigData): string[] {
   return [
     ...new Set(
@@ -89,10 +91,14 @@ export async function importRecordIntent(store: FigshareSyncStore, record: Recor
   const storage = RecordsService.getFigshareIntentStorage();
   if (!storage.acknowledgeFigshareIntent) throw new Error('Storage adapter cannot acknowledge Figshare intent');
   await store.importSource(record.redboxOid, record.metaMetadata.brandId, intent);
-  const persisted=await store.get(record.redboxOid);
-  const kinds=[...new Set(intent.intents.map(policy=>policy.kind))];
-  if(!persisted || persisted.brandId!==record.metaMetadata.brandId || persisted.importedGeneration<intent.generation ||
-     kinds.some(kind=>persisted.work[kind].sourceGeneration<intent.generation || persisted.work[kind].requested<1))
+  const persisted = await store.get(record.redboxOid);
+  const kinds = [...new Set(intent.intents.map(policy => policy.kind))];
+  if (
+    !persisted ||
+    persisted.brandId !== record.metaMetadata.brandId ||
+    persisted.importedGeneration < intent.generation ||
+    kinds.some(kind => persisted.work[kind].sourceGeneration < intent.generation || persisted.work[kind].requested < 1)
+  )
     throw new Error('Figshare source intent is not durably verified; storage acknowledgment withheld');
   await storage.acknowledgeFigshareIntent(record.redboxOid, intent.generation);
 }
@@ -102,8 +108,10 @@ const PAUSED_DISPATCH_BACKOFF_MS = 5 * 60 * 1000;
 // threshold. It is set well beyond any synchronous post-save hook, so live saves are never promoted early.
 const STALE_INITIALISING_MS = 60 * 60 * 1000;
 
-export function dispatchFigshare():Promise<void>{return figshareWork(sails,dispatchAccepted);}
-async function dispatchAccepted():Promise<void>{
+export function dispatchFigshare(): Promise<void> {
+  return figshareWork(sails, dispatchAccepted);
+}
+async function dispatchAccepted(): Promise<void> {
   const storage = RecordsService.getFigshareIntentStorage();
   if (!storage.pendingFigshareIntents) return;
   const store = getSyncStore();
@@ -153,12 +161,14 @@ async function dispatchAccepted():Promise<void>{
   }
 }
 
-export function runFigshareWorker(service:QueuedFigshareService,job:FigshareJob,store=getSyncStore()):Promise<void>{return figshareWork(sails,()=>runAccepted(service,job,store));}
-async function runAccepted(
+export function runFigshareWorker(
   service: QueuedFigshareService,
   job: FigshareJob,
   store = getSyncStore()
 ): Promise<void> {
+  return figshareWork(sails, () => runAccepted(service, job, store));
+}
+async function runAccepted(service: QueuedFigshareService, job: FigshareJob, store = getSyncStore()): Promise<void> {
   const { oid, brandId } = job.attrs?.data ?? {};
   if (!oid || !brandId) return;
   let record = await RecordsService.getMeta(oid);
@@ -230,7 +240,7 @@ async function runAccepted(
   const rawClient =
     config.runtime.mode === 'fixture'
       ? makeFixtureClient(config)
-      : makeLiveClient(config, createRunContext(record, config, owner, 'worker'));
+      : makeLiveClient(config, createRunContext(record, config, owner, 'worker'), sails.log);
   let article: FigshareArticle | undefined;
   let metadataChanged = false;
   const sourceGeneration = record.figshareSyncIntent?.generation ?? 0;
@@ -628,8 +638,8 @@ async function runAccepted(
         await checkpoint(s => {
           s.status = observedPublished(article!) ? 'synced' : 'waiting';
           delete s.error;
-          if(observedPublished(article!)) delete s.waitingReason;
-          else s.waitingReason=config.article.publishMode==='manual'?'manual_publication':'review';
+          if (observedPublished(article!)) delete s.waitingReason;
+          else s.waitingReason = config.article.publishMode === 'manual' ? 'manual_publication' : 'review';
           s.work.observe.requested++;
           s.work.observe.dueAt = Date.now() + settings.observationMs;
           if (s.receipts.some(r => r.kind === 'hosted' && r.desired)) {

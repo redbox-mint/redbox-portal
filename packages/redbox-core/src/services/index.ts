@@ -1,3 +1,11 @@
+import { sailsBrandingExports } from '../compat/sails/branding';
+import { sailsBrandingTypefaceExports } from '../compat/sails/brandingTypeface';
+import { sailsBrandingThemeCssExports } from '../compat/sails/brandingThemeCss';
+import { sailsFigshareVocabularyExports } from '../compat/sails/figshareVocabulary';
+import { sailsEmailExports } from '../compat/sails/email';
+import { sailsFormVocabularyExports } from '../compat/sails/formVocabulary';
+import { sailsSiemForwardingExports } from '../compat/sails/siemForwarding';
+import { sailsBrandingLogoExports } from '../compat/sails/brandingLogo';
 import { sailsRecordsExports } from '../compat/sails/records';
 import { sailsSolrExports } from '../compat/sails/solr';
 import { sailsStorageManagerExports } from '../compat/sails/storageManager';
@@ -183,22 +191,16 @@ export const ServiceExports = {
     return getOrCreateService('AsynchsService', () => new AsynchsServiceModule.Services.Asynchs().exports());
   },
   get BrandingLogoService() {
-    return getOrCreateService('BrandingLogoService', () =>
-      new BrandingLogoServiceModule.Services.BrandingLogo().exports()
-    );
+    return sailsBrandingLogoExports();
   },
   get BrandingService() {
-    return getOrCreateService('BrandingService', () => new BrandingServiceModule.Services.Branding().exports());
+    return sailsBrandingExports();
   },
   get BrandingThemeCssService() {
-    return getOrCreateService('BrandingThemeCssService', () =>
-      new BrandingThemeCssServiceModule.Services.BrandingThemeCss().exports()
-    );
+    return sailsBrandingThemeCssExports();
   },
   get BrandingTypefaceService() {
-    return getOrCreateService('BrandingTypefaceService', () =>
-      new BrandingTypefaceServiceModule.Services.BrandingTypeface().exports()
-    );
+    return sailsBrandingTypefaceExports();
   },
   get CacheService() {
     return getOrCreateService('CacheService', () => new CacheServiceModule.Services.Cache().exports());
@@ -219,20 +221,16 @@ export const ServiceExports = {
     return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
   },
   get EmailService() {
-    return getOrCreateService('EmailService', () => new EmailServiceModule.Services.Email().exports());
+    return sailsEmailExports();
   },
   get FigshareService() {
     return getOrCreateService('FigshareService', () => new FigshareServiceModule.Services.FigshareService().exports());
   },
   get FigshareVocabularyService() {
-    return getOrCreateService('FigshareVocabularyService', () =>
-      new FigshareVocabularyServiceModule.Services.FigshareVocabularyService().exports()
-    );
+    return sailsFigshareVocabularyExports();
   },
   get FormVocabularyService() {
-    return getOrCreateService('FormVocabularyService', () =>
-      new FormVocabularyServiceModule.Services.FormVocabulary().exports()
-    );
+    return sailsFormVocabularyExports();
   },
   get IntegrationAuditService() {
     return sailsIntegrationAuditExports();
@@ -358,8 +356,6 @@ export const ServiceExports = {
     );
   },
   get SiemForwardingService() {
-    return getOrCreateService('SiemForwardingService', () =>
-      new SiemForwardingServiceModule.Services.SiemForwardingService().exports()
-    );
+    return sailsSiemForwardingExports();
   },
 };
