@@ -616,6 +616,7 @@ jobs:
       - run:
           name: Install packages
           command: |
+            nvm install
             cd ./packages/redbox-core
             npm ci --include=dev --ignore-scripts --strict-peer-deps
             npm run check:prisma
@@ -780,14 +781,25 @@ jobs:
       - store_test_results:
           path: packages/redbox-dev-tools/support/junit
   test-storage-mongo:
-    docker:
-      - image: 'cimg/node:24.16.0@sha256:907e03ea220172ca67bc14706907afa6df26d50298393b7e62f0a16fffe5f347'
-      - image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
+    # Machine executor: MongoDB 9.0.4 refuses to start on the remote Docker host kernel (SERVER-121912).
+    machine:
+      image: ubuntu-2404:current
     resource_class: medium
     environment:
       MONGO_TEST_URL: mongodb://127.0.0.1:27017
     steps:
       - checkout
+      - run:
+          name: Start MongoDB for storage tests
+          command: |
+            docker run -d --name storage-test-mongo -p 127.0.0.1:27017:27017 mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
+            for attempt in $(seq 1 30); do
+              if docker exec storage-test-mongo mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)'; then
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 1
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -796,18 +808,21 @@ jobs:
       - run:
           name: Install npm dependencies
           command: |
-            sudo npm install --global npm@11.20.0 --ignore-scripts --no-audit
+            nvm install
+            npm install --global npm@11.20.0 --ignore-scripts --no-audit
             npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
       - run:
           name: Install storage-mongo package dependencies
           command: |
+            nvm install
             cd ./packages/sails-hook-redbox-storage-mongo
             npm ci --include=dev --ignore-scripts --strict-peer-deps
       - run:
           name: Compile storage-mongo test dependencies
           command: |
+            nvm install
             npm run compile:raido
             npm run compile:rva
             npm run compile:sails-ng-common
@@ -816,11 +831,13 @@ jobs:
       - run:
           name: Run storage-mongo package tests with coverage
           command: |
+            nvm install
             cd ./packages/sails-hook-redbox-storage-mongo
             npm run test:coverage
       - run:
           name: Upload storage-mongo code coverage
           command: |
+            nvm install
             cd ./packages/sails-hook-redbox-storage-mongo
             node ../../support/unit-testing/codecov/prepare-report.cjs \
               "./coverage/storage-mongo/lcov.info" "packages/sails-hook-redbox-storage-mongo"
