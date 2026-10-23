@@ -94,6 +94,6 @@ When moving from an evaluation setup to a production environment, consider the f
 
 By following these considerations, you can ensure a stable and secure production environment for your RedBox Portal deployment.
 
-## Existing databases and v6 cache migration
+## Existing databases and persistence migration
 
-Follow [institution migration](Cache-Persistence-Migration.md) and [backup/recovery](Cache-Persistence-Recovery.md) before changing a persisted MongoDB deployment. New-stack image selection is not an upgrade/downgrade procedure. MongoDB driver cache is the current next default; official v6 requires stable qualified dependencies and removes temporary backend config in P7. Existing volumes do not rerun Mongo init scripts and require explicit unique-index preparation.
+Follow [institution persistence migration](Persistence-Migration.md) and [backup/recovery](Cache-Persistence-Recovery.md) before upgrading an existing MongoDB deployment. Prisma is the sole backend for application persistence, including the cache; GridFS bytes continue to use the MongoDB driver. Remove retired backend selectors and Waterline model/ORM settings before startup, which rejects them. New-stack image selection is not an upgrade/downgrade procedure. Existing volumes do not rerun Mongo init scripts and require explicit index preparation before application startup.
