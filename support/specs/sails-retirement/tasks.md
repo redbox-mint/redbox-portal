@@ -2,7 +2,7 @@
 
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
-complete; P3 SR-019–SR-020 are complete; SR-021–SR-025 are in progress.
+complete; P3 SR-019–SR-021 are complete; SR-022–SR-025 are in progress.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -313,7 +313,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   unsupported meaningful keys fail before acquisition and diagnostics redact secrets.
   Do not ship a permanent general Sails configuration emulator.
 
-- [ ] **SR-021 — Separate dynamic application settings from startup config.**
+- [x] **SR-021 — Separate dynamic application settings from startup config.**
+
+  **Status:** done; [fresh dynamic reads and tracked comparison writes](evidence/p3-lifecycle-config.md#sr-021--dynamic-settings-and-owned-configuration-effects).
 
   **Depends on:** SR-019.
 

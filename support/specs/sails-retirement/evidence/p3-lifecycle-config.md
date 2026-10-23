@@ -88,3 +88,46 @@ import guard runs against the deployment surface too. Initial expanded run:
 exact dependency; the assertion now targets core's barrel/compat/CoreBase paths.
 The same complete focused command then passes; no acquisition assertion removed.
 No dependency version, lockfile or runtime-module-format change.
+
+## SR-021 — Dynamic settings and owned configuration effects
+
+SR-020 source `365cd7fc6`. Existing ConfigService is a compatibility export over
+`compat/sails/configuration.ts`; the imperative file/locale/assets/services/
+controllers/responses path is confined there. Neutral configuration uses P2
+factory/resource declarations and pure startup data. Package-relative asset/view
+roots remain declarations for the later rendering/artifact tasks, with no runtime
+copy into installed production packages.
+
+`configuration/brand.ts` shares the existing brand/default/legacy-map resolution
+with the comparison service, using an explicit fresh dynamic read collaborator.
+It adds no cache and never changes startup values. Existing AppConfig publication,
+secret handling and invalidation are retained. A typed already-exists error
+separates expected init-only duplicates from failed application-data writes.
+
+Each legacy branded write is registered with the existing persistence owner before
+its thunk executes. Its returned completion is awaitable; comparison bootstrap
+also awaits every tracked write before post-bootstrap/readiness, including ignored
+old-call returns. Cleanup awaits all sibling writes even after failure. This is
+a temporary comparison adapter, not another standalone bootstrap implementation.
+
+Node 26 commands:
+
+```sh
+npm --prefix packages/redbox-core run typecheck:application
+# From packages/redbox-core, with absolute qualified PATH:
+./node_modules/.bin/tsc
+# Repository root:
+TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require ./packages/redbox-core/test/setup.ts 'packages/redbox-core/test/configuration/*.test.ts' packages/redbox-core/test/services/ConfigService.test.ts packages/redbox-core/test/services/AppConfigService.test.ts packages/redbox-core/test/loader/bootstrapShimRuntime.test.ts
+npm run lint
+git diff --check
+```
+
+Production compile and strict application typecheck **exit 0**. Focused suites
+**102 passing, 0 failing/pending**, about 1 second, including existing dynamic
+AppConfig/secret/cache/override and legacy bootstrap assertions plus fresh-read,
+false/null/default, delayed-write, failed-write and cleanup ownership cases.
+Initial run **100 passing / 2 failing**, and first typecheck failed: a mechanical
+adapter move omitted the local `completion` declaration. Added the owned aggregate
+completion; the full focused command and strict checks pass. No assertion removed,
+no skip introduced, no dependency change. Mongo migration/bootstrap/drain proof
+follows SR-022–024; this unit run is not counted as that proof.

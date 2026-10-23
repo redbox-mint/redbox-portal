@@ -1,3 +1,4 @@
+import { awaitLegacyConfigurationWork } from '../compat/sails/configurationWork';
 import { activateSailsApplication, stopSailsApplicationAfterFailure } from '../compat/sails/application';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -102,6 +103,7 @@ export function createGeneratedBootstrap(
         sails.log.verbose(`Hook bootstrap complete: ${hookBootstrap.name}`);
       }
 
+      await awaitLegacyConfigurationWork(sails);
       await runPostBootstrapInitialisation();
 
       await exportPostBootstrapSnapshot();

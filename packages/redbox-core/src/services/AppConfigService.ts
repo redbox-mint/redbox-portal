@@ -1,4 +1,5 @@
 import { getConfigurationRepositories } from '../persistence/runtime';
+import { AppConfigAlreadyExistsError } from '../configuration/brand';
 import { siemSecretPaths, existingSiemSecretPath } from './siem/SiemConfigSecrets';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -588,7 +589,7 @@ export namespace Services {
           return this.maskSecretFields(configKey, (createdRecord as unknown as AppConfigAttributes).configData);
         }
 
-        throw Error(`Config with key ${configKey} for branding ${brandName} already exists`);
+        throw new AppConfigAlreadyExistsError(configKey, brandName);
       });
     }
 

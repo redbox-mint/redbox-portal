@@ -136,3 +136,25 @@ messages. No raw configuration debug-export switch is provided by this interface
 
 Synthetic fixtures test these conversions. Institution designation and actual
 institution credential/proxy/provider qualification remain SR-005/SR-045–049.
+
+## Dynamic state and legacy effects
+
+`resolveBrandConfiguration(brand, block, { defaultBrand, readBrand, defaults })`
+reads the current hydrated AppConfig state for every call, then default-brand
+state and startup branding defaults. False and null are explicit values. It adds
+no cache; existing AppConfig save/reload/cache-invalidation operations remain the
+source of dynamic changes. The comparison `ConfigService.getBrand` delegates to
+this same function and supplies its old per-brand-map fallback. A startup snapshot
+contains defaults, never a frozen copy of live administrator settings.
+
+Neutral extensions use config declarations, selected factories, package-relative
+view/asset roots and awaited bootstrap work. They do not call `mergeHookConfig`.
+Legacy file walking, locale/file copying and service/controller injection live in
+`compat/sails/configuration.ts` until their comparison consumers retire. Native
+asset serving/production preparation remains SR-040/SR-047. Branded writes in that
+adapter return an awaitable completion and are registered on the persistence owner
+before executing. Comparison bootstrap awaits them before dashboard finalization
+and activation, even when an old caller ignores the return value. Cleanup waits
+all accepted siblings; an override failure blocks readiness and is reported without
+its payload. Existing init-only values are distinguished by
+`AppConfigAlreadyExistsError`; unrelated write errors no longer count as success.
