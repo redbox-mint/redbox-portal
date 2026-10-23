@@ -229,3 +229,48 @@ also rejected insufficient method narrowing and the previous assumption that
 plain branded DOI data was a config-model instance; both are corrected. A
 premature compiled invocation before emission failed module loading and is not
 counted as a passing run. Production provider binding remains open.
+
+## RAiD ownership, OAuth and durable retry
+
+`integrations/Raid.ts` receives explicit branding/current configuration, records,
+queue, audits and log. Legacy config normalization and globals live only in
+`compat/sails/raid*.ts`. `integrations/raid/http.ts` owns a supplied token map;
+each provider has its own map and clears it on close. The previous process-wide
+cache survives only in the comparison adapter. The actual generated RAiD client,
+JSONata mapping, Effect interruption/retry and existing record append protocol
+remain in use. The shared audit layer now awaits completion/failure promises.
+The concrete Records port describes its actual initiating-actor and mutation
+result contract, avoiding the older abstract interface's erased return value.
+
+Node **26.11.1**, qualified toolchain bin on PATH, from `packages/redbox-core`:
+
+```sh
+node node_modules/typescript/bin/tsc -p tsconfig.json
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
+  --no-config --require chai --require test/setup.ts --timeout 5000 \
+  test/services/RaidService.test.ts test/services/raid-v2/*.test.ts
+SR_RAID_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_raid \
+node --test test/qualification/raid.cjs
+```
+
+Core build passes. Existing unchanged suites: **40 passing / 2 unchanged pending /
+0 failing**, exit **0**. Compiled real-Mongo/local-HTTP aggregate: **1 passing /
+0 failing / 0 skipped**, exit **0**. Actual Mongo **8.0.34**, generated RAiD HTTP
+client, Prisma storage/audits and Agenda **6.2.6** backend execute. **2 OAuth
+requests / 4 mint requests / 48 persisted audit rows / 1 durable retry**. Two
+successes on one provider reuse its token; another provider obtains its own.
+A 503 schedules the next-day retry and retains the initiating actor, options and
+attempt count in Mongo. App stop drains/closes and the compiled graph has no
+Sails/CoreService/comparison import. The future retry is not claimed/executed;
+associated-record writeback is not configured in this provider qualifier. The
+disposable database and receiver are removed in finally.
+
+Final logs in `.tmp/sails-retirement/p7/`: `raid-qualified-build.log`,
+`raid-qualified-existing.log`, `raid-qualified-mongo-http.log`. Focused format,
+lint and diff checks pass. No dependency or existing test/assertion/timeout changed.
+The first new qualifier omitted the required forceRun/trigger condition and
+therefore correctly performed no mint; its assertion failed. Supplying the actual
+trigger input exercises HTTP and persists the expected outcome. Initial TypeScript
+errors exposed the abstract record port's insufficient actor/result types; the
+concrete owned-domain port fixes them without assertions or `any` casts.
