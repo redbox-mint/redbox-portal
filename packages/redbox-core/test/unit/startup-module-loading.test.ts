@@ -4,7 +4,11 @@ import path from 'node:path';
 
 describe('startup module loading', function () {
   it('loads core without a browser DOM or the full Effect barrel, then sanitizes on first use', function () {
-    this.timeout(15000);
+    // This child transpiles the source barrel (615 TS modules on the qualified
+    // Node 26 toolchain). Profiling attributes ~7.2s to transpilation alone;
+    // compiled import plus the first sanitize is ~2.6s. Allow source-loader
+    // headroom without changing the production host's separate startup bound.
+    this.timeout(30000);
     const packagePath = path.resolve(__dirname, '../..');
     const result = spawnSync(
       process.execPath,
@@ -37,7 +41,7 @@ describe('startup module loading', function () {
         cwd: packagePath,
         encoding: 'utf8',
         env: { ...process.env, TS_NODE_PROJECT: path.join(packagePath, 'test/tsconfig.json') },
-        timeout: 12000,
+        timeout: 25000,
       }
     );
     assert.equal(result.status, 0, result.error?.message ?? result.stderr);
