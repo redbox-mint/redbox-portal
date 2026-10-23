@@ -5,7 +5,8 @@ const { resolve } = require('node:path');
 const root = resolve(__dirname, '../../../..');
 const { routes } = require(resolve(root, 'packages/redbox-core/dist/config/routes.config.js'));
 const { registerCoreApiRoutes } = require(resolve(root, 'packages/redbox-core/dist/api-routes/route-registry.js'));
-const { configurationReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/configuration.js'));
+const { configurationReadRoutes, appConfigFormReadRoute } = require(resolve(root, 'packages/redbox-core/dist/http/express/configuration.js'));
+const { metadataReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/metadata.js'));
 if (global.sails || Object.keys(require.cache).some(p => /node_modules\/sails\//.test(p)))
   throw Error('Inventory must remain offline without Sails.');
 
@@ -53,7 +54,7 @@ function owner(pattern, controller, action) {
 }
 
 const contracts = new Set(registerCoreApiRoutes().map(r => r.method.toUpperCase() + ' ' + r.path));
-const migratedReads = new Set(configurationReadRoutes.map(route => route.method.toUpperCase() + ' ' + route.path));
+const migratedReads = new Set([...configurationReadRoutes, appConfigFormReadRoute, ...metadataReadRoutes].map(route => route.method.toUpperCase() + ' ' + route.path));
 const entries = Object.entries(routes)
   .map(([pattern, target]) => {
     const controller =

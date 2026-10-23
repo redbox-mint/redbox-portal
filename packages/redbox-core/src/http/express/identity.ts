@@ -4,6 +4,9 @@ import type { IdentityRepositories, IdentityRows } from '../../persistence/ident
 export interface AuthenticatedActor {
   readonly id: string;
   readonly username: string;
+  readonly type?: string;
+  readonly name?: string;
+  readonly email?: string;
   readonly roles: readonly { readonly id: string; readonly brandId: string; readonly name?: string }[];
 }
 
@@ -61,6 +64,13 @@ export class HttpIdentity {
         ? [Object.freeze({ id: roleId, brandId, ...(typeof name === 'string' ? { name } : {}) })]
         : [];
     });
-    return Object.freeze({ id: String(user.id), username: user.username, roles: Object.freeze(roles) });
+    return Object.freeze({
+      id: String(user.id),
+      username: user.username,
+      type: user.type,
+      name: user.name,
+      email: user.email,
+      roles: Object.freeze(roles),
+    });
   }
 }

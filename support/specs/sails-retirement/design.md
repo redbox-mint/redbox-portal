@@ -74,7 +74,11 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
   for absent/invalid authentication, instead of legacy login redirects/path-rule
   denials. Affected consumers are unauthenticated callers of the two exact pilot
   URLs, and callers of the six configuration/form/translation API read contracts
-  exported as `configurationReadRoutes`. Supply a valid bearer credential or a new authenticated browser session.
+  exported as `configurationReadRoutes`, the AppConfig form GET and protected
+  metadata GETs exported as `metadataReadRoutes` (record/workflow/dashboard and
+  workspace types, dashboard settings/configuration, languages and app translation
+  reads). The i18next namespace GETs remain public. Supply a valid bearer credential
+  or a new authenticated browser session.
   This keeps the API authentication requirement explicit and avoids HTML redirects
   being mistaken for successful API responses.
 - Those migrated authenticated API reads also require membership in the requested brand through the

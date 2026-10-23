@@ -16,6 +16,10 @@ const { RecordTypes } = require('@researchdatabox/redbox-core/record-types');
 require('@researchdatabox/redbox-core/configuration');
 require('@researchdatabox/redbox-core/forms');
 require('@researchdatabox/redbox-core/translations');
+require('@researchdatabox/redbox-core/dashboards');
+require('@researchdatabox/redbox-core/workflows');
+require('@researchdatabox/redbox-core/workspaces');
+require('@researchdatabox/redbox-core/record-schema');
 const {
   ExpressHost,
   PathRules,

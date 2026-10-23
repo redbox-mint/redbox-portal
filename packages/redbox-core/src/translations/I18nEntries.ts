@@ -59,6 +59,51 @@ export class I18nEntries {
     return this.input.log;
   }
 
+  /** i18next HTTP-backend data: persisted bundle, composed entries, then packaged defaults. */
+  public async getNamespace(brand: BrandingModel, locale: string, namespace = 'translation'): Promise<unknown | null> {
+    const bundle = await this.getBundle(brand, locale, namespace);
+    let data: unknown = bundle?.data;
+    if (!bundle) {
+      const entries = await this.listEntries(brand, locale, namespace);
+      if (entries.length) data = this.composeNamespace(entries);
+      else {
+        // A decoded URL must never escape the configured, packaged defaults directory.
+        if (!/^[A-Za-z0-9_-]+$/.test(locale) || !/^[A-Za-z0-9_-]+$/.test(namespace)) return null;
+        const { readFile } = await import('node:fs/promises');
+        const { join } = await import('node:path');
+        try {
+          return JSON.parse(await readFile(join(this.input.localesDirectory, locale, namespace + '.json'), 'utf8'));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+          throw error;
+        }
+      }
+    }
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const result = { ...data } as Record<string, unknown>;
+      delete result._meta;
+      return result;
+    }
+    return data ?? {};
+  }
+
+  public async listLanguages(
+    brand: BrandingModel
+  ): Promise<Array<{ code: string; displayName: string; enabled: boolean }>> {
+    const bundles = await this.listBundles(brand);
+    const codes = new Set(this.input.supportedLanguages ?? []);
+    for (const bundle of bundles) if (bundle.locale) codes.add(bundle.locale);
+    const byLocale = new Map(bundles.map(bundle => [bundle.locale, bundle]));
+    const languages = await Promise.all(
+      [...codes].map(async code => ({
+        code,
+        displayName: byLocale.get(code)?.displayName || (await this.getLanguageDisplayName(code)),
+        enabled: byLocale.get(code)?.enabled !== false,
+      }))
+    );
+    return languages.sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
   /**
    * Seed default i18n bundles into DB from language-defaults for the default brand.
    * - Only creates bundles if none exist (no overwrite).

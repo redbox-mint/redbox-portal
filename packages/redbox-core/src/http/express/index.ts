@@ -23,7 +23,10 @@ export { mountRecordTypeRoutes, type RecordTypeHttpInput } from './recordTypes';
 export {
   mountConfigurationReadRoutes,
   configurationReadRoutes,
+  appConfigFormReadRoute,
   type ConfigurationReadHttpInput,
 } from './configuration';
 
 export { PathRules, type PathRule, type RuleRole } from '../../authorization/PathRules';
+
+export { mountMetadataReadRoutes, metadataReadRoutes, type MetadataReadHttpInput } from './metadata';

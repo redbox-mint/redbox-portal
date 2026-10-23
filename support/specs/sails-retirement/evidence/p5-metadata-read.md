@@ -78,3 +78,11 @@ qualification of record storage/export providers. Forms without HTML/vocabulary
 fields are covered; the remaining browser record-form GETs need those collaborators.
 Protected writes require SR-039. No SR-033/034, auth-provider, CSRF, mutation,
 upload, page or progress completion is claimed by this evidence.
+
+Domain extraction commit: `a2f672922`. The final HTTP build and compiled import
+qualification also pass (`p5-metadata-qualified-build.log`,
+`p5-metadata-qualified-pilot.log`: **24 passing, zero failing/pending**).
+The compiled guard rejects Sails, compatibility, controllers and the core barrel.
+Inventory generation/check reports **332 total, 41 standalone, 291 remaining**;
+SR-032 has **39/63** declarations verified. This is the prior six API reads plus
+32 metadata GETs and the AppConfig form GET. The source inventory is offline.

@@ -1,5 +1,5 @@
 {
-  "source": "a7a792614d61ab079d36759f967f320e9f2d4891",
+  "source": "a2f672922ea903caaddb784277a1d02f3ae9b9f5",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
     "SR-040": 47,
@@ -495,7 +495,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/dashboard-config/views/:view/:step",
@@ -503,7 +503,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/dashboard-config/views/:view/:step/fields",
@@ -511,7 +511,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage",
@@ -519,7 +519,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage/fields",
@@ -527,7 +527,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/deletedRecords",
@@ -809,7 +809,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/info",
@@ -817,7 +817,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/merged-type/:dashboardType",
@@ -825,7 +825,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/merged-view/:viewName/:stepName",
@@ -833,7 +833,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
@@ -841,7 +841,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/migration/preflight",
@@ -849,7 +849,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/overrides",
@@ -857,7 +857,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/targets",
@@ -865,7 +865,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/views/:view/:step",
@@ -873,7 +873,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/views/:view/:step/fields",
@@ -881,7 +881,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
@@ -889,7 +889,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage/fields",
@@ -897,7 +897,7 @@
       "contract": true,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/deletedrecords/:oid",
@@ -1429,7 +1429,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/app/i18n/entries",
@@ -1437,7 +1437,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/appconfig/form/:appConfigId",
@@ -1445,7 +1445,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/asynch",
@@ -1499,7 +1499,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/dashboard/settings/workflow/:recordType",
@@ -1507,7 +1507,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/dashboard/type",
@@ -1515,7 +1515,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/dashboard/type/:dashboardType",
@@ -1523,7 +1523,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/dashboard/view/:dashboardView",
@@ -1531,7 +1531,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/dynamic/:asset",
@@ -1611,7 +1611,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/locales/:lng/:ns.json",
@@ -1619,7 +1619,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/locales/:lng/translation.json",
@@ -1627,7 +1627,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/preview/:token.css",
@@ -1784,7 +1784,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/type/:recordType",
@@ -1792,7 +1792,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/viewAudit/:oid",
@@ -1832,7 +1832,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/styles/theme.css",
@@ -1927,7 +1927,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/workspaces/types/:name",
@@ -1935,7 +1935,7 @@
       "contract": false,
       "task": "SR-032",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /csrfToken",

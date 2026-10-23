@@ -13,6 +13,13 @@ import { bindHttpPolicies, requestContext, resolveEffectivePolicies } from './po
 import { httpAction, singleHttpResult } from './middleware';
 import { sendApiData, sendApiErrors, validationApiVersion } from './responses';
 
+export const appConfigFormReadRoute = {
+  method: 'get' as const,
+  path: '/:branding/:portal/appconfig/form/:appConfigId',
+  controller: 'AppConfigController',
+  action: 'getAppConfigForm',
+};
+
 export const configurationReadRoutes = [
   getAppConfigByIdRoute,
   listEntriesRoute,
@@ -22,7 +29,7 @@ export const configurationReadRoutes = [
 ];
 
 export interface ConfigurationReadHttpInput {
-  readonly appConfigs: Pick<AppConfigs, 'getAppConfigByBrandAndKey' | 'hasConfigOverride'>;
+  readonly appConfigs: Pick<AppConfigs, 'getAppConfigByBrandAndKey' | 'hasConfigOverride' | 'getAppConfigForm'>;
   readonly translations: Pick<I18nEntries, 'listEntries' | 'getEntry' | 'getBundle'>;
   readonly forms: Pick<Forms, 'listForms' | 'getFormByName' | 'toPublicForm' | 'discoverValidationOperations'>;
   readonly loadRecord: import('../../forms/RecordValidation').RecordValidationServiceDependencies['loadRecord'];
@@ -32,6 +39,24 @@ export interface ConfigurationReadHttpInput {
 
 /** Read contracts only. Protected configuration writes are gated on SR-039. */
 export function mountConfigurationReadRoutes(router: Router, input: ConfigurationReadHttpInput): void {
+  const formPolicies = bindHttpPolicies(
+    resolveEffectivePolicies(appConfigFormReadRoute, input.policyConfiguration),
+    input.policies
+  );
+  router.get(
+    appConfigFormReadRoute.path,
+    ...formPolicies,
+    httpAction(async (req, res) => {
+      const { brand: snapshot } = requestContext(req);
+      const brand = Object.assign(new BrandingModel(), snapshot);
+      const id = req.params.appConfigId;
+      if (typeof id !== 'string' || !id.trim()) {
+        sendApiErrors(req, res, 400, [{ detail: 'appConfigId is required' }]);
+        return;
+      }
+      res.json(await input.appConfigs.getAppConfigForm(brand, id));
+    })
+  );
   const bindings = configurationReadRoutes.map(route => ({
     route,
     policies: bindHttpPolicies(resolveEffectivePolicies(route, input.policyConfiguration), input.policies),

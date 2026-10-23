@@ -3,7 +3,7 @@
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
 complete; P3 SR-019–SR-025 and P4 SR-026–SR-030 are complete.
-P5 SR-031 is complete; SR-032 has a verified partial API read slice.
+P5 SR-031 is complete; SR-032 has verified API and browser metadata read slices.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -470,8 +470,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   **Status:** partial; six API read contracts and their shared AppConfig,
   translation-entry, form and validation-discovery implementations are extracted.
   [Executed read-slice evidence and remaining routes](evidence/p5-configuration-read.md).
-  Dashboard/browser/localization/workspace reads and protected writes remain;
-  this task is not accepted as a completed group.
+  [Browser/dashboard/localization/workspace and AppConfig form reads](evidence/p5-metadata-read.md)
+  bring the verified inventory to 39/63. Two record-form browser GETs and protected
+  writes remain; this task is not accepted as a completed group.
 
   **Depends on:** SR-031, SR-021; SR-039 before completing protected writes.
 

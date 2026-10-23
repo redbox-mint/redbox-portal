@@ -1,8 +1,19 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { Services as TranslationRuntime } from '../../src/translations/Translation';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
-import { from } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
+import { Services as WorkflowServices } from '../../src/workflows/WorkflowSteps';
+import { Services as WorkspaceServices } from '../../src/workspaces/WorkspaceTypes';
+import { Services as DashboardServices } from '../../src/dashboards/DashboardTypes';
+import { Services as DashboardConfiguration } from '../../src/dashboards/DashboardConfig';
+import { Services as SchemaServices } from '../../src/recordSchema/RecordSchema';
+import { recordSchema } from '../../src/config/recordSchema.config';
+import { createCoreRecordContractContributors, RecordContractContributorRegistry } from '../../src/record-contract';
+import { mountMetadataReadRoutes } from '../../src/http/express/metadata';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { AppConfigs, APP_CONFIG_SECRET_MASK, type AppConfigsInput } from '../../src/configuration/AppConfigs';
 import { resolveExtensions } from '../../src/extensions/resolution';
@@ -28,7 +39,9 @@ import { registerPersistenceResource } from '../../src/persistence/runtime';
 async function configurationFixture() {
   let appConfigs!: AppConfigs;
   let translations!: I18nEntries;
+  let translationRuntime!: TranslationRuntime.Translation;
   let forms!: Forms;
+  let dashboardConfig!: DashboardConfiguration.DashboardConfig;
   let failReads = false;
   let overrideReads = 0;
   let delayedRead:
@@ -84,23 +97,43 @@ async function configurationFixture() {
       appConfigs = bindExtensionFactory(hook, appConfigInput)();
       registerPersistenceResource(f.owner, 'configuration-domain', { close: () => appConfigs.close() });
       await appConfigs.bootstrap();
+      const localeDirectory = await mkdtemp(path.join(tmpdir(), 'redbox-metadata-locales-'));
+      registerPersistenceResource(f.owner, 'fixture-locales', {
+        close: () => rm(localeDirectory, { recursive: true, force: true }),
+      });
+      await mkdir(path.join(localeDirectory, 'fr'));
+      await writeFile(
+        path.join(localeDirectory, 'fr', 'fallback.json'),
+        JSON.stringify({ greeting: 'Bonjour', _meta: { source: 'packaged' } })
+      );
+      translationRuntime = new TranslationRuntime.Translation({
+        repository,
+        log: nothingLogger,
+        config: { i18n: { next: { init: { supportedLngs: ['en'] } } } },
+        getBrand: name => brands.find(brand => brand.name === name || brand.id === name)!,
+        availableBrands: () => brands.map(brand => brand.name),
+      });
+      registerPersistenceResource(f.owner, 'translation-runtime', { close: () => translationRuntime.close() });
       translations = new I18nEntries({
         repository,
-        localesDirectory: '/fixture/absent-locales',
+        localesDirectory: localeDirectory,
         log: nothingLogger,
         getBrand: name => brands.find(brand => brand.name === name) ?? null,
         getBrandById: id => brands.find(brand => brand.id === id) ?? null,
-        reloadResources: async () => {},
+        supportedLanguages: ['en'],
+        reloadResources: id => translationRuntime.reloadResources(id),
       });
       const loadRecord = async (oid: string) =>
         f.native
           .db()
           .collection<RecordModel>('metadataFixtureRecords')
           .findOne({ redboxOid: oid }, { projection: { _id: 0 } });
-      const workflowSteps = {
-        getAllForRecordType: (type: { id?: string } | null | undefined) =>
-          from(references.workflows.listForRecordType(type?.id ?? '', false)),
-      };
+      const workflowSteps = new WorkflowServices.WorkflowSteps({
+        references,
+        config: { appmode: {}, workflow: {} },
+        log: nothingLogger,
+        initialiseDashboardSettings: async () => {},
+      });
       const readers: RecordValidationServiceDependencies = {
         loadRecord,
         loadRecordType: (brand, name) => references.recordTypes.findByName(brand, name),
@@ -127,7 +160,7 @@ async function configurationFixture() {
       };
       const validation = new RecordValidation({
         readers,
-        config: {},
+        config: { recordSchema },
         log: nothingLogger,
         html: {
           sanitizeWithProfile: () => {
@@ -168,7 +201,13 @@ async function configurationFixture() {
         configuration: {
           name: 'default-1.0-draft',
           type: 'dataRecord',
-          componentDefinitions: [],
+          componentDefinitions: [
+            {
+              name: 'title',
+              component: { class: 'SimpleInputComponent', config: { type: 'text' } },
+              model: { class: 'SimpleInputModel', config: {} },
+            },
+          ],
           enabledValidationGroups: ['base'],
           validationGroups: { base: { description: 'base', initialMembership: 'all' } },
           validationOperations: { draft: { label: 'Save draft', enabledValidationGroups: ['base'], roles: ['Admin'] } },
@@ -222,13 +261,107 @@ async function configurationFixture() {
         branding: f.otherBrand.id,
         configuration: { componentDefinitions: [] },
       });
-      await repository.appConfigs.createConfiguration({
-        branding: f.brand.id,
-        configKey: 'doiPublishing',
-        configData: { connection: { password: 'synthetic-doi-password' } },
+      await appConfigs.createOrUpdateConfig(brands[0], 'doiPublishing', {
+        connection: { password: 'synthetic-doi-password' },
       });
       await translations.setEntry(brands[0], 'en', 'translation', 'heading/with/slashes', 'First value');
       await translations.setEntry(brands[1], 'en', 'translation', 'private', 'Other brand');
+      await translationRuntime.bootstrap();
+      const workspaceTypes = new WorkspaceServices.WorkspaceTypes({
+        references,
+        config: { workspacetype: {} },
+        log: nothingLogger,
+        bootstrapProviders: [],
+      });
+      await firstValueFrom(workspaceTypes.create(brands[0], { name: 'dataRecord', label: 'Research data' }));
+      await firstValueFrom(workspaceTypes.create(brands[1], { name: 'private', label: 'Private other workspace' }));
+      const registry = new RecordContractContributorRegistry(
+        createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' }))
+      );
+      const schema = new SchemaServices.RecordSchema({
+        getConfig: () => recordSchema,
+        getStorageProvider: () => undefined,
+        getContributorRegistry: () => registry,
+        getContributorRegistrationIssues: () => [],
+        getContributorComponentTypes: () =>
+          registry
+            .registrations()
+            .flatMap(item => (item.contributor.kind === 'component' ? [item.contributor.componentType] : [])),
+        getConfiguredFormCandidates: () => forms.listConfiguredRecordContractForms(),
+        resolveContractContext: request => validation.resolveContractContext(request),
+        buildContractFormConfig: (context, access) => forms.buildContractFormConfig(context, access),
+        authorizeCreate: async (context, caller) =>
+          caller.brand.id === context.publicContext.brand && caller.user.roles.some(role => role.name === 'Admin'),
+        authorizeUpdate: async () => false,
+        clock: Date.now,
+        telemetryLogger: nothingLogger,
+      });
+      schema.init();
+      const dashboardview = {
+        consolidated: {
+          name: 'consolidated',
+          titleLabelKey: 'All records',
+          dashboardType: 'standard',
+          sourceRecordType: 'dataRecord',
+          steps: [
+            {
+              name: 'all',
+              sourceRecordType: 'dataRecord',
+              fetchMode: 'allForRecordType' as const,
+              dashboardTable: { rowConfig: [] },
+            },
+          ],
+        },
+      };
+      dashboardConfig = new DashboardConfiguration.DashboardConfig({
+        references,
+        configuration: repository,
+        brands: f.branding,
+        migrations: { isExecuted: async () => true },
+        config: { dashboardview },
+        log: nothingLogger,
+        recordTypes,
+        workflowSteps,
+        schema,
+        availableBrands: () => brands.map(brand => brand.name),
+        getBrand: name => brands.find(brand => brand.name === name)!,
+      });
+      await dashboardConfig.migrateLegacyConfiguration();
+      await dashboardConfig.initialiseAfterBootstrap();
+      registerPersistenceResource(f.owner, 'dashboardDomain', { close: () => dashboardConfig.close() });
+      registerPersistenceResource(f.owner, 'schemaDomain', { close: () => schema.close() });
+      const dashboardTypes = new DashboardServices.DashboardTypes({
+        references,
+        configuration: repository,
+        log: nothingLogger,
+        config: { appmode: {}, dashboardtype: {}, recordtype: {}, workflow: {}, dashboardview },
+        recordTypes,
+        dashboardConfig,
+      });
+      await dashboardTypes.createDashboardType(brands[0], {
+        name: 'standard',
+        formatRules: {},
+        tableConfig: { rowConfig: [] },
+      });
+      await f.identities.create('pathrule', {
+        path: '/:branding/:portal/admin/dashboard-config(/*)',
+        role: f.role.id,
+        branding: f.brand.id,
+        can_update: true,
+      });
+      mountMetadataReadRoutes(router, {
+        recordTypes,
+        workflowSteps,
+        workspaceTypes,
+        dashboardTypes,
+        dashboardConfig,
+        translations,
+        policies,
+        policyConfiguration: {
+          '*': [...pilotPolicyChain],
+          TranslationController: { getNamespace: ['noCache', 'brandingAndPortal'] },
+        },
+      });
       mountConfigurationReadRoutes(router, {
         appConfigs,
         translations,
@@ -243,7 +376,9 @@ async function configurationFixture() {
     ...f,
     appConfigs,
     translations,
+    translationRuntime,
     forms,
+    dashboardConfig,
     failReads: (value: boolean) => {
       failReads = value;
     },
@@ -410,6 +545,142 @@ describe('configuration, translations and forms on standalone Mongo HTTP', funct
       await other.close();
     }
   });
+  it('serves browser record/workspace metadata without leaking another brand or server-owned form policy', async () => {
+    const types = await read('/default/rdmp/record/type');
+    assert.equal(types.response.status, 200);
+    assert.equal((types.body as Array<{ name: string }>)[0].name, 'dataRecord');
+    assert(!JSON.stringify(types.body).includes('validationOperations'));
+    const workspace = await read('/default/rdmp/workspaces/types');
+    assert.equal(workspace.response.status, 200);
+    assert.equal((workspace.body as { workspaceTypes: unknown[] }).workspaceTypes.length, 1);
+    assert(!JSON.stringify(workspace.body).includes('Private other'));
+    assert.equal((await read('/default/rdmp/workspaces/types/missing')).response.status, 200);
+    assert.equal((await read('/default/rdmp/record/wfSteps/missing')).response.status, 400);
+  });
+  it('uses persisted independent dashboard settings in workflow and runtime reads', async () => {
+    const target = { kind: 'workflow' as const, recordType: 'dataRecord', stage: 'draft' };
+    const brand = Object.assign(new BrandingModel(), f.brand);
+    const current = await f.dashboardConfig.getTargetSettings(brand, target);
+    const settings = structuredClone(current.settings);
+    settings.tableConfig.rowConfig = [
+      { title: 'Dynamic column', variable: 'metadata.title', template: '{{metadata.title}}' },
+    ];
+    const validation = await f.dashboardConfig.validateTargetSettings(brand, target, current.revision, settings);
+    await f.dashboardConfig.saveTargetSettings(brand, target, {
+      expectedRevision: current.revision,
+      settings,
+      validationFingerprint: validation.validationFingerprint,
+      acknowledgedWarningIds: validation.warnings.map(warning => warning.id),
+    });
+    const steps = await read('/default/rdmp/record/wfSteps/dataRecord');
+    assert.equal(steps.response.status, 200);
+    assert(JSON.stringify(steps.body).includes('Dynamic column'));
+    const runtime = await read('/default/rdmp/dashboard/settings/workflow/dataRecord');
+    assert.equal(runtime.response.status, 200);
+    assert(JSON.stringify(runtime.body).includes('Dynamic column'));
+    const targets = await read(base + 'dashboard-config/targets');
+    assert.equal(targets.response.status, 200);
+    assert(JSON.stringify(targets.body).includes('draft'));
+    const fields = await read(base + 'dashboard-config/workflows/dataRecord/draft/fields');
+    assert.equal(fields.response.status, 200);
+    assert.notEqual((fields.body as { status: string }).status, 'unavailable', JSON.stringify(fields.body));
+    assert.equal((await read(base + 'dashboard-config/workflows/dataRecord/missing')).response.status, 404);
+    assert.equal((await read(base + 'dashboard-config/defaults')).response.status, 410);
+    assert.equal((await read('/default/rdmp/admin/dashboard-config/targets')).response.status, 200);
+  });
+  it('serves raw locale namespaces, languages and app aliases with public namespace access', async () => {
+    const namespace = await read('/default/rdmp/locales/en/translation.json', {} as typeof f.headers);
+    assert.equal(namespace.response.status, 200);
+    assert(JSON.stringify(namespace.body).includes('First value'));
+    assert(!JSON.stringify(namespace.body).includes('_meta'));
+    assert.equal((await read('/default/rdmp/locales/zz/translation.json')).response.status, 404);
+    assert.deepEqual((await read('/default/rdmp/locales/fr/fallback.json')).body, {
+      greeting: 'Bonjour',
+      _meta: { source: 'packaged' },
+    });
+    const languages = await read('/default/rdmp/locales');
+    assert.equal(languages.response.status, 200);
+    assert.equal((languages.body as Array<{ code: string }>)[0].code, 'en');
+    assert.equal((await read('/default/rdmp/app/i18n/entries?locale=en')).response.status, 200);
+    assert.equal((await read('/default/rdmp/app/i18n/entries?locale[a]=en')).response.status, 400);
+    assert.equal((await read('/default/rdmp/app/i18n/bundles/en/translation')).response.status, 200);
+    assert.equal((await read('/default/rdmp/locales/en/%2e%2e%2fprivate.json')).response.status, 404);
+  });
+  it('covers dashboard view/settings, authoring aliases, preflight and every retired read', async () => {
+    for (const route of [
+      '/dashboard/type',
+      '/dashboard/type/standard',
+      '/dashboard/view/consolidated',
+      '/dashboard/settings/view/consolidated',
+      '/api/dashboard-config/views/consolidated/all',
+      '/api/dashboard-config/views/consolidated/all/fields',
+      '/admin/dashboard-config/views/consolidated/all',
+      '/admin/dashboard-config/views/consolidated/all/fields',
+      '/admin/dashboard-config/workflows/dataRecord/draft',
+      '/admin/dashboard-config/workflows/dataRecord/draft/fields',
+      '/api/dashboard-config/migration/preflight',
+    ]) {
+      const result = await read('/default/rdmp' + route);
+      assert.equal(result.response.status, 200, route + ': ' + JSON.stringify(result.body));
+    }
+    for (const route of [
+      'info',
+      'defaults',
+      'overrides',
+      'merged/dataRecord/draft',
+      'merged-view/consolidated/all',
+      'merged-type/standard',
+    ]) {
+      const result = await read(base + 'dashboard-config/' + route);
+      assert.equal(result.response.status, 410);
+      assert(JSON.stringify(result.body).includes('retired'));
+    }
+    assert.equal((await read('/default/rdmp/dashboard/view/missing')).response.status, 404);
+    assert.equal((await read('/default/rdmp/dashboard/settings/view/missing')).response.status, 404);
+    assert.equal((await read('/default/rdmp/app/i18n/entries?locale=en&namespace[a]=x')).response.status, 400);
+    assert.equal((await read('/default/rdmp/record/type?apiVersion=2.0')).response.status, 200);
+  });
+  it('serves the AppConfig form contract with masked secrets and rejects unknown definitions safely', async () => {
+    const form = await read('/default/rdmp/appconfig/form/doiPublishing');
+    assert.equal(form.response.status, 200);
+    assert.deepEqual(Object.keys(form.body as object).sort(), ['fieldOrder', 'model', 'schema']);
+    assert(!JSON.stringify(form.body).includes('synthetic-doi-password'));
+    assert(JSON.stringify(form.body).includes(APP_CONFIG_SECRET_MASK));
+    assert.equal((await read('/default/rdmp/appconfig/form/missing')).response.status, 500);
+    assert.equal((await read('/other/rdmp/appconfig/form/doiPublishing')).response.status, 403);
+    assert.equal(
+      (await read('/default/rdmp/appconfig/form/doiPublishing', {} as typeof f.headers)).response.status,
+      401
+    );
+  });
+  it('reloads the owned translation runtime after awaited persisted changes', async () => {
+    const brand = Object.assign(new BrandingModel(), f.brand);
+    await f.translations.setEntry(brand, 'en', 'translation', 'runtime-cache', 'Runtime first');
+    assert.equal(f.translationRuntime.t('runtime-cache', undefined, 'en', 'default'), 'Runtime first');
+    await f.translations.setEntry(brand, 'en', 'translation', 'runtime-cache', 'Runtime second');
+    assert.equal(f.translationRuntime.t('runtime-cache', undefined, 'en', 'default'), 'Runtime second');
+  });
+  it('requires authentication, brand membership and applicable role for the added protected metadata routes', async () => {
+    const routes = [
+      '/record/type',
+      '/workspaces/types',
+      '/api/dashboard-config/targets',
+      '/api/dashboard-config/workflows/dataRecord/draft/fields',
+      '/admin/dashboard-config/targets',
+      '/locales',
+      '/app/i18n/bundles/en/translation',
+    ];
+    for (const route of routes) {
+      assert.equal((await read('/default/rdmp' + route, {} as typeof f.headers)).response.status, 401);
+      assert.equal((await read('/other/rdmp' + route)).response.status, 403);
+    }
+    await f.identities.replaceMemberships('user', String(f.user.id), [f.reader.id]);
+    try {
+      assert.equal((await read('/default/rdmp/admin/dashboard-config/targets')).response.status, 403);
+    } finally {
+      await f.identities.replaceMemberships('user', String(f.user.id), [f.role.id]);
+    }
+  });
   it('serves the group without loading Sails, controllers, compatibility or the core barrel', () => {
     assert.equal(Reflect.get(globalThis, 'sails'), undefined);
     const forbidden =
@@ -457,6 +728,8 @@ describe('configuration, translations and forms on standalone Mongo HTTP', funct
         'run',
         '1 - REST API/4 - Form Management/List Forms.bru',
         '1 - REST API/4 - Form Management/Get Form.bru',
+        '1 - REST API/10 - Translation/List Languages.bru',
+        '1 - REST API/10 - Translation/Get Namespace (translation).bru',
         '--env',
         'int-test',
         '--env-var',
