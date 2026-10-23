@@ -5,6 +5,9 @@ const { resolve } = require('node:path');
 const root = resolve(__dirname, '../../../..');
 const { routes } = require(resolve(root, 'packages/redbox-core/dist/config/routes.config.js'));
 const { registerCoreApiRoutes } = require(resolve(root, 'packages/redbox-core/dist/api-routes/route-registry.js'));
+const { identityAdministrationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/identityAdministration.js'));
+const { queryWriteRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/queryWrites.js'));
+const { vocabularyIntegrationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/vocabularyIntegrations.js'));
 const { configurationReadRoutes, appConfigFormReadRoute } = require(resolve(root, 'packages/redbox-core/dist/http/express/configuration.js'));
 const { recordReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/recordReads.js'));
 const { queryReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/queryReads.js'));
@@ -36,6 +39,10 @@ function owner(pattern, controller, action) {
   if (/companion|\/tus/.test(path)) return 'SR-042';
   if (/subscribe|unsubscribe/.test(action) || target === 'Asynch') return 'SR-043';
   if (/upload|attachment|datastream/i.test(action)) return 'SR-041';
+  if (target === 'Admin' && /^(rolesIndex|usersIndex|harvestRunsIndex)$/.test(action)) return 'SR-040';
+  if (target === 'Vocabulary' && action === 'manager') return 'SR-040';
+  // These actions receive multipart files despite having no 'upload' in their names.
+  if (/^(Branding|BrandingApp)$/.test(target) && /^(logo|favicon)$/.test(action)) return 'SR-041';
   if (target === 'User' && action === 'login') return 'SR-040';
   if (target === 'User' && /login|logout|authenticate|oidc|aaf|jwt|callback/i.test(action)) return 'SR-038';
   if (target === 'RecordType') return 'SR-029';
@@ -61,7 +68,7 @@ function owner(pattern, controller, action) {
 }
 
 const contracts = new Set(registerCoreApiRoutes().map(r => r.method.toUpperCase() + ' ' + r.path));
-const migratedReads = new Set([...recordReadRoutes, ...queryReadRoutes, ...configurationReadRoutes, ...configurationWriteRoutes, appConfigFormReadRoute, ...metadataReadRoutes, ...formDeliveryRoutes, ...authenticationRoutes, csrfTokenRoute].map(route => route.method.toUpperCase() + ' ' + route.path));
+const migratedRoutes = new Set([...recordReadRoutes, ...queryReadRoutes, ...identityAdministrationRoutes, ...queryWriteRoutes, ...vocabularyIntegrationRoutes, ...configurationReadRoutes, ...configurationWriteRoutes, appConfigFormReadRoute, ...metadataReadRoutes, ...formDeliveryRoutes, ...authenticationRoutes, csrfTokenRoute].map(route => route.method.toUpperCase() + ' ' + route.path));
 const entries = Object.entries(routes)
   .map(([pattern, target]) => {
     const controller =
@@ -90,6 +97,9 @@ const entries = Object.entries(routes)
               : task === 'SR-043'
                 ? ['SR-034', 'SR-038']
                 : [];
+    if (task === 'SR-036' && action === 'linkAccounts') prerequisites.push('SR-035');
+    // Legacy GET is an unsafe cache mutation, not an ordinary administration read.
+    if (task === 'SR-036' && action === 'refreshCachedResources') prerequisites.push('explicit-method/CSRF migration');
     if (['SR-033', 'SR-034'].includes(task) && !/^(GET|HEAD|OPTIONS) /.test(normalized)) prerequisites.push('SR-039');
     return {
       route: normalized,
@@ -101,7 +111,7 @@ const entries = Object.entries(routes)
       contract: contracts.has(normalized),
       task,
       prerequisites,
-      standalone: task === 'SR-029' || migratedReads.has(normalized),
+      standalone: task === 'SR-029' || migratedRoutes.has(normalized),
     };
   })
   .sort((a, b) => a.route.localeCompare(b.route));

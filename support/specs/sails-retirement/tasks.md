@@ -2,7 +2,8 @@
 
 Status: SR-001–SR-034 are complete except SR-005, which awaits institution and
 production-source designation. SR-038 and SR-039 are complete. SR-035–SR-037
-are in progress; SR-040 onward has not started. Task evidence is linked below.
+remain partial; their completed slices and open dependencies are recorded below.
+SR-040 onward has not started.
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
 
@@ -540,6 +541,11 @@ Read the [design](design.md) for behavior and the
   ordinary external work cannot activate during failed initialization.
 
 - [ ] **SR-037 — Close API-group overrides, dependency and route coverage.**
+
+  **Status:** partial; [route inventory, import/override closure and regression evidence](evidence/p5-api-closure.md).
+  All 333 declarations are accounted for; 153 are standalone. The 23 record
+  mutation and 84 remaining administration/integration declarations prevent API
+  closure. No unfinished route is presented as an intentional removal.
 
   **Depends on:** SR-032, SR-033, SR-034, SR-035, SR-036.
 

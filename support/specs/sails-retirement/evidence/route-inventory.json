@@ -1,13 +1,13 @@
 {
   "additions": [],
-  "source": "585aa730093cfc58faa93a7ea2040c23c7a8aa44",
+  "source": "7f49cbe79f0a2939a28f49a939387d4a0025e29f",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
-    "SR-040": 48,
-    "SR-036": 124,
+    "SR-040": 52,
     "SR-042": 2,
-    "SR-041": 9,
+    "SR-041": 13,
     "SR-034": 21,
+    "SR-036": 116,
     "SR-032": 63,
     "SR-035": 23,
     "SR-043": 6,
@@ -29,22 +29,16 @@
       "route": "ALL /:branding/:portal/admin/harvest-runs",
       "target": "AdminController.harvestRunsIndex",
       "contract": false,
-      "task": "SR-036",
-      "prerequisites": [
-        "SR-038",
-        "SR-039"
-      ],
+      "task": "SR-040",
+      "prerequisites": [],
       "standalone": false
     },
     {
       "route": "ALL /:branding/:portal/admin/roles",
       "target": "AdminController.rolesIndex",
       "contract": false,
-      "task": "SR-036",
-      "prerequisites": [
-        "SR-038",
-        "SR-039"
-      ],
+      "task": "SR-040",
+      "prerequisites": [],
       "standalone": false
     },
     {
@@ -67,11 +61,8 @@
       "route": "ALL /:branding/:portal/admin/users",
       "target": "AdminController.usersIndex",
       "contract": false,
-      "task": "SR-036",
-      "prerequisites": [
-        "SR-038",
-        "SR-039"
-      ],
+      "task": "SR-040",
+      "prerequisites": [],
       "standalone": false
     },
     {
@@ -223,7 +214,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "DELETE /:branding/:portal/admin/vocabulary/:id",
@@ -302,7 +293,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "DELETE /:branding/:portal/api/records/metadata/:oid",
@@ -378,7 +369,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "DELETE /:branding/:portal/api/vocabulary/:id",
@@ -627,7 +618,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/admin/users/:id/audit",
@@ -699,11 +690,8 @@
       "route": "GET /:branding/:portal/admin/vocabulary/manager",
       "target": "VocabularyController.manager",
       "contract": false,
-      "task": "SR-036",
-      "prerequisites": [
-        "SR-038",
-        "SR-039"
-      ],
+      "task": "SR-040",
+      "prerequisites": [],
       "standalone": false
     },
     {
@@ -759,7 +747,8 @@
       "task": "SR-036",
       "prerequisites": [
         "SR-038",
-        "SR-039"
+        "SR-039",
+        "explicit-method/CSRF migration"
       ],
       "standalone": false
     },
@@ -1280,7 +1269,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/search",
@@ -2049,7 +2038,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/report-config/preview",
@@ -2070,7 +2059,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/users/:id/disable",
@@ -2081,7 +2070,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/users/:id/enable",
@@ -2092,7 +2081,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/users/genKey",
@@ -2103,7 +2092,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/users/link",
@@ -2112,7 +2101,8 @@
       "task": "SR-036",
       "prerequisites": [
         "SR-038",
-        "SR-039"
+        "SR-039",
+        "SR-035"
       ],
       "standalone": false
     },
@@ -2125,7 +2115,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/users/revokeKey",
@@ -2136,7 +2126,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/users/update",
@@ -2147,7 +2137,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/vocabulary",
@@ -2169,7 +2159,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/vocabulary/import",
@@ -2180,7 +2170,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/admin/config/:configKey",
@@ -2241,8 +2231,10 @@
       "route": "POST /:branding/:portal/api/branding/favicon",
       "target": "webservice/BrandingController.favicon",
       "contract": true,
-      "task": "SR-036",
+      "task": "SR-041",
       "prerequisites": [
+        "SR-034",
+        "SR-035",
         "SR-038",
         "SR-039"
       ],
@@ -2252,8 +2244,10 @@
       "route": "POST /:branding/:portal/api/branding/logo",
       "target": "webservice/BrandingController.logo",
       "contract": true,
-      "task": "SR-036",
+      "task": "SR-041",
       "prerequisites": [
+        "SR-034",
+        "SR-035",
         "SR-038",
         "SR-039"
       ],
@@ -2457,7 +2451,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/records/datastreams/:oid",
@@ -2572,7 +2566,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/report-config/preview",
@@ -2593,7 +2587,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/search/index",
@@ -2656,7 +2650,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/users/:id/disable",
@@ -2667,7 +2661,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/users/:id/enable",
@@ -2678,7 +2672,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/users/link",
@@ -2687,7 +2681,8 @@
       "task": "SR-036",
       "prerequisites": [
         "SR-038",
-        "SR-039"
+        "SR-039",
+        "SR-035"
       ],
       "standalone": false
     },
@@ -2700,7 +2695,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/users/token/revoke",
@@ -2711,7 +2706,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/vocabulary",
@@ -2733,7 +2728,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/vocabulary/import",
@@ -2744,7 +2739,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/app/branding/draft",
@@ -2783,8 +2778,10 @@
       "route": "POST /:branding/:portal/app/branding/favicon",
       "target": "BrandingAppController.favicon",
       "contract": false,
-      "task": "SR-036",
+      "task": "SR-041",
       "prerequisites": [
+        "SR-034",
+        "SR-035",
         "SR-038",
         "SR-039"
       ],
@@ -2794,8 +2791,10 @@
       "route": "POST /:branding/:portal/app/branding/logo",
       "target": "BrandingAppController.logo",
       "contract": false,
-      "task": "SR-036",
+      "task": "SR-041",
       "prerequisites": [
+        "SR-034",
+        "SR-035",
         "SR-038",
         "SR-039"
       ],
@@ -2979,7 +2978,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/user/logout",
@@ -2998,7 +2997,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/user/update",
@@ -3009,7 +3008,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /user/login_aaf",
@@ -3058,7 +3057,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/admin/vocabulary/:id",
@@ -3172,7 +3171,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/records/metadata/:oid",
@@ -3209,7 +3208,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/siem/config",
@@ -3231,7 +3230,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/vocabulary/:id",
