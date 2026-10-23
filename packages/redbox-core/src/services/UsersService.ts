@@ -1,3 +1,15 @@
+import {
+  installLocalAuthentication,
+  installAafAuthentication,
+  installOidcAuthentication,
+  type IdentityProvidersInput,
+} from '../http/express/identityProviders';
+import type { AuthenticationAccounts, AuthBrandConfig } from '../authentication/Accounts';
+import {
+  sailsAuthenticationAccounts,
+  sailsAuthenticationProviders,
+  sailsHttpIdentity,
+} from '../compat/sails/authentication';
 import { getStorageRepositories } from '../persistence/storage/runtime';
 import { getIdentityRepositories } from '../persistence/runtime';
 import { safeIdentityValue } from '../persistence/identity/safety';
@@ -25,10 +37,7 @@ import { identityCallback } from '../persistence/identity/IdentityRepositories';
 import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, map, last } from 'rxjs/operators';
 
-import { isObservable } from 'rxjs';
-
 import { BrandingModel } from '../model/storage/BrandingModel';
-import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { RoleModel } from '../model/storage/RoleModel';
 import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
@@ -37,13 +46,9 @@ import { Services as services } from '../CoreService';
 
 import * as crypto from 'crypto';
 
-declare const Buffer: typeof globalThis.Buffer;
-
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
   type DoneCallback = (err: unknown, user?: unknown, info?: unknown) => void;
-  const DEFAULT_AAF_ATTRIBUTES_FIELD = 'https://aaf.edu.au/attributes';
-  const DEFAULT_AAF_USERNAME_FIELD = 'sub';
   type BcryptLike = {
     compare: (password: string, hash: string, cb: (err: unknown, res: boolean) => void) => void;
     hash: (password: string, saltRounds: number, cb: (err: unknown, hash: string) => void) => void;
@@ -57,39 +62,6 @@ export namespace Services {
     use: (name: string, strategy: unknown) => void;
     authenticate: (strategy: string, options?: unknown) => unknown;
   };
-
-  interface AuthBrandConfig {
-    active?: string[];
-    local?: {
-      usernameField?: string;
-      passwordField?: string;
-      default?: {
-        adminUser?: string;
-        adminPw?: string;
-        email?: string;
-        token?: string;
-      };
-    };
-    aaf?: {
-      defaultRole?: string;
-      usernameField?: string;
-      attributesField?: string;
-      opts?: Record<string, unknown>;
-    };
-    oidc?: OidcAuthConfig | OidcAuthConfig[];
-  }
-
-  interface OidcAuthConfig {
-    identifier?: string;
-    opts: {
-      issuer: unknown;
-      client: unknown;
-      params?: Record<string, unknown>;
-    };
-    discoverAttemptsMax: number;
-    discoverFailureSleep?: number;
-    userInfoSource?: string;
-  }
 
   interface LinkedUserSummary {
     id: string;
@@ -188,16 +160,17 @@ export namespace Services {
       'getUserAudit',
     ];
 
+    private authenticationAccounts(): AuthenticationAccounts {
+      return sailsAuthenticationAccounts((info, errors, level) => this.updateChronicle(info, errors, level));
+    }
     searchService!: SearchService;
 
     private getAuthConfig(brandName: string): AuthBrandConfig {
-      return (ConfigService.getBrand(brandName, 'auth') as AuthBrandConfig) ?? {};
+      return this.authenticationAccounts().getAuthConfig(brandName);
     }
 
     private normalizeAccountLinkState(user: UserAttributes | null | undefined): void {
-      if (user != null && _.isEmpty(user.accountLinkState)) {
-        user.accountLinkState = 'active';
-      }
+      return this.authenticationAccounts().normalizeAccountLinkState(user);
     }
 
     private hasRoleInBrand(user: UserAttributes | null | undefined, brandId: string): boolean {
@@ -238,11 +211,7 @@ export namespace Services {
     }
 
     private async resolveLinkedUserCandidate(user: unknown): Promise<AnyRecord | null> {
-      if (_.isEmpty(user)) {
-        return null;
-      }
-      const resolved = await firstValueFrom(this.getEffectiveUser(user));
-      return (resolved as AnyRecord | null) ?? (user as AnyRecord);
+      return this.authenticationAccounts().resolveLinkedUserCandidate(user);
     }
 
     private rewriteLinkedAuthorization(
@@ -337,34 +306,20 @@ export namespace Services {
       disabledByPrimaryUserId?: string;
       disabledByPrimaryUsername?: string;
     }> {
-      if (user.loginDisabled === true) {
-        return { effectiveLoginDisabled: true };
-      }
-      if (!_.isEmpty(user.linkedPrimaryUserId)) {
-        const primaryUser = await firstValueFrom(this.getUserWithId(String(user.linkedPrimaryUserId)));
-        if (primaryUser != null && (primaryUser as AnyRecord).loginDisabled === true) {
-          return {
-            effectiveLoginDisabled: true,
-            disabledByPrimaryUserId: String((primaryUser as AnyRecord).id ?? ''),
-            disabledByPrimaryUsername: String((primaryUser as AnyRecord).username ?? ''),
-          };
-        }
-      }
-      return { effectiveLoginDisabled: false };
+      return this.authenticationAccounts().resolveEffectiveDisabledState(user);
     }
 
     private async assertAuthenticationAllowed(user: UserAttributes): Promise<void> {
-      const state = await this.resolveEffectiveDisabledState(user);
-      if (state.effectiveLoginDisabled) {
-        throw new Error('Account is disabled');
-      }
+      return this.authenticationAccounts().assertAuthenticationAllowed(user);
     }
 
     public async enrichUsersWithEffectiveDisabledState<T extends UserAttributes>(users: T[]): Promise<T[]> {
       const primaryIds = _.uniq(
         _.compact(_.map(users, (u: T) => (!_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null)))
       );
-      const primaryUsers = _.isEmpty(primaryIds) ? [] : await getIdentityRepositories().list('user', { id: primaryIds });
+      const primaryUsers = _.isEmpty(primaryIds)
+        ? []
+        : await getIdentityRepositories().list('user', { id: primaryIds });
       const primaryUsersById = _.keyBy(primaryUsers as AnyRecord[], (u: AnyRecord) => String(u.id ?? ''));
 
       return _.map(users, (user: T) => {
@@ -707,213 +662,35 @@ export namespace Services {
       };
     }
 
+    private authenticationProviderInput(): IdentityProvidersInput {
+      return sailsAuthenticationProviders(this.authenticationAccounts());
+    }
     protected localAuthInit() {
-      // users the default brand's configuration on startup
-      // TODO: consider moving late initializing this if possible
-      const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
-      const usernameField = defAuthConfig.local?.usernameField ?? 'username';
-      const passwordField = defAuthConfig.local?.passwordField ?? 'password';
-      //
-      // --------- Passport --------------
-      //
-      sails.config.passport = require('passport');
-      const LocalStrategy = require('passport-local').Strategy;
+      if (!sails.config.passport) sails.config.passport = new (require('passport').Passport)();
       const passport = sails.config.passport as PassportLike;
-      const that = this;
-      passport.serializeUser(function (user: AnyRecord, done: DoneCallback) {
-        done(null, user.id);
+      passport.serializeUser((user, done) => done(null, user.id));
+      passport.deserializeUser((id, done) => {
+        void firstValueFrom(this.getUserWithId(id))
+          .then(user => this.resolveLinkedUserCandidate(user))
+          .then(user => done(null, user), done);
       });
-      passport.deserializeUser(function (id: string, done: DoneCallback) {
-        identityCallback(getIdentityRepositories().one('user', {
-          id: id,
-        }, {populate: ['roles']}), function (err: unknown, user: unknown) {
-            if (err != null || _.isEmpty(user)) {
-              done(err, user as AnyRecord);
-              return;
-            }
-            that
-              .resolveLinkedUserCandidate(user)
-              .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-              .catch((resolveErr: unknown) => done(resolveErr));
-          });
-      });
-
-      //
-      //  Local Strategy
-      //
-      passport.use(
-        'local',
-        new LocalStrategy(
-          {
-            usernameField: usernameField,
-            passwordField: passwordField,
-          },
-          function (username: string, password: string, done: DoneCallback) {
-            identityCallback(getIdentityRepositories().one('user', {
-              username: username,
-            }, {populate: ['roles']}), function (err: unknown, foundUser: unknown) {
-                if (err) {
-                  return done(err);
-                }
-                if (!foundUser) {
-                  return done(null, false, {
-                    message: 'Incorrect username/password',
-                  });
-                }
-
-                const foundUserObj = foundUser as UserAttributes & AnyRecord;
-                identityCallback(getIdentityRepositories().verifyPassword(String(foundUserObj.id), password), function (err: unknown, res: boolean) {
-                  if (!res) {
-                    return done(null, false, {
-                      message: 'Incorrect username/password',
-                    });
-                  }
-
-                  // Gate disabled users
-                  that
-                    .assertAuthenticationAllowed(foundUserObj as UserAttributes)
-                    .then(() => {
-                      // foundUser.lastLogin = new Date();
-
-                      const configLocal = _.get(defAuthConfig, 'local', {});
-                      if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                        that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
-                          const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                          if (success) {
-                            identityCallback(getIdentityRepositories().update('user', {
-                              username: username,
-                            }, {
-                                lastLogin: new Date(),
-                                additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes'),
-                              }), function (err: unknown, user: unknown) {
-                                if (err) {
-                                  that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
-                                    err,
-                                  ]);
-                                  return;
-                                }
-                                if (_.isEmpty(user)) {
-                                  that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
-                                    'No user found',
-                                  ]);
-                                  return;
-                                }
-
-                                return;
-                              });
-
-                            if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                              that.triggerPostSaveTriggers(foundUserObj, configLocal);
-                            }
-
-                            if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                              that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
-                            }
-
-                            return done(null, userAdditionalInfo, {
-                              message: 'Logged In Successfully',
-                            });
-                          } else {
-                            return done(null, false, {
-                              message: 'All required conditions for login not met',
-                            });
-                          }
-                        });
-                      } else {
-                        identityCallback(getIdentityRepositories().update('user', {
-                          username: username,
-                        }, { lastLogin: new Date() }), function (err: unknown, user: unknown) {
-                            if (err) {
-                              that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [err]);
-                              return;
-                            }
-                            if (_.isEmpty(user)) {
-                              that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
-                                'No user found',
-                              ]);
-                              return;
-                            }
-
-                            return;
-                          });
-
-                        if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                          that.triggerPostSaveTriggers(foundUserObj, configLocal);
-                        }
-
-                        if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                          that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
-                        }
-
-                        return done(null, foundUserObj, {
-                          message: 'Logged In Successfully',
-                        });
-                      }
-                    })
-                    .catch((err: unknown) => {
-                      if (err instanceof Error && err.message === 'Account is disabled') {
-                        return done(null, false, { message: 'Account is disabled' });
-                      }
-                      return done(err);
-                    }); // end assertAuthenticationAllowed gate
-                });
-              });
-          }
-        )
-      );
+      installLocalAuthentication(this.authenticationProviderInput());
     }
 
     private hasPreSaveTriggerConfigured(config: unknown, mode: string) {
-      let hasPreTrigger = false;
-      const preSaveHooks = _.get(config, `hooks.${mode}.pre`, null) as unknown[] | null;
-      if (Array.isArray(preSaveHooks)) {
-        for (const preSaveHook of preSaveHooks) {
-          if (_.has(preSaveHook, 'function') && _.has(preSaveHook, 'options')) {
-            hasPreTrigger = true;
-          }
-        }
-      }
-      return hasPreTrigger;
+      return this.authenticationAccounts().hasPreSaveTriggerConfigured(config, mode);
     }
 
     private hasPostSaveTriggerConfigured(config: unknown, mode: string) {
-      let hasPreTrigger = false;
-      const preSaveHooks = _.get(config, `hooks.${mode}.post`, null) as unknown[] | null;
-      if (Array.isArray(preSaveHooks)) {
-        for (const preSaveHook of preSaveHooks) {
-          if (_.has(preSaveHook, 'function') && _.has(preSaveHook, 'options')) {
-            hasPreTrigger = true;
-          }
-        }
-      }
-      return hasPreTrigger;
+      return this.authenticationAccounts().hasPostSaveTriggerConfigured(config, mode);
     }
 
     private hasPostSaveSyncTriggerConfigured(config: unknown, mode: string) {
-      let hasPreTrigger = false;
-      const preSaveHooks = _.get(config, `hooks.${mode}.postSync`, null) as unknown[] | null;
-      if (Array.isArray(preSaveHooks)) {
-        for (const preSaveHook of preSaveHooks) {
-          if (_.has(preSaveHook, 'function') && _.has(preSaveHook, 'options')) {
-            hasPreTrigger = true;
-          }
-        }
-      }
-      return hasPreTrigger;
+      return this.authenticationAccounts().hasPostSaveSyncTriggerConfigured(config, mode);
     }
 
     private checkAllTriggersSuccessOrFailure(user: object) {
-      let preTriggersSuccessOrFailure = true;
-      const preSaveHooksSuccessOrFailure = _.get(user as unknown, 'additionalInfoFound') as unknown[] | undefined;
-      if (_.isArray(preSaveHooksSuccessOrFailure)) {
-        for (const preSaveHook of preSaveHooksSuccessOrFailure) {
-          const success = _.get(preSaveHook, 'isSuccess');
-          if (!success) {
-            preTriggersSuccessOrFailure = false;
-          }
-        }
-      }
-      return preTriggersSuccessOrFailure;
+      return this.authenticationAccounts().checkAllTriggersSuccessOrFailure(user);
     }
 
     //Post login and pre update/create user
@@ -922,33 +699,7 @@ export namespace Services {
       config: AnyRecord,
       mode: string = 'onUpdate'
     ): Promise<AnyRecord> {
-      const preSaveUpdateHooks = _.get(config, `hooks.${mode}.pre`, null) as unknown[] | null;
-      this.updateChronicle({ usersPreSaveMode: mode, usersPreSaveHookCount: preSaveUpdateHooks?.length ?? 0 });
-
-      if (_.isArray(preSaveUpdateHooks)) {
-        for (let i = 0; i < preSaveUpdateHooks.length; i++) {
-          const preSaveUpdateHook = preSaveUpdateHooks[i];
-          const preSaveUpdateHookFunctionString = _.get(preSaveUpdateHook, 'function', null);
-          if (preSaveUpdateHookFunctionString != null) {
-            try {
-              const preSaveUpdateHookFunction = eval(preSaveUpdateHookFunctionString);
-              const options = _.get(preSaveUpdateHook, 'options', {});
-              let failureMode = String(_.get(preSaveUpdateHook, 'failureMode', ''));
-              if (_.isUndefined(failureMode) || (failureMode != 'continue' && failureMode != 'stop')) {
-                failureMode = 'continue';
-              }
-
-              const hookResponse = preSaveUpdateHookFunction(user, options, failureMode);
-              user = (await this.resolveHookResponse(hookResponse)) as AnyRecord;
-              this.updateChronicle({ usersPreSaveHookIndex: i, usersPreSaveOutcome: 'success' });
-            } catch (err) {
-              this.updateChronicle({ usersOperation: 'triggerPreSaveTriggers', usersOutcome: 'failed' }, [err]);
-              throw err;
-            }
-          }
-        }
-      }
-      return user;
+      return this.authenticationAccounts().triggerPreSaveTriggers(user, config, mode);
     }
 
     //Post login and post update/create user sync
@@ -958,466 +709,23 @@ export namespace Services {
       mode: string = 'onUpdate',
       response: unknown = {}
     ) {
-      const postSaveSyncHooks = _.get(config, `hooks.${mode}.postSync`, null) as unknown[] | null;
-      this.updateChronicle({ usersPostSaveSyncMode: mode, usersPostSaveSyncHookCount: postSaveSyncHooks?.length ?? 0 });
-      if (_.isArray(postSaveSyncHooks)) {
-        for (let i = 0; i < postSaveSyncHooks.length; i++) {
-          const postSaveSyncHook = postSaveSyncHooks[i];
-
-          const postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, 'function', null);
-          if (postSaveSyncHooksFunctionString != null) {
-            const postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString);
-            const options = _.get(postSaveSyncHook, 'options', {});
-            if (_.isFunction(postSaveSyncHookFunction)) {
-              try {
-                const hookResponse = postSaveSyncHookFunction(user, options, response);
-                response = await this.resolveHookResponse(hookResponse);
-                this.updateChronicle({ usersPostSaveSyncHookIndex: i, usersPostSaveSyncOutcome: 'success' });
-              } catch (err) {
-                this.updateChronicle({ usersOperation: 'triggerPostSaveSyncTriggers', usersOutcome: 'failed' }, [err]);
-                throw err;
-              }
-            } else {
-              this.updateChronicle({ usersPostSaveSyncOutcome: 'invalid-hook' }, [
-                new Error('Invalid user post-save sync hook.'),
-              ]);
-            }
-          }
-        }
-      }
-      return response;
+      return this.authenticationAccounts().triggerPostSaveSyncTriggers(user, config, mode, response);
     }
 
     //Post login and post update/create user
     public triggerPostSaveTriggers(user: AnyRecord, config: AnyRecord, mode: string = 'onUpdate'): void {
-      const postSaveCreateHooks = _.get(config, `hooks.${mode}.post`, null);
-      this.updateChronicle({
-        usersPostSaveMode: mode,
-        usersPostSaveHookCount: Array.isArray(postSaveCreateHooks) ? postSaveCreateHooks.length : 0,
-      });
-      if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, (postSaveCreateHook: unknown) => {
-          const postSaveCreateHookFunctionString = _.get(postSaveCreateHook, 'function', null);
-          if (postSaveCreateHookFunctionString != null) {
-            const postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
-            const options = _.get(postSaveCreateHook, 'options', {});
-            if (_.isFunction(postSaveCreateHookFunction)) {
-              const hookResponse = postSaveCreateHookFunction(user, options);
-              this.resolveHookResponse(hookResponse)
-                .then(() => {
-                  this.updateChronicle({ usersPostSaveOutcome: 'success' });
-                })
-                .catch(error => {
-                  this.updateChronicle({ usersOperation: 'triggerPostSaveTriggers', usersOutcome: 'failed' }, [error]);
-                });
-            } else {
-              this.updateChronicle({ usersPostSaveOutcome: 'invalid-hook' }, [
-                new Error('Invalid user post-save hook.'),
-              ]);
-            }
-          }
-        });
-      }
+      void this.authenticationAccounts().triggerPostSaveTriggers(user, config, mode);
     }
 
     private resolveHookResponse(hookResponse: unknown) {
-      if (isObservable(hookResponse)) {
-        return firstValueFrom(hookResponse);
-      } else {
-        return Promise.resolve(hookResponse);
-      }
+      return this.authenticationAccounts().resolveHookResponse(hookResponse);
     }
 
     protected aafAuthInit = () => {
-      this.registerSailsHook('on', 'ready', async () => {
-        // uses the default brand's configuration once sails is fully ready
-        const defaultBrandName = BrandingService.getDefault().name;
-        const defAuthConfig = this.getAuthConfig(defaultBrandName);
-
-        //
-        // JWT/AAF Strategy
-        //
-        const that = this;
-
-        if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('aaf') != -1) {
-          const JwtStrategy = require('passport-jwt').Strategy,
-            ExtractJwt = require('passport-jwt').ExtractJwt;
-          const configuredAafOpts = (defAuthConfig.aaf?.opts ?? {}) as Record<string, unknown>;
-          const aafOpts = Object.assign({}, configuredAafOpts) as Record<string, unknown>;
-          aafOpts.passReqToCallback = true;
-          // Default JWT options for AAF; allow overrides from config
-          const jwtDefaults = {
-            issuer: 'https://rapid.aaf.edu.au',
-            ignoreNotBefore: true,
-            clockTolerance: 120,
-          };
-          aafOpts.jsonWebTokenOptions = Object.assign(
-            {},
-            jwtDefaults,
-            (configuredAafOpts.jsonWebTokenOptions ?? {}) as Record<string, unknown>
-          );
-          aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-
-          (sails.config.passport as PassportLike).use(
-            'aaf-jwt',
-            new JwtStrategy(aafOpts, function (req: Sails.Req, jwt_payload: AnyRecord, done: DoneCallback) {
-              const brandName: string = BrandingService.getBrandNameFromReq(req);
-
-              const brand: BrandingModel = BrandingService.getBrand(brandName);
-
-              const authConfig = that.getAuthConfig(brand.name);
-              const aafAttributes = authConfig.aaf?.attributesField ?? DEFAULT_AAF_ATTRIBUTES_FIELD;
-
-              const defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
-              let aafDefRoles = [];
-              if (defaultAuthRole != undefined) {
-                aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
-              }
-              const aafUsernameField = authConfig.aaf?.usernameField ?? DEFAULT_AAF_USERNAME_FIELD;
-              const aafUsername = String(jwt_payload[aafUsernameField] ?? '');
-              const userName = Buffer.from(aafUsername).toString('base64');
-              identityCallback(getIdentityRepositories().one('user', {
-                  username: userName,
-                }), function (err: unknown, user: unknown) {
-                  if (err) {
-                    return done(err, false);
-                  }
-                  if (user) {
-                    const userObj = user as UserAttributes & AnyRecord;
-                    const originalProfile = structuredClone(userObj);
-                    // Gate disabled users
-                    that
-                      .assertAuthenticationAllowed(userObj)
-                      .then(() => {
-                        const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-                        userObj.lastLogin = new Date();
-                        userObj.name = String(attrs.cn ?? '');
-                        userObj.email = String(attrs.mail ?? '').toLowerCase();
-                        userObj.displayname = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
-                        userObj.cn = _.isNil(attrs.cn) ? undefined : String(attrs.cn);
-                        userObj.edupersonscopedaffiliation = _.isNil(attrs.edupersonscopedaffiliation)
-                          ? undefined
-                          : String(attrs.edupersonscopedaffiliation);
-                        userObj.edupersontargetedid = _.isNil(attrs.edupersontargetedid)
-                          ? undefined
-                          : String(attrs.edupersontargetedid);
-                        userObj.edupersonprincipalname = _.isNil(attrs.edupersonprincipalname)
-                          ? undefined
-                          : String(attrs.edupersonprincipalname);
-                        userObj.givenname = _.isNil(attrs.givenname) ? undefined : String(attrs.givenname);
-                        userObj.surname = _.isNil(attrs.surname) ? undefined : String(attrs.surname);
-
-                        const configAAF = _.get(defAuthConfig, 'aaf', {});
-                        if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                          that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
-                            const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                            if (success) {
-                              identityCallback(getIdentityRepositories().update('user', {
-                                username: _.get(userAdditionalInfo, 'username'),
-                              }, identityProfilePatch(userAdditionalInfo, originalProfile)), function (err: unknown, user: unknown) {
-                                  if (err) {
-                                    that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [
-                                      err,
-                                    ]);
-                                    return done(err, false, { message: 'Error updating user' });
-                                  }
-                                  if (_.isEmpty(user)) {
-                                    that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
-                                    return done('No user found', false, { message: 'No user found' });
-                                  }
-
-                                  if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                                    that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                                  }
-
-                                  if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                                    that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                                  }
-
-                                  const updatedUsers = user as AnyRecord[];
-                                  that
-                                    .resolveLinkedUserCandidate(updatedUsers[0])
-                                    .then(resolvedUser =>
-                                      done(null, resolvedUser as AnyRecord, {
-                                        message: 'Logged In Successfully',
-                                      })
-                                    )
-                                    .catch((resolveErr: unknown) => done(resolveErr, false));
-                                  return;
-                                });
-                            } else {
-                              return done('All required conditions for login not met', false, {
-                                message: 'All required conditions for login not met',
-                              });
-                            }
-                          });
-                        } else {
-                          identityCallback(getIdentityRepositories().update('user', {
-                            username: userObj.username,
-                          }, identityProfilePatch(userObj, originalProfile)), function (err: unknown, user: unknown) {
-                              if (err) {
-                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
-                                return done(err, false, { message: 'Error updating user' });
-                              }
-                              if (_.isEmpty(user)) {
-                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
-                                return done('No user found', false, { message: 'No user found' });
-                              }
-
-                              if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                                that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                              }
-
-                              if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                                that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                              }
-
-                              const updatedUsers = user as AnyRecord[];
-                              that
-                                .resolveLinkedUserCandidate(updatedUsers[0])
-                                .then(resolvedUser =>
-                                  done(null, resolvedUser as AnyRecord, {
-                                    message: 'Logged In Successfully',
-                                  })
-                                )
-                                .catch((resolveErr: unknown) => done(resolveErr, false));
-                              return;
-                            });
-                        }
-                      })
-                      .catch((err: unknown) => {
-                        if (err instanceof Error && err.message === 'Account is disabled') {
-                          return done(null, false, { message: 'Account is disabled' });
-                        }
-                        return done(err);
-                      }); // end AAF disabled gate
-                  } else {
-                    // first time login, create with default role
-                    const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-                    const normalizedUsername = String(userName);
-                    const normalizedEmail = String(attrs.mail ?? '').toLowerCase();
-                    const normalizedCn = _.isNil(attrs.cn) ? undefined : String(attrs.cn);
-                    const normalizedDisplayName = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
-                    const normalizedEduPersonScopedAffiliation = _.isNil(attrs.edupersonscopedaffiliation)
-                      ? undefined
-                      : String(attrs.edupersonscopedaffiliation);
-                    const normalizedEduPersonTargetedId = _.isNil(attrs.edupersontargetedid)
-                      ? undefined
-                      : String(attrs.edupersontargetedid);
-                    const normalizedEduPersonPrincipalName = _.isNil(attrs.edupersonprincipalname)
-                      ? undefined
-                      : String(attrs.edupersonprincipalname);
-                    const normalizedGivenName = _.isNil(attrs.givenname) ? undefined : String(attrs.givenname);
-                    const normalizedSurname = _.isNil(attrs.surname) ? undefined : String(attrs.surname);
-                    const normalizedFullName = [normalizedGivenName, normalizedSurname]
-                      .filter((value): value is string => !_.isNil(value) && value.trim().length > 0)
-                      .join(' ');
-                    const normalizedName =
-                      normalizedCn ??
-                      normalizedDisplayName ??
-                      (normalizedFullName.length > 0 ? normalizedFullName : undefined) ??
-                      normalizedUsername;
-                    let userToCreate: AnyRecord = {
-                      username: normalizedUsername,
-                      name: normalizedName,
-                      email: normalizedEmail,
-                      displayname: normalizedDisplayName,
-                      cn: normalizedCn,
-                      edupersonscopedaffiliation: normalizedEduPersonScopedAffiliation,
-                      edupersontargetedid: normalizedEduPersonTargetedId,
-                      edupersonprincipalname: normalizedEduPersonPrincipalName,
-                      givenname: normalizedGivenName,
-                      surname: normalizedSurname,
-                      type: 'aaf',
-                      roles: aafDefRoles,
-                      lastLogin: new Date(),
-                    };
-
-                    const emailAuthorizedCheck = that.checkAuthorizedEmail(
-                      String(userToCreate.email ?? ''),
-                      brandName,
-                      'aaf'
-                    );
-                    if (!emailAuthorizedCheck) {
-                      return done('authorized-email-denied', false);
-                    }
-
-                    const configAAF = _.get(defAuthConfig, 'aaf', {});
-                    if (that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
-                      that
-                        .triggerPreSaveTriggers(userToCreate, configAAF, 'onCreate')
-                        .then((userAdditionalInfo: AnyRecord) => {
-                          const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                          if (success) {
-                            userToCreate = userAdditionalInfo;
-                            identityCallback(getIdentityRepositories().create('user', userToCreate), function (err: unknown, newUser: unknown) {
-                              if (err) {
-                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
-                                return done(err, false);
-                              }
-
-                              if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
-
-                              if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
-
-                              that
-                                .resolveLinkedUserCandidate(newUser)
-                                .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                                .catch((resolveErr: unknown) => done(resolveErr, false));
-                              return;
-                            });
-                          } else {
-                            return done(null, false, { message: 'All required conditions for login not met' });
-                          }
-                        });
-                    } else {
-                      identityCallback(getIdentityRepositories().create('user', userToCreate), function (err: unknown, newUser: unknown) {
-                        if (err) {
-                          that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
-                          return done(err, false);
-                        }
-
-                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
-
-                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
-
-                        that
-                          .resolveLinkedUserCandidate(newUser)
-                          .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                          .catch((resolveErr: unknown) => done(resolveErr, false));
-                        return;
-                      });
-                    }
-                  }
-                });
-            })
-          );
-        }
-      });
+      this.registerSailsHook('on', 'ready', () => installAafAuthentication(this.authenticationProviderInput()));
     };
-
     protected openIdConnectAuth = () => {
-      this.registerSailsHook('on', 'ready', async () => {
-        const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
-
-        if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
-          const that = this;
-
-          let oidcConfigArray: OidcAuthConfig[] = [];
-          if (Array.isArray(defAuthConfig.oidc)) {
-            oidcConfigArray = defAuthConfig.oidc;
-          } else if (_.isObject(defAuthConfig.oidc) && !_.isEmpty(defAuthConfig.oidc)) {
-            oidcConfigArray = [defAuthConfig.oidc as OidcAuthConfig];
-          }
-          for (const oidcConfig of oidcConfigArray) {
-            const oidcOpts = oidcConfig.opts;
-            const openIdClient = require('openid-client');
-            const { Strategy } = require('openid-client/passport');
-            let configured = false;
-            let discoverAttemptsCtr = 0;
-            while (!configured && discoverAttemptsCtr < oidcConfig.discoverAttemptsMax) {
-              discoverAttemptsCtr++;
-              try {
-                const clientMetadata = (oidcOpts.client ?? {}) as Record<string, unknown>;
-                const clientId = String(clientMetadata.client_id ?? '');
-                let oidcClientConfig;
-
-                if (_.isString(oidcOpts.issuer)) {
-                  const issuerUrl = String(oidcOpts.issuer).replace(/\/+$/, '');
-
-                  const discoveryOptions = issuerUrl.startsWith('http://')
-                    ? { execute: [openIdClient.allowInsecureRequests] }
-                    : undefined;
-                  oidcClientConfig = await openIdClient.discovery(
-                    new URL(issuerUrl),
-                    clientId,
-                    clientMetadata,
-                    undefined,
-                    discoveryOptions
-                  );
-                } else {
-                  oidcClientConfig = new openIdClient.Configuration(oidcOpts.issuer, clientId, clientMetadata);
-                  const configuredIssuer = String((oidcOpts.issuer as Record<string, unknown>)?.issuer ?? '');
-                  if (configuredIssuer.startsWith('http://')) {
-                    openIdClient.allowInsecureRequests(oidcClientConfig);
-                  }
-                }
-                const serverMetadata = oidcClientConfig.serverMetadata();
-                configured = true;
-
-                const verifyCallbackFn = async (req: AnyRecord, tokenSet: AnyRecord, done: DoneCallback) => {
-                  try {
-                    let userinfo: AnyRecord | undefined;
-                    if (oidcConfig.userInfoSource !== 'tokenset_claims') {
-                      const tokenClaims = typeof tokenSet.claims === 'function' ? tokenSet.claims() : {};
-                      const accessToken = String(tokenSet.access_token ?? '');
-                      const subject = String(_.get(tokenClaims, 'sub', ''));
-                      if (!_.isEmpty(accessToken) && !_.isEmpty(subject)) {
-                        userinfo = await openIdClient.fetchUserInfo(oidcClientConfig, accessToken, subject);
-                      }
-                    }
-                    that.openIdConnectAuthVerifyCallback(
-                      oidcConfig as unknown as AnyRecord,
-                      serverMetadata as AnyRecord,
-                      req,
-                      tokenSet,
-                      userinfo,
-                      done
-                    );
-                  } catch (err) {
-                    done(err, false);
-                  }
-                };
-                let passportIdentifier = 'oidc';
-                if (!_.isEmpty(oidcConfig.identifier)) {
-                  passportIdentifier = `oidc-${oidcConfig.identifier}`;
-                }
-                const strategyOptions: AnyRecord = {
-                  config: oidcClientConfig,
-                  passReqToCallback: true,
-                };
-                const callbackUrl = _.get(clientMetadata, 'redirect_uris[0]');
-                if (_.isString(callbackUrl) && !_.isEmpty(callbackUrl)) {
-                  strategyOptions.callbackURL = callbackUrl;
-                }
-                const authParams = (oidcOpts.params ?? {}) as Record<string, unknown>;
-                if (_.isString(authParams.scope) && !_.isEmpty(authParams.scope)) {
-                  strategyOptions.scope = authParams.scope;
-                }
-                const strategy = new Strategy(strategyOptions, verifyCallbackFn);
-                const additionalAuthParams = _.omit(authParams, ['scope']);
-                const defaultAuthorizationRequestParams = strategy.authorizationRequestParams.bind(strategy);
-                strategy.authorizationRequestParams = (req: unknown, options?: AnyRecord) => {
-                  const params = defaultAuthorizationRequestParams(req, options);
-                  for (const [key, value] of Object.entries(additionalAuthParams)) {
-                    if (_.isNil(value)) {
-                      continue;
-                    }
-                    params.set(key, _.isString(value) ? value : JSON.stringify(value));
-                  }
-                  // Okta requires state even when PKCE is used. openid-client only adds
-                  // it automatically when the authorization server does not support PKCE.
-                  params.set('state', openIdClient.randomState());
-                  return params;
-                };
-                (sails.config.passport as PassportLike).use(passportIdentifier, strategy);
-                sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
-              } catch (e) {
-                this.updateChronicle({ usersOperation: 'openIdConnectAuth', usersOutcome: 'failed' }, [e]);
-                await this.sleep(oidcConfig.discoverFailureSleep ?? 1000);
-              }
-            }
-          }
-        }
-      });
+      this.registerSailsHook('on', 'ready', () => installOidcAuthentication(this.authenticationProviderInput()));
     };
 
     protected openIdConnectAuthVerifyCallback(
@@ -1428,338 +736,24 @@ export namespace Services {
       userinfo: AnyRecord | undefined = undefined,
       done: DoneCallback
     ) {
-      const originalDone = done;
-      let rejectionOutcome: string | undefined;
-      done = (error, user, info) => {
-        // The controller records errors passed to passport, including string rejections.
-        this.updateChronicle({
-          usersOperation: 'openIdConnectAuthVerifyCallback',
-          usersAuthOutcome: rejectionOutcome ?? (error ? 'failure' : user ? 'success' : 'rejected'),
-          usersAuthUserId: _.get(user, 'id'),
-        });
-        originalDone(error, user, info);
-      };
-      const that = this;
-      this.updateChronicle({ usersAuthProvider: 'oidc', usersAuthOutcome: 'processing' });
-      const session = (req.session ?? {}) as AnyRecord;
-      const query = (req.query ?? {}) as AnyRecord;
-      const logoutFromAuthServer = _.get(oidcConfig, 'logoutFromAuthServer', true);
-      if (logoutFromAuthServer) {
-        session.logoutUrl = issuer.end_session_endpoint;
-        const postLogoutUris = (_.get(oidcConfig.opts, 'client.post_logout_redirect_uris', []) ?? []) as string[];
-        if (!_.isEmpty(postLogoutUris)) {
-          session.logoutUrl = `${session.logoutUrl}?post_logout_redirect_uri=${postLogoutUris[0]}`;
-        }
-      } else {
-        session.logoutUrl = sails.config.auth.postLogoutRedir;
-      }
-      req.session = session;
-      if (session.redirUrl != null) {
-        //the session url changes after login so we lose this value if we don't put it on the queru string
-        query.redirUrl = session.redirUrl;
-        req.query = query;
-      }
-
-      const tokenClaims = typeof tokenSet.claims === 'function' ? tokenSet.claims() : {};
-
-      if (_.isUndefined(userinfo)) {
-        userinfo = tokenClaims as AnyRecord;
-      }
-      if (oidcConfig.debugMode === true) {
-        sails.log.info(
-          'OIDC debug mode is active, intentionally failing the login, and redirecting to failure page with all details of this login attempt.'
-        );
-        const err = {
-          userinfo: userinfo,
-          claims: tokenClaims,
-          tokenSet: tokenSet,
-        };
-        session.errorTextRaw = JSON.stringify(err, null, 2);
-        return done(null, false);
-      }
-      const brandName = (session.branding as string | undefined) ?? BrandingService.getDefault().name;
-      const brand: BrandingModel = BrandingService.getBrand(brandName);
-      const claimsMappings = (oidcConfig.claimMappings ?? {}) as AnyRecord;
-      let userName = '';
-      const tmpUserName = String(_.get(userinfo, claimsMappings['username'] as string, ''));
-      const claimsMappingOptions = (oidcConfig.claimMappingOptions ?? {}) as Record<string, unknown>;
-      let usernameToLowercase = false;
-      if (!_.isUndefined(claimsMappingOptions) && !_.isEmpty(claimsMappingOptions)) {
-        usernameToLowercase = !!claimsMappingOptions['usernameToLowercase'];
-      }
-
-      if (usernameToLowercase) {
-        userName = tmpUserName.toLowerCase();
-      } else {
-        userName = tmpUserName;
-      }
-      const defAuthRole = RolesService.getDefAuthenticatedRole(brand);
-      const defAuthRoleName = defAuthRole?.name ?? 'Researcher';
-      const openIdConnectDefRoles = _.map(RolesService.getNestedRoles(defAuthRoleName, brand.roles), 'id');
-
-      // This can occur when the claim mappings are incorrect or a login was cancelled
-      if (_.isEmpty(userName)) {
-        rejectionOutcome = 'missing-username';
-        this.updateChronicle({ usersAuthOutcome: 'missing-username' }, [new Error('OIDC username claim is missing.')]);
-        return done(null, null, {
-          message: 'Rejected as username does not have a value',
-        });
-      }
-
-      identityCallback(getIdentityRepositories().one('user', {
-          username: userName,
-        }), function (err: unknown, user: unknown) {
-          if (err) {
-            return done(err, false);
-          }
-          if (user) {
-            const userObj = user as UserAttributes & AnyRecord;
-            const originalProfile = structuredClone(userObj);
-            // Gate disabled users
-            that
-              .assertAuthenticationAllowed(userObj)
-              .then(() => {
-                that.updateChronicle({ usersUserUpdate: 'processing' });
-                userObj.lastLogin = new Date();
-                const additionalAttributesMapping = claimsMappings['additionalAttributes'];
-                userObj.additionalAttributes = that.mapAdditionalAttributes(
-                  userinfo,
-                  (typeof additionalAttributesMapping === 'object' && additionalAttributesMapping != null
-                    ? additionalAttributesMapping
-                    : {}) as Record<string, string>
-                );
-                userObj.name = String(_.get(userinfo, (claimsMappings['name'] as string) ?? '', ''));
-                userObj.email = String(_.get(userinfo, (claimsMappings['email'] as string) ?? '', '')).toLowerCase();
-                const displayName = _.get(userinfo, (claimsMappings['displayName'] as string) ?? '');
-                const commonName = _.get(userinfo, (claimsMappings['cn'] as string) ?? '');
-                const givenName = _.get(userinfo, (claimsMappings['givenname'] as string) ?? '');
-                const surname = _.get(userinfo, (claimsMappings['surname'] as string) ?? '');
-                userObj.displayname = _.isNil(displayName) ? undefined : String(displayName);
-                userObj.cn = _.isNil(commonName) ? undefined : String(commonName);
-                userObj.givenname = _.isNil(givenName) ? undefined : String(givenName);
-                userObj.surname = _.isNil(surname) ? undefined : String(surname);
-
-                if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                  that
-                    .triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord)
-                    .then((userAdditionalInfo: AnyRecord) => {
-                      const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                      if (success) {
-                        identityCallback(getIdentityRepositories().update('user', {
-                          username: _.get(userAdditionalInfo, 'username'),
-                        }, identityProfilePatch(userAdditionalInfo, originalProfile)), function (err: unknown, user: unknown) {
-                            if (err) {
-                              that.updateChronicle(
-                                { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
-                                [err]
-                              );
-                              return done(err, false);
-                            }
-                            if (_.isEmpty(user)) {
-                              that.updateChronicle({
-                                usersOperation: 'openIdConnectAuthVerifyCallback',
-                                usersOutcome: 'failed',
-                              });
-                              return done('No user found', false);
-                            }
-
-                            if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                              that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                            }
-
-                            if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                              that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                            }
-
-                            const updatedUsers = user as AnyRecord[];
-
-                            that
-                              .resolveLinkedUserCandidate(updatedUsers[0])
-                              .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                              .catch((resolveErr: unknown) => done(resolveErr, false));
-                            return;
-                          });
-                      } else {
-                        return done('All required conditions for login not met', false);
-                      }
-                    });
-                } else {
-                  identityCallback(getIdentityRepositories().update('user', {
-                    username: userObj.username,
-                  }, identityProfilePatch(userObj, originalProfile)), function (err: unknown, user: unknown) {
-                      if (err) {
-                        that.updateChronicle(
-                          { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
-                          [err]
-                        );
-                        return done(err, false);
-                      }
-                      if (_.isEmpty(user)) {
-                        that.updateChronicle({
-                          usersOperation: 'openIdConnectAuthVerifyCallback',
-                          usersOutcome: 'failed',
-                        });
-                        return done('No user found', false);
-                      }
-
-                      if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                        that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                        that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      const updatedUsers = user as AnyRecord[];
-                      that
-                        .resolveLinkedUserCandidate(updatedUsers[0])
-                        .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                        .catch((resolveErr: unknown) => done(resolveErr, false));
-                      return;
-                    });
-                }
-              })
-              .catch((err: unknown) => {
-                if (err instanceof Error && err.message === 'Account is disabled') {
-                  return done(null, false, { message: 'Account is disabled' });
-                }
-                return done(err);
-              }); // end OIDC disabled gate
-          } else {
-            let userToCreate: AnyRecord;
-            try {
-              const additionalAttributesMapping = claimsMappings['additionalAttributes'];
-              const additionalAttributes = that.mapAdditionalAttributes(
-                userinfo,
-                (typeof additionalAttributesMapping === 'object' && additionalAttributesMapping != null
-                  ? additionalAttributesMapping
-                  : {}) as Record<string, string>
-              );
-              // first time login, create with default role
-              userToCreate = {
-                username: userName,
-                name: _.get(userinfo, (claimsMappings['name'] as string) ?? ''),
-                email: String(_.get(userinfo, (claimsMappings['email'] as string) ?? '', '')).toLowerCase(),
-                displayname: _.get(userinfo, (claimsMappings['displayName'] as string) ?? ''),
-                cn: _.get(userinfo, (claimsMappings['cn'] as string) ?? ''),
-                givenname: _.get(userinfo, (claimsMappings['givenname'] as string) ?? ''),
-                surname: _.get(userinfo, (claimsMappings['surname'] as string) ?? ''),
-                type: 'oidc',
-                roles: openIdConnectDefRoles,
-                additionalAttributes: additionalAttributes,
-                lastLogin: new Date(),
-              };
-            } catch (e) {
-              that.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' }, [e]);
-              return done(e, false);
-            }
-
-            const emailAuthorizedCheck = that.checkAuthorizedEmail(String(userToCreate.email ?? ''), brandName, 'oidc');
-            if (!emailAuthorizedCheck) {
-              return done('authorized-email-denied', false);
-            }
-
-            if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-              that
-                .triggerPreSaveTriggers(userToCreate, oidcConfig as AnyRecord)
-                .then((userAdditionalInfo: AnyRecord) => {
-                  const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                  if (success) {
-                    identityCallback(getIdentityRepositories().create('user', userAdditionalInfo), function (err: unknown, newUser: unknown) {
-                      if (err) {
-                        that.updateChronicle(
-                          { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
-                          [err]
-                        );
-                        return done(err, false);
-                      }
-
-                      if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      that
-                        .resolveLinkedUserCandidate(newUser)
-                        .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                        .catch((resolveErr: unknown) => done(resolveErr, false));
-                      return;
-                    });
-                  } else {
-                    return done('All required conditions for login not met', false);
-                  }
-                });
-            } else {
-              identityCallback(getIdentityRepositories().create('user', userToCreate), function (err: unknown, newUser: unknown) {
-                if (err) {
-                  that.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' }, [
-                    err,
-                  ]);
-                  return done(err, false);
-                }
-
-                if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
-
-                if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
-
-                that
-                  .resolveLinkedUserCandidate(newUser)
-                  .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                  .catch((resolveErr: unknown) => done(resolveErr, false));
-                return;
-              });
-            }
-          }
-        });
+      return this.authenticationAccounts().openIdConnectAuthVerifyCallback(
+        oidcConfig,
+        issuer,
+        req,
+        tokenSet,
+        userinfo,
+        done
+      );
     }
 
     protected bearerTokenAuthInit = () => {
       const BearerStrategy = require('passport-http-bearer').Strategy;
-      const that = this;
       (sails.config.passport as PassportLike).use(
         'bearer',
-        new BearerStrategy(function (token: string, done: DoneCallback) {
-          if (!_.isEmpty(token) && !_.isUndefined(token)) {
-            const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
-            identityCallback(getIdentityRepositories().findByApiTokenHash(tokenHash, {populate: ['roles']}), function (err: unknown, user: unknown) {
-                if (err) {
-                  return done(err);
-                }
-                if (!user) {
-                  return done(null, false);
-                }
-                // Gate disabled users
-                that
-                  .assertAuthenticationAllowed(user as UserAttributes)
-                  .then(() => {
-                    that
-                      .resolveLinkedUserCandidate(user)
-                      .then(resolvedUser =>
-                        done(null, resolvedUser as AnyRecord, {
-                          scope: 'all',
-                        })
-                      )
-                      .catch((resolveErr: unknown) => done(resolveErr));
-                  })
-                  .catch((err: unknown) => {
-                    if (err instanceof Error && err.message === 'Account is disabled') {
-                      return done(null, false);
-                    }
-                    return done(err);
-                  });
-                return;
-              });
-          } else {
-            // empty token, deny
-            return done(null, false);
-          }
+        new BearerStrategy((token: string, done: DoneCallback) => {
+          void sailsHttpIdentity()
+            .bearerProfile(token)
+            .then(user => done(null, user, { scope: 'all' }), done);
         })
       );
     };
@@ -1785,39 +779,41 @@ export namespace Services {
           defaultUser['token'] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
         }
 
-        return super.getObservable<UserModel>(() => getIdentityRepositories().create('user', defaultUser!)).pipe(
-          flatMap(defUser => {
-            // START Sails 1.0 upgrade
-            const defRoleIds = _.map(defRoles, (o: AnyRecord) => {
-              return o.id;
-            }) as Array<string | number>;
-            const defUserId = (defUser as AnyRecord).id as string | number;
-            let q = () => getIdentityRepositories().addMemberships('user', defUserId, defRoleIds);
-            // END Sails 1.0 upgrade
-            return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb').pipe(
-              flatMap(_dUser => {
-                return from(defRoles).pipe(
-                  map(roleObserved => {
-                    const role: AnyRecord = roleObserved as AnyRecord;
-                    // START Sails 1.0 upgrade
-                    // role.users.add(defUser.id)
-                    const roleId = role.id as string | number;
-                    q = () => getIdentityRepositories().addMemberships('role', roleId, [defUserId]);
-                    // END Sails 1.0 upgrade
-                    return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb');
-                  })
-                );
-              }),
-              last(),
-              flatMap(_lastRole => {
-                return of({
-                  defUser: defUser,
-                  defRoles: defRoles,
-                });
-              })
-            );
-          })
-        );
+        return super
+          .getObservable<UserModel>(() => getIdentityRepositories().create('user', defaultUser!))
+          .pipe(
+            flatMap(defUser => {
+              // START Sails 1.0 upgrade
+              const defRoleIds = _.map(defRoles, (o: AnyRecord) => {
+                return o.id;
+              }) as Array<string | number>;
+              const defUserId = (defUser as AnyRecord).id as string | number;
+              let q = () => getIdentityRepositories().addMemberships('user', defUserId, defRoleIds);
+              // END Sails 1.0 upgrade
+              return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb').pipe(
+                flatMap(_dUser => {
+                  return from(defRoles).pipe(
+                    map(roleObserved => {
+                      const role: AnyRecord = roleObserved as AnyRecord;
+                      // START Sails 1.0 upgrade
+                      // role.users.add(defUser.id)
+                      const roleId = role.id as string | number;
+                      q = () => getIdentityRepositories().addMemberships('role', roleId, [defUserId]);
+                      // END Sails 1.0 upgrade
+                      return super.getObservable<Record<string, unknown>>(q, 'exec', 'simplecb');
+                    })
+                  );
+                }),
+                last(),
+                flatMap(_lastRole => {
+                  return of({
+                    defUser: defUser,
+                    defRoles: defRoles,
+                  });
+                })
+              );
+            })
+          );
       } else {
         return of({
           defUser: defaultUser,
@@ -1827,12 +823,7 @@ export namespace Services {
     };
 
     protected mapAdditionalAttributes(profile: unknown, attributeMappings: Record<string, string>) {
-      const additionalAttributes: Record<string, unknown> = {};
-      for (const attributeMapping in attributeMappings) {
-        const value: unknown = _.get(profile, attributeMapping);
-        if (value !== undefined) additionalAttributes[attributeMapping] = value;
-      }
-      return additionalAttributes;
+      return this.authenticationAccounts().mapAdditionalAttributes(profile, attributeMappings);
     }
 
     /**
@@ -1846,11 +837,12 @@ export namespace Services {
         return firstValueFrom(of(null));
       }
       const auditEvent: Record<string, unknown> = {};
-      const userObj: Record<string, unknown> = typeof user === 'object' && user !== null
-        ? Object.fromEntries(Object.entries(user))
-        : {};
+      const userObj: Record<string, unknown> =
+        typeof user === 'object' && user !== null ? Object.fromEntries(Object.entries(user)) : {};
       const securityActor: Record<string, unknown> = {
-        id: userObj.id, username: userObj.username, email: userObj.email,
+        id: userObj.id,
+        username: userObj.username,
+        email: userObj.email,
         additionalAttributes: userObj.additionalAttributes,
       };
       if (!_.isEmpty(userObj.password)) {
@@ -1862,21 +854,41 @@ export namespace Services {
       auditEvent['action'] = action;
       auditEvent['additionalContext'] = this.stringifyObject(safeIdentityValue(additionalContext, true));
       this.updateChronicle({ usersAuditAction: action, usersAuditUserId: userObj.id, usersAuditOutcome: 'submitted' });
-      return firstValueFrom(super.getObservable<Record<string, unknown>>(() => getIdentityRepositories().create('useraudit', auditEvent))).then(result => {
+      return firstValueFrom(
+        super.getObservable<Record<string, unknown>>(() => getIdentityRepositories().create('useraudit', auditEvent))
+      ).then(result => {
         // Capture structured attributes before the legacy audit JSON serialization.
         // Class instances (RequestDetails) are valid context, but only selected fields leave the portal.
         try {
           if (typeof SecurityEventService !== 'undefined') {
             const context: Record<string, unknown> = {};
-            for (const key of ['brandId', 'portalId', 'branding', 'method', 'path', 'ip', 'userAgent', 'userId', 'primaryUserId', 'primaryUsername', 'secondaryUserId', 'secondaryUsername', 'rolesMerged', 'recordsRewritten']) {
+            for (const key of [
+              'brandId',
+              'portalId',
+              'branding',
+              'method',
+              'path',
+              'ip',
+              'userAgent',
+              'userId',
+              'primaryUserId',
+              'primaryUsername',
+              'secondaryUserId',
+              'secondaryUsername',
+              'rolesMerged',
+              'recordsRewritten',
+            ]) {
               const value: unknown = _.get(additionalContext, key);
-              if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') context[key] = value;
+              if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+                context[key] = value;
             }
             void SecurityEventService.emitFromUserAudit(securityActor, action, context).catch(() => {
               sails.log.error('Failed to emit user audit security event');
             });
           }
-        } catch { sails.log.error('Failed to emit user audit security event'); }
+        } catch {
+          sails.log.error('Failed to emit user audit security event');
+        }
         return result;
       });
     };
@@ -1952,26 +964,20 @@ export namespace Services {
     };
 
     public getUserWithUsername = (username: string): Observable<UserModel | null> => {
-      return this.getObservable<UserModel | null>(
-        () => getIdentityRepositories().one('user', {
-          username: username,
-        }, {populate: ['roles']})
-      );
+      return this.authenticationAccounts().getUserWithUsername(username);
     };
 
     public getUserWithId = (userid: string | number): Observable<UserModel | null> => {
-      return this.getObservable<UserModel | null>(
-        () => getIdentityRepositories().one('user', {
-          id: userid,
-        }, {populate: ['roles']})
-      );
+      return this.authenticationAccounts().getUserWithId(userid);
     };
 
     /**
      * @return Collection of all users (local and AAF)
      */
     public getUsers = (): Observable<UserModel[]> => {
-      return super.getObservable<UserModel[]>(() => getIdentityRepositories().list('user', {}, {populate: ['roles']}));
+      return super.getObservable<UserModel[]>(() =>
+        getIdentityRepositories().list('user', {}, { populate: ['roles'] })
+      );
     };
 
     /**
@@ -1984,59 +990,26 @@ export namespace Services {
         return of([]);
       }
 
-      return super.getObservable<UserModel[]>(() => getIdentityRepositories().list('user', {}, {populate: ['roles']})).pipe(
-        flatMap(async (users: UserModel[]) => {
-          const activeLinks =
-            await getIdentityRepositories().list('userlink', { brandId: brandId, status: 'active' });
-          const linkedSecondaryIds = new Set(
-            _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? ''))
-          );
-          return _.filter(users, (user: UserModel) => {
-            return this.hasRoleInBrand(user, String(brandId)) || linkedSecondaryIds.has(String(user.id ?? ''));
-          });
-        })
-      );
+      return super
+        .getObservable<UserModel[]>(() => getIdentityRepositories().list('user', {}, { populate: ['roles'] }))
+        .pipe(
+          flatMap(async (users: UserModel[]) => {
+            const activeLinks = await getIdentityRepositories().list('userlink', {
+              brandId: brandId,
+              status: 'active',
+            });
+            const linkedSecondaryIds = new Set(
+              _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? ''))
+            );
+            return _.filter(users, (user: UserModel) => {
+              return this.hasRoleInBrand(user, String(brandId)) || linkedSecondaryIds.has(String(user.id ?? ''));
+            });
+          })
+        );
     };
 
     public getEffectiveUser = (userOrId: unknown): Observable<UserModel | null> => {
-      if (_.isEmpty(userOrId)) {
-        return of(null);
-      }
-
-      if (_.isString(userOrId) || _.isNumber(userOrId)) {
-        if (!/^[a-f\d]{24}$/i.test(String(userOrId)))
-          return this.getUserWithUsername(String(userOrId)).pipe(flatMap(user => user ? this.getEffectiveUser(user) : of(null)));
-        return this.getUserWithId(String(userOrId)).pipe(
-          flatMap(user => {
-            if (user != null) {
-              return this.getEffectiveUser(user);
-            }
-            return this.getUserWithUsername(String(userOrId)).pipe(
-              flatMap(userByUsername => {
-                if (userByUsername != null) {
-                  return this.getEffectiveUser(userByUsername);
-                }
-                return of(null);
-              })
-            );
-          })
-        );
-      }
-
-      const userObj = userOrId as UserModel;
-      this.normalizeAccountLinkState(userObj);
-      if (_.isEmpty(userObj.linkedPrimaryUserId)) {
-        return of(userObj as UserModel);
-      }
-
-      return this.getUserWithId(String(userObj.linkedPrimaryUserId)).pipe(
-        map(primaryUser => {
-          if (primaryUser == null) {
-            return userObj as UserModel;
-          }
-          return primaryUser;
-        })
-      );
+      return this.authenticationAccounts().getEffectiveUser(userOrId);
     };
 
     public getLinkedAccounts = (primaryUserId: string | UserModel): Observable<UserLinkResponse> => {
@@ -2048,12 +1021,16 @@ export namespace Services {
           }
 
           const primaryUserObj = primaryUser as UserModel;
-          const links =
-            await getIdentityRepositories().list('userlink', { primaryUserId: String(primaryUserObj.id ?? ''), status: 'active' });
+          const links = await getIdentityRepositories().list('userlink', {
+            primaryUserId: String(primaryUserObj.id ?? ''),
+            status: 'active',
+          });
           const secondaryIds = _.map(links as AnyRecord[], (link: unknown) =>
             String((link as AnyRecord).secondaryUserId ?? '')
           );
-          const secondaryUsers = _.isEmpty(secondaryIds) ? [] : await getIdentityRepositories().list('user', { id: secondaryIds }, {populate: ['roles']});
+          const secondaryUsers = _.isEmpty(secondaryIds)
+            ? []
+            : await getIdentityRepositories().list('user', { id: secondaryIds }, { populate: ['roles'] });
           const secondaryUsersById = _.keyBy(secondaryUsers as UserModel[], (user: UserModel) => String(user.id ?? ''));
           const linkedAccounts = _.compact(
             _.map(links as AnyRecord[], (link: unknown) => {
@@ -2100,7 +1077,7 @@ export namespace Services {
             ];
           }
 
-          const users = await getIdentityRepositories().list('user', userWhere, {populate: ['roles']});
+          const users = await getIdentityRepositories().list('user', userWhere, { populate: ['roles'] });
           const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as UserAttributes[]);
           let primaryUserIdsWithLinkedAccounts = new Set<string>();
           if (!_.isEmpty(enrichedUsers)) {
@@ -2203,27 +1180,31 @@ export namespace Services {
             throw new Error('Secondary user belongs to a different brand and cannot be linked here');
           }
 
-          const existingLink =
-            await getIdentityRepositories().one('userlink', { secondaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' });
+          const existingLink = await getIdentityRepositories().one('userlink', {
+            secondaryUserId: String(secondaryUserObj.id ?? ''),
+            status: 'active',
+          });
           if (!_.isEmpty(existingLink)) {
             throw new Error('Secondary user is already linked');
           }
 
-          const secondaryOwnLinks =
-            await getIdentityRepositories().one('userlink', { primaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' });
+          const secondaryOwnLinks = await getIdentityRepositories().one('userlink', {
+            primaryUserId: String(secondaryUserObj.id ?? ''),
+            status: 'active',
+          });
           if (!_.isEmpty(secondaryOwnLinks)) {
             throw new Error('Secondary user already has linked accounts');
           }
 
           await getIdentityRepositories().create('userlink', {
-              primaryUserId: String(primaryUser.id ?? ''),
-              primaryUsername: String(primaryUser.username ?? ''),
-              secondaryUserId: String(secondaryUserObj.id ?? ''),
-              secondaryUsername: String(secondaryUserObj.username ?? ''),
-              brandId: brandId,
-              status: 'active',
-              createdBy: actor,
-            });
+            primaryUserId: String(primaryUser.id ?? ''),
+            primaryUsername: String(primaryUser.username ?? ''),
+            secondaryUserId: String(secondaryUserObj.id ?? ''),
+            secondaryUsername: String(secondaryUserObj.username ?? ''),
+            brandId: brandId,
+            status: 'active',
+            createdBy: actor,
+          });
 
           const primaryBrandRoleIds = new Set(
             _.map(this.getRolesForBrand(primaryUser, brandId), (role: unknown) => String((role as AnyRecord).id ?? ''))
@@ -2233,7 +1214,8 @@ export namespace Services {
           );
           const roleIdsToMerge = _.filter(secondaryBrandRoleIds, roleId => !primaryBrandRoleIds.has(roleId));
           if (!_.isEmpty(roleIdsToMerge)) {
-            const addRoleQuery = () => getIdentityRepositories().addMemberships('user', String(primaryUser.id ?? ''), roleIdsToMerge);
+            const addRoleQuery = () =>
+              getIdentityRepositories().addMemberships('user', String(primaryUser.id ?? ''), roleIdsToMerge);
             await firstValueFrom(this.getObservable(addRoleQuery, 'exec', 'simplecb'));
           }
 
@@ -2248,14 +1230,23 @@ export namespace Services {
             }),
             (role: unknown) => String((role as AnyRecord).id ?? '')
           );
-          const replaceRoleQuery = () => getIdentityRepositories().replaceMemberships('user', String(secondaryUserObj.id ?? ''), retainedSecondaryRoleIds);
+          const replaceRoleQuery = () =>
+            getIdentityRepositories().replaceMemberships(
+              'user',
+              String(secondaryUserObj.id ?? ''),
+              retainedSecondaryRoleIds
+            );
           await firstValueFrom(this.getObservable(replaceRoleQuery, 'exec', 'simplecb'));
 
-          await getIdentityRepositories().update('user', { id: String(secondaryUserObj.id ?? '') }, {
-            token: '',
-            accountLinkState: 'linked-alias',
-            linkedPrimaryUserId: String(primaryUser.id ?? ''),
-          });
+          await getIdentityRepositories().update(
+            'user',
+            { id: String(secondaryUserObj.id ?? '') },
+            {
+              token: '',
+              accountLinkState: 'linked-alias',
+              linkedPrimaryUserId: String(primaryUser.id ?? ''),
+            }
+          );
 
           const recordsRewritten = await this.rewriteLinkedRecordAuthorizations(primaryUser, secondaryUserObj, actor);
 
@@ -2291,11 +1282,17 @@ export namespace Services {
       return this.getUserWithId(userid).pipe(
         flatMap(user => {
           if (user) {
-            return from(getIdentityRepositories().update('user', {
-                id: userid,
-              }, {
-                token: uuidHash,
-              })).pipe(
+            return from(
+              getIdentityRepositories().update(
+                'user',
+                {
+                  id: userid,
+                },
+                {
+                  token: uuidHash,
+                }
+              )
+            ).pipe(
               map(updatedUsers => {
                 if (!updatedUsers[0]) throw new Error('No such user with id:' + userid);
                 return updatedUsers[0] as UserModel;
@@ -2337,9 +1334,14 @@ export namespace Services {
               const salt = bcrypt.genSaltSync(10);
               update[passwordField] = bcrypt.hashSync(password, salt);
             }
-            const q = () => getIdentityRepositories().update('user', {
-                id: userid,
-              }, update);
+            const q = () =>
+              getIdentityRepositories().update(
+                'user',
+                {
+                  id: userid,
+                },
+                update
+              );
             return this.getObservable<UserModel[]>(q, 'exec', 'simplecb');
           } else {
             return throwError(new Error('No such user with id:' + userid));
@@ -2374,9 +1376,15 @@ export namespace Services {
 
     private updateUserAfterLogin(user: unknown, done: (err: unknown, user: unknown) => void) {
       const userObj = user as AnyRecord;
-      identityCallback(getIdentityRepositories().update('user', {
-        username: userObj.username,
-      }, identityProfilePatch(userObj)), (err: unknown, user: unknown) => {
+      identityCallback(
+        getIdentityRepositories().update(
+          'user',
+          {
+            username: userObj.username,
+          },
+          identityProfilePatch(userObj)
+        ),
+        (err: unknown, user: unknown) => {
           if (err) {
             this.updateChronicle({ usersOperation: 'updateUserAfterLogin', usersOutcome: 'failed' }, [err]);
             return done(err, false);
@@ -2388,7 +1396,8 @@ export namespace Services {
 
           const updatedUsers = user as AnyRecord[];
           return done(null, updatedUsers[0]);
-        });
+        }
+      );
     }
 
     public hasRole(user: unknown, targetRole: unknown): RoleModel {
@@ -2423,7 +1432,9 @@ export namespace Services {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         queryObj['type'] = source;
       }
-      return this.getObservable<UserModel[]>(() => getIdentityRepositories().list('user', queryObj, {populate: ['roles']})).pipe(
+      return this.getObservable<UserModel[]>(() =>
+        getIdentityRepositories().list('user', queryObj, { populate: ['roles'] })
+      ).pipe(
         flatMap(users => {
           if (brandId) {
             _.remove(users, (user: unknown) => {
@@ -2489,68 +1500,7 @@ export namespace Services {
      * @private
      */
     public checkAuthorizedEmail(email: string, branding: string, authType: string): boolean {
-      // Must pass email.
-      if (!email) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'missing-email' }, [], 'warn');
-        return false;
-      }
-
-      // Assess email address.
-      const emailParts = email.includes('@') ? email.split('@') : [];
-      if (emailParts.length !== 2) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'invalid-address' }, [], 'warn');
-        return false;
-      }
-
-      // Get the configuration data.
-      const brandingAwareData = sails.config.brandingAware(branding);
-      const authorizedDomainsEmails = _.get(
-        brandingAwareData,
-        'authorizedDomainsEmails',
-        {}
-      ) as AuthorizedDomainsEmails;
-
-      if (authorizedDomainsEmails.enabled?.toString() !== 'true') {
-        this.updateChronicle({ usersEmailAccessOutcome: 'disabled' }, [], 'warn');
-        return true;
-      }
-
-      const domains = [];
-      const emails = [];
-      if (authType === 'aaf') {
-        domains.push(...(authorizedDomainsEmails.domainsAaf || []));
-        emails.push(...(authorizedDomainsEmails.emailsAaf || []));
-      } else if (authType === 'oidc') {
-        domains.push(...(authorizedDomainsEmails.domainsOidc || []));
-        emails.push(...(authorizedDomainsEmails.emailsOidc || []));
-      } else {
-        this.updateChronicle({ usersEmailAccessOutcome: 'unsupported-provider' }, [], 'warn');
-        return false;
-      }
-
-      // Check configuration.
-      if (domains.length === 0 && emails.length === 0) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'unrestricted' });
-        return true;
-      }
-
-      // Assess domains and exceptions.
-      const emailDomain = emailParts[1];
-      const isAllowedDomain = domains.indexOf(emailDomain) !== -1;
-      if (isAllowedDomain) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'allowed-domain' });
-        return true;
-      }
-
-      const isAllowedException = emails.indexOf(email) !== -1;
-      if (isAllowedException) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'allowed-exception' });
-        return true;
-      }
-
-      // Checks did not pass, so email is not allowed.
-      this.updateChronicle({ usersEmailAccessOutcome: 'denied', usersAuthProvider: authType }, [], 'warn');
-      return false;
+      return this.authenticationAccounts().checkAuthorizedEmail(email, branding, authType);
     }
   }
 }

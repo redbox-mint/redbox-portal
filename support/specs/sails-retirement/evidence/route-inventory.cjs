@@ -7,6 +7,7 @@ const { routes } = require(resolve(root, 'packages/redbox-core/dist/config/route
 const { registerCoreApiRoutes } = require(resolve(root, 'packages/redbox-core/dist/api-routes/route-registry.js'));
 const { configurationReadRoutes, appConfigFormReadRoute } = require(resolve(root, 'packages/redbox-core/dist/http/express/configuration.js'));
 const { formDeliveryRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/formDelivery.js'));
+const { authenticationRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/login.js'));
 const { metadataReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/metadata.js'));
 if (global.sails || Object.keys(require.cache).some(p => /node_modules\/sails\//.test(p)))
   throw Error('Inventory must remain offline without Sails.');
@@ -31,6 +32,7 @@ function owner(pattern, controller, action) {
   if (/companion|\/tus/.test(path)) return 'SR-042';
   if (/subscribe|unsubscribe/.test(action) || target === 'Asynch') return 'SR-043';
   if (/upload|attachment|datastream/i.test(action)) return 'SR-041';
+  if (target === 'User' && action === 'login') return 'SR-040';
   if (target === 'User' && /login|logout|authenticate|oidc|aaf|jwt|callback/i.test(action)) return 'SR-038';
   if (target === 'RecordType') return 'SR-029';
   if (page || target === 'RenderView' || /render|theme|typeface|font|asset/i.test(action)) return 'SR-040';
@@ -55,7 +57,7 @@ function owner(pattern, controller, action) {
 }
 
 const contracts = new Set(registerCoreApiRoutes().map(r => r.method.toUpperCase() + ' ' + r.path));
-const migratedReads = new Set([...configurationReadRoutes, appConfigFormReadRoute, ...metadataReadRoutes, ...formDeliveryRoutes].map(route => route.method.toUpperCase() + ' ' + route.path));
+const migratedReads = new Set([...configurationReadRoutes, appConfigFormReadRoute, ...metadataReadRoutes, ...formDeliveryRoutes, ...authenticationRoutes].map(route => route.method.toUpperCase() + ' ' + route.path));
 const entries = Object.entries(routes)
   .map(([pattern, target]) => {
     const controller =
@@ -108,7 +110,9 @@ entries.push({
   prerequisites: [],
   standalone: false,
 });
+const additions = authenticationRoutes.filter(route => !entries.some(entry => entry.route === route.method.toUpperCase() + ' ' + route.path)).map(route => ({ route: route.method.toUpperCase() + ' ' + route.path, target: route.controller + '.' + route.action, task: 'SR-038', prerequisites: ['SR-039'], standalone: true }));
 const result = {
+  additions,
   source: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
   description:
     'Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.',
@@ -121,7 +125,7 @@ const result = {
 const path = resolve(__dirname, 'route-inventory.json');
 if (process.argv.includes('--check')) {
   const recorded = JSON.parse(readFileSync(path, 'utf8'));
-  if (JSON.stringify(recorded.entries) !== JSON.stringify(entries))
+  if (JSON.stringify(recorded.entries) !== JSON.stringify(entries) || JSON.stringify(recorded.additions ?? []) !== JSON.stringify(additions))
     throw Error('Route inventory is stale; rebuild and regenerate.');
 } else writeFileSync(path, JSON.stringify(result, null, 2) + '\n');
 console.log(JSON.stringify({ routes: entries.length, counts: result.counts, check: process.argv.includes('--check') }));

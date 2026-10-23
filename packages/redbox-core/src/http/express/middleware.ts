@@ -34,6 +34,7 @@ export function httpAction(
 export interface HttpMiddlewareInput {
   readonly owner: PersistenceOwner;
   readonly identity: HttpIdentity;
+  configureAuthentication?(passport: ReturnType<typeof createHttpAuthentication>['passport']): Promise<void>;
   readonly session: session.SessionOptions & { [key: string]: unknown };
   readonly log: ILogger;
   readonly logSettings?: Partial<RequestChronicleSettings>;
@@ -81,7 +82,23 @@ export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewar
   );
   await owned.ready;
   const authentication = createHttpAuthentication(input.identity);
-  router.use(owned.middleware, authentication.initialize, authentication.session);
+  await input.configureAuthentication?.(authentication.passport);
+  router.use(
+    owned.middleware,
+    httpAction(async (req, _res, next) => {
+      // Even a valid old cookie must not deserialize a v5 session through v6 serializers.
+      if (
+        (Reflect.get(req.session, 'passport') || Reflect.get(req.session, 'user')) &&
+        Reflect.get(req.session, 'authenticationVersion') !== 6
+      )
+        await new Promise<void>((resolve, reject) =>
+          req.session.regenerate(error => (error ? reject(error) : resolve()))
+        );
+      next();
+    }),
+    authentication.initialize,
+    authentication.session
+  );
   return authentication;
 }
 

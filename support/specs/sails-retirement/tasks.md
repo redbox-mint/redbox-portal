@@ -540,7 +540,11 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## P6 — Browser, upload and realtime slices
 
-- [ ] **SR-038 — Complete supported authentication and session migration.**
+- [x] **SR-038 — Complete supported authentication and session migration.**
+
+  **Status:** done; [standalone local/bearer/AAF/OIDC, real Keycloak/Bruno,
+  session invalidation/rotation, audit and provider limits](evidence/p6-auth-csrf.md#sr-038--authentication-and-session-migration).
+  CSRF is separately gated in SR-039; login/page rendering belongs to SR-040.
 
   **Depends on:** SR-028, SR-022.
 

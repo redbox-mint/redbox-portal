@@ -47,7 +47,8 @@
     "test:lifecycle:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/application/InitializationMongo.test.ts test/queues/QueueMongo.test.ts",
     "test:http-pilot:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/http/IdentityMongo.test.ts test/http/MiddlewareMongo.test.ts test/http/RecordTypesMongo.test.ts test/http/PilotFailuresMongo.test.ts test/http/CompiledPilotMongo.test.ts",
     "test:http-bruno:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/BrunoPilotMongo.test.ts",
-    "test:http-configuration:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/ConfigurationMongo.test.ts"
+    "test:http-configuration:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/ConfigurationMongo.test.ts",
+    "test:http-auth:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/AuthenticationMongo.test.ts test/http/OidcMongo.test.ts"
   },
   "author": "",
   "license": "ISC",
@@ -387,6 +388,10 @@
     "./vocabulary": {
       "types": "./dist/vocabulary/index.d.ts",
       "default": "./dist/vocabulary/index.js"
+    },
+    "./authentication": {
+      "types": "./dist/authentication/index.d.ts",
+      "default": "./dist/authentication/index.js"
     }
   }
 }

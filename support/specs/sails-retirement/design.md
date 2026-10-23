@@ -94,6 +94,17 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
   must not depend on datastore/provider exception text. Orphan/cyclic linked aliases
   fail authentication; administrators must repair their primary-account linkage.
 
+- Branded logout requires POST with a session CSRF token; legacy GET responds
+  405 (`Allow: POST`). Navbar forms are updated in SR-039; scripts must obtain
+  `/csrfToken` and submit the token with the session. Provider denials/debug mode
+  receive a safe 403 instead of provider-dependent redirects/error rendering; no
+  raw provider error/token is stored in session data. Malformed local credentials
+  return 400. AAF assertions must have the configured issuer (the legacy nested
+  Passport-JWT option did not reliably enforce it). Affected clients are login/
+  logout scripts and IdPs configured with an incorrect issuer. Use validated local
+  redirects and configure the trusted IdP logout origin. Session/transfer guidance:
+  [SR-038 evidence](evidence/p6-auth-csrf.md#contract-and-upgrade-behavior).
+
 SR-031's matching/unruled, anonymous/default-role, redirect/JSON/schema and event
 tests supersede P4's provisional missing-rule denial and per-request rule-query
 behavior. Cached rules refresh at bootstrap or explicit `loadRules()`, as in the

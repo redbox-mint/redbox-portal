@@ -32,3 +32,11 @@ export { PathRules, type PathRule, type RuleRole } from '../../authorization/Pat
 export { mountMetadataReadRoutes, metadataReadRoutes, type MetadataReadHttpInput } from './metadata';
 
 export { mountFormDeliveryRoutes, formDeliveryRoutes, type FormDeliveryHttpInput } from './formDelivery';
+
+export { mountAuthenticationRoutes, authenticationRoutes, type AuthenticationHttpInput } from './login';
+export {
+  installLocalAuthentication,
+  installAafAuthentication,
+  installOidcAuthentication,
+  type IdentityProvidersInput,
+} from './identityProviders';

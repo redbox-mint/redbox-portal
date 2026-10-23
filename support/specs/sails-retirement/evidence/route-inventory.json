@@ -1,8 +1,19 @@
 {
-  "source": "9d7ad06c5120bf8e8dad99212562098fe2be0d27",
+  "additions": [
+    {
+      "route": "POST /:branding/:portal/user/logout",
+      "target": "UserController.logout",
+      "task": "SR-038",
+      "prerequisites": [
+        "SR-039"
+      ],
+      "standalone": true
+    }
+  ],
+  "source": "96698fe1e5e43383d15a410a39165a6f42e61f84",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
-    "SR-040": 47,
+    "SR-040": 48,
     "SR-036": 124,
     "SR-042": 2,
     "SR-041": 9,
@@ -12,7 +23,7 @@
     "SR-043": 6,
     "SR-033": 25,
     "SR-029": 2,
-    "SR-038": 9,
+    "SR-038": 8,
     "SR-039": 1
   },
   "entries": [
@@ -1859,13 +1870,13 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/user/login",
       "target": "UserController.login",
       "contract": false,
-      "task": "SR-038",
+      "task": "SR-040",
       "prerequisites": [],
       "standalone": false
     },
@@ -1875,7 +1886,7 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/vocab/:vocabIdOrSlug",
@@ -1967,7 +1978,7 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /user/info",
@@ -1975,7 +1986,7 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /user/login_oidc",
@@ -1983,7 +1994,7 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "HEAD /user/begin_oidc",
@@ -1993,7 +2004,7 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/action/:action",
@@ -3008,7 +3019,7 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /user/login_local",
@@ -3016,7 +3027,7 @@
       "contract": false,
       "task": "SR-038",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/admin/dashboard-config/views/:view/:step",

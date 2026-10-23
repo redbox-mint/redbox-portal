@@ -63,6 +63,7 @@ export function createHttpAuthentication(identity: HttpIdentity) {
     })
   );
   return {
+    passport,
     initialize: passport.initialize() as RequestHandler,
     session: trackedSession(passport.session() as RequestHandler),
     /** For an explicit login adapter. Browser flows and CSRF remain P6. */
@@ -81,6 +82,7 @@ export function createHttpAuthentication(identity: HttpIdentity) {
           req.logIn(user, loginError => {
             if (loginError) reject(loginError);
             else {
+              Reflect.set(req.session, 'authenticationVersion', 6);
               try {
                 next();
                 resolve();
