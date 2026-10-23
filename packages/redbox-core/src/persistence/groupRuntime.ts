@@ -74,7 +74,10 @@ export function definePersistenceGroup<T extends object>(
         const repository = guarded(concrete, (operation, method) => {
           if (state.repository !== repository)
             return Promise.reject(
-              new PersistenceError('lifecycle', `Resolve the active ${name} repository after initialization.`)
+              new PersistenceError(
+                'lifecycle',
+                `This ${name} repository is no longer active. Resolve the active ${name} repository after initialization.`
+              )
             );
           const pending = persistenceOperation(app, operation);
           return failure ? pending.catch(error => failure(error, method)) : pending;
