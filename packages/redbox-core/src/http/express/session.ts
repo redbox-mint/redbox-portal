@@ -1,3 +1,4 @@
+import { finished } from 'node:stream';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { initializePersistence, registerPersistenceResource, mongoSessionDatabase } from '../../persistence/runtime';
 import {
@@ -171,6 +172,16 @@ export function composeHttpSession(
           // express-session may defer the underlying end until save/touch/
           // destroy completes. An async action can settle before that callback.
           res.end = function (this: typeof res, ...args: unknown[]) {
+            // express-session only implements end(chunk, encoding). Keep Node's
+            // callback overload out of its body argument and observe real finish
+            // (including delayed session persistence) or transport failure.
+            const callback = typeof args[args.length - 1] === 'function' ? args.pop() : undefined;
+            if (typeof callback === 'function') {
+              const cleanup = finished(res, { readable: false }, error => {
+                cleanup();
+                callback(error);
+              });
+            }
             retainHttpResponse(req);
             const previousRequest = respondingRequest;
             const previousResponse = respondingResponse;

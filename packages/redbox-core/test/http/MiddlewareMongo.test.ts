@@ -63,6 +63,13 @@ describe('standalone Mongo sessions and accepted HTTP ownership', function () {
             res.json({ success: true });
           })
         );
+        router.get(
+          '/__test/end-callback',
+          httpAction(async (req, res) => {
+            req.session.branding = 'callback-proof';
+            await new Promise<void>(resolve => res.status(204).end(resolve));
+          })
+        );
         router.use(httpErrorHandler(nothingLogger));
       },
     });
@@ -94,6 +101,17 @@ describe('standalone Mongo sessions and accepted HTTP ownership', function () {
     await f.identities.update('user', { id: f.user.id }, { loginDisabled: true });
     assert.equal(await (await fetch(url + '/__test/actor', { headers: { Cookie: cookie } })).json(), false);
     assert.deepEqual(await f.native.db().collection('pilotSessions').listIndexes().toArray(), indexes);
+  });
+
+  it('completes Node end(callback) through an asynchronous persisted session write', async () => {
+    const url = await start();
+    const result = await fetch(url + '/__test/end-callback');
+    assert.equal(result.status, 204);
+    assert.equal(await result.text(), '');
+    const stored = await f.native.db().collection('pilotSessions').findOne();
+    assert.equal(JSON.parse(stored!.session).branding, 'callback-proof');
+    await host!.stop({ deadlineMs: 1000 });
+    assert.equal(persistenceStatus(f.owner).pools, 0);
   });
 
   it('refuses missing session TTL readiness without performing HTTP-startup DDL', async () => {
