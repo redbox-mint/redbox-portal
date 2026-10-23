@@ -137,7 +137,8 @@
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.1",
     "zod": "4.6.7",
-    "@prisma/orm-mongo": "8.0.0-rc.19"
+    "@prisma/orm-mongo": "8.0.0-rc.19",
+    "import-meta-resolve": "4.2.0"
   },
   "overrides": {
     "axios": "1.20.0",

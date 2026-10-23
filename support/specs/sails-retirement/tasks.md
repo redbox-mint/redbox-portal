@@ -1,8 +1,7 @@
 # Sails retirement: v6 task list
 
-Status: P0 SR-001–SR-004 and P1 SR-006–SR-007 complete; SR-005 is partial
-pending institution cohort and production-source designation. SR-008–SR-011 are
-not started; the P1 runtime foundation is committed before the next domain slice.
+Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
+pending institution cohort and production-source designation. P2 is in progress.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -191,6 +190,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 ## P2 — Async extensions and early hook conversion
 
 - [ ] **SR-012 — Discover installed extensions and load them asynchronously.**
+
+  **Status:** implementation verified; packed-artifact acceptance follows in SR-017.
+  [Evidence](evidence/p2-extensions.md#sr-012--installed-async-discovery).
 
   **Depends on:** SR-001, SR-007.
 
