@@ -27,13 +27,16 @@ FROM base AS builder
 
 COPY . .
 
-RUN npm ci --no-audit \
- && (cd packages/agenda-sqs-backend && npm ci --no-audit) \
- && (cd packages/sails-ng-common && npm ci --no-audit) \
- && (cd packages/raido && npm ci --no-audit) \
- && (cd packages/rva-registry && npm ci --no-audit) \
- && (cd packages/redbox-core && npm ci --no-audit) \
- && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)
+# Subproject npm invocations do not inherit the application's .npmrc. Keep the
+# same strict, script-free install policy at every package boundary; the explicit
+# builds below own compilation and Prisma generation.
+RUN npm ci --ignore-scripts --strict-peer-deps --no-audit
+RUN cd packages/agenda-sqs-backend && npm ci --ignore-scripts --strict-peer-deps --no-audit
+RUN cd packages/sails-ng-common && npm ci --ignore-scripts --strict-peer-deps --no-audit
+RUN cd packages/raido && npm ci --ignore-scripts --strict-peer-deps --no-audit
+RUN cd packages/rva-registry && npm ci --ignore-scripts --strict-peer-deps --no-audit
+RUN cd packages/redbox-core && npm ci --ignore-scripts --strict-peer-deps --no-audit
+RUN cd packages/sails-hook-redbox-storage-mongo && npm ci --ignore-scripts --strict-peer-deps --no-audit
 
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
