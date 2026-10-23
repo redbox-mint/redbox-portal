@@ -1,0 +1,11 @@
+{
+  "name": "sr-commonjs-hook",
+  "version": "1.0.0",
+  "exports": "./index.cjs",
+  "files": [
+    "index.cjs"
+  ],
+  "redbox": {
+    "extension": "."
+  }
+}

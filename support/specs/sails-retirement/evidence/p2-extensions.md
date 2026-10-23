@@ -217,3 +217,56 @@ lower test now verifies cleanup before the shared adapter's wrapped callback and
 completion of the original caller callback; no assertion was deleted. No npm
 version or dependency pin changed in SR-016. Browser binaries, public HTTP and
 real queue backends were not qualified by these fixture tests.
+
+## SR-017 — Packed production and offline loading
+
+`test/extensions/run-packed.cjs` runs real `npm pack --ignore-scripts --json`
+for core, storage, PDF, four internal runtime dependencies and three format
+fixtures. Artifacts use the previously validated compiled/Prisma output; skipping
+pack lifecycle scripts avoids rebuilding dependent packages out of order. Builds
+are verified separately. The consumer is a fresh `/tmp/redbox-p2-packed-*`
+directory outside this checkout, with `NODE_PATH` empty and internal file
+references overridden to their actual direct tarballs. No source symlinks.
+
+```sh
+node packages/redbox-core/test/extensions/run-packed.cjs
+# Inside its isolated consumer:
+npm install --omit=dev --ignore-scripts --no-audit --no-fund
+# Remove consumer node_modules completely, then:
+npm ci --offline --omit=dev --ignore-scripts --no-audit --no-fund
+node verify.cjs
+```
+
+Full runner **exit 0**, Node **26.11.1**, npm **11.20.0**. Both installations
+**1,334 packages**; cached offline reinstall **exit 0**. Consumer **12 assertion
+groups**, **0 failures/skips**: import-only ESM dependency and both top-level awaits,
+hidden manifests/public exports, bundled storage/PDF declarations, no Sails/barrel
+imports, no socket connect/listen during inspection, no require-cache path outside
+the consumer, CommonJS override wins without ESM factory construction, two isolated
+application instances, real Express inactive/active response and owned stop.
+Named/default normalization and sanitized missing-entry diagnostics additionally
+pass the installed loader fixtures (SR-012). Successful sandbox removed.
+
+First consumer attempt failed because its regexp expected different Node package
+export error wording; corrected to `ERR_PACKAGE_PATH_NOT_EXPORTED`. The corrected
+consumer passed against that installation, followed by the complete passing runner.
+Existing dependency warnings include deprecated packages and the pre-existing
+ro-crate-modes git dependency whose integrity npm does not check. This proves an
+offline reinstall from a populated cache, not a first-ever air-gapped install.
+It neither activates PDF queue processors nor installs browser binaries.
+
+First passing artifacts (compiled source through `c3d1cbbb1`; final phase artifact
+rerun below includes subsequent validation and development changes):
+
+| Artifact | Files | SHA-256 |
+| --- | ---: | --- |
+| `researchdatabox-sails-ng-common-0.2.1.tgz` | 568 | `6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72` |
+| `researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz` | 20 | `76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f` |
+| `researchdatabox-raido-openapi-generated-node-0.0.3.tgz` | 12 | `d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf` |
+| `researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz` | 11 | `31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d` |
+| `researchdatabox-redbox-core-0.0.1-beta.9022.tgz` | 1803 | `86403f981248129fa5f37d548644f6377f7f45a5be5372d1d17d8d051ae402e1` |
+| `researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz` | 48 | `ed18399bae6c328f65cd84493299ee29efb4fea66de7abe812318f261c715f71` |
+| `researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz` | 45 | `6489a7d8427f69c11e752fce84fde1381991a9735bf89e2e855f4a25156455a9` |
+| `sr-esm-only-1.0.0.tgz` | 2 | `e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89` |
+| `sr-esm-hook-1.0.0.tgz` | 2 | `89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21` |
+| `sr-commonjs-hook-1.0.0.tgz` | 2 | `60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e` |

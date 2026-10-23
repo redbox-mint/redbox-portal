@@ -189,9 +189,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## P2 — Async extensions and early hook conversion
 
-- [ ] **SR-012 — Discover installed extensions and load them asynchronously.**
+- [x] **SR-012 — Discover installed extensions and load them asynchronously.**
 
-  **Status:** implementation verified; packed-artifact acceptance follows in SR-017.
+  **Status:** done; installed and real packed/offline acceptance passed in SR-017.
   [Evidence](evidence/p2-extensions.md#sr-012--installed-async-discovery).
 
   **Depends on:** SR-001, SR-007.
@@ -257,7 +257,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   pass without Sails. Activation is registered explicitly; full backend activation
   is verified in SR-023 and HTTP/progress integration in P6.
 
-- [ ] **SR-017 — Prove packed ESM/CommonJS hooks and offline loading.**
+- [x] **SR-017 — Prove packed ESM/CommonJS hooks and offline loading.**
+
+  **Status:** done; [real tarballs, isolated production install and offline proof](evidence/p2-extensions.md#sr-017--packed-production-and-offline-loading).
 
   **Depends on:** SR-010, SR-012, SR-015, SR-016.
 
