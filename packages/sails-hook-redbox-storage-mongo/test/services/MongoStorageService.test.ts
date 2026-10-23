@@ -1966,7 +1966,8 @@ describe('MongoStorageService', function () {
 
     expect(response.items).to.deep.equal(['x']);
     const query = runStub.firstCall.args[1];
-    expect(`${query['metadata.title']}`).to.include('a\\+b');
+    expect(`${query.$and[1]['metadata.title']}`).to.include('a\\+b');
+    expect(query['metaMetadata.brandId']).to.equal('brand-1');
   });
 
   it('builds record queries for array filters, package types, workflow, and equal matching', async function () {
@@ -1994,7 +1995,8 @@ describe('MongoStorageService', function () {
     expect(query.$or).to.have.length(2);
     expect(query['metaMetadata.packageType'].$or).to.have.length(2);
     expect(query['workflow.stage']).to.equal('review');
-    expect(query['metadata.title']).to.equal('Exact title');
+    expect(query.$and[1]['metadata.title']).to.equal('Exact title');
+    expect(query['metaMetadata.brandId']).to.equal('brand-1');
     expect(options.sort.lastSaveDate).to.equal(1);
     expect(options.sort.redboxOid).to.equal(-1);
   });

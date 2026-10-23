@@ -20,6 +20,10 @@ require('@researchdatabox/redbox-core/dashboards');
 require('@researchdatabox/redbox-core/workflows');
 require('@researchdatabox/redbox-core/workspaces');
 require('@researchdatabox/redbox-core/record-schema');
+for (const module of ['RecordLists', 'DeletedRecordReader', 'relationships'])
+  require('../../../dist/records/' + module);
+require('../../../dist/forms/FormProjection');
+require('../../../dist/api-routes/schemaDelivery');
 for (const module of [
   'NamedQueries',
   'Reports',

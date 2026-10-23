@@ -20,7 +20,6 @@ import type {
   SortDirection,
 } from 'mongodb';
 import stream = require('node:stream');
-import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
 import {
   PersistenceError,
@@ -2488,9 +2487,9 @@ export class PrismaStorage implements StorageService, DatastreamService {
       this.collaborators.log.verbose('escapedFilterString ' + escapedFilterString);
       for (const filterField of filterFields) {
         if (filterMode == 'equal') {
-          query[filterField] = filterString;
+          andArray.push({ [filterField]: filterString });
         } else if (filterMode == 'regex') {
-          query[filterField] = new RegExp(`.*${escapedFilterString}.*`, 'i');
+          andArray.push({ [filterField]: new RegExp(`.*${escapedFilterString}.*`, 'i') });
         }
       }
     }
@@ -2589,49 +2588,32 @@ export class PrismaStorage implements StorageService, DatastreamService {
       // Stream the export in two passes over Mongo, both bounded to a single page of records in
       // memory: pass 1 collects the union of flattened column keys, pass 2 streams the CSV with
       // that full field set so every record's columns are represented.
-      const passThrough = new stream.PassThrough();
-      (async () => {
-        try {
-          // The client (e.g. the HTTP response) can disconnect mid-export; once the returned
-          // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
-          // bail out when it is no longer writable.
-          const isCancelled = () => passThrough.destroyed;
-          const fields = await this.collectCsvFields(query, options, isCancelled);
-          if (isCancelled()) {
-            return;
-          }
-          if (_.isEmpty(fields)) {
-            // No matching records means no columns to derive a header from; emit an empty file
-            // deterministically rather than relying on json2csv's empty-fields behaviour.
-            passThrough.end();
-            return;
-          }
-          // Populated CSVs retain a UTF-8 BOM so spreadsheet apps detect their encoding correctly.
-          passThrough.write(UTF8_BOM);
-          const sanitize = new stream.Transform({
-            objectMode: true,
-            transform(record: Record<string, unknown>, _encoding, callback) {
-              callback(null, sanitizeCsvRecord(record));
-            },
-          });
-          const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
-          await pipeline(
-            stream.Readable.from(this.fetchAllRecords(query, { ...options })),
-            sanitize,
-            json2csv,
-            passThrough
-          );
-        } catch (err) {
-          this.collaborators.log.error(`${this.logHeader} Failed to export records as CSV:`);
-          this.collaborators.log.error(err);
-          passThrough.destroy(err as Error);
-        }
-      })();
-      return passThrough;
+      // Readable.from owns the generator's pending page even when the consumer
+      // disconnects during column discovery. Do not detach that first pass.
+      let output: stream.Readable;
+      const csv = async function* (storage: PrismaStorage) {
+        const isCancelled = () => output.destroyed;
+        const fields = await storage.collectCsvFields(query, options, isCancelled);
+        if (isCancelled() || _.isEmpty(fields)) return;
+        yield UTF8_BOM;
+        const sanitize = new stream.Transform({
+          objectMode: true,
+          transform(record: Record<string, unknown>, _encoding, callback) {
+            callback(null, sanitizeCsvRecord(record));
+          },
+        });
+        // compose propagates cancellation and source errors through every stage.
+        yield* stream.Readable.from(storage.fetchAllRecords(query, { ...options }))
+          .compose(sanitize)
+          .compose(new Transform({ fields, transforms: [flatten()] }, { objectMode: true }));
+      };
+      output = stream.Readable.from(csv(this));
+      return output;
     }
 
-    const jsonTransformer = new ExportJSONTransformer(recType, modBefore, modAfter);
-    return stream.Readable.from(this.fetchAllRecords(query, options, true)).pipe(jsonTransformer);
+    return stream.Readable.from(this.fetchAllRecords(query, options, true)).compose(
+      new ExportJSONTransformer(recType, modBefore, modAfter)
+    );
   }
 
   private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
@@ -3148,8 +3130,8 @@ export class PrismaStorage implements StorageService, DatastreamService {
     if (_.isDate(params.dateFrom)) range.$gte = params.dateFrom.toISOString();
     if (_.isDate(params.dateTo)) range.$lte = params.dateTo.toISOString();
     if (Object.keys(range).length) criteria.createdAt = range;
-    return (await this.auditModel('recordaudit').where(prismaModelFilter(criteria)).all().toArray()).map(
-      row => prismaModelRow(row)!
+    return (await this.auditModel('recordaudit').where(prismaModelFilter(criteria)).all().toArray()).map(row =>
+      prismaModelRow(row)!
     );
   }
 

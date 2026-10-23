@@ -70,6 +70,23 @@ Keep CommonJS tooling explicit where needed; avoid dual builds without a consume
 
 ### 1.3 Recorded HTTP compatibility breaks
 
+- Migrated record reads/exports in `recordReadRoutes` require authentication and
+  membership in the requested brand. Every object read additionally checks its
+  stored brand and view ACL before returning metadata, permissions, audit or a
+  relationship graph. Graphs apply those checks to every object and both edge
+  endpoints, including inbound edges. This brings standalone API graphs into line
+  with the browser graph gate. Clients relying on cross-brand objects, missing
+  stored brands, or edges to denied objects must use the owning brand and obtain
+  access. The comparison API keeps its existing graph behavior until retired.
+- Record list filters are independent AND predicates and cannot replace mandatory
+  tenant/type/workflow restrictions. Malformed list/search fields, pagination,
+  dates and relationship depths receive 400. `filterFields` is parsed from its
+  named parameter (the comparison API accidentally split `filter` instead).
+  Clients depending on that typo must send comma-separated field names in
+  `filterFields`. JSON export metadata now escapes arbitrary record-type strings;
+  valid record types retain their response shape. Aborted export streams stop
+  paging and keep already admitted Mongo work owned until completion.
+
 - Reporting/search/history routes in `queryReadRoutes` use the same explicit
   authentication and brand membership gates as the pilot. Audit data and integration
   logs additionally require the stored object to belong to that brand; integration

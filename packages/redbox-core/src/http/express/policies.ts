@@ -1,3 +1,4 @@
+import { schemaProblem } from '../../api-routes/schemaDelivery';
 import type { Request, RequestHandler } from 'express';
 import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { BrandingRepository, BrandRow } from '../../persistence/branding/BrandingRepository';
@@ -166,7 +167,13 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
       const actor = await input.authenticate(req);
       if (!actor) {
         res.setHeader('WWW-Authenticate', 'Bearer');
-        res.status(401).json({ message: 'Authentication required', details: '' });
+        if (typeof req.route?.path === 'string' && req.route.path.includes('/api/records/schemas/'))
+          res
+            .set({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY })
+            .type(RECORD_SCHEMA_PROBLEM_MEDIA_TYPE)
+            .status(401)
+            .json(schemaProblem('authentication-required', req.path));
+        else res.status(401).json({ message: 'Authentication required', details: '' });
         return;
       }
       Reflect.set(req, contextKey, Object.freeze({ ...context, actor }));
@@ -174,8 +181,15 @@ export function createHttpPolicies(input: HttpPolicyInput): Readonly<Record<stri
     },
     brandactor: (req, res, next) => {
       const { actor, brand } = requestContext(req);
-      if (!actor?.roles.some(role => role.brandId === brand.id)) res.status(403).end();
-      else next();
+      if (!actor?.roles.some(role => role.brandId === brand.id)) {
+        if (typeof req.route?.path === 'string' && req.route.path.includes('/api/records/schemas/'))
+          res
+            .set({ 'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL, Vary: RECORD_SCHEMA_RESPONSE_VARY })
+            .type(RECORD_SCHEMA_PROBLEM_MEDIA_TYPE)
+            .status(403)
+            .json(buildRecordSchemaForbiddenProblem(req.path));
+        else res.status(403).end();
+      } else next();
     },
     checkauth: checkAuth(false),
     checkrecordschemaauth: checkAuth(true),

@@ -6,6 +6,7 @@ const root = resolve(__dirname, '../../../..');
 const { routes } = require(resolve(root, 'packages/redbox-core/dist/config/routes.config.js'));
 const { registerCoreApiRoutes } = require(resolve(root, 'packages/redbox-core/dist/api-routes/route-registry.js'));
 const { configurationReadRoutes, appConfigFormReadRoute } = require(resolve(root, 'packages/redbox-core/dist/http/express/configuration.js'));
+const { recordReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/recordReads.js'));
 const { queryReadRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/queryReads.js'));
 const { configurationWriteRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/configurationWrites.js'));
 const { formDeliveryRoutes } = require(resolve(root, 'packages/redbox-core/dist/http/express/formDelivery.js'));
@@ -60,7 +61,7 @@ function owner(pattern, controller, action) {
 }
 
 const contracts = new Set(registerCoreApiRoutes().map(r => r.method.toUpperCase() + ' ' + r.path));
-const migratedReads = new Set([...queryReadRoutes, ...configurationReadRoutes, ...configurationWriteRoutes, appConfigFormReadRoute, ...metadataReadRoutes, ...formDeliveryRoutes, ...authenticationRoutes, csrfTokenRoute].map(route => route.method.toUpperCase() + ' ' + route.path));
+const migratedReads = new Set([...recordReadRoutes, ...queryReadRoutes, ...configurationReadRoutes, ...configurationWriteRoutes, appConfigFormReadRoute, ...metadataReadRoutes, ...formDeliveryRoutes, ...authenticationRoutes, csrfTokenRoute].map(route => route.method.toUpperCase() + ' ' + route.path));
 const entries = Object.entries(routes)
   .map(([pattern, target]) => {
     const controller =

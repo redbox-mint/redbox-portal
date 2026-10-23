@@ -1,3 +1,4 @@
+import { prepareRecordReads } from './prepareRecordReads';
 import { nothingLogger, diffRecordValues } from '@researchdatabox/sails-ng-common';
 import { of } from 'rxjs';
 import { pilotFixture } from './pilotFixture';
@@ -49,7 +50,8 @@ const {
 import { BrandingModel } from '../../src/model/storage/BrandingModel';
 import { solr } from '../../src/config/solr.config';
 
-export async function readFixture() {
+export async function readFixture(options: { records?: boolean } = {}) {
+  let recordDomains: Awaited<ReturnType<typeof prepareRecordReads>> | undefined;
   let storage!: ReturnType<typeof createMongoStorageModule>['storage'];
   let reports!: Reports.Reports;
   let queries!: Queries.NamedQueryService;
@@ -149,7 +151,12 @@ export async function readFixture() {
             redboxOid: oid,
             metadata: { title: oid },
             metaMetadata: { brandId, type: 'dataRecord', form: 'dataRecord' },
-            authorization: { view: [...view], edit: [], viewRoles: [], editRoles: [] },
+            authorization: {
+              view: [...view],
+              edit: oid === 'read-record' ? ['pilot-admin'] : [],
+              viewRoles: [],
+              editRoles: [],
+            },
             workflow: { stage: 'draft', stageLabel: 'Draft' },
           },
           'dataRecord'
@@ -236,6 +243,8 @@ export async function readFixture() {
         branding: f.brand.id,
         can_update: true,
       });
+      if (options.records)
+        recordDomains = await prepareRecordReads(router, f, types, storage, reader, search, policies);
       mountQueryReadRoutes(router, {
         queries,
         reports: {
@@ -272,6 +281,7 @@ export async function readFixture() {
   return {
     ...f,
     storage,
+    recordDomains,
     reports,
     queries,
     audit,

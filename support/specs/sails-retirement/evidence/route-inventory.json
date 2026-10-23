@@ -1,6 +1,6 @@
 {
   "additions": [],
-  "source": "5a35b6758c109b859e4a30856886aa954b5bb482",
+  "source": "947608e16eec495715b319537865454dc834f9ca",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
     "SR-040": 48,
@@ -212,7 +212,7 @@
       "prerequisites": [
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "DELETE /:branding/:portal/admin/report-config/:name",
@@ -906,7 +906,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/deletedrecords/list",
@@ -914,7 +914,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/export/record/download/:format",
@@ -922,7 +922,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/figshare-crosswalks",
@@ -1147,7 +1147,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/datastreams/:oid",
@@ -1181,7 +1181,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/metadata/:oid",
@@ -1189,7 +1189,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/objectmetadata/:oid",
@@ -1197,7 +1197,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/permissions/:oid",
@@ -1205,7 +1205,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/schemas/:digest",
@@ -1213,7 +1213,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/schemas/create/:recordType",
@@ -1221,7 +1221,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/records/schemas/update/:oid",
@@ -1229,7 +1229,7 @@
       "contract": true,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/api/recordtypes",
@@ -1588,7 +1588,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/listDeletedRecords",
@@ -1596,7 +1596,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/listRecords",
@@ -1604,7 +1604,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/locales",
@@ -1689,7 +1689,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/:oid/relatedRecords",
@@ -1697,7 +1697,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/:recordType/edit",
@@ -1713,7 +1713,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/delete/:oid",
@@ -1721,7 +1721,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/edit/:oid",
@@ -1769,7 +1769,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/search/:type",
@@ -1777,7 +1777,7 @@
       "contract": false,
       "task": "SR-034",
       "prerequisites": [],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "GET /:branding/:portal/record/type",
