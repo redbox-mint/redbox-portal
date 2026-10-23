@@ -4,6 +4,10 @@ import { By } from "@angular/platform-browser";
 import { FormConfigFrame } from "@researchdatabox/sails-ng-common";
 import { createFormAndWaitForReady, createTestbedModule, type FormComponentProps } from "../helpers.spec";
 import { RichTextEditorComponent } from "./rich-text-editor.component";
+// Load the real parser before Jasmine times individual specs. A cold runtime
+// chunk request can outlive a spec and resume its assertions after teardown.
+// Deferred-loader tests below still control loading and pending-task cleanup.
+import * as runtime from "./rich-text-editor.runtime";
 
 describe("RichTextEditorComponent", () => {
   const editModeProps: FormComponentProps = {
@@ -464,7 +468,6 @@ describe("RichTextEditorComponent", () => {
   });
 
   it("uses the latest silent model update when editor loading is delayed", async () => {
-    const runtime = await import('./rich-text-editor.runtime');
     let release!: (runtime: typeof import('./rich-text-editor.runtime')) => void;
     let component!: RichTextEditorComponent;
     let started!: () => void;
@@ -499,7 +502,6 @@ describe("RichTextEditorComponent", () => {
 
   for (const property of ['visible', 'readonly', 'disabled'] as const) {
     it(`respects ${property} changes during loading and resumes with the current value`, async () => {
-      const runtime = await import('./rich-text-editor.runtime');
       let component!: RichTextEditorComponent;
       let release!: (value: typeof runtime) => void;
       let started!: () => void;
@@ -585,7 +587,6 @@ describe("RichTextEditorComponent", () => {
   });
 
   it("does not create an editor after destruction during loading", async () => {
-    const runtime = await import('./rich-text-editor.runtime');
     let component!: RichTextEditorComponent;
     spyOn<any>(RichTextEditorComponent.prototype, "loadRuntime").and.callFake(function(this: RichTextEditorComponent) {
       component = this;
@@ -597,7 +598,6 @@ describe("RichTextEditorComponent", () => {
   });
 
   it('releases the Angular pending task when destroyed before a stalled download finishes', async () => {
-    const runtime = await import('./rich-text-editor.runtime');
     let release!: (value: typeof runtime) => void;
     let started!: () => void;
     const loading = new Promise<void>(resolve => started = resolve);
