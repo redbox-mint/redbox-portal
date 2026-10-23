@@ -2,7 +2,7 @@
 
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
-complete; P3 has not started.
+complete; P3 SR-019 is complete; SR-020–SR-025 are in progress.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -286,7 +286,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 
 ## P3 — Configuration, orchestration and activation
 
-- [ ] **SR-019 — Own startup configuration resolution and finalization.**
+- [x] **SR-019 — Own startup configuration resolution and finalization.**
+
+  **Status:** done; [resolution, offline loading and validation](evidence/p3-lifecycle-config.md#sr-019--startup-resolution-and-finalization).
 
   **Depends on:** SR-002, SR-004, SR-013.
 

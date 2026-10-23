@@ -343,6 +343,10 @@
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
     },
-    "./*": "./*"
+    "./*": "./*",
+    "./configuration": {
+      "types": "./dist/configuration/index.d.ts",
+      "default": "./dist/configuration/index.js"
+    }
   }
 }
