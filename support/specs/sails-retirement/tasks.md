@@ -495,7 +495,7 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   **Evidence:** [query reads](evidence/p5-query-reads.md). All 25 declarations are
   mounted; Mongo/Solr HTTP and Bruno pass with no pending tests.
 
-- [ ] **SR-034 — Migrate record reads and exports.**
+- [x] **SR-034 — Migrate record reads and exports.**
 
   **Depends on:** SR-031, SR-015, SR-016.
 
@@ -505,6 +505,12 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   **Accept/evidence:** representative records, denied reads, exports, missing
   objects and aborts pass; admitted work outlives transport termination when needed.
   Record the remaining mutation/upload/progress dependencies explicitly.
+
+  **Evidence:** [record reads, schemas and owned exports](evidence/p5-record-reads.md).
+  All 21 declarations mount; real Mongo/Solr HTTP, Bruno, denied reads, schema
+  reauthorization and abort/shutdown drain pass. Integrated HTTP: 85/85, no skips.
+  Full Mongo-backed core: 4408 passing, 68 existing pending, zero failures.
+  SR-035 mutations, SR-041/042 uploads and SR-043 progress remain separate.
 
 - [ ] **SR-035 — Migrate record mutations and workflow operations.**
 

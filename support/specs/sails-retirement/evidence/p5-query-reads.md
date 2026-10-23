@@ -88,3 +88,9 @@ report targets, custom search providers, live Figshare and populated delivery/tr
 provider profiles remain integration/release matrix work. Existing trace/Figshare
 regressions passed; a live external integration is not claimed. Full Mongo-backed
 `test:core` is recorded in the final read-group evidence after SR-034.
+
+Final source `585aa7300`: query reads reran within the **85/85** integrated real
+Mongo/Solr/Keycloak HTTP suite, zero failures/pending; their Bruno requests also
+passed. Full Mongo-backed core: **4408 passing, 68 existing pending, zero failures**.
+See [the final read-group closeout](p5-record-reads.md#final-full-core-closeout) for
+commands, pending categories and the recorded Mongo server failure/restart.

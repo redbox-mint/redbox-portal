@@ -200,3 +200,51 @@ CSRF/browser writes, record reads/exports and query/audit collections. No skip
 is counted as acceptance. Keycloak/provider versions, signed AAF fixtures and
 institution/provider limits remain those in `p6-auth-csrf.md`. No provider quota or
 usage limit was encountered.
+
+## Final full-core closeout
+
+Final implementation source **`585aa7300`** (after extraction `ae794b012` and
+comparison correction `947608e16`):
+
+```sh
+export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
+PERSISTENCE_TEST_MONGO_URL=mongodb://127.0.0.1:34903/redbox_prisma_p5 \
+  npm run test:core
+```
+
+**4408 passing / 68 existing pending / zero failing**, exit **0**, approximately
+**2 minutes** (`p5-final-core2.log`). This invocation actually runs the Prisma/Mongo
+persistence regression contracts against the configured server. Pending groups
+are unchanged from P4: Figshare durable worker/provider **51**, SIEM receiver/
+delivery **7**, isolated standalone driver foundation **3**, Raid **2**, Trigger
+**2**, Workspace **3**. None counts as acceptance of the standalone read/auth/CSRF
+routes; their separate integrated HTTP suite ran all **85** cases with no skips.
+Previously failing translation, actor, Passport and startup assertions pass in
+the complete run. Startup's subprocess completed in **11158ms**, within the
+unchanged 12000ms child/15000ms test limits.
+
+Final production emission plus Prisma artifact copy passed (`p5-final-compile.log`).
+A compiled JSON-export smoke probe additionally passed **3/3** cases: ordinary,
+quoted and legacy omitted record types retain valid JSON and the original string
+representation (`p5-export-json-smoke.log`). Focused changed-source formatting
+passed (`p5-final-format-check2.log`); its first check requested one line wrap in
+the transformer, which was applied. `git diff --check` and regenerated offline
+inventory/check passed, with source manifest `585aa7300` and **121/333** standalone
+routes. SR-032 **63/63**, SR-033 **25/25**, SR-034 **21/21**, SR-038 **9/9** and
+SR-039 **1/1** are complete within the specified slices. The new POST logout is
+also recorded separately as a successor declaration in inventory additions.
+
+Owned test resources were cleaned after verification with:
+
+```sh
+docker compose -p sr-p6-auth \
+  -f support/integration-testing/docker-compose.bruno.oidc.yml \
+  -f .tmp/sails-retirement/keycloak-ports.yml down
+docker rm -f sr-p5-mongo8 sr-p5-solr
+```
+
+No unrelated containers, checkout changes or GraphQL specification files were
+removed. Diagnostic logs and the qualified toolchain remain ignored locally.
+No SR-035/036/037 or SR-040+ implementation was started. The recorded server crash,
+live-federation/institution IdP and custom-provider limits remain release-matrix
+work; no new institution designation or approval is required to close these tasks.

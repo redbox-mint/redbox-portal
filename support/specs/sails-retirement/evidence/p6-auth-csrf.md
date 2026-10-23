@@ -318,3 +318,9 @@ controller/service chronicles, actor/policy and startup comparison regressions:
 full run's **4392 passing / 68 pending / 16 failing** is retained in
 `p5-final-core.log`; no failure was hidden by skips. Final integrated Mongo/provider
 and full-core results are recorded in [p5-record-reads.md](p5-record-reads.md).
+
+Final integrated rerun after `947608e16`: all 85 Mongo/HTTP cases passed with real
+Keycloak and Bruno (22/22 requests, 29/29 tests across the requested groups).
+Full Mongo-backed core on `585aa7300`: **4408 passing, 68 existing pending, zero
+failures**. Commands, pending categories, server-crash limitation and owned-resource
+cleanup are in [the final read-group closeout](p5-record-reads.md#final-full-core-closeout).
