@@ -44,6 +44,8 @@ import {
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
+import { TemplateFormConfigVisitor } from '../visitor/template.visitor';
+import type { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import { RelatedObjectDataInlineFormConfigVisitor } from '../visitor/related-object-data-inline.visitor';
 import type { RecordsService } from '../RecordsService';
 import type { RecordValidationCandidate, RecordValidationOperationDiscoveryRequest } from './RecordValidation';
@@ -923,6 +925,39 @@ export class Forms {
         return key;
       }
     };
+  }
+
+  /** Extract client templates through the same owned form and vocabulary pipeline. */
+  public async extractRawTemplates(
+    item: FormConfigFrame,
+    formMode: FormModesConfig,
+    userRoles?: string[],
+    recordMetadata?: Record<string, unknown> | null,
+    reusableFormDefs?: ReusableFormDefinitions
+  ): Promise<TemplateCompileInput[]> {
+    const constructor = new ConstructFormConfigVisitor(this.logger);
+    const constructedForm = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
+    const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger, this.input.vocabulary);
+    await vocabVisitor.resolveVocabs(constructedForm, undefined, {
+      includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
+    });
+    const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
+    await contextVariablesVisitor.applyContextVariables(constructedForm);
+    const rawBehaviours = _.cloneDeep(constructedForm.behaviours);
+
+    const clientVisitor = new ClientFormConfigVisitor(this.logger);
+    const clientForm = await clientVisitor.start({
+      form: constructedForm,
+      formMode,
+      userRoles,
+      reusableFormDefs,
+    });
+
+    const form = clientForm;
+    form.behaviours = rawBehaviours;
+
+    const visitor = new TemplateFormConfigVisitor(this.logger);
+    return await visitor.start({form});
   }
 
   /**

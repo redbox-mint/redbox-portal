@@ -23,6 +23,7 @@ import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
+import { clientConfiguration } from '../pages/clientConfiguration';
 import { FormAttributes } from '../persistence/rows';
 
 /**
@@ -263,7 +264,15 @@ export namespace Controllers {
         return res.notFound();
       }
       res.set('Content-Type', dynamicAssetInfo.type);
-      return res.view(dynamicAssetInfo.view, viewContext);
+      return res.view(dynamicAssetInfo.view, {
+        ...viewContext,
+        clientConfig: clientConfiguration(
+          sails.config,
+          String(req.session.branding),
+          String(req.session.portal),
+          String(Reflect.get(req.session, 'langCode') ?? 'en')
+        ),
+      });
     }
 
     /**

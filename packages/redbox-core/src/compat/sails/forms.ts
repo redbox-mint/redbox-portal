@@ -9,6 +9,7 @@ const methods = [
   'generateFormFromSchema',
   'getFormByStartingWorkflowStep',
   'buildClientFormConfig',
+  'extractRawTemplates',
   'buildContractFormConfig',
   'listConfiguredRecordContractForms',
   'discoverValidationOperations',

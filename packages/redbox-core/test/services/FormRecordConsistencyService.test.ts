@@ -30,7 +30,10 @@ describe('FormRecordConsistencyService', function () {
     (global as any).RecordsService = {
       getMeta: sinon.stub()
     };
+    const { LegacyForms } = require('../../src/compat/sails/forms');
+    const templateForms = new LegacyForms();
     (global as any).FormsService = {
+      extractRawTemplates: templateForms.extractRawTemplates.bind(templateForms),
       getFormByName: sinon.stub().returns(of({})),
       buildClientFormConfig: sinon.stub().returns({})
     };

@@ -22,17 +22,13 @@ import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import {
     FormValidatorSummaryErrors,
-    FormConfigFrame, TemplateCompileInput, FormModesConfig,
+    FormModesConfig,
     ReusableFormDefinitions,
     RecordValueChange, RecordValuePath
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
 import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
-import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
 import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
-import { ClientFormConfigVisitor } from '../visitor/client.visitor';
-import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
-import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 
 export namespace Services {
 
@@ -287,36 +283,8 @@ export namespace Services {
          * @param recordMetadata The record metadata.
          * @param reusableFormDefs The reusable form definitions.
          */
-        public async extractRawTemplates(
-          item: FormConfigFrame,
-          formMode: FormModesConfig,
-          userRoles?: string[],
-          recordMetadata?: Record<string, unknown> | null,
-          reusableFormDefs?: ReusableFormDefinitions
-        ): Promise<TemplateCompileInput[]> {
-          const constructor = new ConstructFormConfigVisitor(this.logger);
-          const constructedForm = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
-          const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-          await vocabVisitor.resolveVocabs(constructedForm, undefined, {
-            includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
-          });
-          const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
-          await contextVariablesVisitor.applyContextVariables(constructedForm);
-          const rawBehaviours = _.cloneDeep(constructedForm.behaviours);
-
-          const clientVisitor = new ClientFormConfigVisitor(this.logger);
-          const clientForm = await clientVisitor.start({
-            form: constructedForm,
-            formMode,
-            userRoles,
-            reusableFormDefs,
-          });
-
-          const form = clientForm;
-          form.behaviours = rawBehaviours;
-
-          const visitor = new TemplateFormConfigVisitor(this.logger);
-          return await visitor.start({form});
+        public extractRawTemplates(...args: Parameters<import('../forms/Forms').Forms['extractRawTemplates']>) {
+          return FormsService.extractRawTemplates(...args);
         }
 
         /**

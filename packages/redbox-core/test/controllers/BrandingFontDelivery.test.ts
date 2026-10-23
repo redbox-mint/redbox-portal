@@ -377,7 +377,7 @@ describe('Branding public font delivery and layouts', function () {
   it('conditions Google fonts on Default Typography with a single Regular preload', function () {
     for (const file of LAYOUTS) {
       const content = fs.readFileSync(repoPath(file), 'utf8');
-      expect(content, file).to.contain('getActiveTypefaceFontInfo');
+      expect(content, file).to.contain('page.typeface');
       expect(content, file).to.contain('fonts.googleapis.com');
       const googleIndex = content.indexOf('fonts.googleapis.com');
       const ifIndex = content.indexOf('if (__brandTypefaceFont)');
@@ -390,7 +390,7 @@ describe('Branding public font delivery and layouts', function () {
     }
     for (const file of PARTIALS) {
       const content = fs.readFileSync(repoPath(file), 'utf8');
-      expect(content, file).to.contain('hasActiveCustomTypeface');
+      expect(content, file).to.contain('page.typeface');
       expect(content, file).to.contain('fonts.googleapis.com');
     }
     const remaining = [...LAYOUTS, ...PARTIALS];
