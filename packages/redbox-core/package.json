@@ -345,6 +345,10 @@
       "default": "./dist/*.js"
     },
     "./*": "./*",
+    "./maintenance": {
+      "types": "./dist/maintenance/indexes.d.ts",
+      "default": "./dist/maintenance/indexes.js"
+    },
     "./queues": {
       "types": "./dist/queues/index.d.ts",
       "default": "./dist/queues/index.js"

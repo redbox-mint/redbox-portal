@@ -340,3 +340,100 @@ dist was absent; rerunning after build passed without deadline/assertion changes
 This was an avoidable verification scheduling error, not accepted proof. Several
 mixed-directory edit invocations failed before touching files and were repeated
 at the repository root. No failure was hidden by a skip or timeout relaxation.
+
+## SR-025 — Standalone inactive maintenance
+
+SR-024 source `c7258c1b7`. `bin/persistence-indexes.cjs` now uses the public
+`@researchdatabox/redbox-core/maintenance` entrypoint, explicit typed operational
+files/environment inputs and installed v6 extension declarations. No Sails/rc,
+legacy core barrel, generated shims, temporary controller directory, HTTP server
+or signal owner is loaded. Configuration resolution reuses SR-019/020. Selected
+bundled Mongo storage preflight is loaded through its public extension export;
+custom replacement providers fail offline rather than inherit wrong descriptors.
+Domain contributions stay offline; retired ORM selectors are rejected. The neutral
+storage declaration omits the legacy Mongo index DSL (existing Prisma descriptors
+remain authoritative); its comparison entrypoint is unchanged.
+
+The existing inspect-all-before-DDL coordinator now also covers selected Mongo
+Agenda indexes, including a separate URL/collection. SQS-only selections acquire no
+Agenda Mongo pool. Duplicate/conflicting definitions block all ensure DDL. Default
+inspect, explicit ensure, ready/not-ready/error exit statuses and finally cleanup
+remain. The existing explicit revision backfill is exported publicly and stays
+separate from index preparation, migrations and business startup. Operator guidance:
+[maintenance-v6.md](../maintenance-v6.md).
+
+Commands (qualified absolute Node PATH from SR-019):
+
+```sh
+npm --prefix packages/redbox-core run build
+npm --prefix packages/redbox-core run typecheck:application
+npm --prefix packages/sails-hook-redbox-storage-mongo run build
+LIFECYCLE_TEST_MONGO_URL=mongodb://127.0.0.1:34902/sr_p3_lifecycle node packages/redbox-core/test/extensions/run-packed.cjs --maintenance-mongo
+# From packages/redbox-core:
+TS_NODE_PROJECT=test/tsconfig.json ../../node_modules/.bin/mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 15000 'test/configuration/*.test.ts' 'test/extensions/*.test.ts' test/application/Initialization.test.ts test/services/ConfigService.test.ts
+# Root:
+npm run lint
+git diff --check
+```
+
+Clean core/Prisma generation, strict application typecheck and storage build all
+**exit 0**. Focused suite **31 passing / 0 failing/pending** (~1 s). Lint **888
+files / 0 errors/warnings**. Focused Prettier and diff checks pass. No dependency
+version/lockfile change. An initial static hook type import pulled duplicate core
+ambient declarations into source compilation; switched to the existing asynchronous
+public module loader and a narrow preflight shape check. Exported the report type
+for declaration emission. No skipLibCheck or weakened test assertions. An initial
+focused command had a case-mismatched extension filename and ran only 20 cases;
+the corrected complete glob produced the 31-case result above.
+
+Installed proof ran on `agentvm`, Linux **6.8.0-147-generic x86_64**, Node
+**26.11.1**, npm **11.20.0**, MongoDB **8.0.34 / FCV 8.0**, unauthenticated
+standalone `sr-p3-mongo8` at `127.0.0.1:34902` (image
+`sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907`).
+Three unique disposable databases distinguish core, storage and Agenda. The runner
+packed actual packages, installed production dependencies, removed node_modules,
+and successfully repeated installation with **offline npm ci**. Consumer files
+were confined to `/tmp/redbox-p3-packed-5tdeQe`, removed after success. No source
+shortcut or NODE_PATH. Existing npm deprecation/git-integrity notices are retained
+in ignored logs; no new package pin was introduced.
+
+Packed proof **exit 0**, **9 CLI invocations / 102 index reports (3 Agenda)**,
+**0 failures/pending/skips**: fresh default inspect exit 2 with zero collections;
+duplicate cache keys block every scope's DDL; conflicting unique/sparse definition
+blocks every scope's DDL; ensure and repeated default inspect exit 0 with matching
+reports; SQS-only inspect succeeds despite an unreachable Agenda Mongo URL; real
+non-simple Agenda collation fails after acquiring pools and exits naturally after
+cleanup; invalid duplicate mode exits 2; unsupported config exits 1 without its
+secret sentinel. Ready/not-ready reports show **zero pools/Prisma clients/active
+operations/resources**. Import guards reject Sails, rc, core barrel, compatibility
+graph, connects/listeners at import, and signal changes. An ESM/TLA probe has
+throwing business factories/migrations/bootstrap plus a scheduled unbound job:
+none executes. No job, migration-ledger entry or Agenda logger collection appears.
+Explicit revision backfill updates **1 then 0** active records on repeat, with
+zero pools after cleanup and no ledger/job side effects.
+
+Packed artifacts (SHA-256; result manifest retained in ignored
+`.tmp/sails-retirement/p3-maintenance-pack/result.json`):
+
+| Artifact                                                        | SHA-256                                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `researchdatabox-sails-ng-common-0.2.1.tgz`                     | `6d23632ef3a9f4c59637fc9e8ca44e480e7c87d6218132bf3ca81289c9442a72` |
+| `researchdatabox-agenda-sqs-backend-0.0.1-beta.9472.tgz`        | `76d426e7ab5d9c71af1fff96e528bf800970132eb5ea4431eb7d9a87c2a3720f` |
+| `researchdatabox-raido-openapi-generated-node-0.0.3.tgz`        | `d40363198433495e887285046e26e5a7067917b7e690540e2ccb57ec48d30adf` |
+| `researchdatabox-rva-registry-openapi-generated-node-0.0.1.tgz` | `31131336308eb0fdf0ecb2d59e2bc455a8b64597ebb3cafcfb75923d7c03b82d` |
+| `researchdatabox-redbox-core-0.0.1-beta.9022.tgz`               | `daeeb3a257ff10eade4866b2c75444c0504441070b9e8cbf1745f6da7162f097` |
+| `researchdatabox-sails-hook-redbox-storage-mongo-1.5.3.tgz`     | `e1b38316a4f1c887d67008577fa2f3c52c782ea6768c133b601b38e5e50eb0b2` |
+| `researchdatabox-sails-hook-redbox-pdfgen-1.0.0.tgz`            | `13c8b501f1c945d239b722203e09806594157c0c92d1fca219ccf4b35a551db6` |
+| `redbox-hook-dev-1.0.0.tgz`                                     | `9c83eeadd4fe11d70ad277bd4f2da2362a032619ea9fab4f3f0a7a1b25784c7d` |
+| `researchdatabox-redbox-dev-tools-4.5.1.tgz`                    | `44e3932b952d083649d25f697428218ff570b88ab5eaa5f36c833b19e39e32a5` |
+| `sr-esm-only-1.0.0.tgz`                                         | `e5a6e1e9187afde18781788d9c6c39a9862497e92c4ad60a14d318dfd05f2b89` |
+| `sr-esm-hook-1.0.0.tgz`                                         | `89025988a1495236d6a36e21e7c1a9a197d6f332c2ee2ad8bfe3b91fe0b73c21` |
+| `sr-commonjs-hook-1.0.0.tgz`                                    | `60241f39f9d9485118c478fab03c2b2d9991c52563d92ab1e352c9a78f4d4c9e` |
+| `sr-maintenance-probe-1.0.0.tgz`                                | `e1e6e567d5b2a046e7a32f8bbb9dd5db6c48bc18a8128c0f2fa443fdb8869ea8` |
+
+Limitations: selected bundled Mongo storage only; custom replacements must expose
+their own explicit preflight. Registration/config modules are trusted executable
+code and must obey the side-effect-free contract. DDL and revision backfill retain
+existing nontransactional/partial-write behavior; stopped writers and verified
+backup remain operator prerequisites. This is standalone maintenance proof, not
+institution, authenticated topology, newer-major or mixed-version qualification.

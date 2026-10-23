@@ -2,7 +2,7 @@
 
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
-complete; P3 SR-019–SR-024 are complete; SR-025 is in progress.
+complete; P3 SR-019–SR-025 are complete.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -368,7 +368,9 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   timeouts/failures retain ownership for retry; Prisma clients/pools stay open
   until dependent work settles. Later upload/socket owners must use this interface.
 
-- [ ] **SR-025 — Make maintenance entrypoints standalone and inactive.**
+- [x] **SR-025 — Make maintenance entrypoints standalone and inactive.**
+
+  **Status:** done; [installed inactive maintenance, real Mongo index safety and cleanup](evidence/p3-lifecycle-config.md#sr-025--standalone-inactive-maintenance).
 
   **Depends on:** SR-019, SR-022, SR-015.
 

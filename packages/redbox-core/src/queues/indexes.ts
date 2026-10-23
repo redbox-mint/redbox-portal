@@ -1,3 +1,4 @@
+import type { PersistenceIndexInspection } from '../persistence/indexes';
 import type { Db } from '@agendajs/mongo-backend';
 import { mongoDatabase, mongoResourceDatabase } from '../persistence/runtime';
 import type { PersistenceOwner } from '../persistence/owner';
@@ -13,7 +14,10 @@ const definitions = [
 ] as const;
 
 /** Same pinned Agenda and historical queue indexes; no job bodies or backend connection. */
-export async function inspectAgendaIndexes(db: Db, collection = 'agendaJobs') {
+export async function inspectAgendaIndexes(
+  db: Db,
+  collection = 'agendaJobs'
+): Promise<Omit<PersistenceIndexInspection, 'datastore'>[]> {
   const info = await db.listCollections({ name: collection }).next();
   if (((info && 'options' in info ? info.options?.collation?.locale : undefined) ?? 'simple') !== 'simple')
     throw new Error('Agenda requires simple collection collation.');

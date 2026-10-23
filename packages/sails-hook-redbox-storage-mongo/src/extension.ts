@@ -28,7 +28,9 @@ export function createMongoStorageModule(input: MongoStorageInputs): MongoStorag
 export function registerRedboxExtension(): RedboxExtension {
   return {
     apiVersion: 1,
-    config: { storage, record },
+    // Prisma index descriptors belong to explicit preflight; the legacy Mongo
+    // config DSL remains with the comparison entrypoint.
+    config: { storage: { serviceName: storage.serviceName }, record },
     modules: [{ name: 'storage', create: createMongoStorageModule }],
     migrations: [
       {
@@ -43,3 +45,5 @@ export function registerRedboxExtension(): RedboxExtension {
 }
 
 export { inspectPrismaStagedStorage, ensurePrismaStagedStorageIndexes } from './persistence/preflight';
+
+export { recordRevisionMaintenance, type RecordRevisionMaintenance } from './persistence/RecordRevisionMaintenance';
