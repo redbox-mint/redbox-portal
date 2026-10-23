@@ -30,20 +30,20 @@ COPY . .
 # Subproject npm invocations do not inherit the application's .npmrc. Keep the
 # same strict, script-free install policy at every package boundary; the explicit
 # builds below own compilation and Prisma generation.
-RUN npm ci --ignore-scripts --strict-peer-deps --no-audit
-RUN cd packages/agenda-sqs-backend && npm ci --ignore-scripts --strict-peer-deps --no-audit
-RUN cd packages/sails-ng-common && npm ci --ignore-scripts --strict-peer-deps --no-audit
-RUN cd packages/raido && npm ci --ignore-scripts --strict-peer-deps --no-audit
-RUN cd packages/rva-registry && npm ci --ignore-scripts --strict-peer-deps --no-audit
-RUN cd packages/redbox-core && npm ci --ignore-scripts --strict-peer-deps --no-audit
-RUN cd packages/sails-hook-redbox-storage-mongo && npm ci --ignore-scripts --strict-peer-deps --no-audit
+RUN npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/agenda-sqs-backend && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/sails-ng-common && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/raido && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/rva-registry && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/redbox-core && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
+RUN cd packages/sails-hook-redbox-storage-mongo && npm ci --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit
 
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN --network=none cd packages/redbox-core && npm run check:prisma && npm run build
-RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit && npm run build
+RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --legacy-peer-deps=false --no-audit && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
 # Build its dist so the optional `test` image (below) can load it. It is pruned
