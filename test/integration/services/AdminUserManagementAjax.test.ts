@@ -77,9 +77,7 @@ describe("Admin user management AJAX routes", function () {
           { additionalContext: { contains: JSON.stringify(primaryUserId) } },
           { additionalContext: { contains: JSON.stringify(secondaryUserId) } }
         ]
-      }, {meta: {
-        enableExperimentalDeepTargets: true
-      }});
+      });
     }
     await fixtureRemove("User", { id: [primaryUserId, secondaryUserId] });
   });
