@@ -3,7 +3,7 @@
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
 pending institution cohort and production-source designation. P2 SR-012–SR-018 is
 complete; P3 SR-019–SR-025 and P4 SR-026–SR-030 are complete.
-P5 SR-031 is complete; SR-032 has verified API and browser metadata read slices.
+P5 SR-031 and SR-032 are complete; P6 SR-038 and SR-039 are complete.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
@@ -465,14 +465,12 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
   upload or socket prerequisites are explicit. Use existing tests with focused
   additions, not a generated parallel suite or generic framework abstraction.
 
-- [ ] **SR-032 — Migrate configuration, forms metadata and translations.**
+- [x] **SR-032 — Migrate configuration, forms metadata and translations.**
 
-  **Status:** partial; six API read contracts and their shared AppConfig,
-  translation-entry, form and validation-discovery implementations are extracted.
-  [Executed read-slice evidence and remaining routes](evidence/p5-configuration-read.md).
-  [Browser/dashboard/localization/workspace and AppConfig form reads](evidence/p5-metadata-read.md)
-  plus both browser record-form GETs bring the verified inventory to 41/63.
-  Its 22 protected writes/previews remain; this task is not accepted as a completed group.
+  **Status:** done; [read/domain/form delivery evidence](evidence/p5-metadata-read.md)
+  and [protected configuration, translation and dashboard writes](evidence/p5-metadata-write.md).
+  All 63 inventoried declarations have explicit standalone mounts, verified with
+  SR-038 authentication and SR-039 CSRF. Institution qualification remains SR-005.
 
   **Depends on:** SR-031, SR-021; SR-039 before completing protected writes.
 
@@ -558,7 +556,7 @@ for behavior and the [implementation plan](implementation_plan.md) for stages.
 - [x] **SR-039 — Replace Sails CSRF and verify browser policy enforcement.**
 
   **Status:** done; [exact-pinned synchronizer, real Mongo/Bruno and actual browser
-  token/origin/role/schema/logout enforcement](evidence/p6-auth-csrf.md#sr-039--csrf-and-browser-policy-enforcement).
+  token/origin/role/schema/logout enforcement](evidence/p6-auth-csrf.md#sr-039--session-bound-csrf-and-browser-policies).
 
   **Depends on:** SR-038, SR-028.
 

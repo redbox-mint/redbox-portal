@@ -42,3 +42,8 @@ export {
 } from './identityProviders';
 
 export { createHttpCsrf, mountCsrfTokenRoute, csrfTokenRoute, type HttpCsrfInput } from './csrf';
+export {
+  mountConfigurationWriteRoutes,
+  configurationWriteRoutes,
+  type ConfigurationWriteHttpInput,
+} from './configurationWrites';

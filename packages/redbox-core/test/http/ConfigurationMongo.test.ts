@@ -1,3 +1,5 @@
+import { mountConfigurationWriteRoutes } from '../../src/http/express/configurationWrites';
+import { createHttpCsrf, mountCsrfTokenRoute } from '../../src/http/express/csrf';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { Services as VocabularyDomain } from '../../src/vocabulary/Vocabulary';
 import { Services as SanitizerDomain } from '../../src/forms/DomSanitizer';
@@ -53,6 +55,14 @@ async function configurationFixture() {
   let forms!: Forms;
   let dashboardConfig!: DashboardConfiguration.DashboardConfig;
   let failReads = false;
+  let failWrites = false;
+  let overrideWrites = 0;
+  let delayedWrite:
+    | {
+        entered: ReturnType<typeof Promise.withResolvers<void>>;
+        release: ReturnType<typeof Promise.withResolvers<void>>;
+      }
+    | undefined;
   let overrideReads = 0;
   let delayedRead:
     | {
@@ -83,6 +93,15 @@ async function configurationFixture() {
         },
       };
       class HookAppConfigs extends AppConfigs {
+        public override async createOrUpdateConfig(...args: Parameters<AppConfigs['createOrUpdateConfig']>) {
+          overrideWrites++;
+          if (failWrites) throw new Error('private write credentials');
+          if (delayedWrite) {
+            delayedWrite.entered.resolve();
+            await delayedWrite.release.promise;
+          }
+          return super.createOrUpdateConfig(...args);
+        }
         public override async getAppConfigByBrandAndKey(brand: string, key: string): Promise<unknown> {
           overrideReads++;
           if (failReads) throw new Error('private backend credentials');
@@ -435,6 +454,22 @@ async function configurationFixture() {
         policies,
         policyConfiguration: { '*': [...pilotPolicyChain] },
       });
+      for (const path of ['/:branding/:portal/appconfig(/*)', '/:branding/:portal/app/i18n(/*)'])
+        await f.identities.create('pathrule', { path, role: f.role.id, branding: f.brand.id, can_update: true });
+      const csrf = createHttpCsrf({
+        origins: ['http://127.0.0.1'],
+        authenticateBearer: token => f.identity.bearer(token),
+      });
+      mountCsrfTokenRoute(router, csrf);
+      mountConfigurationWriteRoutes(router, {
+        appConfigs,
+        translations,
+        dashboardConfig,
+        csrf,
+        policies,
+        reloadTranslations: id => translationRuntime.reloadResources(id),
+        policyConfiguration: { '*': [...pilotPolicyChain] },
+      });
       mountConfigurationReadRoutes(router, {
         appConfigs,
         translations,
@@ -445,6 +480,7 @@ async function configurationFixture() {
       });
     },
   });
+  await f.pathRules.loadRules();
   return {
     ...f,
     appConfigs,
@@ -456,6 +492,12 @@ async function configurationFixture() {
       failReads = value;
     },
     overrideReads: () => overrideReads,
+    overrideWrites: () => overrideWrites,
+    failWrites: (value: boolean) => {
+      failWrites = value;
+    },
+    delayWrite: () =>
+      (delayedWrite = { entered: Promise.withResolvers<void>(), release: Promise.withResolvers<void>() }),
     delayRead: () => (delayedRead = { entered: Promise.withResolvers<void>(), release: Promise.withResolvers<void>() }),
     close: f.close,
   };
@@ -847,5 +889,268 @@ describe('configuration, translations and forms on standalone Mongo HTTP', funct
       { cwd: collection, timeout: 30_000, maxBuffer: 1024 * 1024 }
     );
     console.log(result.stdout);
+  });
+});
+
+describe('protected metadata writes on standalone Mongo HTTP', function () {
+  this.timeout(45000);
+  let f: Awaited<ReturnType<typeof configurationFixture>>;
+  let cookie = '',
+    token = '';
+  const base = '/default/rdmp';
+  before(async () => {
+    f = await configurationFixture();
+    const login = await fetch(f.url + '/__test/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'pilot-admin', password: 'pilot-password' }),
+    });
+    assert.equal(login.status, 200);
+    cookie = login.headers.get('set-cookie')!.split(';')[0]!;
+    await login.text();
+    const response = await fetch(f.url + '/csrfToken', { headers: { Cookie: cookie } });
+    token = ((await response.json()) as { _csrf: string })._csrf;
+  });
+  after(async () => {
+    await f?.close();
+  });
+  async function write(path: string, body: unknown = {}, method = 'POST', headers: Record<string, string> = f.headers) {
+    const response = await fetch(f.url + path, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5000),
+    });
+    const text = await response.text();
+    return { response, body: (text ? JSON.parse(text) : {}) as Record<string, unknown> };
+  }
+  const session = () => ({ Cookie: cookie, 'X-CSRF-Token': token });
+  it('saves and resets API and form config through the chosen override, publishing persisted cache updates', async () => {
+    const count = f.overrideWrites();
+    const submitted = { enabled: true, message: 'Owned HTTP value' };
+    const api = await write(base + '/api/appconfig/systemMessage', submitted);
+    assert.equal(api.response.status, 200);
+    assert.deepEqual(api.body, submitted);
+    const form = await write(base + '/appconfig/form/systemMessage', { ...submitted, _csrf: token }, 'POST', {
+      Cookie: cookie,
+    });
+    assert.equal(form.response.status, 200);
+    assert.equal(f.overrideWrites(), count + 2);
+    assert(!JSON.stringify(form.body).includes('_csrf'));
+    const stored = await f.appConfigs.getAppConfigByBrandAndKey(f.brand.id, 'systemMessage');
+    assert(JSON.stringify(stored).includes('Owned HTTP value'));
+    assert(!JSON.stringify(stored).includes('_csrf'));
+    const reset = await write(base + '/api/appconfig/systemMessage', {}, 'DELETE');
+    assert.equal(reset.response.status, 200);
+    assert.equal(reset.response.headers.get('x-redbox-config-source'), 'default');
+    assert.equal(reset.body.enabled, false);
+    assert.equal((await write(base + '/api/appconfig/systemMessage', {}, 'DELETE')).response.status, 200);
+  });
+  it('persists slash-tail translation keys once, sanitizes html and invalidates the live translation cache', async () => {
+    const path = base + '/api/i18n/entries/en/translation/owned%2Fkey/tail';
+    const saved = await write(path, { value: 'API value' });
+    assert.equal(saved.response.status, 200);
+    assert.equal(saved.body.key, 'owned/key/tail');
+    const browser = await write(
+      base + '/app/i18n/entries/en/translation/browser/value',
+      { value: '<p>Safe</p><script>evil()</script>', contentFormat: 'html' },
+      'POST',
+      session()
+    );
+    assert.equal(browser.response.status, 200);
+    assert(!JSON.stringify(browser.body).includes('<script'));
+    assert.equal(f.translationRuntime.t('owned/key/tail', undefined, 'en', 'default'), 'API value');
+    const deleted = await write(path, {}, 'DELETE');
+    assert.equal(deleted.response.status, 200);
+    assert.deepEqual(deleted.body, { message: 'Deleted', details: '' });
+    assert.equal((await write(path, {}, 'DELETE')).response.status, 404);
+    assert.notEqual(f.translationRuntime.t('owned/key/tail', undefined, 'en', 'default'), 'API value');
+  });
+  it('imports API bundles with coerced flags and browser bundles/enabled without persisting the CSRF field', async () => {
+    const api = await write(base + '/api/i18n/bundles/en/writeapi?splitToEntries=false&overwriteEntries=false', {
+      data: { nested: { value: 'Bundle' } },
+    });
+    assert.equal(api.response.status, 200);
+    assert.deepEqual(
+      await f.translations.listEntries(Object.assign(new BrandingModel(), f.brand), 'en', 'writeapi'),
+      []
+    );
+    const browser = await write(
+      base + '/app/i18n/bundles/en/writeapp',
+      { value: 'Browser bundle', _csrf: token },
+      'POST',
+      { Cookie: cookie }
+    );
+    assert.equal(browser.response.status, 200);
+    assert(!JSON.stringify(browser.body).includes('_csrf'));
+    const enabled = await write(
+      base + '/app/i18n/bundles/en/writeapp/enabled',
+      { enabled: 'false' },
+      'POST',
+      session()
+    );
+    assert.equal(enabled.response.status, 200);
+    assert.equal(enabled.body.enabled, false);
+    assert.equal(
+      (await write(base + '/app/i18n/bundles/en/writeapp/enabled?enabled=true', {}, 'POST', session())).body.enabled,
+      true
+    );
+  });
+  it('executes both dashboard aliases for validation, revision-checked workflow/view saves and preview/apply copy', async () => {
+    const brand = Object.assign(new BrandingModel(), f.brand);
+    const source = { kind: 'workflow' as const, recordType: 'dataRecord', stage: 'draft' };
+    const destination = { kind: 'view' as const, view: 'consolidated', step: 'all' };
+    for (const mount of ['/api/', '/admin/']) {
+      const headers = mount === '/api/' ? f.headers : session();
+      const root = base + mount + 'dashboard-config';
+      for (const [target, path] of [
+        [source, '/workflows/dataRecord/draft'],
+        [destination, '/views/consolidated/all'],
+      ] as const) {
+        const current = await f.dashboardConfig.getTargetSettings(brand, target);
+        const validated = await write(
+          root + '/validate',
+          { target, expectedRevision: current.revision, settings: current.settings },
+          'POST',
+          headers
+        );
+        assert.equal(validated.response.status, 200, JSON.stringify(validated.body));
+        const payload = {
+          expectedRevision: current.revision,
+          settings: current.settings,
+          validationFingerprint: validated.body.validationFingerprint,
+          acknowledgedWarningIds: (validated.body.warnings as Array<{ id: string }>).map(x => x.id),
+        };
+        const saved = await write(root + path, payload, 'PUT', headers);
+        assert.equal(saved.response.status, 200, JSON.stringify(saved.body));
+        assert.equal((await write(root + path, payload, 'PUT', headers)).response.status, 409);
+      }
+      const preview = await write(
+        root + '/copy/preview',
+        { source, destinations: [destination], groups: ['all'] },
+        'POST',
+        headers
+      );
+      assert.equal(preview.response.status, 200, JSON.stringify(preview.body));
+      const warnings = (preview.body.warnings ?? []) as Array<{ id: string }>;
+      const applied = await write(
+        root + '/copy/apply',
+        {
+          source,
+          destinations: [destination],
+          groups: ['all'],
+          expectedRevision: preview.body.expectedRevision,
+          previewFingerprint: preview.body.previewFingerprint,
+          acknowledgedWarningIds: warnings.map(x => x.id),
+        },
+        'POST',
+        headers
+      );
+      assert.equal(applied.response.status, 200, JSON.stringify(applied.body));
+    }
+  });
+  it('preserves all retired PUT denials after authentication and sanitizes backend failures', async () => {
+    for (const path of ['/merged-view/consolidated/all', '/merged/dataRecord/draft', '/overrides']) {
+      const response = await write(base + '/api/dashboard-config' + path, {}, 'PUT');
+      assert.equal(response.response.status, 410);
+      assert.equal(response.body.message, 'legacy-operation-retired');
+    }
+    f.failWrites(true);
+    try {
+      const failed = await write(base + '/api/appconfig/systemMessage', { enabled: true });
+      assert.equal(failed.response.status, 500);
+      assert(!JSON.stringify(failed.body).includes('private'));
+    } finally {
+      f.failWrites(false);
+    }
+  });
+  it('refuses anonymous, other-brand, wrong-role, forged bearer, missing/invalid browser tokens and malformed writes before overrides', async () => {
+    const path = base + '/appconfig/form/systemMessage';
+    const count = f.overrideWrites();
+    assert.equal((await write(path, {}, 'POST', {})).response.status, 401);
+    assert.equal((await write('/other/rdmp/appconfig/form/systemMessage', {}, 'POST', session())).response.status, 403);
+    assert.equal((await write(path, {}, 'POST', { Cookie: cookie })).response.status, 403);
+    assert.equal((await write(path, {}, 'POST', { Cookie: cookie, 'X-CSRF-Token': 'invalid' })).response.status, 403);
+    assert.equal((await write(path, {}, 'POST', f.headers)).response.status, 403);
+    assert.equal(
+      (await write(base + '/api/appconfig/systemMessage', {}, 'POST', { Cookie: cookie })).response.status,
+      403
+    );
+    assert.equal(
+      (await write(base + '/api/appconfig/systemMessage', {}, 'POST', { ...session(), Authorization: 'Bearer forged' }))
+        .response.status,
+      401
+    );
+    await f.identities.replaceMemberships('user', String(f.user.id), [f.reader.id]);
+    try {
+      for (const route of [
+        path,
+        base + '/api/appconfig/systemMessage',
+        base + '/admin/dashboard-config/validate',
+        base + '/app/i18n/entries/en/translation/no',
+      ])
+        assert.equal((await write(route, {}, 'POST', session())).response.status, 403);
+    } finally {
+      await f.identities.replaceMemberships('user', String(f.user.id), [f.role.id]);
+    }
+    assert.equal(f.overrideWrites(), count);
+    assert.equal((await write(base + '/api/appconfig/systemMessage', [])).response.status, 400);
+    assert.equal((await write(base + '/api/i18n/entries/en/translation/no', { value: {} })).response.status, 400);
+    assert.equal(
+      (await write(base + '/app/i18n/bundles/en/writeapp/enabled', { enabled: {} }, 'POST', session())).response.status,
+      400
+    );
+    assert.equal((await write(base + '/api/dashboard-config/validate', {})).response.status, 400);
+  });
+  it('keeps an admitted write owned through abort and failed stop, then persists before cleanup', async () => {
+    const slow = await configurationFixture();
+    const gate = slow.delayWrite();
+    const abort = new AbortController();
+    const request = fetch(slow.url + base + '/api/appconfig/systemMessage', {
+      method: 'POST',
+      headers: { ...slow.headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: true, message: 'Survived abort' }),
+      signal: abort.signal,
+    }).catch(() => undefined);
+    try {
+      await gate.entered.promise;
+      abort.abort();
+      await request;
+      await assert.rejects(slow.host.stop({ deadlineMs: 30 }));
+      assert.equal(slow.host.status().stopFailed, true);
+      gate.release.resolve();
+      await slow.host.stop();
+      assert.equal(
+        (await slow.native.db().collection('appconfig').findOne({ configKey: 'systemMessage' }))?.configData?.message,
+        'Survived abort'
+      );
+    } finally {
+      gate.release.resolve();
+      abort.abort();
+      await request;
+      await slow.close();
+    }
+  });
+  it('runs real Bruno metadata writes and observes their persisted result', async () => {
+    const collection = path.resolve('test/http/fixtures/bruno-metadata-writes');
+    const result = await promisify(execFile)(
+      process.execPath,
+      [
+        path.resolve('../../test/bruno/node_modules/@usebruno/cli/bin/bru.js'),
+        'run',
+        '--env-var',
+        'host=' + f.url,
+        '--env-var',
+        'token=pilot-api-token',
+        '--reporter-skip-all-headers',
+      ],
+      { cwd: collection, timeout: 30000, maxBuffer: 1024 * 1024 }
+    );
+    console.log(result.stdout);
+    assert.equal(
+      (await f.translations.getEntry(Object.assign(new BrandingModel(), f.brand), 'en', 'translation', 'bruno-write'))
+        ?.value,
+      'Bruno persisted'
+    );
   });
 });

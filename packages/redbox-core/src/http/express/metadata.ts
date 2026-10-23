@@ -1,3 +1,4 @@
+import { retiredDashboardOperation, sendDashboardError } from './dashboardResponses';
 import type { RequestHandler, Router } from 'express';
 import _ from 'lodash';
 import type { RecordTypes } from '../../recordTypes';
@@ -283,11 +284,7 @@ export function mountMetadataReadRoutes(router: Router, input: MetadataReadHttpI
               result = { reports: await input.dashboardConfig.preflightLegacyMigration(brand) };
               break;
             case 'retiredOperation':
-              throw new DashboardConfiguration.DashboardConfigError(
-                'legacy-operation-retired',
-                'This dashboard configuration operation has been retired. Dashboard profiles, defaults and overrides were replaced by independent settings for each workflow stage and dashboard-view step. Use GET /api/dashboard-config/targets, GET|PUT /api/dashboard-config/workflows/:recordType/:stage, GET|PUT /api/dashboard-config/views/:view/:step and the /api/dashboard-config/copy operations.',
-                { replacement: '/api/dashboard-config/targets' }
-              );
+              retiredDashboardOperation();
             default:
               throw new Error('Unbound metadata read.');
           }
@@ -297,26 +294,7 @@ export function mountMetadataReadRoutes(router: Router, input: MetadataReadHttpI
             sendApiErrors(req, res, 400, [{ detail: error.message }]);
             return;
           }
-          if (!(error instanceof DashboardConfiguration.DashboardConfigError)) throw error;
-          res
-            .set(apiNoCacheHeaders)
-            .status(error.status)
-            .json(
-              validationApiVersion(req) === '2.0'
-                ? {
-                    errors: [
-                      {
-                        status: String(error.status),
-                        code: error.code,
-                        title: error.code,
-                        detail: error.message,
-                        meta: error.details,
-                      },
-                    ],
-                    meta: error.details,
-                  }
-                : { message: error.code, details: error.message }
-            );
+          sendDashboardError(req, res, error);
         }
       })
     );

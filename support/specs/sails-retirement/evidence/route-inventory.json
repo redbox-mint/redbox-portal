@@ -1,6 +1,6 @@
 {
   "additions": [],
-  "source": "32d45c857c88dc270a6906ec3c25945801592d57",
+  "source": "01144a6e47551a8bee8fed03d1786a45efab68e0",
   "description": "Core effective routes plus bundled development redirect. Institution routes require SR-005 designation. ALL denotes legacy any-method declarations; action semantics determine mutation prerequisites.",
   "counts": {
     "SR-040": 48,
@@ -245,7 +245,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "DELETE /:branding/:portal/api/branding/draft/typeface/faces/:slot",
@@ -291,7 +291,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "DELETE /:branding/:portal/api/named-query/:name",
@@ -2016,7 +2016,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/dashboard-config/copy/preview",
@@ -2027,7 +2027,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/dashboard-config/validate",
@@ -2038,7 +2038,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/admin/report-config",
@@ -2202,7 +2202,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/branding/draft",
@@ -2323,7 +2323,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/dashboard-config/copy/preview",
@@ -2334,7 +2334,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/dashboard-config/validate",
@@ -2345,7 +2345,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/figshare-crosswalks",
@@ -2422,7 +2422,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/i18n/entries/:locale/:namespace/:key*",
@@ -2433,7 +2433,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/api/mint/harvest/:recordType",
@@ -2865,7 +2865,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/app/i18n/bundles/:locale/:namespace/enabled",
@@ -2876,7 +2876,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/app/i18n/entries/:locale/:namespace/:key*",
@@ -2887,7 +2887,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/appconfig/form/:appConfigId",
@@ -2898,7 +2898,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "POST /:branding/:portal/asynch",
@@ -3036,7 +3036,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/admin/dashboard-config/workflows/:recordType/:stage",
@@ -3047,7 +3047,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/admin/report-config/:name",
@@ -3093,7 +3093,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/dashboard-config/merged/:recordType/:workflowStage",
@@ -3104,7 +3104,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/dashboard-config/overrides",
@@ -3115,7 +3115,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/dashboard-config/views/:view/:step",
@@ -3126,7 +3126,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/dashboard-config/workflows/:recordType/:stage",
@@ -3137,7 +3137,7 @@
         "SR-038",
         "SR-039"
       ],
-      "standalone": false
+      "standalone": true
     },
     {
       "route": "PUT /:branding/:portal/api/deletedrecords/:oid",
