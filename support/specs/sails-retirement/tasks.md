@@ -1,7 +1,8 @@
 # Sails retirement: v6 task list
 
 Status: P0 SR-001–SR-004 and P1 SR-006–SR-011 complete; SR-005 is partial
-pending institution cohort and production-source designation. P2 is in progress.
+pending institution cohort and production-source designation. P2 SR-012–SR-018 is
+complete; P3 has not started.
 Task evidence is linked below. Planning documents were prepared on 2026-10-23; their existence is not implementation or
 release evidence. Read the [design](design.md)
 for behavior and the [implementation plan](implementation_plan.md) for stages.
