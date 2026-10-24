@@ -147,6 +147,42 @@ describe('StandardDatastreamService', function () {
     });
   });
 
+  describe('staging read ownership', function () {
+    for (const binding of [
+      undefined,
+      { redboxActor: 'other', redboxBrand: 'brand', redboxRecord: 'record' },
+      { redboxActor: 'actor', redboxBrand: 'other', redboxRecord: 'record' },
+      { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'other' },
+      { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'pending-oid' },
+    ]) it(`refuses lazy adoption of foreign or unbound staging (${JSON.stringify(binding)})`, async () => {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, forms: {}, log: fixture.log });
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file', size: 9, offset: 9, metadata: binding }));
+      await require('node:assert/strict').rejects(
+        service.getDatastream('record', 'file', { actorId: 'actor', brandId: 'brand' })
+      );
+      expect(mockPrimaryDisk.putStream.called).to.equal(false);
+      expect(mockStagingDisk.getStream.called).to.equal(false);
+      expect(mockStagingDisk.delete.called).to.equal(false);
+      expect(mockStagingDisk.deleteAll.called).to.equal(false);
+    });
+
+    it('never adopts staging from an internal read without an owning actor and brand', async () => {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, forms: {}, log: fixture.log });
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file', size: 9, offset: 9,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'record' } }));
+      await require('node:assert/strict').rejects(service.getDatastream('record', 'file'));
+      expect(mockPrimaryDisk.putStream.called).to.equal(false);
+      expect(mockStagingDisk.getStream.called).to.equal(false);
+      expect(mockStagingDisk.delete.called).to.equal(false);
+    });
+  });
+
   describe('getDatastreamFingerprint', function () {
     it('identifies stored bytes from primary disk metadata without reading them', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
@@ -674,12 +710,15 @@ describe('StandardDatastreamService', function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file-123', size: 9, offset: 9,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'oid-123' } }));
+
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
       mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
 
-      const result = await service.getDatastream('oid-123', 'file-123');
+      const result = await service.getDatastream('oid-123', 'file-123', { actorId: 'actor', brandId: 'brand' });
 
       expect(result).to.have.property('readstream');
       expect(mockStagingDisk.getStream.firstCall.args[0]).to.equal('file-123');
@@ -692,13 +731,16 @@ describe('StandardDatastreamService', function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file-123', size: 9, offset: 9,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'oid-123' } }));
+
       mockPrimaryDisk.exists.resolves(false);
       mockStagingDisk.exists.resolves(true);
       mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockPrimaryDisk.putStream.rejects(new Error('primary promotion failed'));
 
       try {
-        await service.getDatastream('oid-123', 'file-123');
+        await service.getDatastream('oid-123', 'file-123', { actorId: 'actor', brandId: 'brand' });
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('primary promotion failed');
@@ -725,6 +767,9 @@ describe('StandardDatastreamService', function () {
       const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
       let resolvePromotion: (() => void) | undefined;
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file-123', size: 9, offset: 9,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'oid-123' } }));
+
       mockPrimaryDisk.exists.onCall(0).resolves(false);
       mockPrimaryDisk.exists.onCall(1).resolves(false);
       mockPrimaryDisk.exists.onCall(2).resolves(false);
@@ -737,8 +782,8 @@ describe('StandardDatastreamService', function () {
           })
       );
 
-      const firstRead = service.getDatastream('oid-123', 'file-123');
-      const secondRead = service.getDatastream('oid-123', 'file-123');
+      const firstRead = service.getDatastream('oid-123', 'file-123', { actorId: 'actor', brandId: 'brand' });
+      const secondRead = service.getDatastream('oid-123', 'file-123', { actorId: 'actor', brandId: 'brand' });
 
       await waitFor(() => mockPrimaryDisk.putStream.calledOnce);
 
@@ -758,6 +803,9 @@ describe('StandardDatastreamService', function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file-123', size: 9, offset: 9,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'oid-123' } }));
+
       mockPrimaryDisk.exists.onCall(0).resolves(false);
       mockPrimaryDisk.exists.onCall(1).resolves(false);
       mockPrimaryDisk.exists.onCall(2).resolves(true);
@@ -765,7 +813,7 @@ describe('StandardDatastreamService', function () {
       mockStagingDisk.exists.resolves(true);
       mockPrimaryDisk.putStream.rejects(new Error('already exists'));
 
-      const result = await service.getDatastream('oid-123', 'file-123');
+      const result = await service.getDatastream('oid-123', 'file-123', { actorId: 'actor', brandId: 'brand' });
 
       expect(result).to.have.property('readstream');
       expect(mockStagingDisk.delete.calledOnce).to.be.true;
@@ -775,13 +823,16 @@ describe('StandardDatastreamService', function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file-123', size: 9, offset: 9,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'oid-123' } }));
+
       mockPrimaryDisk.exists.onFirstCall().resolves(false);
       mockPrimaryDisk.exists.onSecondCall().resolves(false);
       mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
       mockStagingDisk.delete.rejects(new Error('ENOENT'));
 
-      const result = await service.getDatastream('oid-123', 'file-123');
+      const result = await service.getDatastream('oid-123', 'file-123', { actorId: 'actor', brandId: 'brand' });
 
       expect(result).to.have.property('readstream');
       expect(mockPrimaryDisk.putStream.calledOnce).to.be.true;

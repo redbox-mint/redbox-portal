@@ -63,7 +63,7 @@ describe('Attachment download stream cleanup', function () {
         assert.equal(response.statusCode, 200);
         assert.equal(Buffer.concat(chunks).toString(), 'complete file');
         assert.equal((await f.completed).writableFinished, true);
-        sinon.assert.calledOnceWithExactly(f.getDatastream, 'oid-1', 'file-1', { username: 'alice' });
+        sinon.assert.calledOnceWithExactly(f.getDatastream, 'oid-1', 'file-1', { username: 'alice', actorId: 'user-1', brandId: 'brand-1' });
       });
       it('destroys the source when the client disconnects during a download', async function () {
         const f = await setup();

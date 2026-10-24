@@ -368,7 +368,16 @@ export namespace Services {
       }
     }
 
-    private async promoteFromStagingOnce(oid: string, fileId: string, destKey: string): Promise<boolean> {
+    private async promoteFromStagingOnce(
+      oid: string,
+      fileId: string,
+      destKey: string,
+      requestContext?: DatastreamRequestContext
+    ): Promise<boolean> {
+      // Validate each caller before joining another actor's in-flight promotion.
+      // Reads cannot bind pending-record uploads; only an authorized save may do so.
+      if (!requestContext?.actorId || !requestContext.brandId) return false;
+      await this.assertStagingOwnership(oid, fileId, this.input.disks.stagingDisk(), requestContext, false);
       const inFlightPromotion = this.promotionGuards.get(destKey);
       if (inFlightPromotion) {
         return inFlightPromotion;
@@ -746,19 +755,7 @@ export namespace Services {
           await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
           return { success: true, key: destKey };
         }
-        const upload = await new TusStorageManagerDataStore({
-          disk: effectiveStagingDisk,
-          logger: this.logger,
-        }).getUpload(fileId);
-        if (
-          !requestContext.actorId ||
-          !requestContext.brandId ||
-          upload.metadata?.redboxActor !== requestContext.actorId ||
-          upload.metadata?.redboxBrand !== requestContext.brandId ||
-          ![oid, 'pending-oid'].includes(upload.metadata?.redboxRecord ?? '')
-        ) {
-          throw new Error('Staged attachment ownership does not match the save actor and record');
-        }
+        await this.assertStagingOwnership(oid, fileId, effectiveStagingDisk, requestContext, true);
       }
       const existsInStaging = await effectiveStagingDisk.exists(fileId);
       if (!existsInStaging) {
@@ -825,6 +822,26 @@ export namespace Services {
 
       this.logger.verbose(`${this.logHeader} addDatastream() -> Successfully added: ${destKey}`);
       return { success: true, key: destKey };
+    }
+
+    private async assertStagingOwnership(
+      oid: string,
+      fileId: string,
+      disk: IDisk,
+      context: DatastreamRequestContext,
+      allowPending: boolean
+    ): Promise<void> {
+      if (!normalizeAttachmentStagingFileId(fileId)) throw new Error('Invalid staging identity');
+      const upload = await new TusStorageManagerDataStore({ disk, logger: this.logger }).getUpload(fileId);
+      if (
+        !context.actorId ||
+        !context.brandId ||
+        upload.metadata?.redboxActor !== context.actorId ||
+        upload.metadata?.redboxBrand !== context.brandId ||
+        (upload.metadata?.redboxRecord !== oid && !(allowPending && upload.metadata?.redboxRecord === 'pending-oid'))
+      ) {
+        throw new Error('Staged attachment ownership does not match the actor, brand and record');
+      }
     }
 
     private async putStagedObject(
@@ -1000,7 +1017,7 @@ export namespace Services {
       // Check existence
       let exists = await primaryDisk.exists(destKey);
       if (!exists) {
-        exists = await this.promoteFromStagingOnce(oid, fileId, destKey);
+        exists = await this.promoteFromStagingOnce(oid, fileId, destKey, requestContext);
       }
       if (!exists) {
         throw new Error(`Attachment not found: ${destKey}`);

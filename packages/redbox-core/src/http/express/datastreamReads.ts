@@ -102,7 +102,11 @@ export function mountDatastreamReadRoutes(
           }
           let response: Awaited<ReturnType<DatastreamService['getDatastream']>>;
           try {
-            response = await input.datastream.getDatastream(oid, id, { username: actor.username });
+            response = await input.datastream.getDatastream(oid, id, {
+              username: actor.username,
+              actorId: actor.id,
+              brandId: brand.id,
+            });
           } catch (error) {
             if (
               error instanceof Error &&
