@@ -2341,6 +2341,22 @@ describe('MongoStorageService', function () {
     expect(owner.log.error.called).to.be.true;
   });
 
+  it('refuses foreign cancelled staging rather than trusting the journal file id', async function () {
+    const disk = {
+      exists: sandbox.stub().resolves(true),
+      get: sandbox.stub().resolves(JSON.stringify({ id: 'file-1', size: 9, offset: 3,
+        metadata: { redboxActor: 'other-actor', redboxBrand: 'other-brand', redboxRecord: 'other-record' } })),
+      delete: sandbox.stub().resolves(), deleteAll: sandbox.stub().resolves(),
+    };
+    collaborators.disks.stagingDisk.returns(disk);
+    await expectRejects(
+      () => service.removeStagedDatastream('file-1', { oid: 'record', actorId: 'actor', brandId: 'brand' }),
+      'Staged attachment ownership does not match the actor, brand and record'
+    );
+    expect(disk.delete.called).to.equal(false);
+    expect(disk.deleteAll.called).to.equal(false);
+  });
+
   it('rejects path-shaped staging cleanup identities before accessing storage', async function () {
     await expectRejects(
       () => service.removeStagedDatastream('../../outside-staging'),

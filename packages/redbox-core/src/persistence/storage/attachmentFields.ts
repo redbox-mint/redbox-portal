@@ -63,6 +63,8 @@ export const attachmentFields = {
       allowNull: true,
       required: false,
     },
+    stagingActorId: { type: 'string', required: false },
+    stagingBrandId: { type: 'string', required: false },
     coordinationToken: {
       type: 'string',
       allowNull: true,

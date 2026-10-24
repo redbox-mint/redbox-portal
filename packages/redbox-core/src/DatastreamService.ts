@@ -26,7 +26,7 @@ export interface DatastreamService {
   /** Remove a file; lifecycle purges supply its known brand after the active record is gone. */
   removeDatastream(oid: string, datastream: Datastream, brandId?: string): Promise<unknown>;
   /** Delete an abandoned upload from staging without touching primary data. */
-  removeStagedDatastream?(fileId: string): Promise<void>;
+  removeStagedDatastream?(fileId: string, context?: DatastreamRequestContext & { oid: string }): Promise<void>;
   /** Probe all final/TUS objects for one normalized staging identity. */
   stagingDatastreamExists?(fileId: string): Promise<boolean>;
   addDatastream(

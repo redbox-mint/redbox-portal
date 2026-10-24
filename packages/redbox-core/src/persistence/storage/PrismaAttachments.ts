@@ -348,7 +348,17 @@ export namespace Services {
             lastSafeErrorCode: undefined,
           }
         );
-        if (claimed) claims.push({ oid, attachmentId, fileId, generation, token, phase: 'checking' });
+        if (claimed)
+          claims.push({
+            oid,
+            attachmentId,
+            fileId,
+            generation,
+            token,
+            phase: 'checking',
+            actorId: row.stagingActorId,
+            brandId: row.stagingBrandId,
+          });
       }
       const staleRows = await this.metadataRows(
         {
@@ -386,7 +396,17 @@ export namespace Services {
             lastAttemptAt: new Date().toISOString(),
           }
         );
-        if (reclaimed) claims.push({ oid, attachmentId, fileId, generation, token, phase });
+        if (reclaimed)
+          claims.push({
+            oid,
+            attachmentId,
+            fileId,
+            generation,
+            token,
+            phase,
+            actorId: row.stagingActorId,
+            brandId: row.stagingBrandId,
+          });
       }
       return claims;
     }

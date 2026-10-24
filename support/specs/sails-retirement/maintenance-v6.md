@@ -122,6 +122,12 @@ verified ownership or let the user restart the upload. Never adopt it based on
 client-supplied IDs or delete it as part of session invalidation. Include the
 staging store in the existing consistent backup/recovery procedure.
 
+Cancelled attachment saves retain the authenticated actor and brand in their
+mutation journal. Expiry cleanup verifies those identities against the stored
+tus record binding before deleting staging. Historical journal rows without
+that context remain for operator reconciliation; cancellation alone does not
+authorize deleting an upload selected by a submitted file ID.
+
 Pinned @uppy/companion 7.1.1 uses one explicit initialize-time app per process,
 with a separate unlistened socket bridge. Stop fences new provider HTTP/upgrades,
 drains admitted requests/connections within the application deadline, then

@@ -61,6 +61,8 @@ import {
   isRecordRevision,
   nextRecordRevision,
   normalizeAttachmentStagingFileId,
+  TusStorageManagerDataStore,
+  type DatastreamRequestContext,
   type RecordStorageMutationOptions,
   type StorageMutationNonApplicationReason,
   type StorageServiceCapabilities,
@@ -2732,13 +2734,26 @@ export class PrismaStorage implements StorageService, DatastreamService {
     }
   }
 
-  public async removeStagedDatastream(fileId: string): Promise<void> {
+  public async removeStagedDatastream(
+    fileId: string,
+    context?: DatastreamRequestContext & { oid: string }
+  ): Promise<void> {
     const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
     if (!normalizedFileId) throw new Error('Invalid staged attachment identity.');
-    const stagingDisk = this.collaborators.disks.stagingDisk();
-    if (await stagingDisk.exists(normalizedFileId)) {
-      await stagingDisk.delete(normalizedFileId);
+    if (!context?.oid || !context.actorId || !context.brandId) {
+      throw new Error('Staged attachment cleanup requires its persisted ownership context');
     }
+    const stagingDisk = this.collaborators.disks.stagingDisk();
+    const uploads = new TusStorageManagerDataStore({ disk: stagingDisk });
+    const upload = await uploads.getUpload(normalizedFileId);
+    if (
+      upload.metadata?.redboxActor !== context.actorId ||
+      upload.metadata?.redboxBrand !== context.brandId ||
+      ![context.oid, 'pending-oid'].includes(upload.metadata?.redboxRecord ?? '')
+    ) {
+      throw new Error('Staged attachment ownership does not match the actor, brand and record');
+    }
+    await uploads.remove(normalizedFileId);
   }
 
   public async addDatastream(oid, datastream: Datastream, stagingDisk?: StorageManagerServiceTypes.Services.IDisk) {

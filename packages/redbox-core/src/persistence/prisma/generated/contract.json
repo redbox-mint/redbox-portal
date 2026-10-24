@@ -740,6 +740,20 @@
                   "kind": "scalar"
                 }
               },
+              "stagingActorId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
+              "stagingBrandId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "mongo/string@1",
+                  "kind": "scalar"
+                }
+              },
               "storageKey": {
                 "nullable": true,
                 "type": {
@@ -840,6 +854,12 @@
                 },
                 "operation": {
                   "field": "operation"
+                },
+                "stagingActorId": {
+                  "field": "stagingActorId"
+                },
+                "stagingBrandId": {
+                  "field": "stagingBrandId"
                 },
                 "storageKey": {
                   "field": "storageKey"
@@ -6352,6 +6372,18 @@
                         "string"
                       ]
                     },
+                    "stagingActorId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "stagingBrandId": {
+                      "bsonType": [
+                        "null",
+                        "string"
+                      ]
+                    },
                     "storageKey": {
                       "bsonType": [
                         "null",
@@ -10174,7 +10206,7 @@
         "kind": "mongo-database"
       }
     },
-    "storageHash": "e18c86af989162ba1da9886a698496e00566f55439b9fe1fbfe1f95bfad7657c"
+    "storageHash": "2cd0538839428f8618a96d2d0837f22a940ade5c56f8fb41c99aff6f657c153d"
   },
   "capabilities": {},
   "extensions": {},

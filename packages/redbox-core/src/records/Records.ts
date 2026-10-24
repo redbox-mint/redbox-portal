@@ -3195,7 +3195,12 @@ export namespace Services {
       return plan;
     }
 
-    private async prepareAttachmentJournal(oid: string, plan: readonly AttachmentMutationPlanItem[]): Promise<void> {
+    private async prepareAttachmentJournal(
+      oid: string,
+      plan: readonly AttachmentMutationPlanItem[],
+      brand: { readonly id?: unknown },
+      user: AnyRecord
+    ): Promise<void> {
       const journal = this.attachmentJournalService();
       if (!journal || plan.length === 0) {
         return;
@@ -3208,6 +3213,8 @@ export namespace Services {
           attachmentId: item.attachmentId,
           operation: item.operation,
           mutationState: 'prepared',
+          stagingActorId: String(user.id ?? ''),
+          stagingBrandId: String(brand.id ?? ''),
           generation: item.generation,
           attachmentField: item.field || undefined,
         }))
@@ -4301,7 +4308,7 @@ export namespace Services {
       );
       this.markPlannedAttachmentReferencesPending(recordObj, createAttachmentPlan);
       try {
-        await this.prepareAttachmentJournal(createOid, createAttachmentPlan);
+        await this.prepareAttachmentJournal(createOid, createAttachmentPlan, brandObj, userObj);
       } catch (error) {
         await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'cancelled', 'attachment-journal-failed');
         tracker.recordPrimaryNotApplied(
@@ -5463,7 +5470,7 @@ export namespace Services {
       );
       this.markPlannedAttachmentReferencesPending(recordObj, updateAttachmentPlan);
       try {
-        await this.prepareAttachmentJournal(oid, updateAttachmentPlan);
+        await this.prepareAttachmentJournal(oid, updateAttachmentPlan, brandObj, userObj);
       } catch (error) {
         await this.markAttachmentPlanState(oid, updateAttachmentPlan, 'cancelled', 'attachment-journal-failed');
         tracker.recordPrimaryNotApplied(
@@ -6075,6 +6082,11 @@ export namespace Services {
             summary.retained += 1;
             continue;
           }
+          if (!claim.actorId || !claim.brandId) {
+            await journal.releaseStagingCleanup(claim, 'attachment-cleanup-ownership-unknown');
+            summary.retained += 1;
+            continue;
+          }
           if (claim.phase === 'removing') {
             if (typeof this.datastreamService.stagingDatastreamExists !== 'function') {
               summary.retained += 1;
@@ -6100,7 +6112,11 @@ export namespace Services {
             continue;
           }
           removalAuthorized = true;
-          await this.datastreamService.removeStagedDatastream(stagedFileId);
+          await this.datastreamService.removeStagedDatastream(stagedFileId, {
+            oid: claim.oid,
+            actorId: claim.actorId,
+            brandId: claim.brandId,
+          });
           if (await journal.completeStagingCleanup(claim)) {
             summary.removed += 1;
           } else {

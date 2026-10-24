@@ -435,6 +435,7 @@ describe('AttachmentMetadataService mutation journal', function () {
         oid: 'oid-1',
         attachmentId: 'a',
         mutationFileId: 'file-1',
+        stagingActorId: 'saved-actor', stagingBrandId: 'saved-brand',
         generation: 'generation-1',
         mutationState: 'cancelled',
         storageKey: '/private/staging/path',
@@ -474,6 +475,7 @@ describe('AttachmentMetadataService mutation journal', function () {
         oid: 'oid-1',
         attachmentId: 'a',
         fileId: 'file-1',
+        actorId: 'saved-actor', brandId: 'saved-brand',
         generation: 'generation-1',
         token: set.firstCall.args[0].coordinationToken,
         phase: 'checking',
@@ -513,6 +515,7 @@ describe('AttachmentMetadataService mutation journal', function () {
         storageKey: 'journal/oid-1/a/generation-1',
         attachmentId: 'a',
         operation: 'delete',
+        stagingActorId: 'saved-actor', stagingBrandId: 'saved-brand',
         generation: 'generation-1',
       },
     ]);
@@ -525,6 +528,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       mutationFileId: 'file-1',
       isJournal: true,
       mutationState: 'prepared',
+      stagingActorId: 'saved-actor', stagingBrandId: 'saved-brand',
     });
     expect(model.create.secondCall.args[0].fileId).to.match(/^journal-a-generation-1-/);
   });

@@ -614,12 +614,32 @@ describe('StandardDatastreamService', function () {
     });
   });
 
+  describe('staging cleanup ownership', function () {
+    for (const binding of [
+      undefined,
+      { redboxActor: 'other', redboxBrand: 'brand', redboxRecord: 'record' },
+      { redboxActor: 'actor', redboxBrand: 'other', redboxRecord: 'record' },
+      { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'other' },
+    ]) it(`retains foreign or unbound cancelled staging (${JSON.stringify(binding)})`, async () => {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, forms: {}, log: fixture.log });
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file', size: 9, offset: 3, metadata: binding }));
+      await require('node:assert/strict').rejects(
+        service.removeStagedDatastream('file', { oid: 'record', actorId: 'actor', brandId: 'brand' })
+      );
+      expect(mockStagingDisk.delete.called).to.equal(false);
+      expect(mockStagingDisk.deleteAll.called).to.equal(false);
+    });
+  });
+
   describe('removeStagedDatastream', function () {
     it('removes only the bounded staging object and its TUS sidecars', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream({ disks: mockStorageManager, get attachments() { return fixture.collaborators.attachmentmetadataservice; }, get forms() { return collaborators.FormsService; }, log: fixture.log });
 
-      await service.removeStagedDatastream('staged-file-1');
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'staged-file-1', size: 9, offset: 3,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'pending-oid' } }));
+      await service.removeStagedDatastream('staged-file-1', { oid: 'record', actorId: 'actor', brandId: 'brand' });
 
       expect(mockStagingDisk.delete.firstCall.args[0]).to.equal('staged-file-1');
       expect(mockStagingDisk.deleteAll.getCalls().map((call: sinon.SinonSpyCall) => call.args[0])).to.deep.equal([

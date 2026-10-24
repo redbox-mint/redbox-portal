@@ -829,7 +829,8 @@ export namespace Services {
       fileId: string,
       disk: IDisk,
       context: DatastreamRequestContext,
-      allowPending: boolean
+      allowPending: boolean,
+      requireComplete = true
     ): Promise<void> {
       if (!normalizeAttachmentStagingFileId(fileId)) throw new Error('Invalid staging identity');
       const upload = await new TusStorageManagerDataStore({ disk, logger: this.logger }).getUpload(fileId);
@@ -842,7 +843,10 @@ export namespace Services {
       ) {
         throw new Error('Staged attachment ownership does not match the actor, brand and record');
       }
-      if (!Number.isSafeInteger(upload.size) || (upload.size ?? -1) < 0 || upload.offset !== upload.size) {
+      if (
+        requireComplete &&
+        (!Number.isSafeInteger(upload.size) || (upload.size ?? -1) < 0 || upload.offset !== upload.size)
+      ) {
         throw new Error('Staged attachment upload is not complete');
       }
     }
@@ -969,10 +973,19 @@ export namespace Services {
     }
 
     /** Delete only staging objects; committed primary blobs are never addressed. */
-    public async removeStagedDatastream(fileId: string): Promise<void> {
+    public async removeStagedDatastream(
+      fileId: string,
+      context?: DatastreamRequestContext & { oid: string }
+    ): Promise<void> {
       const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
       if (!normalizedFileId) throw new Error('Invalid staged attachment identity.');
+      if (!context?.oid || !context.actorId || !context.brandId) {
+        throw new Error('Staged attachment cleanup requires its persisted ownership context');
+      }
       const stagingDisk = this.input.disks.stagingDisk();
+      // Missing legacy ownership remains an operator reconciliation task. A cancelled
+      // metadata save is not authority to remove another actor's upload.
+      await this.assertStagingOwnership(context.oid, normalizedFileId, stagingDisk, context, true, false);
       if (await stagingDisk.exists(normalizedFileId)) {
         await stagingDisk.delete(normalizedFileId);
       }

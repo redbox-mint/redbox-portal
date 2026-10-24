@@ -1451,7 +1451,7 @@ describe('RecordsService', function () {
         },
       ];
 
-      await (RecordsService as any).prepareAttachmentJournal('record-1', plan);
+      await (RecordsService as any).prepareAttachmentJournal('record-1', plan, { id: 'brand-1' }, { id: 'actor-1' });
       const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan, { id: 'brand-1' }, { id: 'user-1', username: 'user-1' });
 
       expect(journal.prepareMutations.calledOnce).to.equal(true);
@@ -2720,7 +2720,7 @@ describe('RecordsService', function () {
           metadata: { attachments: [] },
           authorization: {},
         },
-        { username: 'user-1' },
+        { id: 'saved-actor', username: 'user-1' },
         true,
         true,
         {},
@@ -2732,6 +2732,9 @@ describe('RecordsService', function () {
 
       expect(result.wasPersisted()).to.equal(true);
       expect(journal.prepareMutations.calledOnce).to.equal(true);
+      expect(journal.prepareMutations.firstCall.args[0][0]).to.include({
+        stagingActorId: 'saved-actor', stagingBrandId: 'brand-1',
+      });
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
       expect(mockStorageService.updateMeta.callCount).to.equal(2);
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata.attachments[0].pending).to.equal(true);
@@ -3629,6 +3632,7 @@ describe('RecordsService', function () {
           attachmentId: 'active-attachment',
           fileId: 'active-file',
           generation: 'old-1',
+          actorId: 'actor', brandId: 'brand',
           token: 'cleanup-1',
         },
         {
@@ -3636,6 +3640,7 @@ describe('RecordsService', function () {
           attachmentId: 'retry-attachment',
           fileId: 'retry-file',
           generation: 'old-2',
+          actorId: 'actor', brandId: 'brand',
           token: 'cleanup-2',
         },
         {
@@ -3643,6 +3648,7 @@ describe('RecordsService', function () {
           attachmentId: 'abandoned-attachment',
           fileId: 'abandoned-file',
           generation: 'old-3',
+          actorId: 'actor', brandId: 'brand',
           token: 'cleanup-3',
         },
         {
@@ -3650,6 +3656,7 @@ describe('RecordsService', function () {
           attachmentId: 'failed-attachment',
           fileId: 'private-provider-token',
           generation: 'old-4',
+          actorId: 'actor', brandId: 'brand',
           token: 'cleanup-4',
         },
       ];
@@ -3716,6 +3723,25 @@ describe('RecordsService', function () {
       expect(cleanupLogs).not.to.contain('private-provider-token');
       expect(cleanupLogs).not.to.contain('/private/provider/path');
       expect(cleanupLogs).not.to.contain('token=secret');
+    });
+
+    it('retains cancelled staging whose journal predates persisted ownership', async function () {
+      const claim = { oid: 'record', attachmentId: 'attachment', fileId: 'file', generation: 'old', token: 'claim' };
+      const journal = {
+        prepareMutations: sinon.stub().resolves(), findUnresolvedByOid: sinon.stub().resolves([]),
+        claimExpiredStagingCleanup: sinon.stub().resolves([claim]), beginStagingCleanup: sinon.stub().resolves(true),
+        authorizeStagingCleanup: sinon.stub().resolves(true), releaseStagingCleanup: sinon.stub().resolves(true),
+        completeStagingCleanup: sinon.stub().resolves(true), recoverStagingCleanup: sinon.stub().resolves('retained'),
+        findUnresolvedByStagingFileId: sinon.stub().resolves([]),
+      };
+      fixture.collaborators.attachmentmetadataservice = journal;
+      mockStorageService.getMeta.resolves(null);
+      mockDatastreamService.removeStagedDatastream = sinon.stub().resolves();
+      const result = await RecordsService.cleanupAbandonedAttachmentStaging();
+      expect(result).to.deep.equal({ claimed: 1, removed: 0, retained: 1, failed: 0 });
+      expect(journal.releaseStagingCleanup.calledOnceWithExactly(claim, 'attachment-cleanup-ownership-unknown')).to.equal(true);
+      expect(journal.authorizeStagingCleanup.called).to.equal(false);
+      expect(mockDatastreamService.removeStagedDatastream.called).to.equal(false);
     });
 
     it('retains staging when storage returns a non-null malformed record snapshot', async function () {
