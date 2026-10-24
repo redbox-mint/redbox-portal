@@ -1,4 +1,4 @@
-FROM node:20-bookworm
+FROM node:22.23.4-bookworm
 ENV node_env production
 ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
 ENV PATH=$PATH:/home/node/.npm-global/bin
