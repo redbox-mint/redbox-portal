@@ -1,9 +1,10 @@
 # Implemented v6 startup configuration (P3)
 
 Use the narrow `@researchdatabox/redbox-core/configuration` public entry. This
-contract serves standalone compositions and maintenance; the default portal
-entrypoint still uses the temporary Sails comparison host. Production host
-promotion is SR-050. Authentication and provider parity remain P4/P6.
+contract serves the internal v6 Express default and maintenance. `npm start`
+and Docker run `app.express.cjs`; the explicit Sails comparison scripts remain
+only until P8. P7 internal promotion does not establish production release
+acceptance; institution qualification and final Sails-free artifacts remain gates.
 
 `loadStartupConfiguration` awaits explicitly selected application, environment and
 local data modules. An ESM module default-exports an object; CommonJS uses
@@ -75,8 +76,9 @@ module.exports = {
 };
 ```
 
-The auth provider data above is retained bootstrap data, not a claim that the
-partial host already authenticates OIDC. Existing account mappings persist; v6
+The auth provider data above is retained bootstrap data. The production composition
+supports local, OIDC and AAF providers; configure and qualify each deployment's
+actual provider. Existing account mappings persist; v6
 sessions deliberately require login. Session configuration is optional until its
 owner is selected; when enabled, provide its complete base configuration before
 applying environment secret/URL overrides. No baked-in session secret is supplied.

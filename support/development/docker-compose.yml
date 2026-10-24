@@ -1,22 +1,17 @@
 x-rbportal-env: &rbportal-env
-  NODE_ENV: docker
-  STARTUP_TIMING: '${STARTUP_TIMING:-false}'
-  PORT: 1500
-  WEBPACK_SKIP: 'true'
-  sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal
-  sails__datastores__redboxStorage__url: mongodb://mongodb:27017/redbox-storage
-  sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions
-  # For NG apps migrated NG 15 or above, if you are actively developing the front-end, then build your app manually, making sure you disable filename hashing, before you use the app.
-  sails_angularDev: 'true'
-  # Set APP_URL to the URL used by the browser. For example:
-  # APP_URL=http://redbox-portal.local:1500 npm run dev:run
-  sails_appUrl: '${APP_URL:-http://localhost:1500}'
-  # Flag to enable the new form framework app, currently enabled in the "edit" mode
-  sails_enableNewForm: 'true'
-  sails_redbox__apiKey: c8e844fc-8550-497f-b970-7900ec8741ca
-  sails_record__baseUrl__redbox: http://redbox:9000/redbox
-  sails_record__baseUrl__mint: https://demo.redboxresearchdata.com.au/mint
-  # Uppy Companion
+  NODE_ENV: development
+  REDBOX_APPLICATION_CONFIG: /deployment/application.cjs
+  REDBOX_PORT: 1500
+  REDBOX_HOSTNAME: 0.0.0.0
+  REDBOX_PUBLIC_URL: '${REDBOX_PUBLIC_URL:-${APP_URL:-http://localhost:1500}}'
+  REDBOX_MONGODB_URL: mongodb://mongodb:27017/redbox-portal
+  REDBOX_STORAGE_MONGODB_URL: mongodb://mongodb:27017/redbox-storage
+  REDBOX_SESSION_MONGODB_URL: mongodb://mongodb:27017/sessions-v6
+  REDBOX_AGENDA_MONGODB_URL: mongodb://mongodb:27017/redbox-agenda
+  REDBOX_SESSION_SECRET: '${REDBOX_SESSION_SECRET:?Set REDBOX_SESSION_SECRET to at least 32 characters}'
+  REDBOX_ADMIN_PASSWORD: '${REDBOX_ADMIN_PASSWORD:-rbadmin}'
+  REDBOX_ADMIN_TOKEN: '${REDBOX_ADMIN_TOKEN:-c8e844fc-8550-497f-b970-7900ec8741ca}'
+  # Optional providers are converted by the explicit development config module.
   UPPY_COMPANION_ENABLED: '${UPPY_COMPANION_ENABLED:-false}'
   UPPY_COMPANION_SECRET: '${UPPY_COMPANION_SECRET:-dev-local-companion-secret-2026-02-16}'
   UPPY_COMPANION_BEARER_TOKEN: '${UPPY_COMPANION_BEARER_TOKEN:-}'
@@ -26,27 +21,22 @@ x-rbportal-env: &rbportal-env
   UPPY_GOOGLE_SECRET: '${UPPY_GOOGLE_SECRET:-}'
   UPPY_ONEDRIVE_KEY: '${UPPY_ONEDRIVE_KEY:-}'
   UPPY_ONEDRIVE_SECRET: '${UPPY_ONEDRIVE_SECRET:-}'
-  UPPY_COMPANION_HOST: 'localhost:1500'
-  UPPY_COMPANION_PROTOCOL: 'http'
-  LOAD_DEFAULT_FORMS: 'true'
-  # When testing using the API
-  # sails_brandingConfigurationDefaults__auth__local__default__token: d077835a-696b-4728-85cf-3ffd57152b1e
-  # sails_security__csrf: "false"
+  UPPY_COMPANION_HOST: '${UPPY_COMPANION_HOST:-localhost:1500}'
+  UPPY_COMPANION_PROTOCOL: '${UPPY_COMPANION_PROTOCOL:-http}'
 
 x-rbportal-volumes: &rbportal-volumes
-  - './.dev/attachments:/attachments:delegated'
-  - './.dev/publication:/publication:delegated'
-  - './.dev/hooks:/opt/hooks:delegated'
+  - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/attachments:/attachments:delegated'
+  - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/publication:/publication:delegated'
+  - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/hooks:/opt/hooks:delegated'
+  - './application.cjs:/deployment/application.cjs:ro'
   - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
 
 x-rbportal-service: &rbportal-service
-  env_file:
-    - ./.env
   environment: *rbportal-env
   ports:
-    - '1500:1500'
+    - '127.0.0.1:${RBPORTAL_HTTP_PORT:-1500}:1500'
     # Debugging port
-    - '9876:9876'
+    - '127.0.0.1:${RBPORTAL_DEBUG_PORT:-9876}:9876'
   depends_on:
     - mongodb
     - solr
@@ -55,7 +45,9 @@ x-rbportal-service: &rbportal-service
       aliases:
         - rbportal
   init: true
-  entrypoint: /bin/bash -c "cd /opt/redbox-portal && node --enable-source-maps --inspect=0.0.0.0:9876 app.js"
+  stop_grace_period: 60s
+  entrypoint: ["node", "--enable-source-maps", "--inspect=0.0.0.0:9876", "app.express.cjs"]
+  command: []
 
 networks:
   main:
@@ -64,12 +56,17 @@ services:
   rbportal-mount:
     <<: *rbportal-service
     profiles: [mount]
-    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    image: ${RBPORTAL_IMAGE:-redbox-portal:dev}
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: rehearsal
     volumes:
       - '../../:/opt/redbox-portal:delegated'
-      - './.dev/attachments:/attachments:delegated'
-      - './.dev/publication:/publication:delegated'
-      - './.dev/hooks:/opt/hooks:delegated'
+      - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/attachments:/attachments:delegated'
+      - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/publication:/publication:delegated'
+      - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/hooks:/opt/hooks:delegated'
+      - './application.cjs:/deployment/application.cjs:ro'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   rbportal-build:
     <<: *rbportal-service
@@ -77,30 +74,34 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
-      target: runtime
-    image: redbox-portal:dev
+      target: rehearsal
+    image: ${RBPORTAL_IMAGE:-redbox-portal:dev}
     volumes: *rbportal-volumes
   mongodb:
     # New stacks only: see support/specs/prisma-cache-persistence/p4-validation.md
     # before reusing data from an older or newer server/FCV.
     image: mongo:9.0.4@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
     volumes:
       - '../resources/mongodb-persistence-indexes.js:/docker-entrypoint-initdb.d/20-persistence-indexes.js:ro'
-      - './devdata:/devdata:delegated'
-      - './.dev/mongo/data/db:/data/db:delegated'
-      - './.dev/log/mongo:/var/log/mongo:delegated'
+      - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/devdata:/devdata:delegated'
+      - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/mongo/data/db:/data/db:delegated'
+      - '${RBPORTAL_DEV_DATA_DIR:-./.dev}/log/mongo:/var/log/mongo:delegated'
     networks:
       main:
         aliases:
           - mongodb
     ports:
-      - '27017:27017'
+      - '127.0.0.1:${RBPORTAL_MONGO_PORT:-27017}:27017'
   solr:
-    image: solr:latest@sha256:4316295f16175f676ac6798769f7a21729131ab555f1ba8663839dd7abd92e13
+    image: solr:10.0.0@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b
     expose:
       - '8983'
     ports:
-      - '8983:8983'
+      - '127.0.0.1:${RBPORTAL_SOLR_PORT:-8983}:8983'
     # Example of pre create additional solr cores that needs to be coupled with correct record type configuration
     # volumes:
     #  - "../integration-testing/solr.in.sh:/etc/default/solr.in.sh"
@@ -112,6 +113,7 @@ services:
       - docker-entrypoint.sh
       - solr-precreate
       - redbox
+      - /opt/solr/server/solr/configsets/_default
   # keycloak:
   #   image: quay.io/keycloak/keycloak:17.0.1
   #   expose:

@@ -38,8 +38,8 @@
     "typescript-require": "0.3.0"
   },
   "scripts": {
-    "debug": "node debug app.js",
-    "start": "node app.js",
+    "debug": "node --inspect app.express.cjs",
+    "start": "node app.express.cjs",
     "lint": "node scripts/verify-core-imports.cjs && oxlint api config typescript packages/*/src",
     "lint:fix": "oxlint api config typescript packages/*/src --fix",
     "format": "prettier --write \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
@@ -102,9 +102,9 @@
     "compile:pdfgen-hook": "cd ./packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps && npm run compile && cd ../../",
     "compile:dev-tools": "cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
-    "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
-    "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
-    "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
+    "dev:run": "docker compose --profile mount -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
+    "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --build --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
+    "dev:run:clean": "docker compose --profile '*' -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:core && npm run compile:sails && npm run compile:ng && npm run dev:run",
     "package:pages": "node packages/redbox-core/scripts/package-pages.cjs views .tmp/public .tmp/page-artifacts",
     "webpack": "NODE_ENV=docker WEBPACK_CSS_MINI=true node packages/redbox-dev-tools/bin/wrapper-webpack.js",
@@ -112,9 +112,11 @@
     "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
     "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
     "persistence:indexes": "node node_modules/@researchdatabox/redbox-core/bin/persistence-indexes.cjs",
-    "check:prisma": "npm --prefix packages/redbox-core run check:prisma"
+    "check:prisma": "npm --prefix packages/redbox-core run check:prisma",
+    "start:sails:comparison": "node app.js",
+    "debug:sails:comparison": "node --inspect app.js"
   },
-  "main": "app.js",
+  "main": "app.express.cjs",
   "repository": {
     "type": "git",
     "url": "https://github.com/redbox-mint/redbox-portal.git"

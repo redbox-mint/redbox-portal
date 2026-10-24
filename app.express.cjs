@@ -1,4 +1,4 @@
-/** Candidate production Express entrypoint. Default promotion is gated by P7 qualification. */
+/** Internal v6 default: one production application, HTTP server and signal owner. */
 'use strict';
 const path = require('node:path');
 const pino = require('pino');

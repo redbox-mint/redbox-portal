@@ -129,16 +129,16 @@ RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen \
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
-EXPOSE 1337
+EXPOSE 1500
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
-  CMD ["sh", "-c", "curl -fsS \"http://localhost:${PORT:-1337}/\" >/dev/null"]
+  CMD ["sh", "-c", "curl -fsS \"http://localhost:${REDBOX_PORT:-1500}/readyz\" >/dev/null"]
 
 USER node
 
 RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
 
-CMD ["node", "app.js"]
+CMD ["node", "app.express.cjs"]
 
 FROM runtime AS runtime_puppeteer_base
 USER root

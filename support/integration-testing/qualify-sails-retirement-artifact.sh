@@ -5,6 +5,8 @@ cd "$(dirname "$0")/../.."
 node --eval 'require("node:assert/strict").equal(process.version, "v26.11.1")'
 task_image=${SR_P7_IMAGE:?Set the immutable local image ID to qualify}
 [[ "$task_image" =~ ^sha256:[a-f0-9]{64}$ ]]
+task_default=${SR_P7_DEFAULT_ENTRYPOINT:-false}
+[[ "$task_default" == true || "$task_default" == false ]]
 task_logs="${SR_P7_ARTIFACT_LOGS:-$PWD/.tmp/sails-retirement/p7/artifact-$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$task_logs"
 docker image inspect "$task_image" > "$task_logs/image-inspect.json"
@@ -81,11 +83,18 @@ for attempt in {1..120}; do
 done
 portal_options=(--network host --memory=1536m --mount "type=bind,src=$task_config,dst=/deployment.cjs,readonly"
   -e REDBOX_APPLICATION_CONFIG=/deployment.cjs -e REDBOX_SESSION_SECRET=artifact-only-session-secret-at-least-32
-  -e REDBOX_ADMIN_PASSWORD=artifact-only-password -e REDBOX_ADMIN_TOKEN=artifact-only-token)
+  -e REDBOX_PORT=18527 -e REDBOX_ADMIN_PASSWORD=artifact-only-password -e REDBOX_ADMIN_TOKEN=artifact-only-token)
 docker run --rm --init "${portal_options[@]}" "$task_image" node app.express.cjs --maintenance=indexes:ensure > "$task_logs/portal-index-ensure.log" 2>&1
+# Promotion must exercise the image's actual CMD and HEALTHCHECK. Earlier
+# candidate images retain their explicit comparison-host default until SR-050.
+portal_command=()
+portal_health=()
+if [[ "$task_default" == false ]]; then
+  portal_command=(node app.express.cjs)
+  portal_health=(--health-cmd 'curl -fsS http://127.0.0.1:18527/readyz' --health-interval 2s --health-start-period 60s)
+fi
 docker create --init --name sr-p7-artifact-portal "${portal_options[@]}" \
-  --health-cmd 'curl -fsS http://127.0.0.1:18527/readyz' --health-interval 2s --health-start-period 60s \
-  "$task_image" node app.express.cjs > "$task_logs/portal-container.txt"
+  "${portal_health[@]}" "$task_image" "${portal_command[@]}" > "$task_logs/portal-container.txt"
 task_containers+=(sr-p7-artifact-portal)
 for label in fresh restart; do
   started=$SECONDS
