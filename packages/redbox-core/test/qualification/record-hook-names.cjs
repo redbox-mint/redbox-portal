@@ -72,6 +72,7 @@ test('bundled v6 declaration and producer contain only named operations', () => 
           assert(!hook.function.startsWith('sails.'));
           count++;
           if (hook.options?.hooks) inspect({ nested: { hooks: hook.options.hooks } });
+          if (hook.options?.onNotifySuccess) inspect({ nested: { hooks: hook.options.onNotifySuccess } });
         }
   }
   for (const value of Object.values(declaration.config.recordtype)) inspect(value.hooks);
@@ -118,4 +119,48 @@ test('queued PDF declarations convert explicit trigger configuration without int
       }),
     /unsupported record hook expression/
   );
+});
+
+test('notification success callbacks convert recursively and reject invalid declarations before effects', () => {
+  const source = {
+    onUpdate: {
+      post: [
+        {
+          function: 'sails.services.emailservice.sendRecordNotification',
+          options: {
+            onNotifySuccess: [
+              {
+                function: 'sails.services.emailservice.sendRecordNotification',
+                options: {
+                  onNotifySuccess: [{ function: 'sails.services.recordsservice.updateNotificationLog' }],
+                  template: 'sails.services.opaque.template',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  };
+  const converted = convertBuiltinRecordHooks(source);
+  const nested = converted.onUpdate.post[0].options.onNotifySuccess[0];
+  assert.equal(nested.function, 'email.sendRecordNotification');
+  assert.equal(nested.options.onNotifySuccess[0].function, 'record.updateNotificationLog');
+  assert.equal(nested.options.template, 'sails.services.opaque.template');
+  assert.equal(
+    source.onUpdate.post[0].options.onNotifySuccess[0].function,
+    'sails.services.emailservice.sendRecordNotification'
+  );
+  assert.deepEqual(convertBuiltinRecordHooks(converted), converted);
+  for (const callbacks of [
+    { function: 'record.updateNotificationLog' },
+    [null],
+    [{ function: 'sails.services.secret.unknown' }],
+  ]) {
+    assert.throws(() =>
+      convertBuiltinRecordHooks({
+        onCreate: { post: [{ function: 'email.sendRecordNotification', options: { onNotifySuccess: callbacks } }] },
+      })
+    );
+  }
 });

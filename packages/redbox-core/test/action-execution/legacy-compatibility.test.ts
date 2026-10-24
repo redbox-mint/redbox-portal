@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { expect } from 'chai';
 import { Observable, of } from 'rxjs';
 import { createActionExecutionOperation } from '../../src/action-execution/index';
-import { RecordHookCoordinator } from '../../src/services/record-hooks/coordinator';
+import { RecordHookCoordinator, validateRecordHookConfiguration } from '../../src/services/record-hooks/coordinator';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -239,4 +239,22 @@ describe('record-hook legacy compatibility characterization', function () {
     expect(errors).to.have.length(2);
     expect(JSON.stringify(errors)).not.to.include('secret');
   });
+});
+
+
+describe('nested record hook validation', () => {
+  for (const nested of [[{ function: 'institution.missing' }], [null], {}]) {
+    it(`rejects invalid notification callbacks before the parent hook can send (${JSON.stringify(nested)})`, () => {
+      let calls = 0;
+      const parent = () => { calls++; };
+      const resolve = (hook: unknown) => {
+        if ((hook as { function: string }).function !== 'email.sendRecordNotification') throw new Error('Unregistered hook');
+        return parent;
+      };
+      expect(() => validateRecordHookConfiguration({ hooks: { onCreate: { pre: [
+        { function: 'email.sendRecordNotification', options: { onNotifySuccess: nested } },
+      ] } } }, ['onCreate'], resolve)).to.throw();
+      expect(calls).to.equal(0);
+    });
+  }
 });

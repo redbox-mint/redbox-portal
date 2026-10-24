@@ -160,7 +160,13 @@ retain their policy responses; error rendering grants no additional access.
 
 The development hook contributes named record operations and explicit page settings.
 A finite migration table converts known persisted v5 expressions to owned operation
-names. Unknown expressions fail conversion; there is no dynamic service-path evaluation.
+names, including explicit nested `hooks`, notification `onNotifySuccess` callbacks
+and queued `triggerConfiguration` declarations. The
+`20261025T000000-v6-notification-record-hook-operations` repair also handles
+checkpoints where earlier v6 conversion migrations already completed. Runtime
+validation checks nested declarations before invoking the parent operation, so an
+unsupported success callback cannot first send an email. Unknown expressions fail
+conversion; there is no dynamic service-path evaluation.
 
 ## Awaited bootstrap and migrations
 

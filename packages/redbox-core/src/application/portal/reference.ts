@@ -23,6 +23,7 @@ import {
   migrateRecordHooks,
   RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
   QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+  NOTIFICATION_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
 } from '../../recordTypes';
 import { Services as Branding } from '../../branding/Branding';
 import { Services as Typeface } from '../../branding/BrandingTypeface';
@@ -533,6 +534,14 @@ export function portalReferencePlan(
     },
     {
       name: QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+      source: 'core',
+      up: async () => {
+        const result = await migrateRecordHooks({ brands: brands(), types: refs().recordTypes });
+        log.info(`Record hook operations: inspected ${result.inspected}, converted ${result.changed} record types.`);
+      },
+    },
+    {
+      name: NOTIFICATION_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
       source: 'core',
       up: async () => {
         const result = await migrateRecordHooks({ brands: brands(), types: refs().recordTypes });

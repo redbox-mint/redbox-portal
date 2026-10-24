@@ -50,28 +50,21 @@ function requireHook(value: unknown): asserts value is RecordHookDefinition {
   validateActionExecutionPolicy(value.execution);
 }
 
-function convertHook(hook: unknown): RecordHookDefinition {
+export function convertBuiltinRecordHook(hook: unknown): RecordHookDefinition {
   requireHook(hook);
   const name = Object.hasOwn(builtins, hook.function) ? builtins[hook.function] : hook.function;
   if (name.startsWith('sails.') || !/^[A-Za-z][A-Za-z0-9_.:-]{0,199}$/.test(name))
     throw new Error('Convert unsupported record hook expression to a registered v6 operation.');
-  const nested = hook.options?.hooks;
-  if (nested !== undefined && !Array.isArray(nested))
-    throw new Error('Record hook options.hooks must be an array of named declarations.');
-  const queued = hook.options?.triggerConfiguration;
-  return {
-    ...hook,
-    function: name,
-    ...(nested === undefined && queued === undefined
-      ? {}
-      : {
-          options: {
-            ...hook.options,
-            ...(nested === undefined ? {} : { hooks: nested.map(convertHook) }),
-            ...(queued === undefined ? {} : { triggerConfiguration: convertHook(queued) }),
-          },
-        }),
-  };
+  const options = { ...hook.options };
+  for (const key of ['hooks', 'onNotifySuccess'] as const) {
+    const nested = options[key];
+    if (nested === undefined) continue;
+    if (!Array.isArray(nested)) throw new Error(`Record hook options.${key} must be an array of named declarations.`);
+    options[key] = nested.map(convertBuiltinRecordHook);
+  }
+  if (options.triggerConfiguration !== undefined)
+    options.triggerConfiguration = convertBuiltinRecordHook(options.triggerConfiguration);
+  return { ...hook, function: name, ...(hook.options === undefined ? {} : { options }) };
 }
 
 /** Rewrite only hook declarations and their explicit nested hook lists/queued declarations; templates stay opaque. */
@@ -91,14 +84,14 @@ export function convertBuiltinRecordHooks(hooks: unknown): RecordHooksConfig {
       const hooks = declaration[phase];
       if (hooks === undefined) continue;
       if (!Array.isArray(hooks)) throw new Error('Record hook phase must be an array of named declarations.');
-      converted[phase] = hooks.map(convertHook);
+      converted[phase] = hooks.map(convertBuiltinRecordHook);
     }
     result[mode] = converted;
   }
   return result;
 }
 
-/** v5 comparison declarations remain untouched; v6 producers return converted copies. */
+/** Preserve source declarations; v6 producers return converted copies. */
 export function convertBuiltinRecordTypeHooks(definitions: RecordTypeConfig): RecordTypeConfig {
   return Object.fromEntries(
     Object.entries(definitions).map(([name, definition]) => [

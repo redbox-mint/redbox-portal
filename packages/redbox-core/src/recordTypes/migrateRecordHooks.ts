@@ -7,6 +7,10 @@ export const RECORD_HOOK_OPERATIONS_MIGRATION_NAME = '20261024T000000-v6-record-
 /** Also repairs checkpoints already marked complete by the initial internal v6 converter. */
 export const QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME = '20261024T010000-v6-queued-record-hook-operations';
 
+/** Repairs notification callbacks in checkpoints completed by either earlier converter. */
+export const NOTIFICATION_RECORD_HOOK_OPERATIONS_MIGRATION_NAME =
+  '20261025T000000-v6-notification-record-hook-operations';
+
 /** Writers must be stopped. Validate the entire plan before the first durable effect. */
 export async function migrateRecordHooks(input: {
   readonly brands: Pick<BrandingRepository, 'listBrands'>;

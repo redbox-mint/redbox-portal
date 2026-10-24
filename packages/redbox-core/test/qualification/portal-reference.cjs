@@ -9,6 +9,11 @@ const { firstValueFrom } = require('rxjs');
 const { nothingLogger: log } = require('@researchdatabox/sails-ng-common');
 const { ApplicationRuntime, runApplicationMigrations } = require('../../dist/application');
 const { portalReferencePlan } = require('../../dist/application/portal/reference');
+const {
+  NOTIFICATION_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+  RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+  QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+} = require('../../dist/recordTypes');
 const { loadPortalConfiguration } = require('../../dist/configuration/portal');
 const { ConfigModelRegistry } = require('../../dist/configuration/ConfigModelRegistry');
 const { resolveExtensions } = require('../../dist/extensions');
@@ -318,13 +323,42 @@ test(
         { populate: ['roles'] }
       );
       assert(admin?.roles.some(role => role.name === 'Admin'));
-      assert.equal((await runtime.getMigrationLedgerRepository(first.owner).executedNames()).length, 5);
+      assert.equal((await runtime.getMigrationLedgerRepository(first.owner).executedNames()).length, 6);
       await first.application.activate();
       assert.equal(first.application.status().ready, true);
+      // Simulate a checkpoint converted by both earlier v6 passes: nested email callbacks were missed.
+      const publicationType = types.find(type => type.name === 'dataPublication');
+      await runtime.getReferenceRepositories(first.owner).recordTypes.reviseDefinition(publicationType.id, {
+        hooks: {
+          onUpdate: {
+            post: [
+              {
+                function: 'email.sendRecordNotification',
+                options: {
+                  onNotifySuccess: [{ function: 'sails.services.recordsservice.updateNotificationLog' }],
+                },
+              },
+            ],
+          },
+        },
+      });
+      const ledger = runtime.getMigrationLedgerRepository(first.owner);
+      assert(await ledger.isExecuted(RECORD_HOOK_OPERATIONS_MIGRATION_NAME));
+      assert(await ledger.isExecuted(QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME));
+      await ledger.removeExecution(NOTIFICATION_RECORD_HOOK_OPERATIONS_MIGRATION_NAME);
       await first.application.stop();
       assert.throws(() => first.plan.branding.get(), /unavailable/);
       const restarted = await compose();
       await restarted.application.initialize();
+      const repaired = await runtime
+        .getReferenceRepositories(restarted.owner)
+        .recordTypes.findByName(brand.id, 'dataPublication');
+      assert.equal(repaired.hooks.onUpdate.post[0].options.onNotifySuccess[0].function, 'record.updateNotificationLog');
+      assert(
+        await runtime
+          .getMigrationLedgerRepository(restarted.owner)
+          .isExecuted(NOTIFICATION_RECORD_HOOK_OPERATIONS_MIGRATION_NAME)
+      );
       assert.equal(restarted.plan.branding.get().getDefault().id, brand.id);
       assert.equal(await native.db().collection('form').countDocuments(), forms);
       assert.equal(defaults, 0);
@@ -344,7 +378,7 @@ test(
         !Object.keys(require.cache).some(file => /[/\\](CoreBase|CoreService|services[/\\]index)\.js$/.test(file))
       );
       console.log(
-        JSON.stringify({ referenceDomains: 18, types: types.length, forms, selected, defaults, migrations: 5 })
+        JSON.stringify({ referenceDomains: 18, types: types.length, forms, selected, defaults, migrations: 6 })
       );
     } finally {
       await app?.stop();
