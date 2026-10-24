@@ -139,7 +139,7 @@ module.exports = {
   server: { hostname: '0.0.0.0', port: 1500, publicUrl: 'http://127.0.0.1:18508' },
   datastores: { mongodb: { url: 'mongodb://mongodb/redbox-portal' }, redboxStorage: { url: 'mongodb://storage-mongodb/redbox-storage' } },
   agendaQueue: { options: { db: 'mongodb://mongodb/redbox-portal', collection: 'agendaJobs' } },
-  redboxSession: { mongoUrl: 'mongodb://mongodb/redbox-portal', collection: 'sessions_v6', cookie: { secure: false } },
+  redboxSession: { name: 'redbox.v6.sid', mongoUrl: 'mongodb://mongodb/redbox-portal', collection: 'sessions_v6', cookie: { secure: false } },
   storage: { disks: {
     primary: { driver: 'fs', config: { root: '/attachments/primary' } },
     staging: { driver: 'fs', config: { root: '/attachments/staging' } },
