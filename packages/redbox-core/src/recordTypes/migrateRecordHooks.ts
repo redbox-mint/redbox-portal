@@ -4,6 +4,8 @@ import type { RecordTypeRepository } from '../persistence/reference/ReferenceRep
 import { convertBuiltinRecordHooks } from './RecordHookNames';
 
 export const RECORD_HOOK_OPERATIONS_MIGRATION_NAME = '20261024T000000-v6-record-hook-operations';
+/** Also repairs checkpoints already marked complete by the initial internal v6 converter. */
+export const QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME = '20261024T010000-v6-queued-record-hook-operations';
 
 /** Writers must be stopped. Validate the entire plan before the first durable effect. */
 export async function migrateRecordHooks(input: {

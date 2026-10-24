@@ -80,3 +80,40 @@ test('bundled v6 declaration converts its known operations while the comparison 
   assert.equal(global.sails, undefined);
   console.log(JSON.stringify({ convertedHookDeclarations: count }));
 });
+
+test('queued PDF declarations convert explicit trigger configuration without interpreting templates', () => {
+  const source = {
+    onCreate: {
+      post: [
+        {
+          function: 'sails.services.rdmpservice.queueTriggerCall',
+          options: {
+            triggerConfiguration: {
+              function: 'sails.services.pdfservice.createPDF',
+              options: { filename: '<%= record.metadata.title %>' },
+            },
+            template: 'sails.services.pdfservice.createPDF',
+          },
+        },
+      ],
+    },
+  };
+  const converted = convertBuiltinRecordHooks(source);
+  assert.equal(converted.onCreate.post[0].options.triggerConfiguration.function, 'pdf.create');
+  assert.equal(converted.onCreate.post[0].options.template, source.onCreate.post[0].options.template);
+  assert.deepEqual(convertBuiltinRecordHooks(converted), converted);
+  assert.throws(
+    () =>
+      convertBuiltinRecordHooks({
+        onUpdate: {
+          post: [
+            {
+              function: 'record.queueTriggerCall',
+              options: { triggerConfiguration: { function: 'sails.services.unknown.private' } },
+            },
+          ],
+        },
+      }),
+    /unsupported record hook expression/
+  );
+});

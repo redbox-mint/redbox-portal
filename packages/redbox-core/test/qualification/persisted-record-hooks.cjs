@@ -55,7 +55,20 @@ test('v5 persisted hooks validate before effects and resume idempotently after p
           },
         ],
       },
-      onUpdate: { post: [{ function: 'sails.services.figshareservice.wakeFigshareRecord' }] },
+      onUpdate: {
+        post: [
+          { function: 'sails.services.figshareservice.wakeFigshareRecord' },
+          {
+            function: 'sails.services.rdmpservice.queueTriggerCall',
+            options: {
+              triggerConfiguration: {
+                function: 'sails.services.pdfservice.createPDF',
+                options: { filename: '<%= record.metadata.title %>' },
+              },
+            },
+          },
+        ],
+      },
     };
     const rowA = await types.createDefinition({ name: 'a', branding: first.id, packageType: 'a', hooks: legacy });
     const rowB = await types.createDefinition({ name: 'b', branding: first.id, packageType: 'b', hooks: legacy });
@@ -102,6 +115,7 @@ test('v5 persisted hooks validate before effects and resume idempotently after p
     for (const row of [rowA, rowB, rowC]) {
       const stored = await types.findByName(row.branding, row.name);
       assert.deepEqual(stored.hooks, converted);
+      assert.equal(stored.hooks.onUpdate.post[1].options.triggerConfiguration.function, 'pdf.create');
       assert.equal(stored.hooks.onCreate.post[0].options.template, template);
     }
     const unused = () => {

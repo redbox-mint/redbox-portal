@@ -3,6 +3,7 @@ import { validateActionExecutionPolicy, validateActionId } from '../action-execu
 
 /** Deliberate migration of known built-in expressions, never service-path dispatch. */
 const builtins: Readonly<Record<string, string>> = Object.freeze({
+  'sails.services.pdfservice.createPDF': 'pdf.create',
   'sails.services.rdmpservice.runTemplates': 'record.runTemplates',
   'sails.services.rdmpservice.processRecordCounters': 'record.processRecordCounters',
   'sails.services.rdmpservice.queueTriggerCall': 'record.queueTriggerCall',
@@ -57,21 +58,23 @@ function convertHook(hook: unknown): RecordHookDefinition {
   const nested = hook.options?.hooks;
   if (nested !== undefined && !Array.isArray(nested))
     throw new Error('Record hook options.hooks must be an array of named declarations.');
+  const queued = hook.options?.triggerConfiguration;
   return {
     ...hook,
     function: name,
-    ...(nested === undefined
+    ...(nested === undefined && queued === undefined
       ? {}
       : {
           options: {
             ...hook.options,
-            hooks: nested.map(convertHook),
+            ...(nested === undefined ? {} : { hooks: nested.map(convertHook) }),
+            ...(queued === undefined ? {} : { triggerConfiguration: convertHook(queued) }),
           },
         }),
   };
 }
 
-/** Rewrite only hook declarations and their explicit nested hook list; templates stay opaque. */
+/** Rewrite only hook declarations and their explicit nested hook lists/queued declarations; templates stay opaque. */
 export function convertBuiltinRecordHooks(hooks: unknown): RecordHooksConfig {
   if (!dictionary(hooks)) throw new Error('Record hooks must be an object of named modes.');
   if (Object.keys(hooks).some(key => !['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow'].includes(key)))

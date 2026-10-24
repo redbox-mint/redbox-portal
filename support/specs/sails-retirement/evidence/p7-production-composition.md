@@ -3,7 +3,7 @@
 These are prerequisites and focused checks for SR-045–SR-050, not completed P7
 acceptance. Source starts at `ab08ccb7d` plus the changes in the commits containing
 this record. Node **26.11.1**, npm **11.20.0**, TypeScript **5.9.3**, Express
-**5.1.0**; no dependency changes. Raw logs remain in ignored
+**5.2.1**; no dependency changes. Raw logs remain in ignored
 `.tmp/sails-retirement/p7/`.
 
 ## Selected lifecycle and Agenda placement
@@ -88,7 +88,28 @@ terminated; disposable databases were cleaned before subsequent runs.
 
 The production build (`npm --prefix packages/redbox-core run build`,
 `portal-production-build.log`) exited **0**, including generated Prisma contracts,
-portal configuration schema verification and full TypeScript compilation. A fresh
-application run with six migrations and explicit separate-database job history is
-in progress; full-suite/artifact/topology/recovery evidence must follow before any
-P7 checkbox or default promotion.
+portal configuration schema verification and full TypeScript compilation. The final
+application run (`portal-application-final.log`) completed **1 passing / 0 failing /
+0 skipped**, exit **0**, **323898.29602 ms** total, **24291.513734 ms** assertion body.
+It ran six ledger migrations and verified that a completed job moves to history
+in the selected Agenda database, with no main-database history. Full existing-suite,
+artifact, topology and recovery evidence must follow before P7 completion/default promotion.
+
+## Supplemental persisted queued-hook repair
+
+The released v5 PDF queue declaration nests an executable name inside
+`options.triggerConfiguration`. The original conversion migrated the outer trigger
+but left that nested name unresolved. Conversion now visits only that explicit
+executable location and maps `sails.services.pdfservice.createPDF` to `pdf.create`;
+templates and unrelated JSON remain byte-for-byte values. A separate ledger entry
+`20261024T010000-v6-queued-record-hook-operations` repairs databases that already
+recorded the original migration.
+
+`queued-pdf-hooks-red.log` exposed the nested legacy string. The corrected pure
+qualifier (`queued-pdf-hooks-green.log`) passed **3/3**, and the real-Mongo persisted
+qualifier (`queued-pdf-hooks-mongo.log`) passed **1/1**, no failures or skips, exit
+**0**. The Mongo run used two brands/four definitions, rejected an invalid plan
+without writes, converted three definitions, retried two interrupted writes and
+proved idempotency. The production application result above exercised both ledger
+entries. No existing test expectation was relaxed.
+
