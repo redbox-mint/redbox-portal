@@ -1847,3 +1847,23 @@ not application changes or a new protocol decision.
 Four edited pages: a Python relative-link existence audit (including extensionless
 GitHub wiki names) checks 24 local links, 0 missing; `git diff --check` exits0. Log: `docs73-links.json`. The source artifact
 remains853d0039d; these documentation-only changes need no application rebuild.
+
+
+### Canonical auditor recheck after documentation reconciliation
+
+At8cb15b863, the original SR-001 inventory reports1020matched files/4943lines.
+The AST/metadata audit checks1049candidate/manifest files:0executable violations,
+0forbidden dependency entries. Reconciliation covers all1261baseline files.
+The same committed canonical auditor (SHA256
+`c367b232ff671c83e330232182805d7602d262b3d4523e969091144c6c8f033c`)
+passes both runtime771ebe39b424 (3780files) and all twelve hash-verified packed
+contents (2191files),0violations/0forbidden entries. Its five controls pass
+again,0failures/0skips,1.517s. No application changes or additional suite claims.
+
+Commands repeat the original `inventory.cjs HEAD`, `retirement-closure.cjs HEAD`,
+`reconcile-retirement-inventory.cjs`, the network-none/read-only runtime audit,
+packed-content extraction/digest check and `node --test
+test/tooling/retirement-closure.test.cjs`. Logs: `source-inventory74.json`,
+`source-closure74.json`, `inventory-reconciliation74.json`,
+`runtime-closure74.{json,log}`, `packed-content-closure74.{json,log}`,
+`closure74-controls.log`. Compact manifest now records the canonical digest.
