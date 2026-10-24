@@ -1,16 +1,22 @@
+const collaborators: any = {};
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('NavigationService', function () {
-  let mockSails: any;
+  let fixture: any;
   let NavigationService: any;
+  let input: any;
+  function forRequest(req: any) {
+    input.context = { isAuthenticated: req.isAuthenticated(), user: req.user, brand: collaborators.BrandingService.getBrand(), brandPortalPath: collaborators.BrandingService.getBrandAndPortalPath(), currentPath: req.path };
+    return NavigationService;
+  }
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         http: { rootContext: '' },
@@ -41,35 +47,37 @@ describe('NavigationService', function () {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
 
     // Mock dependent services
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrandNameFromReq: sinon.stub().returns('default'),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandAndPortalPath: sinon.stub().returns('/default/portal')
     };
-    (global as any).RolesService = {
+    collaborators.RolesService = {
       getRoleByName: sinon.stub().returns({ name: 'Admin' })
     };
-    (global as any).UsersService = {
+    collaborators.UsersService = {
       hasRole: sinon.stub().returns(true)
     };
-    (global as any).TranslationService = {
+    collaborators.TranslationService = {
       t: sinon.stub().callsFake((key: string) => key.replace(/-/g, ' '))
     };
 
     // Import after mocks are set up
     const { Services } = require('../../src/services/NavigationService');
-    NavigationService = new Services.Navigation();
+    input = { context: {}, get configuration() { return fixture.config.brandingAware(); }, appmode: fixture.config.appmode, log: fixture.log,
+      translate: key => collaborators.TranslationService.t(key), hasRole: (...args) => collaborators.UsersService.hasRole(...args) };
+    NavigationService = new Services.Navigation(input);
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).BrandingService;
-    delete (global as any).RolesService;
-    delete (global as any).UsersService;
-    delete (global as any).TranslationService;
+    restoreRepositoryFixtures();
+    delete collaborators.BrandingService;
+    delete collaborators.RolesService;
+    delete collaborators.UsersService;
+    delete collaborators.TranslationService;
     sinon.restore();
   });
 
@@ -112,7 +120,7 @@ describe('NavigationService', function () {
         params: { branding: 'default', portal: 'portal' }
       };
 
-      const result = await NavigationService.resolveMenu(mockReq);
+      const result = await forRequest(mockReq).resolveMenu();
 
       expect(result).to.have.property('items');
       expect(result).to.have.property('showSearch');
@@ -126,7 +134,7 @@ describe('NavigationService', function () {
         params: { branding: 'default', portal: 'portal' }
       };
 
-      const result = await NavigationService.resolveMenu(mockReq);
+      const result = await forRequest(mockReq).resolveMenu();
 
       expect(result).to.have.property('items');
       expect(result.items).to.be.an('array');
@@ -134,7 +142,7 @@ describe('NavigationService', function () {
 
     it('should return empty items on error', async function () {
       // Force an error by breaking the BrandingService
-      (global as any).BrandingService.getBrandNameFromReq = sinon.stub().throws(new Error('Test error'));
+      fixture.config.brandingAware = sinon.stub().throws(new Error('Test error'));
 
       const mockReq = {
         isAuthenticated: sinon.stub().returns(false),
@@ -143,7 +151,7 @@ describe('NavigationService', function () {
         params: {}
       };
 
-      const result = await NavigationService.resolveMenu(mockReq);
+      const result = await forRequest(mockReq).resolveMenu();
 
       expect(result.items).to.be.an('array');
       expect(result.items).to.have.lengthOf(0);
@@ -159,7 +167,7 @@ describe('NavigationService', function () {
         params: { branding: 'default', portal: 'portal' }
       };
 
-      const result = await NavigationService.resolveHomePanels(mockReq);
+      const result = await forRequest(mockReq).resolveHomePanels();
 
       expect(result).to.have.property('panels');
       expect(result.panels).to.be.an('array');
@@ -169,7 +177,7 @@ describe('NavigationService', function () {
       // Stub console.error to suppress expected error output
       const consoleErrorStub = sinon.stub(console, 'error');
 
-      (global as any).BrandingService.getBrandNameFromReq = sinon.stub().throws(new Error('Test error'));
+      fixture.config.brandingAware = sinon.stub().throws(new Error('Test error'));
 
       const mockReq = {
         isAuthenticated: sinon.stub().returns(false),
@@ -179,7 +187,7 @@ describe('NavigationService', function () {
       };
 
       try {
-        const result = await NavigationService.resolveHomePanels(mockReq);
+        const result = await forRequest(mockReq).resolveHomePanels();
 
         expect(result.panels).to.be.an('array');
         expect(result.panels).to.have.lengthOf(0);
@@ -199,7 +207,7 @@ describe('NavigationService', function () {
         params: { branding: 'default', portal: 'portal' }
       };
 
-      const result = await NavigationService.resolveAdminSidebar(mockReq);
+      const result = await forRequest(mockReq).resolveAdminSidebar();
 
       expect(result).to.have.property('header');
       expect(result).to.have.property('sections');
@@ -209,7 +217,7 @@ describe('NavigationService', function () {
     });
 
     it('should return minimal sidebar on error', async function () {
-      (global as any).BrandingService.getBrandNameFromReq = sinon.stub().throws(new Error('Test error'));
+      fixture.config.brandingAware = sinon.stub().throws(new Error('Test error'));
 
       const mockReq = {
         isAuthenticated: sinon.stub().returns(false),
@@ -218,16 +226,16 @@ describe('NavigationService', function () {
         params: {}
       };
 
-      const result = await NavigationService.resolveAdminSidebar(mockReq);
+      const result = await forRequest(mockReq).resolveAdminSidebar();
 
       expect(result.header.title).to.equal('Admin');
       expect(result.sections).to.be.an('array');
     });
   });
 
-  describe('exports', function () {
+  describe('public methods', function () {
     it('should export all public methods', function () {
-      const exported = NavigationService.exports();
+      const exported = NavigationService;
 
       expect(exported).to.have.property('resolveMenu');
       expect(exported).to.have.property('resolveHomePanels');

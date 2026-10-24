@@ -1,3 +1,5 @@
+const collaborators: any = {};
+let environment: any;
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 import assert from 'node:assert/strict';
@@ -18,9 +20,8 @@ describe('RvaImportService', () => {
 
   beforeEach(() => {
     stubVocabularyPersistence();
-    (global as any)._ = lodash;
     createStub = sinon.stub().resolves({ id: 'v1', name: 'Imported' });
-    (global as any).sails = {
+    environment = {
       config: { vocab: { rva: { baseUrl: 'https://example.org/rva' } }, auth: { defaultBrand: 'default' } },
       services: {
         vocabularyservice: {
@@ -35,7 +36,7 @@ describe('RvaImportService', () => {
       findOne: sinon.stub().resolves({ id: 'v1', source: 'rva', sourceId: '1', name: 'Existing' }),
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves() }),
     };
-    (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
+    collaborators.VocabularyService = environment.services.vocabularyservice;
 
     getVocabularyByIdStub = sinon.stub(ResourcesApi.prototype, 'getVocabularyById');
     getVocabularyByIdStub.onCall(0).resolves({
@@ -56,15 +57,16 @@ describe('RvaImportService', () => {
       }
     } as unknown as Awaited<ReturnType<ServicesApi['search']>>);
 
-    service = new RvaImportServiceModule.RvaImport();
+    service = new RvaImportServiceModule.RvaImport({ repository: require('../../src/persistence/vocabulary/runtime').getVocabularyRepositories(),
+      get vocabulary() { return collaborators.VocabularyService; }, log: environment.log,
+      baseUrl: () => environment.config.vocab.rva.baseUrl, defaultBrand: () => environment.config.auth.defaultBrand });
   });
 
   afterEach(() => {
     sinon.restore();
     delete repositoryFixtures.Vocabulary;
-    delete (global as any).VocabularyService;
-    delete (global as any).sails;
-    delete (global as any)._;
+    delete collaborators.VocabularyService;
+    delete collaborators._;
   });
 
   it('imports an RVA vocabulary', async () => {
@@ -116,7 +118,7 @@ describe('RvaImportService', () => {
       return { created: 1, updated: 0, skipped: 0 };
     });
     const update = sinon.stub().callsFake(async () => { writes.push('metadata'); throw failure; });
-    const vocabularyService = Reflect.get(globalThis, 'VocabularyService');
+    const vocabularyService = collaborators.VocabularyService;
     Reflect.set(vocabularyService, 'upsertEntries', upsert);
     const vocabulary = Reflect.get(repositoryFixtures, 'Vocabulary');
     Reflect.set(vocabulary, 'updateOne', () => ({ set: update }));
@@ -125,15 +127,15 @@ describe('RvaImportService', () => {
     });
     expect(writes).to.deep.equal(['entries', 'metadata']);
     sinon.assert.calledOnce(upsert);
-    sinon.assert.calledWithExactly(Reflect.get(globalThis, 'sails').log.error,
+    sinon.assert.calledWithExactly(environment.log.error,
       'RVA sync failed after entry upsert; retry may be required.', failure);
-    sinon.assert.notCalled(Reflect.get(globalThis, 'sails').log.warn);
+    sinon.assert.notCalled(environment.log.warn);
   });
 
   it('propagates an upsert failure before attempting the metadata write', async () => {
     const failure = new Error('entry upsert failed');
     const upsert = sinon.stub().rejects(failure);
-    Reflect.set(Reflect.get(globalThis, 'VocabularyService'), 'upsertEntries', upsert);
+    Reflect.set(collaborators.VocabularyService, 'upsertEntries', upsert);
     const vocabulary = Reflect.get(repositoryFixtures, 'Vocabulary');
     await assert.rejects(service.syncRvaVocabulary('v1'), error => error === failure);
     sinon.assert.notCalled(vocabulary.updateOne);

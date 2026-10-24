@@ -1,16 +1,17 @@
+const collaborators: any = {};
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture } from './testHelper';
 
 describe('FormVocabularyService', function () {
-  let mockSails: any;
+  let fixture: any;
   let FormVocabularyService: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         vocab: {
@@ -89,27 +90,29 @@ describe('FormVocabularyService', function () {
       }
     });
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
 
-    (global as any).NamedQueryService = {
+    collaborators.NamedQueryService = {
       getNamedQueryConfig: sinon.stub().resolves({}),
       performNamedQueryFromConfig: sinon.stub().resolves({ records: [] })
     };
 
     delete require.cache[require.resolve('../../src/services/FormVocabularyService')];
     const { Services } = require('../../src/services/FormVocabularyService');
-    FormVocabularyService = new Services.FormVocabulary();
+    FormVocabularyService = new Services.FormVocabulary({ get config() { return fixture.config.vocab; }, log: fixture.log,
+      get queries() { return collaborators.NamedQueryService; }, get search() { return fixture.services.solrsearchservice; },
+      resolveLookup: (service, method) => { const target = fixture.services[service.toLowerCase()]; return typeof target?.[method] === 'function' ? target[method].bind(target) : undefined; } });
   });
 
   afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).NamedQueryService;
+    restoreRepositoryFixtures();
+    delete collaborators.NamedQueryService;
     sinon.restore();
   });
 
   describe('buildNamedQueryParamMap', function () {
     it('should build param map from config and user', function () {
-      const config = mockSails.config.vocab.queries['db-source'];
+      const config = fixture.config.vocab.queries['db-source'];
       const user = { username: 'testuser' };
 
       const params = FormVocabularyService.buildNamedQueryParamMap(config, 'search text', user);
@@ -122,7 +125,7 @@ describe('FormVocabularyService', function () {
   describe('buildSolrParams (private)', function () {
     it('should build solr query parameters', function () {
       const brand = { id: 'brand-1' };
-      const config = mockSails.config.vocab.queries['solr-source'];
+      const config = fixture.config.vocab.queries['solr-source'];
       const user = { username: 'testuser' };
 
       const query = (FormVocabularyService as any).buildSolrParams(brand, 'search text', config, 0, 10, 'json', user);
@@ -138,7 +141,7 @@ describe('FormVocabularyService', function () {
 
     it('preserves ampersands in dynamic filter values', function () {
       const brand = { id: 'brand-1' };
-      const config = mockSails.config.vocab.queries['solr-source'];
+      const config = fixture.config.vocab.queries['solr-source'];
       const user = { username: 'alice&bob' };
 
       const query = (FormVocabularyService as any).buildSolrParams(brand, 'research & data', config, 0, 10, 'json', user);
@@ -152,7 +155,7 @@ describe('FormVocabularyService', function () {
 
     it('maps a raw base expression to the required q parameter', function () {
       const brand = { id: 'brand-1' };
-      const config = _.cloneDeep(mockSails.config.vocab.queries['solr-source']);
+      const config = _.cloneDeep(fixture.config.vocab.queries['solr-source']);
       config.searchQuery.baseQuery = 'type:vocabulary&fq=status:active';
 
       const query = (FormVocabularyService as any).buildSolrParams(
@@ -175,8 +178,8 @@ describe('FormVocabularyService', function () {
 
       await FormVocabularyService.findRecords('db-source', brand, 'query', 0, 10, user);
 
-      expect((global as any).NamedQueryService.getNamedQueryConfig.called).to.be.true;
-      expect((global as any).NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
+      expect(collaborators.NamedQueryService.getNamedQueryConfig.called).to.be.true;
+      expect(collaborators.NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
     });
 
     it('should query solr source', async function () {
@@ -185,7 +188,7 @@ describe('FormVocabularyService', function () {
 
       await FormVocabularyService.findRecords('solr-source', brand, 'query', 0, 10, user);
 
-      expect(mockSails.services.solrsearchservice.searchAdvanced.called).to.be.true;
+      expect(fixture.services.solrsearchservice.searchAdvanced.called).to.be.true;
     });
 
     it('rejects unknown query vocabularies', async function () {
@@ -227,7 +230,7 @@ describe('FormVocabularyService', function () {
     });
 
     it('rejects unsafe external template expressions', async function () {
-      mockSails.config.vocab.external.badTemplate = {
+      fixture.config.vocab.external.badTemplate = {
         url: 'https://external.example.com/search?q=${query.toUpperCase()}',
         method: 'get',
         options: {}
@@ -261,8 +264,8 @@ describe('FormVocabularyService', function () {
         ],
         meta: { total: 1 }
       });
-      expect(mockSails.services.lookuptestservice.lookupPeople.calledOnce).to.be.true;
-      const requestArg = mockSails.services.lookuptestservice.lookupPeople.firstCall.args[0];
+      expect(fixture.services.lookuptestservice.lookupPeople.calledOnce).to.be.true;
+      const requestArg = fixture.services.lookuptestservice.lookupPeople.firstCall.args[0];
       expect(requestArg).to.include({
         serviceId: 'testLookup',
         search: 'jan',
@@ -292,7 +295,7 @@ describe('FormVocabularyService', function () {
     });
 
     it('rejects missing target service methods', async function () {
-      mockSails.config.vocab.services.badTarget = {
+      fixture.config.vocab.services.badTarget = {
         serviceName: 'LookupTestService',
         methodName: 'missingMethod'
       };
@@ -314,7 +317,7 @@ describe('FormVocabularyService', function () {
     });
 
     it('rejects invalid service lookup responses', async function () {
-      mockSails.services.lookuptestservice.lookupPeople.resolves({ meta: { total: 0 } });
+      fixture.services.lookuptestservice.lookupPeople.resolves({ meta: { total: 0 } });
 
       try {
         await FormVocabularyService.findInServiceLookup('testLookup', {
@@ -333,7 +336,7 @@ describe('FormVocabularyService', function () {
     });
 
     it('rejects invalid service lookup options', async function () {
-      mockSails.services.lookuptestservice.lookupPeople.resolves({
+      fixture.services.lookuptestservice.lookupPeople.resolves({
         data: [{ label: '', value: 'party-1' }]
       });
 
@@ -372,8 +375,8 @@ describe('FormVocabularyService', function () {
         ],
         meta: { total: 1, source: 'datacite' }
       });
-      expect(mockSails.services.doiservice.lookupDataciteDois.calledOnce).to.be.true;
-      expect(mockSails.services.doiservice.lookupDataciteDois.firstCall.args[0]).to.include({
+      expect(fixture.services.doiservice.lookupDataciteDois.calledOnce).to.be.true;
+      expect(fixture.services.doiservice.lookupDataciteDois.firstCall.args[0]).to.include({
         serviceId: 'dataciteDois',
         search: 'climate data',
         start: 0,
@@ -400,9 +403,9 @@ describe('FormVocabularyService', function () {
     });
   });
 
-  describe('exports', function () {
+  describe('public methods', function () {
     it('should export all public methods', function () {
-      const exported = FormVocabularyService.exports();
+      const exported = FormVocabularyService;
 
       expect(exported).to.have.property('findInExternalService');
       expect(exported).to.have.property('findInServiceLookup');

@@ -332,3 +332,20 @@ Additional migrated fixtures were checked in the recorded focused runs:
 `appconfig-secrets-second.log` 45 passing, `page-utils-first.log` 11 passing,
 and `workers-first.log` 30 passing. No new skips were introduced. These
 source-fixture checkpoints do not close full-suite or artifact acceptance.
+
+### Core fixture migration: navigation, vocabulary, queries and harvest
+
+`services7-second.log`: **172 passing / 2 unchanged pending / 0 failing**
+(Node 26.11.1, source based on `2328d2946`, explicit seven-file Mocha command
+using the same ts-node setup above). `services7-first.log` had 14 failures;
+all were fixture migration defects and passed after correction.
+
+The seven existing suites construct Navigation, FormVocabulary, Vocabulary,
+RvaImport, NamedQueries, Raid and HarvestRuns with their actual v6 inputs.
+Harvest shutdown assertions now use ApplicationRuntime and await accepted event
+writes; two authored local named hooks replace evaluated function strings.
+The RAiD legacy-normalization case now verifies explicit JSONata mappings: the
+retired adapter no longer normalizes unsupported configuration. Public-method
+checks inspect the actual domain methods rather than a generated `exports()`
+shim. Applicable business assertions and the two pre-existing pending RAiD cases
+are retained. No production evaluator or comparison adapter was restored.

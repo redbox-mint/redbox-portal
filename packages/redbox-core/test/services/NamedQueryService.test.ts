@@ -1,3 +1,4 @@
+const collaborators: any = {};
 import * as storageQueries from '../../src/persistence/storage/NamedQueryTargets';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { installIdentityRepositoryMock } from '../helpers/identityMock';
@@ -9,10 +10,10 @@ import { runWithRequestChronicle } from '../../src/utilities/RequestChronicleCon
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
+import { installRepositoryFixtures, restoreRepositoryFixtures, createDomainFixture, createQueryObject } from './testHelper';
 
 describe('NamedQueryService', function() {
-  let mockSails: any;
+  let fixture: any;
   let NamedQueryService: any;
   let NamedQueryConfig: any;
   let mockNamedQuery: any;
@@ -25,7 +26,7 @@ describe('NamedQueryService', function() {
 
   beforeEach(function() {
     installIdentityRepositoryMock();
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       config: {
         appPath: '/app',
         namedQuery: {
@@ -85,17 +86,17 @@ describe('NamedQueryService', function() {
       getRelatedRecords: sinon.stub().resolves({ rootOid: 'oid-1', edges: [], relatedObjects: {}, omittedByAccess: {} })
     };
 
-    mockSails.services = {
+    fixture.services = {
       recordsservice: mockRecordsService
     };
 
-    setupServiceTestGlobals(mockSails);
+    installRepositoryFixtures();
     repositoryFixtures.NamedQuery = mockNamedQuery;
     repositoryFixtures.User = mockUser;
     repositoryFixtures.UserLink = mockUserLink;
     repositoryFixtures.Record = mockRecord;
 
-    mockSails.queryFixtures = {
+    fixture.queryFixtures = {
       user: mockUser,
       userlink: mockUserLink,
       record: mockRecord,
@@ -113,10 +114,10 @@ describe('NamedQueryService', function() {
     };
 
     for (const name of ['custommodel', 'relatedmodel']) {
-      registerNamedQueryTarget(mockSails, {
+      registerNamedQueryTarget(fixture, {
         metadata: { name, scope: { type: 'field', fieldPath: 'branding' } },
         async execute(request) {
-          const model = mockSails.queryFixtures[name];
+          const model = fixture.queryFixtures[name];
           const where = namedQueryCriteria(request.expression, false);
           const total = request.rows === undefined ? 0 : await model.count(where).meta({ enableExperimentalDeepTargets: true });
           const records = await model.find({ where, ...(request.select ? { select: request.select } : {}),
@@ -139,11 +140,14 @@ describe('NamedQueryService', function() {
     const module = require('../../src/services/NamedQueryService');
     const { Services } = module;
     NamedQueryConfig = module.NamedQueryConfig;
-    NamedQueryService = new Services.NamedQueryService();
+    NamedQueryService = new Services.NamedQueryService({ queries: require('../helpers/serviceRepositories').referenceFixtures().namedQueries,
+      log: fixture.log, get config() { return fixture.config; }, records: mockRecordsService,
+      target: name => require('../../src/persistence/reference/NamedQueryExecution').namedQueryTarget(fixture, name),
+      execute: (request, count) => require('../../src/persistence/reference/NamedQueryExecution').executeNamedQuery(fixture, request, count) });
   });
 
   afterEach(function() {
-    cleanupServiceTestGlobals();
+    restoreRepositoryFixtures();
     delete repositoryFixtures.NamedQuery;
     delete repositoryFixtures.User;
     delete repositoryFixtures.UserLink;
@@ -460,7 +464,7 @@ describe('NamedQueryService', function() {
     });
 
     it('should return an empty array when none are configured', function() {
-      delete mockSails.config.namedQuery.supportedCollections;
+      delete fixture.config.namedQuery.supportedCollections;
       expect(NamedQueryService.getSupportedCollections()).to.deep.equal([]);
     });
   });
@@ -627,9 +631,9 @@ describe('NamedQueryService', function() {
         10
       );
 
-      expect(mockSails.queryFixtures.custommodel.count.called).to.be.true;
-      expect(mockSails.queryFixtures.custommodel.count.firstCall.args[0].branding).to.equal('brand-1');
-      expect(mockSails.queryFixtures.custommodel.find.called).to.be.true;
+      expect(fixture.queryFixtures.custommodel.count.called).to.be.true;
+      expect(fixture.queryFixtures.custommodel.count.firstCall.args[0].branding).to.equal('brand-1');
+      expect(fixture.queryFixtures.custommodel.find.called).to.be.true;
       expect(result.records).to.have.length(1);
       expect(result.records[0].metadata.customName).to.equal('Custom Record');
     });
@@ -657,7 +661,7 @@ describe('NamedQueryService', function() {
     });
 
     it('captures pagination and counts without logging criteria or parameter values', async function() {
-      const item = RequestChronicleHelper.fromReq(mockSails.log, { options: {} } as Sails.Req);
+      const item = RequestChronicleHelper.fromReq(fixture.log, { options: {} } as Sails.Req);
       item.start();
       const response = await runWithRequestChronicle(item, () => NamedQueryService.performNamedQueryFromConfig(
         { collectionName: 'record', mongoQuery: { 'metadata.title': 'PRIVATE TITLE' } },
@@ -689,7 +693,7 @@ describe('NamedQueryService', function() {
         true
       );
 
-      expect(mockSails.log.debug.calledWithMatch({ info: { namedQueryRelationsIgnored: true } }, 'Service operation')).to.be.true;
+      expect(fixture.log.debug.calledWithMatch({ info: { namedQueryRelationsIgnored: true } }, 'Service operation')).to.be.true;
     });
 
     it('should expand record relationships when configured', async function() {
@@ -905,7 +909,7 @@ describe('NamedQueryService', function() {
       expect(() => {
         NamedQueryService.runTemplate('{{#if title}}', { title: 'Broken' });
       }).to.throw();
-      expect(mockSails.log.error.calledOnce).to.be.true;
+      expect(fixture.log.error.calledOnce).to.be.true;
     });
   });
 

@@ -1,3 +1,7 @@
+const collaborators: any = {};
+const hooks = new Map<string, (...args: any[]) => unknown>();
+hooks.set('test.beforeValidation', (_oid, record) => ({ ...record, metadata: { ...record.metadata, harvestRunBeforeValidatorCount: (record.metadata.harvestRunBeforeValidatorCount ?? 0) + 1 } }));
+hooks.set('test.changeOwner', (_oid, record) => ({ ...record, authorization: { ...record.authorization, edit: ['replacement-owner'] } }));
 import { harvestFixtures } from '../helpers/serviceRepositories';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 let expect: Chai.ExpectStatic;
@@ -17,7 +21,7 @@ import type {
 } from '../../src/services/RecordSchemaService';
 import type { RecordValidationRequest, RecordValidationResult } from '../../src/services/RecordValidationService';
 import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
-import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
+import { restoreRepositoryFixtures, createDomainFixture, installRepositoryFixtures } from './testHelper';
 
 type QueryLike = {
   sort: sinon.SinonStub;
@@ -100,7 +104,7 @@ describe('HarvestRunService', function () {
   let originalHarvestRunChunk: any;
   let originalHarvestRecordEvent: any;
   let originalRecordTypesService: any;
-  let mockSails: any;
+  let fixture: any;
   let recordsService: {
     hasEditAccess: sinon.SinonStub;
     create: sinon.SinonStub;
@@ -116,7 +120,7 @@ describe('HarvestRunService', function () {
     originalHarvestRun = repositoryFixtures.HarvestRun;
     originalHarvestRunChunk = repositoryFixtures.HarvestRunChunk;
     originalHarvestRecordEvent = repositoryFixtures.HarvestRecordEvent;
-    originalRecordTypesService = (global as any).RecordTypesService;
+    originalRecordTypesService = collaborators.RecordTypesService;
 
     recordsService = {
       hasEditAccess: sinon.stub().returns(true),
@@ -128,13 +132,13 @@ describe('HarvestRunService', function () {
       setWorkflowStepRelatedMetadata: sinon.stub(),
     };
 
-    mockSails = createMockSails({
+    fixture = createDomainFixture({
       services: {
         recordsservice: recordsService,
       },
     });
-    setupServiceTestGlobals(mockSails);
-    (global as any).RecordsService = recordsService;
+    installRepositoryFixtures();
+    collaborators.RecordsService = recordsService;
 
     repositoryFixtures.HarvestRun = {
       findOne: sinon.stub(),
@@ -159,16 +163,16 @@ describe('HarvestRunService', function () {
     repositoryFixtures.Record = {
       find: sinon.stub(),
     };
-    (global as any).RecordTypesService = {
+    collaborators.RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'dataset', hooks: {}, searchable: false })),
     };
-    (global as any).WorkflowStepsService = {
+    collaborators.WorkflowStepsService = {
       get: sinon.stub(),
     };
 
     sinon.stub(require('../../src/persistence/harvest/runtime'), 'getHarvestRepositories').callsFake(harvestFixtures);
-    mockSails.config.storage = { serviceName: 'harveststorage' };
-    mockSails.services.harveststorage = {
+    fixture.config.storage = { serviceName: 'harveststorage' };
+    fixture.services.harveststorage = {
       findHarvestRecords: async (harvestIds: string[], recordType: string, brandId?: string) =>
         repositoryFixtures.Record.find({
           harvestId: brandId === undefined && harvestIds.length === 1 ? harvestIds[0] : { in: harvestIds },
@@ -179,31 +183,33 @@ describe('HarvestRunService', function () {
 
     const module = require('../../src/services/HarvestRunService');
     HarvestRunServiceClass = module.Services.HarvestRunService;
-    service = new HarvestRunServiceClass();
+    service = new HarvestRunServiceClass({ get records() { return collaborators.RecordsService; },
+      get storage() { return fixture.services.harveststorage; }, get workflows() { return collaborators.WorkflowStepsService; },
+      repository: harvestFixtures(), get config() { return fixture.config; }, log: fixture.log });
   });
 
   afterEach(async function () {
-    await cleanupPersistence(mockSails);
-    cleanupServiceTestGlobals();
-    delete (global as any).RecordsService;
+    await service.drain();
+    restoreRepositoryFixtures();
+    delete collaborators.RecordsService;
     repositoryFixtures.Record = originalRecord;
     repositoryFixtures.HarvestRun = originalHarvestRun;
     repositoryFixtures.HarvestRunChunk = originalHarvestRunChunk;
     repositoryFixtures.HarvestRecordEvent = originalHarvestRecordEvent;
     if (originalRecordTypesService === undefined) {
-      delete (global as any).RecordTypesService;
+      delete collaborators.RecordTypesService;
     } else {
-      (global as any).RecordTypesService = originalRecordTypesService;
+      collaborators.RecordTypesService = originalRecordTypesService;
     }
-    delete (global as any).WorkflowStepsService;
-    delete (global as any).FormsService;
-    delete (global as any).RolesService;
-    delete (global as any).UsersService;
-    delete (global as any).RecordValidationService;
-    delete (global as any).TranslationService;
-    delete (global as any).BrandingService;
-    delete (global as any).RedboxJavaStorageService;
-    delete (global as any).SolrSearchService;
+    delete collaborators.WorkflowStepsService;
+    delete collaborators.FormsService;
+    delete collaborators.RolesService;
+    delete collaborators.UsersService;
+    delete collaborators.RecordValidationService;
+    delete collaborators.TranslationService;
+    delete collaborators.BrandingService;
+    delete collaborators.RedboxJavaStorageService;
+    delete collaborators.SolrSearchService;
     sinon.restore();
   });
 
@@ -256,25 +262,25 @@ describe('HarvestRunService', function () {
       },
     };
 
-    mockSails.config.recordSchema = { enabled: recordSchemaEnabled };
-    mockSails.config.recordValidation = { mode: 'shadow' };
-    mockSails.config.record = {
+    fixture.config.recordSchema = { enabled: recordSchemaEnabled };
+    fixture.config.recordValidation = { mode: 'shadow' };
+    fixture.config.record = {
       auditing: { enabled: false, recordAuditJobName: 'RecordAudit' },
     };
-    mockSails.config.jsonld = { addJsonLdContext: false, contexts: {} };
-    mockSails.services.recordschemaservice = schemaResolver;
-    (global as any).WorkflowStepsService = {
+    fixture.config.jsonld = { addJsonLdContext: false, contexts: {} };
+    fixture.services.recordschemaservice = schemaResolver;
+    collaborators.WorkflowStepsService = {
       getFirst: sinon.stub().returns(of(workflowStep)),
       get: sinon.stub().returns(of(workflowStep)),
     };
-    (global as any).FormsService = {
+    collaborators.FormsService = {
       getForm: sinon.stub().resolves({ name: 'default-form', attachmentFields: [] }),
       getFormByName: sinon.stub().returns(of({ name: 'default-form', attachmentFields: [] })),
     };
-    (global as any).RolesService = {
+    collaborators.RolesService = {
       getRole: sinon.stub().callsFake((_brand: unknown, name: string) => ({ id: `role-${name}` })),
     };
-    (global as any).UsersService = {
+    collaborators.UsersService = {
       getUserWithUsername: sinon.stub().returns(of(null)),
     };
     const recordValidationService: {
@@ -284,25 +290,31 @@ describe('HarvestRunService', function () {
         .stub<[request: RecordValidationRequest], Promise<RecordValidationResult>>()
         .callsFake(async request => recordValidationResult(request)),
     };
-    (global as any).RecordValidationService = recordValidationService;
-    mockSails.services.recordvalidationservice = recordValidationService;
-    (global as any).TranslationService = {
+    collaborators.RecordValidationService = recordValidationService;
+    fixture.services.recordvalidationservice = recordValidationService;
+    collaborators.TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
-    (global as any).BrandingService = {
+    collaborators.BrandingService = {
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
-    (global as any).RedboxJavaStorageService = storageService;
-    (global as any).SolrSearchService = { index: sinon.stub() };
+    collaborators.RedboxJavaStorageService = storageService;
+    collaborators.SolrSearchService = { index: sinon.stub() };
 
     const recordsModule = require('../../src/services/RecordsService');
-    const realRecordsService = new recordsModule.Services.Records();
+    const realRecordsService = new recordsModule.Services.Records({ get config() { return fixture.config; }, log: fixture.log, repository: {},
+      storageService, datastreamService: {}, searchService: {}, queueService: {},
+      get branding() { return collaborators.BrandingService; }, get recordTypes() { return collaborators.RecordTypesService; },
+      get workflows() { return collaborators.WorkflowStepsService; }, get forms() { return collaborators.FormsService; },
+      get users() { return collaborators.UsersService; }, get roles() { return collaborators.RolesService; },
+      schema: schemaResolver, validation: recordValidationService, translation: collaborators.TranslationService,
+      resolveHook: name => hooks.get(name), stagingDisk: () => undefined, prepareSourceIntent: () => undefined, wakeFigshareRecord: async () => undefined });
     realRecordsService.storageService = storageService;
     realRecordsService.searchService = { index: sinon.stub() };
     realRecordsService.queueService = { now: sinon.stub() };
     realRecordsService.datastreamService = {};
-    (global as any).RecordsService = realRecordsService;
-    mockSails.services.recordsservice = realRecordsService;
+    collaborators.RecordsService = realRecordsService;
+    fixture.services.recordsservice = realRecordsService;
 
     return {
       persistedRecords,
@@ -411,7 +423,7 @@ describe('HarvestRunService', function () {
   }
 
   it('threads authoritative contexts through compatibility and legacy creates in shadow and enforce', async function () {
-    mockSails.config.recordSchema = { enabled: true };
+    fixture.config.recordSchema = { enabled: true };
     repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
     recordsService.create.resolves({
       oid: 'record-1',
@@ -440,7 +452,7 @@ describe('HarvestRunService', function () {
     ];
 
     for (const mode of ['shadow', 'enforce'] as const) {
-      mockSails.config.recordValidation = { mode };
+      fixture.config.recordValidation = { mode };
       for (const submit of submissions) {
         recordsService.create.resetHistory();
 
@@ -460,7 +472,7 @@ describe('HarvestRunService', function () {
   });
 
   it('supports legacy harvest arities while schemas are disabled and supplies operation-only save contexts', async function () {
-    mockSails.config.recordSchema = { enabled: false };
+    fixture.config.recordSchema = { enabled: false };
     repositoryFixtures.Record.find.returns({ meta: sinon.stub().resolves([]) });
     recordsService.create.resolves({
       oid: 'record-1',
@@ -537,7 +549,7 @@ describe('HarvestRunService', function () {
         context
       );
 
-    mockSails.config.recordSchema = { enabled: false };
+    fixture.config.recordSchema = { enabled: false };
     await submit();
     const disabledContext = recordsService.create.firstCall.args[7];
     expect(disabledContext).to.include({ operation: 'create' });
@@ -548,7 +560,7 @@ describe('HarvestRunService', function () {
     expect(disabledContext.validationRuntimeContext).to.deep.equal({ transport: 'harvest' });
 
     recordsService.create.resetHistory();
-    mockSails.config.recordSchema = { enabled: true };
+    fixture.config.recordSchema = { enabled: true };
     await submit();
     const enabledContext = recordsService.create.firstCall.args[7];
     expect(enabledContext).to.include({
@@ -587,14 +599,11 @@ describe('HarvestRunService', function () {
     );
     await new Promise<void>(ok => setImmediate(ok));
     let closed = false;
-    mockSails.config.beforeShutdown = (callback: () => void) => {
-      closed = true;
-      callback();
-    };
-    await service.init();
-    const shutdown = new Promise<void>((ok, fail) =>
-      mockSails.config.beforeShutdown((error?: unknown) => (error ? fail(error) : ok()))
-    );
+    const { ApplicationRuntime } = require('../../src/application');
+    const runtime = new ApplicationRuntime({ config: {}, log: fixture.log }, [{ name: 'harvest', create: () => ({ initialize: async () => {}, quiesce: () => service.quiesce(), close: async () => { await service.drain(); closed = true; } }) }]);
+    await runtime.initialize();
+    await runtime.activate();
+    const shutdown = runtime.stop();
     expect(closed).to.equal(false);
     let rejected = false;
     try {
@@ -737,7 +746,7 @@ describe('HarvestRunService', function () {
   });
 
   it('creates a tracked harvest run, chunk, and events', async function () {
-    mockSails.config.recordSchema = { enabled: true };
+    fixture.config.recordSchema = { enabled: true };
     repositoryFixtures.HarvestRun.findOne.resolves(null);
     repositoryFixtures.HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
@@ -1056,7 +1065,7 @@ describe('HarvestRunService', function () {
   });
 
   it('rejects tracked chunks over the configured record limit before processing', async function () {
-    mockSails.config.harvestRuns = { maxRecordsPerChunk: 1, maxChunkBytes: 5_000_000 };
+    fixture.config.harvestRuns = { maxRecordsPerChunk: 1, maxChunkBytes: 5_000_000 };
 
     try {
       await service.submitChunk(
@@ -1369,7 +1378,7 @@ describe('HarvestRunService', function () {
   });
 
   it('updates tracked records when incoming metadata removes an existing field', async function () {
-    mockSails.config.recordSchema = { enabled: true };
+    fixture.config.recordSchema = { enabled: true };
     repositoryFixtures.HarvestRun.findOne.resolves(null);
     repositoryFixtures.HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
@@ -1515,7 +1524,7 @@ describe('HarvestRunService', function () {
     };
     persistedRecords.set('record-1', structuredClone(originalRecord));
     const recordType = { name: 'dataset', hooks: {}, searchable: false };
-    (global as any).RecordTypesService = {
+    collaborators.RecordTypesService = {
       get: sinon.stub().returns(of(recordType)),
     };
     repositoryFixtures.Record.find.returns({
@@ -1638,14 +1647,14 @@ describe('HarvestRunService', function () {
           pre: [
             {
               function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, harvestRunBeforeValidatorCount: (record.metadata.harvestRunBeforeValidatorCount ?? 0) + 1 } })',
+                'test.beforeValidation',
             },
           ],
         },
       },
       searchable: false,
     };
-    (global as any).RecordTypesService = { get: sinon.stub().returns(of(recordType)) };
+    collaborators.RecordTypesService = { get: sinon.stub().returns(of(recordType)) };
     const internalSave = sinon.spy(realRecordsService, 'updateMetaInternal');
     const applySubmittedMetadata = sinon.spy(realRecordsService, 'applySubmittedMetadata');
     const preSaveHook = sinon.spy(realRecordsService, 'triggerPreSaveTriggers');
@@ -1826,7 +1835,7 @@ describe('HarvestRunService', function () {
           operation: 'strict-all',
         });
         expect(
-          mockSails.log.error.neverCalledWithMatch(
+          fixture.log.error.neverCalledWithMatch(
             sinon.match('record schema save usage persistence failed'),
             sinon.match.has('event', 'record_schema_save_usage_persistence_failed')
           ),
@@ -1964,14 +1973,14 @@ describe('HarvestRunService', function () {
             pre: [
               {
                 function:
-                  '(_oid, record) => ({ ...record, authorization: { ...record.authorization, edit: ["replacement-owner"] } })',
+                  'test.changeOwner',
               },
             ],
           },
         },
         searchable: false,
       };
-      (global as any).RecordTypesService = {
+      collaborators.RecordTypesService = {
         get: sinon.stub().returns(of(recordType)),
       };
       configureTrackedCreateChunk();
@@ -2019,7 +2028,7 @@ describe('HarvestRunService', function () {
   it('uses baseline validation for schema-disabled tracked update rollback without audit storage', async function () {
     const { persistedRecords, storageService } = useRealRecordsService(false);
     Reflect.deleteProperty(storageService, 'createRecordAudit');
-    const validationResolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+    const validationResolve = collaborators.RecordValidationService.resolve as sinon.SinonStub;
     const originalRecord = {
       redboxOid: 'record-1',
       revision: 1,
@@ -2041,7 +2050,7 @@ describe('HarvestRunService', function () {
     };
     persistedRecords.set('record-1', structuredClone(originalRecord));
     const recordType = { name: 'dataset', hooks: {}, searchable: false };
-    (global as any).RecordTypesService = {
+    collaborators.RecordTypesService = {
       get: sinon.stub().returns(of(recordType)),
     };
     configureTrackedCreateChunk();
