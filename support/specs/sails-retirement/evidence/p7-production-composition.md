@@ -586,3 +586,50 @@ required by the valid URL representation change; it retains save/download/byte
 assertions and adds validation, with no host authorization or persistence bypass.
 Logs: `bruno-general-compose-third.{log,xml}` and
 `playwright-route-order{-a19-second,}.log` under `.tmp/sails-retirement/p7/`.
+
+### Fresh core retry and resource serialization
+
+The additional full-core run at `d82dc4f86` ended **4452 passing / 7 pending /
+4 failing**, exit 4, about six minutes (`core-latest.log`). Three failures in
+`PersistenceFoundation.test.ts` asserted an empty database/missing index; its
+retained `wr_p1_core`/`wr_p1_storage` fixture already contained the earlier run's
+collections/indexes. The fourth was the unchanged 30-second Prisma integration
+setup deadline during concurrent cold provider startup and archive reclamation.
+No application assertions were changed. Only those two explicitly guarded
+synthetic databases on port 29512 were reset. The retry uses a fresh real
+MongoDB 8.0.34 container on port 29513 with `/data/db` on disposable tmpfs;
+engine/FCV/driver/index behavior and all original deadlines remain in force.
+This is regression-fixture placement, separate from SR-045's disk-backed
+production topology qualification. Builds and archive reclamation remain paused
+through deadline-sensitive checks. Idle owned Solr/Keycloak instances were stopped;
+active Compose providers remain real and distinct. System Docker/containerd were
+not stopped or restarted.
+
+General run four's initial 180-probe provider-prestart helper exited 1 before
+Keycloak's first original health check succeeded; **zero collection tests ran**
+in that preflight. After its unchanged health check reported healthy, the full
+existing collection was started. No provider/portal health checks or test
+assertions/timeouts were relaxed. The corrected tus fixture passed both the save
+and subsequent download with status 200 in this full run.
+
+The fresh-db full-core retry (`core-clean-rerun.log`) finished **4484 passing /
+7 unchanged pending / 1 failing**, exit 1. Every real persistence case, including
+the previous setup failure, passed. The remaining source-loader child process
+in `startup-module-loading.test.ts` hit its unchanged 25000 ms spawn deadline
+while the S3 Java providers were cold-starting. Its original assertions and
+deadlines are retained. A final full retry is serialized after all S3 providers
+stop, with the foundation fixture reset again. This failed run is not acceptance.
+
+The existing general profile completed with **exit 0**, **309/309 requests**,
+**553/553 tests**, **3/3 assertions**, no failures/skips. All six containers and
+its isolated Mailpit volume were removed. The S3 profile uses the existing
+seven-request collection and real S3Mock, resolved and pinned for this invocation
+to `adobe/s3mock@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92`.
+
+The owned Docker daemon has iptables disabled and the host FORWARD policy is DROP.
+The recovery runner therefore accepts `SR_P7_RECOVERY_NETWORK` for the already
+qualified owned `sr-p7-profiles` network, preserving its scoped connectivity rules.
+Default Docker still creates/removes its own rehearsal network. An externally
+supplied network is inspected, recorded and retained; the runner only removes
+networks it created. No service is replaced and no application input is bypassed.
+`bash -n` passes for the runner adjustment.

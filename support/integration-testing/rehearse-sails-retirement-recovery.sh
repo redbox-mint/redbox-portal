@@ -14,9 +14,15 @@ task_mongo=mongo:8.0.34@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a
 task_candidate=${SR_P7_CANDIDATE_IMAGE:?Set the qualified immutable local candidate image ID (with bundled hooks)}
 [[ "$task_candidate" =~ ^sha256:[a-f0-9]{64}$ ]]
 docker image inspect "$task_candidate" --format '{{.Id}} {{json .RepoDigests}}' > "$task_logs/candidate-image.txt"
-task_network=sr-p7-upgrade
+task_network=${SR_P7_RECOVERY_NETWORK:-sr-p7-upgrade}
+task_owns_network=false
 task_containers=()
-docker network create "$task_network" >/dev/null
+if [[ -n "${SR_P7_RECOVERY_NETWORK:-}" ]]; then
+  docker network inspect "$task_network" > "$task_logs/network-inspect.json"
+else
+  docker network create "$task_network" >/dev/null
+  task_owns_network=true
+fi
 cleanup() {
   task_status=$?
   # Stop the portal before its dependencies, including on a failed probe.
@@ -26,7 +32,9 @@ cleanup() {
     timeout 75 docker stop --timeout 60 "$container" >/dev/null || task_status=1
     timeout 45 docker rm -v "$container" >/dev/null || task_status=1
   done
-  timeout 45 docker network rm "$task_network" >/dev/null || task_status=1
+  if [[ "$task_owns_network" == true ]]; then
+    timeout 45 docker network rm "$task_network" >/dev/null || task_status=1
+  fi
   exit "$task_status"
 }
 trap cleanup EXIT
