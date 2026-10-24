@@ -170,6 +170,51 @@
       "scannedFiles": 2191,
       "executableViolations": 0,
       "forbiddenDependencyEntries": 0
+    },
+    "finalCommittedSource": {
+      "sourceCommit": "18e767249e35108ffbe1249eb8eee0bb1c2d6231",
+      "matchedFiles": 1023,
+      "matchedLines": 4978,
+      "scannedFiles": 1052,
+      "unclassified": 0,
+      "executableViolations": 0,
+      "forbiddenDependencyEntries": 0,
+      "baselineFilesReconciled": 1261,
+      "reconciliationCounts": {
+        "remaining-classified": 742,
+        "removed": 136,
+        "retained-without-candidates": 365,
+        "dependency-metadata-checked": 18
+      },
+      "newCandidateFilesClassified": 263,
+      "classificationReasons": {
+        "Historical package/task names, styles, schema descriptions or HTML comments": 25,
+        "Ignored historical artifact names": 1,
+        "Documentation/historical evidence or agent guidance": 468,
+        "Comments, historical package/import names or assertions of removed configuration": 479,
+        "Explicit finite parameter input or fixture data reader; no framework request/helper binding": 15,
+        "Finite persisted-declaration conversion key or rejected legacy prefix; never evaluated": 32,
+        "Assertion that the retired global is absent": 38,
+        "Negative stale registration metadata fixture; module must not execute": 1,
+        "Diagnostic records the absent runtime": 1,
+        "Persisted conversion fixture/opaque-value preservation and rejection assertions": 21,
+        "Explicit unknown-operation rejection fixture": 2,
+        "Historical released-v5 process inputs for source/recovery proof only; never v6 application configuration": 1
+      },
+      "reports": {
+        "final-source-inventory.json": {
+          "sha256": "91b61c3a6ee82844d3d45d2580f562504a6cc9469e0e16d9ba5de7ef37b76e08",
+          "location": ".tmp/sails-retirement/p8/final-5088f4a7a/final-source-inventory.json"
+        },
+        "final-source-closure.json": {
+          "sha256": "5abaec1ae658f54a145c1c7568f5bb80f98f65b3604e0fe3ff87f17461193d8f",
+          "location": ".tmp/sails-retirement/p8/final-5088f4a7a/final-source-closure.json"
+        },
+        "final-reconciliation.json": {
+          "sha256": "94763fb7f8f525f13daa60669f13ae51d96c2a647dbb46949da9b7f13feef70b",
+          "location": ".tmp/sails-retirement/p8/final-5088f4a7a/final-reconciliation.json"
+        }
+      }
     }
   },
   "images": {
@@ -1242,5 +1287,88 @@
     "Core has 7 and root has 10 unchanged pending cases; they are not counted as passed coverage. No new skip or missing-provider skip qualifies a path.",
     "Documentation audit remains advisory: 523 findings, including 4 invalid pre-existing JSON form examples and 2 unclassified declarations. Only the actual compile-checked migration/contributor examples and 4 passing docs tests are reported as validated.",
     "Qualification covers the recorded Node, Mongo versions/FCVs, topologies and real provider fixtures; it does not infer untested institution TLS/auth/topology or remote-provider completion/replay guarantees."
-  ]
+  ],
+  "qualifiedApplicationEquivalence": {
+    "artifactSourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
+    "verifiedThroughCommit": "18e767249e35108ffbe1249eb8eee0bb1c2d6231",
+    "changedFiles": [
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/README.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/support/api-integration-testing/deployment.cjs",
+        "classification": "external PDF fixture/verifier input"
+      },
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/support/api-integration-testing/docker-compose.bruno.yml",
+        "classification": "external PDF fixture/verifier input"
+      },
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/support/api-integration-testing/recordtype.config.js",
+        "classification": "external PDF fixture/verifier input"
+      },
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/support/development/docker-compose.yml",
+        "classification": "external PDF fixture/verifier input"
+      },
+      {
+        "file": "packages/sails-hook-redbox-pdfgen/test/bruno/Test PDF/Check PDF Integration Audit.bru",
+        "classification": "external PDF fixture/verifier input"
+      },
+      {
+        "file": "support/specs/sails-retirement/evidence/p8-artifacts-a8c6712d0.json",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/specs/sails-retirement/evidence/p8-artifacts.json",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/specs/sails-retirement/evidence/p8-commits.json",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/specs/sails-retirement/evidence/p8-dependencies.json",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/specs/sails-retirement/evidence/p8-retirement.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/specs/sails-retirement/tasks.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/specs/sails-retirement/upgrade-recovery-v6.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/wiki/Development-Guide.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/wiki/Generated-Reference-Documentation.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/wiki/Installation-Guide.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/wiki/ReDBox-Automated-Tests.md",
+        "classification": "documentation/status/evidence"
+      },
+      {
+        "file": "support/wiki/V6-Client-Compatibility.md",
+        "classification": "documentation/status/evidence"
+      }
+    ],
+    "applicationImplementationChanges": 0,
+    "packageManifestOrLockChanges": 0,
+    "buildOrDockerImplementationChanges": 0,
+    "fixtureVerifierCommit": "84eb91a70",
+    "violations": []
+  }
 }

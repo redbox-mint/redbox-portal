@@ -198,7 +198,7 @@ Provider images used in that run:
 - Keycloak 26.8.1-0: `sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244`.
 - Mailpit: `sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365`.
 
-## SR-054 — Documentation work and generation (not yet accepted)
+## SR-054 — Documentation work and generation (early checkpoint; superseded)
 
 Wiki pages are edited **in the main tracked snapshot**, per the user's correction;
 there is no wiki submodule, separate checkout or wiki commit. Architecture,
@@ -2953,3 +2953,45 @@ changes** (including both sides of the existing exact tslib move) and **1 retire
 router override**,all enumerated. The78 focused commits through376b7caf4 have
 the required final coauthor trailer; the ledger is updated again after the closing
 acceptance/evidence commit. Final committed-tree inventory closure follows.
+
+### Final committed inventory closure and artifact equivalence
+
+At clean documentation/status commit
+`18e767249e35108ffbe1249eb8eee0bb1c2d6231`,Node26.11.1 executes:
+
+```sh
+node support/specs/sails-retirement/evidence/inventory.cjs HEAD > "$final/final-source-inventory.json"
+node support/specs/sails-retirement/evidence/retirement-closure.cjs HEAD > "$final/final-source-closure.json"
+node support/specs/sails-retirement/evidence/reconcile-retirement-inventory.cjs "$final/final-source-inventory.json" "$final/final-source-closure.json" > "$final/final-reconciliation.json"
+```
+
+Here `final=.tmp/sails-retirement/p8/final-5088f4a7a`. The original SR-001
+method finds **1023 candidate files/4978 matched lines**. The complementary
+AST/manifest audit scans1052 files and reports **0 executable violations,
+0 forbidden dependency entries,0 unclassified candidates**. Every baseline entry
+is reconciled: **742 remaining classified,136 removed,365 retained without
+candidates,18 dependency metadata checks =1261**. All263 new candidate files
+also receive an explicit classification. The baseline source-inventory.json is
+unchanged. Report SHA256 values and complete reason counts are in
+[p8-artifacts.json](p8-artifacts.json); the full reproducible reports stay ignored.
+
+Remaining candidates are historical package/import/task names,documentation and
+comments,explicit finite persisted-declaration conversion or rejection strings,
+absent-global/runtime assertions and framework-neutral finite parameter inputs.
+One historical source/recovery driver supplies environment inputs to the separately
+retained released-v5 process; it never configures the v6 executable. No candidate
+requires an installed framework,ambient service global,legacy adapter or virtual
+socket client. These are classifications of actual text/data/input contracts,
+not a claim that historical matches disappeared from the text inventory.
+
+A scripted `git diff --name-only5088f4a7a..18e767249` assertion classifies exactly
+5 externally applied PDF fixture/verifier files and13 documentation/status/evidence
+files. There are **0 application implementation changes,0 package manifest/lock
+changes and0 build/Docker implementation changes** after the qualified application
+commit. Thus the immutable clean packs/images and completed broad suites are the
+application artifacts reviewed by the final tree. The final PDF collection uses
+committed verifier84eb91a70. The79 focused main-repository commits through18e767249
+all end with the required coauthor trailer;the containing closure/evidence commit
+is reported separately because a fixed-SHA ledger cannot contain its own hash.
+Only evidence/ledger metadata changes in that closing commit, followed by another
+read-only inventory/AST/reconciliation/equivalence check on the final HEAD.

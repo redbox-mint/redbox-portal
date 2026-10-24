@@ -1,11 +1,11 @@
 {
   "baseCommit": "ad5c68d3b",
-  "throughCommit": "376b7caf4df41ccbe9feeb8579b0ac167b321967",
+  "throughCommit": "18e767249e35108ffbe1249eb8eee0bb1c2d6231",
   "artifactSourceCommit": "5088f4a7a5be746697ba7b493c302b57f85e19a8",
   "repository": "main (wiki is ordinary tracked files)",
   "coauthorTrailer": "Co-Authored-By: GPT-6.1-sol <noreply@openai.com>",
   "allTrailersVerified": true,
-  "count": 78,
+  "count": 79,
   "scope": "All focused implementation/test/documentation commits after the P7 base through throughCommit. The containing final inventory/evidence commit is necessarily outside its own fixed-SHA ledger and is reported separately in the final handoff.",
   "commits": [
     {
@@ -319,6 +319,10 @@
     {
       "commit": "376b7caf4df41ccbe9feeb8579b0ac167b321967",
       "subject": "docs(runtime): clarify deployment and native PDF configuration"
+    },
+    {
+      "commit": "18e767249e35108ffbe1249eb8eee0bb1c2d6231",
+      "subject": "docs(retirement): record final artifact qualification and inherited institution gap"
     }
   ]
 }
