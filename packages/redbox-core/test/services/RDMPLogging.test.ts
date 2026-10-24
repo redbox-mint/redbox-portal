@@ -3,7 +3,7 @@ import { installIdentityRepositoryMock } from '../helpers/identityMock';
 import assert from 'node:assert/strict';
 import { inspect } from 'node:util';
 import * as sinon from 'sinon';
-import { firstValueFrom, isObservable, of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { QueueService } from '../../src/QueueService';
 import { RecordTriggers } from '../../src/services/RDMPService';
 import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
@@ -211,7 +211,7 @@ describe('RDMP logging privacy', () => {
       assertPrivateDataExcluded(helper);
     });
 
-    it(`excludes an invalid resolved hook value from ${context} queue warnings`, async () => {
+    it(`rejects invalid queued hook bindings without exposing their ${context} private data`, async () => {
       const input = record();
       const data = {
         oid: 'rdmp-oid',
@@ -221,14 +221,17 @@ describe('RDMP logging privacy', () => {
           function: 'fixture-invalid',
         },
       };
-      const { result, helper } = run(() =>
+      operations.set('fixture-invalid', { description, tokenHash, email });
+      const { result, helper } = run(async () =>
         service.queuedTriggerSubscriptionHandler({ attrs: { name: 'configured-trigger-job', data } })
       );
-      assert.ok(isObservable(result));
-      assert.equal(await firstValueFrom(result), input);
+      await assert.rejects(result, {
+        name: 'RecordHookConfigurationError',
+        message: 'Unregistered queued record operation',
+      });
       assertPrivateDataExcluded(helper);
       if (helper) assert.equal(helper.data.rdmpTriggerJobName, 'configured-trigger-job');
-      else sinon.assert.calledWithMatch(logger.warn, { info: { rdmpTriggerJobName: 'configured-trigger-job' } });
+      else sinon.assert.calledWithMatch(logger.debug, { info: { rdmpTriggerJobName: 'configured-trigger-job' } });
     });
 
     it(`excludes counter templates and generated values from ${context} diagnostics`, async () => {
