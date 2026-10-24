@@ -3,9 +3,9 @@
 Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
 production-source designation. P7 is in progress. The installed production Express
 composition now runs the selected domains, bootstrap, pages, APIs and providers.
-The latest production matrix passed both MongoDB 8 rows and MongoDB 9 standalone
-portal checks, then failed one existing MongoDB 9 queue-drain regression; the
-MongoDB 9 replica row still requires execution. Existing Playwright completed
+Production matrix retries have not yet completed all four rows: a queue-drain
+regression, Docker reclamation and a replica-portal aggregate timeout are
+recorded; the complete serial production rerun remains required. Existing Playwright completed
 114 passing / 10 failing / 0 skipped; fixes and fresh-assets reruns are in progress.
 Root Mocha now passes against the compiled Express host: 422 passing / 10
 unchanged pending / 0 failing. Full browser/provider qualification is in progress.

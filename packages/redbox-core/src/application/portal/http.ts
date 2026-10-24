@@ -303,8 +303,9 @@ export class PortalHttp implements ApplicationModule {
       ],
       sessionCookie: { name: config.redboxSession.name, ...config.redboxSession.cookie },
     });
-    // Register literal page paths before parameterized API aliases (for example
-    // vocabulary/manager before vocabulary/:id). Each page retains its policies.
+    // Literal metadata reads must precede parameterized pages (dashboard/type
+    // before dashboard/:recordType). Literal pages still precede parameterized
+    // API aliases such as vocabulary/manager before vocabulary/:id.
     const pages: http.PagesHttpInput = {
       ...shared,
       artifacts: this.artifacts,
@@ -331,7 +332,6 @@ export class PortalHttp implements ApplicationModule {
       templateConfig: { ...config, appUrl: config.server.publicUrl + rootContext, rootContext },
     };
     http.mountPageRoot(router, rootContext, config.page.landingPath);
-    http.mountPageRoutes(router, pages);
     http.mountRecordTypeRoutes(router, {
       ...shared,
       recordTypes: ref.types.get(),
@@ -347,6 +347,7 @@ export class PortalHttp implements ApplicationModule {
       dashboardConfig: ref.dashboardConfig.get(),
       translations: ref.entries.get(),
     });
+    http.mountPageRoutes(router, pages);
     http.mountConfigurationReadRoutes(router, {
       ...shared,
       appConfigs: ref.appConfigs.get(),

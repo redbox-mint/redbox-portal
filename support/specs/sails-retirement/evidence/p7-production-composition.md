@@ -492,3 +492,20 @@ workflow-dashboard persistence/rendering, A03 filters/sorting/pagination, A19
 search/page-2/open/refinement/reset and F09 failure/recovery. Combined with the
 six successful refreshed-asset startup/smoke cases, all ten original failures
 have now passed their focused reruns. Full 124-case qualification is still required.
+
+### Full general Compose route-order regression
+
+The first general Compose retry reached the real production Express host with
+healthy pinned MongoDB/Keycloak/Solr/Mailpit. The existing collection parsed all
+309 requests, then bailed: **204 passed / 1 failed / 104 bail-skipped**;
+**366/367 tests and 3/3 assertions** passed. This is incomplete coverage, not a
+successful collection. Logs/JUnit: `bruno-general-compose-second.{log,xml}` under
+`.tmp/sails-retirement/p7/`.
+
+`List Dashboard Types` received status 200 with an HTML dashboard instead of the
+required `dashboardTypes` JSON. `/dashboard/:recordType` had been mounted before
+the literal `/dashboard/type` metadata route. The production assembly now mounts
+metadata before pages, while retaining literal vocabulary pages before
+parameterized vocabulary API aliases. No test or policy changes. The complete
+collection rerun is required after compilation; the active full browser process
+keeps its original compiled tree until it exits.
