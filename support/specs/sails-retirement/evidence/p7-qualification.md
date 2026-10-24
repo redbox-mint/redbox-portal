@@ -183,12 +183,15 @@ profiles below; runtime version-guard acceptance does not supply that coverage.
 The complete production browser rerun now passes **124/124**, **0 failures /
 0 skips**, **20.6 minutes**: apps **60**, forms **41**, smoke **23**. Dedicated
 OIDC passes **13 requests / 17 checks**, no failures/skips, **29.410 s**; its
-Compose runner and cleanup exit 0. Full compiled root Mocha passes **422 / 10
-unchanged pending / 0 failing**. Commands, hosts, conversions and the general
+Compose runner and cleanup exit 0. General Bruno passes **309 requests / 553
+tests / 3 assertions**, and real S3 passes **7 requests / 12 tests**, both with
+zero failures/skips. Full compiled root Mocha passes **422 / 10 unchanged
+pending / 0 failing**; final serialized core passes **4485 / 7 unchanged pending
+/ 0 failing** with every real-Mongo case executing. SR-046 is complete.
+Commands, hosts, reviewed pending cases, justified test conversions and the
 route-order regression are in [production composition](p7-production-composition.md).
-General's full corrected rerun and S3 remain required; the new route-order-only
-correction also has affected-browser checks in progress. Earlier diagnostic
-failures below are retained as history, not current green results.
+Earlier diagnostic failures and the historical core result below are retained
+as history, not the current suite totals.
 
 The full unchanged existing core suite ran with all four real-service environment
 inputs, using dedicated Docker MongoDB 8.0.34 and authenticated 9.0.4 servers,
@@ -467,9 +470,9 @@ Promotion has not been performed. SR-046/047/049 require the integrated producti
 Express artifact and full qualification. Repointing `npm start`, Docker or the
 development workflow at a fixture would make normal deployment incomplete. The
 Sails comparison entrypoint remains the actual default until those gates pass.
-P8 has not started. Missing institution designation is **not the only remaining gap**: full
-general/S3 regression, the production artifact and complete installed upgrade
-execution also remain. The production composition itself is implemented.
+P8 has not started. Missing institution designation is **not the only remaining
+gap**: the production artifact and complete installed upgrade execution also
+remain. The complete broad regression is accepted under SR-046 above.
 
 ### Operational comparison criteria for the production candidate
 
