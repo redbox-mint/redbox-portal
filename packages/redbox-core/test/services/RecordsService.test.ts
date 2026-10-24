@@ -26,6 +26,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { createHash } from 'node:crypto';
 import { rejects } from 'node:assert/strict';
+import { Writable } from 'node:stream';
+import { log } from '../../src/config/log.config';
 import {
   formValidatorsSharedDefinitions,
   type FormConfigFrame,
@@ -1459,6 +1461,36 @@ describe('RecordsService', function () {
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
       expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
       expect(journal.markMutation.callCount).to.equal(4);
+    });
+
+    it('bounds nested attachment-journal failures in the production logger', async function () {
+      const secret = 'private-nested-journal-provider-credential';
+      const providerError = Object.assign(new Error(secret), {
+        cause: new Error(secret), config: { headers: { Authorization: secret } },
+      });
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+      };
+      journal.markMutation.onSecondCall().rejects(providerError);
+      fixture.collaborators.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
+      const lines: string[] = [];
+      const logger = log.createPinoLogger('error', new Writable({
+        write(chunk, _encoding, callback) { lines.push(String(chunk)); callback(); },
+      }));
+      fixture.log.error.callsFake((...args: unknown[]) => logger.error(...args));
+
+      const result = await (RecordsService as any).executeAttachmentPlan('record-1', [{
+        field: 'attachments', attachmentId: 'a', fileId: 'file-1', operation: 'add',
+        generation: 'g', entry: { fileId: 'file-1' },
+      }], { id: 'brand-1' }, { id: 'user-1', username: 'user-1' });
+
+      expect(result[0]).to.include({ status: 'unknown', code: 'attachment-operation-unknown' });
+      expect(journal.markMutation.secondCall.args[3]).to.equal('unknown');
+      expect(lines.join('')).to.include('attachment journal unknown update failed');
+      expect(lines.join('')).not.to.include(secret);
     });
 
     it('reports unknown attachment work and tracks incomplete references', async function () {

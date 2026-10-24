@@ -3350,11 +3350,8 @@ export namespace Services {
                 'attachment-operation-unknown',
                 item.fileId
               );
-            } catch (journalError) {
-              this.logger.error(
-                `${this.logHeader} attachment journal unknown update failed for ${item.attachmentId}`,
-                journalError
-              );
+            } catch (_journalError) {
+              this.logger.error(`${this.logHeader} attachment journal unknown update failed for ${item.attachmentId}`);
             }
           }
           this.logger.error(`${this.logHeader} attachment operation failed for ${item.attachmentId}`);
