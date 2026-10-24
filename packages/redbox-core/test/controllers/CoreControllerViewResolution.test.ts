@@ -1,266 +1,140 @@
-let expect: Chai.ExpectStatic;
-import('chai').then(mod => (expect = mod.expect));
-import fs from 'fs';
-import { createRequire } from 'module';
-import os from 'os';
-import path from 'path';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import ejs from 'ejs';
 import * as sinon from 'sinon';
+import { PageArtifacts } from '../../src/pages/Artifacts';
+import { preparePage, mountPageNotFound } from '../../src/http/express/pages';
+import { pageInputFixture } from '../helpers/pageInputFixture';
+import { httpRouteFixture } from '../helpers/httpRouteFixture';
 
-const testRequire = createRequire(__filename);
-
-describe('CoreController hook view resolution', function () {
-  let appPath: string;
-  let controller: { sendView(req: Sails.Req, res: Sails.Res, view: string, locals?: object): void };
-  let originalSails: unknown;
-
-  function writeJson(filePath: string, value: unknown): void {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+describe('Declared extension view resolution', function () {
+  let directory: string, core: string, hook: string;
+  let f: Awaited<ReturnType<typeof pageInputFixture>>;
+  let artifacts: PageArtifacts;
+  function write(file: string, content: string) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, content);
   }
-
-  function writeFile(filePath: string, content = ''): void {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, content);
+  async function page() {
+    await artifacts.initialize();
+    return preparePage(f.req, f.res, f.input);
   }
-
-  function createHook(packageName = 'redbox-hook-client'): string {
-    const hookRoot = path.join(appPath, 'node_modules', packageName);
-    writeJson(path.join(hookRoot, 'package.json'), {
-      name: packageName,
-      main: 'index.js',
-      sails: { isHook: true },
-    });
-    writeFile(path.join(hookRoot, 'index.js'), 'module.exports = {};');
-    return hookRoot;
-  }
-
-  function createReq() {
-    return {
-      options: {
-        locals: {
-          branding: 'brand',
-          portal: 'portal',
-        },
-      },
-    };
-  }
-
-  function createRes() {
-    return {
-      locals: {},
-      notFound: sinon.stub(),
-      statusCode: 200,
-      status: sinon.stub().callsFake(function (this: { statusCode: number }, status: number) {
-        this.statusCode = status;
-        return this;
-      }),
-      type: sinon.stub().returnsThis(),
-      send: sinon.stub(),
-      view: sinon.stub(),
-    };
-  }
-
-  beforeEach(function () {
-    const { Controllers } = testRequire('../../src/CoreController') as typeof import('../../src/CoreController');
-    const { createSinonStubLogger } = testRequire('../logger.test') as typeof import('../logger.test');
-    class TestController extends Controllers.Core.Controller {}
-
-    originalSails = (global as { sails?: unknown }).sails;
-    originalUnderscore = (global as { _?: unknown })._;
-    appPath = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-core-controller-')));
-    writeJson(path.join(appPath, 'package.json'), {
-      dependencies: {
-        'redbox-hook-client': '1.0.0',
-      },
-    });
-    (global as { sails?: unknown }).sails = {
-      config: {
-        appPath,
-        ng2: {
-          use_bundled: false,
-          apps: {},
-        },
-      },
-      log: createSinonStubLogger(sinon),
-    };
-    (global as { _?: unknown })._ = testRequire('lodash');
-    sinon.stub(testRequire('../../src/compat/sails/pageLocals'), 'comparisonPageLocals').returns({});
-    controller = new TestController();
+  beforeEach(async function () {
+    directory = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-view-resolution-'));
+    core = path.join(directory, 'core');
+    hook = path.join(directory, 'extension');
+    fs.mkdirSync(core);
+    fs.mkdirSync(hook);
+    artifacts = new PageArtifacts([hook, core], [core]);
+    f = await pageInputFixture();
+    f.brand.name = 'brand';
+    f.req.params.branding = 'brand';
+    await f.run('brandingandportal', 'browseractor');
+    Object.assign(f.input, { artifacts });
+    Object.assign(f.req, { accepts: () => 'html' });
+    Object.assign(f.response, { headersSent: false, writableEnded: false, send: sinon.stub() });
   });
-
-  let originalUnderscore: unknown;
-
-  afterEach(function () {
-    fs.rmSync(appPath, { recursive: true, force: true });
-    (global as { sails?: unknown }).sails = originalSails;
-    (global as { _?: unknown })._ = originalUnderscore;
+  afterEach(async function () {
+    await artifacts.close();
+    fs.rmSync(directory, { recursive: true, force: true });
     sinon.restore();
   });
 
-  it('resolves hook views without copying them into app views', function () {
-    const hookRoot = createHook();
-    const hookView = path.join(hookRoot, 'views', 'default', 'default', 'homepage.ejs');
-    writeFile(hookView, 'hook homepage');
-
-    const req = createReq();
-    const res = createRes();
-    controller.sendView(req as unknown as Sails.Req, res as unknown as Sails.Res, 'homepage');
-
-    expect(res.notFound.called).to.equal(false);
-    expect(res.view.firstCall.args[0]).to.equal(hookView.slice(0, -'.ejs'.length));
-    expect(res.view.firstCall.args[1].templateDirectoryLocation).to.equal(`${path.dirname(hookView)}${path.sep}`);
-    expect(res.view.firstCall.args[1].__dirname).to.equal(hookView);
+  it('resolves extension views without copying them into application views', async function () {
+    const file = path.join(hook, 'default/default/homepage.ejs');
+    write(file, 'extension homepage');
+    const p = await page();
+    assert.equal(artifacts.view('homepage', 'brand', 'portal'), file);
+    assert.equal(p.render('homepage'), 'extension homepage');
+    assert.equal(fs.existsSync(path.join(core, 'default/default/homepage.ejs')), false);
   });
-
-  it('uses a hook view ahead of a core view for the same candidate path', function () {
-    const hookRoot = createHook();
-    const coreView = path.join(appPath, 'views', 'default', 'default', 'homepage.ejs');
-    const hookView = path.join(hookRoot, 'views', 'default', 'default', 'homepage.ejs');
-    writeFile(coreView, 'core homepage');
-    writeFile(hookView, 'hook homepage');
-
-    const res = createRes();
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'homepage');
-
-    expect(res.view.firstCall.args[0]).to.equal(hookView.slice(0, -'.ejs'.length));
-    expect(res.view.firstCall.args[1].templateDirectoryLocation).to.equal(`${path.dirname(hookView)}${path.sep}`);
+  it('uses an extension view ahead of a core view for the same candidate path', async function () {
+    write(path.join(core, 'default/default/homepage.ejs'), 'core homepage');
+    write(path.join(hook, 'default/default/homepage.ejs'), 'extension homepage');
+    assert.equal((await page()).render('homepage'), 'extension homepage');
   });
-
-  it('uses a core brand-specific view before a hook default/default view', function () {
-    const hookRoot = createHook();
-    const coreView = path.join(appPath, 'views', 'brand', 'portal', 'homepage.ejs');
-    const hookView = path.join(hookRoot, 'views', 'default', 'default', 'homepage.ejs');
-    writeFile(coreView, 'core branded homepage');
-    writeFile(hookView, 'hook default homepage');
-
-    const res = createRes();
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'homepage');
-
-    expect(res.view.firstCall.args[0]).to.equal('brand/portal/homepage');
-    expect(res.view.firstCall.args[1].templateDirectoryLocation).to.equal(`${path.dirname(coreView)}${path.sep}`);
+  it('uses a core brand-specific view before an extension default/default view', async function () {
+    write(path.join(core, 'brand/portal/homepage.ejs'), 'core branded homepage');
+    write(path.join(hook, 'default/default/homepage.ejs'), 'extension default homepage');
+    assert.equal((await page()).render('homepage'), 'core branded homepage');
   });
-
-  it('allows a hook view to use a core layout', function () {
-    const hookRoot = createHook();
-    const hookView = path.join(hookRoot, 'views', 'default', 'default', 'homepage.ejs');
-    const coreLayout = path.join(appPath, 'views', 'default', 'default', 'layout.ejs');
-    writeFile(hookView, 'hook homepage');
-    writeFile(coreLayout, '<%- body %>');
-
-    const res = createRes();
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'homepage');
-
-    const locals = res.view.firstCall.args[1];
-    expect(locals.layout).to.equal(false);
-    expect(path.resolve(path.dirname(hookView), locals._layoutFile)).to.equal(coreLayout);
-    expect(locals.layoutDirectoryLocation).to.equal(`${path.dirname(coreLayout)}${path.sep}`);
+  it('allows an extension view to use a core layout', async function () {
+    write(path.join(hook, 'default/default/homepage.ejs'), 'extension homepage');
+    write(path.join(core, 'default/default/layout.ejs'), '<main><%- body %></main>');
+    const p = await page();
+    assert.equal(artifacts.layout('brand', 'portal'), path.join(core, 'default/default/layout.ejs'));
+    assert.equal(p.render('layout', { body: p.render('homepage') }), '<main>extension homepage</main>');
   });
-
-  it('adds core mirror directories so hook layouts can include core-level files', function () {
-    const hookRoot = createHook();
-    const hookView = path.join(hookRoot, 'views', 'default', 'default', 'homepage.ejs');
-    const hookLayout = path.join(hookRoot, 'views', 'default', 'default', 'layout.ejs');
-    writeFile(hookView, 'hook homepage');
-    writeFile(hookLayout, '<% include("../../functions") %><%- body %>');
-    writeFile(path.join(appPath, 'views', 'functions.ejs'), '<% /* core helpers */ %>');
-
-    const res = createRes();
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'homepage');
-
-    const locals = res.view.firstCall.args[1];
-    expect(path.resolve(path.dirname(hookView), locals._layoutFile)).to.equal(hookLayout);
-    expect(locals.views).to.include(path.join(appPath, 'views', 'default', 'default'));
+  it('lets extension layouts include core-level files from the prepared roots', async function () {
+    write(path.join(hook, 'default/default/layout.ejs'), '<%- include("../../functions") %><%- body %>');
+    write(path.join(core, 'functions.ejs'), 'core helper:');
+    const p = await page();
+    assert.equal(p.render('layout', { body: 'extension page' }), 'core helper:extension page');
   });
-
-  it('exposes the actual core layout directory so hook partials can resolve from core layouts', function () {
-    const hookRoot = createHook();
-    const coreView = path.join(appPath, 'views', 'default', 'default', 'researcher', 'home.ejs');
-    const coreLayout = path.join(appPath, 'views', 'default', 'default', 'layout.ejs');
-    writeFile(coreView, 'core homepage');
-    writeFile(coreLayout, '<%- superPartial("/layout/footer.ejs", branding, portal, true) %>');
-    writeFile(path.join(hookRoot, 'views', 'default', 'default', 'layout', 'footer.ejs'), 'hook footer');
-
-    const res = createRes();
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'researcher/home');
-
-    expect(res.view.firstCall.args[1].templateDirectoryLocation).to.equal(`${path.dirname(coreView)}${path.sep}`);
-    expect(res.view.firstCall.args[1].layoutDirectoryLocation).to.equal(`${path.dirname(coreLayout)}${path.sep}`);
-    expect(res.view.firstCall.args[1].layoutDirectoryLocation).not.to.equal(
-      res.view.firstCall.args[1].templateDirectoryLocation
+  it('resolves extension partials from core layouts using the actual selected roots', async function () {
+    write(path.join(core, 'default/default/researcher/home.ejs'), 'core homepage');
+    write(
+      path.join(core, 'default/default/layout.ejs'),
+      '<%- superPartial("/layout/footer.ejs", branding, portal, true) %><%- body %>'
     );
+    write(path.join(hook, 'default/default/layout/footer.ejs'), 'extension footer:');
+    const p = await page();
+    assert.equal(p.render('layout', { body: p.render('researcher/home') }), 'extension footer:core homepage');
   });
-
   it('guards optional branding locals in the core layout head extension point', function () {
     const viewsRoot = path.resolve(__dirname, '../../../../views');
     const layout = fs.readFileSync(path.join(viewsRoot, 'default/default/layout.ejs'), 'utf8');
     const functions = fs.readFileSync(path.join(viewsRoot, 'functions.ejs'), 'utf8');
-
-    expect(layout).to.include("typeof branding !== 'undefined' && branding != null ? branding : page.brand.name");
-    expect(layout).to.include("typeof portal !== 'undefined' && portal != null ? portal : page.portal");
-    expect(functions).not.to.include('sails.');
+    assert.ok(layout.includes("typeof branding !== 'undefined' && branding != null ? branding : page.brand.name"));
+    assert.ok(layout.includes("typeof portal !== 'undefined' && portal != null ? portal : page.portal"));
+    assert.ok(!functions.includes('sails.'));
     const extension = layout.match(/<%- superPartial\("\/layout\/head-extra.ejs",[\s\S]*?%>/)![0];
     const partial = sinon.spy(() => '');
-    testRequire('ejs').render(extension, {
-      page: { brand: { name: 'brand' }, portal: 'portal' },
-      superPartial: partial,
-    });
+    ejs.render(extension, { page: { brand: { name: 'brand' }, portal: 'portal' }, superPartial: partial });
     sinon.assert.calledWithExactly(partial, '/layout/head-extra.ejs', 'brand', 'portal', true);
   });
-
-  it('renders a root error view with the hook layout', function () {
-    const hookRoot = createHook();
-    const coreErrorView = path.join(appPath, 'views', '404.ejs');
-    const hookLayout = path.join(hookRoot, 'views', 'default', 'default', 'layout.ejs');
-    writeFile(coreErrorView, 'not found');
-    writeFile(hookLayout, '<%- body %>');
-
-    const res = createRes();
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, '404');
-
-    expect(res.notFound.called).to.equal(false);
-    expect(res.view.firstCall.args[0]).to.equal('404');
-    expect(path.resolve(path.dirname(coreErrorView), res.view.firstCall.args[1]._layoutFile)).to.equal(hookLayout);
+  it('renders a root error view with the extension layout', async function () {
+    write(path.join(core, '404.ejs'), 'not found');
+    write(path.join(hook, 'default/default/layout.ejs'), '<main><%- body %></main>');
+    (await page()).error(404);
+    sinon.assert.calledWithExactly(f.response.status, 404);
+    sinon.assert.calledWithExactly(Reflect.get(f.response, 'send'), '<main>not found</main>');
   });
-
-  it('recovers branding and portal from an unmatched branded URL', function () {
-    const hookRoot = createHook();
-    const coreErrorView = path.join(appPath, 'views', '404.ejs');
-    const hookLayout = path.join(hookRoot, 'views', 'brand', 'portal', 'layout', 'layout.ejs');
-    writeFile(coreErrorView, 'not found');
-    writeFile(hookLayout, '<%- body %>');
-
-    const req = {
-      originalUrl: '/brand/portal/page-that-does-not-exist',
-      options: { locals: {} },
-    };
-    const res = createRes();
-    controller.sendView(req as unknown as Sails.Req, res as unknown as Sails.Res, '404');
-
-    const locals = res.view.firstCall.args[1];
-    expect(locals.branding).to.equal('brand');
-    expect(locals.portal).to.equal('portal');
-    expect(path.resolve(path.dirname(coreErrorView), locals._layoutFile)).to.equal(hookLayout);
+  it('recovers branding and portal from an unmatched branded URL', async function () {
+    write(path.join(core, '404.ejs'), '<%= branding %>/<%= portal %>:not found');
+    write(path.join(hook, 'brand/portal/layout/layout.ejs'), '<main><%- body %></main>');
+    await artifacts.initialize();
+    const http = await httpRouteFixture((router, input) => {
+      router.use((req, _res, next) => {
+        req.session = {} as typeof req.session;
+        next();
+      });
+      mountPageNotFound(router, { ...f.input, ...input, csrf: { ...f.input.csrf, ...input.csrf }, artifacts });
+    });
+    try {
+      http.getBrand.resolves({ id: 'brand-1', name: 'brand' });
+      const response = await http.request('/brand/portal/page-that-does-not-exist', {
+        headers: { Accept: 'text/html' },
+      });
+      assert.equal(response.status, 404);
+      assert.equal(response.text, '<main>brand/portal:not found</main>');
+    } finally {
+      await http.close();
+    }
   });
-
-  it('terminates with a 404 when the requested view and 404 template are unavailable', function () {
-    const res = createRes();
-
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'missing-view');
-
-    expect(res.notFound.called).to.equal(false);
-    expect(res.status.calledOnceWithExactly(404)).to.equal(true);
-    expect(res.type.calledOnceWithExactly('text/plain')).to.equal(true);
-    expect(res.send.calledOnceWithExactly('404 Not Found')).to.equal(true);
+  it('terminates with a 404 when the requested view and 404 template are unavailable', async function () {
+    const p = await page();
+    assert.throws(() => p.render('missing-view'), /Required page artifact missing/);
+    p.error(404);
+    sinon.assert.calledWithExactly(f.response.status, 404);
+    sinon.assert.calledWithExactly(f.response.type, 'text/plain');
+    sinon.assert.calledWithExactly(Reflect.get(f.response, 'send'), '404 Not Found');
   });
-
-  it('preserves an assigned error status when the error view is unavailable', function () {
-    const res = createRes();
-    res.statusCode = 500;
-
-    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, '500');
-
-    expect(res.notFound.called).to.equal(false);
-    expect(res.status.calledOnceWithExactly(500)).to.equal(true);
-    expect(res.send.calledOnceWithExactly('500 Internal Server Error')).to.equal(true);
+  it('preserves an assigned error status when the error view is unavailable', async function () {
+    (await page()).error(500);
+    sinon.assert.calledWithExactly(f.response.status, 500);
+    sinon.assert.calledWithExactly(Reflect.get(f.response, 'send'), '500 Internal Server Error');
   });
 });

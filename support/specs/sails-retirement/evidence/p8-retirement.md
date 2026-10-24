@@ -1062,3 +1062,29 @@ rejects when invoked, removing an unhandled-rejection warning without altering
 its non-Error failure. `figshare32-tsc.log`: source TypeScript **exit 0**.
 Node 26.11.1 explicit core runner; pinned Prettier and git diff --check pass.
 No scenario removed or skipped; artifact gates remain outstanding.
+
+### Declared views, user routes and relationship authorization consumers
+
+Four deleted-controller suites retain **26 scenarios** (304 response 1, ordered
+views 11, user routes 4, relationships 10). Views now render actual EJS with
+PageArtifacts and explicit ordered extension/core roots. Tests retain branded
+candidate precedence, core/extension layouts and partials, optional head locals,
+error templates, unknown-URL context and plain-text terminal error fallback.
+304 tests use actual schema routes in both API versions and assert bodylessness,
+ETag, Cache-Control and Vary. User tests check actual login markup, credential-safe
+identity profile, mapped lookup results and sanitized OIDC discovery failure;
+configuration is no longer echoed/redacted through a deleted controller logger.
+
+Relationship tests now use actual HTTP record-read routes and access checks with
+real grants rather than stubbed controller authorization. They retain no-traversal
+checks for denied/foreign/tenantless/missing roots, filtered nodes/edges/counts,
+changed traversal root, and graph/pagination shapes. The internal-caller case now
+uses the shared domain filter with actual access logic. Missing path OID is 404
+before metadata; unexpected storage failure is sanitized but logged privately.
+
+Initial view attempts failed on fixture assumptions (exact cache directive and
+missing merged generateToken port); initial login assertion expected a form action
+instead of the actual embedded local-auth application. Corrected to actual
+contracts. `relationships34-first.log`: **26 passing / 0 pending / 0 failing**
+(572ms), Node 26.11.1 explicit core runner. Pinned Prettier and diff check pass.
+No production change or skip; whole-suite/artifact qualification remains open.
