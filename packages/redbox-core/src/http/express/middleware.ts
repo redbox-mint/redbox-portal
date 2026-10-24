@@ -1,4 +1,4 @@
-import express, { type ErrorRequestHandler, type RequestHandler, type Router } from 'express';
+import express, { type ErrorRequestHandler, type RequestHandler, type Request, type Router } from 'express';
 import type session from 'express-session';
 import { isObservable, lastValueFrom, single, type Observable } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -160,6 +160,20 @@ export async function prepareHttpMiddleware(router: Router, input: HttpMiddlewar
       return typeof id === 'string' ? input.identity.session(id) : false;
     },
   };
+}
+
+/** Record one safe operation failure without copying provider errors or request payloads. */
+export function recordHttpFailure(
+  req: Request,
+  log: Pick<ILogger, 'error'> | undefined,
+  operation: string,
+  info: Record<string, unknown> = {}
+): void {
+  const chronicle = RequestChronicleHelper.existing(req);
+  if (chronicle) {
+    chronicle.addInfo(info);
+    chronicle.addError(new Error(operation));
+  } else log?.error(operation);
 }
 
 export function httpErrorHandler(log: ILogger): ErrorRequestHandler {

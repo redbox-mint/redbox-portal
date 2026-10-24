@@ -1,3 +1,4 @@
+import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import type { Router, RequestHandler } from 'express';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { Services as Email } from '../../integrations/Email';
@@ -10,7 +11,7 @@ import { validateApiRouteRequest } from '../../api-routes/validation';
 import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
 import { bindHttpPolicies, resolveEffectivePolicies, requestContext } from './policies';
-import { httpAction, singleHttpResult } from './middleware';
+import { httpAction, singleHttpResult, recordHttpFailure } from './middleware';
 import { sendApiData, sendApiErrors, validationApiVersion } from './responses';
 export const integrationOperationRoutes = [
   indexRecordRoute,
@@ -143,13 +144,16 @@ export function mountIntegrationOperationRoutes(router: Router, input: Integrati
                 typeof replyTo === 'string' ? { replyTo } : undefined
               )
             );
-            if (!result.success) throw new Error('Mail delivery failed');
+            if (!result.success) {
+              RequestChronicleHelper.existing(req)?.addInfo({ emailProcessStepFailed: 'send' });
+              throw new Error('Mail delivery failed');
+            }
             data = { message: result.msg, details: '' };
           }
           await input.audit(actor, route.action, { brandId: brand.id });
           sendApiData(req, res, data);
         } catch (_error) {
-          input.log.error('Integration administration operation failed');
+          recordHttpFailure(req, input.log, 'Integration administration operation failed');
           sendApiErrors(req, res, 500, [
             { detail: 'An error has occurred. Some effects may have completed; review current state before retrying.' },
           ]);

@@ -1,3 +1,4 @@
+import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import { ReportConfig } from '../../model/config/ReportConfig';
 import type { RequestHandler, Router } from 'express';
 import type { PoliciesConfig } from '../../config/policies.config';
@@ -24,7 +25,7 @@ import { normalizeSearchQuery } from '../../api-routes/groups/search-query';
 import { validateApiRouteRequest } from '../../api-routes/validation';
 import type { ApiRouteDefinition } from '../../api-routes/types';
 import { bindHttpPolicies, requestContext, resolveEffectivePolicies } from './policies';
-import { httpAction, singleHttpResult } from './middleware';
+import { httpAction, singleHttpResult, recordHttpFailure } from './middleware';
 import { sendApiData, sendApiErrors, validationApiVersion } from './responses';
 import type { createHttpCsrf } from './csrf';
 
@@ -206,24 +207,33 @@ export function mountQueryReadRoutes(router: Router, input: QueryReadHttpInput):
               result = input.reports.getReportDto(Object.assign(new ReportConfig(), report));
               break;
             }
-            case 'getResults':
+            case 'getResults': {
+              const start = integer(query.start, 0, 0),
+                rows = integer(query.rows, 10);
+              const chronicle = RequestChronicleHelper.existing(req);
+              chronicle?.addInfo({ reportName: scalar('name'), reportPagingStart: start, reportPagingRows: rows });
               try {
-                result = {
-                  ...(await input.reports.getResults(
-                    brand,
-                    scalar('name'),
-                    parameters,
-                    integer(query.start, 0, 0),
-                    integer(query.rows, 10)
-                  )),
-                  success: true,
-                };
+                const found = await input.reports.getResults(brand, scalar('name'), parameters, start, rows);
+                result = found ? { ...found, success: true } : { status: false, message: null };
+                if (found)
+                  chronicle?.addInfo({
+                    reportResultPage: {
+                      total: found.total,
+                      pageNum: found.pageNum,
+                      recordPerPage: found.recordsPerPage,
+                      recordCount: found.records?.length ?? 0,
+                      success: true,
+                    },
+                  });
               } catch (error) {
                 if (error instanceof QueryInputError) throw error;
+                recordHttpFailure(req, undefined, 'Report result query failed');
                 result = { status: false, message: queryFailure(error).message };
               }
               break;
+            }
             case 'downloadCSV': {
+              RequestChronicleHelper.existing(req)?.addInfo({ reportName: scalar('name') });
               const csv = await input.reports.getCSVResult(brand, scalar('name'), parameters);
               res
                 .attachment(scalar('name') + '.csv')
@@ -389,6 +399,7 @@ export function mountQueryReadRoutes(router: Router, input: QueryReadHttpInput):
           // The SIEM controller shares getConfig's name with report configuration.
           sendApiData(req, res, result);
         } catch (error) {
+          if (browserReport) recordHttpFailure(req, undefined, 'Report request failed');
           const { status, message } = queryFailure(error);
           if (browserReport)
             sendApiData(req, res, { status: false, message }, route.action === 'downloadCSV' ? 200 : status);

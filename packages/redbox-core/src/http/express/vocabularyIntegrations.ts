@@ -7,7 +7,7 @@ import { validateApiRouteRequest } from '../../api-routes/validation';
 import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
 import { bindHttpPolicies, requestContext, resolveEffectivePolicies } from './policies';
-import { httpAction } from './middleware';
+import { httpAction, recordHttpFailure } from './middleware';
 import { sendApiData, sendApiErrors, validationApiVersion } from './responses';
 
 export const vocabularyIntegrationRoutes = [
@@ -87,7 +87,7 @@ export function mountVocabularyIntegrationRoutes(router: Router, input: Vocabula
           });
           sendApiData(req, res, result);
         } catch (error) {
-          input.log.error(error);
+          recordHttpFailure(req, input.log, 'Vocabulary import or sync failed');
           // Existing provider errors are 400; keep credentials and native database details private.
           sendApiErrors(req, res, 400, [
             {

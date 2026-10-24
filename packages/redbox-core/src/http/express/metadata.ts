@@ -19,7 +19,7 @@ import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { PoliciesConfig } from '../../config/policies.config';
 import { validateApiRouteRequest } from '../../api-routes/validation';
 import { bindHttpPolicies, requestContext, resolveEffectivePolicies } from './policies';
-import { httpAction, singleHttpResult } from './middleware';
+import { httpAction, singleHttpResult, recordHttpFailure } from './middleware';
 import { apiNoCacheHeaders, sendApiData, sendApiErrors, validationApiVersion } from './responses';
 
 const browserReads = [
@@ -232,7 +232,17 @@ export function mountMetadataReadRoutes(router: Router, input: MetadataReadHttpI
               break;
             }
             case 'getNamespace': {
-              const data = await input.translations.getNamespace(brand, scalar('lng'), scalar('ns', 'translation'));
+              const chronicle = RequestChronicleHelper.existing(req);
+              chronicle?.addInfo({ translationLng: scalar('lng'), translationNamespace: scalar('ns', 'translation') });
+              const data = await input.translations.getNamespace(
+                brand,
+                scalar('lng'),
+                scalar('ns', 'translation'),
+                observation => {
+                  if (observation.kind === 'resolved')
+                    chronicle?.addInfo({ translationRemoveMetaSuccess: observation.metadataRemoved });
+                }
+              );
               if (data === null) res.status(404).json({ message: 'Namespace not found' });
               else res.set(apiNoCacheHeaders).json(data);
               return;
@@ -291,10 +301,16 @@ export function mountMetadataReadRoutes(router: Router, input: MetadataReadHttpI
           }
           sendApiData(req, res, result);
         } catch (error) {
-          if (route.action === 'getBundleApp') {
-            const chronicle = RequestChronicleHelper.existing(req);
-            chronicle?.addInfo({ translationGetBundleFailed: true });
-            chronicle?.addError(error);
+          if (route.controller === 'TranslationController') {
+            const failure = (
+              {
+                getNamespace: 'translationGetNamespaceFailed',
+                getLanguages: 'translationGetLanguagesFailed',
+                listEntriesApp: 'translationListEntriesFailed',
+                getBundleApp: 'translationGetBundleFailed',
+              } as Record<string, string>
+            )[route.action];
+            recordHttpFailure(req, undefined, 'Translation read failed', failure ? { [failure]: true } : {});
           }
           if (error instanceof MetadataParameterError) {
             sendApiErrors(req, res, 400, [{ detail: error.message }]);

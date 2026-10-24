@@ -88,6 +88,8 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
   };
   const login = (name: (req: Request) => string, local = false, oidc = false): RequestHandler =>
     httpAction(async (req, res) => {
+      const chronicle = RequestChronicleHelper.existing(req);
+      chronicle?.addInfo({ userLoginType: local ? 'local' : oidc ? 'oidc' : 'aaf', userLoginSuccess: false });
       const selected = oidc
         ? typeof req.session.branding === 'string' &&
           typeof req.session.portal === 'string' &&
@@ -170,6 +172,7 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
         });
         throw error;
       }
+      chronicle?.addInfo({ userLoginSuccess: true });
       if (local && req.get('x-source') === 'jsclient')
         res.set(apiNoCacheHeaders).json({ user: profile, message: 'Login OK', url: redirect });
       else res.redirect(redirect);

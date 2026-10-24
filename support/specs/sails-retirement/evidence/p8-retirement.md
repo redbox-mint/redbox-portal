@@ -1217,3 +1217,44 @@ The real domain retains structural/font/family validation after this boundary.
 `branding40-second.log`: **17 passing / 0 pending / 0 failing** (1s). Node26.11.1,
 explicit core runner; source TypeScript exit0 (`branding40-tsc.log`), pinned
 Prettier and diff check pass. No scenario removal or skip. Final gates remain open.
+
+### Request-chronicle consumers and safe operation observations
+
+The 35 scenarios formerly calling deleted controllers now use actual HTTP route
+mounts and httpRequestChronicle. Six translation reads/writes retain unknown-brand
+no-delegation checks and single correlated failure capture. Namespace delivery
+uses the actual I18nEntries implementation; committed-entry/bundle reload failure
+cases use actual domain writes over explicit repositories. All local/OIDC/AAF
+session-callback failures must suppress redirects/audits. Vocabulary cyclic cause,
+profile/token failures, report/CSV paging/results, missing observation, owned audit,
+late-operation correlation, email and preview-token exclusion remain covered.
+
+Test-contract changes follow design §1.3 and owned completion: unknown brand is
+routing 404; backend/native diagnostics are sanitized; profile/key operational
+failures are truthful 500; malformed paging is 400. Authentication failures do not
+return provider text. Logout awaits its owned audit and refuses a successful
+redirect if it fails. The former background-only logout scenario now checks that
+failure; separate RequestChronicleHelper coverage retains late correlated results
+without mutation after completion. These changes preserve and strengthen the
+security/outcome assertions; no scenario or skip was introduced to bypass failure.
+
+Actual `chronicle41-baseline.log` stopped after 0 passing/9 failures, including an
+afterEach privacy failure: getBundle captured a provider error containing the test
+secret. Other missing observations and empty reports were confirmed during
+migration. Owners now record safe operation failures once without provider errors,
+translation/report/email contents or tokens, and retain safe identifiers, paging,
+counts and success flags. A shared small HTTP observation function handles
+request/no-observer logging; middleware retains its single generic terminal error.
+The empty report owner again returns `{status:false,message:null}` instead of an
+incorrect `{success:true}`. Best-effort translation reloads remain successful but
+now record their safe failure in the owning async request context.
+
+`chronicle41-second.log`:33/0/2 (fixtures omitted roles and used the wrong bundle
+repository port); `chronicle41-third.log`:35/0/0. The affected-route run
+`chronicle41-affected.log` passes **292/0/0**. Source TypeScript caught the actual
+ReportResult `recordsPerPage` field; corrected the observation and representative
+fixture. `chronicle41-final.log`:140/0/1 from that stale fixture;
+`chronicle41-final-corrected.log`: **141 passing / 0 pending / 0 failing** (3s),
+including all35 HTTP, I18nEntries domain and chronicle utility scenarios. Source
+TypeScript **exit0**, `chronicle41-tsc-final.log`; pinned Prettier/diff check pass.
+No whole-suite/final-artifact qualification is claimed by these focused checks.

@@ -11,7 +11,7 @@ import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
 import { bindHttpPolicies, requestContext, resolveEffectivePolicies } from './policies';
-import { httpAction, singleHttpResult } from './middleware';
+import { httpAction, singleHttpResult, recordHttpFailure } from './middleware';
 import { sendApiData, sendApiErrors, validationApiVersion } from './responses';
 
 // Account linking and audit disclosure retain explicit dependencies; do not mount incomplete slices.
@@ -254,6 +254,7 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
             brandId: brand.id,
             userId: user.id,
           });
+          if (self) RequestChronicleHelper.existing(req)?.addInfo({ userDetailsUpdateSuccess: true });
           send(
             browser
               ? {
@@ -277,7 +278,14 @@ export function mountIdentityAdministrationRoutes(router: Router, input: Identit
             browser ? 200 : 201
           );
         } catch (error) {
-          if (!(error instanceof IdentityAdministrationError)) input.log.error(error);
+          recordHttpFailure(
+            req,
+            input.log,
+            'User administration failed',
+            route.controller === 'UserController' && route.action === 'update'
+              ? { userDetailsUpdateSuccess: false }
+              : {}
+          );
           sendApiErrors(req, res, error instanceof IdentityAdministrationError ? error.status : 500, [
             { detail: error instanceof IdentityAdministrationError ? error.message : 'User administration failed.' },
           ]);

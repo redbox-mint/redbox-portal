@@ -12,7 +12,7 @@ import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { PoliciesConfig } from '../../config/policies.config';
 import type { createHttpCsrf } from './csrf';
 import { bindHttpPolicies, requestContext, resolveEffectivePolicies } from './policies';
-import { httpAction } from './middleware';
+import { httpAction, recordHttpFailure } from './middleware';
 import { sendApiData, sendApiErrors, validationApiVersion, apiNoCacheHeaders } from './responses';
 import { retiredDashboardOperation, sendDashboardError } from './dashboardResponses';
 
@@ -255,6 +255,10 @@ export function mountConfigurationWriteRoutes(router: Router, input: Configurati
           if (browser && !dashboard && route.action !== 'updateBundleEnabled') res.set(apiNoCacheHeaders).json(result);
           else sendApiData(req, res, result);
         } catch (error) {
+          if (route.controller === 'TranslationController')
+            recordHttpFailure(req, undefined, 'Translation write failed', {
+              [route.action === 'setEntryApp' ? 'translationSetEntryFailed' : 'translationSetBundleFailed']: true,
+            });
           if (error instanceof ConfigurationInputError || error instanceof SiemConfigurationError) {
             sendApiErrors(req, res, 400, [{ detail: error.message }]);
             return;

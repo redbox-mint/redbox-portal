@@ -1,3 +1,4 @@
+import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import type { Router, RequestHandler } from 'express';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { Services as Branding } from '../../branding/Branding';
@@ -147,6 +148,7 @@ export function mountBrandingOperationRoutes(router: Router, input: BrandingOper
                           ? (await input.branding.getAdminState(branding)).draft.revision
                           : undefined)
                     );
+              RequestChronicleHelper.existing(req)?.addInfo({ brandingAppPreviewCreated: true });
               data =
                 route.action === 'createPreview'
                   ? preview

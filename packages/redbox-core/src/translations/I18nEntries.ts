@@ -1,3 +1,4 @@
+import { currentRequestChronicle } from '../utilities/RequestChronicleContext';
 import type { ConfigurationRepositories } from '../persistence/configuration/ConfigurationRepositories';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import _ from 'lodash';
@@ -403,7 +404,9 @@ export class I18nEntries {
       try {
         await this.input.reloadResources(brandingId);
       } catch (_e) {
-        /* ignore */
+        const chronicle = currentRequestChronicle();
+        chronicle?.addInfo({ translationReloadFailed: true });
+        chronicle?.addError(new Error('Translation resource reload failed'));
       }
     }
     return saved ?? null;
@@ -531,7 +534,9 @@ export class I18nEntries {
     try {
       await this.input.reloadResources(brandingId);
     } catch (_e) {
-      // ignore reload failures after the write has completed
+      const chronicle = currentRequestChronicle();
+      chronicle?.addInfo({ translationReloadFailed: true });
+      chronicle?.addError(new Error('Translation resource reload failed'));
     }
 
     return records.length;
@@ -612,7 +617,9 @@ export class I18nEntries {
     try {
       await this.input.reloadResources(brandingId);
     } catch (_e) {
-      /* ignore */
+      const chronicle = currentRequestChronicle();
+      chronicle?.addInfo({ translationReloadFailed: true });
+      chronicle?.addError(new Error('Translation resource reload failed'));
     }
     return bundle ?? null;
   }
@@ -773,7 +780,9 @@ export class I18nEntries {
     try {
       await this.input.reloadResources(brandingId);
     } catch (_e) {
-      // ignore reload failures after the write has completed
+      const chronicle = currentRequestChronicle();
+      chronicle?.addInfo({ translationReloadFailed: true });
+      chronicle?.addError(new Error('Translation resource reload failed'));
     }
   }
 
