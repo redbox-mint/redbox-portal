@@ -88,8 +88,21 @@ export const auth: any = {
 
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain('path: "/test-route"');
-    expect(routesContent).to.contain('handler: "TestController.index"');
+    expect(routesContent).to.contain('handler: "TestController-index"');
     expect(routesContent).to.contain("access: ['authenticated']");
+    const { Project } = require('ts-morph');
+    const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
+    const source = project.createSourceFile('/routes.ts', routesContent);
+    const emitted = source.getEmitOutput().getOutputFiles()[0].getText();
+    const output = { exports: {} };
+    new Function('exports', emitted)(output.exports);
+    const routes = (output.exports as { routes: Array<{ name: string; handler: string }> }).routes;
+    const { resolveExtensions } = require('@researchdatabox/redbox-core/extensions');
+    const resolved = resolveExtensions([{ name: 'generated', root: tempRoot, declaration: {
+      apiVersion: 1, routes, handlers: routes.map(route => ({ name: route.handler, create: () => () => {} })),
+    } }]);
+    expect(resolved.routes).to.have.length(1);
+    expect(resolved.handlers[0].declaration.name).to.equal(resolved.routes[0].declaration.handler);
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     expect(authContent).to.contain("{ path: '/test-route', role: 'Admin', can_read: true }");
@@ -122,7 +135,7 @@ export const auth: any = {
 
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain(
-      'handler: "api.TestController.index"'
+      'handler: "api-TestController-index"'
     );
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
@@ -172,19 +185,19 @@ export const auth: any = {
 
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain(
-      'handler: "api.DashboardController.listDashboards"'
+      'handler: "api-DashboardController-listDashboards"'
     );
     expect(routesContent).to.contain(
-      'handler: "api.DashboardController.getDashboard"'
+      'handler: "api-DashboardController-getDashboard"'
     );
     expect(routesContent).to.contain(
-      'handler: "api.DashboardController.createDashboard"'
+      'handler: "api-DashboardController-createDashboard"'
     );
     expect(routesContent).to.contain(
-      'handler: "api.DashboardController.updateDashboard"'
+      'handler: "api-DashboardController-updateDashboard"'
     );
     expect(routesContent).to.contain(
-      'handler: "api.DashboardController.deleteDashboard"'
+      'handler: "api-DashboardController-deleteDashboard"'
     );
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');

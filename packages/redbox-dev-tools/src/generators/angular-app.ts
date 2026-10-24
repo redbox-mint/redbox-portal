@@ -279,7 +279,7 @@ export class ${this.toClassName(this.name)}Component {
     // with request locals and installed PageArtifacts for admin/${safeViewName}.
     await updateRoutes({
       project: this.project, paths: this.paths, root: this.root,
-      route: `get ${route}`, controllerName: 'page', action: `admin.${safeViewName}`,
+      route: `get ${route}`, controllerName: 'page', action: `admin-${safeViewName}`,
       webservice: false, dryRun: this.dryRun,
     });
   }

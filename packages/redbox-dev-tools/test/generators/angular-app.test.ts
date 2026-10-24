@@ -90,7 +90,7 @@ export const auth: any = {
     // Check routes
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
     expect(routesContent).to.contain('path: "/:branding/:portal/admin/test-app"');
-    expect(routesContent).to.contain('handler: "page.admin.testView"');
+    expect(routesContent).to.contain('handler: "page-admin-testView"');
 
     // Check auth
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');

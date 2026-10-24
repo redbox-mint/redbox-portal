@@ -93,7 +93,9 @@ export async function updateRoutes(params: {
   const routes = sourceFile
     .getVariableDeclarationOrThrow('routes')
     .getInitializerIfKindOrThrow(SyntaxKind.ArrayLiteralExpression);
-  const name = `${params.webservice ? 'api.' : ''}${params.controllerName}.${params.action}`;
+  const name = `${params.webservice ? 'api-' : ''}${params.controllerName}-${params.action}`;
+  if (!/^[A-Za-z][A-Za-z0-9_-]{0,99}$/.test(name))
+    throw new Error('Generated route names must be bounded extension identifiers; provide a shorter named handler.');
   const duplicate = routes
     .getElements()
     .some(el =>

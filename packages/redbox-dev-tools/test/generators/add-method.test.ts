@@ -83,7 +83,7 @@ export namespace Controllers {
     expect(content).to.contain('return res.json(');
 
     const routesContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'extensionRoutes.ts'), 'utf-8');
-    expect(routesContent).to.contain('handler: "TestController.newMethod"');
+    expect(routesContent).to.contain('handler: "TestController-newMethod"');
 
     const authContent = fs.readFileSync(path.join(coreTypesRoot, 'src', 'config', 'auth.config.ts'), 'utf-8');
     expect(authContent).to.contain("{ path: '/new-route', role: 'Admin', can_read: true }");
