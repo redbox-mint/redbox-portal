@@ -349,3 +349,31 @@ retired adapter no longer normalizes unsupported configuration. Public-method
 checks inspect the actual domain methods rather than a generated `exports()`
 shim. Applicable business assertions and the two pre-existing pending RAiD cases
 are retained. No production evaluator or comparison adapter was restored.
+
+### Core fixture migration: publishing, projections and SIEM delivery
+
+- `siem8-second.log`: **94 passing / 0 pending / 0 failing**, including native
+  MongoDB delivery claims/expiry and real controlled HTTP receivers, plus all
+  five existing Figshare vocabulary suites. Command used
+  `SIEM_TEST_MONGO_URL=mongodb://127.0.0.1:29511/redbox` with the same explicit
+  core Mocha runner above; MongoDB 8.0.34 remains a real Docker provider.
+- `figshare8-third.log`: **122 passing / 0 pending / 0 failing** across publishing,
+  configuration, managed-byte receipts, branding GridFS drain and form projection.
+  Both use Node 26.11.1 and source based on `afe591df7`.
+
+Figshare uses the actual v6 provider and explicit configuration/asset/metadata
+closures. SIEM fixtures bind narrow ownership, configuration, enqueue and record
+lookup functions; no process service registry. Branding drains its actual owned
+read cursor before persistence cleanup. FormProjection and Forms own metadata
+projection and template extraction respectively. The removed mergeRecord adapter
+scenario now exercises the actual explicit-input merge owner. The removed global
+service-fallback scenario verifies supplied configuration independently of module
+registries, and missing development config uses the boundary's live-mode default.
+These changes retain the applicable business assertions and introduce no skips.
+
+Intermediate failures: `vocab8-first.log` 57 passing/1 failing (obsolete stub
+target); `siem8-first.log` 93 passing/1 failing (fixture passed an unclaimed event
+instead of its lease-bearing result, corrected); `figshare8-first.log` 78 passing/
+4 failing and `figshare8-second.log` 107 passing/2 failing (missing explicit
+inputs/old shim calls). All passed in the reruns above. Final artifact/full suite
+acceptance remains outstanding.

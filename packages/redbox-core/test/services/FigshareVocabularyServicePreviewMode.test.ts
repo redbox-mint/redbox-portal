@@ -1,3 +1,6 @@
+import { figshareVocabularyInput } from '../helpers/figshareVocabularyInput';
+import { createDomainFixture } from './testHelper';
+let environment: any;
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import {stubVocabularyPersistence} from '../fixtures/vocabulary-stubs';
 let expect: Chai.ExpectStatic;
@@ -46,12 +49,13 @@ describe('FigshareVocabularyService preview mode resolution', function () {
 
   // The shared setup helper installs its own `sails` mock and then removes it, which would
   // strip the global fixture other suites depend on. Snapshot and restore instead.
-  const savedGlobals = new Map<string, unknown>();
+  const savedFixtures = new Map<string, unknown>();
 
   beforeEach(function () {
     stubVocabularyPersistence();
+    environment = createDomainFixture();
     for (const name of MODEL_GLOBALS) {
-      savedGlobals.set(name, (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name]);
+      savedFixtures.set(name, repositoryFixtures[name]);
     }
 
     sourceFindOne = sinon.stub().resolves(null);
@@ -66,19 +70,19 @@ describe('FigshareVocabularyService preview mode resolution', function () {
 
     delete require.cache[require.resolve('../../src/services/FigshareVocabularyService')];
     const { Services } = require('../../src/services/FigshareVocabularyService');
-    FigshareVocabularyService = new Services.FigshareVocabularyService();
+    FigshareVocabularyService = new Services.FigshareVocabularyService(figshareVocabularyInput(environment));
   });
 
   afterEach(function () {
     for (const name of MODEL_GLOBALS) {
-      const previous = savedGlobals.get(name);
+      const previous = savedFixtures.get(name);
       if (previous === undefined) {
-        delete (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name];
+        delete repositoryFixtures[name];
       } else {
-        (name === 'Vocabulary' || name === 'VocabularyEntry' ? repositoryFixtures : global as any)[name] = previous;
+        repositoryFixtures[name] = previous;
       }
     }
-    savedGlobals.clear();
+    savedFixtures.clear();
     sinon.restore();
   });
 

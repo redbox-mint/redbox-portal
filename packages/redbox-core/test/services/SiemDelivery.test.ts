@@ -1,3 +1,5 @@
+import { securityCaptureInput, siemForwardingInput } from '../helpers/siemInputs';
+const collaborators: any = {};
 import { createServer, type Server } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { MongoClient, type Db } from 'mongodb';
@@ -7,8 +9,8 @@ import { Services } from '../../src/services/SiemForwardingService';
 import { buildSiemPayload, deliverSiemPayload } from '../../src/services/siem/SiemAdapters';
 import * as persistence from '../../src/persistence/runtime';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
-import { createMockSails } from './testHelper';
-let owner: Sails.Application;
+import { createDomainFixture } from './testHelper';
+let owner: import('../../src/persistence/owner').PersistenceOwner;
 let repository: import('../../src/persistence/siem/SiemRepository').SiemRepository;
 import { installSiemRepositoryStub } from './siemRepositoryStub';
 import * as sinon from 'sinon';
@@ -181,7 +183,7 @@ describe('SIEM receiver and delivery regression tests', function () {
     it(`preserves HTTP ${code} and bounded safe diagnostics through Effect`, async function () {
       status = code;
       response = { token: 'secret', message: 'x'.repeat(10000) };
-      const result = await new Services.SiemForwardingService().testDestination({ destination: destination(endpoint) });
+      const result = await new Services.SiemForwardingService(siemForwardingInput(collaborators)).testDestination({ destination: destination(endpoint) });
       expect(result.status).to.equal('failed');
       expect(result.httpStatusCode).to.equal(code);
       expect(JSON.stringify(result)).not.to.contain('secret');
@@ -191,14 +193,14 @@ describe('SIEM receiver and delivery regression tests', function () {
   }
   it('records a timeout without leaking URL credentials', async function () {
     waitMs = 100;
-    const result = await new Services.SiemForwardingService().testDestination({
+    const result = await new Services.SiemForwardingService(siemForwardingInput(collaborators)).testDestination({
       destination: { ...destination(endpoint), timeoutMs: 10 },
     });
     expect(result.status).to.equal('failed');
     expect(result.errorSummary?.message).to.equal('SIEM request timed out');
   });
   it('bounds a trickling HTTP response by an absolute deadline', async function () {
-    const result = await new Services.SiemForwardingService().testDestination({
+    const result = await new Services.SiemForwardingService(siemForwardingInput(collaborators)).testDestination({
       destination: { ...destination(`${endpoint}/trickle`), timeoutMs: 30 },
     });
     expect(result.status).to.equal('failed');
@@ -206,7 +208,7 @@ describe('SIEM receiver and delivery regression tests', function () {
   });
   it('rejects OTLP partial success and Splunk application errors', async function () {
     response = { partialSuccess: { rejectedLogRecords: '1', errorMessage: 'private' } };
-    const service = new Services.SiemForwardingService();
+    const service = new Services.SiemForwardingService(siemForwardingInput(collaborators));
     const otlp = await service.testDestination({ destination: destination(endpoint, 'otel-otlp-logs') });
     expect(otlp.status).to.equal('failed');
     expect(otlp.httpStatusCode).to.equal(200);
@@ -220,7 +222,7 @@ describe('SIEM receiver and delivery regression tests', function () {
   for (const rejectedLogRecords of ['0', 0, undefined]) {
     it(`accepts OTLP warning-only responses with rejectedLogRecords=${rejectedLogRecords}`, async function () {
       response = { partialSuccess: { rejectedLogRecords, errorMessage: 'private collector warning' } };
-      const result = await new Services.SiemForwardingService().testDestination({
+      const result = await new Services.SiemForwardingService(siemForwardingInput(collaborators)).testDestination({
         destination: destination(endpoint, 'otel-otlp-logs'),
       });
       expect(result.status).to.equal('success');
@@ -246,19 +248,19 @@ describe('SIEM receiver and delivery regression tests', function () {
       client = await MongoClient.connect(process.env.SIEM_TEST_MONGO_URL!);
       db = client.db(`siem_delivery_test_${randomUUID().replace(/-/g, '')}`);
       for (const key of ['BrandingService', 'AppConfigService'])
-        originals.set(key, Reflect.get(globalThis, key));
+        originals.set(key, Reflect.get(collaborators, key));
       const uri = new URL(process.env.SIEM_TEST_MONGO_URL!); uri.pathname = '/' + db.databaseName;
-      owner = createMockSails({ config: { datastores: { mongodb: { url: uri.toString() } } } });
+      owner = createDomainFixture({ config: { datastores: { mongodb: { url: uri.toString() } } } });
       await persistence.initializePersistence(owner);
       await persistence.ensureSiemPersistenceIndexes(owner);
       await persistence.initializeSiemPersistence(owner);
       repository = persistence.getSiemRepository(owner);
       repositoryFixtures.siem = repository;
-      Reflect.set(globalThis, 'BrandingService', {
+      Reflect.set(collaborators, 'BrandingService', {
         getBrandById: () => ({ name: 'test' }),
         getBrand: () => ({ name: 'test' }),
       });
-      Reflect.set(globalThis, 'AppConfigService', { getAppConfigurationForBrand: () => ({ siem: config }) });
+      Reflect.set(collaborators, 'AppConfigService', { getAppConfigurationForBrand: () => ({ siem: config }) });
     });
     beforeEach(async function () {
       if (!db) return;
@@ -278,8 +280,8 @@ describe('SIEM receiver and delivery regression tests', function () {
       await db.dropDatabase();
       await client.close();
       for (const [key, value] of originals) {
-        if (value === undefined) Reflect.deleteProperty(globalThis, key);
-        else Reflect.set(globalThis, key, value);
+        if (value === undefined) Reflect.deleteProperty(collaborators, key);
+        else Reflect.set(collaborators, key, value);
       }
     });
     it('allows exactly one claimant and rejects expired/stale owner writes', async function () {
@@ -314,7 +316,7 @@ describe('SIEM receiver and delivery regression tests', function () {
           },
         }
       );
-      await new Services.SiemForwardingService().forwardSecurityEvents(job);
+      await new Services.SiemForwardingService(siemForwardingInput(collaborators)).forwardSecurityEvents(job);
       const row = await db.collection('securityevent').findOne({ eventId: event.eventId });
       expect(row?.destinationStates.disabled.status).to.equal('success');
       expect(row?.deliveryState).to.equal('delivered');
@@ -333,7 +335,7 @@ describe('SIEM receiver and delivery regression tests', function () {
       const event = sample();
       await db.collection('securityevent').insertOne(event);
       await Promise.all(
-        Array.from({ length: 8 }, () => new Services.SiemForwardingService().forwardSecurityEvents(job))
+        Array.from({ length: 8 }, () => new Services.SiemForwardingService(siemForwardingInput(collaborators)).forwardSecurityEvents(job))
       );
       expect(received).to.have.length(1);
       expect((await db.collection('securityevent').findOne({ eventId: event.eventId }))?.deliveryState).to.equal(
@@ -356,7 +358,7 @@ describe('SIEM receiver and delivery regression tests', function () {
         config.destinations = [healthy, failing];
         const event = sample();
         await db.collection('securityevent').insertOne(event);
-        const service = new Services.SiemForwardingService();
+        const service = new Services.SiemForwardingService(siemForwardingInput(collaborators));
         const before = Date.now();
         await service.forwardSecurityEvents(job);
         let stored = await db.collection('securityevent').findOne({ eventId: event.eventId });
@@ -388,7 +390,7 @@ describe('SIEM receiver and delivery regression tests', function () {
       ];
       const event = sample();
       await db.collection('securityevent').insertOne(event);
-      const service = new Services.SiemForwardingService();
+      const service = new Services.SiemForwardingService(siemForwardingInput(collaborators));
       for (let round = 0; round < 3; round++) {
         await db
           .collection('securityevent')
@@ -422,7 +424,7 @@ describe('SIEM receiver and delivery regression tests', function () {
       };
       config.destinations.push({ ...destination(endpoint), id: 'second' });
       await db.collection('securityevent').insertOne(event);
-      await new Services.SiemForwardingService().forwardSecurityEvents(job);
+      await new Services.SiemForwardingService(siemForwardingInput(collaborators)).forwardSecurityEvents(job);
       expect(received).to.have.length(1);
       const row = await db.collection('securityevent').findOne({ eventId: event.eventId });
       expect(row?.destinationStates.second.attempts).to.equal(2);

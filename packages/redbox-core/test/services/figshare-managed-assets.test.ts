@@ -4,9 +4,11 @@ import { createRequire } from 'node:module';
 import type { FigshareSyncModel } from '../../src/model/storage/FigshareSyncModel';
 import type { FigshareFile } from '../../src/services/figshare-v2/types';
 const requireTest = createRequire(__filename);
-const { createMockSails } = requireTest('./testHelper');
+const { createDomainFixture } = requireTest('./testHelper');
 const { FigsharePublishing } = requireTest('../../src/configmodels/FigsharePublishing');
-const { mirrorManagedAssets, cleanupProjection } = requireTest('../../src/services/figshare-v2/managed-assets');
+let mirrorManagedAssets: any, cleanupProjection: any;
+let environment: any;
+let disks: any;
 const { FigshareWaiting, FigshareRepairRequired } = requireTest('../../src/services/figshare-v2/execution');
 const { FigshareLeaseLost } = requireTest('../../src/services/figshare-v2/sync-store');
 
@@ -43,8 +45,7 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
     getPublicArticle: async () => ({ id: 51, files })
   });
   beforeEach(() => {
-    savedSails = Reflect.get(globalThis, 'sails');
-    Reflect.set(globalThis, 'sails', createMockSails());
+    environment = createDomainFixture();
     config = new FigsharePublishing(); bytes = Buffer.from('first content'); initialisations = 0; uploads = 0; deleted = []; failInit = false; pending = false;
     files = [{ id: 9, name: 'same.txt', size: bytes.length, status: 'available', download_url: 'https://files.test/9' }];
     const work = () => ({ requested: 0, processed: 0, sourceGeneration: 0, dueAt: null, policies: [], requestedBy: '' });
@@ -55,12 +56,16 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
       getMetaData: async (key: string) => ({ contentLength: staged.get(key)!.length }),
       getStream: async (key: string) => Readable.from(staged.get(key)!), delete: async (key: string) => { staged.delete(key); }
     };
-    savedManager = Reflect.get(globalThis, 'StorageManagerService'); savedServices = sails.services;
-    Reflect.set(globalThis, 'StorageManagerService', { disk: () => disk, stagingDisk: () => disk });
-    Object.assign(sails.config, { record: { datastreamService: 'teststreams' } });
-    Reflect.set(sails, 'services', { teststreams: { getDatastream: async () => ({ size: bytes.length, readstream: Readable.from(bytes) }), removeDatastream: async () => { throw new Error('Local bytes must never be deleted'); } } });
+
+    disks = { disk: () => disk, stagingDisk: () => disk };
+    Object.assign(environment.config, { record: { datastreamService: 'teststreams' } });
+    Reflect.set(environment, 'services', { teststreams: { getDatastream: async () => ({ size: bytes.length, readstream: Readable.from(bytes) }), removeDatastream: async () => { throw new Error('Local bytes must never be deleted'); } } });
+    const { createFigshareAssets } = requireTest('../../src/integrations/figshare/assets');
+    const { createFigshareManagedAssets } = requireTest('../../src/integrations/figshare/managed-assets');
+    ({ mirrorManagedAssets, cleanupProjection } = createFigshareManagedAssets(createFigshareAssets({ disks, datastream: () => environment.services.teststreams, log: environment.log })));
+
   });
-  afterEach(() => { Reflect.set(globalThis, 'StorageManagerService', savedManager); Reflect.set(sails, 'services', savedServices); staged.clear(); Reflect.set(globalThis, 'sails', savedSails); });
+  afterEach(() => staged.clear());
   it('replaces changed content with the same filename while preserving foreign files', async () => {
     const current = record(); const remote = client();
     await mirrorManagedAssets(remote, config, current, '51', state, checkpoint);
@@ -97,7 +102,7 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
   });
   it('skips re-reading an unchanged attachment, and re-reads it once its stored bytes change', async () => {
     let reads = 0;
-    const streams = Reflect.get(sails.services, 'teststreams');
+    const streams = Reflect.get(environment.services, 'teststreams');
     const read = streams.getDatastream;
     Object.assign(streams, { getDatastream: async () => { reads++; return read(); }, getDatastreamFingerprint: async () => `etag-${bytes.toString('hex')}` });
     const current = record(); const remote = client();
@@ -111,7 +116,7 @@ describe('Figshare managed asset receipts and retained-byte cleanup', () => {
   });
   it('re-reads once to fingerprint a receipt verified before fingerprints were recorded', async () => {
     let reads = 0;
-    const streams = Reflect.get(sails.services, 'teststreams');
+    const streams = Reflect.get(environment.services, 'teststreams');
     const read = streams.getDatastream;
     streams.getDatastream = async () => { reads++; return read(); };
     const current = record(); const remote = client();

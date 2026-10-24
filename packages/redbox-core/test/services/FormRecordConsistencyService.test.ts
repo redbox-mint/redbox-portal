@@ -3,16 +3,17 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { createDomainFixture } from './testHelper';
 import { of } from 'rxjs';
 import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../fixtures/metadata-projection.fixtures';
 
 describe('FormRecordConsistencyService', function () {
-  let mockSails: any;
+  let environment: any;
   let FormRecordConsistencyService: any;
+  let templateForms: any;
 
   beforeEach(function () {
-    mockSails = createMockSails({
+    environment = createDomainFixture({
       config: {
         validators: {
           definitions: {}
@@ -21,58 +22,21 @@ describe('FormRecordConsistencyService', function () {
       log: createSinonStubLogger(sinon),
     });
 
-    setupServiceTestGlobals(mockSails);
-
-    (global as any).BrandingService = {
-      getDefault: sinon.stub().returns({ id: 'default-brand' }),
-      getBrand: sinon.stub().returns({ id: 'default-brand' }),
-    };
-    (global as any).RecordsService = {
-      getMeta: sinon.stub()
-    };
-    const { LegacyForms } = require('../../src/compat/sails/forms');
-    const templateForms = new LegacyForms();
-    (global as any).FormsService = {
-      extractRawTemplates: templateForms.extractRawTemplates.bind(templateForms),
-      getFormByName: sinon.stub().returns(of({})),
-      buildClientFormConfig: sinon.stub().returns({})
-    };
-
-    const { Services } = require('../../src/services/FormRecordConsistencyService');
-    FormRecordConsistencyService = new Services.FormRecordConsistency();
+    const { FormProjection } = require('../../src/forms/FormProjection');
+    FormRecordConsistencyService = new FormProjection(environment.log);
+    const { Forms } = require('../../src/forms/Forms');
+    templateForms = new Forms({ log: environment.log, vocabulary: { defaultBrand: () => 'default', getEntries: async () => null } });
   });
-
-  afterEach(function () {
-    cleanupServiceTestGlobals();
-    delete (global as any).BrandingService;
-    delete (global as any).RecordsService;
-    delete (global as any).FormsService;
-    sinon.restore();
-  });
+  afterEach(() => sinon.restore());
 
   describe('mergeRecord', function () {
-    it('should merge records', async function () {
-      const changed = { redboxOid: 'oid', metaMetadata: { form: 'form' }, metadata: { changed: 'value' } };
-      const original = { redboxOid: 'oid', metadata: { original: 'value' } };
-
-      (global as any).RecordsService.getMeta.resolves(original);
-      (global as any).FormsService.getFormByName.returns(of({
-        name: 'test-form',
-        branding: 'default-brand',
-        configuration: {
-          name: 'test-form',
-          componentDefinitions: [],
-          fields: []
-        }
-      }));
-
-      // Mock internal methods to simplify test
-      sinon.stub(FormRecordConsistencyService, 'mergeRecordClientFormConfig').returns({ merged: true });
-
-      const result = await FormRecordConsistencyService.mergeRecord(changed, 'edit');
-
-      expect(result).to.deep.equal({ merged: true });
-      expect((global as any).RecordsService.getMeta.calledWith('oid')).to.be.true;
+    it('merges explicit record inputs through the projection owner', async function () {
+      const original = { redboxOid: 'oid', metadata: { title: 'before' } };
+      const changed = { redboxOid: 'oid', metadata: { title: 'after' } };
+      const schema = { type: 'object', properties: { title: { type: 'string' } } };
+      sinon.stub(FormRecordConsistencyService, 'buildSchemaForFormConfig').returns(schema);
+      const result = await FormRecordConsistencyService.mergeRecordClientFormConfig(original, changed, {}, 'edit');
+      expect(result.metadata).to.deep.equal({ title: 'after' });
     });
   });
 
@@ -501,7 +465,7 @@ describe('FormRecordConsistencyService', function () {
       // Assuming dependencies are available
 
       try {
-        const result = await FormRecordConsistencyService.extractRawTemplates(item, 'edit');
+        const result = await templateForms.extractRawTemplates(item, 'edit');
         expect(result).to.be.an('array');
       } catch (e) {
         // If dependencies are missing, we might skip
@@ -547,7 +511,7 @@ describe('FormRecordConsistencyService', function () {
         ]
       } as any;
 
-      const result = await FormRecordConsistencyService.extractRawTemplates(item, 'edit');
+      const result = await templateForms.extractRawTemplates(item, 'edit');
 
       expect(result).to.deep.include({
         key: ['behaviours', '0', 'condition'],
@@ -613,7 +577,7 @@ describe('FormRecordConsistencyService', function () {
         ]
       } as any;
 
-      const result = await FormRecordConsistencyService.extractRawTemplates(item, 'edit');
+      const result = await templateForms.extractRawTemplates(item, 'edit');
 
       expect(result).to.deep.include({
         key: ['componentDefinitions', '0', 'expressions', '0', 'config', 'template'],
