@@ -2,7 +2,16 @@ import type { PersistenceIndexInspection } from '../persistence/indexes';
 import type { Db } from '@agendajs/mongo-backend';
 import { mongoDatabase, mongoResourceDatabase } from '../persistence/runtime';
 import type { PersistenceOwner } from '../persistence/owner';
-import type { AgendaQueueOptions } from '../config/agendaQueue.config';
+import type { AgendaQueueConfig, AgendaQueueOptions } from '../config/agendaQueue.config';
+
+/** Maintenance inspects only backends selected by the effective job configuration. */
+export function selectedAgendaMongoOptions(config: AgendaQueueConfig): AgendaQueueOptions | undefined {
+  const jobs = Object.values(config.jobs);
+  const usesMongo = jobs.length
+    ? jobs.some(job => (job.backend ?? config.options.backend ?? 'mongodb') === 'mongodb')
+    : (config.options.backend ?? 'mongodb') === 'mongodb';
+  return usesMongo ? config.options : undefined;
+}
 
 const definitions = [
   { name: 'findAndLockNextJobIndex', keys: { name: 1, nextRunAt: 1, priority: -1, lockedAt: 1, disabled: 1 } },

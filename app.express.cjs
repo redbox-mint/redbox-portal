@@ -7,6 +7,7 @@ const {
   createPortalHost,
   createPortalApplication,
   prepareSelectedPersistenceIndexes,
+  selectedAgendaMongoOptions,
   cleanupPersistence,
   persistenceStatus,
 } = require('@researchdatabox/redbox-core/portal');
@@ -60,7 +61,7 @@ let portal;
         mode.endsWith(':ensure') ? 'ensure' : 'inspect',
         {
           storage: portal.preflight,
-          agenda: portal.config.agendaQueue.options,
+          agenda: selectedAgendaMongoOptions(portal.config.agendaQueue),
           session: portal.config.redboxSession,
         }
       );

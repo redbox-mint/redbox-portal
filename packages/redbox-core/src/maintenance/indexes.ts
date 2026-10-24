@@ -14,6 +14,7 @@ import { assertPersistenceConfiguration } from '../persistence/selection';
 import { prepareSelectedPersistenceIndexes } from '../persistence/maintenance';
 import { cleanupPersistence, persistenceStatus } from '../persistence/runtime';
 import type { PersistenceOwner } from '../persistence/owner';
+import { selectedAgendaMongoOptions } from '../queues/indexes';
 
 export interface IndexMaintenanceOptions {
   readonly appPath: string;
@@ -67,16 +68,12 @@ export async function runIndexMaintenance(options: IndexMaintenanceOptions) {
   });
   if (!storagePreflight(hook)) throw new Error('Selected Mongo storage preflight exports are unavailable.');
   const owner: PersistenceOwner = { config, log: { warn() {} } };
-  const jobs = Object.values(config.agendaQueue.jobs);
-  const mongoAgenda = jobs.length
-    ? jobs.some(job => (job.backend ?? config.agendaQueue.options.backend ?? 'mongodb') === 'mongodb')
-    : (config.agendaQueue.options.backend ?? 'mongodb') === 'mongodb';
   let report;
   try {
     report = await prepareSelectedPersistenceIndexes(owner, options.mode, {
       storage: hook,
       session: config.redboxSession,
-      agenda: mongoAgenda ? config.agendaQueue.options : undefined,
+      agenda: selectedAgendaMongoOptions(config.agendaQueue),
     });
   } finally {
     await cleanupPersistence(owner);
