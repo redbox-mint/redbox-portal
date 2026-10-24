@@ -3,18 +3,35 @@ import type { AgendaQueueConfig } from '../config/agendaQueue.config';
 import type { PersistenceOwner } from '../persistence/owner';
 import { mongoDatabase, mongoResourceDatabase } from '../persistence/runtime';
 import { convertBuiltinRecordHook } from '../recordTypes/RecordHookNames';
+import { validateRecordHookConfiguration, RecordHookConfigurationError } from '../services/record-hooks/coordinator';
 
 export const QUEUED_PAYLOAD_OPERATIONS_MIGRATION_NAME = '20261025T010000-v6-persisted-queued-record-hook-operations';
 
 /** Existing queue payloads are data, never executable service-path dispatch. */
-export function convertQueuedRecordHookData(value: unknown): Record<string, unknown> {
+export function convertQueuedRecordHookData(
+  value: unknown,
+  resolveOperation?: (name: string) => unknown
+): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid queued record hook data.');
   const data = value as Record<string, unknown>;
-  return { ...data, triggerConfiguration: convertBuiltinRecordHook(data.triggerConfiguration) };
+  const triggerConfiguration = convertBuiltinRecordHook(data.triggerConfiguration);
+  if (resolveOperation) {
+    validateRecordHookConfiguration({ hooks: { queued: { pre: [triggerConfiguration] } } }, ['queued'], hook => {
+      const operation = resolveOperation(String((hook as { function?: unknown }).function ?? ''));
+      if (typeof operation !== 'function')
+        throw new RecordHookConfigurationError('Unregistered queued record operation');
+      return (...args: unknown[]) => operation(...args);
+    });
+  }
+  return { ...data, triggerConfiguration };
 }
 
 /** Claims/writers must be stopped. Validate all selected Mongo jobs before writing any. */
-export async function migrateQueuedRecordHooks(owner: PersistenceOwner, config: AgendaQueueConfig): Promise<number> {
+export async function migrateQueuedRecordHooks(
+  owner: PersistenceOwner,
+  config: AgendaQueueConfig,
+  resolveOperation?: (name: string) => unknown
+): Promise<number> {
   const options = config.options ?? {};
   const names = Object.entries(config.jobs)
     .filter(
@@ -31,7 +48,7 @@ export async function migrateQueuedRecordHooks(owner: PersistenceOwner, config: 
   const pending = [];
   for (const row of await collection.find({ name: { $in: names } }).toArray()) {
     try {
-      const converted = convertQueuedRecordHookData(row.data);
+      const converted = convertQueuedRecordHookData(row.data, resolveOperation);
       const original = (row.data as Record<string, unknown>).triggerConfiguration;
       if (!isDeepStrictEqual(original, converted.triggerConfiguration))
         pending.push({ id: row._id, original, converted: converted.triggerConfiguration });

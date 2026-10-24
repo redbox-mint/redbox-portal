@@ -32,6 +32,7 @@ import { RBValidationError } from '../model/RBValidationError';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
 import { momentShim as moment } from '../shims/momentShim';
 import numeral from 'numeral';
+import { validateRecordHookConfiguration, RecordHookConfigurationError } from '../services/record-hooks/coordinator';
 
 export interface RecordTriggersInput {
   readonly config: Pick<
@@ -504,6 +505,11 @@ export class RecordTriggers {
     this.updateChronicle({ rdmpTriggerOid: oid, rdmpTriggerJobName: jobName, rdmpTriggerPhase: 'processing' });
     const hookFunctionString = _.get(triggerConfiguration, 'function', null);
     if (hookFunctionString != null) {
+      validateRecordHookConfiguration({ hooks: { queued: { pre: [triggerConfiguration] } } }, ['queued'], hook => {
+        const operation = this.input.resolveHook(String(_.get(hook, 'function', '')));
+        if (!_.isFunction(operation)) throw new RecordHookConfigurationError('Unregistered queued record operation');
+        return operation;
+      });
       const hookFunction = this.input.resolveHook(String(hookFunctionString));
       const options = _.get(triggerConfiguration, 'options', {});
       if (_.isFunction(hookFunction)) {

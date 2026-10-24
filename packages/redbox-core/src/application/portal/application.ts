@@ -232,7 +232,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
     'rdmpservice.queuedTriggerSubscriptionHandler': async job => {
       // External queues cannot be enumerated at startup. Convert each delivered
       // payload before dispatch; a failed delivery retains ordinary retry/ack semantics.
-      const converted = convertQueuedRecordHookData(job.attrs.data);
+      const converted = convertQueuedRecordHookData(job.attrs.data, resolveHook);
       await data.triggers.get().queuedTriggerSubscriptionHandler({ attrs: { ...job.attrs, data: converted } });
     },
     ...options.bindings?.jobs,
@@ -321,7 +321,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
       name: QUEUED_PAYLOAD_OPERATIONS_MIGRATION_NAME,
       source: 'core',
       up: async () => {
-        const changed = await migrateQueuedRecordHooks(owner, config.agendaQueue);
+        const changed = await migrateQueuedRecordHooks(owner, config.agendaQueue, resolveHook);
         options.log.info(`Queued record hook operations: converted ${changed} jobs.`);
       },
     },

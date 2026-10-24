@@ -96,6 +96,14 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     );
     assert.equal(calls, 0);
     await db.collection('agendaJobs').deleteOne({ _id: invalid.insertedId });
+    const unregistered = await db.collection('agendaJobs').insertOne({ name: 'pdf', data: {
+      ...data, triggerConfiguration: { function: 'pdf.create', options: { onNotifySuccess: [{ function: 'removedInstitution.callback' }] } },
+    } });
+    const resolveOperation = (name: string) => name === 'pdf.create' ? async () => {} : undefined;
+    await assert.rejects(migrateQueuedRecordHooks(owner, config, resolveOperation), /conversion failed/);
+    assert.equal((await db.collection('agendaJobs').findOne({ _id: valid.insertedId }))!.data.triggerConfiguration.function, 'sails.services.pdfservice.createPDF');
+    assert.equal(calls, 0);
+    await db.collection('agendaJobs').deleteOne({ _id: unregistered.insertedId });
     const app = new ApplicationRuntime(owner, [{ name: 'queue', create: () => queue }], {
       migrations: async () => {
         assert.equal(await migrateQueuedRecordHooks(owner, config), 1);

@@ -1,4 +1,5 @@
 import { getIdentityRepositories as identityRepositories } from '../../src/persistence/identity/runtime';
+import assert from 'node:assert/strict';
 const collaborators: any = {};
 const hooks = new Map<string, unknown>();
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
@@ -15,6 +16,17 @@ describe('RDMPService', function () {
   let RDMPService: any;
   let mockUser: any;
   let mockCounter: any;
+
+  for (const field of ['onNotifySuccess', 'hooks', 'triggerConfiguration']) {
+    it(`rejects an unregistered queued ${field} operation before invoking its parent`, async () => {
+      const parent = sinon.stub().returns(of({}));
+      hooks.set('email.sendRecordNotification', parent);
+      const child = { function: 'removedInstitution.callback' };
+      const configuration = { function: 'email.sendRecordNotification', options: { [field]: field === 'triggerConfiguration' ? child : [child] } };
+      await assert.rejects(async () => RDMPService.queuedTriggerSubscriptionHandler({ attrs: { data: { oid: 'record', record: {}, triggerConfiguration: configuration, user: {} } } }), /operation|configuration/i);
+      assert.equal(parent.callCount, 0);
+    });
+  }
 
   before(async function () {
     const chai = await import('chai');
