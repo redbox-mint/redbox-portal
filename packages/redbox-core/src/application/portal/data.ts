@@ -11,6 +11,7 @@ import type { RecordTypes } from '../../recordTypes';
 import type { Forms } from '../../forms/Forms';
 import { ConfigModelRegistry } from '../../configuration/ConfigModelRegistry';
 import { AuthenticationAccounts } from '../../authentication/Accounts';
+import { recordServiceChronicle } from '../../utilities/serviceChronicle';
 import { Services as Users } from '../../identity/Users';
 import { Services as Disks } from '../../storage/StorageManager';
 import { Services as Datastreams } from '../../storage/StandardDatastream';
@@ -139,7 +140,7 @@ export function portalDataPlan(
       authorizedEmails: name =>
         reference.appConfigs.get().getAppConfigurationForBrand(name).authorizedDomainsEmails ?? {},
       resolveHook: name => input.resolveAccountHook(name),
-      event: (info, errors, level) => log[level ?? 'debug']({ ...info, errors }),
+      event: (info, errors, level) => recordServiceChronicle(log, info, errors, level),
       postLogoutRedirect: config.auth.postLogoutRedir,
     })
   );

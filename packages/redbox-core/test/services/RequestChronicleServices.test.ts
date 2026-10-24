@@ -8,6 +8,9 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { inspect } from 'node:util';
 import * as sinon from 'sinon';
 import { defer, firstValueFrom, from, map, of } from 'rxjs';
+import { portalDataPlan } from '../../src/application/portal/data';
+import { portalDefaults, type PortalConfiguration } from '../../src/configuration/portal';
+import { ConfigModelRegistry } from '../../src/configuration/ConfigModelRegistry';
 import { recordServiceChronicle } from '../../src/utilities/serviceChronicle';
 import { AuthenticationAccounts } from '../../src/authentication/Accounts';
 import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
@@ -50,6 +53,30 @@ describe('Request chronicles in services', () => {
 
   afterEach(() => {
     sinon.restore();
+  });
+
+  it('bounds account hook failures through the production data composition', async () => {
+    const owner = { config: {}, log: logger };
+    const plan = portalDataPlan(owner, portalDefaults().values as PortalConfiguration, logger, {
+      models: new ConfigModelRegistry(), forms: {}, localesDirectory: '',
+      resolveHook: () => undefined, resolveAccountHook: () => () => undefined,
+      resolveWorkspaceOperation: () => () => of(undefined), resolveVocabularyLookup: () => undefined,
+      job: () => undefined, securityEvent: async () => {}, userAudit: async () => {},
+      retainFollowup: async work => work,
+    } as any);
+    let event!: (info: Record<string, unknown>, errors: unknown[]) => void;
+    const declaration = plan.accounts.declaration;
+    const module = plan.accounts.bind({ provider: 'core', declaration: {
+      ...declaration, create: (input: any) => { event = input.event; return declaration.create(input); },
+    } })();
+    try {
+      const error = Object.assign(new Error('connect ECONNREFUSED'), {
+        config: { headers: { Authorization: 'Bearer account-provider-secret' } },
+      });
+      event({ operation: 'account-hook', password: 'account-provider-secret' }, [error]);
+      assert.equal(logger.error.callCount, 1);
+      assert(!JSON.stringify(logger.error.args).includes('account-provider-secret'));
+    } finally { await module.close(); }
   });
 
   function createAccounts() {
