@@ -540,6 +540,20 @@ describe('DashboardConfigService', function () {
       expect(repositoryFixtures.AppConfig.create.calledOnce).to.equal(true);
     });
 
+    it('uses explicit fingerprint-bound deployment decisions for a material conversion', async function () {
+      useWorkspaceConflictFixture();
+      const { conversion, finding } = await workspaceConflict();
+      mockSails.config.dashboardMigrationResolutions = {
+        captureFingerprints: { default: conversion.inputFingerprint },
+        acceptedFindingIdsByBrand: { default: [finding.id] },
+        replacements: [],
+      };
+
+      await service.migrateLegacyConfiguration();
+      expect(store.docs).to.have.length(1);
+      expect(store.docs[0].provenance.migration.acceptedFindingIds).to.deep.equal([finding.id]);
+    });
+
     it('accepts a resolution only when its brand fingerprint matches the preflight capture', async function () {
       useWorkspaceConflictFixture();
       const { conversion, finding } = await workspaceConflict();

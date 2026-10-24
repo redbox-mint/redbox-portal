@@ -241,6 +241,16 @@ export const portalSchema = deploymentSchema
     workflow: definitions,
     dashboardtype: definitions,
     dashboardview: definitions,
+    dashboardMigrationResolutions: z
+      .object({
+        captureFingerprints: z.record(z.string(), z.string().min(1)).optional(),
+        acceptedFindingIdsByBrand: z.record(z.string(), z.array(z.string().min(1))).optional(),
+        replacements: z
+          .array(z.object({ brand: z.string().min(1), target: data, settings: data }).strict())
+          .optional(),
+      })
+      .strict()
+      .optional(),
     workspacetype: definitions,
     i18n: data,
     vocab: data,

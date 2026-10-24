@@ -752,3 +752,33 @@ omits only absent optional fields it introduces. No persistence validator,
 existing test/assertion, timeout or supported BSON rule changes. The installed
 cutover must be repeated using a clean corrected artifact; this focused result
 alone does not close recovery acceptance.
+
+### Explicit dashboard migration decisions
+
+With optional snapshot fields corrected, the restored released fixture reaches
+the existing material-difference gate. Its preflight fingerprint
+`4439b700369c53470342b7a6f3ae1ee3884708931211121ea25ba5279a62539a`
+and finding `170fbfa0478ae963` concern the bundled existing-location workspace
+page: three cells/actions rendered empty there, unlike its standard dashboard.
+The stand-in explicitly retains the standard dashboard settings. This is a
+reviewed synthetic-fixture decision, not automatic acceptance of institution
+findings. Fingerprint and finding validation remain mandatory.
+
+The standalone schema initially rejected any decision data. The new configuration
+case reproduced **7 passing / 1 failing** (`dashboard-decisions-red.log`).
+`dashboardMigrationResolutions` now carries validated explicit deployment data;
+the dashboard domain no longer reads process environment/files. The temporary
+Sails adapter alone retains its existing file input. The additional service case
+exercises explicit fingerprint-bound data; the complete unchanged service suite
+plus both new cases passes **40/40**, no failures or pending
+(`dashboard-decisions-service-green.log`). The operator runbook records the
+conversion and stand-in decision. No migration skip, auto-acceptance, missing
+fingerprint bypass or changed existing test is introduced.
+
+The complete portal-configuration qualifier then passes **8/8**, zero failures,
+skips or cancellations, exit **0** (`dashboard-decisions-green.log`): explicit
+reviewed data loads/freeze correctly and malformed fingerprints fail offline.
+`npm --prefix packages/redbox-core run build` and core import-boundary verification
+both exit **0**. The full existing broad-suite results above predate these two
+narrow dashboard changes; these focused 40+8 checks validate that delta, and the
+complete installed cutover/recovery is rerun below against its corrected image.

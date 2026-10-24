@@ -215,3 +215,37 @@ are deliberately retained there for inspection. Logs are summarized in
 [the rehearsal evidence](evidence/institution-upgrade-recovery.md). Neither
 sanitized fixture recovery nor the missing institution designation replaces the
 required complete v6 portal upgrade/restart/stop and recovery acceptance.
+
+## Dashboard conversion decisions before activation
+
+A released deployment without independent dashboard settings can stop during
+`--initialize-only` with a dashboard preflight summary. On an isolated checkpoint
+copy, retain that summary's input fingerprint, finding IDs and proposed behavior.
+Review material differences before proceeding. The failed initialization may
+already have written a recovery snapshot or completed earlier ledger entries;
+keep writers fenced and the complete checkpoint available.
+
+V6 accepts decisions as explicit deployment data, rather than reading
+`REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS` from the domain's process environment:
+
+```js
+module.exports = {
+  // Other converted deployment settings remain here.
+  dashboardMigrationResolutions: require('/etc/redbox/reviewed-dashboard-resolutions.json'),
+};
+```
+
+The JSON contains `captureFingerprints` by brand,
+`acceptedFindingIdsByBrand` and `replacements` (brand, target, complete settings).
+Use only the actual reviewed fingerprint and finding IDs; changed inputs fail
+instead of reusing stale decisions. The temporary Sails comparison adapter retains
+its old file environment input. V6 has no migration-skip startup mode.
+
+The sanitized stand-in's reviewed fingerprint is
+`4439b700369c53470342b7a6f3ae1ee3884708931211121ea25ba5279a62539a`;
+finding `170fbfa0478ae963` identifies `existing-locations-draft`. Its old workspace
+page rendered three cells/actions empty; the selected conversion preserves the
+standard dashboard's populated cells/actions. This decision applies only to the
+bundled synthetic fixture. An institution must review its own capture and
+behavior. The rehearsal supplies that single explicit decision and retains
+all migration validation and fingerprint checks.

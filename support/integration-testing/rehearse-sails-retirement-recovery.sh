@@ -151,6 +151,14 @@ module.exports = {
   solr: { clientSleepTimeMillis: 0, cores: { default: { options: { host: 'solr', port: 8983, core: 'redbox' } } } },
   i18n: { next: { init: { debug: false } } },
   csp: { extras: [] },
+  // Reviewed synthetic fixture decision: preserve the standard existing-location
+  // dashboard's cells/actions instead of the old workspace page's empty values.
+  // The migration refuses a different input fingerprint or finding ID.
+  dashboardMigrationResolutions: {
+    captureFingerprints: { default: '4439b700369c53470342b7a6f3ae1ee3884708931211121ea25ba5279a62539a' },
+    acceptedFindingIdsByBrand: { default: ['170fbfa0478ae963'] },
+    replacements: [],
+  },
 };
 CONFIG
 candidate_options=(--network "$task_network" --memory=1536m

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { registerPersistenceResource } from '../../persistence/runtime';
 import { Services as Domain } from '../../dashboards/DashboardConfig';
 import {
@@ -44,7 +45,11 @@ export class LegacyDashboardConfig extends Domain.DashboardConfig {
         return getMigrationLedgerRepository();
       },
       get config() {
-        return sails.config;
+        const file = process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS;
+        return {
+          ...sails.config,
+          ...(file ? { dashboardMigrationResolutions: JSON.parse(readFileSync(file, 'utf8')) } : {}),
+        };
       },
       get log() {
         return sails.log;

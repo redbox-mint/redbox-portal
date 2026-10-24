@@ -206,3 +206,22 @@ test('offline defaults ignore legacy process settings and exclude legacy logger/
     []
   );
 });
+
+// Dashboard migration decisions are deployment data, scoped and fingerprint bound.
+test('portal accepts explicit reviewed dashboard migration decisions without ambient file reads', async () => {
+  const resolutions = {
+    captureFingerprints: { default: 'synthetic-preflight-fingerprint' },
+    acceptedFindingIdsByBrand: { default: ['synthetic-finding'] },
+    replacements: [],
+  };
+  const config = await loadPortalConfiguration({
+    env,
+    extensions: { providers: [{ name: 'reviewed-decisions', root: __dirname, declaration: { apiVersion: 1, config: { dashboardMigrationResolutions: resolutions } } }] },
+  });
+  assert.deepEqual(config.dashboardMigrationResolutions, resolutions);
+  assert(Object.isFrozen(config.dashboardMigrationResolutions));
+  await assert.rejects(loadPortalConfiguration({
+    env,
+    extensions: { providers: [{ name: 'invalid-decisions', root: __dirname, declaration: { apiVersion: 1, config: { dashboardMigrationResolutions: { captureFingerprints: { default: 42 } } } } }] },
+  }), /dashboardMigrationResolutions/);
+});

@@ -102,6 +102,7 @@ export interface DashboardConfigInput {
     dashboardtype?: unknown;
     auth?: { defaultPortal?: string };
     brandingConfigurationDefaults?: unknown;
+    dashboardMigrationResolutions?: unknown;
   };
   readonly log: ILogger;
   readonly recordTypes: Pick<import('../recordTypes/RecordTypes').RecordTypes, 'getAll'>;
@@ -1288,13 +1289,8 @@ export namespace Services {
     }
 
     private loadResolutions(): DashboardMigrationResolutions | null {
-      const file = process.env.REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS;
-      if (!file) {
-        return null;
-      }
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require('fs') as typeof import('fs');
-      const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as unknown;
+      const parsed = this.input.config.dashboardMigrationResolutions;
+      if (parsed === undefined) return null;
       if (!isPlainObject(parsed)) {
         throw new Error('Dashboard migration resolutions must be a JSON object.');
       }
@@ -1462,7 +1458,7 @@ export namespace Services {
       }
       if (blocked.length) {
         throw new Error(
-          `Dashboard configuration migration stopped: material differences need an explicit resolution before upgrading. Run the preflight, review the findings and supply REDBOX_DASHBOARD_MIGRATION_RESOLUTIONS. ${blocked.join(' | ')}`
+          `Dashboard configuration migration stopped: material differences need an explicit resolution before upgrading. Run the preflight, review the findings and supply dashboardMigrationResolutions in deployment configuration. ${blocked.join(' | ')}`
         );
       }
     }
