@@ -4,6 +4,8 @@ cd "$(dirname "$0")/../.."
 task_root=$PWD
 task_logs="${SR_P7_DATABASE_LOGS:-$task_root/.tmp/sails-retirement/p7/database-$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$task_logs"
+task_run="${SR_P7_DATABASE_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
+[[ "$task_run" =~ ^[a-zA-Z0-9-]+$ ]]
 node --eval 'require("node:assert/strict").equal(process.version, "v26.11.1")'
 task_containers=()
 cleanup() {
@@ -13,7 +15,7 @@ cleanup() {
       docker logs --tail 200 "$task_container" > "$task_logs/$task_container-tail.log" 2>&1 || true
     done
     timeout 90 docker stop --timeout 30 "${task_containers[@]}" > "$task_logs/container-stop.log" 2>&1 || task_status=1
-    timeout 90 docker rm -f -v "${task_containers[@]}" > "$task_logs/container-remove.log" 2>&1 || task_status=1
+    timeout 600 docker rm -f -v "${task_containers[@]}" > "$task_logs/container-remove.log" 2>&1 || task_status=1
   fi
   exit "$task_status"
 }
@@ -38,7 +40,7 @@ for major in 8 9; do
     for placement in core storage; do
       ports=()
       for ((member=1;member<=count;member++)); do
-        name="sr-p7-${major}-${topology}-${placement}${member}"
+        name="sr-p7-${task_run}-${major}-${topology}-${placement}${member}"
         port="29${row}1${member}"
         if [[ "$placement" == storage ]]; then port="29${row}2${member}"; fi
         ports+=("$port")
@@ -82,13 +84,11 @@ for major in 8 9; do
         npm run test:lifecycle:mongo
       ' > "$task_logs/${major}-${topology}-regression.log" 2>&1
     tail -8 "$task_logs/${major}-${topology}-regression.log"
-    # Keep both three-member datastores live for the entire row, then release
-    # only that row before creating the next topology/version.
-    for task_container in "${row_containers[@]}"; do
-      docker logs --tail 200 "$task_container" > "$task_logs/$task_container-tail.log" 2>&1 || true
-    done
+    # Keep both three-member datastores live throughout the row, then stop
+    # them to release RAM. Defer snapshot/volume removal until every row has run:
+    # containerd reclamation can walk large shared image layers and block another
+    # row's startup. This changes no application assertion or deadline.
     timeout 90 docker stop --timeout 30 "${row_containers[@]}" > "$task_logs/${major}-${topology}-stop.log" 2>&1
-    timeout 90 docker rm -v "${row_containers[@]}" > "$task_logs/${major}-${topology}-remove.log" 2>&1
-    task_containers=()
+
   done
 done

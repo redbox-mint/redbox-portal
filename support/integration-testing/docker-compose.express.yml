@@ -20,3 +20,9 @@ services:
       nofile:
         soft: 64000
         hard: 64000
+  email:
+    volumes:
+      - express-email:/data
+volumes:
+  # Each existing profile gets its own fresh provider state under its project.
+  express-email:

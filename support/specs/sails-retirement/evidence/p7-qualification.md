@@ -211,6 +211,24 @@ lifecycle tests at its unchanged queue drain deadline. It exited **1** and did
 The complete production matrix still requires a green rerun. Logs:
 `.tmp/sails-retirement/p7/database-b53a3d06f/` and `queue-drain-focused-{1,2,3}.log`.
 
+The next production retry at `cd32dd3cf` passed Mongo8 standalone component,
+portal and existing 30/10/12 regressions, then failed Docker removal after its
+90-second cleanup bound. The retry also reported removal already in progress;
+it did not reach the remaining rows. The runner now gives each invocation
+unique container names, stops completed rows immediately, and defers removal
+until all rows finish, with a 600-second infrastructure cleanup bound. No
+application/test deadline or assertion changes. The subsequent four-row run
+uses source `2aae5ba50` and these runner changes; its results must be collected
+before it supplies acceptance.
+
+The first existing general Compose invocation executed zero Bruno cases:
+Keycloak's cold augmentation outlasted its unchanged health retries. The retry
+prestarts the same pinned providers and waits for that same health check to pass
+before running the existing Compose runner. Profile email state now uses a
+project-scoped volume, so general/OIDC/S3 do not share a Mailpit database. All
+three merged Compose configurations validate. These are harness corrections,
+not passed suite results.
+
 Actual full general/OIDC/S3 Compose profiles, clean installed full-portal artifacts,
 complete v5-to-v6 cutover/recovery and final promotion remain qualification gates.
 Their new runners preserve the real host, CSRF and existing assertions. Presence
