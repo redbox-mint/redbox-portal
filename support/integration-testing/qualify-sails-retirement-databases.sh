@@ -60,6 +60,15 @@ for major in 8 9; do
       SR_MATRIX_VERSION="$version" SR_MATRIX_FCV="$fcv" SR_MATRIX_REPLICA="$replica" \
       timeout 240 node --test packages/redbox-core/test/qualification/database-matrix.cjs > "$task_logs/${major}-${topology}.log" 2>&1
     tail -15 "$task_logs/${major}-${topology}.log"
+    if [[ "${SR_P7_PRODUCTION_PORTAL:-false}" == true ]]; then
+      SR_PORTAL_MONGO_URL="${task_core/sr_p7_matrix/sr_p7_portal_http}" \
+      SR_PORTAL_STORAGE_URL="${task_storage/sr_p7_matrix/sr_p7_portal_http}" \
+      SR_PORTAL_SOLR_PORT="${SR_PORTAL_SOLR_PORT:?production portal requires a running Solr}" \
+      SR_MATRIX_VERSION="$version" SR_MATRIX_FCV="$fcv" SR_MATRIX_REPLICA="$replica" \
+        timeout 240 node --test --test-force-exit packages/redbox-core/test/qualification/portal-host.cjs \
+        > "$task_logs/${major}-${topology}-production-portal.log" 2>&1
+      tail -15 "$task_logs/${major}-${topology}-production-portal.log"
+    fi
     PERSISTENCE_TEST_MONGO_URL="${task_core/sr_p7_matrix/redbox_prisma_p7}" \
       RECORD_TYPES_TEST_MONGO_URL="${task_core/sr_p7_matrix/sr_p1_recordtypes}" \
       LIFECYCLE_TEST_MONGO_URL="${task_core/sr_p7_matrix/sr_p3_lifecycle}" \

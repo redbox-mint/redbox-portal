@@ -60,7 +60,10 @@ export class ExpressHost {
     app.set('query parser', 'extended');
     app.use((req, res, next) => {
       const ready = this.status().ready;
-      if (req.method === 'GET' && req.path === '/readyz') {
+      if (req.method === 'GET' && req.path === '/healthz') {
+        const healthy = !this.failure && !this.stopFailed && !this.stopped;
+        res.status(healthy ? 200 : 503).json({ healthy });
+      } else if (req.method === 'GET' && req.path === '/readyz') {
         res.status(ready ? 200 : 503).json({ ready });
       } else if (!ready) {
         res.status(503).json({ error: 'application-not-ready' });

@@ -160,3 +160,39 @@ exit **0**, approximately **13 s**. Existing Agenda/runtime/schedule unit regres
 No old assertion or timeout changed. The first production-matrix attempt picked
 up the added red test during development and stopped after Mongo8 standalone;
 that invocation is not a completed matrix and will be repeated from fixed source.
+
+### Complete selected production root
+
+`app.express.cjs` now binds the selected installed domains, real storage/PDF hooks,
+providers, jobs, owned HTTP and packaged views/assets. The production composition
+is exported through `@researchdatabox/redbox-core/portal`. It performs offline
+registration/configuration/selection, index **inspection** at startup, lexical
+ledger migrations, real bootstrap and post-bootstrap checks before activation.
+The explicit candidate modes are `--maintenance=indexes:inspect`,
+`--maintenance=indexes:ensure` and `--initialize-only`. Executable-owned config-file
+environment selectors are removed before strict domain-environment validation.
+Normal defaults have not been promoted.
+
+Broad execution exposed two missing bindings: the composition used a nonexistent
+`config/locales` directory and omitted trusted core validator definitions. It now
+uses installed `language-defaults` and binds the existing shared validator classes
+to the selected validation domain. Executable classes are not admitted into
+plain deployment data. HTTP uses compiled `.tmp/public` assets along with declared
+extension roots, and admin asset refresh invalidates the actual delivery caches.
+
+`portal-regression-build-second.log`: full production build, schema check, generated
+Prisma contract copy and TypeScript compilation **exit 0**. Focused source lint
+also **exit 0** (`production-focused-lint.log`).
+`portal-host-regression-fourth.log`: **1 passing / 0 failing / 0 skipped**, exit
+**0**, **21992.946054 ms** total (**18718.546468 ms** body). The updated production
+HTTP qualifier exercises home, compiled CSS, a nonempty packaged translation
+namespace, real enforce-mode dataPublication creation, strict record CAS, actual
+GridFS bytes, a failed drain deadline with retained pools, completion/retry, stale
+handle refusal and fresh full-host restart. The log's old `authenticatedApis:7`
+summary understated its ten authenticated operations; the counter is corrected
+in source. This standalone run is not topology qualification.
+
+The qualifier uses Node's explicit `--test-force-exit` only after its stop/resource
+assertions settle, matching the executable's process-exit boundary for Agenda's
+passive watchdog delays. It does not replace drain, zero-pool/Prisma assertions or
+signal qualification of the production executable.

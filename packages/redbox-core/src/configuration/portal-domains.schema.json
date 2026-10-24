@@ -2,6 +2,9 @@
   "description": "Data consumed by concrete domains. The build emits the matching runtime JSON Schema.",
   "type": "object",
   "properties": {
+    "static_assets": { "$ref": "#/definitions/StaticAssetsConfig" },
+    "companion": { "$ref": "#/definitions/CompanionConfig" },
+    "custom_cache": { "$ref": "#/definitions/CustomCacheConfig" },
     "recordtype": { "$ref": "#/definitions/RecordTypeConfig" },
     "workflow": { "$ref": "#/definitions/WorkflowConfig" },
     "dashboardtype": { "$ref": "#/definitions/DashboardTypeConfig" },
@@ -69,7 +72,9 @@
     "action",
     "branding",
     "brandingConfigurationDefaults",
+    "companion",
     "csp",
+    "custom_cache",
     "dashboardtype",
     "dashboardview",
     "emailnotification",
@@ -79,11 +84,95 @@
     "reusableFormDefinitions",
     "search",
     "solr",
+    "static_assets",
     "vocab",
     "workflow",
     "workspacetype"
   ],
   "definitions": {
+    "StaticAssetsConfig": {
+      "description": "Static Assets Config Interface and Default Values\nAuto-generated from config/static_assets.js",
+      "type": "object",
+      "properties": {
+        "logoName": { "type": "string" },
+        "imageType": { "type": "string" },
+        "faviconName": { "type": "string" },
+        "faviconType": { "type": "string" }
+      },
+      "required": ["faviconName", "faviconType", "imageType", "logoName"]
+    },
+    "CompanionConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "route": { "type": "string" },
+        "secret": { "type": "string" },
+        "bearerToken": { "type": "string" },
+        "attachmentSecret": { "type": "string" },
+        "attachmentSecretHeader": { "type": "string" },
+        "attachmentLocalOnly": { "type": "boolean" },
+        "filePath": { "type": "string" },
+        "uploadUrls": { "type": "array", "items": { "type": "string" } },
+        "tusDeferredUploadLength": { "type": "boolean" },
+        "server": { "$ref": "#/definitions/CompanionServerConfig" },
+        "providerOptions": { "$ref": "#/definitions/CompanionProviderOptions" },
+        "uploadHeaders": { "$ref": "#/definitions/Record%3Cstring%2Cstring%3E" },
+        "corsOrigins": {
+          "anyOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "const": true, "type": "boolean" }
+          ]
+        },
+        "metrics": { "type": "boolean" },
+        "debug": { "type": "boolean" },
+        "i18n": { "$ref": "#/definitions/Record%3Cstring%2Cunknown%3E" }
+      },
+      "required": [
+        "attachmentLocalOnly",
+        "attachmentSecret",
+        "attachmentSecretHeader",
+        "bearerToken",
+        "enabled",
+        "filePath",
+        "providerOptions",
+        "route",
+        "secret",
+        "server",
+        "tusDeferredUploadLength",
+        "uploadUrls"
+      ]
+    },
+    "CompanionServerConfig": {
+      "description": "Companion Config\n(sails.config.companion)\n\nUppy Companion middleware configuration.",
+      "type": "object",
+      "properties": { "host": { "type": "string" }, "protocol": { "type": "string" }, "path": { "type": "string" } },
+      "required": ["host", "path", "protocol"]
+    },
+    "CompanionProviderOptions": {
+      "type": "object",
+      "additionalProperties": {},
+      "properties": {
+        "drive": { "$ref": "#/definitions/CompanionProviderCredentials" },
+        "onedrive": { "$ref": "#/definitions/CompanionProviderCredentials" }
+      },
+      "required": ["drive", "onedrive"]
+    },
+    "CompanionProviderCredentials": {
+      "type": "object",
+      "properties": { "key": { "type": "string" }, "secret": { "type": "string" } },
+      "required": ["key", "secret"]
+    },
+    "Record<string,string>": { "type": "object" },
+    "Record<string,unknown>": { "type": "object" },
+    "CustomCacheConfig": {
+      "description": "Custom Cache Config Interface\n(sails.config.custom_cache)\n\nCustom caching configuration.",
+      "type": "object",
+      "properties": {
+        "cacheExpiry": { "description": "Cache expiry time in seconds", "type": "number" },
+        "checkPeriod": { "description": "Cache check period in seconds", "type": "number" }
+      },
+      "required": ["cacheExpiry"]
+    },
     "RecordTypeConfig": { "type": "object", "additionalProperties": { "$ref": "#/definitions/RecordTypeDefinition" } },
     "RecordTypeDefinition": {
       "type": "object",
@@ -244,7 +333,6 @@
       },
       "required": ["name", "title", "type", "typeLabel"]
     },
-    "Record<string,unknown>": { "type": "object" },
     "RecordTypeValidationConfig": {
       "description": "Record-type validation policy layered over form operation defaults.",
       "type": "object",
@@ -562,6 +650,12 @@
         "bootstrapFigshareImports": {
           "description": "Set to false to skip `bootstrap-data/vocabularies/figshare-imports.json` during lift.",
           "type": "boolean"
+        },
+        "rva": {
+          "description": "Trusted RVA registry endpoint used by imports and search.",
+          "type": "object",
+          "properties": { "baseUrl": { "type": "string" } },
+          "required": ["baseUrl"]
         }
       },
       "required": [
@@ -720,7 +814,6 @@
       },
       "required": ["collectionName", "mongoQuery", "queryParams", "resultObjectMapping"]
     },
-    "Record<string,string>": { "type": "object" },
     "Record<string,\"ASC\"|\"DESC\">": { "type": "object" },
     "RelatedRecordFilterDefinition": {
       "type": "object",

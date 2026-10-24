@@ -7,8 +7,9 @@ Companion adapter limits. P7 is in progress: the selected database/topology matr
 checkpoint recovery have passed at component scope; clean corrected-source package
 and runtime-image builds and installed-component qualification have passed. Expanded existing-core regression is 4481 passing /
 7 unchanged explicitly pending / 0 failing. No P7 acceptance is yet claimed;
-the installed production Express composition and full existing-suite execution
-remain prerequisites for promotion. P8 has not started.
+the installed production Express composition now runs actual selected domains,
+pages and APIs. Full existing-suite, production topology/artifact and complete
+cutover qualification remain prerequisites for promotion. P8 has not started.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -699,15 +700,16 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-046 — Run broad API, domain and browser regression.**
 
-  **Status:** partial; existing core regression passes 4481/7 unchanged explicitly pending/0 failing with all four real-Mongo environment inputs supplied; two persistence regressions were fixed without changing tests. Full existing Bruno profiles, Playwright and Mocha integration on a production Express portal remain unexecuted because that installed composition is missing; [integration gate](evidence/p7-qualification.md#sr-046--existing-regression-and-the-integration-gate).
+  **Status:** partial; existing core regression passes 4481/7 unchanged explicitly pending/0 failing with all four real-Mongo environment inputs supplied; two persistence regressions were fixed without changing tests. The production composition and focused real HTTP/application runs now pass; the first full Bruno diagnostic executed 329 requests with 143 passing/173 failing/13 errors. Profile-accurate Bruno, Playwright and Mocha integration qualification remains in progress; [integration gate](evidence/p7-qualification.md#sr-046--existing-regression-and-the-integration-gate).
 
   **Depends on:** SR-003, SR-037, SR-044.
 
   **Additional implementation prerequisite discovered in P7:** bind the extracted
   modules into an installed production Express portal, including complete domain
   configuration/bootstrap, selected extension/provider bindings and HTTP/pages.
-  The existing test compositions do not supply this entrypoint. See the linked
-  integration gate; changing the broad runners' host selector alone is insufficient.
+  The new `app.express.cjs` candidate supplies this entrypoint; its complete
+  broad-suite/artifact/topology qualification remains open. See
+  [production composition](evidence/p7-production-composition.md).
 
   **Deliver:** existing Mocha/Bruno/Playwright and relevant package suites over the
   integrated host, comparing representative behavior with released v5 fixtures.
@@ -762,7 +764,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-050 — Promote the qualified Express host as the internal v6 default.**
 
-  **Status:** blocked by SR-046/047/049 acceptance and the missing production Express composition. Start scripts, Docker and dev workflow still use the actual Sails comparison host; no fixture is promoted and no P8 work has begun; [promotion gate](evidence/p7-qualification.md#sr-050--promotion-gate).
+  **Status:** pending SR-046/047/049 acceptance; the production Express candidate is implemented and under qualification. Start scripts, Docker and dev workflow still use the actual Sails comparison host; no fixture is promoted and no P8 work has begun; [promotion gate](evidence/p7-qualification.md#sr-050--promotion-gate).
 
   **Depends on:** SR-049, SR-046, SR-047.
 

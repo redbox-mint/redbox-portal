@@ -49,6 +49,12 @@ export class BrandingDelivery {
   private readonly fontResponseCache = new Map<string, Buffer>();
   private fontResponseCacheBytes = 0;
 
+  public invalidate(): void {
+    this.cssResponseCache.clear();
+    this.fontResponseCache.clear();
+    this.fontResponseCacheBytes = 0;
+  }
+
   /**
    * Generate a weak ETag for the given content hash or string.
    * @param hashOrContent - Either a pre-computed hash string or content to hash

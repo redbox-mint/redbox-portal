@@ -1,3 +1,6 @@
+import type { StaticAssetsConfig } from '../config/static_assets.config';
+import type { CompanionConfig } from '../config/companionDefaults';
+import type { CustomCacheConfig } from '../config/custom_cache.config';
 import type { RecordTypeConfig } from '../config/recordtype.config';
 import type { WorkflowConfig } from '../config/workflow.config';
 import type { DashboardTypeConfig } from '../config/dashboardtype.config';
@@ -17,6 +20,9 @@ import type { ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
 
 /** Data consumed by concrete domains. The build emits the matching runtime JSON Schema. */
 export interface PortalDomainConfiguration {
+  static_assets: StaticAssetsConfig;
+  companion: CompanionConfig;
+  custom_cache: CustomCacheConfig;
   recordtype: RecordTypeConfig;
   workflow: WorkflowConfig;
   dashboardtype: DashboardTypeConfig;

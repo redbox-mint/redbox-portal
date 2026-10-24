@@ -410,6 +410,10 @@
     "./authentication": {
       "types": "./dist/authentication/index.d.ts",
       "default": "./dist/authentication/index.js"
+    },
+    "./portal": {
+      "types": "./dist/application/portal/index.d.ts",
+      "default": "./dist/application/portal/index.js"
     }
   }
 }

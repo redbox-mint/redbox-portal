@@ -66,7 +66,7 @@ export function mountBrandingDeliveryRoutes(
     policies: PagesHttpInput['policies'];
     policyConfiguration: PagesHttpInput['policyConfiguration'];
   }
-): void {
+): BrandingDelivery {
   const delivery = new BrandingDelivery({
     ...input.delivery,
     sendAsset: async (res, name) => {
@@ -128,6 +128,7 @@ export function mountBrandingDeliveryRoutes(
       await delivery.renderFont(req, res);
     })
   );
+  return delivery;
 }
 
 export function mountStaticPageArtifacts(router: Router, artifacts: PageArtifacts): void {

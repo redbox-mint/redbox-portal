@@ -1,3 +1,4 @@
+import { validators } from '../../config/validators.config';
 import path from 'node:path';
 import { firstValueFrom } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -16,7 +17,12 @@ import { getCacheEntryRepository } from '../../persistence/cache/runtime';
 import type { RecordsService } from '../../RecordsService';
 import type { Services as Disks } from '../../storage/StorageManager';
 import type { Services as Solr } from '../../queries/Solr';
-import { RecordTypes, migrateRecordHooks, RECORD_HOOK_OPERATIONS_MIGRATION_NAME } from '../../recordTypes';
+import {
+  RecordTypes,
+  migrateRecordHooks,
+  RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+  QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+} from '../../recordTypes';
 import { Services as Branding } from '../../branding/Branding';
 import { Services as Typeface } from '../../branding/BrandingTypeface';
 import { Services as Theme } from '../../branding/BrandingThemeCss';
@@ -58,6 +64,7 @@ export interface PortalReferencePorts {
   readonly localesDirectory: string;
   readonly formRegistry: Readonly<Record<string, unknown>>;
   readonly models: ConfigModelRegistry;
+  readonly contributors?: readonly import('../../record-contract').RecordContractContributorRegistration[];
 }
 
 /** Bind real persisted reference domains and bootstrap. No synthetic seed records or startup DDL. */
@@ -197,7 +204,7 @@ export function portalReferencePlan(
       noDomainResources,
       (value): value is RecordValidation => value instanceof RecordValidation,
       () => ({
-        config,
+        config: { ...config, validators },
         log,
         readers: {
           loadRecord: oid => ports.storage().getMeta(oid),
@@ -241,9 +248,10 @@ export function portalReferencePlan(
       translate: (key, brand) => translation.get().t(key, undefined, 'en', brand),
     })
   );
-  const registry = new RecordContractContributorRegistry(
-    createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' }))
-  );
+  const registry = new RecordContractContributorRegistry([
+    ...createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' as const })),
+    ...(ports.contributors ?? []),
+  ]);
   const schema = portalDomain(
     'recordSchema',
     ['forms', 'recordValidation', 'storage'],
@@ -520,6 +528,14 @@ export function portalReferencePlan(
   const migrations: ApplicationMigration[] = [
     {
       name: RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
+      source: 'core',
+      up: async () => {
+        const result = await migrateRecordHooks({ brands: brands(), types: refs().recordTypes });
+        log.info(`Record hook operations: inspected ${result.inspected}, converted ${result.changed} record types.`);
+      },
+    },
+    {
+      name: QUEUED_RECORD_HOOK_OPERATIONS_MIGRATION_NAME,
       source: 'core',
       up: async () => {
         const result = await migrateRecordHooks({ brands: brands(), types: refs().recordTypes });

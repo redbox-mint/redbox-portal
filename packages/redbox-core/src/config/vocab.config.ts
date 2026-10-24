@@ -98,6 +98,8 @@ export interface VocabConfig {
     bootstrapRvaImports?: boolean;
     /** Set to false to skip `bootstrap-data/vocabularies/figshare-imports.json` during lift. */
     bootstrapFigshareImports?: boolean;
+    /** Trusted RVA registry endpoint used by imports and search. */
+    rva?: { baseUrl: string };
 }
 
 const baseUrl = "https://geonames.redboxresearchdata.com.au/select";

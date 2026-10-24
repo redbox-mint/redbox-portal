@@ -234,6 +234,9 @@ export const portalSchema = deploymentSchema
           .optional(),
       })
       .strict(),
+    schedules: z.array(
+      z.object({ name: z.string().min(1), operation: z.string().min(1), interval: z.string().min(1) }).strict()
+    ),
     recordtype: definitions,
     workflow: definitions,
     dashboardtype: definitions,
@@ -376,6 +379,7 @@ export function portalDefaults(environment = 'development'): ConfigurationLayer 
       page: { landingPath: '/default/rdmp/home', noCache: [] },
       bootstrap: { bootstrapDataPath: 'bootstrap-data' },
       redbox: {},
+      schedules: [],
       appmode: { ...appmode, bootstrapAlways: false },
       record,
       recordValidation,
