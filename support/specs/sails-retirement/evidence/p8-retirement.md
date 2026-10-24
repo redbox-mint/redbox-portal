@@ -455,3 +455,23 @@ Duplicate-directory key scenarios become duplicate explicit bootstrap/migration
 work-name rejection before execution, with identical names permitted across
 separate stages. V6 does not scan the old branded-config directory trees.
 This checkpoint does not claim full core or final artifact qualification.
+
+### Chronicle fixture migration
+
+`chronicle12-first.log`: **44 passing / 0 pending / 0 failing** (308ms),
+Node 26.11.1, source based on `c5b30cc16`, explicit core Mocha runner with
+`test/services/RequestChronicleServices.test.ts`. The retired inherited
+CoreService/CoreController wrappers are replaced by actual
+recordServiceChronicle capture. Email, workflow hooks, datastreams, Solr and
+AuthenticationAccounts receive explicit collaborators; authored hook names
+replace evaluated function strings. Both OIDC and AAF callback outcomes,
+redaction, error deduplication, interleaved async context, hostile getters,
+late logging and module-copy context checks remain.
+
+AAF callback tests target AuthenticationAccounts.aafAuthVerifyCallback;
+transport strategy registration is owned and verified by the dedicated HTTP
+provider suites. The user post-save case now asserts an owned promise, completes
+the response before rejecting the hook, awaits the promise and checks the
+original late-failure logging/redaction. This implements v6 ownership instead
+of the deleted adapter's detached undefined return. No skips were introduced.
+Full-core/artifact qualification remains outstanding.

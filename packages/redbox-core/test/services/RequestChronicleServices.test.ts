@@ -1,3 +1,5 @@
+const collaborators: any = {};
+const hooks = new Map<string, (...args: any[]) => unknown>();
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
 import { createQueryObject } from './testHelper';
 import { installIdentityRepositoryMock } from '../helpers/identityMock';
@@ -6,11 +8,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { inspect } from 'node:util';
 import * as sinon from 'sinon';
 import { defer, firstValueFrom, from, map, of } from 'rxjs';
-import { Services } from '../../src/CoreService';
-import { Controllers } from '../../src/CoreController';
+import { recordServiceChronicle } from '../../src/utilities/serviceChronicle';
+import { AuthenticationAccounts } from '../../src/authentication/Accounts';
+import { getIdentityRepositories } from '../../src/persistence/identity/runtime';
+import type { Request } from 'express';
 import { RBValidationError } from '../../src/model/RBValidationError';
 import { Services as EmailServices } from '../../src/services/EmailService';
-import { Services as UserServices } from '../../src/services/UsersService';
 import { Services as TriggerServices } from '../../src/services/TriggerService';
 import { Services as RecordsServices } from '../../src/services/RecordsService';
 import { Services as SolrServices } from '../../src/services/SolrSearchService';
@@ -18,57 +21,57 @@ import { RequestChronicleHelper, RequestChronicleOptions } from '../../src/utili
 import { currentRequestChronicle, runWithRequestChronicle } from '../../src/utilities/RequestChronicleContext';
 import { createSinonStubLogger } from '../logger.test';
 
-class TestService extends Services.Core.Service {
+class TestService {
+  constructor(private readonly log: ReturnType<typeof createSinonStubLogger>) {}
   public record(
     info: Record<string, unknown>,
     errors: unknown[] = [],
     level: 'debug' | 'info' | 'warn' = 'debug'
   ): void {
-    this.updateChronicle(info, errors, level);
-  }
-}
-
-class TestUsers extends UserServices.Users {
-  public verify(...args: Parameters<TestUsers['openIdConnectAuthVerifyCallback']>): void {
-    this.openIdConnectAuthVerifyCallback(...args);
-  }
-
-  public initAaf(): void {
-    this.aafAuthInit();
-  }
-}
-
-class TestController extends Controllers.Core.Controller {
-  public record(req: Sails.Req, error: unknown): void {
-    this.updateChronicle(req, { userLoginSuccess: !error }, error ? [error] : []);
+    recordServiceChronicle(this.log, info, errors, level);
   }
 }
 
 describe('Request chronicles in services', () => {
   let logger: ReturnType<typeof createSinonStubLogger>;
   let service: TestService;
-  let originalSails: unknown;
 
   beforeEach(async () => {
     installIdentityRepositoryMock();
-    originalSails = Reflect.get(globalThis, 'sails');
     logger = createSinonStubLogger(sinon);
-    Reflect.set(globalThis, 'sails', {
-      log: logger,
-      config: { log: { requestChronicle: { successSampleRate: 1 } } },
-    });
-    service = new TestService();
+    collaborators.environment = { log: logger, config: {} };
+    collaborators.RecordsService = {};
+    collaborators.BrandingService = {};
+    hooks.clear();
+    service = new TestService(logger);
     await delay(0);
     logger.verbose.resetHistory();
   });
 
   afterEach(() => {
     sinon.restore();
-    Reflect.set(globalThis, 'sails', originalSails);
   });
 
+  function createAccounts() {
+    return new AuthenticationAccounts({
+      repository: getIdentityRepositories(),
+      log: logger,
+      defaultBrand: () => ({ id: 'brand', name: 'default', roles: [] }) as any,
+      getBrand: name => ({ id: 'brand', name, roles: [] }) as any,
+      authConfig: () => collaborators.authConfig ?? {},
+      defaultAuthenticatedRole: () => ({ name: 'Researcher' }) as any,
+      nestedRoles: () => [],
+      authorizedEmails: () => ({ enabled: true, domainsOidc: ['allowed.edu'], domainsAaf: ['allowed.edu'] }),
+      resolveHook: name => {
+        const operation = hooks.get(name);
+        if (!operation) throw new Error('Unknown account hook');
+        return operation;
+      },
+      event: (info, errors, level) => recordServiceChronicle(logger, info, errors, level),
+    });
+  }
   function helper(id: string, options: RequestChronicleOptions = {}): RequestChronicleHelper {
-    const item = RequestChronicleHelper.fromReq(logger, { options: {} } as Sails.Req, {
+    const item = RequestChronicleHelper.fromReq(logger, { options: {} } as Request, {
       generateRequestId: () => id,
       ...options,
     });
@@ -128,7 +131,7 @@ describe('Request chronicles in services', () => {
   ] as const) {
     it(`retains a service warning with sampling disabled for a ${testCase.statusCode} ${testCase.outcome} response`, () => {
       const item = helper('warning', { settings: { successSampleRate: 0 } });
-      item.updateReq({ method: 'GET', path: '/excluded.css' } as Sails.Req);
+      item.updateReq({ method: 'GET', path: '/excluded.css' } as Request);
       runWithRequestChronicle(item, () => service.record({ solrJobExecution: 'inline' }, [], 'warn'));
       item.finish({ statusCode: testCase.statusCode, headersSent: true, writableFinished: testCase.completed });
       item.log();
@@ -232,13 +235,19 @@ describe('Request chronicles in services', () => {
   });
 
   it('captures email rendering failures without logging template data or changing the result', async () => {
-    const email = new EmailServices.Email();
     // Force the filesystem boundary to fail without sending mail or touching real templates.
-    Reflect.set(globalThis, 'sails', {
+    Reflect.set(collaborators, 'environment', {
       log: logger,
       config: {
         emailnotification: { settings: { templateDir: '/missing-service-test/' } },
       },
+    });
+    const email = new EmailServices.Email({
+      config: collaborators.environment.config.emailnotification,
+      log: logger,
+      templateContext: {} as any,
+      resolveHook: name => hooks.get(name),
+      retainFollowup: () => {},
     });
     const item = helper('email');
     const response = await runWithRequestChronicle(item, () =>
@@ -259,13 +268,13 @@ describe('Request chronicles in services', () => {
   });
 
   it('captures denied email authorization without retaining the email address', () => {
-    Reflect.set(globalThis, 'sails', {
+    Reflect.set(collaborators, 'environment', {
       log: logger,
       config: {
         brandingAware: () => ({ authorizedDomainsEmails: { enabled: true, domainsOidc: ['allowed.edu'] } }),
       },
     });
-    const users = new UserServices.Users();
+    const users = createAccounts();
     const item = helper('users');
     const allowed = runWithRequestChronicle(item, () =>
       users.checkAuthorizedEmail('private@other.edu', 'default', 'oidc')
@@ -279,11 +288,17 @@ describe('Request chronicles in services', () => {
   });
 
   it('retains email notification failures even when a caller catches the thrown error', async () => {
-    Reflect.set(globalThis, 'sails', {
+    Reflect.set(collaborators, 'environment', {
       log: logger,
       config: { emailnotification: { defaults: {}, templates: {} } },
     });
-    const email = new EmailServices.Email();
+    const email = new EmailServices.Email({
+      config: collaborators.environment.config.emailnotification ?? { defaults: {}, templates: {} },
+      log: logger,
+      templateContext: {} as any,
+      resolveHook: name => hooks.get(name),
+      retainFollowup: () => {},
+    });
     const item = helper('notification');
     await runWithRequestChronicle(item, () =>
       assert.rejects(email.sendRecordNotification('oid', {}, { forceRun: true }, {}, {}), /Invalid email address/)
@@ -295,7 +310,15 @@ describe('Request chronicles in services', () => {
   });
 
   it('keeps invalid trigger behavior while capturing safe configuration failures', async () => {
-    const trigger = new TriggerServices.Trigger();
+    const trigger = new TriggerServices.Trigger({
+      log: logger,
+      get records() {
+        return collaborators.RecordsService;
+      },
+      translation: { t: key => key, tInter: key => key },
+      brand: id => collaborators.BrandingService.getBrandById(id),
+      resolveHook: name => hooks.get(name),
+    });
     const item = helper('trigger');
     const record = { metadata: { title: 'PRIVATE TITLE' } };
     const result = await runWithRequestChronicle(item, () =>
@@ -318,7 +341,15 @@ describe('Request chronicles in services', () => {
   });
 
   it('keeps a null synchronous hook list as a no-op and records a zero count', async () => {
-    const trigger = new TriggerServices.Trigger();
+    const trigger = new TriggerServices.Trigger({
+      log: logger,
+      get records() {
+        return collaborators.RecordsService;
+      },
+      translation: { t: key => key, tInter: key => key },
+      brand: id => collaborators.BrandingService.getBrandById(id),
+      resolveHook: name => hooks.get(name),
+    });
     const item = helper('null-hooks');
     const record = { metadata: { title: 'PRIVATE TITLE' } };
     const result = await runWithRequestChronicle(item, () =>
@@ -331,13 +362,21 @@ describe('Request chronicles in services', () => {
 
   it('keeps a null related-record template list unchanged and records a zero count', async () => {
     const names = ['RecordsService', 'BrandingService'];
-    const originals = names.map(name => Reflect.get(globalThis, name));
+    const originals = names.map(name => Reflect.get(collaborators, name));
     const record = { metaMetadata: { brandId: 'brand-1' }, metadata: { title: 'PRIVATE TITLE' } };
     const update = sinon.stub().resolves({ wasPersisted: () => true });
-    Reflect.set(globalThis, 'RecordsService', { getMeta: async () => record, updateMetaInternal: update });
-    Reflect.set(globalThis, 'BrandingService', { getBrandById: () => ({ id: 'brand-1' }) });
+    Reflect.set(collaborators, 'RecordsService', { getMeta: async () => record, updateMetaInternal: update });
+    Reflect.set(collaborators, 'BrandingService', { getBrandById: () => ({ id: 'brand-1' }) });
     try {
-      const trigger = new TriggerServices.Trigger();
+      const trigger = new TriggerServices.Trigger({
+        log: logger,
+        get records() {
+          return collaborators.RecordsService;
+        },
+        translation: { t: key => key, tInter: key => key },
+        brand: id => collaborators.BrandingService.getBrandById(id),
+        resolveHook: name => hooks.get(name),
+      });
       const item = helper('null-templates');
       const related = { metadata: { relatedOid: 'related-oid' } };
       const result = await runWithRequestChronicle(item, () =>
@@ -359,21 +398,29 @@ describe('Request chronicles in services', () => {
       assert.equal(item.data.triggerTemplateCount, 0);
       assert.equal(item.data.errors, undefined);
     } finally {
-      names.forEach((name, index) => Reflect.set(globalThis, name, originals[index]));
+      names.forEach((name, index) => Reflect.set(collaborators, name, originals[index]));
     }
   });
 
   for (const context of ['http', 'background'] as const) {
     it(`excludes related-template configuration and exception excerpts during ${context} failures`, async () => {
-      const original = Reflect.get(globalThis, 'RecordsService');
+      const original = Reflect.get(collaborators, 'RecordsService');
       const marker = 'PRIVATE RELATED TEMPLATE CONTENT';
       const update = sinon.stub();
-      Reflect.set(globalThis, 'RecordsService', {
+      Reflect.set(collaborators, 'RecordsService', {
         getMeta: async () => ({ metaMetadata: { brandId: 'brand' }, metadata: {} }),
         updateMetaInternal: update,
       });
       try {
-        const trigger = new TriggerServices.Trigger();
+        const trigger = new TriggerServices.Trigger({
+          log: logger,
+          get records() {
+            return collaborators.RecordsService;
+          },
+          translation: { t: key => key, tInter: key => key },
+          brand: id => collaborators.BrandingService.getBrandById(id),
+          resolveHook: name => hooks.get(name),
+        });
         const item = context === 'http' ? helper('related-template-failure') : undefined;
         await assert.rejects(
           runWithRequestChronicle(item, () =>
@@ -409,7 +456,7 @@ describe('Request chronicles in services', () => {
           assert.equal(item.data.triggerTemplateErrorType, 'SyntaxError');
         } else sinon.assert.calledOnceWithMatch(logger.error, { info: { triggerRelatedRecordOid: 'target-oid' } });
       } finally {
-        Reflect.set(globalThis, 'RecordsService', original);
+        Reflect.set(collaborators, 'RecordsService', original);
       }
     });
 
@@ -421,9 +468,9 @@ describe('Request chronicles in services', () => {
     ]) {
       it(`keeps safe ${context} diagnostics for a related-record ${failure.kind} failure`, async () => {
         const names = ['RecordsService', 'BrandingService'];
-        const originals = names.map(name => Reflect.get(globalThis, name));
+        const originals = names.map(name => Reflect.get(collaborators, name));
         const marker = 'PRIVATE RELATED RECORD FAILURE';
-        Reflect.set(globalThis, 'RecordsService', {
+        Reflect.set(collaborators, 'RecordsService', {
           getMeta: async () => {
             if (failure.kind === 'lookup') throw new TypeError(marker);
             return { metaMetadata: failure.kind === 'missing-brand' ? {} : { brandId: 'brand' }, metadata: {} };
@@ -433,9 +480,17 @@ describe('Request chronicles in services', () => {
             return { wasPersisted: () => false, outcome: 'not-saved', message: marker };
           },
         });
-        Reflect.set(globalThis, 'BrandingService', { getBrandById: () => ({ id: 'brand' }) });
+        Reflect.set(collaborators, 'BrandingService', { getBrandById: () => ({ id: 'brand' }) });
         try {
-          const trigger = new TriggerServices.Trigger();
+          const trigger = new TriggerServices.Trigger({
+            log: logger,
+            get records() {
+              return collaborators.RecordsService;
+            },
+            translation: { t: key => key, tInter: key => key },
+            brand: id => collaborators.BrandingService.getBrandById(id),
+            resolveHook: name => hooks.get(name),
+          });
           const item = context === 'http' ? helper('related-record-failure') : undefined;
           await assert.rejects(
             runWithRequestChronicle(item, () =>
@@ -473,17 +528,23 @@ describe('Request chronicles in services', () => {
             !inspect([item?.data, logger.error.getCalls().map(call => call.args)], { depth: null }).includes(marker)
           );
         } finally {
-          names.forEach((name, index) => Reflect.set(globalThis, name, originals[index]));
+          names.forEach((name, index) => Reflect.set(collaborators, name, originals[index]));
         }
       });
     }
   }
 
   it('preserves datastream results without capturing their contents', async () => {
-    const originalStorageManager = Reflect.get(globalThis, 'StorageManagerService');
-    Reflect.set(globalThis, 'StorageManagerService', { stagingDisk: () => ({}) });
+    const originalStorageManager = Reflect.get(collaborators, 'StorageManagerService');
+    Reflect.set(collaborators, 'StorageManagerService', { stagingDisk: () => ({}) });
     try {
-      const records = new RecordsServices.Records();
+      const records = new RecordsServices.Records({
+        log: logger,
+        config: {},
+        storageService: {} as any,
+        datastreamService: {} as any,
+        stagingDisk: () => collaborators.StorageManagerService.stagingDisk(),
+      } as any);
       const result = { title: 'PRIVATE TITLE', body: 'PRIVATE BODY' };
       Reflect.set(records, 'datastreamService', { updateDatastream: () => of([Promise.resolve(result)]) });
       const item = helper('datastream');
@@ -496,12 +557,12 @@ describe('Request chronicles in services', () => {
       assert.equal(item.data.recordsDatastreamOutcome, 'updated');
       assert.ok(!JSON.stringify(item.data).includes('PRIVATE'));
     } finally {
-      Reflect.set(globalThis, 'StorageManagerService', originalStorageManager);
+      Reflect.set(collaborators, 'StorageManagerService', originalStorageManager);
     }
   });
 
   it('preserves Solr query and response contents without capturing them', async () => {
-    Reflect.set(globalThis, 'sails', {
+    Reflect.set(collaborators, 'environment', {
       log: logger,
       config: {
         solr: {
@@ -511,7 +572,12 @@ describe('Request chronicles in services', () => {
     });
     const response = { title: 'PRIVATE TITLE' };
     const request = sinon.stub(require('axios'), 'get').resolves({ data: response });
-    const solr = new SolrServices.SolrSearchService();
+    const solr = new SolrServices.SolrSearchService({
+      config: collaborators.environment.config.solr,
+      log: logger,
+      queue: {} as any,
+      retainFollowup: work => work,
+    });
     const item = helper('solr');
     const result = await runWithRequestChronicle(item, () => solr.searchAdvanced('default', 'dataset', 'q=PRIVATE'));
     assert.equal(result, response);
@@ -521,15 +587,14 @@ describe('Request chronicles in services', () => {
     assert.ok(!JSON.stringify(item.data).includes('PRIVATE'));
   });
 
-  it('records a detached user hook failure after the response without awaiting the hook', async () => {
-    const originalHook = Reflect.get(globalThis, 'chronicleUserHook');
+  it('retains a user hook failure after response completion through its owned promise', async () => {
     let rejectWork: (error: Error) => void = () => {};
     const work = new Promise<void>((_resolve, reject) => {
       rejectWork = reject;
     });
-    Reflect.set(globalThis, 'chronicleUserHook', () => work);
+    hooks.set('chronicleUserHook', () => work);
     try {
-      const users = new UserServices.Users();
+      const users = createAccounts();
       const item = helper('detached-user-hook');
       const result = runWithRequestChronicle(item, () =>
         users.triggerPostSaveTriggers(
@@ -539,10 +604,10 @@ describe('Request chronicles in services', () => {
           }
         )
       );
-      assert.equal(result, undefined);
+      assert.ok(result instanceof Promise);
       item.finish();
       rejectWork(new Error('detached hook failed'));
-      await delay(0);
+      await result;
       sinon.assert.calledWithMatch(logger.error, {
         requestId: 'detached-user-hook',
         info: { usersOperation: 'triggerPostSaveTriggers', usersOutcome: 'failed' },
@@ -550,38 +615,39 @@ describe('Request chronicles in services', () => {
       sinon.assert.notCalled(logger.debug);
       assert.ok(!JSON.stringify(item.data).includes('PRIVATE'));
     } finally {
-      Reflect.set(globalThis, 'chronicleUserHook', originalHook);
+      hooks.delete('chronicleUserHook');
     }
   });
 
   describe('Passport callback capture', () => {
     const globalNames = ['BrandingService', 'RolesService', 'ConfigService'];
     let originals: unknown[];
-    let users: TestUsers;
+    let users: AuthenticationAccounts;
     const oidcConfig = { claimMappings: { username: 'sub' } };
 
     beforeEach(() => {
-      originals = globalNames.map(name => Reflect.get(globalThis, name));
-      Reflect.set(globalThis, 'BrandingService', {
+      originals = globalNames.map(name => Reflect.get(collaborators, name));
+      Reflect.set(collaborators, 'BrandingService', {
         getDefault: () => ({ name: 'default' }),
         getBrand: () => ({ name: 'default', roles: [] }),
         getBrandNameFromReq: () => 'default',
       });
-      Reflect.set(globalThis, 'RolesService', {
+      Reflect.set(collaborators, 'RolesService', {
         getDefAuthenticatedRole: () => ({ name: 'Researcher' }),
         getNestedRoles: () => [],
       });
-      users = new TestUsers();
+      hooks.set('test.preSave', user => Promise.resolve(user));
+      users = createAccounts();
     });
 
     afterEach(() => {
-      globalNames.forEach((name, index) => Reflect.set(globalThis, name, originals[index]));
+      globalNames.forEach((name, index) => Reflect.set(collaborators, name, originals[index]));
     });
 
     it('preserves a missing-username outcome and the original rejection callback arguments', () => {
       const item = helper('oidc-missing-username');
       const done = sinon.spy();
-      runWithRequestChronicle(item, () => users.verify(oidcConfig, {}, {}, {}, {}, done));
+      runWithRequestChronicle(item, () => users.openIdConnectAuthVerifyCallback(oidcConfig, {}, {}, {}, {}, done));
       assert.equal(item.data.usersAuthOutcome, 'missing-username');
       assert.equal(item.data.errors?.length, 1);
       sinon.assert.calledOnceWithExactly(done, null, null, { message: 'Rejected as username does not have a value' });
@@ -598,24 +664,28 @@ describe('Request chronicles in services', () => {
         const config = withPreSaveHook
           ? {
               ...oidcConfig,
-              hooks: { onUpdate: { pre: [{ function: '(user) => Promise.resolve(user)', options: {} }] } },
+              hooks: { onUpdate: { pre: [{ function: 'test.preSave', options: {} }] } },
             }
           : oidcConfig;
         const item = helper('oidc-user-not-found');
-        const req = { options: { requestChronicleHelper: item } } as Sails.Req;
-        const controller = new TestController();
+        const req = { options: { requestChronicleHelper: item } } as Request;
+
         const args = await runWithRequestChronicle(
           item,
           () =>
             new Promise<unknown[]>(resolve => {
-              users.verify(
+              users.openIdConnectAuthVerifyCallback(
                 config,
                 {},
                 req as unknown as Record<string, unknown>,
                 {},
                 { sub: 'test' },
                 (...callbackArgs) => {
-                  controller.record(req, callbackArgs[0]);
+                  recordServiceChronicle(
+                    logger,
+                    { userLoginSuccess: !callbackArgs[0] },
+                    callbackArgs[0] ? [callbackArgs[0]] : []
+                  );
                   resolve(callbackArgs);
                 }
               );
@@ -628,39 +698,15 @@ describe('Request chronicles in services', () => {
     }
 
     type VerifyCallback = (
-      req: Sails.Req,
+      req: Request,
       claims: Record<string, unknown>,
       done: (error: unknown, user?: unknown, info?: unknown) => void
     ) => void;
 
     async function aafVerifier(config: Record<string, unknown>): Promise<VerifyCallback> {
-      let ready: () => Promise<void> = async () => {};
-      let verify: VerifyCallback | undefined;
-      Reflect.set(globalThis, 'ConfigService', {
-        getBrand: () => ({
-          active: ['aaf'],
-          aaf: { ...config, opts: { secretOrKey: 'test-only-key' }, attributesField: 'attributes' },
-        }),
-      });
-      Reflect.set(globalThis, 'sails', {
-        log: logger,
-        config: {
-          log: { requestChronicle: { successSampleRate: 0 } },
-          brandingAware: () => ({ authorizedDomainsEmails: { enabled: true, domainsAaf: ['allowed.edu'] } }),
-          passport: {
-            use: (_name: string, strategy: { _verify: VerifyCallback }) => {
-              verify = strategy._verify;
-            },
-          },
-        },
-        on: (_event: string, handler: () => Promise<void>) => {
-          ready = handler;
-        },
-      });
-      users.initAaf();
-      await ready();
-      assert.ok(verify, 'AAF strategy registered a verify callback');
-      return verify;
+      collaborators.authConfig = { aaf: { ...config, attributesField: 'attributes' } };
+      return (_req, claims, done) =>
+        users.aafAuthVerifyCallback({ id: 'brand', name: 'default', roles: [] } as any, claims, done);
     }
 
     for (const withPreSaveHook of [false, true]) {
@@ -672,18 +718,22 @@ describe('Request chronicles in services', () => {
           }),
         });
         const config = withPreSaveHook
-          ? { hooks: { onUpdate: { pre: [{ function: '(user) => Promise.resolve(user)', options: {} }] } } }
+          ? { hooks: { onUpdate: { pre: [{ function: 'test.preSave', options: {} }] } } }
           : {};
         const verify = await aafVerifier(config);
         const item = helper('aaf-user-not-found');
-        const req = { options: { requestChronicleHelper: item } } as Sails.Req;
-        const controller = new TestController();
+        const req = { options: { requestChronicleHelper: item } } as Request;
+
         const args = await runWithRequestChronicle(
           item,
           () =>
             new Promise<unknown[]>(resolve => {
               verify(req, { sub: 'test', attributes: {} }, (...callbackArgs) => {
-                controller.record(req, callbackArgs[0]);
+                recordServiceChronicle(
+                  logger,
+                  { userLoginSuccess: !callbackArgs[0] },
+                  callbackArgs[0] ? [callbackArgs[0]] : []
+                );
                 resolve(callbackArgs);
               });
             })
@@ -703,7 +753,7 @@ describe('Request chronicles in services', () => {
           Reflect.set(repositoryFixtures, 'User', {
             findOne: () => createQueryObject(null),
           });
-          Reflect.set(globalThis, 'sails', {
+          Reflect.set(collaborators, 'environment', {
             log: logger,
             config: {
               brandingAware: () => ({ authorizedDomainsEmails: { enabled: true, domainsOidc: ['allowed.edu'] } }),
@@ -711,20 +761,24 @@ describe('Request chronicles in services', () => {
           });
           const verify = provider === 'aaf' ? await aafVerifier({}) : undefined;
           const item = helper(`${provider}-${rejection.outcome}`);
-          const req = { options: { requestChronicleHelper: item } } as Sails.Req;
-          const controller = new TestController();
+          const req = { options: { requestChronicleHelper: item } } as Request;
+
           const args = await runWithRequestChronicle(
             item,
             () =>
               new Promise<unknown[]>(resolve => {
                 const done = (...callbackArgs: unknown[]) => {
-                  controller.record(req, callbackArgs[0]);
+                  recordServiceChronicle(
+                    logger,
+                    { userLoginSuccess: !callbackArgs[0] },
+                    callbackArgs[0] ? [callbackArgs[0]] : []
+                  );
                   resolve(callbackArgs);
                 };
                 if (verify) {
                   verify(req, { sub: 'test', attributes: { mail: rejection.email } }, done);
                 } else {
-                  users.verify(
+                  users.openIdConnectAuthVerifyCallback(
                     { claimMappings: { username: 'sub', email: 'email' } },
                     {},
                     req as unknown as Record<string, unknown>,
