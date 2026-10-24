@@ -268,18 +268,22 @@ export async function loadExtensions(
 export async function loadInstalledExtensionProviders(
   appPath: string,
   options: { includeDevDependencies?: boolean; core?: RedboxExtension } = {}
-): Promise<{ providers: readonly ExtensionProvider[]; hookLoadPriority: readonly string[] }> {
+): Promise<{
+  providers: readonly ExtensionProvider[];
+  hookLoadPriority: readonly string[];
+  entrypoints: ReadonlyMap<string, Record<string, unknown>>;
+}> {
   const installed = await discoverInstalledExtensions(appPath, options);
   const providers: ExtensionProvider[] = options.core
     ? [{ name: 'core', root: appPath, declaration: options.core }]
     : [];
+  const entrypoints = new Map<string, Record<string, unknown>>();
   for (const extension of installed.extensions) {
     let declaration: RedboxExtension;
     try {
-      declaration = (await extensionRegistration(
-        await loadExtensionModule(extension),
-        extension.name
-      )()) as RedboxExtension;
+      const entrypoint = await loadExtensionModule(extension);
+      entrypoints.set(extension.name, entrypoint);
+      declaration = (await extensionRegistration(entrypoint, extension.name)()) as RedboxExtension;
     } catch (error) {
       if (error instanceof ExtensionError) throw error;
       throw new ExtensionError(extension.name, 'registration failed; declarations must be offline');
@@ -289,5 +293,6 @@ export async function loadInstalledExtensionProviders(
   return {
     providers: orderExtensionProviders(providers, installed.hookLoadPriority),
     hookLoadPriority: installed.hookLoadPriority,
+    entrypoints,
   };
 }

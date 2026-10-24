@@ -1,6 +1,5 @@
 import path from 'node:path';
 import { retainHttpRequestFollowup } from '../../middleware/requestLifetime';
-import { pathToFileURL } from 'node:url';
 import type { Observable } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { ApplicationRuntime, type ApplicationModule, type ApplicationWork } from '../Application';
@@ -15,7 +14,6 @@ import { prepareSelectedPersistenceIndexes, type StorageIndexPreparation } from 
 import {
   loadInstalledExtensionProviders,
   resolveExtensions,
-  loadExtensionModule,
   type ExtensionFactory,
   type ExtensionWork,
   type ResolvedRegistration,
@@ -246,14 +244,9 @@ export async function createPortalApplication(options: PortalApplicationOptions)
   );
   const storage = resolved.modules.find(item => item.declaration.name === 'storage');
   if (!storage) throw new Error('Select an installed storage extension.');
-  const storageProvider = installed.providers.find(provider => provider.name === storage.provider)!;
-  const storageExports = await loadExtensionModule({
-    name: storage.provider,
-    root: storageProvider.root,
-    specifier: storage.provider + '/extension',
-    parentURL: pathToFileURL(path.resolve(options.appPath, 'package.json')).href,
-  });
+  const storageExports = installed.entrypoints.get(storage.provider);
   if (
+    !storageExports ||
     typeof storageExports.inspectPrismaStagedStorage !== 'function' ||
     typeof storageExports.ensurePrismaStagedStorageIndexes !== 'function'
   )
