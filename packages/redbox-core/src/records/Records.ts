@@ -484,7 +484,8 @@ export namespace Services {
       }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
   type StructuralMetadataValidationResult =
-    { readonly valid: true } | { readonly valid: false; readonly problem: RecordSaveProblem };
+    | { readonly valid: true }
+    | { readonly valid: false; readonly problem: RecordSaveProblem };
   type ResolvedRecordSchemaSaveUsage = {
     readonly request: Omit<PersistRecordSchemaSaveUsageRequest, 'oid' | 'saveIdentity'>;
     readonly outcome: RecordSaveSchemaOutcomeInput;
@@ -3215,7 +3216,9 @@ export namespace Services {
 
     private async executeAttachmentPlan(
       oid: string,
-      plan: readonly AttachmentMutationPlanItem[]
+      plan: readonly AttachmentMutationPlanItem[],
+      brand: unknown,
+      user: AnyRecord
     ): Promise<RecordAttachmentCompletionItem[]> {
       const journal = this.attachmentJournalService();
       const items: RecordAttachmentCompletionItem[] = [];
@@ -3263,9 +3266,7 @@ export namespace Services {
             } catch {
               // Both durable generations remain visible for reconciliation.
             }
-            this.logger.error(
-              `${this.logHeader} attachment journal supersession failed for ${item.attachmentId}`
-            );
+            this.logger.error(`${this.logHeader} attachment journal supersession failed for ${item.attachmentId}`);
             items.push({
               field: item.field,
               attachmentId: item.attachmentId,
@@ -3288,9 +3289,7 @@ export namespace Services {
             );
           } catch (error) {
             journalStateKnown = false;
-            this.logger.error(
-              `${this.logHeader} attachment journal pending update failed for ${item.attachmentId}`
-            );
+            this.logger.error(`${this.logHeader} attachment journal pending update failed for ${item.attachmentId}`);
           }
         }
         if (journal && !journalStateKnown) {
@@ -3309,7 +3308,11 @@ export namespace Services {
           if (item.operation === 'delete') {
             await this.datastreamService.removeDatastream(oid, datastream);
           } else {
-            await this.datastreamService.addDatastream(oid, datastream);
+            await this.datastreamService.addDatastream(oid, datastream, undefined, {
+              actorId: String(user.id ?? ''),
+              brandId: String(this.recordObject(brand).id),
+              username: String(user.username ?? ''),
+            });
           }
           if (journal) {
             try {
@@ -3318,9 +3321,7 @@ export namespace Services {
                 journalStateKnown;
             } catch (error) {
               journalStateKnown = false;
-              this.logger.error(
-                `${this.logHeader} attachment journal applied update failed for ${item.attachmentId}`
-              );
+              this.logger.error(`${this.logHeader} attachment journal applied update failed for ${item.attachmentId}`);
             }
           }
           items.push({
@@ -3384,9 +3385,7 @@ export namespace Services {
         try {
           await journal.markMutation(oid, item.attachmentId, item.generation, state, code, item.fileId);
         } catch (error) {
-          this.logger.error(
-            `${this.logHeader} attachment journal ${state} update failed for ${item.attachmentId}`
-          );
+          this.logger.error(`${this.logHeader} attachment journal ${state} update failed for ${item.attachmentId}`);
         }
       }
     }
@@ -4363,7 +4362,7 @@ export namespace Services {
         const attachmentFields = (recordObj.metaMetadata?.attachmentFields ?? []) as unknown[];
         if (createAttachmentPlan.length > 0) {
           this.bindPendingAttachmentOids(recordMetadata, attachmentFields, oid, false);
-          const attachmentItems = await this.executeAttachmentPlan(oid, createAttachmentPlan);
+          const attachmentItems = await this.executeAttachmentPlan(oid, createAttachmentPlan, brand, userObj);
           tracker.setAttachmentItems(attachmentItems);
           if (attachmentItems.some(item => item.status !== 'completed')) {
             tracker.recordPostPersistenceProblem(
@@ -5587,7 +5586,7 @@ export namespace Services {
       }
 
       if (updateAttachmentPlan.length > 0) {
-        const attachmentItems = await this.executeAttachmentPlan(oid, updateAttachmentPlan);
+        const attachmentItems = await this.executeAttachmentPlan(oid, updateAttachmentPlan, brand, userObj);
         tracker.setAttachmentItems(attachmentItems);
         if (attachmentItems.some(item => item.status !== 'completed')) {
           tracker.recordPostPersistenceProblem(

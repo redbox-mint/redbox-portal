@@ -107,6 +107,29 @@ describe('StandardDatastreamService', function () {
     sinon.restore();
   });
 
+  for (const binding of [undefined,
+    { redboxActor: 'other', redboxBrand: 'brand', redboxRecord: 'record' },
+    { redboxActor: 'actor', redboxBrand: 'other', redboxRecord: 'record' },
+    { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'other' },
+    { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'record' },
+    { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'pending-oid' },
+  ]) it(`checks staging ownership before promotion (${JSON.stringify(binding)})`, async () => {
+    const { Services } = require('../../src/services/StandardDatastreamService');
+    const service = new Services.StandardDatastream({ disks: mockStorageManager, forms: {}, log: fixture.log });
+    mockPrimaryDisk.exists.resolves(false);
+    mockPrimaryDisk.getMetaData.rejects(new Error('Not found'));
+    mockStagingDisk.get.resolves(JSON.stringify({ id: 'file', size: 9, offset: 9, metadata: binding }));
+    const accepted = binding?.redboxActor === 'actor' && binding?.redboxBrand === 'brand' &&
+      ['record', 'pending-oid'].includes(binding?.redboxRecord ?? '');
+    const work = service.addDatastream('record', new Datastream({ fileId: 'file' }), undefined,
+      { actorId: 'actor', brandId: 'brand' });
+    if (accepted) await work;
+    else await require('node:assert/strict').rejects(work, /ownership/);
+    expect(mockPrimaryDisk.putStream.callCount).to.equal(accepted ? 1 : 0);
+    expect(mockStagingDisk.delete.callCount).to.equal(accepted ? 1 : 0);
+    if (!accepted) expect(mockStagingDisk.getStream.called).to.equal(false);
+  });
+
   describe('exports', function () {
     it('should export all DatastreamService methods', function () {
       const { Services } = require('../../src/services/StandardDatastreamService');

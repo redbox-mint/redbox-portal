@@ -26,6 +26,7 @@ import type {
   AttachmentMetadataServiceContract as AttachmentMetadataService,
 } from '../persistence/storage/StorageRepositories';
 import { normalizeAttachmentStagingFileId } from '../AttachmentStagingIdentity';
+import { TusStorageManagerDataStore } from './TusStorageManagerDataStore';
 
 type IDisk = StorageManagerServices.IDisk;
 type AttachmentAccessAction = 'access' | 'download' | 'list' | 'upload' | 'remove';
@@ -723,7 +724,12 @@ export namespace Services {
     /**
      * Add a single datastream: read from staging disk, write to primary disk.
      */
-    public async addDatastream(oid: string, datastream: Datastream, stagingDisk?: IDisk): Promise<unknown> {
+    public async addDatastream(
+      oid: string,
+      datastream: Datastream,
+      stagingDisk?: IDisk,
+      requestContext?: DatastreamRequestContext
+    ): Promise<unknown> {
       const fileId = datastream.fileId;
       this.logger.verbose(`${this.logHeader} addDatastream() -> fileId: ${fileId}`);
 
@@ -731,6 +737,29 @@ export namespace Services {
       const primaryDisk = this.input.disks.primaryDisk();
       const destKey = this.storageKey(oid, fileId);
 
+      if (requestContext) {
+        if (!normalizeAttachmentStagingFileId(fileId)) throw new Error('Invalid staging identity');
+        // A durable object at this record key is an idempotent repair. Never
+        // replace it with a staging object selected by submitted metadata.
+        const primary = await this.checkPrimaryObject(primaryDisk, destKey);
+        if (primary.available) {
+          await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
+          return { success: true, key: destKey };
+        }
+        const upload = await new TusStorageManagerDataStore({
+          disk: effectiveStagingDisk,
+          logger: this.logger,
+        }).getUpload(fileId);
+        if (
+          !requestContext.actorId ||
+          !requestContext.brandId ||
+          upload.metadata?.redboxActor !== requestContext.actorId ||
+          upload.metadata?.redboxBrand !== requestContext.brandId ||
+          ![oid, 'pending-oid'].includes(upload.metadata?.redboxRecord ?? '')
+        ) {
+          throw new Error('Staged attachment ownership does not match the save actor and record');
+        }
+      }
       const existsInStaging = await effectiveStagingDisk.exists(fileId);
       if (!existsInStaging) {
         let primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
