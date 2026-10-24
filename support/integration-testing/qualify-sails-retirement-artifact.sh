@@ -70,9 +70,9 @@ module.exports = {
 };
 CONFIG
 chmod a+r "$task_config"
-docker run -d --init --name sr-p7-artifact-solr --network host --memory=1024m -e SOLR_PORT=29631 \
+docker run -d --init --name sr-p7-artifact-solr --network host --memory=1024m \
   solr:10.0.0@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b \
-  solr-precreate redbox /opt/solr/server/solr/configsets/_default > "$task_logs/solr-container.txt"
+  bash -c 'precreate-core redbox /opt/solr/server/solr/configsets/_default && exec solr-foreground --user-managed --port 29631' > "$task_logs/solr-container.txt"
 task_containers+=(sr-p7-artifact-solr)
 for attempt in {1..120}; do
   if curl -fsS --max-time 2 -o /dev/null http://127.0.0.1:29631/solr/; then break; fi
