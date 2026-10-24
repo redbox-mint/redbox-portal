@@ -3,9 +3,9 @@
 Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
 production-source designation. P7 is in progress. The installed production Express
 composition now runs the selected domains, bootstrap, pages, APIs and providers.
-Production matrix retries have not yet completed all four rows: a queue-drain
-regression, Docker reclamation and a replica-portal aggregate timeout are
-recorded; the complete serial production rerun remains required. The complete existing Playwright rerun now passes 124/124 with no failures or
+The serial production Node 26/MongoDB 8 and 9 matrix passes all four rows:
+216 checks, zero failures/skips, including independent three-member sets and
+elections on both datastores. Institution topology/source designation remains open. The complete existing Playwright rerun now passes 124/124 with no failures or
 skips; dedicated OIDC passes 13 requests/17 checks. General route ordering and
 S3 qualification remain open.
 Root Mocha now passes against the compiled Express host: 422 passing / 10
@@ -691,7 +691,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-045 — Execute the Node 26 and MongoDB 8+ qualification matrix.**
 
-  **Status:** partial; earlier four-row component qualification passed. The production-host rerun passed both MongoDB 8 rows and MongoDB 9 standalone portal checks, then failed one existing queue-drain case; MongoDB 9 replica was not reached. Three focused unchanged drain reruns passed, and the complete matrix remains required; [P7 evidence](evidence/p7-qualification.md#sr-045--database-matrix). Institution topology/TLS/auth and source designation remain SR-005.
+  **Status:** partial; the complete production-host matrix now passes all four local Node 26/MongoDB 8.0.34 FCV 8.0 and 9.0.4 FCV 9.0 rows, including two independent three-member sets, stepdown/reconnect and drain. All 216 cases pass with zero failures/skips and complete cleanup. Only the undesignated institution-specific qualification remains external; [P7 evidence](evidence/p7-qualification.md#sr-045--database-matrix). Institution topology/TLS/auth and source designation remain SR-005.
 
   **Depends on:** SR-005, SR-002, SR-025, SR-037, SR-044.
 

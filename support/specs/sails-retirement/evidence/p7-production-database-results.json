@@ -1,0 +1,368 @@
+{
+  "applicationSource": "11e6f6277",
+  "runnerSource": "f2a5ce474",
+  "checkoutAtStart": "212ec2ed9",
+  "node": "26.11.1",
+  "npm": "11.20.0",
+  "exitCode": 0,
+  "totalPassing": 216,
+  "failures": 0,
+  "skips": 0,
+  "containersStopped": 16,
+  "containersRemoved": 16,
+  "rows": [
+    {
+      "major": 8,
+      "topology": "standalone",
+      "existingSuites": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 12
+      },
+      "component": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 8146.656009,
+        "observations": {
+          "node": "v26.11.1",
+          "metadata": [
+            {
+              "version": "8.0.34",
+              "fcv": "8.0"
+            },
+            {
+              "version": "8.0.34",
+              "fcv": "8.0"
+            }
+          ],
+          "elections": [],
+          "separatePlacement": true,
+          "cleanStop": true
+        }
+      },
+      "productionPortal": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 21226.004962,
+        "observations": {
+          "productionHost": true,
+          "metadata": [
+            {
+              "version": "8.0.34",
+              "fcv": "8.0"
+            },
+            {
+              "version": "8.0.34",
+              "fcv": "8.0"
+            }
+          ],
+          "elections": [],
+          "separatePlacement": true,
+          "restart": true,
+          "gridfs": true,
+          "drainDeadlineRetry": true,
+          "authenticatedApis": 10,
+          "assets": 1,
+          "translationNamespaces": 1,
+          "pages": 1,
+          "health": 200,
+          "readyBefore": 503,
+          "readyAfter": 200,
+          "anonymousApi": 401,
+          "stopped": true,
+          "pools": 0
+        }
+      }
+    },
+    {
+      "major": 8,
+      "topology": "replica",
+      "existingSuites": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 12
+      },
+      "component": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 28078.233401,
+        "observations": {
+          "node": "v26.11.1",
+          "metadata": [
+            {
+              "version": "8.0.34",
+              "fcv": "8.0",
+              "hosts": [
+                "127.0.0.1:29211",
+                "127.0.0.1:29212",
+                "127.0.0.1:29213"
+              ]
+            },
+            {
+              "version": "8.0.34",
+              "fcv": "8.0",
+              "hosts": [
+                "127.0.0.1:29221",
+                "127.0.0.1:29222",
+                "127.0.0.1:29223"
+              ]
+            }
+          ],
+          "elections": [
+            {
+              "set": "sr-core",
+              "before": "127.0.0.1:29211",
+              "after": "127.0.0.1:29213"
+            },
+            {
+              "set": "sr-storage",
+              "before": "127.0.0.1:29221",
+              "after": "127.0.0.1:29222"
+            }
+          ],
+          "separatePlacement": true,
+          "cleanStop": true
+        }
+      },
+      "productionPortal": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 42947.214044,
+        "observations": {
+          "productionHost": true,
+          "metadata": [
+            {
+              "version": "8.0.34",
+              "fcv": "8.0",
+              "hosts": [
+                "127.0.0.1:29211",
+                "127.0.0.1:29212",
+                "127.0.0.1:29213"
+              ]
+            },
+            {
+              "version": "8.0.34",
+              "fcv": "8.0",
+              "hosts": [
+                "127.0.0.1:29221",
+                "127.0.0.1:29222",
+                "127.0.0.1:29223"
+              ]
+            }
+          ],
+          "elections": [
+            {
+              "set": "sr-core",
+              "before": "127.0.0.1:29213",
+              "after": "127.0.0.1:29212"
+            },
+            {
+              "set": "sr-storage",
+              "before": "127.0.0.1:29222",
+              "after": "127.0.0.1:29221"
+            }
+          ],
+          "separatePlacement": true,
+          "restart": true,
+          "gridfs": true,
+          "drainDeadlineRetry": true,
+          "authenticatedApis": 10,
+          "assets": 1,
+          "translationNamespaces": 1,
+          "pages": 1,
+          "health": 200,
+          "readyBefore": 503,
+          "readyAfter": 200,
+          "anonymousApi": 401,
+          "stopped": true,
+          "pools": 0
+        }
+      }
+    },
+    {
+      "major": 9,
+      "topology": "standalone",
+      "existingSuites": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 12
+      },
+      "component": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 6660.797158,
+        "observations": {
+          "node": "v26.11.1",
+          "metadata": [
+            {
+              "version": "9.0.4",
+              "fcv": "9.0"
+            },
+            {
+              "version": "9.0.4",
+              "fcv": "9.0"
+            }
+          ],
+          "elections": [],
+          "separatePlacement": true,
+          "cleanStop": true
+        }
+      },
+      "productionPortal": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 17014.841366,
+        "observations": {
+          "productionHost": true,
+          "metadata": [
+            {
+              "version": "9.0.4",
+              "fcv": "9.0"
+            },
+            {
+              "version": "9.0.4",
+              "fcv": "9.0"
+            }
+          ],
+          "elections": [],
+          "separatePlacement": true,
+          "restart": true,
+          "gridfs": true,
+          "drainDeadlineRetry": true,
+          "authenticatedApis": 10,
+          "assets": 1,
+          "translationNamespaces": 1,
+          "pages": 1,
+          "health": 200,
+          "readyBefore": 503,
+          "readyAfter": 200,
+          "anonymousApi": 401,
+          "stopped": true,
+          "pools": 0
+        }
+      }
+    },
+    {
+      "major": 9,
+      "topology": "replica",
+      "existingSuites": {
+        "persistence": 30,
+        "recordTypes": 10,
+        "lifecycle": 12
+      },
+      "component": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 28029.885336,
+        "observations": {
+          "node": "v26.11.1",
+          "metadata": [
+            {
+              "version": "9.0.4",
+              "fcv": "9.0",
+              "hosts": [
+                "127.0.0.1:29411",
+                "127.0.0.1:29412",
+                "127.0.0.1:29413"
+              ]
+            },
+            {
+              "version": "9.0.4",
+              "fcv": "9.0",
+              "hosts": [
+                "127.0.0.1:29421",
+                "127.0.0.1:29422",
+                "127.0.0.1:29423"
+              ]
+            }
+          ],
+          "elections": [
+            {
+              "set": "sr-core",
+              "before": "127.0.0.1:29411",
+              "after": "127.0.0.1:29412"
+            },
+            {
+              "set": "sr-storage",
+              "before": "127.0.0.1:29422",
+              "after": "127.0.0.1:29423"
+            }
+          ],
+          "separatePlacement": true,
+          "cleanStop": true
+        }
+      },
+      "productionPortal": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 42322.966953,
+        "observations": {
+          "productionHost": true,
+          "metadata": [
+            {
+              "version": "9.0.4",
+              "fcv": "9.0",
+              "hosts": [
+                "127.0.0.1:29411",
+                "127.0.0.1:29412",
+                "127.0.0.1:29413"
+              ]
+            },
+            {
+              "version": "9.0.4",
+              "fcv": "9.0",
+              "hosts": [
+                "127.0.0.1:29421",
+                "127.0.0.1:29422",
+                "127.0.0.1:29423"
+              ]
+            }
+          ],
+          "elections": [
+            {
+              "set": "sr-core",
+              "before": "127.0.0.1:29412",
+              "after": "127.0.0.1:29413"
+            },
+            {
+              "set": "sr-storage",
+              "before": "127.0.0.1:29423",
+              "after": "127.0.0.1:29422"
+            }
+          ],
+          "separatePlacement": true,
+          "restart": true,
+          "gridfs": true,
+          "drainDeadlineRetry": true,
+          "authenticatedApis": 10,
+          "assets": 1,
+          "translationNamespaces": 1,
+          "pages": 1,
+          "health": 200,
+          "readyBefore": 503,
+          "readyAfter": 200,
+          "anonymousApi": 401,
+          "stopped": true,
+          "pools": 0
+        }
+      }
+    }
+  ],
+  "scope": "Local split datastores; two independent three-member sets per replica row. Institution/TLS/auth designation remains external."
+}

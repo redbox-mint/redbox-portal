@@ -34,6 +34,56 @@ v6 tests. The released comparison retains its own Node 24.16.0, as required.
 
 ## SR-045 — Database matrix
 
+### Completed production matrix
+
+Application source **`11e6f6277`**, runner **`f2a5ce474`**, checkout at start
+**`212ec2ed9`** (subsequent commits only changed evidence). The corrected core
+compiled normally; route lint reports zero warnings/errors. Image installation
+was paused while these deadline-sensitive checks ran; no application/test
+assertion or deadline changed.
+
+```sh
+DOCKER_HOST=unix:///run/sr-p7-engine.sock \
+SR_P7_DATABASE_RUN_ID=11e6f6277-serial \
+SR_P7_DATABASE_LOGS="$PWD/.tmp/sails-retirement/p7/database-11e6f6277-serial" \
+SR_P7_PRODUCTION_PORTAL=true SR_PORTAL_SOLR_PORT=8983 \
+  bash support/integration-testing/qualify-sails-retirement-databases.sh
+```
+
+| Engine / FCV | Physical topology | Component | Full portal | Persistence | RecordTypes | Lifecycle | Failures / skips |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 8.0.34 / 8.0 | Separate standalone core/storage servers | 1 | 1 | 30 | 10 | 12 | 0 / 0 |
+| 8.0.34 / 8.0 | Two independent three-member sets | 1 | 1 | 30 | 10 | 12 | 0 / 0 |
+| 9.0.4 / 9.0 | Separate standalone core/storage servers | 1 | 1 | 30 | 10 | 12 | 0 / 0 |
+| 9.0.4 / 9.0 | Two independent three-member sets | 1 | 1 | 30 | 10 | 12 | 0 / 0 |
+
+**216 passing / 0 failing / 0 skipped / 0 cancelled; runner exit 0.** Both the
+component and complete production portal step down **each** datastore's primary
+in **each** replica row and require a different elected member. Existing owners
+reconnect, read/write retained records and actual GridFS bytes, retain pools over
+a failed drain deadline, retry stop and restart a fresh owner. The complete
+production graph serves authenticated APIs/pages/assets/translation, enforces
+401 and optimistic-concurrency 412, exposes readiness 503 before activation and
+200 afterward, and finishes with zero pools/Prisma clients and no global Sails.
+Whole production verifier durations: **21.226 / 42.947 / 17.015 / 42.323 s**.
+
+All **16** Mongo containers and their owned anonymous volumes were stopped and
+removed: 16 successful entries in each cleanup log and an empty final name
+filter. The owned dependency installer resumed afterward. Exact versions/FCVs,
+member/election observations and counts are retained in
+[production results](p7-production-database-results.json); raw logs remain under
+the command's ignored directory. This completes the requested local matrix;
+SR-005's institution/topology/TLS/auth/source designation remains external.
+
+The prior `2aae5ba50` retry passed Mongo8 standalone (1+1+30+10+12) and the
+Mongo8 replica component/elections, then its complete portal aggregate hit the
+unchanged 120000 ms bound while browser/provider work ran. It exited **1** and
+cleaned all eight containers. The serial rerun above passed without changing
+that bound (Mongo8 replica **42.947 s**). Do not count the interrupted retry as
+a complete matrix.
+
+### Historical component-only qualification
+
 The new executable runner is
 `support/integration-testing/qualify-sails-retirement-databases.sh`, with
 `packages/redbox-core/test/qualification/{database-matrix,matrix-topology}.cjs`.
@@ -129,6 +179,16 @@ source/recovery evidence only. S3/IdP/provider coverage still requires the broad
 profiles below; runtime version-guard acceptance does not supply that coverage.
 
 ## SR-046 — Existing regression and the integration gate
+
+The complete production browser rerun now passes **124/124**, **0 failures /
+0 skips**, **20.6 minutes**: apps **60**, forms **41**, smoke **23**. Dedicated
+OIDC passes **13 requests / 17 checks**, no failures/skips, **29.410 s**; its
+Compose runner and cleanup exit 0. Full compiled root Mocha passes **422 / 10
+unchanged pending / 0 failing**. Commands, hosts, conversions and the general
+route-order regression are in [production composition](p7-production-composition.md).
+General's full corrected rerun and S3 remain required; the new route-order-only
+correction also has affected-browser checks in progress. Earlier diagnostic
+failures below are retained as history, not current green results.
 
 The full unchanged existing core suite ran with all four real-service environment
 inputs, using dedicated Docker MongoDB 8.0.34 and authenticated 9.0.4 servers,
@@ -381,10 +441,11 @@ used for publication. `runtime_pdfgen` and test image variants remain unqualifie
 The image's actual CMD is still `["node", "app.js"]`, the Sails comparison host.
 These are green installed-component results, not full production Express startup.
 
-Full production Express startup/readiness/shutdown, generated institution portal
-behavior and comparable request latency/memory still require the missing
-production composition. Packed-library or installed-component checks cannot
-supply those results. Released-v5 operational observations are in the recovery
+These historical image results do not qualify the subsequently implemented
+complete production composition. Its installed startup/readiness/shutdown,
+generated institution portal behavior and comparable request latency/memory
+still require the new clean artifact run. Packed-library or installed-component
+checks cannot supply those results. Released-v5 operational observations are in the recovery
 evidence; they are not an Express-versus-v5 comparison.
 
 ## SR-048 / SR-049 — Upgrade and recovery
@@ -392,8 +453,8 @@ evidence; they are not an Express-versus-v5 comparison.
 The [operator runbook](../upgrade-recovery-v6.md) describes artifact/configuration/
 hook preparation, complete quiescent checkpoints, reviewed index preparation,
 one coordinated nontransactional migration runner, bootstrap/validation/activation,
-fresh login, complete restoration and external-effect reconciliation. It names
-the missing production entrypoint rather than inventing an unimplemented command.
+fresh login, complete restoration and external-effect reconciliation. It uses the implemented `app.express.cjs` maintenance, initialize-only and
+normal startup commands. The complete installed cutover run remains required.
 
 Executed stand-in rehearsal commands, outcomes and limits are recorded separately
 in [institution upgrade/recovery](institution-upgrade-recovery.md). Database-only
@@ -406,9 +467,9 @@ Promotion has not been performed. SR-046/047/049 require the integrated producti
 Express artifact and full qualification. Repointing `npm start`, Docker or the
 development workflow at a fixture would make normal deployment incomplete. The
 Sails comparison entrypoint remains the actual default until those gates pass.
-P8 has not started. Missing institution designation is **not the only remaining
-gap**: production composition and full existing-suite/artifact/upgrade execution
-also remain.
+P8 has not started. Missing institution designation is **not the only remaining gap**: full
+general/S3 regression, the production artifact and complete installed upgrade
+execution also remain. The production composition itself is implemented.
 
 ### Operational comparison criteria for the production candidate
 
