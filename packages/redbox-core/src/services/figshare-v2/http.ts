@@ -596,7 +596,12 @@ export function makeLiveClient(
   return client;
 }
 
-export function makeClientLayer(config: ResolvedFigsharePublishingConfigData, runContext: FigshareRunContext) {
-  const client = config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
+export function makeClientLayer(
+  config: ResolvedFigsharePublishingConfigData,
+  runContext: FigshareRunContext,
+  logger: ILogger = nothingLogger
+) {
+  const client =
+    config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext, logger);
   return Layer.succeed(FigshareClientTag, workerClient(client));
 }

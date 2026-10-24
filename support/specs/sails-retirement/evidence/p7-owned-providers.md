@@ -395,3 +395,59 @@ the final interfaces retain the actual contracts. The first new HTTP aggregate
 incorrectly expected API credentials on upload URLs; it now verifies the actual
 transport's credential isolation, while retaining the token assertion for account
 URLs. That failed attempt is not counted as qualification.
+
+## Figshare selected provider, durable workers and shutdown (2026-10-24)
+
+The facade, administration, managed-asset, runtime, audit and worker algorithms now
+live under `integrations/Figshare.ts` and `integrations/figshare/`. The old service
+paths delegate; global lookup and the Sails shutdown hook are comparison-only in
+`compat/sails/figshare{,Workers,Lifecycle}.ts`. `createFigshareProvider` constructs
+one selected provider with explicit Records/repositories/queue/account/brand/type/
+workflow/crosswalk/storage/audit/logger inputs and a per-instance license cache.
+`FigshareWorkers` owns admission and accepted promises. Completion/failure audit
+writes are awaited before a durable worker checkpoint closes. Production supplies
+the admitted persistence scope; this does not yet wire the production portal.
+
+Node **26.11.1**, Mongo **8.0.34**, Agenda **6.2.6**, the same Mongo image digest
+recorded above, no dependency changes:
+
+```sh
+# Existing suite, from packages/redbox-core; qualified Node bin on PATH
+FIGSHARE_TEST_MONGO_URI=mongodb://127.0.0.1:29511/sr_p7_figshare \
+TS_NODE_PROJECT=test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only node_modules/mocha/bin/mocha.js \
+  --no-config --require chai --require test/setup.ts --timeout 15000 \
+  'test/services/*igshare*.test.ts' 'test/services/figshare-v2/*.test.ts' \
+  test/unit/figshare-persistence.test.ts
+# From repository root, after the successful core TypeScript build
+SR_FIGSHARE_MONGO_URL=mongodb://127.0.0.1:29511/sr_p7_figshare_provider \
+  node --test packages/redbox-core/test/qualification/figshare-provider.cjs
+```
+
+Final unchanged existing suite: **293 passing / 0 failing / 0 pending**, exit **0**,
+18 seconds (`figshare-provider-existing-graph.log`). Compiled real provider
+aggregate: **1 passing / 0 failing / 0 skipped**, exit **0**, body **2940.073351 ms**,
+natural total **63544.738849 ms** (`figshare-provider-real-final.log`). Agenda's
+passive lock-watchdog timer accounts for the remaining minute; no forced exit or
+timeout reduction was used. It executes the real core `Figshare-SyncRecord` job
+declaration, 120000-ms lock lifetime, Prisma Figshare store, bundled storage,
+source-intent acknowledgment/CAS projection, actual ACL and local HTTP receiver:
+**1 record create / 1 metadata PUT / 1 publish / 1 durable Agenda job / 2 audit
+rows**, final status **synced**. A held HTTP response keeps drain pending. Native
+post-close record reads verify article ID **51**, synced status, retained title/
+ACL and advanced recordVersion/revision. Late admission is rejected and the
+compiled import graph contains no comparison/CoreService/Sails module. Disposable
+database/files/server are removed in finally. This is one configured job, not the
+complete 16-job/schedule inventory. Workflow transition and attachment ports are
+unused and throw; the preceding real helper aggregate covers file upload.
+
+Core build, focused lint (**0 errors / 0 warnings**), Prettier and diff checks pass.
+Logs: `figshare-provider-build-graph.log`, `figshare-provider-lint-final.log`,
+`figshare-provider-format-check.log`, `figshare-provider-helpers-final.log` (helper
+aggregate recheck passes). No existing tests/assertions/skips/timeouts changed.
+The first worker run failed four existing cases because a comparison adapter
+changed `.toPromise()` to `firstValueFrom` against existing `.toPromise()`-only
+fixtures; the original boundary was restored, the run interrupted and its
+disposable database dropped. A first compiled provider run found a pure helper
+importing comparison configuration through the service barrel. Publish/writeback
+now import the neutral config directly. Those failed runs are not qualification.
