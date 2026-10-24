@@ -842,6 +842,9 @@ export namespace Services {
       ) {
         throw new Error('Staged attachment ownership does not match the actor, brand and record');
       }
+      if (!Number.isSafeInteger(upload.size) || (upload.size ?? -1) < 0 || upload.offset !== upload.size) {
+        throw new Error('Staged attachment upload is not complete');
+      }
     }
 
     private async putStagedObject(

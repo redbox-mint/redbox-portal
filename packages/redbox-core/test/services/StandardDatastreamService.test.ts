@@ -147,6 +147,32 @@ describe('StandardDatastreamService', function () {
     });
   });
 
+  describe('staging completion', function () {
+    for (const progress of [
+      { size: 9, offset: 3 },
+      { offset: 3 },
+      { size: 9, offset: 10 },
+    ]) it(`retains resumable bytes until upload completion (${JSON.stringify(progress)})`, async () => {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream({ disks: mockStorageManager, forms: {}, log: fixture.log });
+      mockPrimaryDisk.exists.resolves(false);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      mockStagingDisk.exists.callsFake(async (key: string) => key !== 'file');
+      mockStagingDisk.get.resolves(JSON.stringify({ id: 'file', ...progress,
+        metadata: { redboxActor: 'actor', redboxBrand: 'brand', redboxRecord: 'record' } }));
+      mockStagingDisk.listAll.callsFake(async (prefix: string) => ({ objects:
+        prefix === '.tus/file/parts/' ? [{ key: '.tus/file/parts/00000000000000000000' }] : [] }));
+      await require('node:assert/strict').rejects(
+        service.addDatastream('record', new Datastream({ fileId: 'file' }), undefined,
+          { actorId: 'actor', brandId: 'brand' }), /complete/
+      );
+      expect(mockPrimaryDisk.putStream.called).to.equal(false);
+      expect(mockStagingDisk.getStream.called).to.equal(false);
+      expect(mockStagingDisk.delete.called).to.equal(false);
+      expect(mockStagingDisk.deleteAll.called).to.equal(false);
+    });
+  });
+
   describe('staging read ownership', function () {
     for (const binding of [
       undefined,
