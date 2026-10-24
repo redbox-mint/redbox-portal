@@ -140,7 +140,11 @@ export namespace Services {
       });
     }
 
-    public async emitFromRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
+    public emitFromRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
+      if (this.draining) return Promise.resolve();
+      return this.accept(() => this.emitAcceptedRecordAudit(recordAudit));
+    }
+    private async emitAcceptedRecordAudit(recordAudit: Record<string, unknown>): Promise<void> {
       const brandId = await this.resolveBrandId(recordAudit);
       if (!brandId) return;
       const record = isRecord(recordAudit.record) ? recordAudit.record : {};
@@ -159,7 +163,7 @@ export namespace Services {
         }
         if (typeof concurrency.resolution === 'string') context.resolution = concurrency.resolution;
       }
-      await this.emitSecurityEvent({
+      await this.emitAccepted({
         brandId,
         eventType: `record.${String(recordAudit.action ?? 'audit')}`,
         category: 'recordLifecycle',
@@ -190,10 +194,14 @@ export namespace Services {
       });
     }
 
-    public async emitFromAttachmentAudit(attachmentAudit: Record<string, unknown>): Promise<void> {
+    public emitFromAttachmentAudit(attachmentAudit: Record<string, unknown>): Promise<void> {
+      if (this.draining) return Promise.resolve();
+      return this.accept(() => this.emitAcceptedAttachmentAudit(attachmentAudit));
+    }
+    private async emitAcceptedAttachmentAudit(attachmentAudit: Record<string, unknown>): Promise<void> {
       const brandId = await this.resolveBrandId(attachmentAudit);
       if (!brandId) return;
-      await this.emitSecurityEvent({
+      await this.emitAccepted({
         brandId,
         eventType: `attachment.${String(attachmentAudit.action ?? 'audit')}`,
         category: 'attachmentAccess',

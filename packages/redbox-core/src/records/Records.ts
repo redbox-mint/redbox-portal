@@ -65,6 +65,7 @@ export interface RecordPipelineInput {
   readonly prepareSourceIntent: FigshareSourceIntents['prepareSourceIntent'];
   wakeFigshareRecord(oid: string): Promise<unknown>;
   emitSecurityEvent?(record: Record<string, unknown>): Promise<unknown>;
+  retainFollowup?(work: Promise<void>): Promise<void>;
 }
 
 import { RecordCreateAuthorization, resolvedWorkflowTargetDiagnostic } from '../records/RecordCreateAuthorization';
@@ -481,8 +482,7 @@ export namespace Services {
       }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
   type StructuralMetadataValidationResult =
-    | { readonly valid: true }
-    | { readonly valid: false; readonly problem: RecordSaveProblem };
+    { readonly valid: true } | { readonly valid: false; readonly problem: RecordSaveProblem };
   type ResolvedRecordSchemaSaveUsage = {
     readonly request: Omit<PersistRecordSchemaSaveUsageRequest, 'oid' | 'saveIdentity'>;
     readonly outcome: RecordSaveSchemaOutcomeInput;
@@ -7878,11 +7878,14 @@ export namespace Services {
         return response;
       }
       // Optional emission cannot change an already persisted audit outcome.
-      try {
-        await this.input.emitSecurityEvent?.({ ...record });
-      } catch {
-        this.logger.error('Failed to emit record audit security event');
-      }
+      const followup = (async () => {
+        try {
+          await this.input.emitSecurityEvent?.({ ...record });
+        } catch {
+          this.logger.error('Failed to emit record audit security event');
+        }
+      })();
+      await (this.input.retainFollowup ? this.input.retainFollowup(followup) : followup);
       return response;
     }
 

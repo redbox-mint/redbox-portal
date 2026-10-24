@@ -34,7 +34,7 @@ import {
   getHarvestRepositories,
 } from '../../persistence/runtime';
 import { runAcceptedPersistenceWork } from '../../persistence/runtime';
-import { drainHttpRequests, hasActiveHttpRequest } from '../../middleware/requestLifetime';
+import { drainHttpRequests, hasActiveHttpRequest, retainHttpRequestFollowup } from '../../middleware/requestLifetime';
 import { portalReferencePlan } from './reference';
 import { portalDomain, noDomainResources, type PortalDomainPlan } from './domain';
 
@@ -225,6 +225,7 @@ export function portalDataPlan(
       prepareSourceIntent: intents.prepareSourceIntent.bind(intents),
       wakeFigshareRecord: oid => queue.get().now('Figshare-SyncRecord', { oid }),
       emitSecurityEvent: entry => input.securityEvent(entry),
+      retainFollowup: work => retainHttpRequestFollowup(owner, input.retainFollowup(work)),
     })
   );
   const workspaces = portalDomain(

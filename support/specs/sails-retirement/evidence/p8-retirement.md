@@ -487,3 +487,51 @@ barrel; that export is included with its audit fix below.
 `core-build-audit-second.log` completes Prisma generation/schema checks,
 TypeScript 5.9.3 compilation and Prisma artifact copy with **exit 0** on Node
 26.11.1. This is an incremental source build, not clean-package qualification.
+
+### Audit lifetime and authentication event regressions
+
+Source based on `2118c0d18` (page type correction isolated in `c55bd3f05`),
+Node 26.11.1/npm 11.20.0. Existing drain/privacy fixtures now use explicit
+AgendaQueue, SecurityEventService, Records, PrismaAttachments, HTTP session and
+Express route/policy owners. No framework globals, legacy callbacks or new skips.
+
+Regressions found and fixed in production:
+
+- Record audit SIEM lookup delayed the HTTP response after the comparison
+  adapter was removed. Records accepts an explicit follow-up retainer; production
+  composition retains the work in both its request lifetime and application set.
+  Workers/direct callers continue awaiting the same work. The migrated existing
+  HTTP test against pre-fix Records/SecurityEvents reproduces **0 passing / 1
+  failing**: “An optional SIEM lookup must not delay the HTTP response”
+  (`audit13-regression-proof.log`, exit 1). Files were restored after this bounded
+  regression check.
+- Record/attachment capture now owns asynchronous brand lookup from admission
+  through enqueue. A lookup admitted before quiesce finishes without being
+  discarded by a second admission check; its active work prevents early closure.
+- Production storage initialization now supplies the selected attachment audit
+  emitter and retainer; adapter removal had left the default logging-only input.
+- Login success is emitted after final session save, logout success after session
+  invalidation. Session failures emit login failure. Invalid credential shapes
+  emit failure without serializing the body; a bounded string username may be
+  selected explicitly. The shared HTTP event function is used in production and
+  the real-route fixture. One meaningful new assertion covers final session-save
+  failure and forbids a premature login-success event.
+
+Executed results:
+
+- `audit13-first.log`: **10 passing / 0 pending / 0 failing**. All existing
+  HTTP-response/nonblocking lookup, optional failure diagnostic, worker ownership,
+  accepted enqueue and shutdown-drain assertions execute.
+- `privacy14-first.log`: 33 passing/1 fixture failure (missing Express response
+  `end` method); corrected without changing the behavior assertion.
+- `privacy14-second.log`: **78 passing / 0 pending / 0 failing** (988ms), privacy,
+  audit-drain and chronicle suites together.
+- `audit-siem-final.log`: **70 passing / 0 pending / 0 failing** (3s), audit-drain,
+  privacy, SIEM services, delivery and ownership suites; real MongoDB 8.0.34 claims
+  and the controlled HTTP collector execute with
+  `SIEM_TEST_MONGO_URL=mongodb://127.0.0.1:29511/redbox`.
+- `lint-audit.log`: cross-package import verification and oxlint **0 errors /
+  0 warnings**, 932 source files. `core-build-audit-second.log`: **exit 0**.
+
+All use the explicit core Mocha runner above. These checks do not yet prove the
+final installed production composition, whole core suite or clean artifact.

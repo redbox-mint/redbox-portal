@@ -288,13 +288,18 @@ export class PortalHttp implements ApplicationModule {
         await http.sendPageAuthenticationFailure(req, res, pages, reason);
       },
       loginFailure: async req => {
-        await providers.security.get().emitSecurityEvent({
-          brandId: brandForRequest(req).id,
-          eventType: 'authentication.login.failure',
-          category: 'authentication',
-          source: 'Authentication',
-          requestContext: { method: req.method, path: req.path },
-        });
+        await providers.security.get().emitSecurityEvent(
+          http.authenticationFailureEvent(
+            req,
+            {
+              brandId: brandForRequest(req).id,
+              portalId: String(
+                req.params.portal ?? req.body?.portal ?? req.session.portal ?? config.auth.defaultPortal
+              ),
+            },
+            config.brandingConfigurationDefaults.auth.local.usernameField
+          )
+        );
       },
       csrf: csrf.protect,
       credentialFields: [

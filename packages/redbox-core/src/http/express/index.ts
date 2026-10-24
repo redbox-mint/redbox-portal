@@ -33,7 +33,12 @@ export { mountMetadataReadRoutes, metadataReadRoutes, type MetadataReadHttpInput
 
 export { mountFormDeliveryRoutes, formDeliveryRoutes, type FormDeliveryHttpInput } from './formDelivery';
 
-export { mountAuthenticationRoutes, authenticationRoutes, type AuthenticationHttpInput } from './login';
+export {
+  mountAuthenticationRoutes,
+  authenticationRoutes,
+  authenticationFailureEvent,
+  type AuthenticationHttpInput,
+} from './login';
 export {
   installLocalAuthentication,
   installAafAuthentication,

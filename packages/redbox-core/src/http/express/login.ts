@@ -42,6 +42,25 @@ export interface AuthenticationHttpInput {
   readonly credentialFields?: readonly [string, string];
   readonly sessionCookie?: { readonly name: string; readonly path?: string; readonly domain?: string };
 }
+/** Select only a bounded username; credential bodies never enter security events. */
+export function authenticationFailureEvent(
+  req: Pick<Request, 'method' | 'path' | 'body'>,
+  context: { brandId: string; portalId?: string },
+  usernameField = 'username'
+): import('../../services/siem/SiemTypes').SecurityEventInput {
+  const username: unknown = req.body?.[usernameField];
+  return {
+    ...context,
+    eventType: 'authentication.login.failure',
+    category: 'authentication',
+    source: 'Authentication',
+    ...(typeof username === 'string' && username.length > 0 && username.length <= 4096
+      ? { subject: { username } }
+      : {}),
+    requestContext: { method: req.method, path: req.path },
+  };
+}
+
 function sessionOperation(operation: (done: (error?: unknown) => void) => void): Promise<void> {
   return new Promise((resolve, reject) => operation(error => (error ? reject(error) : resolve())));
 }
@@ -86,6 +105,7 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
           field => typeof req.body?.[field] !== 'string' || !req.body[field] || req.body[field].length > 4096
         )
       ) {
+        await input.loginFailure(req);
         res.status(400).json({ message: 'Invalid login parameters' });
         return;
       }
@@ -139,9 +159,10 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
           const url = URL.parse(logoutUrl);
           if (url && input.logoutOrigins?.includes(url.origin)) Reflect.set(req.session, 'logoutUrl', url.toString());
         }
-        await input.audit('login', actorSnapshot, req);
         await sessionOperation(done => req.session.save(done));
+        await input.audit('login', actorSnapshot, req);
       } catch (error) {
+        await input.loginFailure(req);
         await sessionOperation(done => req.session.destroy(done));
         res.clearCookie(input.sessionCookie?.name ?? 'redbox.v6.sid', {
           path: input.sessionCookie?.path ?? '/',
@@ -239,9 +260,9 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
         const url = URL.parse(candidate);
         if (url && input.logoutOrigins?.includes(url.origin)) redirect = url.toString();
       }
-      await input.audit('logout', actor, req);
       await sessionOperation(done => req.logout(done));
       await sessionOperation(done => req.session.destroy(done));
+      await input.audit('logout', actor, req);
       res.clearCookie(input.sessionCookie?.name ?? 'redbox.v6.sid', {
         path: input.sessionCookie?.path ?? '/',
         domain: input.sessionCookie?.domain,

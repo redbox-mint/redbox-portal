@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { retainHttpRequestFollowup } from '../../middleware/requestLifetime';
 import { pathToFileURL } from 'node:url';
 import type { Observable } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -400,7 +401,12 @@ export async function createPortalApplication(options: PortalApplicationOptions)
         persistence.initializeIdentityPersistence,
         persistence.initializeVocabularyPersistence,
         persistence.initializeBrandingPersistence,
-        initializeStoragePersistence,
+        (selectedOwner: PersistenceOwner) =>
+          initializeStoragePersistence(selectedOwner, {
+            log: options.log,
+            emitAccessEvent: entry => providers.security.get().emitFromAttachmentAudit({ ...entry }),
+            retainFollowup: work => retainHttpRequestFollowup(owner, retainFollowup(work)),
+          }),
       ])
         await initialize(owner);
     },
