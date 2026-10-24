@@ -1,0 +1,247 @@
+{
+  "commits": {
+    "application": "b232d67617527b2e2630cda0dc3cf0f065a77f48",
+    "promotionMetadata": "5c9fb7e401405c7b2977b281c65aa56f1c75d26c",
+    "development": "1f046689f6baf61d5741b8d2b23a5b92f7a06a9c"
+  },
+  "buildMethod": "Clean archived metadata overlay on the independently qualified clean production runtime/rehearsal. Reuses unchanged application, dependencies and emitted assets; not a post-P8 full Sails-free rebuild. Runtime Dockerfile itself exposes only 1500; metadata overlays inherit the old 1337 declaration too, without an old listener.",
+  "images": {
+    "runtime": {
+      "id": "sha256:097cd75be2431fdf2c9791bb0c69a4ebf0b5fe9ef78746f50d600358ba1ffa00",
+      "revision": "5c9fb7e401405c7b2977b281c65aa56f1c75d26c",
+      "qualifiedBase": "sha256:332d331772f678fc6697790716b6a5084f0a80717cbdd5f83b9641e768492ece",
+      "sizeBytes": 280927065,
+      "cmd": [
+        "node",
+        "app.express.cjs"
+      ],
+      "health": {
+        "Test": [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${REDBOX_PORT:-1500}/readyz >/dev/null"
+        ],
+        "Interval": 30000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 60000000000,
+        "Retries": 5
+      },
+      "exposedPorts": [
+        "1337/tcp",
+        "1500/tcp"
+      ]
+    },
+    "rehearsal": {
+      "id": "sha256:514650910bd541c0f607f3ff7bdb431ea0b93b7c076f0126cde39b99c7df523d",
+      "revision": "5c9fb7e401405c7b2977b281c65aa56f1c75d26c",
+      "qualifiedBase": "sha256:25725acf4be38222bdf3546e29cdd1016492ec671c19c9920c7beb8420a05b1b",
+      "sizeBytes": 614432359,
+      "cmd": [
+        "node",
+        "app.express.cjs"
+      ],
+      "health": {
+        "Test": [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${REDBOX_PORT:-1500}/readyz >/dev/null"
+        ],
+        "Interval": 30000000000,
+        "Timeout": 5000000000,
+        "StartPeriod": 60000000000,
+        "Retries": 5
+      },
+      "exposedPorts": [
+        "1337/tcp",
+        "1500/tcp"
+      ]
+    }
+  },
+  "installedRuntime": {
+    "assets": {
+      "passing": 1,
+      "failing": 0,
+      "skipped": 0,
+      "applications": 20,
+      "views": 6
+    },
+    "splitStoreComponent": {
+      "passing": 1,
+      "failing": 0,
+      "skipped": 0
+    },
+    "fresh": {
+      "probe": {
+        "actualInstalledExecutable": true,
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 13.142816000000039,
+          "p95": 18.929425999999978,
+          "max": 19.438623000000007
+        }
+      },
+      "startupSeconds": 16,
+      "stopSeconds": 0,
+      "memory": "sr-p7-artifact-portal 340.6MiB / 1.5GiB 0.21%",
+      "exitCode": 0,
+      "oomKilled": false,
+      "actualImageCmdAndHealthcheck": true,
+      "healthyObserved": true
+    },
+    "restart": {
+      "probe": {
+        "actualInstalledExecutable": true,
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 12.762575000000083,
+          "p95": 19.177594,
+          "max": 20.060208000000046
+        }
+      },
+      "startupSeconds": 8,
+      "stopSeconds": 0,
+      "memory": "sr-p7-artifact-portal 270.3MiB / 1.5GiB 0.26%",
+      "exitCode": 0,
+      "oomKilled": false,
+      "actualImageCmdAndHealthcheck": true,
+      "healthyObserved": true
+    },
+    "cleanupContainers": 5
+  },
+  "development": {
+    "build": {
+      "verificationScope": "installed rehearsal with explicit deployment inputs",
+      "probe": {
+        "actualInstalledExecutable": true,
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 20.293807000000015,
+          "p95": 26.762163999999927,
+          "max": 31.334198000000015
+        }
+      },
+      "exitCode": 0,
+      "oomKilled": false,
+      "healthyObserved": true,
+      "nodeEnv": "production",
+      "entrypoint": [
+        "node",
+        "--enable-source-maps",
+        "--inspect=0.0.0.0:9876",
+        "app.express.cjs"
+      ],
+      "buildTarget": "rehearsal",
+      "image": "sha256:514650910bd541c0f607f3ff7bdb431ea0b93b7c076f0126cde39b99c7df523d",
+      "configurationModule": "/deployment/application.cjs",
+      "healthDependentProviders": [
+        "mongodb",
+        "solr"
+      ],
+      "sourceMounted": false,
+      "disposableMongoDataDirectory": "/mnt/docker-storage/sr-p7-clean-production/.tmp/default-dev-final-build/mongo/data/db"
+    },
+    "mount": {
+      "verificationScope": "mounted compiled workspace",
+      "probe": {
+        "health": 200,
+        "ready": 200,
+        "page": 200,
+        "asset": 200,
+        "csrfLogin": 200,
+        "formsRequests": 20,
+        "formsLatencyMs": {
+          "p50": 20.809588000000076,
+          "p95": 26.031279999999924,
+          "max": 29.428327000000024
+        }
+      },
+      "exitCode": 0,
+      "oomKilled": false,
+      "healthyObserved": true,
+      "nodeEnv": "development",
+      "entrypoint": [
+        "node",
+        "--enable-source-maps",
+        "--inspect=0.0.0.0:9876",
+        "app.express.cjs"
+      ],
+      "buildTarget": "rehearsal",
+      "image": "sha256:514650910bd541c0f607f3ff7bdb431ea0b93b7c076f0126cde39b99c7df523d",
+      "configurationModule": "/deployment/application.cjs",
+      "healthDependentProviders": [
+        "mongodb",
+        "solr"
+      ],
+      "sourceMounted": true,
+      "disposableMongoDataDirectory": "/mnt/docker-storage/sr-p7-clean-production/.tmp/default-dev-final-mount/mongo/data/db"
+    }
+  },
+  "npmStart": {
+    "probe": {
+      "actualInstalledExecutable": true,
+      "health": 200,
+      "ready": 200,
+      "page": 200,
+      "asset": 200,
+      "csrfLogin": 200,
+      "formsRequests": 20,
+      "formsLatencyMs": {
+        "p50": 20.479151,
+        "p95": 28.42301600000002,
+        "max": 29.52426300000002
+      }
+    },
+    "exitCode": 0,
+    "oomKilled": false,
+    "shutdown": "SIGTERM delivered to the uniquely identified app.express.cjs Node child of npm; npm then exits 0."
+  },
+  "failedAttempts": [
+    {
+      "stage": "overlay recipe",
+      "result": "Cancelled before any image acceptance; FROM sha256:ID treated as a registry name. Retry asserts local tag matches qualified immutable ID."
+    },
+    {
+      "stage": "build-mode first start",
+      "containerExitCode": 1,
+      "wrapperExitCode": 143,
+      "reason": "development dependency discovery on production graph required missing @playwright/test; observed startup failure, then cancelled readiness wait.",
+      "fix": "a5a099be9"
+    },
+    {
+      "stage": "build-mode second start",
+      "exitCode": 1,
+      "inspectExitCode": 2,
+      "reason": "Fresh-volume script omitted three separate Agenda and one session TTL indexes; preflight correctly refused.",
+      "fix": "1f046689f"
+    }
+  ],
+  "publication": false,
+  "p8Started": false,
+  "institutionDesignated": false,
+  "cleanup": {
+    "taskContainersRemainingAcrossBothEngines": 0,
+    "ownedStubStopped": true,
+    "profileAndFinalNetworksRemoved": true,
+    "exactTaskFirewallRulesRemoved": true,
+    "systemDockerOrContainerdRestarted": false,
+    "offlineProofDaemonsStopped": true,
+    "obsoleteBuildReclamation": "exact owned PID terminated after resume/pause; no suspended process remains",
+    "imagesAndCheckpointsRetained": true,
+    "initialOldEngineCleanupExitCode": 124,
+    "retryExitCode": 1,
+    "retryReason": "S3Mock removal already in progress; subsequent final listings empty"
+  }
+}

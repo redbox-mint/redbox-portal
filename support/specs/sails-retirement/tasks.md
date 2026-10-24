@@ -1,7 +1,7 @@
 # Sails retirement: v6 task list
 
 Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
-production-source designation. P7 has accepted SR-046/047/048. The complete
+production-source designation. P7 has accepted SR-046/047/048/050. The complete
 local Node 26/MongoDB 8 and 9 matrix passes 216 checks, including separate
 three-member sets/elections/drain. Existing suites pass: Playwright 124, Bruno
 329 requests/582 tests/3 assertions, core Mocha 4485 passing/7 unchanged pending,
@@ -9,8 +9,8 @@ root Mocha 422 passing/10 unchanged pending; no failures. Twelve clean packed
 artifacts pass 20 checks. Installed production images, full released-v5 stand-in
 cutover/restart/stop, operational comparisons and complete offline-capable
 checkpoint recovery pass. SR-045/049 remain partial only for the undesignated
-institution/source/topology. Internal-default promotion SR-050 is in progress;
-P8 has not started.
+institution/source/topology. Internal-default promotion SR-050 is complete; its
+actual Docker/npm/dev workflows pass. P8 has not started.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -764,9 +764,9 @@ Read the [design](design.md) for behavior and the
   restart/stop outcomes are recorded; no interim development release is required.
   Core-only startup or database-only restoration does not complete this task.
 
-- [ ] **SR-050 — Promote the qualified Express host as the internal v6 default.**
+- [x] **SR-050 — Promote the qualified Express host as the internal v6 default.**
 
-  **Status:** in progress; complete installed stand-in qualification now passes. The user explicitly authorizes internal-default promotion in this round while SR-049's institution designation remains external. Script/Docker/dev promotion and actual default-entrypoint verification follow; P8 remains untouched. [Promotion evidence](evidence/p7-qualification.md#sr-050--internal-promotion).
+  **Status:** done for the explicitly authorized internal promotion; root start/debug, Docker CMD/readiness health and both explicit development Compose modes use Express. Actual default runtime fresh/restart, real npm start and both dev modes pass health/ready/CSRF login/assets/20 forms requests and exit 0. Clean metadata-overlay provenance, two fixed dev regressions and cleanup are in [promotion evidence](evidence/p7-qualification.md#internal-default-implementation-and-executed-verification). The user-authorized complete stand-in permits internal promotion while SR-049's undesignated institution remains an external production gate; P8 is untouched.
 
   **Depends on:** SR-049, SR-046, SR-047.
 

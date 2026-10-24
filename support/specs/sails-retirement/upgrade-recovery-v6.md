@@ -144,6 +144,11 @@ curl --fail http://127.0.0.1:1500/healthz
 curl --fail http://127.0.0.1:1500/readyz
 ```
 
+The internal v6 `npm start` and Docker CMD select this same Express executable.
+The Docker health check uses `${REDBOX_PORT:-1500}/readyz`; set `REDBOX_PORT`
+when selecting a nondefault server port in the deployment module. Local development
+uses the explicit [Compose workflow](../../development/README.md).
+
 Use the configured port and root context for user routes; health/readiness paths
 are unprefixed. `/healthz` alone does not prove readiness. Route `/readyz`
 explicitly through any deployment proxy. Require readiness 200 and verify fresh

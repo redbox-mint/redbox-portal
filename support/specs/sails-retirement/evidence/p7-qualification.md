@@ -603,9 +603,9 @@ owner. External publisher effects were fenced, not sent and magically reversed.
 
 ## SR-050 — Internal promotion
 
-The complete stand-in qualification is green. The user explicitly authorized
-internal default promotion in this round despite the remaining institution
-qualification gate. Promotion verification is in progress; P8 has not started.
+The complete stand-in qualification and actual default verification are green.
+The user explicitly authorized internal default promotion in this round despite
+the remaining institution qualification gate. P8 has not started.
 Production release acceptance still requires the institution rehearsal and P8's
 removal/final clean-artifact evidence.
 
@@ -624,3 +624,138 @@ observed cold-cache/disk variability. They are internal review criteria, not
 institution performance requirements or load-test guarantees. A failed criterion
 requires investigation, not retroactive adjustment. A 20-request sequential
 sample does not characterize concurrency, tail latency or production capacity.
+
+### Internal default implementation and executed verification
+
+**Accepted.** Production application source remains `b232d6761`; promotion is
+**`5c9fb7e401405c7b2977b281c65aa56f1c75d26c`**, development corrections
+**`a5a099be9` / `1f046689f`**. `npm start`/`debug` use Express; named
+`start:sails:comparison`/`debug:sails:comparison` retain isolated comparison until
+P8. Docker CMD is `node app.express.cjs`, its source exposes **1500** and health
+checks canonical `${REDBOX_PORT:-1500}/readyz`. No second application/server or
+production host selector was added. The explicit development module and README
+are under `support/development/`; no implicit legacy `.env` forwarding or Sails
+configuration discovery is used.
+
+Clean `git archive 5c9fb7e40 package.json app.express.cjs` supplied the small
+metadata overlay over each previously qualified immutable runtime/rehearsal.
+The overlay copies the entrypoint (comment-only change), merges only `main` and
+`scripts` into the existing image's package manifest, preserving its exact
+installed hook dependencies/lock, then selects CMD/health/port metadata. Build
+uses `--network none`; no install or emitted application replacement is needed.
+Local base tags are asserted against the immutable qualified IDs before BuildKit
+uses them. This is a clean metadata overlay over the clean qualified artifact,
+not P8's final full Sails-free build. Its inherited **1337** EXPOSE declaration
+remains alongside **1500**, with no old listener; the actual repository Dockerfile
+exposes only 1500. No image/package was published.
+
+| Promoted variant | Immutable local image ID | Inspected bytes |
+| --- | --- | ---: |
+| Runtime | `sha256:097cd75be2431fdf2c9791bb0c69a4ebf0b5fe9ef78746f50d600358ba1ffa00` | 280927065 |
+| Bundled-hook rehearsal | `sha256:514650910bd541c0f607f3ff7bdb431ea0b93b7c076f0126cde39b99c7df523d` | 614432359 |
+
+[Machine-readable promotion results](p7-default-promotion-results.json) record
+both inspected image sizes/configuration, exact source commits and outcomes.
+The initial temporary overlay recipe used `FROM sha256:ID`, which BuildKit treated
+as a registry name; it was cancelled before image acceptance and corrected to
+verified local tags. No runtime/test assertion or dependency version changed.
+
+```sh
+export PATH="$PWD/.tmp/sails-retirement/toolchain/node-v26.11.1-linux-x64/bin:$PATH"
+export DOCKER_HOST=unix:///run/sr-p7-isolated/docker.sock
+SR_P7_DEFAULT_ENTRYPOINT=true \
+SR_P7_IMAGE=sha256:097cd75be2431fdf2c9791bb0c69a4ebf0b5fe9ef78746f50d600358ba1ffa00 \
+SR_P7_ARTIFACT_LOGS="$PWD/.tmp/sails-retirement/p7/artifact-default-5c9fb7e40" \
+  bash support/integration-testing/qualify-sails-retirement-artifact.sh
+```
+
+Exit **0**. Installed assets/exports **1 pass**, split-store real-byte/lifecycle
+component **1 pass**, zero failures/skips. This mode supplies **no CMD or health
+check override**. Fresh/restart actual default cycles: health/ready/home/CSS
+**200**, fresh CSRF login **200**, **20/20** authenticated forms requests each,
+Docker **healthy**; startup **16/8 s**, stop **0/0 s**, both exit **0**, no OOM.
+Forms p95 **18.929/19.178 ms**. These are additional functional-default observations,
+not replacements for the controlled pre-recorded operational comparison above.
+Five containers/anonymous volumes removed, cleanup exit **0**.
+
+Both development Compose modes were then run sequentially on new absolute data
+directories (`default-dev-final-build`, `default-dev-final-mount` under the owned
+scratch root), never the existing `.dev`. Rendered definitions use the local
+promoted rehearsal image, `--env-file /dev/null`, synthetic admin/session inputs,
+loopback **18527/29876/29717/29983**, and the supplied external network override:
+
+```sh
+# Actual common environment: RBPORTAL_IMAGE=redbox-portal:sr-p7-default-rehearsal,
+# REDBOX_PUBLIC_URL=http://127.0.0.1:18527, RBPORTAL_HTTP_PORT=18527,
+# RBPORTAL_DEBUG_PORT=29876, RBPORTAL_MONGO_PORT=29717, RBPORTAL_SOLR_PORT=29983.
+# RBPORTAL_DEV_DATA_DIR is a new absolute directory for each mode; authentication
+# uses this qualification's synthetic artifact-only credentials.
+docker compose --env-file /dev/null -f support/development/docker-compose.yml \
+  -f .tmp/sails-retirement/p7/default-dev-final/network.yml --profile build \
+  -p sr-p7-default-build up -d --no-build --pull never
+docker compose --env-file /dev/null -f support/development/docker-compose.yml \
+  -f .tmp/sails-retirement/p7/default-dev-final/network.yml --profile mount \
+  -p sr-p7-default-mount up -d --no-build --pull never
+SR_ARTIFACT_ORIGIN=http://127.0.0.1:18527 \
+  node packages/redbox-core/test/qualification/installed-portal.cjs
+```
+
+The `--no-build` runs qualify the actual dev definitions against the already
+qualified installed image; a second full Docker dependency/Angular rebuild is
+not claimed. Build targets render as **rehearsal**. Mount mode exercises the
+compiled workspace and is explicitly **not installed-artifact proof**. Both modes
+pass health/ready/home/CSS/fresh CSRF login **200**, **20/20** forms requests,
+Docker **healthy**, SIGTERM via `compose stop --timeout 60` gives exit **0**, no OOM.
+Build/mount forms p95 **26.762/26.031 ms**. Both provider pairs reach their real
+Mongo/Solr health checks. Each Compose stack is removed with anonymous volumes;
+the disposable bind data is retained for inspection.
+
+A real `compose run -d --no-deps --service-ports --entrypoint npm rbportal-build
+start` also passes the same public checks and **20/20** forms requests (p95
+**28.423 ms**). The verifier identifies exactly one `node app.express.cjs` child
+through `/proc`, delivers SIGTERM to that application owner and requires the npm
+container to exit **0**; no OOM. This verifies npm's selected executable and child
+shutdown; it does not claim that signalling an arbitrary npm wrapper forwards
+signals identically to Docker's direct Node CMD.
+
+Two actual development regressions were fixed, without hiding startup failures:
+
+1. Original build-mode `NODE_ENV=development` scanned devDependencies absent from
+   the production graph: `Extension @playwright/test: declared dependency is not
+   installed`, portal exit **1**. The readiness wrapper was cancelled **143** after
+   this observed failure. `a5a099be9` selects production discovery for build mode
+   and development discovery for the fully installed mounted workspace.
+2. The next start failed persistence preflight, exit **1**. Actual installed
+   `--maintenance=indexes:inspect` exited **2**, reporting exactly **three missing
+   Agenda indexes / one missing session TTL index** in the separate runtime stores.
+   `1f046689f` adds those exact indexes only to fresh Mongo volume initialization
+   and waits for the final network-bound Mongo server and actual Solr core health.
+   Existing volumes retain explicit reviewed maintenance; startup still refuses
+   missing/conflicting schema. The final complete dev wrapper exits **0**.
+
+Final source checks: import-boundary verifier passes; focused oxlint **0 errors /
+0 warnings**; entrypoint/config/init-script syntax, shell syntax, both Compose
+profile renders and `git diff --check` pass. Broad suites are the accepted SR-046
+runs, not relabeled as reruns after these script/Compose changes. Dashboard deltas
+have the focused **40 service + 8 configuration** checks and complete installed
+upgrade/recovery recorded above. No dependency version changes were made by these
+corrections.
+
+### Final cleanup and remaining gates
+
+Both engines report **zero `sr-p7` containers**. All owned regression providers,
+stub process, profile/final networks and the exact task-commented firewall/NAT
+rules are removed. Original-engine cleanup first timed out **124**; retry reported
+an already-in-progress S3Mock deletion, then final listings were empty. No system
+Docker/containerd was stopped or restarted. The fresh offline proof's own daemons
+were stopped. Dedicated image engines, local images and checkpoints remain for
+inspection; temporary proof storage/export is retained. The obsolete-build
+reclamation process was resumed after comparisons, paused during deadline-sensitive
+default verification, then terminated by its exact PID after completion; no
+suspended reclamation remains and no checkpoint sibling was deleted.
+
+SR-045/049 remain unchecked only for the real institution/source/hook/configuration/
+topology/TLS/auth and reconciliation owner designation. SR-046/047/048/050 are
+accepted for the explicitly authorized scope. SR-005 remains partial. P8 has not
+started; there was no push, registry publication, branch switch, worktree or
+provider quota/usage failure.
