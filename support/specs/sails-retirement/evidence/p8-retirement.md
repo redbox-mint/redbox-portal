@@ -1012,3 +1012,22 @@ attempts failed solely on EJS whitespace; assertions now compare the trimmed tit
 element rather than matching exact markup whitespace. Pinned Prettier passes.
 No skip or removed scenario; full-suite/final artifact gates remain outstanding.
 Source `tsc --noEmit --incremental false`: **exit 0**, `operations30-tsc.log`.
+
+### Form vocabulary response-code regression and form discovery retirement
+
+The remaining form-vocabulary and form-management controller consumers retain all
+30 scenarios through actual HTTP mounts and explicitly constructed Forms. Safe
+operation discovery excludes internal policy; missing/foreign record contexts
+fail closed. Vocabulary tests use selected brand/portal ports, real parameter and
+query validation, and no framework controller facade. Missing path parameters
+return route-level 404; invalid pagination is exercised with an otherwise valid
+query identifier before any domain access.
+
+`formvocabulary31-regression.log`: **22 passing / 0 pending / 4 failing**. Actual
+migration exposed lost per-action failure codes and invalid-parent-id status.
+Restored the established action-specific codes and controlled children 400, while
+unexpected provider/native messages remain sanitized. `formvocabulary31-fixed.log`:
+**30 passing / 0 pending / 0 failing** (535ms), Node 26.11.1 explicit core runner.
+Source `tsc --noEmit --incremental false`: **exit 0**, `formvocabulary31-tsc.log`.
+Pinned Prettier passes. No scenario removed or skipped. Full suites and final
+artifact qualification remain outstanding.

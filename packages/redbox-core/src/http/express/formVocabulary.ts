@@ -186,9 +186,27 @@ export function mountFormVocabularyRoutes(router: Router, input: FormVocabularyH
               ? error.message
               : domainCode && known.has(domainCode)
                 ? domainCode
-                : 'vocabulary-lookup-failed';
+                : domainCode === 'invalid-parent-id' && route.action === 'children'
+                  ? domainCode
+                  : ((
+                      {
+                        get: 'vocabulary-service-error',
+                        entries: 'internal-server-error',
+                        children: 'vocabulary-children-failed',
+                        expandPath: 'vocabulary-expand-path-failed',
+                        getRecords: 'query-vocab-failed',
+                        externalEntries: 'query-vocab-failed',
+                        serviceEntries: 'query-vocab-failed',
+                      } as Record<string, string>
+                    )[route.action] ?? 'vocabulary-lookup-failed');
           const status =
-            error instanceof VocabularyLookupError ? error.status : code.endsWith('-not-configured') ? 404 : 500;
+            error instanceof VocabularyLookupError
+              ? error.status
+              : code === 'invalid-parent-id'
+                ? 400
+                : code.endsWith('-not-configured')
+                  ? 404
+                  : 500;
           sendApiErrors(req, res, status, [
             { code, title: code, detail: status < 500 ? code : 'Vocabulary lookup failed' },
           ]);
