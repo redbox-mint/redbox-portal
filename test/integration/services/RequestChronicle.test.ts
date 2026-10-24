@@ -291,7 +291,7 @@ describe('Request chronicle in the application HTTP host', function () {
     assert.ok(!inspect(captured, { depth: null }).includes('PRIVATE'));
   });
 
-  it('records a migrated translation failure once and redacts credentials in its message and stack', async () => {
+  it('records a migrated translation failure once without native provider text or credentials', async () => {
     const original = fixture.services.I18nEntriesService.getBundle;
     fixture.services.I18nEntriesService.getBundle = async () => {
       throw new Error('Upstream rejected Authorization: Bearer private-runtime-token');
@@ -305,7 +305,9 @@ describe('Request chronicle in the application HTTP host', function () {
       assert.equal(logged[0].event.translationGetBundleFailed, true);
       const errors = Object.values(logged[0].event.errors ?? {});
       assert.equal(errors.length, 1);
-      assert.match(errors[0].message ?? '', /Authorization: Bearer REDACTED/);
+      assert.equal(errors[0].message, 'Translation read failed');
+      assert.ok(!JSON.stringify(logged[0].event).includes('Upstream rejected'));
+      assert.ok(!JSON.stringify(logged[0].event).includes('Authorization:'));
       assert.ok(!JSON.stringify(logged[0].event).includes('private-runtime-token'));
       assert.deepEqual(chronicleWarnings(), []);
     } finally {
