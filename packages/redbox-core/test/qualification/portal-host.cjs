@@ -11,6 +11,8 @@ const { prepareSelectedPersistenceIndexes } = require('../../dist/persistence/ma
 const runtime = require('../../dist/persistence/runtime');
 const { Readable } = require('node:stream');
 const { Datastream } = require('../../dist/extensions/storage');
+const { Project } = require('ts-morph');
+const { updateRoutes } = require('../../../redbox-dev-tools/dist/utils/config-helper');
 
 test(
   'production Express host serves existing pages and authenticated APIs and stops without Sails',
@@ -54,6 +56,34 @@ test(
       await mkdir(join(directory, 'node_modules', '@researchdatabox'), { recursive: true });
       for (const [name, folder] of Object.entries(dependencies))
         await symlink(resolve('packages', folder), join(directory, 'node_modules', name));
+      // Mount the actual controller generator's declaration in the production host.
+      const project = new Project({ useInMemoryFileSystem: true, compilerOptions: { module: 1 } });
+      await updateRoutes({
+        project,
+        paths: { coreTypes: '/generated/core' },
+        root: '/generated',
+        route: 'post /:branding/:portal/generated-write',
+        controllerName: 'GeneratedController',
+        action: 'save',
+        webservice: true,
+        dryRun: false,
+      });
+      const emitted = project.getSourceFiles()[0].getEmitOutput().getOutputFiles()[0].getText();
+      const output = { exports: {} };
+      new Function('exports', emitted)(output.exports);
+      const generatedRoot = join(directory, 'node_modules/redbox-hook-generated-controller');
+      await mkdir(generatedRoot);
+      await writeFile(join(generatedRoot, 'package.json'), JSON.stringify({
+        name: 'redbox-hook-generated-controller', main: 'index.cjs', redbox: { extension: '.' },
+      }));
+      await writeFile(join(generatedRoot, 'index.cjs'), `
+        exports.registerRedboxExtension = () => ({ apiVersion: 1,
+          routes: ${JSON.stringify(output.exports.routes)},
+          handlers: [{ name: 'api-GeneratedController-save', create: () =>
+            (_req, res) => res.json({ generated: true }) }]
+        });
+      `);
+      dependencies['redbox-hook-generated-controller'] = 'redbox-hook-generated-controller';
       await writeFile(
         join(directory, 'package.json'),
         JSON.stringify({
@@ -76,7 +106,10 @@ test(
               redboxStorage: { url: storageUrl.replace('/sr_p7_portal_http', '/sr_p7_portal_http_storage') },
             },
             agendaQueue: { options: { db: url.replace('/sr_p7_portal_http', '/sr_p7_portal_http_agenda') } },
-            redboxSession: { mongoUrl: url.replace('/sr_p7_portal_http', '/sr_p7_portal_http_sessions') },
+            redboxSession: {
+              mongoUrl: url.replace('/sr_p7_portal_http', '/sr_p7_portal_http_sessions'),
+              cookie: { secure: false },
+            },
             storage: {
               disks: {
                 staging: { driver: 'fs', config: { root: join(directory, 'staging') } },
@@ -111,6 +144,12 @@ test(
           REDBOX_SESSION_SECRET: 'portal-qualification-only-at-least-32-characters',
           REDBOX_ADMIN_TOKEN: 'portal-host-qualification-token',
           REDBOX_ADMIN_PASSWORD: 'portal-host-qualification-password',
+        },
+        bindings: {
+          handler(registration) {
+            assert.equal(registration.declaration.name, 'api-GeneratedController-save');
+            return () => registration.declaration.create({});
+          },
         },
       };
       portal = await createPortalHost(options);
@@ -177,6 +216,28 @@ test(
       const angularResponse = await fetch(angularApi, { headers });
       assert.equal(angularResponse.status, 200);
       await angularResponse.text();
+      const generatedPath = '/default/rdmp/generated-write';
+      await request(generatedPath, { method: 'POST' }, 401);
+      assert.deepEqual(JSON.parse((await request(generatedPath, { method: 'POST', headers })).text), {
+        generated: true,
+      });
+      const initialCsrf = await request('/csrfToken');
+      const initialCookie = initialCsrf.response.headers.get('set-cookie').split(';')[0];
+      const login = await request('/user/login_local', {
+        method: 'POST',
+        headers: {
+          Cookie: initialCookie, 'Content-Type': 'application/json', 'X-Source': 'jsclient',
+          'X-CSRF-Token': JSON.parse(initialCsrf.text)._csrf,
+        },
+        body: JSON.stringify({ username: 'admin', password: 'portal-host-qualification-password' }),
+      });
+      assert.equal(JSON.parse(login.text).message, 'Login OK');
+      const cookie = login.response.headers.get('set-cookie').split(';')[0];
+      await request(generatedPath, { method: 'POST', headers: { Cookie: cookie } }, 403);
+      const browserCsrf = JSON.parse((await request('/csrfToken', { headers: { Cookie: cookie } })).text)._csrf;
+      assert.deepEqual(JSON.parse((await request(generatedPath, {
+        method: 'POST', headers: { Cookie: cookie, 'X-CSRF-Token': browserCsrf },
+      })).text), { generated: true });
       await request('/default/rdmp/admin/vocabulary/manager', { headers });
       for (const path of ['/api/recordtypes', '/api/forms', '/api/forms/get?name=dataPublication-1.0-draft'])
         await request('/default/rdmp' + path, { headers });
@@ -298,6 +359,8 @@ test(
           readyBefore: 503,
           readyAfter: 200,
           anonymousApi: 401,
+          generatedRoute: { anonymous: 401, bearer: 200, browserWithoutCsrf: 403, browserWithCsrf: 200 },
+          figshareFactoryConfiguration: true,
           stopped: true,
           pools: 0,
         })

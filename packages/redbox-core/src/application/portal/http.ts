@@ -261,7 +261,7 @@ export class PortalHttp implements ApplicationModule {
       );
     };
     const extensionPolicies = (names: readonly string[]) => {
-      const chain = express.Router();
+      const chain = express.Router({ mergeParams: true });
       chain.use(
         ...http.bindHttpPolicies(
           names.map(name => name.toLowerCase()),
