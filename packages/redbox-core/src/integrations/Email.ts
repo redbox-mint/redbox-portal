@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Observable, from, firstValueFrom } from 'rxjs';
+import { settleLegacyHookResult } from '../action-execution/legacy-result';
 import _ from 'lodash';
 import type { EmailNotificationConfig } from '../config/emailnotification.config';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
@@ -27,7 +28,6 @@ import { recordServiceChronicle } from '../utilities/serviceChronicle';
 import { type TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
 import * as fs from 'graceful-fs';
 import * as nodemailer from 'nodemailer';
-import { isObservable } from 'rxjs';
 import { handlebarsCompile } from '@researchdatabox/sails-ng-common';
 
 export namespace Services {
@@ -54,6 +54,7 @@ export namespace Services {
           response: Record<string, unknown>
         ) => unknown;
         retainFollowup(work: Promise<unknown>): void;
+        runAcceptedWork?<T>(operation: () => Promise<T>): Promise<T>;
       }
     ) {}
     protected metTriggerCondition(...args: Parameters<typeof metTriggerCondition>): string {
@@ -359,16 +360,17 @@ export namespace Services {
                 this.updateChronicle({ emailNotificationHookOutcome: 'processing' });
                 const postSendHookFn = this.input.resolveHook(postSendHookFnName);
                 const postSendHookOpts = _.get(postSendHook, 'options', null);
-                let postSendHookResult = postSendHookFn(oid, record, postSendHookOpts, user, response);
-
-                if (isObservable(postSendHookResult)) {
-                  postSendHookResult = firstValueFrom(postSendHookResult);
-                } else {
-                  postSendHookResult = Promise.resolve(postSendHookResult);
-                }
+                let synchronousFailure: { error: unknown } | undefined;
+                const invoke = () => {
+                  try { return settleLegacyHookResult(postSendHookFn(oid, record, postSendHookOpts, user, response)); }
+                  catch (error) { synchronousFailure = { error }; throw error; }
+                };
+                const postSendHookResult = this.input.runAcceptedWork
+                  ? this.input.runAcceptedWork(invoke)
+                  : invoke();
 
                 this.input.retainFollowup(
-                  (postSendHookResult as Promise<Record<string, unknown>>)
+                  postSendHookResult
                     .then(() => {
                       this.updateChronicle({ emailNotificationHookOutcome: 'success' });
                     })
@@ -376,6 +378,8 @@ export namespace Services {
                       this.updateChronicle({ emailNotificationHookOutcome: 'failure' }, [error]);
                     })
                 );
+                // Preserve the original synchronous callback failure boundary.
+                if (synchronousFailure) throw synchronousFailure.error;
               }
             });
           }

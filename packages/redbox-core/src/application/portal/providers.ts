@@ -64,6 +64,7 @@ export function portalProviderPlan(
       log,
       templateContext: config,
       resolveHook: input.resolveEmailHook,
+      runAcceptedWork: operation => runAcceptedPersistenceWork(owner, operation),
       retainFollowup: work => {
         void input.retainFollowup(work);
       },
