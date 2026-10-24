@@ -1,12 +1,11 @@
 # v6 upgrade and recovery runbook
 
-This runbook accompanies SR-048/SR-049. **The current branch is not an
-upgrade-ready portal artifact.** Its standalone persistence maintenance and
-domain modules are implemented, but the installed production Express composition
-and full existing-suite qualification remain open. Do not substitute the P6
-browser fixture for the production entrypoint. The executable rehearsal below
-tests released-v5 recovery and the implemented v6 persistence components; it does
-not certify a complete portal upgrade.
+This runbook accompanies SR-048/SR-049. The production Express entrypoint is
+`app.express.cjs`; it composes the installed selected domains and bundled hooks.
+**P7 qualification is still in progress.** Use a qualified immutable candidate
+artifact for a cutover; the current branch is not yet approved for production.
+The recorded component recovery rehearsal does not certify a complete portal
+upgrade. Follow the evidence links for the actual acceptance scope.
 
 ## Prepare the release and checkpoint
 
@@ -52,10 +51,10 @@ From the installed, qualified candidate application, use its explicit operationa
 configuration module, not legacy `config/` discovery:
 
 ```sh
-npm run persistence:indexes -- --inspect --config deployment.mjs
+REDBOX_APPLICATION_CONFIG=/abs/deployment.cjs node app.express.cjs --maintenance=indexes:inspect
 # Review duplicate keys, conflicting options and collection collation first.
-npm run persistence:indexes -- --ensure --config deployment.mjs
-npm run persistence:indexes -- --inspect --config deployment.mjs
+REDBOX_APPLICATION_CONFIG=/abs/deployment.cjs node app.express.cjs --maintenance=indexes:ensure
+REDBOX_APPLICATION_CONFIG=/abs/deployment.cjs node app.express.cjs --maintenance=indexes:inspect
 ```
 
 Inspect exits 2 when not ready; connectivity/configuration/execution errors exit
@@ -106,8 +105,8 @@ DDL, so keep writers stopped and use the checkpoint recovery route if necessary.
 
 ```sh
 mongosh "$REDBOX_STORAGE_MONGODB_URL" --quiet --file reviewed-v5-oid-index.js
-npm run persistence:indexes -- --ensure --config deployment.mjs
-npm run persistence:indexes -- --inspect --config deployment.mjs
+REDBOX_APPLICATION_CONFIG=/abs/deployment.cjs node app.express.cjs --maintenance=indexes:ensure
+REDBOX_APPLICATION_CONFIG=/abs/deployment.cjs node app.express.cjs --maintenance=indexes:inspect
 ```
 
 Select exactly one migration runner. The implemented application API
@@ -116,22 +115,48 @@ extension declares the record revision backfill through that API. Re-running
 completed definitions skips their bodies. The ledger is not a distributed
 upgrader lock: deployment coordination must enforce exclusivity.
 
-**Production startup gate:** a concrete installed Express composition must bind
-the selected factories/work, all core/extension bootstrap operations, validation,
-HTTP adapters, background owners and installed pages/assets before this step can
-be exercised. At the recorded P7 source there is no production command for this
-composition. `npm start`/`node app.js` still lifts the Sails comparison host.
-Consequently no `start:express` or `upgrade` command is invented here. SR-046,
-SR-047 and the full SR-048 cutover remain open until that implementation and its
-qualification supply the tested command.
+### Initialize, validate and activate the installed portal
 
-Once that gate is satisfied, initialize the sole candidate while admission and
-background claims remain closed; await lexical migrations, core bootstrap,
-ordered extension bootstrap, schema/storage/dashboard validation and post-bootstrap
-prerequisites before activation. Validate the listener's unprefixed `/readyz`
-(route it explicitly through any deployment proxy), supported login/providers, role/brand isolation,
-existing records/forms/workflows, bytes/uploads, jobs and progress clients. Open
-ingress only after these checks and the approved regression suites pass.
+Set a strong deployment-owned `REDBOX_SESSION_SECRET` in the secret environment.
+The explicit configuration module must contain the converted server/public URL,
+separate datastores, session/Agenda URLs, storage and provider settings. The
+executable consumes `REDBOX_APPLICATION_CONFIG`, `REDBOX_ENVIRONMENT_CONFIG` and
+`REDBOX_LOCAL_CONFIG` before strict application environment validation; it does
+not scan legacy Sails configuration files. Do not pass `sails_*` aliases.
+
+Run the sole migration/bootstrap process with background claims closed:
+
+```sh
+REDBOX_APPLICATION_CONFIG=/abs/deployment.cjs node app.express.cjs --initialize-only
+```
+
+Require exit 0. This executes lexical migrations, core bootstrap, ordered
+extension bootstrap and schema/storage/dashboard validation, then closes its
+resources without activation. Initialization can write even when it fails; use
+the recovery procedure below for partial failure. The next normal start observes
+the same durable ledger and persisted definitions.
+
+Start the candidate under the deployment's process supervisor:
+
+```sh
+REDBOX_APPLICATION_CONFIG=/abs/deployment.cjs node app.express.cjs
+curl --fail http://127.0.0.1:1500/healthz
+curl --fail http://127.0.0.1:1500/readyz
+```
+
+Use the configured port and root context for user routes; health/readiness paths
+are unprefixed. `/healthz` alone does not prove readiness. Route `/readyz`
+explicitly through any deployment proxy. Require readiness 200 and verify fresh
+login/providers, role/brand isolation, existing records/forms/workflows,
+bytes/uploads, jobs and progress clients before opening ingress. A normal start
+also runs initialization; never run two candidates as concurrent upgraders.
+
+Exercise restart and graceful stop while maintenance remains active. Send SIGTERM
+to the supervised Node process (or use `docker stop` with sufficient grace),
+require successful drain and exit 0, then repeat startup/readiness/public probes.
+A listener close or elapsed container timeout is not evidence of successful
+resource cleanup. Keep the actual Sails entrypoint `app.js` only for isolated
+comparison runs until P8; never start it against a database modified by v6.
 
 Use the v6 session name/secret and require fresh login. Do not delete account,
 membership, record or upload/staging state to invalidate sessions. Drain old
