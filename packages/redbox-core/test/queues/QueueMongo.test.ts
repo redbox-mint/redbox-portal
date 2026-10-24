@@ -408,7 +408,13 @@ describe('standalone Agenda lifecycle on MongoDB', function () {
     await assert.rejects(queue.now('audit'), /draining/);
     assert.throws(() => getReferenceRepositories(owner), /not been initialized/);
     await failedStop;
-    if (ownDeadline) await assert.rejects(queue.drain(), /deadline/);
+    if (ownDeadline) {
+      await assert.rejects(queue.drain(), /deadline/);
+      // The first attempt deliberately expires the queue's own deadline. Allow
+      // real backend finalization on retry; completing Mongo I/O within 25 ms
+      // is not part of the admission contract being exercised.
+      Reflect.set(queue, 'drainTimeoutMs', 5000);
+    }
     assert.equal(app.status().cleanupPending, true);
     assert.equal(app.status().stopFailed, true);
     assert(persistenceStatus(owner).pools > 0);
