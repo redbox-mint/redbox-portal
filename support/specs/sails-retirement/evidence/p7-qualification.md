@@ -8,7 +8,7 @@ The unrelated untracked GraphQL specification was left untouched.
 ## Source and exact tools
 
 - Starting source: `4249667dcec90f49cf4302c77f0d568e2c1b4948`.
-- Final corrected compiled application and clean package/image source:
+- Earlier corrected component and clean package/image source:
   **`58f7cbbd60e23881cdfea9fbcb712ab2b01914ca`**. Database drivers originated in
   `513bd8505`; recovery drivers/runbook in `cb10596b1`. Historical runs at the
   starting source are identified separately; they are not relabeled as final-source
@@ -172,44 +172,49 @@ forms and smoke. This is inventory, not browser execution. There are **331 track
 an inventory count (including two environment files), not executed requests or
 assertions.
 
-**Full existing Bruno collections/general/OIDC/S3 profiles, `test/playwright`,
-and root Mocha integration have not run against a production Express portal.**
-The installed production composition required to run them is missing:
+### Subsequent production integration (current P7 work)
 
-- `app.js`, `npm start` and Docker `CMD` still generate shims/lift Sails.
-- `test/bootstrap.test.ts` imports/lifts Sails. Existing compose/browser runners
-  start the same comparison path; changing an image tag would not change hosts.
-- `src/extensions/composition.ts` accepts bound declarations, but no production
-  caller binds the complete core/domain/provider graph and all bootstrap work.
-- `src/configuration/deployment.ts` deliberately defines operational sections
-  only. A complete domain configuration/schema/default composition is absent.
-- `ExpressHost.prepare` explicitly supplies a partial composition. Existing
-  `mongoFixture`, `pilotFixture`, `recordWriteFixture`, `pageFixture` and
-  `browserPagesHost` create synthetic users/forms, ensure indexes during setup
-  and bind test-only/throwing collaborators. Promoting them would bypass the
-  agreed bootstrap/configuration/persistence gate.
+The earlier missing-composition audit has been addressed by the production
+`app.express.cjs` executable and selected application/configuration/provider/HTTP
+assembly. Its implementation and incremental results are recorded in
+[production composition](p7-production-composition.md). The old component matrix,
+packed artifacts and image results above/below remain historical results for
+**58f7cbb**, not qualifications of the later complete portal.
 
-To close SR-046, implement that installed composition (including the selected
-bundled hook bindings, real domain/bootstrap operations, all routes/policies,
-background/provider ownership and installed page artifacts), expose its tested
-entrypoint to the unchanged broad clients, then run all required profiles and
-resolve their actual regressions. No existing test was weakened or skipped in
-this round. Focused P4–P6 suites are not relabeled as the requested full suites.
+The complete existing Playwright suite actually executed against the production
+Express listener: **114 passing / 10 failing / 0 skipped, 124 total, 22.3 minutes**
+(`playwright-production-fourth.log`). Nine failures involve dashboard/search
+consumers; eight are associated with the stale generated asset tree. Search page
+2 returned **2 records / totalItems 12**, but omitted the controller-owned `page`
+field, causing the client to reset pagination. The host correction retains that
+field. F09's exact missing-record diagnostics are converted from legacy 500 to
+v6 404; all downstream/recovery assertions remain. Fresh compiled/assets focused
+and complete reruns are required.
 
-Reproduce the entrypoint/composition audit with:
+The twelfth full root Mocha diagnostic finished **416 passing / 10 unchanged
+pending / 6 failing**, exit 6 (`mocha-production-twelfth.log`). Five failures were
+remaining explicit anonymous 403-to-401 conversions; the sixth was a target with
+no brand membership, corrected without loosening the production tenant check.
+The focused actual Express access suite passed **13/0/0**. These diagnostic runs
+used a per-process transpile loader; the subsequent full compiled-source run
+uses `run-mocha-express.sh` without that override. The subsequent full compiled-source run completed **422 passing / 10 unchanged
+pending / 0 failing, 47 seconds, exit 0**, with zero retained pools/clients/operations
+at stop (`mocha-production-thirteenth.log`). Existing pending publisher/live
+external cases do not count as successful coverage.
 
-```sh
-rg -n 'sails|generateAllShims|\.lift' app.js test/bootstrap.test.ts
-rg -n 'new ExpressHost|composeExtensionApplication' packages/redbox-core/src packages/redbox-core/test
-rg -n 'CMD|npm ci|npm install' Dockerfile
-```
+The actual full production database runner at **b53a3d06f** passed both Mongo8
+standalone/independent-three-member-set portal rows (including elections on both
+sets), then passed Mongo9 standalone portal checks but failed **1 of 12** existing
+lifecycle tests at its unchanged queue drain deadline. It exited **1** and did
+**not** execute Mongo9 replica. Three focused unchanged Mongo9 drain runs passed
+(1/0/0 each; 7 s, 7 s, 6 s), with diagnostic instrumentation and no timeout edits.
+The complete production matrix still requires a green rerun. Logs:
+`.tmp/sails-retirement/p7/database-b53a3d06f/` and `queue-drain-focused-{1,2,3}.log`.
 
-The dependency discovered here is production integration of the extracted
-modules, not an external service or permission requirement. Its absence leaves
-SR-046 and the portal portions of SR-047–049 incomplete independently of SR-005.
-The next implementation must use real configuration/bootstrap/provider bindings
-and installed artifacts; the existing fixtures are reference tests, not a safe
-production composition to promote.
+Actual full general/OIDC/S3 Compose profiles, clean installed full-portal artifacts,
+complete v5-to-v6 cutover/recovery and final promotion remain qualification gates.
+Their new runners preserve the real host, CSRF and existing assertions. Presence
+of those runners or a local partial collection result does not satisfy acceptance.
 
 The subsequent application-owned administrator/path-rule extraction and unchanged
 core rerun are recorded in [identity bootstrap evidence](p7-identity-bootstrap.md).

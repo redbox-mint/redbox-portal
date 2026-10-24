@@ -1,15 +1,18 @@
 # Sails retirement: v6 task list
 
 Status: SR-001–SR-044 are complete except SR-005, which awaits institution and
-production-source designation. P6 includes owned pages/installed artifacts and
-real browser/provider lifetime qualification, under the accepted single-instance
-Companion adapter limits. P7 is in progress: the selected database/topology matrix and released-v5
-checkpoint recovery have passed at component scope; clean corrected-source package
-and runtime-image builds and installed-component qualification have passed. Expanded existing-core regression is 4481 passing /
-7 unchanged explicitly pending / 0 failing. No P7 acceptance is yet claimed;
-the installed production Express composition now runs actual selected domains,
-pages and APIs. Full existing-suite, production topology/artifact and complete
-cutover qualification remain prerequisites for promotion. P8 has not started.
+production-source designation. P7 is in progress. The installed production Express
+composition now runs the selected domains, bootstrap, pages, APIs and providers.
+The latest production matrix passed both MongoDB 8 rows and MongoDB 9 standalone
+portal checks, then failed one existing MongoDB 9 queue-drain regression; the
+MongoDB 9 replica row still requires execution. Existing Playwright completed
+114 passing / 10 failing / 0 skipped; fixes and fresh-assets reruns are in progress.
+Root Mocha now passes against the compiled Express host: 422 passing / 10
+unchanged pending / 0 failing. Full browser/provider qualification is in progress.
+Earlier full-core regression remains 4481 passing / 7 unchanged explicitly
+pending / 0 failing. No P7 acceptance or default promotion is claimed. Clean
+production artifacts and complete stand-in cutover/recovery remain open. P8 has
+not started.
 
 Read the [design](design.md) for behavior and the
 [implementation plan](implementation_plan.md) for delivery stages.
@@ -687,7 +690,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-045 — Execute the Node 26 and MongoDB 8+ qualification matrix.**
 
-  **Status:** partial; selected four-row Node/Mongo/FCV and physical split/three-member matrix is executed in [P7 evidence](evidence/p7-qualification.md#sr-045--database-matrix). Institution topology/TLS/auth and source designation remain SR-005.
+  **Status:** partial; earlier four-row component qualification passed. The production-host rerun passed both MongoDB 8 rows and MongoDB 9 standalone portal checks, then failed one existing queue-drain case; MongoDB 9 replica was not reached. Three focused unchanged drain reruns passed, and the complete matrix remains required; [P7 evidence](evidence/p7-qualification.md#sr-045--database-matrix). Institution topology/TLS/auth and source designation remain SR-005.
 
   **Depends on:** SR-005, SR-002, SR-025, SR-037, SR-044.
 
@@ -700,7 +703,7 @@ Read the [design](design.md) for behavior and the
 
 - [ ] **SR-046 — Run broad API, domain and browser regression.**
 
-  **Status:** partial; existing core regression passes 4481/7 unchanged explicitly pending/0 failing with all four real-Mongo environment inputs supplied; two persistence regressions were fixed without changing tests. The production composition and focused real HTTP/application runs now pass; the first full Bruno diagnostic executed 329 requests with 143 passing/173 failing/13 errors. Profile-accurate Bruno, Playwright and Mocha integration qualification remains in progress; [integration gate](evidence/p7-qualification.md#sr-046--existing-regression-and-the-integration-gate).
+  **Status:** partial; existing core regression passes 4481/7 unchanged pending/0 failing. The actual production Express portal ran full Playwright (114 passing/10 failing/0 skipped) and compiled-source root Mocha (422 passing/10 unchanged pending/0 failing). Browser corrections and reruns are in progress. Full general/OIDC/S3 Compose execution, clean production artifacts and complete cutover remain open; [integration evidence](evidence/p7-production-composition.md).
 
   **Depends on:** SR-003, SR-037, SR-044.
 

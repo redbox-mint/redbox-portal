@@ -448,3 +448,47 @@ resources and operations after stop (`mocha-route-access-second.log`). It used
 the diagnostic per-process transpile loader; final compiled-source full-suite
 qualification is still required. Changed runtime lint: **7 files, 0 warnings /
 0 errors**. No timeout or skip was added.
+
+### Compiled root integration result and browser pagination regression
+
+The thirteenth full root run uses the actual emitted core (ordinary `tsc`, no
+per-process transpile override), real selected Express instances/listener, and
+fresh disposable `sr_p7_mocha{,_storage,_agenda,_sessions}` databases on the owned
+Docker Mongo8 server, port 29511:
+
+```sh
+NODE_ENV=integrationtest \
+REDBOX_APPLICATION_CONFIG="$PWD/.tmp/sails-retirement/p7/regression-mocha.cjs" \
+REDBOX_SESSION_SECRET='<synthetic fixture secret>' \
+  bash support/integration-testing/run-mocha-express.sh
+```
+
+Result: **422 passing / 10 unchanged pending / 0 failing, 47 seconds, exit 0**.
+The host reports **0 pools / 0 Prisma clients / 0 operations / 0 resources** after
+stop. Raw log: `mocha-production-thirteenth.log`. The pending cases remain seven
+DOI publisher credential/prefix cases, one explicitly skipped legacy embargoed
+form, and two opt-in live DataCite/RVA service cases; they do not count as passed
+coverage. No skip, timeout extension or replacement domain behavior was added.
+
+Full Playwright run 4 finished **114 passing / 10 failing / 0 skipped, 22.3 min**.
+Its A19 trace proves a separate host regression: the page-2 search response has
+**2 records / totalItems 12**, but no `page`. The existing Angular consumer assigns
+`currentPage = response.page`; pagination then resets to the first page. The old
+controller explicitly added that field after Solr returned. `recordReads.ts`
+now returns the validated requested page alongside the unchanged search result.
+No client assertion or pagination behavior was changed. Core compilation and
+changed-route lint pass (zero warnings/errors).
+
+After refreshing `.tmp/public/angular` from the complete current `assets/angular`
+build, the first focused rerun passed all six dashboard startup/smoke checks.
+Four scenario cases failed because that restarted host omitted the existing
+`RBPORTAL_PLAYWRIGHT_SCENARIOS=true` fixture opt-in. This is a runner setup error,
+not acceptance evidence. The next host uses that opt-in and the configured local
+browser/provider stub addresses, matching the existing Playwright profile.
+
+With the existing scenario opt-in restored, the remaining four focused cases
+passed **4/4, 0 failures/skips, 2.2 min** (`playwright-focused-sixth.log`): A10
+workflow-dashboard persistence/rendering, A03 filters/sorting/pagination, A19
+search/page-2/open/refinement/reset and F09 failure/recovery. Combined with the
+six successful refreshed-asset startup/smoke cases, all ten original failures
+have now passed their focused reruns. Full 124-case qualification is still required.

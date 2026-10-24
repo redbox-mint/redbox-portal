@@ -314,23 +314,23 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
                   return { name, value: value as string | number | null };
                 });
               const rows = natural(query.rows, 10, 1);
+              const page = natural(query.page, 1, 1);
               if (rows > input.maxRows) throw new RecordReadError(400, 'Invalid pagination parameter.');
-              send(
-                await input.search.searchFuzzy(
-                  recordType.searchCore ?? scalar('core', 'default'),
-                  type,
-                  scalar('workflow'),
-                  scalar('searchStr'),
-                  entries('exactNames'),
-                  entries('facetNames'),
-                  brand,
-                  user,
-                  user.roles,
-                  input.returnFields,
-                  (natural(query.page, 1, 1) - 1) * rows,
-                  rows
-                )
+              const result = await input.search.searchFuzzy(
+                recordType.searchCore ?? scalar('core', 'default'),
+                type,
+                scalar('workflow'),
+                scalar('searchStr'),
+                entries('exactNames'),
+                entries('facetNames'),
+                brand,
+                user,
+                user.roles,
+                input.returnFields,
+                (page - 1) * rows,
+                rows
               );
+              send({ ...result, page });
               return;
             }
             case 'downloadRecs': {
