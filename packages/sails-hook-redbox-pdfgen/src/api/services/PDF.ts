@@ -834,7 +834,7 @@ export namespace Services {
                         else await Effect.runPromise(Fiber.interrupt(fiber));
                         await Effect.runPromise(Fiber.await(fiber));
                       })
-                      .catch(_error => this.dependencies.log._error('PDFService::Retry ownership failed.'));
+                      .catch(_error => this.dependencies.log.error('PDFService::Retry ownership failed.'));
                   });
                 });
               }
@@ -875,7 +875,7 @@ export namespace Services {
             this.generationTasks.delete(generationFiber);
           }
         })
-        .catch(_error => this.dependencies.log._error('PDFService::Generation ownership failed.'));
+        .catch(_error => this.dependencies.log.error('PDFService::Generation ownership failed.'));
 
       return of(record);
     }
