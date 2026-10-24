@@ -633,3 +633,16 @@ Default Docker still creates/removes its own rehearsal network. An externally
 supplied network is inspected, recorded and retained; the runner only removes
 networks it created. No service is replaced and no application input is bypassed.
 `bash -n` passes for the runner adjustment.
+
+### Existing S3 runner sandbox correction
+
+S3 Compose attempt one reached the healthy actual Express portal and real
+S3Mock, then its first pre-request helper failed with `ReferenceError: 'URL' is
+not defined`. Result: **0 requests passed / 1 failed / 6 bail-skipped**, **0/0
+tests**, not S3 acceptance. Bruno's default QuickJS sandbox lacks the `URL`
+global used by the P6 shared CSRF helper. The general runner already selects
+`--sandbox developer`. The S3 runner now selects the same trusted local Node
+helper environment. No collection request or assertion changes; session-bound
+CSRF remains required, and no product policy/token/storage check is bypassed.
+`bash -n` passes. Full S3 rerun required; log/JUnit:
+`bruno-s3-compose-first.{log,xml}` under `.tmp/sails-retirement/p7/`.
