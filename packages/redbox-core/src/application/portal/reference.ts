@@ -355,7 +355,7 @@ export function portalReferencePlan(
       repository: getConfigurationRepositories(owner),
       log,
       config,
-      getBrand: name => branding.get().getBrand(name),
+      getBrand: name => branding.get().getBrand(name) ?? branding.get().getBrandById(name)!,
       availableBrands: () => branding.get().getAvailable(),
     })
   );

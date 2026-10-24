@@ -367,7 +367,7 @@ async function preparePage(req: Request, res: Response, input: PagesHttpInput) {
   };
   locals.superPartial = (name: string) => render(name);
   locals.partial = (name: string, extra?: Record<string, unknown>) => render(name, extra);
-  const error = (status: 403 | 404 | 500): void => {
+  const error = (status: 403 | 404 | 500, data?: { message: string; detailedMessage: string }): void => {
     if (res.headersSent || res.writableEnded) {
       res.destroy();
       return;
@@ -379,7 +379,7 @@ async function preparePage(req: Request, res: Response, input: PagesHttpInput) {
     }
     try {
       locals.title = t('default-title') || 'Site';
-      res.type('html').send(render('layout', { body: render(String(status), { data: undefined }) }));
+      res.type('html').send(render('layout', { body: render(String(status), { data }) }));
     } catch {
       // An unavailable error template/layout must terminate without recursive rendering.
       input.log.warn('Page error artifact could not be rendered.');
@@ -408,4 +408,20 @@ export function mountPageNotFound(router: Router, input: PagesHttpInput): void {
       (await preparePage(req, res, input)).error(404);
     })
   );
+}
+
+/** Authentication callbacks use the same branded, CSP-protected error artifacts as pages. */
+export async function sendPageAuthenticationFailure(
+  req: Request,
+  res: Response,
+  input: PagesHttpInput,
+  reason: 'authorized-email-denied' | 'authentication-rejected'
+): Promise<void> {
+  (await preparePage(req, res, input)).error(403, {
+    message: 'error-auth',
+    detailedMessage:
+      reason === 'authorized-email-denied'
+        ? reason
+        : 'There was an issue with your user credentials, please try again.',
+  });
 }

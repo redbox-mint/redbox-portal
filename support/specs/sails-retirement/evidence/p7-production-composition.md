@@ -291,3 +291,58 @@ required before qualification. The local-auth test's logout locator is converted
 from a link to the actual CSRF-protected POST form button required by v6. Login,
 invalid-login and post-logout assertions remain unchanged. No browser test is
 skipped or allowed to ignore unexpected diagnostics.
+
+## Continuing full-suite diagnosis (2026-10-24)
+
+The eighth complete root integration invocation exercised the selected production
+Express domains: **339 passing / 10 pending / 50 failing**, exit **50**
+(`mocha-production-eighth.log`). These are diagnostic failures, not qualification.
+The test adapter had passed a raw Router to Supertest instead of the server's
+actual Express request listener. That causes `argument callback is required` in
+several HTTP suites. The adapter is being corrected; unchanged domain/HTTP
+assertions must be rerun before acceptance.
+
+The third Playwright diagnostic was interrupted after **53 passed / 15 failed /
+1 interrupted / 55 not run**, from the existing **124-test** suite. It is not a
+completed or green regression run. Its served Angular artifacts were stale
+(dashboard editor called retired `/info` while current source calls `/targets`).
+Both libraries and all twenty applications were rebuilt on Node **26.11.1** into
+an isolated scratch directory before replacing the generated local assets. The
+temporary host config also incorrectly enabled record-schema checking, unlike
+the existing Playwright Compose profile. The F06 trace proves that this produced
+schema warnings for intentionally null input values, not a failed metadata
+write. The next run uses the profile's default disabled schema setting, real RVA
+stub URL and 0.1-second Agenda polling; no browser assertion is removed.
+
+Actual host omissions found during this diagnosis:
+
+- The literal vocabulary manager page was shadowed by `/admin/vocabulary/:id`,
+  returning **400**. Literal page routes now precede parameterized API aliases,
+  retaining their existing authorization policies. The production-host verifier
+  includes an authenticated manager-page request.
+- The standalone form registry omitted core's `generated-view-only` definition.
+  Core definitions now precede the installed hook definitions in the same
+  registry; no parallel form generator is added.
+- Translation reload receives a branding ID, while its injected resolver accepted
+  names only. That cleared the existing instance without recreating it. The
+  selected resolver now supports the actual ID and name callers.
+- The real denied-email OIDC collection produced **12/13 requests and 16/17 tests
+  passing**, with the denied browser callback returning JSON **403**. The host now
+  negotiates the existing branded HTML error artifact for browser requests,
+  exposes only the allowlisted email-denial reason, and retains JSON for API
+  clients. Full rerun is required.
+- The selected email resolver omitted core's registered record operations, so a
+  successful notification could not call `record.updateNotificationLog`. It now
+  uses the explicit installed bindings or the selected named operation registry.
+
+`npm --prefix packages/redbox-core run build` passed (Prisma generation, portal
+schema check, TypeScript and generated-contract copy). A subsequent TypeScript
+emit with incremental state outside Git passed after the email resolver change.
+These build results do not replace the pending real-service reruns.
+
+The clean `4ffe349dc` Docker build was canceled with exit **130** after strict
+root installation (**2117 packages**) and during core installation, because this
+source predates the above fixes. No completed image or image qualification is
+claimed for that attempt. The system containerd snapshot walk had delayed it;
+an isolated containerd/Docker pair was started on the scratch disk without
+restarting the system daemon. No package or image was published.

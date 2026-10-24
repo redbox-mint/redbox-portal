@@ -275,6 +275,16 @@ export class PortalHttp implements ApplicationModule {
       audit: async (action, actor, req) => {
         await audit(actor, action, { brandId: brandForRequest(req).id });
       },
+      renderAuthenticationFailure: async (req, res, reason) => {
+        Object.assign(req.params, {
+          branding: req.session.branding ?? config.auth.defaultBrand,
+          portal: req.session.portal ?? config.auth.defaultPortal,
+        });
+        await policies.brandingandportal(req, res, () => {});
+        if (res.writableEnded) return;
+        await policies.browseractor(req, res, () => {});
+        await http.sendPageAuthenticationFailure(req, res, pages, reason);
+      },
       loginFailure: async req => {
         await providers.security.get().emitSecurityEvent({
           brandId: brandForRequest(req).id,
@@ -291,6 +301,35 @@ export class PortalHttp implements ApplicationModule {
       ],
       sessionCookie: { name: config.redboxSession.name, ...config.redboxSession.cookie },
     });
+    // Register literal page paths before parameterized API aliases (for example
+    // vocabulary/manager before vocabulary/:id). Each page retains its policies.
+    const pages: http.PagesHttpInput = {
+      ...shared,
+      artifacts: this.artifacts,
+      rootContext,
+      origin: this.origin,
+      environment: config.environment,
+      csp: config.csp,
+      forms: ref.forms.get(),
+      recordTypes: ref.types.get(),
+      dashboards: ref.dashboards.get(),
+      reports: ref.reports.get(),
+      loadRecord,
+      canCreate,
+      configModel: async key => {
+        const model = models.getModelInfo(key);
+        return model ? { title: model.title ?? model.modelName } : undefined;
+      },
+      settings: async brand => ({
+        ...ref.appConfigs.get().getAppConfigurationForBrand(brand.name ?? config.auth.defaultBrand),
+      }),
+      languages: brand => ref.entries.get().listLanguages(ref.branding.get().getBrandById(brand.id)!),
+      translate: (brand, language, key, values) => ref.translation.get().t(key, values, language, brand),
+      typeface: name => ref.branding.get().getActiveTypefaceFontInfo(name),
+      templateConfig: { ...config, appUrl: config.server.publicUrl + rootContext, rootContext },
+    };
+    http.mountPageRoot(router, rootContext, config.page.landingPath);
+    http.mountPageRoutes(router, pages);
     http.mountRecordTypeRoutes(router, {
       ...shared,
       recordTypes: ref.types.get(),
@@ -493,33 +532,6 @@ export class PortalHttp implements ApplicationModule {
       records: data.records.get(),
       sockets: this.sockets,
     });
-    const pages: http.PagesHttpInput = {
-      ...shared,
-      artifacts: this.artifacts,
-      rootContext,
-      origin: this.origin,
-      environment: config.environment,
-      csp: config.csp,
-      forms: ref.forms.get(),
-      recordTypes: ref.types.get(),
-      dashboards: ref.dashboards.get(),
-      reports: ref.reports.get(),
-      loadRecord,
-      canCreate,
-      configModel: async key => {
-        const model = models.getModelInfo(key);
-        return model ? { title: model.title ?? model.modelName } : undefined;
-      },
-      settings: async brand => ({
-        ...ref.appConfigs.get().getAppConfigurationForBrand(brand.name ?? config.auth.defaultBrand),
-      }),
-      languages: brand => ref.entries.get().listLanguages(ref.branding.get().getBrandById(brand.id)!),
-      translate: (brand, language, key, values) => ref.translation.get().t(key, values, language, brand),
-      typeface: name => ref.branding.get().getActiveTypefaceFontInfo(name),
-      templateConfig: { ...config, appUrl: config.server.publicUrl + rootContext, rootContext },
-    };
-    http.mountPageRoot(router, rootContext, config.page.landingPath);
-    http.mountPageRoutes(router, pages);
     const brandingDelivery = http.mountBrandingDeliveryRoutes(router, {
       ...shared,
       artifacts: this.artifacts,

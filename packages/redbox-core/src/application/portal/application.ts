@@ -28,6 +28,7 @@ import type { RecordModel } from '../../model/storage/RecordModel';
 import { portalDataPlan } from './data';
 import { portalProviderPlan } from './providers';
 import { portalRecordOperations } from './recordOperations';
+import { FormConfigExports as coreForms } from '../../form-config';
 
 /** The optional PDF extension receives concrete selected ports, never an application locator. */
 export interface PortalPdfInput {
@@ -92,7 +93,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
   });
   const owner: PersistenceOwner = { config, log: options.log };
   const models = new ConfigModelRegistry();
-  const forms: Record<string, unknown> = {};
+  const forms: Record<string, unknown> = { ...coreForms };
   for (const provider of installed.providers) {
     Object.assign(forms, provider.declaration.forms);
     for (const item of provider.declaration.configModels ?? []) {
@@ -143,7 +144,11 @@ export async function createPortalApplication(options: PortalApplicationOptions)
   const providers = portalProviderPlan(owner, config, options.log, data, {
     env: options.env ?? process.env,
     retainFollowup,
-    resolveEmailHook: name => lookup(options.bindings?.emailOperations, name, 'email operation'),
+    resolveEmailHook: name => {
+      const callback = options.bindings?.emailOperations?.[name] ?? resolveHook(name);
+      if (typeof callback !== 'function') throw new Error('Invalid email operation: ' + name);
+      return (...args) => callback(...args);
+    },
   });
   const operations = portalRecordOperations({
     triggers: () => data.triggers.get(),

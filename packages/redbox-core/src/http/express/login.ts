@@ -1,5 +1,5 @@
 import type { createHttpAuthentication } from './authentication';
-import type { Request, RequestHandler, Router } from 'express';
+import type { Request, Response, RequestHandler, Router } from 'express';
 import type { HttpIdentity, AuthenticatedActor } from './identity';
 import { AuthenticationRejected } from '../../authentication/Accounts';
 import { apiNoCacheHeaders } from './responses';
@@ -32,6 +32,11 @@ export interface AuthenticationHttpInput {
   readonly logoutOrigins?: readonly string[];
   audit(action: 'login' | 'logout', actor: AuthenticatedActor, req: Request): Promise<void>;
   loginFailure(req: Request): Promise<void>;
+  renderAuthenticationFailure?(
+    req: Request,
+    res: Response,
+    reason: 'authorized-email-denied' | 'authentication-rejected'
+  ): Promise<void>;
   readonly csrf: RequestHandler;
   readonly credentialFields?: readonly [string, string];
   readonly sessionCookie?: { readonly name: string; readonly path?: string; readonly domain?: string };
@@ -89,11 +94,14 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
         )(req, res, reject);
       });
       let actor: AuthenticatedActor | false = false;
+      let deniedReason: 'authorized-email-denied' | 'authentication-rejected' = 'authentication-rejected';
       try {
         const user = await authenticating;
         if (user && typeof user === 'object' && typeof Reflect.get(user, 'id') === 'string')
           actor = await input.identity.session(Reflect.get(user, 'id'));
       } catch (error) {
+        if (error instanceof AuthenticationRejected && error.message === 'authorized-email-denied')
+          deniedReason = 'authorized-email-denied';
         if (
           !(error instanceof AuthenticationRejected) &&
           !(error instanceof Error && error.message === 'Account is disabled') &&
@@ -107,6 +115,8 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
       if (!actor) {
         await input.loginFailure(req);
         if (local) res.set(apiNoCacheHeaders).json({ message: 'Incorrect username/password', user: false });
+        else if (input.renderAuthenticationFailure && req.accepts(['html', 'json']) === 'html')
+          await input.renderAuthenticationFailure(req, res, deniedReason);
         else res.set(apiNoCacheHeaders).status(403).json({ message: 'Authentication rejected', user: false });
         return;
       }

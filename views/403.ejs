@@ -32,6 +32,7 @@
 
 
 %>
+<% const errorData = typeof data === 'undefined' ? req.session.data : data; %>
 <div class="container">
   <div class="row">
     <div class="col-xs-2"></div>
@@ -42,20 +43,20 @@
          </div>
          <div class="panel-body">
            <p>
-             <% if( typeof req.session.data == 'undefined') { %>
+             <% if( typeof errorData == 'undefined') { %>
               You don't have permission on this page, please contact an administrator.
-            <% } else if( typeof req.session.data == 'object') { %>
-              <%= page.t(req.session.data.message) %>
+            <% } else if( typeof errorData == 'object') { %>
+              <%= page.t(errorData.message) %>
             </p>
             <p>
-              <% if( req.session.data.interpolation === true) { %>
-                <%= page.t(req.session.data.detailedMessage, req.session.data.interpolationObj) %>
+              <% if( errorData.interpolation === true) { %>
+                <%= page.t(errorData.detailedMessage, errorData.interpolationObj) %>
                <% }  else { %>
-                 <%= page.t(req.session.data.detailedMessage) %>
+                 <%= page.t(errorData.detailedMessage) %>
                <% } %>
 
             <% }  else { %>
-              <%= page.t(req.session.data) %>
+              <%= page.t(errorData) %>
             <% } %>
            </p>
            <p>

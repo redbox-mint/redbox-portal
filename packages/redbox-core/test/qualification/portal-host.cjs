@@ -150,6 +150,7 @@ test(
         Accept: 'application/json',
         'X-Source': 'jsclient',
       };
+      await request('/default/rdmp/admin/vocabulary/manager', { headers });
       for (const path of ['/api/recordtypes', '/api/forms', '/api/forms/get?name=dataPublication-1.0-draft'])
         await request('/default/rdmp' + path, { headers });
       const created = await request(
